@@ -48,7 +48,13 @@ import os
 import binascii
 import gdb
 
+# Relative imports
+import gef.vmmap
+import gef.dt
+import gef.memory
+import gef.elf
 
+'''
 if sys.version_info.major == 2:
     import HTMLParser
     import itertools
@@ -74,6 +80,14 @@ __aliases__ = {}
 __config__ = {}
 NO_COLOR = False
 
+# Quickly determine which version is running
+python2 = sys.version_info.major == 2
+python3 = sys.version_info.major == 3
+
+# Access to various types
+ul = gdb.lookup_type('unsigned long')
+sz = gdb.lookup_type('char').pointer()
+
 
 class GefGenericException(Exception):
     def __init__(self, value):
@@ -88,42 +102,6 @@ class GefUnsupportedMode(GefGenericException): pass
 class GefUnsupportedOS(GefGenericException): pass
 
 
-# https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
-class memoize(object):
-    """Custom Memoize class with resettable cache"""
-
-    def __init__(self, func):
-        self.func = func
-        self.is_memoized = True
-        self.cache = {}
-        return
-
-    def __call__(self, *args):
-        if args not in self.cache:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-        return self.func(*args)
-
-    def __repr__(self):
-        return self.func.__doc__
-
-    def __get__(self, obj, objtype):
-        fn = functools.partial(self.__call__, obj)
-        fn.reset = self._reset
-        return fn
-
-    def reset(self):
-        self.cache = {}
-        return
-
-
-def reset_all_caches():
-    for s in dir(sys.modules['__main__']):
-        o = getattr(sys.modules['__main__'], s)
-        if hasattr(o, "is_memoized") and o.is_memoized:
-            o.reset()
-    return
 
 
 # let's get fancy
@@ -340,16 +318,24 @@ def gef_execute(command, as_list = False):
         return output
 
 
-def gef_execute_external(command, as_list=False):
-    if as_list :
-        return subprocess.check_output(command,
-                                       stderr=subprocess.STDOUT,
-                                       shell=True).splitlines()
-    else:
-        return subprocess.check_output(command,
-                                       stderr=subprocess.STDOUT,
-                                       shell=True)
+def gef_execute_external(command, as_list=False, stdin=''):
+    process = subprocess.Popen(command,
+                               stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
+                               shell=True)
 
+    stdout, stderr = process.communicate(stdin)
+    return_code    = process.wait()
+
+    if return_code != 0:
+        raise Exception("%r exited with return code %r\n" + \
+                        "It had this on stdout: %r" % (command, return_code, stdout))
+
+    if as_list:
+        stdout = stdout.splitlines()
+
+    return stdout
 
 def disassemble_parse(name, filter_opcode=None):
     lines = [x.split(":", 1) for x in gdb_exec("disassemble %s" % name).split('\n') if "0x" in x]
@@ -440,10 +426,10 @@ def write_memory(address, buffer, length=0x10):
 
 
 def read_memory(addr, length=0x10):
-    if sys.version_info.major == 2:
-        return gdb.selected_inferior().read_memory(addr, length)
-    else:
-        return gdb.selected_inferior().read_memory(addr, length).tobytes()
+    result = gdb.selected_inferior().read_memory(addr, length)
+    if python3:
+        result = result.tobytes()
+    return bytearray(result)
 
 
 def read_memory_until_null(address):
@@ -520,11 +506,15 @@ def get_register(regname):
     @param regname : expected register
     @return register value
     """
-    t = gdb.lookup_type("unsigned long")
-    reg = gdb.parse_and_eval(regname)
-    ret = reg.cast(t)
-    return long(ret)
+    return int(gdb.parse_and_eval(regname))
 
+class Registers():
+    def __getattr__(self, attr):
+        if is_alive():
+            return get_register('$' + attr.rstrip('$'))
+        return 0
+
+registers = Registers()
 
 @memoize
 def get_pid():
@@ -541,8 +531,30 @@ def get_process_maps():
     pid = get_pid()
     sections = []
 
-    try:
-        f = open('/proc/%d/maps' % pid)
+    mapping = gdb.execute('info proc mapping', to_string=True)
+
+    # Format looks like this:
+    # gef> info proc mapping
+    # process 47863
+    # Mapped address spaces:
+    #
+    #           Start Addr           End Addr       Size     Offset objfile
+    #             0x400000           0x4ef000    0xef000        0x0 /bin/bash
+    #             0x6ef000           0x6f0000     0x1000    0xef000 /bin/bash
+    #             0x6f0000           0x6f9000     0x9000    0xf0000 /bin/bash
+    #             0x6f9000           0x6ff000     0x6000        0x0 [heap]
+    #       0x7ffff75e7000     0x7ffff77a2000   0x1bb000        0x0 /lib/x86_64-linux-gnu/libc-2.19.so
+
+
+    # FreeBSD does not support 'info proc mapping', or indeed
+    # even have /proc/$pid/map.
+    if "Not supported on this target." == mapping:
+        return get_info_sections() + get_info_sharedlibrary()
+
+
+    # Skip the first four lines
+    for line in mapping.splitlines()[3:]:
+
         while True:
             line = f.readline()
             if len(line) == 0:
@@ -573,8 +585,6 @@ def get_process_maps():
 
             sections.append( section )
 
-    except IOError:
-        sections = get_info_sections()
 
     return sections
 
@@ -846,7 +856,7 @@ def is_in_x86_kernel(address):
 # breakpoints
 #
 class FormatStringBreakpoint(gdb.Breakpoint):
-    ''' Inspect stack for format string '''
+    """ Inspect stack for format string """
     def __init__(self, spec, num_args):
         super(FormatStringBreakpoint, self).__init__(spec, gdb.BP_BREAKPOINT, internal=False)
         self.num_args = num_args
@@ -957,16 +967,6 @@ class GenericCommand(gdb.Command):
         del ( __config__[ key ] )
         return
 
-
-
-# class TemplateCommand(GenericCommand):
-    # """TemplaceCommand: add description here."""
-
-    # _cmdline_ = "template-fake"
-    # _syntax_  = "%s" % _cmdline_
-
-    # def do_invoke(self, argv):
-        # return
 
 
 class DumpMemoryCommand(GenericCommand):
@@ -1293,128 +1293,6 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
 
-class CtfExploitTemplaterCommand(GenericCommand):
-    """Generates a ready-to-use exploit template for CTF."""
-
-    _cmdline_ = "ctf-exploit-templater"
-    _syntax_  = "%s HOST PORT [/path/exploit.py]" % _cmdline_
-
-    def __init__(self):
-        super(CtfExploitTemplaterCommand, self).__init__()
-        self.add_setting("exploit_path", "./gef-exploit.py")
-        return
-
-    def do_invoke(self, argv):
-        argc = len(argv)
-
-        if argc not in (2, 3):
-            err("%s" % self._syntax_)
-            return
-
-        host, port = argv[0], argv[1]
-        path = argv[2] if argc==3 else self.get_setting("exploit_path")
-
-        with open(path, "w") as f:
-            f.write( CTF_EXPLOIT_TEMPLATE % (host, port) )
-
-        info("Exploit script written as '%s'" % path)
-        return
-
-
-class ROPgadgetCommand(GenericCommand):
-    """ROPGadget (http://shell-storm.org/project/ROPgadget) plugin"""
-
-    _cmdline_ = "ropgadget"
-    _syntax_  = "%s  [OPTIONS]" % _cmdline_
-
-
-    def __init__(self):
-        super(ROPgadgetCommand, self).__init__()
-        return
-
-    def pre_load(self):
-        self.add_setting("ropgadget_path", os.getenv("HOME") + "/code/ROPgadget")
-
-        if sys.version_info.major == 3:
-            raise GefGenericException("ROPGadget doesn't support Python3 yet")
-
-        ropgadget_path = self.get_setting("ropgadget_path")
-
-        if not os.path.isdir(ropgadget_path):
-            self.del_setting( "ropgadget_path" )
-            raise GefMissingDependencyException("Failed to import ROPgadget (check path)")
-
-        try:
-            sys.path.append( ropgadget_path )
-            import ROPgadget
-
-        except ImportError as ie:
-            self.del_setting( "ropgadget_path" )
-            raise GefMissingDependencyException("Failed to import ROPgadget: %s" % ie)
-
-        return
-
-
-    def do_invoke(self, argv):
-        ROPgadget = sys.modules['ROPgadget']
-
-        class FakeArgs(object):
-            binary = None
-            string = None
-            opcode = None
-            memstr = None
-            console = None
-            norop = None
-            nojop = None
-            depth = 10
-            nosys = None
-            range = "0x00-0x00"
-            badbytes = None
-            only = None
-            filter = None
-            ropchain = None
-            offset = 0x00
-            outfile = None
-            thumb = None
-            rawArch = None
-            rawMode = None
-
-        args = FakeArgs()
-        self.parse_args(args, argv)
-        ROPgadget.Core( args ).analyze()
-        return
-
-
-    def parse_args(self, args, argv):
-        info("ROPGadget options")
-        # options format is 'option_name1=option_value1'
-        for opt in argv:
-            name, value = opt.split("=", 1)
-            if hasattr(args, name):
-                if name == "console":
-                    continue
-                elif name == "depth":
-                    value = long(value)
-                    depth = value
-                    info("Using depth %d" % depth)
-                elif name == "offset":
-                    value = long(value, 16)
-                    info("Using offset %#x" % value)
-                elif name == "range":
-                    off_min = long(value.split('-')[0], 16)
-                    off_max = long(value.split('-')[1], 16)
-                    if off_max < off_min:
-                        raise ValueError("Value2 must be higher that Value1")
-                    info("Using range [%#x:%#x] (%ld bytes)" % (off_min, off_max, (off_max-off_min)))
-
-                setattr(args, name, value)
-
-        if not hasattr(args, "binary") or getattr(args, "binary") is None:
-            setattr(args, "binary", get_filename())
-
-        info("Using binary: %s" % args.binary)
-        return
-
 
 class FileDescriptorCommand(GenericCommand):
     """Enumerate file descriptors opened by process."""
@@ -1448,35 +1326,24 @@ class AssembleCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__()
-        self.add_setting("arch", "x86")
         return
 
 
     def pre_load(self):
         try:
-            import r2, r2.r_asm
-        except ImportError:
-            raise GefMissingDependencyException("radare2 Python bindings could not be loaded")
-
+            gef_execute_external('asm --help')
+        except:
+            raise GefMissingDependencyException("pwntools is not installed")
 
     def do_invoke(self, argv):
-        if len(argv)==0 or (len(argv)==1 and argv[0]=="list"):
-            self.usage()
-            err("Modes available:\n%s" % gef_execute_external("rasm2 -L; exit 0"))
-            return
+        return gef_execute_external('asm -c %s' % self.get_setting("arch"), stdin=" ".join(argv))
 
-        mode = self.get_setting("arch")
-        instns = " ".join(argv)
-        info( "%s" % self.assemble(mode, instns) )
-        return
-
-
-    def assemble(self, mode, instructions):
-        r2 = sys.modules['r2']
-        asm = r2.r_asm.RAsm()
-        asm.use(mode)
-        opcode = asm.massemble( instructions )
-        return None if opcode is None else opcode.buf_hex
+    # def assemble(self, mode, instructions):
+    #     r2 = sys.modules['r2']
+    #     asm = r2.r_asm.RAsm()
+    #     asm.use(mode)
+    #     opcode = asm.massemble( instructions )
+    #     return None if opcode is None else opcode.buf_hex
 
 
 class InvokeCommand(GenericCommand):
@@ -2495,9 +2362,7 @@ class GEFCommand(gdb.Command):
                         InvokeCommand,
                         AssembleCommand,
                         FileDescriptorCommand,
-                        ROPgadgetCommand,
                         InspectStackCommand,
-                        CtfExploitTemplaterCommand,
                         ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
                         DetailRegistersCommand,
                         SolveKernelSymbolCommand,
@@ -2621,8 +2486,7 @@ class GEFCommand(gdb.Command):
 
 
 
-
-if __name__  == "__main__":
+def main():
     GEF_PROMPT = Color.boldify(Color.redify("gef> "))
 
     # setup config
@@ -2675,95 +2539,7 @@ if __name__  == "__main__":
     # post-loading stuff
     define_user_command("hook-stop", "context")
 
-
-################################################################################
-##
-##  CTF exploit templates
-##
-CTF_EXPLOIT_TEMPLATE = """#!/usr/bin/env python2
-import socket, struct, sys, telnetlib, binascii
-
-HOST = "%s"
-PORT = %s
-
-DEBUG = True
-
-def xor(data, key):
-    return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
-def hexdump(src, length=0x10):
-    f=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
-    n=0
-    result=''
-    while src:
-       s,src = src[:length],src[length:]
-       hexa = ' '.join(["%%02X"%%ord(x) for x in s])
-       s = s.translate(f)
-       result += "%%04X   %%-*s   %%s\\n" %% (n, length*3, hexa, s)
-       n+=length
-    return result
-def i_s(i): return struct.pack("<I", i)
-def i_u(i): return struct.unpack("<I", i)[0]
-def q_s(i): return struct.pack("<Q", i)
-def q_u(i): return struct.unpack("<Q", i)[0]
-def h_s(i): return struct.pack("<H", i)
-def h_u(i): return struct.unpack("<H", i)[0]
-def err(msg): print(("[!] %%s" %% msg))
-def ok(msg): print(("[+] %%s" %% msg))
-def debug(msg, in_hexa=False):
-    if DEBUG:
-        if not in_hexa:
-            print(("[*] %%s" %% msg))
-        else:
-            print(("[*] Hexdump:\\n%%s" %% hexdump(msg)))
-
-
-def grab_banner(s):
-    data = s.recv(1024)
-    debug("Received %%d bytes: %%s" %% (len(data), data))
-    return data
-
-def recv_until(s, pattern="", blocking=False):
-    buffer = ""
-    while True:
-        data = s.recv(1024)
-        if data < 0: break
-        if data == 0 and not blocking: break
-        buffer += data
-        if buffer.endswith(pattern): break
-    debug("Received %%d bytes until pattern" %% len(buffer))
-    return buffer
-
-def build_socket(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
-    ok("Connected to %%s:%%d" %% (host, port))
-    return s
-
-def interact(s):
-    t = telnetlib.Telnet()
-    t.sock = s
-    try:
-        t.interact()
-    except KeyboardInterrupt:
-        ok("Leaving")
-    t.close()
-    return
-
-def pwn(s):
-    #
-    # add your l337 stuff here
-    #
-    return True
-
-if __name__ == "__main__":
-    s = build_socket(HOST, PORT)
-    banner = grab_banner(s)
-    if pwn(s):
-        ok("Got it, interacting (Ctrl-C to break)")
-        interact(s)
-    else:
-        err("Failed to exploit")
-    exit(0)
-
-# auto-generated by {0}
-""".format(__file__)
+'''
+def main(): pass
+if __name__  == "__main__":
+    main()
