@@ -43,7 +43,7 @@ Elf64_Phdr f;
 
 subprocess.check_output('gcc -c -g %s.c -o %s.o' % (gef_elf, gef_elf), shell=True)
 
-def load(pointer):
+def load(pointer, objfile=''):
     """
     Given a pointer into an ELF module, return a list of all loaded
     sections in the ELF.
@@ -140,7 +140,6 @@ def load(pointer):
     pages.sort()
     prev = pages[0]
     for page in list(pages[1:]):
-
         if (prev.flags & PF_W) == (page.flags & PF_W) and prev.vaddr+prev.memsz == page.vaddr:
             prev.memsz += page.memsz
             pages.remove(page)
@@ -158,5 +157,9 @@ def load(pointer):
             gaps.append(gef.memory.Page(a_end, b_begin-a_end, 0, b.offset))
 
     pages.extend(gaps)
+
+    for page in pages:
+        page.objfile = objfile
+
     pages.sort()
     return pages

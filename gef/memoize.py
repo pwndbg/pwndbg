@@ -3,15 +3,13 @@ import gdb
 import functools
 import sys
 
-caches = []
-
 class memoize(object):
     caches = []
 
     def __init__(self, func):
         self.func  = func
         self.cache = {}
-        self.caches.append(self.cache)
+        self.caches.append(self)
 
     def __call__(self, *args):
         if not isinstance(args, collections.Hashable):
@@ -33,8 +31,11 @@ class memoize(object):
 
     @staticmethod
     def reset():
-        for cache in memoize.caches:
-            cache.clear()
+        print("Evicting cache")
+        for obj in memoize.caches:
+            if obj.cache:
+                print(obj.func)
+                obj.cache.clear()
 
 def reset(*a):
     memoize.reset()

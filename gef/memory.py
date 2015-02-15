@@ -71,11 +71,12 @@ class Page(object):
     flags   = 0 #: Flags set by the ELF file, see PF_X, PF_R, PF_W
     offset  = 0 #: Offset into the original ELF file that the data is loaded from
     objfile = None #: Path to the ELF on disk
-    def __init__(self, start, size, flags, offset):
+    def __init__(self, start, size, flags, offset, objfile=None):
         self.vaddr  = start
         self.memsz  = size
         self.flags  = flags
         self.offset = offset
+        self.objfile = objfile
     @property
     def read(self):
         return bool(self.flags & 4)
@@ -113,3 +114,5 @@ class Page(object):
         return self.vaddr == getattr(other, 'vaddr', other)
     def __lt__(self, other):
         return self.vaddr < getattr(other, 'vaddr', other)
+    def __hash__(self):
+        return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
