@@ -6,12 +6,16 @@ import gef.memoize
 
 class module(ModuleType):
     @property
-    @gef.memoize.memoize
+    @gef.memoize.reset_on_exit
     def pid(self):
         i = gdb.selected_inferior()
         if i is not None:
             return i.pid
         return 0
+
+    @property
+    def alive(self):
+        return self.pid > 0
 
 # To prevent garbage collection
 tether = sys.modules[__name__]

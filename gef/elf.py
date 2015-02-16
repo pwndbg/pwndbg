@@ -14,8 +14,12 @@ import re
 import subprocess
 import tempfile
 
-import gef.dt
+import gef.events
+import gef.info
 import gef.memory
+import gef.memoize
+import gef.stack
+import gef.auxv
 
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
@@ -34,8 +38,6 @@ with open(gef_elf + '.c', 'w+') as f:
     f.write('''#include <elf.h>
 Elf32_Ehdr a;
 Elf64_Ehdr b;
-Elf32_Shdr c;
-Elf64_Shdr d;
 Elf32_Phdr e;
 Elf64_Phdr f;
 ''')
@@ -43,7 +45,129 @@ Elf64_Phdr f;
 
 subprocess.check_output('gcc -c -g %s.c -o %s.o' % (gef_elf, gef_elf), shell=True)
 
-def load(pointer, objfile=''):
+@gef.memoize.reset_on_exit
+def exe():
+    """
+    Return a loaded ELF header object pointing to the Ehdr of the
+    main executable.
+    """
+    elf = None
+    ptr = entry()
+    return load(ptr)
+
+@gef.memoize.reset_on_exit
+def entry():
+    """
+    Return the address of the entry point for the main executable.
+    """
+    entry = gef.auxv.get().AT_ENTRY
+    if entry:
+        return entry
+
+    # Looking for this line:
+    # Entry point: 0x400090
+    for line in gef.info.files().splitlines():
+        if "Entry point" in line:
+            return int(line.split()[-1], 16)
+
+    # Try common names
+    for name in ['_start', 'start', '__start', 'main']:
+        try:
+            return int(gdb.parse_and_eval(name))
+        except gdb.error:
+            pass
+
+    # Can't find it, give up.
+    return 0
+
+
+def load(pointer):
+    return get_ehdr(pointer)[1]
+
+def get_ehdr(pointer):
+    """
+    Given a pointer into an ELF module, return a list of all loaded
+    sections in the ELF.
+
+    Returns:
+        A tuple containing (ei_class, gdb.Value).
+        The gdb.Value object has type of either Elf32_Ehdr or Elf64_Ehdr.
+
+    Example:
+
+        >>> gef.elf.load(gdb.parse_and_eval('$pc'))
+        [Page('400000-4ef000 r-xp 0'),
+         Page('6ef000-6f0000 r--p ef000'),
+         Page('6f0000-6ff000 rw-p f0000')]
+        >>> gef.elf.load(0x7ffff77a2000)
+        [Page('7ffff75e7000-7ffff77a2000 r-xp 0x1bb000 0'),
+         Page('7ffff77a2000-7ffff79a2000 ---p 0x200000 1bb000'),
+         Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
+         Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
+    """
+    gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
+
+    Elf32_Ehdr = gdb.lookup_type('Elf32_Ehdr')
+    Elf64_Ehdr = gdb.lookup_type('Elf64_Ehdr')
+
+    # Align down to a page boundary, and scan until we find
+    # the ELF header.
+    base = gef.memory.page_align(pointer)
+    data = gef.memory.read(base, 4)
+
+    try:
+        while data != b'\x7FELF':
+            base -= gef.memory.PAGE_SIZE
+            data = gef.memory.read(base, 4)
+    except gdb.MemoryError:
+        return None, None
+
+    # Determine whether it's 32- or 64-bit
+    ei_class = gef.memory.byte(base+4)
+
+    # Find out where the section headers start
+    EhdrType = { 1: Elf32_Ehdr, 2: Elf64_Ehdr }[ei_class]
+    Elfhdr   = gef.memory.poi(EhdrType, base)
+    return ei_class, Elfhdr
+
+def get_phdrs(pointer):
+    """
+    Returns a tuple containing (phnum, phentsize, gdb.Value),
+    where the gdb.Value object is an ELF Program Header with
+    the architecture-appropriate structure type.
+    """
+    ei_class, Elfhdr = get_ehdr(pointer)
+
+    if Elfhdr is None:
+        return (0, 0, None)
+
+    Elf32_Phdr = gdb.lookup_type('Elf32_Phdr')
+    Elf64_Phdr = gdb.lookup_type('Elf64_Phdr')
+    PhdrType   = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
+
+    phnum     = int(Elfhdr['e_phnum'])
+    phoff     = int(Elfhdr['e_phoff'])
+    phentsize = int(Elfhdr['e_phentsize'])
+
+    x = (phnum, phentsize, gef.memory.poi(PhdrType, int(Elfhdr.address) + phoff))
+    return x
+
+def iter_phdrs(ehdr):
+    phnum, phentsize, phdr = get_phdrs(int(ehdr.address))
+
+    if not phdr:
+        return []
+
+    first_phdr = int(phdr.address)
+    PhdrType   = phdr.type
+
+    for i in range(0, phnum):
+        p_phdr = int(first_phdr + (i*phentsize))
+        p_phdr = gef.memory.poi(PhdrType, p_phdr)
+        yield p_phdr
+
+@gef.memoize.reset_on_stop
+def map(pointer, objfile=''):
     """
     Given a pointer into an ELF module, return a list of all loaded
     sections in the ELF.
@@ -63,35 +187,7 @@ def load(pointer, objfile=''):
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
-    gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
-
-    Elf32_Ehdr = gdb.lookup_type('Elf32_Ehdr')
-    Elf64_Ehdr = gdb.lookup_type('Elf64_Ehdr')
-    Elf32_Shdr = gdb.lookup_type('Elf32_Shdr')
-    Elf64_Shdr = gdb.lookup_type('Elf64_Shdr')
-    Elf32_Phdr = gdb.lookup_type('Elf32_Phdr')
-    Elf64_Phdr = gdb.lookup_type('Elf64_Phdr')
-
-    # Align down to a page boundary, and scan until we find
-    # the ELF header.
-    base = int(pointer) & ~(0xfff)
-    data = gef.memory.read(base, 4)
-    while data != b'\x7FELF':
-        base -= 0x1000
-        data = gef.memory.read(base, 4)
-
-    # Determine whether it's 32- or 64-bit
-    ei_class = gef.memory.byte(base+4)
-
-    # Find out where the section headers start
-    EhdrType = { 1: Elf32_Ehdr, 2: Elf64_Ehdr }[ei_class]
-    ShdrType = { 1: Elf32_Shdr, 2: Elf64_Shdr }[ei_class]
-    PhdrType = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
-
-    Elfhdr    = gef.memory.poi(EhdrType, base)
-    phnum     = int(Elfhdr['e_phnum'])
-    phoff     = int(Elfhdr['e_phoff'])
-    phentsize = int(Elfhdr['e_phentsize'])
+    ei_class, ehdr         = get_ehdr(pointer)
 
     # For each Program Header which would load data into our
     # address space, create a representation of each individual
@@ -101,17 +197,16 @@ def load(pointer, objfile=''):
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
     pages = []
-    for i in range(0, phnum):
-        p_phdr = int(base + phoff + (i*phentsize))
-        p_phdr = gef.memory.poi(PhdrType, p_phdr)
-
-        memsz   = int(p_phdr['p_memsz'])
-        vaddr   = int(p_phdr['p_vaddr'])
-        offset  = int(p_phdr['p_offset'])
-        flags   = int(p_phdr['p_flags'])
+    for phdr in iter_phdrs(ehdr):
+        memsz   = int(phdr['p_memsz'])
 
         if not memsz:
             continue
+
+        vaddr   = int(phdr['p_vaddr'])
+        offset  = int(phdr['p_offset'])
+        flags   = int(phdr['p_flags'])
+        ptype   = int(phdr['p_type'])
 
         memsz += gef.memory.page_offset(vaddr)
         memsz  = gef.memory.page_size_align(memsz)
@@ -123,16 +218,18 @@ def load(pointer, objfile=''):
             if page_addr in pages:
                 page = pages[pages.index(page_addr)]
 
-                if page.flags & PF_W != flags & PF_W:
-                    oldf = page.flags
-                    page.flags = flags | (page.flags & PF_X)
+                # Don't ever remove the execute flag.
+                # Sometimes we'll load a read-only area into .text
+                # and the loader doesn't actually *remove* the executable flag.
+                if page.flags & PF_X: flags |= PF_X
+                page.flags = flags
             else:
                 page = gef.memory.Page(page_addr, gef.memory.PAGE_SIZE, flags, offset + (page_addr-vaddr))
                 pages.append(page)
 
     # Adjust against the base address that we discovered
     # for binaries that are relocatable / type DYN.
-    if ET_DYN == int(Elfhdr['e_type']):
+    if ET_DYN == int(ehdr['e_type']):
         for page in pages:
             page.vaddr += base
 
@@ -163,3 +260,8 @@ def load(pointer, objfile=''):
 
     pages.sort()
     return pages
+
+@gef.events.stop
+def update_main_exe():
+    addr = int(exe().address)
+    map(addr)

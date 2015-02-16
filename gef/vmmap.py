@@ -8,6 +8,7 @@ The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import gdb
+import sys
 
 import gef.remote
 import gef.memory
@@ -16,8 +17,9 @@ import gef.file
 import gef.proc
 import gef.compat
 import gef.memoize
+import gef.stack
 
-@gef.memoize.memoize
+@gef.memoize.reset_on_stop
 def get():
     pages = proc_pid_maps()
 
@@ -27,8 +29,15 @@ def get():
         if pages: pages += info_sharedlibrary()
         else:     pages = info_files()
 
+        pages.extend(gef.stack.stacks.values())
+
     return pages
 
+def find(address):
+    for page in get():
+        if address in page:
+            return page
+    return None
 
 def proc_pid_maps():
     """
@@ -143,7 +152,7 @@ def info_sharedlibrary():
         text   = int(tokens[0], 16)
         obj    = tokens[-1]
 
-        pages.extend(gef.elf.load(text, obj))
+        pages.extend(gef.elf.map(text, obj))
 
     return sorted(pages)
 
@@ -199,7 +208,7 @@ def info_files():
         else:
             seen_files.add(objfile)
 
-        pages.extend(gef.elf.load(vaddr, objfile))
+        pages.extend(gef.elf.map(vaddr, objfile))
 
     return sorted(pages)
 
@@ -217,80 +226,45 @@ def info_auxv(skip_exe=False):
     Returns:
         A list of gef.memory.Page objects.
     """
-    try:
-        info_auxv = gdb.execute('info auxv', to_string=True)
-    except (OSError, gdb.error):
+    auxv = gef.auxv.get()
+
+    if not auxv:
         return []
 
-    example_info_auxv_linux = """
-    33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
-    16   AT_HWCAP             Machine-dependent CPU capability hints 0xfabfbff
-    6    AT_PAGESZ            System page size               4096
-    17   AT_CLKTCK            Frequency of times()           100
-    3    AT_PHDR              Program headers for program    0x400040
-    4    AT_PHENT             Size of program header entry   56
-    5    AT_PHNUM             Number of program headers      9
-    7    AT_BASE              Base address of interpreter    0x7ffff7dda000
-    8    AT_FLAGS             Flags                          0x0
-    9    AT_ENTRY             Entry point of program         0x42020b
-    11   AT_UID               Real user ID                   1000
-    12   AT_EUID              Effective user ID              1000
-    13   AT_GID               Real group ID                  1000
-    14   AT_EGID              Effective group ID             1000
-    23   AT_SECURE            Boolean, was exec setuid-like? 0
-    25   AT_RANDOM            Address of 16 random bytes     0x7fffffffdb39
-    31   AT_EXECFN            File name of executable        0x7fffffffefee "/bin/bash"
-    15   AT_PLATFORM          String identifying platform    0x7fffffffdb49 "x86_64"
-    0    AT_NULL              End of vector                  0x0
-    """
-
-    exe_name = ''
     pages    = []
-    entry    = phdr = stack = vdso = None
-
-    for line in info_auxv.splitlines():
-        if 'AT_EXECFN' in line:
-            exe_name = line.split()[-1].strip('"')
-            stack    = int(line.split()[-2], 16)
-        if 'AT_ENTRY' in line:
-            entry    = int(line.split()[-1], 16)
-        if 'AT_PHDR'  in line:
-            phdr     = int(line.split()[-1], 16)
-        if 'AT_SYSINFO_EHDR' in line:
-            vdso     = int(line.split()[-1], 16)
+    exe_name = auxv.AT_EXECFN or 'main.exe'
+    entry    = auxv.AT_ENTRY
+    vdso     = auxv.AT_SYSINFO_EHDR
+    phdr     = auxv.AT_PHDR
 
     if not skip_exe and (entry or phdr):
-        pages.extend(gef.elf.load(entry or phdr, exe_name))
-
-    if stack:
-        pages.append(find_boundaries(stack, '[stack]'))
+        pages.extend(gef.elf.map(entry or phdr, exe_name))
 
     if vdso:
-        pages.append(find_boundaries(stack, '[vdso]'))
+        pages.append(find_boundaries(vdso, '[vdso]'))
 
     return sorted(pages)
+
 
 def find_boundaries(addr, name=''):
     """
     Given a single address, find all contiguous pages
     which are mapped.
     """
-    addr = gef.memory.page_align(int(addr))
-    start = end = addr
-
-    try:
-        while True:
-            gef.memory.read(start, 1)
-            start -= gef.memory.PAGE_SIZE
-    except gdb.MemoryError:
-        pass
-
-
-    try:
-        while True:
-            gef.memory.read(end, 1)
-            end += gef.memory.PAGE_SIZE
-    except gdb.MemoryError:
-        pass
-
+    start = gef.memory.find_upper_boundary(addr)
+    end   = gef.memory.find_lower_boundary(addr)
     return gef.memory.Page(start, end-start, 4, 0, name)
+
+aslr = False
+
+@gef.events.stop
+@gef.memoize.reset_on_exit
+def check_aslr():
+    vmmap = sys.modules[__name__]
+    vmmap.aslr = False
+
+    output = gdb.execute('show disable-randomization', to_string=True)
+    if "is off." in output:
+        vmmap.aslr = True
+
+    return vmmap.aslr

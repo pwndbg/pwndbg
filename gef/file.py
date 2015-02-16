@@ -20,7 +20,7 @@ def get(path):
                                  to_string=True)
 
         if error:
-            raise Exception("Could not download remote file %r:\n" \
+            raise OSError("Could not download remote file %r:\n" \
                             "Error: %s" % (path, error))
 
     with open(local_path,'rb') as f:

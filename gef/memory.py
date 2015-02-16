@@ -17,6 +17,11 @@ def read(addr, count):
 def readtype(gdb_type, addr):
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
+def peek(address):
+    try: return read(address, 1)
+    except: pass
+    return None
+
 def byte(addr):   return readtype(gef.types.uchar, addr)
 def uchar(addr):  return readtype(gef.types.uchar, addr)
 def ushort(addr): return readtype(gef.types.ushort, addr)
@@ -50,16 +55,25 @@ def page_offset(address): return (address & (PAGE_SIZE-1))
 assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
 
-def cont(a): print(a, "cont", gdb.lookup_type("char").pointer().sizeof)
-def exit2(a): print(a, "exit", gdb.lookup_type("char").pointer().sizeof)
-def stop(a): print(a, "stop", gdb.lookup_type("char").pointer().sizeof)
-def new_objfile(a): print(a, "new_objfile", gdb.lookup_type("char").pointer().sizeof)
+def find_upper_boundary(addr):
+    addr = gef.memory.page_align(int(addr))
+    try:
+        while True:
+            gef.memory.read(addr, 1)
+            addr += gef.memory.PAGE_SIZE
+    except gdb.MemoryError:
+        pass
+    return addr
 
-gdb.events.cont.connect(cont)
-gdb.events.exited.connect(exit2)
-gdb.events.new_objfile.connect(new_objfile)
-gdb.events.stop.connect(stop)
-
+def find_lower_boundary(addr):
+    addr = gef.memory.page_align(int(addr))
+    try:
+        while True:
+            gef.memory.read(addr, 1)
+            addr -= gef.memory.PAGE_SIZE
+    except gdb.MemoryError:
+        pass
+    return addr
 
 class Page(object):
     """
@@ -100,12 +114,15 @@ class Page(object):
                         'x' if flags & 1 else '-',
                         'p'])
     def __str__(self):
-        return "%x-%x %s x %-8x %-8x %s" % (self.vaddr,
-                                     self.vaddr+self.memsz,
-                                     self.permstr,
-                                     self.memsz,
-                                     self.offset,
-                                     self.objfile or '')
+        width = 2*gef.types.ptrsize
+        fmt_string = "%0x-%0x %s %8x %-6x %s"
+        # fmt_string = fmt_string.format(width, width)
+        return fmt_string % (self.vaddr,
+                             self.vaddr+self.memsz,
+                             self.permstr,
+                             self.memsz,
+                             self.offset,
+                             self.objfile or '')
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
     def __contains__(self, a):

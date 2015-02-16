@@ -1,10 +1,14 @@
 import sys
 import gdb
 
+import gef.events
+import gef.memoize
+
 module = sys.modules[__name__]
 
-def update(*a):
-    print("Updating type info")
+@gef.events.new_objfile
+@gef.memoize.reset_on_exit
+def update():
     module.char   = gdb.lookup_type('char')
     module.ulong  = gdb.lookup_type('unsigned long')
     module.uchar  = gdb.lookup_type('unsigned char')
@@ -22,15 +26,13 @@ def update(*a):
     module.int64  = gdb.lookup_type('long long')
 
     module.pvoid  = void.pointer()
+    module.ppvoid = pvoid.pointer()
     module.pchar  = char.pointer()
 
-def ptrsize(): return pvoid.sizeof()
-def cont(a):   print(a, "cont", gdb.lookup_type("char").pointer().sizeof)
-def exit2(a):  print(a, "exit", gdb.lookup_type("char").pointer().sizeof)
-def stop(a):   print(a, "stop", gdb.lookup_type("char").pointer().sizeof)
-def new_objfile(a): print(a, "new_objfile", gdb.lookup_type("char").pointer().sizeof)
+    module.ptrsize = pvoid.sizeof
 
-gdb.events.cont.connect(update)
-gdb.events.exited.connect(update)
-gdb.events.new_objfile.connect(update)
-gdb.events.stop.connect(update)
+# Call it once so we load all of the types
+update()
+
+# Reset the cache so that the first load isn't cached.
+update.clear()

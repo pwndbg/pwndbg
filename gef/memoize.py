@@ -3,14 +3,9 @@ import gdb
 import functools
 import sys
 
+import gef.events
+
 class memoize(object):
-    caches = []
-
-    def __init__(self, func):
-        self.func  = func
-        self.cache = {}
-        self.caches.append(self)
-
     def __call__(self, *args):
         if not isinstance(args, collections.Hashable):
             print("Cannot memoize %r!", file=sys.stderr)
@@ -29,18 +24,54 @@ class memoize(object):
     def __get__(self, obj, objtype):
         return functools.partial(self.__call__, obj)
 
+    def clear(self):
+        self.cache.clear()
+
+
+
+class reset_on_stop(memoize):
+    caches = []
+
+    def __init__(self, func):
+        self.func  = func
+        self.cache = {}
+        self.caches.append(self)
+
     @staticmethod
-    def reset():
-        print("Evicting cache")
-        for obj in memoize.caches:
-            if obj.cache:
-                print(obj.func)
-                obj.cache.clear()
+    @gef.events.stop
+    def __reset():
+        for obj in reset_on_stop.caches:
+            obj.cache.clear()
 
-def reset(*a):
-    memoize.reset()
+class reset_on_exit(memoize):
+    caches = []
 
-gdb.events.cont.connect(reset)
-gdb.events.exited.connect(reset)
-gdb.events.stop.connect(reset)
-gdb.events.new_objfile.connect(reset)
+    def __init__(self, func):
+        self.func  = func
+        self.cache = {}
+        self.caches.append(self)
+        self.__name__ = func.__name__
+        self.__module__ = func.__module__
+
+    @staticmethod
+    @gef.events.exit
+    def __reset():
+        for obj in reset_on_exit.caches:
+            obj.clear()
+
+class reset_on_objfile(memoize):
+    caches = []
+
+    def __init__(self, func):
+        self.func  = func
+        self.cache = {}
+        self.caches.append(self)
+        self.__name__ = func.__name__
+        self.__module__ = func.__module__
+
+    @staticmethod
+    @gef.events.new_objfile
+    def __reset():
+        for obj in reset_on_objfile.caches:
+            obj.clear()
+
