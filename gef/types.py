@@ -64,7 +64,7 @@ def load(name):
     except gdb.error:
         pass
 
-    s, _ = gdb.lookup_symbol
+    # s, _ = gdb.lookup_symbol(name)
 
     # Try to find an architecture-specific include path
     arch = gef.arch.current.split(':')[0]
@@ -88,15 +88,7 @@ def load(name):
 
 
     source += '''
-#ifdef %(name)s
-#pragma push("%(name)s")
-#undef %(name)s
-long long %(name)s =
-#pragma pop("%(name)s")
-%(name)s;
-#else
-%(name)s foo;
-#endif
+{name} foo;
 '''.format(**locals())
 
     filename = '%s/%s_%s' % (tempdir, arch, name)
@@ -106,7 +98,9 @@ long long %(name)s =
             f.write(source)
             f.flush()
 
-        subprocess.check_output('g++ -w -c -g %s.cc -o %s.o' % (filename, filename), shell=True)
+        command = 'g++ -w -c -g %s.cc -o %s.o'
+        command = command % (filename, filename)
+        subprocess.check_output(command, shell=True)
 
     gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)
 
