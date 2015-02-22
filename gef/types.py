@@ -1,10 +1,15 @@
+import os
 import sys
 import gdb
+import glob
+import tempfile
+import subprocess
 
 import gef.events
 import gef.memoize
 
 module = sys.modules[__name__]
+
 
 @gef.events.new_objfile
 @gef.memoize.reset_on_exit
@@ -31,8 +36,78 @@ def update():
 
     module.ptrsize = pvoid.sizeof
 
+    if pvoid.sizeof == 4: module.ptrdiff = uint32
+    if pvoid.sizeof == 8: module.ptrdiff = uint64
+
+
 # Call it once so we load all of the types
 update()
 
 # Reset the cache so that the first load isn't cached.
 update.clear()
+
+
+tempdir = tempfile.gettempdir() + '/gef'
+if not os.path.exists(tempdir):
+    os.mkdir(tempdir)
+
+# Trial and error until things work
+blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
+'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
+'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
+'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
+'gcrypt-module.h', 'term.h']
+
+def load(name):
+    try:
+        return gdb.lookup_type(name)
+    except gdb.error:
+        pass
+
+    s, _ = gdb.lookup_symbol
+
+    # Try to find an architecture-specific include path
+    arch = gef.arch.current.split(':')[0]
+
+    include_dir = glob.glob('/usr/%s*/include' % arch)
+
+    if include_dir:
+        include_dir = include_dir[0]
+    else:
+        include_dir = '/usr/include'
+
+    source = '#include <fstream>\n'
+
+    for subdir in ['', 'sys', 'netinet']:
+        dirname = os.path.join(include_dir, subdir)
+        for path in glob.glob(os.path.join(dirname, '*.h')):
+            if any(b in path for b in blacklist):
+              continue
+
+            source += '#include "%s"\n' % path
+
+
+    source += '''
+#ifdef %(name)s
+#pragma push("%(name)s")
+#undef %(name)s
+long long %(name)s =
+#pragma pop("%(name)s")
+%(name)s;
+#else
+%(name)s foo;
+#endif
+'''.format(**locals())
+
+    filename = '%s/%s_%s' % (tempdir, arch, name)
+
+    if not os.path.exists(filename + '.o'):
+        with open(filename + '.cc', 'w+') as f:
+            f.write(source)
+            f.flush()
+
+        subprocess.check_output('g++ -w -c -g %s.cc -o %s.o' % (filename, filename), shell=True)
+
+    gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)
+
+    return gdb.lookup_type(name)

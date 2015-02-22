@@ -1,6 +1,7 @@
 import gdb
+import traceback
 
-debug = True
+debug = False
 
 def connect(func, event_handler):
     def caller(*a):
@@ -9,7 +10,7 @@ def connect(func, event_handler):
         try:
             func()
         except Exception as e:
-            print("Exception occurred", e)
+            if debug: print(traceback.format_exc())
             raise e
     caller.name = func.__name__
     event_handler.connect(caller)

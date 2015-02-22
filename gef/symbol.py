@@ -1,11 +1,15 @@
 import gdb
 import gef.memoize
-
+import gef.memory
 @gef.memoize.reset_on_objfile
 def get(address):
     """
     Retrieve the textual name for a symbol
     """
+    # Fast path
+    if address < gef.memory.MMAP_MIN_ADDR:
+        return ''
+
     # This sucks, but there's not a GDB API for this.
     result = gdb.execute('info symbol %#x' % int(address), to_string=True, from_tty=False)
 

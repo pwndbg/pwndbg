@@ -1,3 +1,4 @@
+import copy
 import collections
 import gdb
 import functools
@@ -16,6 +17,10 @@ class memoize(object):
 
         value = self.func(*args)
         self.cache[args] = value
+
+        if isinstance(value, list):
+            print("Shouldnt cache mutable types! %r" % self.func.__name__)
+
         return value
 
     def __repr__(self):

@@ -128,6 +128,8 @@ def use_info_auxv():
 def walk_stack():
     sp  = gef.regs.sp
 
+    print("BAD SP")
+
     if not sp:
         return None
 
@@ -167,6 +169,8 @@ def walk_stack():
 
     # Scan them into our structure
     auxv = AUXV()
+    print("STARTING AT %s" % p)
+    print("STOPPING AT %s" % AT_NULL)
     while p < AT_NULL:
         const, value = p.dereference(), (p+1).dereference()
         const        = int(const)

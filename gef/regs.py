@@ -1,11 +1,12 @@
 import gdb
 import sys
+import re
 from types import ModuleType
 
 import gef.memoize
 import gef.arch
 class RegisterSet(object):
-    def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc):
+    def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc, args):
         self.pc = pc
         self.stack = stack
         self.frame = frame
@@ -13,6 +14,7 @@ class RegisterSet(object):
         self.flags = flags
         self.gpr   = gpr
         self.misc  = misc
+        self.args  = args
 
 arm = RegisterSet('pc',
                   'sp',
@@ -20,7 +22,8 @@ arm = RegisterSet('pc',
                   ('lr',),
                   ('cpsr',),
                   ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
-                  None)
+                  None,
+                  ('r0','r1','r2','r3'))
 
 amd64 = RegisterSet('rip',
                     'rsp',
@@ -30,7 +33,8 @@ amd64 = RegisterSet('rip',
                     ('rax','rbx','rcx','rdx','rdi','rsi',
                      'r8', 'r9', 'r10','r11','r12',
                      'r13','r14','r15'),
-                    ('cs','ss','ds','es','fs','gs'))
+                    ('cs','ss','ds','es','fs','gs'),
+                    ('rdi','rsi','rdx','rcx','r8','r9'))
 
 i386 = RegisterSet('eip',
                     'esp',
@@ -38,7 +42,14 @@ i386 = RegisterSet('eip',
                     None,
                     ('eflags',),
                     ('eax','ebx','ecx','edx','edi','esi'),
-                    ('cs','ss','ds','es','fs','gs'))
+                    ('cs','ss','ds','es','fs','gs'),
+                    ('*((void**)$sp+0)',
+                     '*((void**)$sp+1)',
+                     '*((void**)$sp+2)',
+                     '*((void**)$sp+3)',
+                     '*((void**)$sp+4)',
+                     '*((void**)$sp+5)',
+                     '*((void**)$sp+6)',))
 
 
 # http://math-atlas.sourceforge.net/devel/assembly/elfspec_ppc.pdf
@@ -57,7 +68,8 @@ powerpc = RegisterSet('pc',
                       ('lr','r0'),
                       ('msr','xer'),
                       tuple('r%i' % i for i in range(3,32)),
-                      ('cr','lr','trap','r2'))
+                      ('cr','lr','trap','r2'),
+                      tuple())
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt
 # http://people.cs.clemson.edu/~mark/subroutines/sparc.html
@@ -95,7 +107,8 @@ sparc = RegisterSet('pc',
                     ('o7',),
                     ('psr',),
                     sparc_gp,
-                    None)
+                    None,
+                    ('i0','i1','i2','i3','i4','i5'))
 
 
 # http://logos.cs.uic.edu/366/notes/mips%20quick%20tutorial.htm
@@ -112,12 +125,13 @@ sparc = RegisterSet('pc',
 # r30       => frame pointer
 # r31       => return address
 mips = RegisterSet('pc',
-                   'r29',
-                   'r30',
-                   ('r31',),
+                   'sp',
+                   'fp',
+                   ('ra',),
                    None,
-                   ('r%i' for i in range(1,26)),
-                   None)
+                   tuple('r%i' % i for i in range(1,26)),
+                   None,
+                   ('a0','a1','a2','a3'))
 
 arch_to_regs = {
     'i386': i386,
@@ -137,7 +151,7 @@ class module(ModuleType):
             value = int(gdb.parse_and_eval('$' + attr.lstrip('$')))
             return value & gef.arch.ptrmask
         except gdb.error:
-            return 0
+            return None
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -152,7 +166,49 @@ class module(ModuleType):
 
     @property
     def retaddr(self):
-        return arch_to_regs[gef.arch.current].retaddr
+        return arch_to_regs[gef.arch.current].retaddr 
+
+    @property
+    def stack(self):
+        return arch_to_regs[gef.arch.current].stack 
+
+    @property
+    def all(self):
+        regs = arch_to_regs[gef.arch.current]
+        retval = []
+        for regset in (regs.pc, regs.stack, regs.frame, regs.retaddr, regs.flags, regs.gpr, regs.misc):
+            if regset is None:
+                continue
+            elif isinstance(regset, (list, tuple)):
+                retval.extend(regset)
+            else:
+                retval.append(regset)
+        return retval
+
+    def fix(self, expression):
+        for regname in set(self.all + ['sp','pc']):
+            expression = re.sub(r'\$?\b%s\b' % regname, r'$'+regname, expression)
+        return expression
+
+
+    def items(self):
+        for regname in self.all:
+            yield regname, self[regname]
+
+    @property
+    def arguments(self):
+        argnames = arch_to_regs[gef.arch.current].args
+        retval   = []
+        for arg in argnames:
+            val = self[arg]
+            if val is None:
+                try:    val = gdb.parse_and_eval(arg)
+                except: val = '???'
+            retval.append(val)
+        return retval
+
+    arch_to_regs = arch_to_regs
+    
 
 
 # To prevent garbage collection

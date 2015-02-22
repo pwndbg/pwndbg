@@ -9,15 +9,23 @@ YELLOW         = "\x1b[33m"
 BLUE           = "\x1b[34m"
 PURPLE         = "\x1b[35m"
 CYAN           = "\x1b[36m"
-GREY = GRAY    = "\x1b[37m"
+GREY = GRAY    = "\x1b[90m"
 BOLD           = "\x1b[1m"
 UNDERLINE      = "\x1b[4m"
 
-STACK = BLUE
-HEAP  = BLUE + BOLD
+STACK = YELLOW
+HEAP  = BLUE
 CODE  = RED
-RWX   = RED  + BOLD
-DATA  = YELLOW
+RWX   = RED + BOLD + UNDERLINE
+DATA  = PURPLE
+
+def normal(x): return NORMAL + x
+def bold(x): return BOLD + x + NORMAL
+def red(x): return RED + x + NORMAL
+def blue(x): return BLUE + x + NORMAL
+def gray(x): return GRAY + x + NORMAL
+def green(x): return GREEN + x + NORMAL
+def yellow(x): return YELLOW + x + NORMAL
 
 def get(address, text = None):
     """
@@ -33,10 +41,12 @@ def get(address, text = None):
     if page is None:                 color = NORMAL
     elif '[stack' in page.objfile:   color = STACK
     elif '[heap'  in page.objfile:   color = HEAP
-    elif page.rwx:                   color = RWX
     elif page.execute:               color = CODE
     elif page.rw:                    color = DATA
     else:                            color = NORMAL
+
+    if page.rwx:
+        color = color + UNDERLINE
 
     if text is None and isinstance(address, int) and address > 255:
         text = hex(address)
@@ -44,3 +54,13 @@ def get(address, text = None):
         text = address
 
     return "%s%s%s" % (color, text, NORMAL)
+
+def legend():
+    return 'LEGEND: ' + ' | '.join((
+        STACK + 'STACK' + NORMAL,
+        HEAP + 'HEAP' + NORMAL,
+        CODE + 'CODE' + NORMAL,
+        DATA + 'DATA' + NORMAL,
+        UNDERLINE + 'RWX' + NORMAL,
+        'RODATA'
+    ))

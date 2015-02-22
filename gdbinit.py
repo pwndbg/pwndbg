@@ -9,4 +9,3 @@ sys.path.append(directory)
 
 import gef
 
-gef.main()

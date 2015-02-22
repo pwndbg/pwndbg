@@ -6,7 +6,6 @@ import gef.memoize
 
 class module(ModuleType):
     @property
-    @gef.memoize.reset_on_exit
     def pid(self):
         i = gdb.selected_inferior()
         if i is not None:

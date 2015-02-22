@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import gdb
+import glob
 import os
 import re
 import subprocess
 import tempfile
+
+import gef.memory
+import gef.types
 
 def get_type(v):
     t = v.type
@@ -75,7 +79,7 @@ def dt(name='', addr=None, obj = None):
 
     # Lookup the type name specified by the user
     else:
-        t = gdb.lookup_type(name)
+        t = gef.types.load(name)
 
     # If it's not a struct (e.g. int or char*), bail
     if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF):
@@ -91,15 +95,35 @@ def dt(name='', addr=None, obj = None):
     if obj: header = "%s @ %s" % (header, hex(int(obj.address)))
     rv.append(header)
 
+    if t.strip_typedefs().code != gdb.TYPE_CODE_STRUCT:
+        t = {name: obj or gdb.Value(0).cast(t)}
+
     for name, field in t.items():
         # Offset into the parent structure
-        o     = field.bitpos/8
+        o     = getattr(field, 'bitpos', 0)/8
         extra = str(field.type)
-        if obj:
+        ftype = field.type.strip_typedefs()
+
+        if obj and obj.type.strip_typedefs().code == gdb.TYPE_CODE_STRUCT:
             v  = obj[name]
-            if field.type.strip_typedefs().code == gdb.TYPE_CODE_INT:
+
+            if ftype.code == gdb.TYPE_CODE_INT:
                 v = hex(int(v))
+            if ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY) \
+                and ftype.target() == gef.types.uchar:
+                data = gef.memory.read(v.address, ftype.sizeof)
+                v = ' '.join('%02x' % b for b in data)
+
             extra = v
+
+        # Adjust trailing lines in 'extra' to line up
+        # This is necessary when there are nested structures.
+        # Ideally we'd expand recursively if the type is complex.
+        extra_lines = []
+        for i, line in enumerate(str(extra).splitlines()):
+            if i == 0: extra_lines.append(line)
+            else:      extra_lines.append(35*' ' + line)
+        extra = '\n'.join(extra_lines)
 
         line  = "    +0x%04x %-20s : %s" % (o, name, extra)
         rv.append(line)

@@ -1,6 +1,9 @@
 import gdb
-import gef.types
+import gef.color
+import gef.enhance
 import gef.memory
+import gef.types
+import gef.vmmap
 
 
 def get(address, limit=5):
@@ -10,21 +13,24 @@ def get(address, limit=5):
     Returns:
         A list containing ``address``, followed by up to ``limit`` valid pointers.
     """
-    result = [int(address)]
+    result = []
     for i in range(limit):
+        result.append(address)
         try:
-            # Convert the current address to a void**
-            address = gef.memory.poi(gef.types.ppvoid, address)
-
-            # Ensure that it's a valid pointer by dereferencing it
-            # *AND* attempting to get the resulting value.
-            #
-            # GDB will let you .dereference() anything, the int() throws
-            # the gdb.MemoryError.
-            int(address.dereference())
-
-            # Save it off
-            result.append(int(address))
+            address = int(gef.memory.poi(gef.types.ppvoid, address))
         except gdb.MemoryError:
             break
+
     return result
+
+
+def format(value):
+    chain = get(value)
+
+    # Enhance the last entry
+    end   = [gef.enhance.enhance(chain[-1])]
+
+    # Colorize the rest
+    rest  = list(map(gef.color.get, chain[:-1]))
+
+    return ' --> '.join(rest + end)

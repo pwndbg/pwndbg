@@ -258,8 +258,7 @@ def map(pointer, objfile=''):
     for page in pages:
         page.objfile = objfile
 
-    pages.sort()
-    return pages
+    return tuple(sorted(pages))
 
 @gef.events.stop
 def update_main_exe():

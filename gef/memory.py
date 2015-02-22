@@ -5,6 +5,7 @@ import gef.compat
 import gef.types
 
 PAGE_SIZE = 0x1000
+MMAP_MIN_ADDR = 0x10000
 
 def read(addr, count):
     result = gdb.selected_inferior().read_memory(addr, count)
@@ -17,10 +18,20 @@ def read(addr, count):
 def readtype(gdb_type, addr):
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
+def write(addr, data):
+    gdb.selected_inferior().write_memory(addr, data)
+
 def peek(address):
-    try: return read(address, 1)
+    try:    return read(address, 1)
     except: pass
     return None
+
+def poke(address):
+    c = peek(address)
+    if c is None: return False
+    try:    write(address, c)
+    except: return False
+    return True
 
 def byte(addr):   return readtype(gef.types.uchar, addr)
 def uchar(addr):  return readtype(gef.types.uchar, addr)
@@ -84,8 +95,8 @@ class Page(object):
     memsz   = 0 #: Size of the address space, in bytes
     flags   = 0 #: Flags set by the ELF file, see PF_X, PF_R, PF_W
     offset  = 0 #: Offset into the original ELF file that the data is loaded from
-    objfile = None #: Path to the ELF on disk
-    def __init__(self, start, size, flags, offset, objfile=None):
+    objfile = '' #: Path to the ELF on disk
+    def __init__(self, start, size, flags, offset, objfile=''):
         self.vaddr  = start
         self.memsz  = size
         self.flags  = flags
@@ -114,9 +125,9 @@ class Page(object):
                         'x' if flags & 1 else '-',
                         'p'])
     def __str__(self):
-        width = 2*gef.types.ptrsize
-        fmt_string = "%0x-%0x %s %8x %-6x %s"
-        # fmt_string = fmt_string.format(width, width)
+        width = 2 + 2*gef.types.ptrsize
+        fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
+        fmt_string = fmt_string.format(width, width)
         return fmt_string % (self.vaddr,
                              self.vaddr+self.memsz,
                              self.permstr,
@@ -126,7 +137,7 @@ class Page(object):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
     def __contains__(self, a):
-        return self.vaddr-1 < a < (self.vaddr + self.memsz)
+        return self.vaddr <= a < (self.vaddr + self.memsz)
     def __eq__(self, other):
         return self.vaddr == getattr(other, 'vaddr', other)
     def __lt__(self, other):

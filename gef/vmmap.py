@@ -18,27 +18,84 @@ import gef.proc
 import gef.compat
 import gef.memoize
 import gef.stack
+import gef.events
+import gef.regs
 
-@gef.memoize.reset_on_stop
+# List of manually-explored pages which were discovered
+# by analyzing the stack or register context.
+explored_pages = []
+
 def get():
-    pages = proc_pid_maps()
+    pages = []
+    pages.extend(proc_pid_maps())
 
     if not pages:
-        pages = info_auxv()
+        pages.extend(info_auxv())
 
-        if pages: pages += info_sharedlibrary()
-        else:     pages = info_files()
+        if pages: pages.extend(info_sharedlibrary())
+        else:     pages.extend(info_files())
 
         pages.extend(gef.stack.stacks.values())
 
+    pages.extend(explored_pages)
+    pages.sort()
     return pages
 
+@gef.memoize.reset_on_stop
 def find(address):
+    if address < gef.memory.MMAP_MIN_ADDR:
+        return None
+
     for page in get():
         if address in page:
             return page
-    return None
 
+    return explore(address)
+
+def explore(address_maybe):
+    """
+    Given a potential address, check to see what permissions it has.
+
+    Returns:
+        Page object
+
+    Note:
+        Adds the Page object to a persistent list of pages which are
+        only reset when the process dies.  This means pages which are
+        added this way will not be removed when unmapped.
+
+        Also assumes the entire contiguous section has the same permission.
+    """
+    address_maybe = gef.memory.page_align(address_maybe)
+
+    flags = 4 if gef.memory.peek(address_maybe) else 0
+    
+    if not flags: 
+        return None
+
+    flags |= 2 if gef.memory.poke(address_maybe) else 0
+    flags |= 1 if not gef.stack.nx               else 0
+
+    page = find_boundaries(address_maybe)
+    page.flags = flags
+
+    explored_pages.append(page)
+
+    return page
+
+# Automatically ensure that all registers are explored on each stop
+@gef.events.stop
+def explore_registers():
+    for regname in gef.regs.all:
+        find(gef.regs[regname])
+
+
+@gef.events.exit
+def clear_explored_pages():
+    while explored_pages:
+        explored_pages.pop()
+
+@gef.memoize.reset_on_stop
 def proc_pid_maps():
     """
     Parse the contents of /proc/$PID/maps on the server.
@@ -92,7 +149,7 @@ def proc_pid_maps():
         maps, perm, offset, dev, inode_objfile = line.split(None, 4)
 
         try:    inode, objfile = inode_objfile.split()
-        except: objfile = None
+        except: objfile = ''
 
         start, stop = maps.split('-')
 
@@ -109,9 +166,10 @@ def proc_pid_maps():
         page = gef.memory.Page(start, size, flags, offset, objfile)
         pages.append(page)
 
-    return sorted(pages)
+    return tuple(pages)
 
 
+@gef.memoize.reset_on_objfile
 def info_sharedlibrary():
     """
     Parses the output of `info sharedlibrary`.
@@ -156,6 +214,7 @@ def info_sharedlibrary():
 
     return sorted(pages)
 
+@gef.memoize.reset_on_objfile
 def info_files():
 
     example_info_files_linues = """
@@ -177,7 +236,7 @@ def info_files():
     """
 
     seen_files = set()
-    pages      = []
+    pages      = list()
     main_exe   = ''
 
     for line in gdb.execute('info files', to_string=True).splitlines():
@@ -210,11 +269,11 @@ def info_files():
 
         pages.extend(gef.elf.map(vaddr, objfile))
 
-    return sorted(pages)
+    return tuple(pages)
 
 
 
-
+@gef.memoize.reset_on_exit
 def info_auxv(skip_exe=False):
     """
     Extracts the name of the executable from the output of the command
@@ -251,8 +310,8 @@ def find_boundaries(addr, name=''):
     Given a single address, find all contiguous pages
     which are mapped.
     """
-    start = gef.memory.find_upper_boundary(addr)
-    end   = gef.memory.find_lower_boundary(addr)
+    start = gef.memory.find_lower_boundary(addr)
+    end   = gef.memory.find_upper_boundary(addr)
     return gef.memory.Page(start, end-start, 4, 0, name)
 
 aslr = False
