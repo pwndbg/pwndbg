@@ -14,4 +14,4 @@ def get(address):
     if len(sz) < 15:
     	return sz
 
-    return sz[:15] + '...'
+    return sz[:12] + '...'
