@@ -4,7 +4,7 @@ import pwndbg.enhance
 import pwndbg.memory
 import pwndbg.types
 import pwndbg.vmmap
-
+import pwndbg.symbol
 
 def get(address, limit=5):
     """
@@ -39,12 +39,19 @@ def format(value):
         else:
             enhanced = pwndbg.enhance.enhance(chain[-2])
 
-        end = [enhanced]
-        
         # Colorize the rest
-        rest  = list(map(pwndbg.color.get, chain[:-1]))
+        rest = []
+        for link in chain[:-1]:
+            symbol = pwndbg.symbol.get(link) or None
+            if symbol:
+                symbol = '%#x (%s)' % (link, symbol)
+            rest.append(pwndbg.color.get(link, symbol))
 
-        return ' --> '.join(rest + end)
+        if len(chain) == 1:
+            return enhanced
+
+        return ' --> '.join(rest) + ' <-- ' + enhanced
+
     except:
         import pdb
         pdb.post_mortem()
