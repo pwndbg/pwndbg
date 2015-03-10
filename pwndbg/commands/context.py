@@ -82,5 +82,5 @@ def context_backtrace():
     frame = gdb.selected_frame()
     for i in range(0,10):
         if frame:
-            print(pwndbg.ui.addrsz(frame.pc()), frame.name() or '???')
+            print('f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???')
             frame = frame.older()

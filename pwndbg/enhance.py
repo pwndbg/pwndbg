@@ -10,8 +10,29 @@ import pwndbg.memoize
 import pwndbg.arch
 import string
 
+bad_instrs = [
+'.byte',
+'.long',
+'rex.R',
+'rex.XB',
+'(bad)'
+]
+
+def good_instr(i):
+    return not any(bad in i for bad in bad_instrs)
+
 @pwndbg.memoize.reset_on_stop
 def enhance(value):
+    """
+    Given the last pointer in a chain, attempt to characterize
+
+    Note that 'the last pointer in a chain' may not at all actually be a pointer.
+
+    Additionally, optimizations are made based on various sources of data for
+    'value'. For example, if it is set to RWX, we try to get information on whether
+    it resides on the stack, or in a RW section that *happens* to be RWX, to
+    determine which order to print the fields.
+    """
     value = int(value)
 
     name = pwndbg.symbol.get(value) or None
@@ -29,42 +50,66 @@ def enhance(value):
         # Try to unpack the value as a string
         packed = pwndbg.arch.pack(int(value))
         if all(c in string.printable.encode('utf-8') for c in packed):
-            retval = '%s (%r)' % (retval, packed.decode())
+            if len(retval) > 4:
+                retval = '%s (%r)' % (retval, packed.decode())
 
         return retval
 
+    # It's mapped memory, or we can at least read it.
+    # Try to find out if it's a string.
+    instr  = None
+    exe    = page and page.execute
+    rwx    = page and page.rwx
+
+    if exe:
+        instr = pwndbg.disasm.get(value, 1)[0].asm
+
+        # However, if it contains bad instructions, bail
+        if not good_instr(instr):
+            instr = None
+    
+    szval = pwndbg.strings.get(value) or None
+    if szval and len(szval) > 5:
+        szval = repr(szval)
     else:
-        # It's mapped memory, or we can at least read it.
-        # Try to find out if it's a string.
-        data = None
-        if page and page.execute:
-            data = pwndbg.disasm.get(value, 1)[0].asm
+        szval = None
 
-            # However, if it contains bad instructions, bail
-            if '.byte' in data or '.long' in data:
-                data = None
+    intval  = int(pwndbg.memory.poi(pwndbg.types.pvoid, value))
+    intval0 = intval
+    if intval >= 16:
+        intval = hex(intval)
+    else:
+        intval = str(intval)
 
-        if data is None:
-            data = pwndbg.strings.get(value) or None
-            if data:
-                data = repr(data)
+    retval = []
 
-        if data is None:
-            data = pwndbg.memory.poi(pwndbg.types.pvoid, value)
+    # If it's on the stack, don't display it as code in a chain.
+    if instr and rwx and 'stack' in page.objfile:
+        retval = [intval, szval]
 
-            # Try to unpack the value as a string
-            try:
-                packed = pwndbg.arch.pack(int(data))
-                if all(c in string.printable.encode('utf-8') for c in packed):
-                    data = repr(packed.decode())
-            except:
-                data = str(data)
+    # If it's RWX but a small value, don't display it as code in a chain.
+    elif instr and rwx and intval0 > 0x1000:
+        retval = [instr, intval, szval]
 
-    colored = pwndbg.color.get(value)
+    # If it's an instruction and *not* RWX, display it unconditionally
+    elif instr:
+        retval = [instr, intval, szval]
 
-    if data and name:   return "%s (%s: %s)" % (colored, name, data)
-    elif name:          return "%s (%s)" % (colored, name)
-    elif data:          return "%s (%s)" % (colored, data)
+    # Otherwise strings have preference
+    elif szval:
+        retval = [szval, intval]
 
-    return colored
+    # And then integer
+    else:
+        retval = [intval]
 
+
+    retval = tuple(filter(lambda x: x is not None, retval))
+
+    if len(retval) == 0:
+        return "???"
+
+    if len(retval) == 1:
+        return retval[0]
+
+    return retval[0] + ' /* {} */'.format('; '.join(retval[1:]))

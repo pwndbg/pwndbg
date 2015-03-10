@@ -113,9 +113,10 @@ def get_ehdr(pointer):
     # Align down to a page boundary, and scan until we find
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
-    data = pwndbg.memory.read(base, 4)
 
     try:
+        data = pwndbg.memory.read(base, 4)
+
         while data != b'\x7FELF':
             base -= pwndbg.memory.PAGE_SIZE
             data = pwndbg.memory.read(base, 4)
@@ -166,7 +167,6 @@ def iter_phdrs(ehdr):
         p_phdr = pwndbg.memory.poi(PhdrType, p_phdr)
         yield p_phdr
 
-@pwndbg.memoize.reset_on_stop
 def map(pointer, objfile=''):
     """
     Given a pointer into an ELF module, return a list of all loaded
@@ -188,6 +188,14 @@ def map(pointer, objfile=''):
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
     ei_class, ehdr         = get_ehdr(pointer)
+    return map_inner(ei_class, ehdr, objfile)
+
+@pwndbg.memoize.reset_on_stop
+def map_inner(ei_class, ehdr, objfile):
+    if not ehdr:
+        return []
+
+    base = int(ehdr.address)
 
     # For each Program Header which would load data into our
     # address space, create a representation of each individual

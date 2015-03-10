@@ -25,12 +25,26 @@ def get(address, limit=5):
 
 
 def format(value):
-    chain = get(value)
+    try:
+        chain = get(value)
 
-    # Enhance the last entry
-    end   = [pwndbg.enhance.enhance(chain[-1])]
+        # Enhance the last entry
+        # If there are no pointers (e.g. eax = 0x41414141), then enhance
+        # the only element there is.
+        if len(chain) == 1:
+            enhanced = pwndbg.enhance.enhance(chain[-1])
 
-    # Colorize the rest
-    rest  = list(map(pwndbg.color.get, chain[:-1]))
+        # Otherwise, the last element in the chain is the non-pointer value.
+        # We want to enhance the last pointer value.
+        else:
+            enhanced = pwndbg.enhance.enhance(chain[-2])
 
-    return ' --> '.join(rest + end)
+        end = [enhanced]
+        
+        # Colorize the rest
+        rest  = list(map(pwndbg.color.get, chain[:-1]))
+
+        return ' --> '.join(rest + end)
+    except:
+        import pdb
+        pdb.post_mortem()
