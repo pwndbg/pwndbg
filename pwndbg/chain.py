@@ -15,6 +15,10 @@ def get(address, limit=5):
     """
     result = []
     for i in range(limit):
+        # Don't follow cycles, except to stop at the second occurrence.
+        if result.count(address) >= 2:
+            break
+
         result.append(address)
         try:
             address = int(pwndbg.memory.poi(pwndbg.types.ppvoid, address))
@@ -36,8 +40,11 @@ def format(value):
 
         # Otherwise, the last element in the chain is the non-pointer value.
         # We want to enhance the last pointer value.
-        else:
+        elif len(chain) < 6:
             enhanced = pwndbg.enhance.enhance(chain[-2])
+
+        else:
+            enhanced = '...'
 
         # Colorize the rest
         rest = []
