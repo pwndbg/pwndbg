@@ -25,6 +25,16 @@ arm = RegisterSet('pc',
                   None,
                   ('r0','r1','r2','r3'))
 
+aarch64 = RegisterSet('pc',
+                  'sp',
+                  None,
+                  ('lr',),
+                  ('cpsr',),
+                  ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
+                  None,
+                  ('x0','x1','x2','x3'))
+
+
 amd64 = RegisterSet('rip',
                     'rsp',
                     'rbp',
@@ -139,7 +149,7 @@ arch_to_regs = {
     'mips': mips,
     'sparc': sparc,
     'arm': arm,
-    'aarch64': arm,
+    'aarch64': aarch64,
     'powerpc:403': powerpc,
     'powerpc:common64': powerpc,
 }
@@ -166,11 +176,11 @@ class module(ModuleType):
 
     @property
     def retaddr(self):
-        return arch_to_regs[pwndbg.arch.current].retaddr 
+        return arch_to_regs[pwndbg.arch.current].retaddr
 
     @property
     def stack(self):
-        return arch_to_regs[pwndbg.arch.current].stack 
+        return arch_to_regs[pwndbg.arch.current].stack
 
     @property
     def all(self):
@@ -208,7 +218,7 @@ class module(ModuleType):
         return retval
 
     arch_to_regs = arch_to_regs
-    
+
 
 
 # To prevent garbage collection

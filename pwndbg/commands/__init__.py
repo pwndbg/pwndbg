@@ -40,28 +40,16 @@ class ParsedCommand(gdb.Command):
             if debug: print(traceback.format_exc())
             pass
 
-    def __call__(self, *args):
-        self.function(*args)
+    def __call__(self, *args, **kwargs):
+        return self.function(*args, **kwargs)
 
 def OnlyWhenRunning(func):
-    def wrapper(*a):
+    def wrapper(*a, **kw):
         func.__doc__
         if not pwndbg.proc.alive:
             pass
         else:
-            func(*a)
+            return func(*a, **kw)
     wrapper.__name__ = func.__name__
     wrapper.__module__ = func.__module__
     return wrapper
-
-
-@ParsedCommand
-@OnlyWhenRunning
-def searchmem(searchfor):
-
-    if isinstance(searchfor, gdb.Value):
-        try:
-            searchfor = pwndbg.memory.read(searchfor.address, searchfor.sizeof)
-        except:
-            searchfor = 0
-    print(searchfor)

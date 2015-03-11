@@ -7,10 +7,18 @@ import pwndbg.hexdump
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address=None, count=64):
     """Hexdumps some data"""
-    if address is None:
-    	address = pwndbg.regs.sp
+    address = int(address or pwndbg.regs.sp)
+    count   = int(count)
 
-    int(address)
+    # if None not in (address, count):
+    #     address = int(address)
+    #     count   = int(count):
+
+    if count > address > 0x10000:
+        count -= address
+
+    # if address is None:
+    # 	address =
 
     data = pwndbg.memory.read(address, count)
 

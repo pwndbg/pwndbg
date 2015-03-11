@@ -43,7 +43,7 @@ def get():
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
-    if address < pwndbg.memory.MMAP_MIN_ADDR:
+    if address is None or address < pwndbg.memory.MMAP_MIN_ADDR:
         return None
 
     for page in get():
@@ -69,8 +69,8 @@ def explore(address_maybe):
     address_maybe = pwndbg.memory.page_align(address_maybe)
 
     flags = 4 if pwndbg.memory.peek(address_maybe) else 0
-    
-    if not flags: 
+
+    if not flags:
         return None
 
     flags |= 2 if pwndbg.memory.poke(address_maybe) else 0

@@ -20,6 +20,7 @@ import pwndbg.memory
 import pwndbg.memoize
 import pwndbg.stack
 import pwndbg.auxv
+import pwndbg.types
 
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
@@ -68,7 +69,14 @@ def entry():
     # Entry point: 0x400090
     for line in pwndbg.info.files().splitlines():
         if "Entry point" in line:
-            return int(line.split()[-1], 16)
+            entry_point = int(line.split()[-1], 16)
+
+            # PIE entry points are sometimes reported as an
+            # offset from the module base.
+            if entry_point < 0x10000:
+                break
+
+            return entry_point
 
     # Try common names
     for name in ['_start', 'start', '__start', 'main']:
@@ -107,8 +115,8 @@ def get_ehdr(pointer):
     """
     gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
 
-    Elf32_Ehdr = gdb.lookup_type('Elf32_Ehdr')
-    Elf64_Ehdr = gdb.lookup_type('Elf64_Ehdr')
+    Elf32_Ehdr = pwndbg.types.load('Elf32_Ehdr')
+    Elf64_Ehdr = pwndbg.types.load('Elf64_Ehdr')
 
     # Align down to a page boundary, and scan until we find
     # the ELF header.
@@ -142,8 +150,8 @@ def get_phdrs(pointer):
     if Elfhdr is None:
         return (0, 0, None)
 
-    Elf32_Phdr = gdb.lookup_type('Elf32_Phdr')
-    Elf64_Phdr = gdb.lookup_type('Elf64_Phdr')
+    Elf32_Phdr = pwndbg.types.load('Elf32_Phdr')
+    Elf64_Phdr = pwndbg.types.load('Elf64_Phdr')
     PhdrType   = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
 
     phnum     = int(Elfhdr['e_phnum'])

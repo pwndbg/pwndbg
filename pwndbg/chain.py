@@ -6,6 +6,8 @@ import pwndbg.types
 import pwndbg.vmmap
 import pwndbg.symbol
 
+LIMIT = 5
+
 def get(address, limit=5):
     """
     Recursively dereferences an address.
@@ -29,8 +31,7 @@ def get(address, limit=5):
 
 
 def format(value):
-    try:
-        chain = get(value)
+        chain = get(value, LIMIT)
 
         # Enhance the last entry
         # If there are no pointers (e.g. eax = 0x41414141), then enhance
@@ -40,7 +41,7 @@ def format(value):
 
         # Otherwise, the last element in the chain is the non-pointer value.
         # We want to enhance the last pointer value.
-        elif len(chain) < 6:
+        elif len(chain) < LIMIT:
             enhanced = pwndbg.enhance.enhance(chain[-2])
 
         else:
@@ -58,7 +59,3 @@ def format(value):
             return enhanced
 
         return ' --> '.join(rest) + ' <-- ' + enhanced
-
-    except:
-        import pdb
-        pdb.post_mortem()

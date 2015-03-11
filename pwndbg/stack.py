@@ -81,6 +81,7 @@ def is_executable():
 
     PT_GNU_STACK = 0x6474e551
     ehdr         = pwndbg.elf.exe()
+
     for phdr in pwndbg.elf.iter_phdrs(ehdr):
         p_type = int(phdr['p_type'])
         if p_type == PT_GNU_STACK:

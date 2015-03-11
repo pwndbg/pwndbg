@@ -1,6 +1,23 @@
 import gdb
 import string
 import pwndbg.types
+import pwndbg.events
+
+length = 15
+
+@pwndbg.events.stop
+def update_length():
+    r"""
+    Unfortunately there's not a better way to get at this info.
+
+    >>> gdb.execute('show print elements', from_tty=False, to_string=True)
+    'Limit on string chars or array elements to print is 21.\n'
+    """
+    global length
+    message = gdb.execute('show print elements', from_tty=False, to_string=True)
+    message = message.split()[-1]
+    message = message.strip('.')
+    length  = int(message)
 
 def get(address):
     try:
@@ -11,7 +28,7 @@ def get(address):
     if not all(s in string.printable for s in sz):
         sz
 
-    if len(sz) < 15:
+    if len(sz) < length + 3:
     	return sz
 
-    return sz[:12] + '...'
+    return sz[:length] + '...'

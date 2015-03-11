@@ -45,7 +45,7 @@ def get(address, text = None):
     elif page.rw:                    color = DATA
     else:                            color = NORMAL
 
-    if page.rwx:
+    if page and page.rwx:
         color = color + UNDERLINE
 
     if text is None and isinstance(address, int) and address > 255:

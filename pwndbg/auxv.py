@@ -1,5 +1,7 @@
 import gdb
+import sys
 
+import pwndbg.memory
 import pwndbg.events
 import pwndbg.info
 import pwndbg.regs
@@ -57,28 +59,33 @@ AT_CONSTANTS = {
     25: 'AT_RANDOM',    # Address of 16 random bytes
     31: 'AT_EXECFN',    # Filename of executable
     32: 'AT_SYSINFO',
-    33: 'AT_SYSINFO_EHDR'
+    33: 'AT_SYSINFO_EHDR',
+    34: 'AT_L1I_CACHESHAPE',
+    35: 'AT_L1D_CACHESHAPE',
+    36: 'AT_L2_CACHESHAPE',
+    37: 'AT_L3_CACHESHAPE',
 }
 
+print(sys.modules[__name__])
+sys.modules[__name__].__dict__.update({v:k for k,v in AT_CONSTANTS.items()})
 
-class AUXV(object):
+
+
+class AUXV(dict):
     def __init__(self):
         for field in AT_CONSTANTS.values():
-            setattr(self, field, None)
+            self[field] = None
     def set(self, const, value):
         name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ['AT_EXECFN', 'AT_PLATFORM']:
             value = gdb.Value(value).cast(pwndbg.types.pchar).string()
 
-        setattr(self, name, value)
+        self[name] = value
+    def __getattr__(self, attr):
+        return self[attr]
     def __str__(self):
-        rv = {}
-        for attr in AT_CONSTANTS.values():
-            value = getattr(self, attr)
-            if value is not None:
-                rv[attr] = value
-        return str(rv)
+        return str({k:v for k,v in self.items() if v is not None})
 
 @pwndbg.memoize.reset_on_objfile
 def get():
@@ -125,24 +132,57 @@ def use_info_auxv():
     return auxv
 
 
+def find_stack_boundary(addr):
+    # For real binaries, we can just use pwndbg.memory.find_upper_boundary
+    # to search forward until we walk off the end of the stack.
+    #
+    # Unfortunately, qemu-user emulation likes to paste the stack right
+    # before binaries in memory.  This means that we walk right past the
+    # stack and to the end of some random ELF.
+    #
+    # In order to mitigate this, we search page-by-page until either:
+    #
+    # 1) We get a page fault, and stop
+    # 2) We find an ELF header, and stop
+    addr = pwndbg.memory.page_align(int(addr))
+    try:
+        while True:
+            if b'\x7fELF' == pwndbg.memory.read(addr, 4):
+                break
+            addr += pwndbg.memory.PAGE_SIZE
+    except gdb.MemoryError:
+        pass
+    return addr
+
+
 def walk_stack():
     sp  = pwndbg.regs.sp
-
-    print("BAD SP")
 
     if not sp:
         return None
 
-    end = pwndbg.memory.find_upper_boundary(sp)
-    p   = gdb.Value(end).cast(pwndbg.types.ulong.pointer())
+    #
+    # Strategy looks like this:
+    #
+    # 1) Find the end of the stack.
+    # 2) Scan backward from the end of the stack until we find what
+    #    could be an AT_NULL entry (two consecutive ULONGs)
+    # 3) Scan back a little further until we find what could be an
+    #   AT_ENTRY entry.
+    # 4) Keep scanning back until we find something that isn't in the
+    #    set of known AT_ enums.
+    # 5) Vacuum up between the two.
+    #
+    end  = find_stack_boundary(sp)
+    p = gdb.Value(end).cast(pwndbg.types.ulong.pointer())
 
     # So we don't walk off the end of the stack
     p -= 2
 
-    # We want to find AT_NULL, which is two ULONGs of zeroes.
+    # Find a ~guess at where AT_NULL is.
     #
     # Coming up from the end of the stack, there will be a
-    # marker at the end which is a ULONG of zeroes, and then
+    # marker at the end which is a single ULONG of zeroes, and then
     # the ARGV and ENVP data.
     #
     # Assuming that the ARGV and ENVP data is formed normally,
@@ -152,29 +192,32 @@ def walk_stack():
     while p.dereference() != 0 or (p+1).dereference() != 0:
         p -= 2
 
-    # In some circumstances, e.g. on QEMU-USER, there may be
-    # *multiple* sequences of NULL for no good reason I can find.
-    while (p-2).dereference() == 0 and (p-1).dereference() == 0:
+    # Now we want to continue until we fine, at a minumum, AT_BASE.
+    # While there's no guarantee that this exists, I've not ever found
+    # an instance when it doesn't.
+    #
+    # This check is needed because the above loop isn't
+    # guaranteed to actually get us to AT_NULL, just to some
+    # consecutive NULLs.  QEMU is pretty generous with NULLs.
+    while p.dereference() != AT_BASE:
         p -= 2
 
-    # We've found AT_NULL
-    AT_NULL = p
-
-    # If we continue to scan back, we should bump into the
+    # If we continue to p back, we should bump into the
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
     #
     # The highest value for the vector is AT_SYSINFO_EHDR, 33.
-    while int(p.dereference()) < 33:
+    while int((p-2).dereference()) < 37:
         p -= 2
 
     # Scan them into our structure
     auxv = AUXV()
-    print("STARTING AT %s" % p)
-    print("STOPPING AT %s" % AT_NULL)
-    while p < AT_NULL:
-        const, value = p.dereference(), (p+1).dereference()
-        const        = int(const)
-        value        = int(value)
+    while True:
+        const = int((p+0).dereference())
+        value = int((p+1).dereference())
+
+        if const == AT_NULL:
+            break
+
         auxv.set(const, value)
         p += 2
 

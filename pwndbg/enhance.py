@@ -15,6 +15,7 @@ bad_instrs = [
 '.long',
 'rex.R',
 'rex.XB',
+'.inst',
 '(bad)'
 ]
 
@@ -67,7 +68,7 @@ def enhance(value):
         # However, if it contains bad instructions, bail
         if not good_instr(instr):
             instr = None
-    
+
     szval = pwndbg.strings.get(value) or None
     if szval and len(szval) > 5:
         szval = repr(szval)
@@ -76,10 +77,10 @@ def enhance(value):
 
     intval  = int(pwndbg.memory.poi(pwndbg.types.pvoid, value))
     intval0 = intval
-    if intval >= 16:
-        intval = hex(intval)
-    else:
+    if 0 <= intval < 16:
         intval = str(intval)
+    else:
+        intval = hex(intval)
 
     retval = []
 
@@ -97,7 +98,10 @@ def enhance(value):
 
     # Otherwise strings have preference
     elif szval:
-        retval = [szval, intval]
+        if len(szval) < pwndbg.arch.ptrsize:
+            retval = [szval, intval]
+        else:
+            retval = [szval]
 
     # And then integer
     else:

@@ -20,14 +20,19 @@ def context(*args):
 
     args = [a[0] for a in args]
 
-    print(pwndbg.color.legend())
-    if 'r' in args: context_regs()
-    if 'c' in args: context_code()
-    if 's' in args: context_stack()
-    if 'b' in args: context_backtrace()
+    result = []
+
+    result.append(pwndbg.color.legend())
+    if 'r' in args: result.extend(context_regs())
+    if 'c' in args: result.extend(context_code())
+    if 's' in args: result.extend(context_stack())
+    if 'b' in args: result.extend(context_backtrace())
+
+    print('\n'.join(map(str, result)))
 
 def context_regs():
-    print(pwndbg.color.blue(pwndbg.ui.banner("registers")))
+    result = []
+    result.append(pwndbg.color.blue(pwndbg.ui.banner("registers")))
     for reg in pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.stack, '$pc'):
         if reg is None:
             continue
@@ -37,10 +42,12 @@ def context_regs():
         # Make the register stand out
         regname = pwndbg.color.bold(reg.ljust(4).upper())
 
-        print("%s %s" % (regname, pwndbg.chain.format(value)))
+        result.append("%s %s" % (regname, pwndbg.chain.format(value)))
+    return result
 
 def context_code():
-    print(pwndbg.color.blue(pwndbg.ui.banner("code")))
+    result = []
+    result.append(pwndbg.color.blue(pwndbg.ui.banner("code")))
     pc = pwndbg.regs.pc
     instructions = pwndbg.disasm.near(pwndbg.regs.pc, 5)
 
@@ -50,7 +57,7 @@ def context_code():
 
     # Ensure screen data is always at the same spot
     for i in range(11 - len(instructions)):
-        print()
+        result.append('')
 
     # Find all of the symbols for the addresses
     symbols = []
@@ -71,16 +78,26 @@ def context_code():
     for i,s in zip(instructions, symbols):
         asm    = pwndbg.disasm.color(i)
         prefix = ' =>' if i.address == pc else '   '
-        print(prefix, s + hex(i.address), asm)
+
+        line   = ' '.join((prefix, s + hex(i.address), asm))
+        result.append(line)
+    return result
 
 def context_stack():
-    print(pwndbg.color.blue(pwndbg.ui.banner("stack")))
-    pwndbg.commands.telescope.telescope(pwndbg.regs.sp)
+    result = []
+    result.append(pwndbg.color.blue(pwndbg.ui.banner("stack")))
+    telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True)
+    result.extend(telescope)
+    return result
 
 def context_backtrace():
-    print(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
+    result = []
+    result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
     frame = gdb.selected_frame()
     for i in range(0,10):
         if frame:
-            print('f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???')
+            line = map(str, ('f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???'))
+            line = ' '.join(line)
+            result.append(line)
             frame = frame.older()
+    return result
