@@ -1,7 +1,7 @@
 
 # pwndbg
 
-A PEDA replacement.
+A PEDA replacement.  In the spirit of our good friend `windbg`, `pwndbg` is pronounced `pwnd-bag`.
 
 - Speed
 - Resiliency
@@ -15,6 +15,12 @@ Pretty easy.
 
 1. Clone the repo: `git clone https://github.com/zachriggle/pwndbg`
 2. Add to `~/.gdbinit`: `source ~/pwndbg/gdbinit.py`
+
+## Features
+
+Does most things that PEDA does.  Doesn't do things that PEDA does that [pwntools](https://github.com/Gallopsled/pwntools) or [binjitsu](https://binjit.su) (my fork of pwntools) do better.
+
+Also has a basic windbg compat layer for e.g. `dd`, `eb`, `da`, `dps`.  Note that `gdb` doesn't circumvent page permissions like windbg does, so the following will fail `eb eip 90`, much to [my](https://twitter.com/ebeip90) chargrin.
 
 ## Screenshots
 
