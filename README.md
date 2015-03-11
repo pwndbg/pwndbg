@@ -1,42 +1,31 @@
 
-This is a work-in-progress replacement for PEDA. 
-I was originally just going to use the [GEF code from Hugsy](https://github.com/hugsy/re-stuff.git)
-but then I went a bit overboard.
+# pwndbg
 
-In particular, it's designed to be fast\*, failure-tolerant\*\*, and eventually portable
-to Python27/Python3 as well as GDB/LLDB.
+A PEDA replacement.
 
-Currently it works on GDB with Python3.
+- Speed
+- Resiliency
+- Clean code
 
-\* Lots of use of `gdb.event` to manage cache lifetimes.  
-\*\* Automatic exploration of process maps when you're doing e.g. remote debugging
-     of a QEMU user stub and `/proc/$$/pids` is broken for `${reasons}`.
+Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with Python3).
 
+## Installation
 
-Snazzy features which may not work:
+Pretty easy.
 
+1. Clone the repo: `git clone https://github.com/zachriggle/pwndbg`
+2. Add to `~/.gdbinit`: `source ~/pwndbg/gdbinit.py`
 
-### Type Printing
+## Screenshots
 
-Hurray windbg.  This works without any loaded symbols, and is architecture-appropriate.
+Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`. 
 
-```
-geef> show arch
-The target architecture is set automatically (currently i386:x86-64)
-geef> dt hostent
-hostent
-    +0x0000 h_name               : char *
-    +0x0008 h_aliases            : char **
-    +0x0010 h_addrtype           : int
-    +0x0014 h_length             : int
-    +0x0018 h_addr_list          : char **
-geef> dt passwd
-passwd
-    +0x0000 pw_name              : char *
-    +0x0008 pw_passwd            : char *
-    +0x0010 pw_uid               : __uid_t
-    +0x0014 pw_gid               : __gid_t
-    +0x0018 pw_gecos             : char *
-    +0x0020 pw_dir               : char *
-    +0x0028 pw_shell             : char *
-```
+![a](caps/a.png?raw=1)
+
+Here's a screenshot of `PEDA`.  That it's aarch64 doesn't matter -- it chokes in the same way for everything qemu-user.
+
+![c](caps/b.png?raw=1)
+
+And here's a screenshot of GDB's built-in commands failing horribly.
+
+![c](caps/c.png?raw=1)
