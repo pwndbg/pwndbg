@@ -13,7 +13,6 @@ import pwndbg.events
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.events.stop
 def context(*args):
     if len(args) == 0:
         args = ['reg','code','stack','backtrace']
@@ -87,17 +86,40 @@ def context_stack():
     result = []
     result.append(pwndbg.color.blue(pwndbg.ui.banner("stack")))
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True)
-    result.extend(telescope)
+    if telescope:
+        result.extend(telescope)
     return result
 
 def context_backtrace():
     result = []
     result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
-    frame = gdb.selected_frame()
-    for i in range(0,10):
-        if frame:
-            line = map(str, ('f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???'))
-            line = ' '.join(line)
-            result.append(line)
-            frame = frame.older()
+    this_frame    = gdb.selected_frame()
+    newest_frame  = this_frame
+    oldest_frame  = this_frame
+
+    for i in range(5):
+        candidate = oldest_frame.older()
+        if not candidate:
+            break
+        oldest_frame = candidate
+
+    for i in range(5):
+        candidate = newest_frame.newer()
+        if not candidate:
+            break
+        newest_frame = candidate
+
+    frame = newest_frame
+    i     = 0
+    while True:
+        prefix = '> ' if frame == this_frame else '  '
+        line   = map(str, (prefix, 'f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???'))
+        line   = ' '.join(line)
+        result.append(line)
+
+        if frame == oldest_frame:
+            break
+
+        frame = frame.older()
+        i    += 1
     return result

@@ -25,8 +25,8 @@ def get(address):
     except Exception as e:
         return None
 
-    if not all(s in string.printable for s in sz):
-        sz
+    if not all(s in string.printable for s in sz.rstrip('\x00')):
+        return None
 
     if len(sz) < length + 3:
     	return sz

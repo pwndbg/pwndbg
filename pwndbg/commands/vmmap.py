@@ -13,6 +13,7 @@ def vmmap(map=None):
     elif isinstance(map, (int, gdb.Value)):
         int_map = int(map)
 
+    print(pwndbg.color.legend())
 
     for page in pwndbg.vmmap.get():
         if str_map and str_map not in page.objfile:
@@ -21,4 +22,3 @@ def vmmap(map=None):
             continue
 
         print(pwndbg.color.get(page.vaddr, text=str(page)))
-    print(pwndbg.color.legend())

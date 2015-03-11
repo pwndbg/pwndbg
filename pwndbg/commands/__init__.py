@@ -13,35 +13,49 @@ import pwndbg.proc
 
 debug = True
 
-class ParsedCommand(gdb.Command):
+class Command(gdb.Command):
     def __init__(self, function):
-        super(ParsedCommand, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
+    def split_args(self, argument):
+        return gdb.string_to_argv(argument)
+
     def invoke(self, argument, from_tty):
-        argv = gdb.string_to_argv(argument)
-
-        for i,arg in enumerate(argv):
-            try:
-                argv[i] = gdb.parse_and_eval(arg)
-                continue
-            except Exception:
-                pass
-
-            try:
-                arg = pwndbg.regs.fix(arg)
-                argv[i] = gdb.parse_and_eval(arg)
-            except Exception:
-                pass
+        argv = self.split_args(argument)
 
         try:
-            self.function(*argv)
+            return self.function(*argv)
         except TypeError:
-            if debug: print(traceback.format_exc())
-            pass
+            if debug:
+                print(traceback.format_exc())
+            raise
 
     def __call__(self, *args, **kwargs):
         return self.function(*args, **kwargs)
+
+
+class ParsedCommand(Command):
+    def split_args(self, argument):
+        argv = super(ParsedCommand,self).split_args(argument)
+        return list(filter(lambda x: x is not None, map(fix, argv)))
+
+def fix(arg, sloppy=False):
+    try:
+        return gdb.parse_and_eval(arg)
+    except Exception:
+        pass
+
+    try:
+        arg = pwndbg.regs.fix(arg)
+        return gdb.parse_and_eval(arg)
+    except Exception:
+        pass
+
+    if sloppy:
+        return arg
+
+    return None
 
 def OnlyWhenRunning(func):
     def wrapper(*a, **kw):

@@ -16,6 +16,7 @@ import pwndbg.commands.vmmap
 import pwndbg.commands.dt
 import pwndbg.commands.search
 import pwndbg.commands.auxv
+import pwndbg.commands.windbg
 
 prompt = pwndbg.color.red('pwn> ')
 prompt = pwndbg.color.bold(prompt)
@@ -43,3 +44,9 @@ handle SIGSEGV stop print nopass
 for line in pre_commands.splitlines():
 	if line:
 		gdb.execute(line)
+
+@pwndbg.memoize.reset_on_stop
+def prompt_hook(*a):
+    pwndbg.commands.context.context()
+
+gdb.prompt_hook = prompt_hook

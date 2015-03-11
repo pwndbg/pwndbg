@@ -48,7 +48,7 @@ def hexdump(data, address = 0, width = 16, skip = True):
             last_line = line
 
         hexline = []
-        
+
         if address:
             hexline.append("+%04x " % (i*width))
 

@@ -22,7 +22,7 @@ bad_instrs = [
 def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
 
-@pwndbg.memoize.reset_on_stop
+# @pwndbg.memoize.reset_on_stop
 def enhance(value):
     """
     Given the last pointer in a chain, attempt to characterize
@@ -80,7 +80,7 @@ def enhance(value):
     if 0 <= intval < 16:
         intval = str(intval)
     else:
-        intval = hex(intval)
+        intval = hex(abs(intval))
 
     retval = []
 
