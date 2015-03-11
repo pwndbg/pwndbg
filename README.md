@@ -26,6 +26,6 @@ Here's a screenshot of `PEDA`.  That it's aarch64 doesn't matter -- it chokes in
 
 ![c](caps/b.png?raw=1)
 
-And here's a screenshot of GDB's built-in commands failing horribly.
+And here's a screenshot of GDB's built-in commands failing horribly.  Note that while, yes, it gives output -- the addresses it does give are all wrong, and are just file offsets.
 
 ![c](caps/c.png?raw=1)
