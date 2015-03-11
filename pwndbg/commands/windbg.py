@@ -124,3 +124,64 @@ def dqs(*a):
 def da(address):
     print("%x" % address, pwndbg.string.get(address))
 
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def bl():
+    gdb.execute('info breakpoints')
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def bd(which = '*'):
+    if which == '*':
+        gdb.execute('disable breakpoints')
+    else:
+        gdb.execute('disable breakpoints %s' % which)
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def bd(which = '*'):
+    if which == '*':
+        gdb.execute('enable breakpoints')
+    else:
+        gdb.execute('enable breakpoints %s' % which)
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def bc(which = '*'):
+    if which == '*':
+        gdb.execute('delete breakpoints')
+    else:
+        gdb.execute('delete breakpoints %s' % which)
+
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def bp(where):
+    gdb.execute('break *%#x' % int(where))
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def bp(where):
+    gdb.execute('break *%#x' % int(where))
+
+# @pwndbg.commands.Command
+# @pwndbg.commands.OnlyWhenRunning
+# def ba(a=None, b=None):
+#     how     = 'rw'
+#     address = a
+
+#     if b:
+#         address,how = b,a
+
+#     how = set(how)
+
+#     address = pwndbg.commands.fix(address)
+
+#     if how == set('rw'): style = 'awatch'
+#     elif 'r' in how:     style = 'rawtch'
+#     elif 'w' in how:     style = 'watch'
+#     else:
+#         raise TypeError("Don't know how to deal with %r %r" % (a,b))
+
+#     gdb.execute('%s *%#x' % (how, address))
