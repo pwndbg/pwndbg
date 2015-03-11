@@ -1,6 +1,7 @@
 import gdb
 import collections
 import pwndbg.color
+import pwndbg.disasm_powerpc
 
 Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm'])
 
@@ -61,17 +62,18 @@ branches = set([
 'beq', 'beq.w', 'bne', 'bmi', 'bpl', 'blt',
 'ble', 'bgt', 'bge', 'bxne',
 # MIPS branches
-'j', 'jal', 'jr'
-# PowerPC has too many, don't care
-# http://llvm.org/klaus/llvm/raw/e48e8c7a6069374daee4c9be1e17b8ed31527f5e/test/MC/PowerPC/ppc64-encoding-ext.s
+'j', 'jal', 'jr',
 # SPARC
 'ba', 'bne', 'be', 'bg', 'ble', 'bge', 'bl', 'bgu', 'bleu',
 'jmpl'
 ])
 
+branches = branches | pwndbg.disasm_powerpc.branches
+
 def color(ins):
     asm = ins.asm
-    if asm.split()[0] in branches:
+    mnem = asm.split()[0].strip().rstrip('+-')
+    if mnem in branches:
         asm = pwndbg.color.yellow(asm)
         asm += '\n'
     return asm

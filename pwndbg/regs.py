@@ -74,7 +74,7 @@ i386 = RegisterSet('eip',
 # r31     Used for local variables or "environment pointers"
 powerpc = RegisterSet('pc',
                       'sp',
-                      'r1',
+                      None,
                       ('lr','r0'),
                       ('msr','xer'),
                       tuple('r%i' % i for i in range(3,32)),
