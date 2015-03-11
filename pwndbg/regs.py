@@ -78,7 +78,7 @@ powerpc = RegisterSet('pc',
                       ('lr','r0'),
                       ('msr','xer'),
                       tuple('r%i' % i for i in range(3,32)),
-                      ('cr','lr','trap','r2'),
+                      ('cr','lr','r2'),
                       tuple())
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt

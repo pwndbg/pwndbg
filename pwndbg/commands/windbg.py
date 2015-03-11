@@ -84,6 +84,7 @@ def ew(address, *data):
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def ed(address, *data):
+    """Edits DWORDs"""
     return eX(4, address, data)
 
 @pwndbg.commands.Command
@@ -91,16 +92,28 @@ def ed(address, *data):
 def eq(address, *data):
     return eX(8, address, data)
 
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def ez(address, *data):
+    return eX(1, address, data[0], hex=False)
 
-def eX(size, address, data):
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def eza(address, *data):
+    return ez(address, data)
+
+def eX(size, address, data, hex=True):
     """
     This relies on windbg's default hex encoding being enforced
     """
     address = pwndbg.commands.fix(address)
 
     for i,bytestr in enumerate(data):
-        bytestr = bytestr.rjust(size*2, '0')
-        data    = codecs.decode(bytestr, 'hex')
+        if hex:
+            bytestr = bytestr.rjust(size*2, '0')
+            data    = codecs.decode(bytestr, 'hex')
+        else:
+            data    = bytestr
         pwndbg.memory.write(address + (i * size), data)
 
 @pwndbg.commands.ParsedCommand
@@ -165,23 +178,10 @@ def bp(where):
 def bp(where):
     gdb.execute('break *%#x' % int(where))
 
-# @pwndbg.commands.Command
-# @pwndbg.commands.OnlyWhenRunning
-# def ba(a=None, b=None):
-#     how     = 'rw'
-#     address = a
-
-#     if b:
-#         address,how = b,a
-
-#     how = set(how)
-
-#     address = pwndbg.commands.fix(address)
-
-#     if how == set('rw'): style = 'awatch'
-#     elif 'r' in how:     style = 'rawtch'
-#     elif 'w' in how:     style = 'watch'
-#     else:
-#         raise TypeError("Don't know how to deal with %r %r" % (a,b))
-
-#     gdb.execute('%s *%#x' % (how, address))
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def u(where=None, n=5):
+    if where is None:
+        where = pwndbg.regs.pc
+    cmd = 'x/%ii %#x' % (int(n), int(where))
+    gdb.execute(cmd)

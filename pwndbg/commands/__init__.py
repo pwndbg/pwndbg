@@ -15,6 +15,7 @@ debug = True
 
 class Command(gdb.Command):
     def __init__(self, function):
+        function.__doc__
         super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
