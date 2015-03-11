@@ -20,7 +20,7 @@ Pretty easy.
 
 Does most things that PEDA does.  Doesn't do things that PEDA does that [pwntools](https://github.com/Gallopsled/pwntools) or [binjitsu](https://binjit.su) (my fork of pwntools) do better.
 
-Also has a basic windbg compat layer for e.g. `dd`, `eb`, `da`, `dps`.  Note that `gdb` doesn't circumvent page permissions like windbg does, so the following will fail `eb eip 90`, much to [my](https://twitter.com/ebeip90) chargrin.
+Also has a basic windbg compat layer for e.g. `dd`, `eb`, `da`, `dps`.  Note that `gdb` doesn't circumvent page permissions like windbg does, so e.g. `eb eip 90`, much to [my](https://twitter.com/ebeip90) chargrin.
 
 ## Screenshots
 
