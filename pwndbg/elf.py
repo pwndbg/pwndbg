@@ -46,7 +46,7 @@ Elf64_Phdr f;
 
 subprocess.check_output('gcc -c -g %s.c -o %s.o' % (gef_elf, gef_elf), shell=True)
 
-@pwndbg.memoize.reset_on_exit
+@pwndbg.memoize.reset_on_objfile
 def exe():
     """
     Return a loaded ELF header object pointing to the Ehdr of the
@@ -56,7 +56,7 @@ def exe():
     ptr = entry()
     return load(ptr)
 
-@pwndbg.memoize.reset_on_exit
+@pwndbg.memoize.reset_on_objfile
 def entry():
     """
     Return the address of the entry point for the main executable.
@@ -113,7 +113,8 @@ def get_ehdr(pointer):
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
-    gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
+    with pwndbg.events.Pause():
+        gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
 
     Elf32_Ehdr = pwndbg.types.load('Elf32_Ehdr')
     Elf64_Ehdr = pwndbg.types.load('Elf64_Ehdr')

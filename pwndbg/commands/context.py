@@ -26,6 +26,7 @@ def context(*args):
     if 'c' in args: result.extend(context_code())
     if 's' in args: result.extend(context_stack())
     if 'b' in args: result.extend(context_backtrace())
+    if 'b' in args: result.extend(context_signal())
 
     print('\n'.join(map(str, result)))
 
@@ -67,7 +68,10 @@ def context_code():
         symbols.append(symbol)
 
     # Find the longest symbol name so we can adjust
-    longest_sym = max(map(len, symbols))
+    if symbols:
+        longest_sym = max(map(len, symbols))
+    else:
+        longest_sym = ''
 
     # Pad them all out
     for i,s in enumerate(symbols):
@@ -77,6 +81,10 @@ def context_code():
     for i,s in zip(instructions, symbols):
         asm    = pwndbg.disasm.color(i)
         prefix = ' =>' if i.address == pc else '   '
+
+        pre = pwndbg.ida.Anterior(i.address)
+        if pre:
+            result.append(pwndbg.color.bold(pre))
 
         line   = ' '.join((prefix, s + hex(i.address), asm))
         result.append(line)
@@ -98,7 +106,11 @@ def context_backtrace():
     oldest_frame  = this_frame
 
     for i in range(5):
-        candidate = oldest_frame.older()
+        try:
+            candidate = oldest_frame.older()
+        except gdb.MemoryError:
+            break
+
         if not candidate:
             break
         oldest_frame = candidate
@@ -123,3 +135,26 @@ def context_backtrace():
         frame = frame.older()
         i    += 1
     return result
+
+last_signal = None
+
+def save_signal(signal):
+    global last_signal
+    last_signal = result = []
+
+    if isinstance(signal, gdb.ExitedEvent):
+        result.append(pwndbg.color.red('Exited: %r' % signal.exit_code))
+
+    elif isinstance(signal, gdb.SignalEvent):
+        result.append(pwndbg.color.red('Program received signal %s' % signal.stop_signal))
+
+    elif isinstance(signal, gdb.BreakpointEvent):
+        for bkpt in signal.breakpoints:
+            result.append(pwndbg.color.yellow('Breakpoint %s' % (bkpt.location)))
+
+gdb.events.cont.connect(save_signal)
+gdb.events.stop.connect(save_signal)
+gdb.events.exited.connect(save_signal)
+
+def context_signal():
+    return last_signal

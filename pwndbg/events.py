@@ -2,11 +2,21 @@ import gdb
 import traceback
 
 debug = False
+pause = 0
 
-def connect(func, event_handler):
+class Pause(object):
+    def __enter__(self, *a, **kw):
+        global pause
+        pause += 1
+    def __exit__(self, *a, **kw):
+        global pause
+        pause -= 1
+
+def connect(func, event_handler, name=''):
     def caller(*a):
         func.__doc__
-        if debug: print('%s.%s' % (func.__module__, func.__name__), a)
+        if debug: print('%r %s.%s' % (name, func.__module__, func.__name__), a)
+        if pause: return
         try:
             func()
         except Exception as e:
@@ -16,7 +26,8 @@ def connect(func, event_handler):
     event_handler.connect(caller)
     return func
 
-def exit(func):        return connect(func, gdb.events.exited)
-def cont(func):        return connect(func, gdb.events.cont)
-def new_objfile(func): return connect(func, gdb.events.new_objfile)
-def stop(func):        return connect(func, gdb.events.stop)
+def exit(func):        return connect(func, gdb.events.exited, 'exit')
+def cont(func):        return connect(func, gdb.events.cont, 'cont')
+def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
+def stop(func):        return connect(func, gdb.events.stop, 'stop')
+
