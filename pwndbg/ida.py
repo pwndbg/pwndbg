@@ -1,6 +1,8 @@
 import gdb
 import xmlrpc.client as xmlrpclib
+import pwndbg.memory
 import pwndbg.events
+import pwndbg.regs
 import pwndbg.memoize
 import pwndbg.elf
 import socket
@@ -31,8 +33,8 @@ class takes_address(object):
     def __init__(self, fn):
         self.fn = fn
         self.__name__ = fn.__name__
-    def __call__(self, address):
-        return self.fn(l2r(address))
+    def __call__(self, address, *args):
+        return self.fn(l2r(address), *args)
 
 class returns_address(object):
     def __init__(self, fn):
@@ -112,6 +114,7 @@ def GetBptEA(i):
 _breakpoints=[]
 
 @pwndbg.events.cont
+@pwndbg.events.stop
 @withIDA
 def UpdateBreakpoints():
     current = set(eval(b.location.lstrip('*')) for b in _breakpoints)
@@ -128,6 +131,38 @@ def UpdateBreakpoints():
         _breakpoints.remove(bp)
 
     for bp in want-current:
+        if not pwndbg.memory.peek(bp):
+            continue
+
         bp = gdb.Breakpoint('*' + hex(bp))
         _breakpoints.append(bp)
         # print(_breakpoints)
+
+
+@withIDA
+@takes_address
+def SetColor(pc, color):
+    return _ida.SetColor(pc, 1, color)
+
+
+colored_pc = None
+
+# @pwndbg.events.stop
+# @withIDA
+# def Auto_Color_PC():
+#     global colored_pc
+#     colored_pc = pwndbg.regs.pc
+#     SetColor(colored_pc, 0x7f7fff)
+
+# @pwndbg.events.cont
+# @withIDA
+# def Auto_UnColor_PC():
+#     global colored_pc
+#     if colored_pc:
+#         SetColor(colored_pc, 0xffffff)
+#     colored_pc = None
+
+@pwndbg.events.stop
+@withIDA
+def Auto_Jump():
+    Jump(pwndbg.regs.pc)

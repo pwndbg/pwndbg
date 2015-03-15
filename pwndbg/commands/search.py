@@ -1,17 +1,12 @@
 import gdb
+import struct
 import pwndbg.commands
-import pwndbg.memory
-import pwndbg.types
+import pwndbg.search
+import pwndbg.enhance
+import pwndbg.color
 
-@pwndbg.commands.ParsedCommand
+@pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def search(searchfor):
-    value = None
-    size  = None
-
-    if isinstance(searchfor, gdb.Value):
-        try:
-            searchfor = pwndbg.memory.read(searchfor.address, searchfor.sizeof)
-        except:
-            searchfor = 0
-    print(searchfor)
+def search(value):
+    for address in pwndbg.search.search(value):
+        print(pwndbg.color.get(address), pwndbg.enhance.enhance(address))

@@ -1,6 +1,7 @@
 import gdb
 import pwndbg.memoize
 import pwndbg.memory
+import pwndbg.stack
 import pwndbg.ida
 
 @pwndbg.memoize.reset_on_objfile
@@ -10,6 +11,10 @@ def get(address):
     """
     # Fast path
     if address < pwndbg.memory.MMAP_MIN_ADDR:
+        return ''
+
+    # Don't look up stack addresses
+    if pwndbg.stack.find(address):
         return ''
 
     # This sucks, but there's not a GDB API for this.
@@ -33,24 +38,3 @@ def get(address):
         return a
 
     return ''
-
-# last = None
-# count = 0
-
-# @pwndbg.events.stop
-# def on_stop():
-#     global last
-#     if last is not get.cache:
-#         print("DIFFERENT!",last,get.cache)
-#         last = get.cache
-#     print(get.cache)
-
-# def trace(*a,**kw):
-#     with open('log.txt','a+') as f:
-#         import traceback
-#         f.write('\n'.join(traceback.format_stack()))
-#     global count
-#     count += 1
-
-# get.clear = trace
-# get.cache.clear = trace

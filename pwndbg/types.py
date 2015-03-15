@@ -56,7 +56,7 @@ blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
 'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
 'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
-'gcrypt-module.h', 'term.h']
+'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h']
 
 def load(name):
     try:
@@ -102,6 +102,7 @@ def load(name):
         command = command % (filename, filename)
         subprocess.check_output(command, shell=True)
 
-    gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)
+    with pwndbg.events.Pause():
+        gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)
 
     return gdb.lookup_type(name)

@@ -17,6 +17,7 @@ import pwndbg.commands.dt
 import pwndbg.commands.search
 import pwndbg.commands.auxv
 import pwndbg.commands.windbg
+import pwndbg.commands.ida
 
 prompt = pwndbg.color.red('pwn> ')
 prompt = pwndbg.color.bold(prompt)

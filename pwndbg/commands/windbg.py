@@ -5,7 +5,7 @@ import pwndbg.arch
 import pwndbg.commands
 import pwndbg.memory
 import pwndbg.types
-
+import pwndbg.strings
 
 def get_type(size):
     return {
@@ -135,7 +135,7 @@ def dqs(*a):
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def da(address):
-    print("%x" % address, pwndbg.string.get(address))
+    print("%x" % address, pwndbg.strings.get(address))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

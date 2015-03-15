@@ -9,7 +9,7 @@ import pwndbg.disasm
 import pwndbg.chain
 import pwndbg.commands.telescope
 import pwndbg.events
-
+import pwndbg.ida
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -46,9 +46,9 @@ def context_regs():
     return result
 
 def context_code():
+    pc = pwndbg.regs.pc
     result = []
     result.append(pwndbg.color.blue(pwndbg.ui.banner("code")))
-    pc = pwndbg.regs.pc
     instructions = pwndbg.disasm.near(pwndbg.regs.pc, 5)
 
     # In case $pc is in a new map we don't know about,
@@ -146,7 +146,10 @@ def save_signal(signal):
         result.append(pwndbg.color.red('Exited: %r' % signal.exit_code))
 
     elif isinstance(signal, gdb.SignalEvent):
-        result.append(pwndbg.color.red('Program received signal %s' % signal.stop_signal))
+        msg = 'Program received signal %s' % signal.stop_signal
+        msg = pwndbg.color.red(msg)
+        msg = pwndbg.color.bold(msg)
+        result.append(msg)
 
     elif isinstance(signal, gdb.BreakpointEvent):
         for bkpt in signal.breakpoints:
