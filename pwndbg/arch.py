@@ -10,6 +10,7 @@ ptrmask = 0xfffffffff
 endian  = 'little'
 ptrsize = pwndbg.types.ptrsize
 fmt     = '=i'
+disasm  = lambda: None
 
 @pwndbg.events.stop
 def update():
@@ -30,6 +31,8 @@ def update():
     (8, 'little'): '<Q',
     (8, 'big'):    '>Q',
     }.get((m.ptrsize, m.endian))
+
+    m.disasm = gdb.selected_frame().architecture().disassemble
 
 
 def pack(integer):

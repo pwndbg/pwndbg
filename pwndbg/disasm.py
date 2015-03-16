@@ -2,12 +2,20 @@ import gdb
 import collections
 import pwndbg.color
 import pwndbg.disasm_powerpc
+import pwndbg.memory
+import pwndbg.arch
 
 Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm'])
 
 def get(address, instructions=1):
     address = int(address)
-    raw = gdb.selected_frame().architecture().disassemble(address, address+0xffffffff, instructions)
+
+    # Dont disassemble if there's no memory
+    if not pwndbg.memory.peek(address):
+        return []
+
+    raw = pwndbg.arch.disasm(address, address+0xffffffff, instructions)
+
     retval = []
     for insn in raw:
         retval.append(Instruction(insn['addr'],insn['length'], insn['asm']))
@@ -25,6 +33,9 @@ def near(address, instructions=1):
     insns = []
     while start < address:
         insns = get(start, instructions)
+        if not insns:
+            return []
+
         last = insns[-1]
 
         if last.address + last.length == address:

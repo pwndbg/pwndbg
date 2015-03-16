@@ -3,6 +3,7 @@ import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.stack
 import pwndbg.ida
+import pwndbg.elf
 
 @pwndbg.memoize.reset_on_objfile
 def get(address):
@@ -21,8 +22,13 @@ def get(address):
     result = gdb.execute('info symbol %#x' % int(address), to_string=True, from_tty=False)
 
     if result.startswith('No symbol'):
-        res =  pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
-        return res or ''
+        address = int(address)
+        exe     = pwndbg.elf.exe()
+        if exe:
+            exe_map = pwndbg.vmmap.find(exe.address)
+            if address in exe_map:
+                res =  pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
+                return res or ''
 
     # Expected format looks like this:
     # main in section .text of /bin/bash
