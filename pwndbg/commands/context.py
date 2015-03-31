@@ -8,6 +8,7 @@ import pwndbg.ui
 import pwndbg.disasm
 import pwndbg.chain
 import pwndbg.commands.telescope
+import pwndbg.commands.nearpc
 import pwndbg.events
 import pwndbg.ida
 
@@ -46,49 +47,15 @@ def context_regs():
     return result
 
 def context_code():
-    pc = pwndbg.regs.pc
-    result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("code")))
-    instructions = pwndbg.disasm.near(pwndbg.regs.pc, 5)
+    banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+    result = pwndbg.commands.nearpc.nearpc()
 
-    # In case $pc is in a new map we don't know about,
-    # this will trigger an exploratory search.
-    pwndbg.vmmap.find(pc)
+    # If we didn't disassemble backward, try to make sure
+    # that the amount of screen space taken is roughly constant.
+    while len(result) < 11:
+        result.insert(0, '')
 
-    # Ensure screen data is always at the same spot
-    for i in range(11 - len(instructions)):
-        result.append('')
-
-    # Find all of the symbols for the addresses
-    symbols = []
-    for i in instructions:
-        symbol = pwndbg.symbol.get(i.address)
-        if symbol:
-            symbol = '<%s> ' % symbol
-        symbols.append(symbol)
-
-    # Find the longest symbol name so we can adjust
-    if symbols:
-        longest_sym = max(map(len, symbols))
-    else:
-        longest_sym = ''
-
-    # Pad them all out
-    for i,s in enumerate(symbols):
-        symbols[i] = s.ljust(longest_sym)
-
-    # Print out each instruction
-    for i,s in zip(instructions, symbols):
-        asm    = pwndbg.disasm.color(i)
-        prefix = ' =>' if i.address == pc else '   '
-
-        pre = pwndbg.ida.Anterior(i.address)
-        if pre:
-            result.append(pwndbg.color.bold(pre))
-
-        line   = ' '.join((prefix, s + hex(i.address), asm))
-        result.append(line)
-    return result
+    return banner + result
 
 def context_stack():
     result = []

@@ -44,6 +44,8 @@ def update():
                 page  = pwndbg.memory.Page(start, stop-start, 6 if not is_executable() else 7, 0, '[stack]')
                 stacks[thread.ptid] = page
                 continue
+            elif page.objfile is None:
+                page.objfile = '[stack]'
 
             # If we *DO* already know about this thread, just
             # udpate the lower boundary.

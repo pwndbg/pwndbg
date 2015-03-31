@@ -95,6 +95,8 @@ def dt(name='', addr=None, obj = None):
     if obj: header = "%s @ %s" % (header, hex(int(obj.address)))
     rv.append(header)
 
+    if t.strip_typedefs().code == gdb.TYPE_CODE_ARRAY:
+        return "Arrays not supported yet"
     if t.strip_typedefs().code != gdb.TYPE_CODE_STRUCT:
         t = {name: obj or gdb.Value(0).cast(t)}
 

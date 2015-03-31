@@ -26,7 +26,7 @@ def get(address):
         exe     = pwndbg.elf.exe()
         if exe:
             exe_map = pwndbg.vmmap.find(exe.address)
-            if address in exe_map:
+            if exe_map and address in exe_map:
                 res =  pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ''
 

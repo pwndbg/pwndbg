@@ -6,6 +6,7 @@ import pwndbg.events
 import pwndbg.info
 import pwndbg.regs
 import pwndbg.types
+import pwndbg.arch
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
@@ -66,7 +67,6 @@ AT_CONSTANTS = {
     37: 'AT_L3_CACHESHAPE',
 }
 
-print(sys.modules[__name__])
 sys.modules[__name__].__dict__.update({v:k for k,v in AT_CONSTANTS.items()})
 
 
@@ -176,6 +176,10 @@ def walk_stack():
     end  = find_stack_boundary(sp)
     p = gdb.Value(end).cast(pwndbg.types.ulong.pointer())
 
+    # Because reasons?
+    if pwndbg.arch.current == 'arm':
+        p -= 1
+
     # So we don't walk off the end of the stack
     p -= 2
 
@@ -199,8 +203,12 @@ def walk_stack():
     # This check is needed because the above loop isn't
     # guaranteed to actually get us to AT_NULL, just to some
     # consecutive NULLs.  QEMU is pretty generous with NULLs.
-    while p.dereference() != AT_BASE:
+    for i in range(1024):
+        if p.dereference() == AT_BASE:
+            break
         p -= 2
+    else:
+        return
 
     # If we continue to p back, we should bump into the
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
