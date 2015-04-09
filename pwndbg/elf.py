@@ -164,12 +164,12 @@ def get_phdrs(pointer):
 
 def iter_phdrs(ehdr):
     if not ehdr:
-        return []
+        raise StopIteration
 
     phnum, phentsize, phdr = get_phdrs(int(ehdr.address))
 
     if not phdr:
-        return []
+        raise StopIteration
 
     first_phdr = int(phdr.address)
     PhdrType   = phdr.type
