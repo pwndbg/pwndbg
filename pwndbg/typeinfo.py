@@ -65,7 +65,8 @@ blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
 'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
 'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
-'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h']
+'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
+'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h']
 
 def load(name):
     try:
@@ -100,7 +101,7 @@ def load(name):
 {name} foo;
 '''.format(**locals())
 
-    filename = '%s/%s_%s' % (tempdir, arch, name)
+    filename = '%s/%s_%s' % (tempdir, arch, '-'.join(name.split()))
 
     if not os.path.exists(filename + '.o'):
         with open(filename + '.cc', 'w+') as f:

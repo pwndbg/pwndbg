@@ -23,6 +23,7 @@ def rreload(module, paths=[''], mdict=None):
     for attribute_name in dir(module):
         attribute = getattr(module, attribute_name)
 
+        if attribute_name == 'inthook':             continue
         if type(attribute) is not types.ModuleType: continue
         if not attribute.__name__.startswith(name): continue
         if attribute in mdict[module]:              continue
@@ -31,6 +32,8 @@ def rreload(module, paths=[''], mdict=None):
         rreload(attribute, paths, mdict)
 
     _reload(module)
+
+    # Need to re-fire all events
 
 @pwndbg.commands.Command
 def reload(*a):

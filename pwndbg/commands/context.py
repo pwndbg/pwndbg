@@ -110,7 +110,9 @@ def save_signal(signal):
     last_signal = result = []
 
     if isinstance(signal, gdb.ExitedEvent):
-        result.append(pwndbg.color.red('Exited: %r' % signal.exit_code))
+        # Booooo old gdb
+        if hasattr(signal, 'exit_code'):
+            result.append(pwndbg.color.red('Exited: %r' % signal.exit_code))
 
     elif isinstance(signal, gdb.SignalEvent):
         msg = 'Program received signal %s' % signal.stop_signal

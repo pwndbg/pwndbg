@@ -4,6 +4,11 @@ import traceback
 debug = False
 pause = 0
 
+# In order to support reloading, we must be able to re-fire
+# all 'objfile' and 'stop' events.
+on_stop        = []
+on_new_objfile = []
+
 class Pause(object):
     def __enter__(self, *a, **kw):
         global pause
