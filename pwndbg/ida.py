@@ -1,5 +1,4 @@
 import gdb
-import xmlrpc.client as xmlrpclib
 import pwndbg.memory
 import pwndbg.events
 import pwndbg.regs
@@ -7,6 +6,11 @@ import pwndbg.memoize
 import pwndbg.elf
 import socket
 from contextlib import closing
+
+try:
+    import xmlrpc.client as xmlrpclib
+except:
+    import xmlrpclib
 
 _ida = None
 

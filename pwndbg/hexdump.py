@@ -15,7 +15,7 @@ def groupby(array, count, fill=None):
 #
 color_scheme = {i:pwndbg.color.normal("%02x" % i) for i in range(256)}
 
-for c in (string.ascii_letters + string.digits + string.punctuation).encode('utf-8'):
+for c in bytearray((string.ascii_letters + string.digits + string.punctuation).encode('utf-8')):
     color_scheme[c] = pwndbg.color.bold("%02x" % c)
 
 for c in bytearray(b'\x00\xff'):
@@ -27,7 +27,7 @@ color_scheme[-1] = '  '
 # Only print out printable values on the righ hand side
 #
 printable = {i:'.' for i in range(256)}
-for c in (string.ascii_letters + string.digits + string.punctuation).encode('utf-8'):
+for c in bytearray((string.ascii_letters + string.digits + string.punctuation).encode('utf-8')):
     printable[c] = chr(c)
 
 printable[-1] = ' '
