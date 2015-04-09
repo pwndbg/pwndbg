@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import gdb
 import pwndbg.compat
-import pwndbg.types
+import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
 MMAP_MIN_ADDR = 0x10000
@@ -36,20 +36,20 @@ def poke(address):
     except: return False
     return True
 
-def byte(addr):   return readtype(pwndbg.types.uchar, addr)
-def uchar(addr):  return readtype(pwndbg.types.uchar, addr)
-def ushort(addr): return readtype(pwndbg.types.ushort, addr)
-def uint(addr):   return readtype(pwndbg.types.uint, addr)
+def byte(addr):   return readtype(pwndbg.typeinfo.uchar, addr)
+def uchar(addr):  return readtype(pwndbg.typeinfo.uchar, addr)
+def ushort(addr): return readtype(pwndbg.typeinfo.ushort, addr)
+def uint(addr):   return readtype(pwndbg.typeinfo.uint, addr)
 
-def u8(addr): return readtype(pwndbg.types.uint8_t, addr)
-def u16(addr): return readtype(pwndbg.types.uint16_t, addr)
-def u32(addr): return readtype(pwndbg.types.uint32_t, addr)
-def u64(addr): return readtype(pwndbg.types.uint64_t, addr)
+def u8(addr): return readtype(pwndbg.typeinfo.uint8_t, addr)
+def u16(addr): return readtype(pwndbg.typeinfo.uint16_t, addr)
+def u32(addr): return readtype(pwndbg.typeinfo.uint32_t, addr)
+def u64(addr): return readtype(pwndbg.typeinfo.uint64_t, addr)
 
-def s8(addr): return readtype(pwndbg.types.int8_t, addr)
-def s16(addr): return readtype(pwndbg.types.int16_t, addr)
-def s32(addr): return readtype(pwndbg.types.int32_t, addr)
-def s64(addr): return readtype(pwndbg.types.int64_t, addr)
+def s8(addr): return readtype(pwndbg.typeinfo.int8_t, addr)
+def s16(addr): return readtype(pwndbg.typeinfo.int16_t, addr)
+def s32(addr): return readtype(pwndbg.typeinfo.int32_t, addr)
+def s64(addr): return readtype(pwndbg.typeinfo.int64_t, addr)
 
 def write(addr, data):
     gdb.selected_inferior().write_memory(addr, data)
@@ -128,7 +128,7 @@ class Page(object):
                         'x' if flags & 1 else '-',
                         'p'])
     def __str__(self):
-        width = 2 + 2*pwndbg.types.ptrsize
+        width = 2 + 2*pwndbg.typeinfo.ptrsize
         fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
         fmt_string = fmt_string.format(width, width)
         return fmt_string % (self.vaddr,

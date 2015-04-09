@@ -12,7 +12,7 @@ import sys
 
 import pwndbg.remote
 import pwndbg.memory
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.file
 import pwndbg.proc
 import pwndbg.compat

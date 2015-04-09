@@ -3,7 +3,7 @@ import string
 import pwndbg.symbol
 import pwndbg.memory
 import pwndbg.color
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.strings
 import pwndbg.disasm
 import pwndbg.memoize
@@ -75,7 +75,7 @@ def enhance(value):
     else:
         szval = None
 
-    intval  = int(pwndbg.memory.poi(pwndbg.types.pvoid, value))
+    intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     intval0 = intval
     if 0 <= intval < 16:
         intval = str(intval)

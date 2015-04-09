@@ -5,7 +5,7 @@ import pwndbg.memory
 import pwndbg.events
 import pwndbg.info
 import pwndbg.regs
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.arch
 
 example_info_auxv_linux = """
@@ -79,7 +79,7 @@ class AUXV(dict):
         name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ['AT_EXECFN', 'AT_PLATFORM']:
-            value = gdb.Value(value).cast(pwndbg.types.pchar).string()
+            value = gdb.Value(value).cast(pwndbg.typeinfo.pchar).string()
 
         self[name] = value
     def __getattr__(self, attr):
@@ -174,7 +174,7 @@ def walk_stack():
     # 5) Vacuum up between the two.
     #
     end  = find_stack_boundary(sp)
-    p = gdb.Value(end).cast(pwndbg.types.ulong.pointer())
+    p = gdb.Value(end).cast(pwndbg.typeinfo.ulong.pointer())
 
     # Because reasons?
     if pwndbg.arch.current == 'arm':

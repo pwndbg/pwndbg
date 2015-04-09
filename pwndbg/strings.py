@@ -1,6 +1,6 @@
 import gdb
 import string
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.events
 
 length = 15
@@ -21,7 +21,7 @@ def update_length():
 
 def get(address):
     try:
-        sz = gdb.Value(address).cast(pwndbg.types.pchar).string()
+        sz = gdb.Value(address).cast(pwndbg.typeinfo.pchar).string()
     except Exception as e:
         return None
 

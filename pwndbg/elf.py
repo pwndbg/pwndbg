@@ -20,7 +20,7 @@ import pwndbg.memory
 import pwndbg.memoize
 import pwndbg.stack
 import pwndbg.auxv
-import pwndbg.types
+import pwndbg.typeinfo
 
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
@@ -116,8 +116,8 @@ def get_ehdr(pointer):
     with pwndbg.events.Pause():
         gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
 
-    Elf32_Ehdr = pwndbg.types.load('Elf32_Ehdr')
-    Elf64_Ehdr = pwndbg.types.load('Elf64_Ehdr')
+    Elf32_Ehdr = pwndbg.typeinfo.load('Elf32_Ehdr')
+    Elf64_Ehdr = pwndbg.typeinfo.load('Elf64_Ehdr')
 
     # Align down to a page boundary, and scan until we find
     # the ELF header.
@@ -151,8 +151,8 @@ def get_phdrs(pointer):
     if Elfhdr is None:
         return (0, 0, None)
 
-    Elf32_Phdr = pwndbg.types.load('Elf32_Phdr')
-    Elf64_Phdr = pwndbg.types.load('Elf64_Phdr')
+    Elf32_Phdr = pwndbg.typeinfo.load('Elf32_Phdr')
+    Elf64_Phdr = pwndbg.typeinfo.load('Elf64_Phdr')
     PhdrType   = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
 
     phnum     = int(Elfhdr['e_phnum'])

@@ -3,12 +3,12 @@ import sys
 import gdb
 import pwndbg.memoize
 import pwndbg.events
-import pwndbg.types
+import pwndbg.typeinfo
 
 current = None
 ptrmask = 0xfffffffff
 endian  = 'little'
-ptrsize = pwndbg.types.ptrsize
+ptrsize = pwndbg.typeinfo.ptrsize
 fmt     = '=i'
 disasm  = lambda: None
 
@@ -17,8 +17,8 @@ def update():
     m = sys.modules[__name__]
 
     m.current = gdb.selected_frame().architecture().name()
-    m.ptrsize = pwndbg.types.ptrsize
-    m.ptrmask = (1 << 8*pwndbg.types.ptrsize)-1
+    m.ptrsize = pwndbg.typeinfo.ptrsize
+    m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 
     if 'little' in gdb.execute('show endian', to_string=True):
         m.endian = 'little'

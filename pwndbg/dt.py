@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 
 import pwndbg.memory
-import pwndbg.types
+import pwndbg.typeinfo
 
 def get_type(v):
     t = v.type
@@ -79,7 +79,7 @@ def dt(name='', addr=None, obj = None):
 
     # Lookup the type name specified by the user
     else:
-        t = pwndbg.types.load(name)
+        t = pwndbg.typeinfo.load(name)
 
     # If it's not a struct (e.g. int or char*), bail
     if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF):
@@ -112,7 +112,7 @@ def dt(name='', addr=None, obj = None):
             if ftype.code == gdb.TYPE_CODE_INT:
                 v = hex(int(v))
             if ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY) \
-                and ftype.target() == pwndbg.types.uchar:
+                and ftype.target() == pwndbg.typeinfo.uchar:
                 data = pwndbg.memory.read(v.address, ftype.sizeof)
                 v = ' '.join('%02x' % b for b in data)
 

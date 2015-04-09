@@ -2,7 +2,7 @@ import gdb
 import struct
 import pwndbg.memory
 import pwndbg.vmmap
-import pwndbg.types
+import pwndbg.typeinfo
 
 def search(searchfor):
     value = searchfor

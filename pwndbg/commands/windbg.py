@@ -4,15 +4,15 @@ import math
 import pwndbg.arch
 import pwndbg.commands
 import pwndbg.memory
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.strings
 
 def get_type(size):
     return {
-    1: pwndbg.types.uint8,
-    2: pwndbg.types.uint16,
-    4: pwndbg.types.uint32,
-    8: pwndbg.types.uint64,
+    1: pwndbg.typeinfo.uint8,
+    2: pwndbg.typeinfo.uint16,
+    4: pwndbg.typeinfo.uint32,
+    8: pwndbg.typeinfo.uint64,
     }[size]
 
 @pwndbg.commands.ParsedCommand

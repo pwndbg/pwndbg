@@ -2,7 +2,7 @@ import gdb
 import pwndbg.color
 import pwndbg.enhance
 import pwndbg.memory
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.vmmap
 import pwndbg.symbol
 
@@ -23,7 +23,7 @@ def get(address, limit=5):
 
         result.append(address)
         try:
-            address = int(pwndbg.memory.poi(pwndbg.types.ppvoid, address))
+            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
         except gdb.MemoryError:
             break
 

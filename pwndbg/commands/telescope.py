@@ -1,6 +1,6 @@
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.types
+import pwndbg.typeinfo
 import pwndbg.commands
 import pwndbg.chain
 
@@ -21,8 +21,8 @@ def telescope(address=None, count=8, to_string=False):
     count   = int(count)
 
     reg_values = {r:v for (r,v) in pwndbg.regs.items()}
-    # address    = pwndbg.memory.poi(pwndbg.types.ppvoid, address)
-    ptrsize    = pwndbg.types.ptrsize
+    # address    = pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address)
+    ptrsize    = pwndbg.typeinfo.ptrsize
 
     start = address
     stop  = address + (count*ptrsize)
