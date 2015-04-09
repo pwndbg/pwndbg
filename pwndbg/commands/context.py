@@ -48,7 +48,7 @@ def context_regs():
 
 def context_code():
     banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
-    result = pwndbg.commands.nearpc.nearpc()
+    result = pwndbg.commands.nearpc.nearpc(to_string=True)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
