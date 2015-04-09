@@ -10,12 +10,21 @@ import pwndbg.memoize
 
 module = sys.modules[__name__]
 
+def is_pointer(value):
+    type = value
+
+    if isinstance(value, gdb.Value):
+        type = value.type
+
+    type = type.strip_typedefs()
+    return type.code == gdb.TYPE_CODE_PTR
 
 @pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_exit
 def update():
     module.char   = gdb.lookup_type('char')
     module.ulong  = gdb.lookup_type('unsigned long')
+    module.long   = gdb.lookup_type('long')
     module.uchar  = gdb.lookup_type('unsigned char')
     module.ushort = gdb.lookup_type('unsigned short')
     module.uint   = gdb.lookup_type('unsigned int')

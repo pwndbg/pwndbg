@@ -3,11 +3,13 @@ import pwndbg.arch
 import pwndbg.vmmap
 import pwndbg.dt
 import pwndbg.memory
+import pwndbg.inthook
 import pwndbg.elf
 import pwndbg.proc
 import pwndbg.regs
 import pwndbg.stack
 import pwndbg.color
+import pwndbg.typeinfo
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.context
@@ -18,6 +20,8 @@ import pwndbg.commands.search
 import pwndbg.commands.auxv
 import pwndbg.commands.windbg
 import pwndbg.commands.ida
+import pwndbg.commands.reload
+import pwndbg.commands.rop
 
 prompt = pwndbg.color.red('pwn> ')
 prompt = pwndbg.color.bold(prompt)
