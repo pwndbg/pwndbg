@@ -52,7 +52,7 @@ def enhance(value):
         packed = pwndbg.arch.pack(int(value))
         if all(c in string.printable.encode('utf-8') for c in packed):
             if len(retval) > 4:
-                retval = '%s (%r)' % (retval, packed.decode())
+                retval = '%s (%r)' % (retval, str(packed.decode('ascii', 'ignore')))
 
         return retval
 

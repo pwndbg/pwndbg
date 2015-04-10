@@ -21,14 +21,17 @@ def update_length():
 
 def get(address):
     try:
-        sz = gdb.Value(address).cast(pwndbg.typeinfo.pchar).string()
+        sz = gdb.Value(address)
+        sz = sz.cast(pwndbg.typeinfo.pchar)
+        sz = sz.string('ascii', 'ignore', length)
+        sz = str(sz)
     except Exception as e:
         return None
 
     if not all(s in string.printable for s in sz.rstrip('\x00')):
         return None
 
-    if len(sz) < length + 3:
+    if len(sz) < length:
     	return sz
 
     return sz[:length] + '...'
