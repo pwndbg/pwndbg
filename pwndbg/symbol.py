@@ -44,3 +44,16 @@ def get(address):
         return a
 
     return ''
+
+@pwndbg.memoize.reset_on_objfile
+def address(symbol):
+    if isinstance(symbol, (int,long)):
+        return symbol
+
+    try:
+        result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
+        result = result.split()
+        address = (r for r in result if r.startswith('0x')).next()
+        return int(address, 0)
+    except gdb.error:
+        return None
