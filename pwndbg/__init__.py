@@ -9,6 +9,7 @@ import pwndbg.proc
 import pwndbg.regs
 import pwndbg.stack
 import pwndbg.color
+import pwndbg.function
 import pwndbg.typeinfo
 import pwndbg.commands
 import pwndbg.commands.hexdump
@@ -17,6 +18,7 @@ import pwndbg.commands.telescope
 import pwndbg.commands.vmmap
 import pwndbg.commands.dt
 import pwndbg.commands.search
+import pwndbg.commands.start
 import pwndbg.commands.auxv
 import pwndbg.commands.windbg
 import pwndbg.commands.ida
