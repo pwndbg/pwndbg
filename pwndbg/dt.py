@@ -82,7 +82,7 @@ def dt(name='', addr=None, obj = None):
         t = pwndbg.typeinfo.load(name)
 
     # If it's not a struct (e.g. int or char*), bail
-    if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF):
+    if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF, gdb.TYPE_CODE_UNION):
         raise Exception("Not a structure: %s" % t)
 
     # If an address was specified, create a Value of the
@@ -97,7 +97,7 @@ def dt(name='', addr=None, obj = None):
 
     if t.strip_typedefs().code == gdb.TYPE_CODE_ARRAY:
         return "Arrays not supported yet"
-    if t.strip_typedefs().code != gdb.TYPE_CODE_STRUCT:
+    if t.strip_typedefs().code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
         t = {name: obj or gdb.Value(0).cast(t)}
 
     for name, field in t.items():
@@ -106,7 +106,7 @@ def dt(name='', addr=None, obj = None):
         extra = str(field.type)
         ftype = field.type.strip_typedefs()
 
-        if obj and obj.type.strip_typedefs().code == gdb.TYPE_CODE_STRUCT:
+        if obj and obj.type.strip_typedefs().code in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
             v  = obj[name]
 
             if ftype.code == gdb.TYPE_CODE_INT:
