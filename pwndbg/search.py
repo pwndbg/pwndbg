@@ -13,7 +13,7 @@ def search(searchfor):
     elif all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
         searchfor = int(searchfor, 16)
 
-    if isinstance(searchfor, int):
+    if isinstance(searchfor, (long, int)):
         if searchfor <= 0xffffffff:
             searchfor = struct.pack('I', searchfor)
         elif searchfor <= 0xffffffffffffffff:

@@ -10,7 +10,7 @@ def vmmap(map=None):
     str_map = None
     if isinstance(map, str):
         str_map = map
-    elif isinstance(map, (int, gdb.Value)):
+    elif isinstance(map, (long, int, gdb.Value)):
         int_map = int(map)
 
     print(pwndbg.color.legend())

@@ -8,4 +8,4 @@ import pwndbg.auxv
 def auxv():
     for k,v in pwndbg.auxv.get().items():
         if v is not None:
-            print(k.ljust(24), v if not isinstance(v, int) else pwndbg.chain.format(v))
+            print(k.ljust(24), v if not isinstance(v, (long, int)) else pwndbg.chain.format(v))

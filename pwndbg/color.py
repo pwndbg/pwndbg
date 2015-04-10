@@ -48,7 +48,7 @@ def get(address, text = None):
     if page and page.rwx:
         color = color + UNDERLINE
 
-    if text is None and isinstance(address, int) and address > 255:
+    if text is None and isinstance(address, (long, int)) and address > 255:
         text = hex(address)
     if text is None:
         text = address

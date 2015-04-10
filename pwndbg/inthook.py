@@ -20,7 +20,12 @@ class xint(__builtin__.int):
                 value = value.cast(pwndbg.typeinfo.ulong)
             else:
                 value = value.cast(pwndbg.typeinfo.long)
-        return _int(value, *a, **kw)
+        return _int(_int(value, *a, **kw))
 
 __builtin__.int = xint
 globals()['int'] = xint
+
+# Additionally, we need to compensate for Python2
+if 'long' in globals():
+    __builtin__.long = xint
+    globals()['long'] = xint
