@@ -18,4 +18,4 @@ def start():
             gdb.execute('run', from_tty=False, to_string=True)
             break
     else:
-        print "Could not find a good place to start :("
+        print("Could not find a good place to start :(")

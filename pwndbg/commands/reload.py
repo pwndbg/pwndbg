@@ -1,4 +1,7 @@
-import __builtin__
+try:
+    from __builtins__ import reload as _reload
+except:
+    from imp import reload as _reload
 import imp
 import os
 import sys
@@ -8,7 +11,6 @@ import pwndbg.events
 import pwndbg.commands
 import pwndbg
 
-_reload = __builtin__.reload
 def rreload(module, mdict=None):
     """Recursively reload modules."""
     name = module.__name__
@@ -25,13 +27,11 @@ def rreload(module, mdict=None):
     try:
         _reload(module)
     except Exception as e:
-        print e
         pass
 
 
 @pwndbg.commands.Command
 def reload(*a):
-    print "BYTE"
     pwndbg.events.on_reload()
     rreload(pwndbg)
     pwndbg.events.after_reload()

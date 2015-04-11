@@ -57,8 +57,6 @@ shellcmds = [
     "zsh",
 ]
 
-print "RELOADED"
-
 def register_shell_function(cmd):
     def handler(*a):
         """Invokes %s""" % cmd
