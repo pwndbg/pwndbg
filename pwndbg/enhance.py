@@ -84,16 +84,18 @@ def enhance(value):
 
     retval = []
 
+    print([instr,intval0,szval])
+
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:
         retval = [intval, szval]
 
     # If it's RWX but a small value, don't display it as code in a chain.
-    elif instr and rwx and intval0 > 0x1000:
-        retval = [instr, intval, szval]
+    elif instr and rwx and intval0 < 0x1000:
+        retval = [intval, szval]
 
     # If it's an instruction and *not* RWX, display it unconditionally
-    elif instr:
+    elif instr and exe:
         if not rwx:
             retval = [instr]
         else:
