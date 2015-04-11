@@ -28,6 +28,7 @@ if sys.version_info < (3,0):
     globals()['int'] = xint
 
     # Additionally, we need to compensate for Python2
-    if 'long' in globals():
-        builtins.long = xint
-        globals()['long'] = xint
+else:
+    import builtins
+    builtins.long = int
+    globals()['long'] = int
