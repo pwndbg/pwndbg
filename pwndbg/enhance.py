@@ -77,15 +77,15 @@ def enhance(value):
 
     intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     intval0 = intval
-    if 0 <= intval < 16:
+    if 0 <= intval < 10:
         intval = str(intval)
     else:
-        intval = hex(abs(intval))
+        intval = hex(int(intval & pwndbg.arch.ptrmask))
 
     retval = []
 
     # If it's on the stack, don't display it as code in a chain.
-    if instr and rwx and 'stack' in page.objfile:
+    if instr and 'stack' in page.objfile:
         retval = [intval, szval]
 
     # If it's RWX but a small value, don't display it as code in a chain.
@@ -94,7 +94,10 @@ def enhance(value):
 
     # If it's an instruction and *not* RWX, display it unconditionally
     elif instr:
-        retval = [instr, intval, szval]
+        if not rwx:
+            retval = [instr]
+        else:
+            retval = [instr, intval, szval]
 
     # Otherwise strings have preference
     elif szval:

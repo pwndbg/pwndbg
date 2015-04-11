@@ -23,7 +23,7 @@ def get(address):
     try:
         sz = gdb.Value(address)
         sz = sz.cast(pwndbg.typeinfo.pchar)
-        sz = sz.string('ascii', 'ignore', length)
+        sz = sz.string('ascii', 'ignore')
         sz = str(sz)
     except Exception as e:
         return None

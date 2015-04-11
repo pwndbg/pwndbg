@@ -5,7 +5,7 @@ import pwndbg.memoize
 import pwndbg.events
 import pwndbg.typeinfo
 
-current = None
+current = 'i386'
 ptrmask = 0xfffffffff
 endian  = 'little'
 ptrsize = pwndbg.typeinfo.ptrsize

@@ -4,38 +4,35 @@ import os
 import sys
 import types
 import gdb
+import pwndbg.events
 import pwndbg.commands
 import pwndbg
 
 _reload = __builtin__.reload
-def rreload(module, paths=[''], mdict=None):
+def rreload(module, mdict=None):
     """Recursively reload modules."""
     name = module.__name__
 
     if mdict is None:
-        mdict = {}
+        mdict = []
 
-    if module not in mdict:
-        mdict[module] = []
+    for attribute_name in getattr(module, '__all__', []) or []:
+        attribute = getattr(module, attribute_name, None)
+        if isinstance(attribute, types.ModuleType) and attribute not in mdict:
+            mdict.append(attribute)
+            rreload(attribute, mdict)
 
-    _reload(module)
+    try:
+        _reload(module)
+    except Exception as e:
+        print e
+        pass
 
-    for attribute_name in dir(module):
-        attribute = getattr(module, attribute_name)
-
-        if attribute_name == 'inthook':             continue
-        if type(attribute) is not types.ModuleType: continue
-        if not attribute.__name__.startswith(name): continue
-        if attribute in mdict[module]:              continue
-
-        mdict[module].append(attribute)
-        rreload(attribute, paths, mdict)
-
-    _reload(module)
-
-    # Need to re-fire all events
 
 @pwndbg.commands.Command
 def reload(*a):
+    print "BYTE"
+    pwndbg.events.on_reload()
     rreload(pwndbg)
+    pwndbg.events.after_reload()
 

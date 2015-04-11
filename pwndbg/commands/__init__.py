@@ -11,6 +11,25 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.proc
 
+__all__ = [
+'asm',
+'auxv',
+'context',
+'dt',
+'hexdump',
+'ida',
+'nearpc',
+'packing',
+'reload',
+'rop',
+'search',
+'shell',
+'start',
+'telescope',
+'vmmap',
+'windbg',
+]
+
 debug = True
 
 class Command(gdb.Command):

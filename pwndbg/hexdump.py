@@ -21,6 +21,9 @@ for c in bytearray((string.ascii_letters + string.digits + string.punctuation).e
 for c in bytearray(b'\x00\xff'):
     color_scheme[c] = pwndbg.color.red("%02x" % c)
 
+for c in bytearray(b'\xff\x7f\x80'):
+    color_scheme[c] = pwndbg.color.yellow("%02x" % c)
+
 color_scheme[-1] = '  '
 
 #

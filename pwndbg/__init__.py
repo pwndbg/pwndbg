@@ -24,6 +24,39 @@ import pwndbg.commands.windbg
 import pwndbg.commands.ida
 import pwndbg.commands.reload
 import pwndbg.commands.rop
+import pwndbg.commands.shell
+
+__all__ = [
+'arch',
+'auxv',
+'chain',
+'color',
+'compat',
+'disasm',
+'dt',
+'elf',
+'enhance',
+'events',
+'file',
+'function',
+'hexdump',
+'ida',
+'info',
+'linkmap',
+'malloc',
+'memoize',
+'memory',
+'proc',
+'regs',
+'remote',
+'search',
+'stack',
+'strings',
+'symbol',
+'typeinfo',
+'ui',
+'vmmap'
+]
 
 prompt = pwndbg.color.red('pwn> ')
 prompt = pwndbg.color.bold(prompt)

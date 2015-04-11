@@ -18,7 +18,7 @@ def get(address, instructions=1):
 
     retval = []
     for insn in raw:
-        retval.append(Instruction(insn['addr'],insn['length'], insn['asm']))
+        retval.append(Instruction(int(insn['addr']),insn['length'], insn['asm']))
     return retval
 
 def near(address, instructions=1):
@@ -46,8 +46,19 @@ def near(address, instructions=1):
     return insns[-instructions:] + get(address, instructions + 1)
 
 
+calls = set([
+'call', 'callq',
+'bl','blx',
+'jal'
+])
 
-branches = set([
+returns = set([
+'ret','retn','return',
+'bx', # sometimes
+'jr'
+])
+
+branches = calls | returns | set([
 # Unconditional x86 branches
 'call', 'callq',
 'jmp',

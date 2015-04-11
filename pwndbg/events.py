@@ -6,8 +6,10 @@ pause = 0
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-on_stop        = []
-on_new_objfile = []
+registered = {gdb.events.exited: [],
+              gdb.events.cont: [],
+              gdb.events.new_objfile: [],
+              gdb.events.stop: []}
 
 class Pause(object):
     def __enter__(self, *a, **kw):
@@ -27,6 +29,7 @@ def connect(func, event_handler, name=''):
         except Exception as e:
             if debug: print(traceback.format_exc())
             raise e
+    registered[event_handler].append(caller)
     caller.name = func.__name__
     event_handler.connect(caller)
     return func
@@ -36,3 +39,17 @@ def cont(func):        return connect(func, gdb.events.cont, 'cont')
 def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
 def stop(func):        return connect(func, gdb.events.stop, 'stop')
 
+def after_reload():
+    return
+    # if gdb.selected_inferior().pid:
+    #     for f in registered[gdb.events.new_objfile]:
+    #         f()
+    #     for f in registered[gdb.events.stop]:
+    #         f()
+
+
+def on_reload():
+    for event, functions in registered.items():
+        for function in functions:
+            event.disconnect(function)
+        registered[event] = []

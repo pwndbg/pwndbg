@@ -49,9 +49,9 @@ def get(address, text = None):
         color = color + UNDERLINE
 
     if text is None and isinstance(address, (long, int)) and address > 255:
-        text = hex(address)
+        text = hex(int(address))
     if text is None:
-        text = address
+        text = int(address)
 
     return "%s%s%s" % (color, text, NORMAL)
 
