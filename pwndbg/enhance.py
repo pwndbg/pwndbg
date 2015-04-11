@@ -84,7 +84,7 @@ def enhance(value):
 
     retval = []
 
-    print([instr,intval0,szval])
+    # print([instr,intval0,szval])
 
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:
