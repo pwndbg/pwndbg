@@ -106,8 +106,8 @@ class Page(object):
         self.offset = offset
         self.objfile = objfile
 
-        if self.rwx:
-            self.flags = self.flags ^ 1
+        # if self.rwx:
+            # self.flags = self.flags ^ 1
     @property
     def read(self):
         return bool(self.flags & 4)
