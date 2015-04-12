@@ -70,10 +70,9 @@ def enhance(value):
             instr = None
 
     szval = pwndbg.strings.get(value) or None
-    if szval and len(szval) > 5:
+    szval0 = szval
+    if szval:
         szval = repr(szval)
-    else:
-        szval = None
 
     intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     intval0 = intval
@@ -97,14 +96,17 @@ def enhance(value):
     # If it's an instruction and *not* RWX, display it unconditionally
     elif instr and exe:
         if not rwx:
-            retval = [instr]
+            if szval:
+                retval = [instr, szval]
+            else:
+                retval = [instr]
         else:
             retval = [instr, intval, szval]
 
     # Otherwise strings have preference
     elif szval:
-        if len(szval) < pwndbg.arch.ptrsize:
-            retval = [szval, intval]
+        if len(szval0) < pwndbg.arch.ptrsize:
+            retval = [intval, szval]
         else:
             retval = [szval]
 
