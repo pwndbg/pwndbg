@@ -65,14 +65,14 @@ def context_stack():
         result.extend(telescope)
     return result
 
-def context_backtrace():
+def context_backtrace(frame_count=10):
     result = []
     result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
     oldest_frame  = this_frame
 
-    for i in range(5):
+    for i in range(frame_count):
         try:
             candidate = oldest_frame.older()
         except gdb.MemoryError:
@@ -82,7 +82,7 @@ def context_backtrace():
             break
         oldest_frame = candidate
 
-    for i in range(5):
+    for i in range(frame_count):
         candidate = newest_frame.newer()
         if not candidate:
             break
@@ -92,7 +92,8 @@ def context_backtrace():
     i     = 0
     while True:
         prefix = '> ' if frame == this_frame else '  '
-        line   = map(str, (prefix, 'f', i, pwndbg.ui.addrsz(frame.pc()), frame.name() or '???'))
+        addrsz = pwndbg.symbol.get(frame.pc()) or pwndbg.ui.addrsz(frame.pc())
+        line   = map(str, (prefix, 'f', i, addrsz, frame.name() or '???'))
         line   = ' '.join(line)
         result.append(line)
 
