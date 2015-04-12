@@ -4,6 +4,7 @@ import pwndbg.events
 import pwndbg.regs
 import pwndbg.memoize
 import pwndbg.elf
+import pwndbg.arch
 import socket
 from contextlib import closing
 
@@ -47,11 +48,14 @@ class returns_address(object):
     def __call__(self, *a, **kw):
         return r2l(self.fn(*a, **kw))
 
+def available():
+    return _ida is not None
+
 def l2r(addr):
-    return addr - int(pwndbg.elf.exe().address) + base()
+    return (addr - int(pwndbg.elf.exe().address) + base()) & pwndbg.arch.ptrmask
 
 def r2l(addr):
-    return addr - base() + int(pwndbg.elf.exe().address)
+    return (addr - base() + int(pwndbg.elf.exe().address)) & pwndbg.arch.ptrmask
 
 @pwndbg.memoize.reset_on_objfile
 def base():
@@ -156,7 +160,7 @@ colored_pc = None
 # def Auto_Color_PC():
 #     global colored_pc
 #     colored_pc = pwndbg.regs.pc
-#     SetColor(colored_pc, 0x7f7fff)
+#     SetColor(colored_pc, 0x7f7fff)c
 
 # @pwndbg.events.cont
 # @withIDA
@@ -170,3 +174,20 @@ colored_pc = None
 @withIDA
 def Auto_Jump():
     Jump(pwndbg.regs.pc)
+
+@withIDA
+@returns_address
+def LocByName(name):
+    return _ida.LocByName(str(name))
+
+@withIDA
+@takes_address
+@returns_address
+def PrevHead(addr):
+    return _ida.PrevHead(addr)
+
+@withIDA
+@takes_address
+@returns_address
+def NextHead(addr):
+    return _ida.NextHead(addr)

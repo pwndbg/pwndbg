@@ -164,7 +164,7 @@ class module(ModuleType):
             return None
 
     def __getitem__(self, item):
-        return getattr(self, item)
+        return int(getattr(self, item)) & pwndbg.arch.ptrmask
 
     @property
     def gpr(self):

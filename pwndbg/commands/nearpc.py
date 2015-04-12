@@ -11,12 +11,13 @@ import pwndbg.ida
 def nearpc(pc=None, lines=None, to_string=False):
     # Fix the case where we only have one argument, and
     # it's a small value.
-    if lines is None or pc < 0x100:
+    if lines is None and (pc is None or int(pc) < 0x100):
         lines = pc
         pc    = None
 
     if pc is None:
         pc = pwndbg.regs.pc
+
     if lines is None:
         lines = 5
 
@@ -24,7 +25,7 @@ def nearpc(pc=None, lines=None, to_string=False):
     lines = int(lines)
 
     result = []
-    instructions = pwndbg.disasm.near(pwndbg.regs.pc, lines)
+    instructions = pwndbg.disasm.near(pc, lines)
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
@@ -57,7 +58,7 @@ def nearpc(pc=None, lines=None, to_string=False):
         if pre:
             result.append(pwndbg.color.bold(pre))
 
-        line   = ' '.join((prefix, s + hex(i.address), asm))
+        line   = ' '.join((prefix, s or hex(i.address), asm))
         result.append(line)
 
     if not to_string:

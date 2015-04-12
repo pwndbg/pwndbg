@@ -5,6 +5,7 @@ import glob
 import tempfile
 import subprocess
 
+import pwndbg.gcc
 import pwndbg.events
 import pwndbg.memoize
 
@@ -66,7 +67,7 @@ blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
 'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
 'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
-'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h']
+'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h']
 
 def load(name):
     try:
@@ -93,7 +94,7 @@ def load(name):
         for path in glob.glob(os.path.join(dirname, '*.h')):
             if any(b in path for b in blacklist):
               continue
-
+            print(path)
             source += '#include "%s"\n' % path
 
 
@@ -108,9 +109,9 @@ def load(name):
             f.write(source)
             f.flush()
 
-        command = 'g++ -w -c -g %s.cc -o %s.o'
-        command = command % (filename, filename)
-        subprocess.check_output(command, shell=True)
+        gcc     = pwndbg.gcc.which()
+        gcc    += ['-w','-c','-g',filename + '.cc','-o',filename + '.o']
+        subprocess.check_output(' '.join(gcc), shell=True)
 
     with pwndbg.events.Pause():
         gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)

@@ -154,8 +154,17 @@ def find_stack_boundary(addr):
         pass
     return addr
 
-
 def walk_stack():
+    auxv = walk_stack2(0)
+
+    if not auxv0:
+        # For whatever reason, sometimes the ARM AUXV under qemu-user is
+        # not aligned properly.
+        return walk_stack2(1)
+
+    return auxv
+
+def walk_stack2(offset=0):
     sp  = pwndbg.regs.sp
 
     if not sp:
@@ -176,9 +185,7 @@ def walk_stack():
     end  = find_stack_boundary(sp)
     p = gdb.Value(end).cast(pwndbg.typeinfo.ulong.pointer())
 
-    # Because reasons?
-    if pwndbg.arch.current == 'arm':
-        p -= 1
+    p -= offset
 
     # So we don't walk off the end of the stack
     p -= 2

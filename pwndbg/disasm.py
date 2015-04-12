@@ -4,6 +4,8 @@ import pwndbg.color
 import pwndbg.disasm_powerpc
 import pwndbg.memory
 import pwndbg.arch
+import pwndbg.ida
+import pwndbg.symbol
 
 Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm'])
 
@@ -18,10 +20,40 @@ def get(address, instructions=1):
 
     retval = []
     for insn in raw:
-        retval.append(Instruction(int(insn['addr']),insn['length'], insn['asm']))
+        addr   = int(insn['addr'])
+        length = insn['length']
+        asm    = insn['asm']
+
+        split  = asm.split()
+
+        if len(split) == 2:
+            target = 0
+            try:
+                target = split[1]
+                name   = pwndbg.symbol.get(int(target, 0))
+                asm    = asm.replace(target, name)
+            except ValueError:
+                pass
+
+
+
+        retval.append(Instruction(addr,length,asm))
     return retval
 
 def near(address, instructions=1):
+    # If we have IDA, we can just use it to find out where the various
+    # isntructions are.
+    if pwndbg.ida.available():
+        head = address
+        for i in range(instructions):
+            head = pwndbg.ida.PrevHead(head)
+
+        retval = []
+        for i in range(2*instructions + 1):
+            retval.append(get(head))
+            head = pwndbg.ida.NextHead(head)
+
+
     # Find out how far back we can go without having a page fault
     distance = instructions * 8
     for start in range(address-distance, address):
