@@ -16,23 +16,23 @@ class RegisterSet(object):
         self.misc  = misc
         self.args  = args
 
-arm = RegisterSet('pc',
-                  'sp',
-                  None,
-                  ('lr',),
-                  ('cpsr',),
-                  ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
-                  None,
-                  ('r0','r1','r2','r3'))
+arm = RegisterSet(  'pc',
+                    'sp',
+                    None,
+                    ('lr',),
+                    ('cpsr',),
+                    ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
+                    None,
+                    ('r0','r1','r2','r3'))
 
 aarch64 = RegisterSet('pc',
-                  'sp',
-                  None,
-                  ('lr',),
-                  ('cpsr',),
-                  ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
-                  None,
-                  ('x0','x1','x2','x3'))
+                    'sp',
+                    None,
+                    ('lr',),
+                    ('cpsr',),
+                    ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
+                    None,
+                    ('x0','x1','x2','x3'))
 
 
 amd64 = RegisterSet('rip',
@@ -134,14 +134,14 @@ sparc = RegisterSet('pc',
 # r29       => stack pointer
 # r30       => frame pointer
 # r31       => return address
-mips = RegisterSet('pc',
-                   'sp',
-                   'fp',
-                   ('ra',),
-                   None,
-                   tuple('r%i' % i for i in range(1,26)),
-                   None,
-                   ('a0','a1','a2','a3'))
+mips = RegisterSet( 'pc',
+                    'sp',
+                    'fp',
+                    ('ra',),
+                    None,
+                    tuple('r%i' % i for i in range(1,26)),
+                    None,
+                    ('a0','a1','a2','a3'))
 
 arch_to_regs = {
     'i386': i386,
@@ -164,7 +164,12 @@ class module(ModuleType):
             return None
 
     def __getitem__(self, item):
-        return int(getattr(self, item)) & pwndbg.arch.ptrmask
+        item = getattr(self, item)
+
+        if isinstance(item, (int,long)):
+            return int(item) & pwndbg.arch.ptrmask
+
+        return item
 
     @property
     def gpr(self):
