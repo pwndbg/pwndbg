@@ -117,7 +117,6 @@ def GetBptQty():
 @returns_address
 def GetBptEA(i):
     return _ida.GetBptEA(i)
-    return request_nocache('map(GetBptEA, range(GetBptQty()))')
 
 _breakpoints=[]
 
@@ -177,17 +176,42 @@ def Auto_Jump():
 
 @withIDA
 @returns_address
+@pwndbg.memoize.reset_on_objfile
 def LocByName(name):
     return _ida.LocByName(str(name))
 
 @withIDA
 @takes_address
 @returns_address
+@pwndbg.memoize.reset_on_objfile
 def PrevHead(addr):
     return _ida.PrevHead(addr)
 
 @withIDA
 @takes_address
 @returns_address
+@pwndbg.memoize.reset_on_objfile
 def NextHead(addr):
     return _ida.NextHead(addr)
+
+@withIDA
+@takes_address
+@pwndbg.memoize.reset_on_objfile
+def GetFunctionName(addr):
+    return _ida.GetFunctionName(addr)
+
+@withIDA
+@takes_address
+@pwndbg.memoize.reset_on_objfile
+def GetFlags(addr):
+    return _ida.GetFlags(addr)
+
+@withIDA
+@pwndbg.memoize.reset_on_objfile
+def isASCII(flags):
+    return _ida.isASCII(flags)
+
+@withIDA
+@pwndbg.memoize.reset_on_objfile
+def isFunc(flags):
+    return _ida.isASCII(flags)

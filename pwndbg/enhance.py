@@ -62,6 +62,15 @@ def enhance(value):
     exe    = page and page.execute
     rwx    = page and page.rwx
 
+    # For the purpose of following pointers, don't display
+    # anything on the stack or heap as 'code'
+    if 'stack' in page.objfile or 'heap' in page.objfile:
+        rwx = exe = False
+
+    # If IDA doesn't think it's in a function, don't display it as code.
+    if pwndbg.ida.available() and not pwndbg.ida.GetFunctionName(value):
+        rwx = exe = False
+
     if exe:
         instr = pwndbg.disasm.get(value, 1)[0].asm
 
@@ -88,6 +97,8 @@ def enhance(value):
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:
         retval = [intval, szval]
+
+
 
     # If it's RWX but a small value, don't display it as code in a chain.
     elif instr and rwx and intval0 < 0x1000:
