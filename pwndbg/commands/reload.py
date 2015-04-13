@@ -6,10 +6,12 @@ import imp
 import os
 import sys
 import types
+
 import gdb
-import pwndbg.events
-import pwndbg.commands
 import pwndbg
+import pwndbg.commands
+import pwndbg.events
+
 
 def rreload(module, mdict=None):
     """Recursively reload modules."""
@@ -35,4 +37,3 @@ def reload(*a):
     pwndbg.events.on_reload()
     rreload(pwndbg)
     pwndbg.events.after_reload()
-

@@ -1,7 +1,8 @@
 import gdb
-import pwndbg.commands
-import pwndbg.chain
 import pwndbg.auxv
+import pwndbg.chain
+import pwndbg.commands
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

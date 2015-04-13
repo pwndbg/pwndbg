@@ -1,12 +1,12 @@
-import os
-import sys
-import gdb
 import glob
-import tempfile
+import os
 import subprocess
+import sys
+import tempfile
 
-import pwndbg.gcc
+import gdb
 import pwndbg.events
+import pwndbg.gcc
 import pwndbg.memoize
 
 module = sys.modules[__name__]

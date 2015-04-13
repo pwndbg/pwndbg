@@ -1,12 +1,13 @@
-import gdb
-import pwndbg.memory
-import pwndbg.events
-import pwndbg.regs
-import pwndbg.memoize
-import pwndbg.elf
-import pwndbg.arch
 import socket
 from contextlib import closing
+
+import gdb
+import pwndbg.arch
+import pwndbg.elf
+import pwndbg.events
+import pwndbg.memoize
+import pwndbg.memory
+import pwndbg.regs
 
 try:
     import xmlrpc.client as xmlrpclib

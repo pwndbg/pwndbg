@@ -1,7 +1,8 @@
 import gdb
-import pwndbg.vmmap
-import pwndbg.commands
 import pwndbg.color
+import pwndbg.commands
+import pwndbg.vmmap
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

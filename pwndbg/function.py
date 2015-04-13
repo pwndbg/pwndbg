@@ -1,9 +1,9 @@
 import gdb
-import pwndbg.typeinfo
 import pwndbg.arch
-import pwndbg.typeinfo
-import pwndbg.regs
 import pwndbg.memory
+import pwndbg.regs
+import pwndbg.typeinfo
+
 
 def arguments():
     """

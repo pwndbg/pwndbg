@@ -1,8 +1,9 @@
 import struct
 import sys
+
 import gdb
-import pwndbg.memoize
 import pwndbg.events
+import pwndbg.memoize
 import pwndbg.typeinfo
 
 current = 'i386'

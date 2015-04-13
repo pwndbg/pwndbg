@@ -1,7 +1,8 @@
-import gdb
 import string
-import pwndbg.typeinfo
+
+import gdb
 import pwndbg.events
+import pwndbg.typeinfo
 
 length = 15
 

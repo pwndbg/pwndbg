@@ -1,10 +1,11 @@
-import gdb
 import collections
+
+import gdb
+import pwndbg.arch
 import pwndbg.color
 import pwndbg.disasm_powerpc
-import pwndbg.memory
-import pwndbg.arch
 import pwndbg.ida
+import pwndbg.memory
 import pwndbg.symbol
 
 Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm'])

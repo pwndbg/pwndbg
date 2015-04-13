@@ -1,5 +1,10 @@
-import struct, termios, fcntl, sys
+import fcntl
+import struct
+import sys
+import termios
+
 import pwndbg.arch
+
 
 def banner(title):
     title = title.upper()

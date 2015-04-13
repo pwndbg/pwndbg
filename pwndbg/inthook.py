@@ -1,8 +1,9 @@
 # This hook is necessary for compatibility with Python2.7 versions of GDB
 # since they cannot directly cast to integer a gdb.Value object that is
 # not already an integer type.
-import gdb
 import sys
+
+import gdb
 import pwndbg.typeinfo
 
 if sys.version_info < (3,0):

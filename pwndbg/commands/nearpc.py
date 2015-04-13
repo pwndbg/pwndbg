@@ -1,10 +1,11 @@
-import pwndbg.regs
-import pwndbg.ui
-import pwndbg.symbol
-import pwndbg.vmmap
-import pwndbg.disasm
 import pwndbg.color
+import pwndbg.disasm
 import pwndbg.ida
+import pwndbg.regs
+import pwndbg.symbol
+import pwndbg.ui
+import pwndbg.vmmap
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

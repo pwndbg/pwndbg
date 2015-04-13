@@ -1,6 +1,6 @@
 import gdb
-
 import pwndbg.memoize
+
 
 @pwndbg.memoize.reset_on_exit
 def proc_mapping():

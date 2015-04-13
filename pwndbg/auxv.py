@@ -1,12 +1,12 @@
-import gdb
 import sys
 
-import pwndbg.memory
+import gdb
+import pwndbg.arch
 import pwndbg.events
 import pwndbg.info
+import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
-import pwndbg.arch
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000

@@ -2,6 +2,7 @@ import gdb
 import pwndbg.commands
 import pwndbg.symbol
 
+
 @pwndbg.commands.ParsedCommand
 def start():
     symbols = ["main",

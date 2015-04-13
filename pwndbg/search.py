@@ -1,8 +1,10 @@
-import gdb
 import struct
+
+import gdb
 import pwndbg.memory
-import pwndbg.vmmap
 import pwndbg.typeinfo
+import pwndbg.vmmap
+
 
 def search(searchfor):
     value = searchfor

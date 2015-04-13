@@ -1,7 +1,8 @@
 import gdb
-import pwndbg.ida
 import pwndbg.commands
+import pwndbg.ida
 import pwndbg.regs
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

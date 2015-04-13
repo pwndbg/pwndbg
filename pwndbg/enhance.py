@@ -1,14 +1,14 @@
-import gdb
 import string
-import pwndbg.symbol
-import pwndbg.memory
+
+import gdb
+import pwndbg.arch
 import pwndbg.color
-import pwndbg.typeinfo
-import pwndbg.strings
 import pwndbg.disasm
 import pwndbg.memoize
-import pwndbg.arch
-import string
+import pwndbg.memory
+import pwndbg.strings
+import pwndbg.symbol
+import pwndbg.typeinfo
 
 bad_instrs = [
 '.byte',

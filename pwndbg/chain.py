@@ -2,9 +2,9 @@ import gdb
 import pwndbg.color
 import pwndbg.enhance
 import pwndbg.memory
+import pwndbg.symbol
 import pwndbg.typeinfo
 import pwndbg.vmmap
-import pwndbg.symbol
 
 LIMIT = 5
 

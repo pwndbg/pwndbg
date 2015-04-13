@@ -1,2 +1,3 @@
-import gdb
 import subprocess
+
+import gdb

@@ -1,10 +1,12 @@
-import gdb
-import sys
 import re
+import sys
 from types import ModuleType
 
-import pwndbg.memoize
+import gdb
 import pwndbg.arch
+import pwndbg.memoize
+
+
 class RegisterSet(object):
     def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc, args):
         self.pc = pc

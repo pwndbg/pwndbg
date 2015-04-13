@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import gdb
 import glob
 import os
 import re
 import subprocess
 import tempfile
 
+import gdb
 import pwndbg.memory
 import pwndbg.typeinfo
+
 
 def get_type(v):
     t = v.type

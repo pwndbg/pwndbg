@@ -1,9 +1,10 @@
 from __future__ import print_function
+
 import gdb
+import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
-import pwndbg.elf
 
 
 @pwndbg.events.new_objfile

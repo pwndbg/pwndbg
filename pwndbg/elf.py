@@ -8,18 +8,19 @@ This is necessary for when access to /proc is restricted, or when
 working on a BSD system which simply does not have /proc.
 """
 from __future__ import print_function
-import gdb
+
 import os
 import re
 import subprocess
 import tempfile
 
+import gdb
+import pwndbg.auxv
 import pwndbg.events
 import pwndbg.info
-import pwndbg.memory
 import pwndbg.memoize
+import pwndbg.memory
 import pwndbg.stack
-import pwndbg.auxv
 import pwndbg.typeinfo
 
 # ELF constants

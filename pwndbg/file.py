@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import tempfile
+
 import gdb
 import pwndbg.remote
-import tempfile
+
 
 def get(path):
     """
@@ -25,5 +27,3 @@ def get(path):
 
     with open(local_path,'rb') as f:
         return f.read()
-
-

@@ -7,19 +7,19 @@ address ranges with various ELF files and permissions.
 The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
-import gdb
 import sys
 
-import pwndbg.remote
-import pwndbg.memory
-import pwndbg.typeinfo
-import pwndbg.file
-import pwndbg.proc
+import gdb
 import pwndbg.compat
-import pwndbg.memoize
-import pwndbg.stack
 import pwndbg.events
+import pwndbg.file
+import pwndbg.memoize
+import pwndbg.memory
+import pwndbg.proc
 import pwndbg.regs
+import pwndbg.remote
+import pwndbg.stack
+import pwndbg.typeinfo
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.

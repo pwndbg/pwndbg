@@ -8,4 +8,3 @@ directory       = path.abspath(directory)
 sys.path.append(directory)
 
 import pwndbg
-

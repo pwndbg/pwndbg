@@ -1,5 +1,6 @@
-import gdb
 import traceback
+
+import gdb
 
 debug = False
 pause = 0

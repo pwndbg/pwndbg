@@ -1,8 +1,9 @@
+import pwndbg.chain
+import pwndbg.commands
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
-import pwndbg.commands
-import pwndbg.chain
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

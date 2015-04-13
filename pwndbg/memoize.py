@@ -1,11 +1,13 @@
 from __future__ import print_function
-import copy
+
 import collections
-import gdb
+import copy
 import functools
 import sys
 
+import gdb
 import pwndbg.events
+
 
 class memoize(object):
     def __call__(self, *args):
@@ -80,4 +82,3 @@ class reset_on_objfile(memoize):
     def __reset():
         for obj in reset_on_objfile.caches:
             obj.clear()
-

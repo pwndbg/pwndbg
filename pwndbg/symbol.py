@@ -1,9 +1,10 @@
 import gdb
+import pwndbg.elf
+import pwndbg.ida
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.stack
-import pwndbg.ida
-import pwndbg.elf
+
 
 @pwndbg.memoize.reset_on_objfile
 def get(address):

@@ -1,5 +1,6 @@
 import copy
 import string
+
 import pwndbg.color
 
 
@@ -80,4 +81,3 @@ def hexdump(data, address = 0, width = 16, skip = True):
     hexline.append("%#08x  " % (base + len(data)))
 
     yield ''.join(hexline)
-

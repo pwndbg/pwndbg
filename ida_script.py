@@ -1,7 +1,10 @@
-import xmlrpclib
 import threading
+import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-import idc, idautils, idaapi
+
+import idaapi
+import idautils
+import idc
 
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)

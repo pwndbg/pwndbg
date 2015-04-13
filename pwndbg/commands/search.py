@@ -1,12 +1,15 @@
 from __future__ import print_function
-import gdb
+
 import os
 import struct
-import pwndbg.commands
-import pwndbg.search
-import pwndbg.enhance
+
+import gdb
 import pwndbg.color
+import pwndbg.commands
+import pwndbg.enhance
+import pwndbg.search
 import pwndbg.vmmap
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning

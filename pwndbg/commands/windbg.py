@@ -1,11 +1,13 @@
 import codecs
-import gdb
 import math
+
+import gdb
 import pwndbg.arch
 import pwndbg.commands
 import pwndbg.memory
-import pwndbg.typeinfo
 import pwndbg.strings
+import pwndbg.typeinfo
+
 
 def get_type(size):
     return {

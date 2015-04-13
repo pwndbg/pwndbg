@@ -1,5 +1,6 @@
-import gdb
 import os
+
+import gdb
 import pwndbg.commands
 
 shellcmds = [

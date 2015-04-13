@@ -1,8 +1,7 @@
 import gdb
-
 import pwndbg.events
-import pwndbg.memory
 import pwndbg.memoize
+import pwndbg.memory
 
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
@@ -90,4 +89,3 @@ def is_executable():
             nx = True
 
     return not nx
-

@@ -1,8 +1,9 @@
-import gdb
 import sys
 from types import ModuleType
 
+import gdb
 import pwndbg.memoize
+
 
 class module(ModuleType):
     @property

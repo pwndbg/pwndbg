@@ -1,7 +1,8 @@
-import pwndbg.regs
 import pwndbg.commands
-import pwndbg.memory
 import pwndbg.hexdump
+import pwndbg.memory
+import pwndbg.regs
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -24,4 +25,3 @@ def hexdump(address=None, count=64):
 
     for line in pwndbg.hexdump.hexdump(data, address=address):
         print(line)
-

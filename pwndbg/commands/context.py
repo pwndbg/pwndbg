@@ -1,16 +1,17 @@
 import gdb
-import pwndbg.commands
-import pwndbg.color
-import pwndbg.vmmap
-import pwndbg.symbol
-import pwndbg.regs
-import pwndbg.ui
-import pwndbg.disasm
 import pwndbg.chain
-import pwndbg.commands.telescope
+import pwndbg.color
+import pwndbg.commands
 import pwndbg.commands.nearpc
+import pwndbg.commands.telescope
+import pwndbg.disasm
 import pwndbg.events
 import pwndbg.ida
+import pwndbg.regs
+import pwndbg.symbol
+import pwndbg.ui
+import pwndbg.vmmap
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

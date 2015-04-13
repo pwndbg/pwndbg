@@ -1,9 +1,10 @@
-import gdb
-import platform
-import pwndbg.arch
+import collections
 import glob
 import os
-import collections
+import platform
+
+import gdb
+import pwndbg.arch
 
 
 def flags():
@@ -72,5 +73,3 @@ def which_binutils(util, **kwargs):
                 res = sorted(glob.glob(os.path.join(dir, pattern)))
                 if res:
                     return res[0]
-
-
