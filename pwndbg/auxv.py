@@ -157,7 +157,7 @@ def find_stack_boundary(addr):
 def walk_stack():
     auxv = walk_stack2(0)
 
-    if not auxv0:
+    if not auxv:
         # For whatever reason, sometimes the ARM AUXV under qemu-user is
         # not aligned properly.
         return walk_stack2(1)
