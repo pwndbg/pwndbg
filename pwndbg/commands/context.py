@@ -94,7 +94,7 @@ def context_backtrace(frame_count=10):
     while True:
         prefix = '> ' if frame == this_frame else '  '
         addrsz = pwndbg.symbol.get(frame.pc()) or pwndbg.ui.addrsz(frame.pc())
-        line   = map(str, (prefix, 'f', i, addrsz, frame.name() or '???'))
+        line   = map(str, (prefix, 'f', i, addrsz))
         line   = ' '.join(line)
         result.append(line)
 
