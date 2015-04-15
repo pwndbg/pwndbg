@@ -1,7 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Talks to an XMLRPC server running inside of an active IDA Pro instance,
+in order to query it about the database.  Allows symbol resolution and
+interactive debugging.
+"""
 import socket
 from contextlib import closing
 
 import gdb
+import os
 import pwndbg.arch
 import pwndbg.elf
 import pwndbg.events
@@ -32,8 +40,9 @@ class withIDA(object):
         self.fn = fn
         self.__name__ = fn.__name__
     def __call__(self, *args, **kwargs):
-        if _ida:
+        if _ida is not None:
             return self.fn(*args, **kwargs)
+        return None
 
 class takes_address(object):
     def __init__(self, fn):
@@ -49,8 +58,9 @@ class returns_address(object):
     def __call__(self, *a, **kw):
         return r2l(self.fn(*a, **kw))
 
+@withIDA
 def available():
-    return _ida is not None
+    return True
 
 def l2r(addr):
     return (addr - int(pwndbg.elf.exe().address) + base()) & pwndbg.arch.ptrmask
@@ -210,9 +220,4 @@ def GetFlags(addr):
 @withIDA
 @pwndbg.memoize.reset_on_objfile
 def isASCII(flags):
-    return _ida.isASCII(flags)
-
-@withIDA
-@pwndbg.memoize.reset_on_objfile
-def isFunc(flags):
     return _ida.isASCII(flags)
