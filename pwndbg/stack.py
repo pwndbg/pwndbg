@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Helpers for finding address mappings which are used as
+a stack.
+
+Generally not needed, except under qemu-user and for when
+binaries do things to remap the stack (e.g. pwnies' postit).
+"""
+
 import gdb
 import pwndbg.events
 import pwndbg.memoize

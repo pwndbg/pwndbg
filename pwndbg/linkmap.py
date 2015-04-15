@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Describes the standard Linux glibc/eglibc link_map, and
+allows enumeration of loaded modules under qemu-user where
+/proc/X/maps may lie or be unavialable.
+"""
 from __future__ import print_function
 
 import gdb

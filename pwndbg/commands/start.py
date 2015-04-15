@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Launches the target process after setting a breakpoint at a convenient
+entry point.
+"""
 import gdb
 import pwndbg.commands
 import pwndbg.symbol

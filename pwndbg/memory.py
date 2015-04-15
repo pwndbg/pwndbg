@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Reading, writing, and describing memory.
+"""
 import gdb
 import pwndbg.compat
 import pwndbg.typeinfo

@@ -1,5 +1,14 @@
-import string
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Given an address in memory which does not contain a pointer elsewhere
+into memory, attempt to describe the data as best as possible.
 
+Currently prints out code, integers, or strings, in a best-effort manner
+dependent on page permissions, the contents of the data, and any
+supplemental information sources (e.g. active IDA Pro connection).
+"""
+import string
 import gdb
 import pwndbg.arch
 import pwndbg.color

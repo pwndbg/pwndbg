@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Runs a few useful commands which are available under "info".
+
+We probably don't need this anymore.
+"""
 import gdb
 import pwndbg.memoize
 

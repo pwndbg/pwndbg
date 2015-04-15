@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Provides values which would be available from /proc which
+are not fulfilled by other modules.
+"""
 import sys
 from types import ModuleType
 

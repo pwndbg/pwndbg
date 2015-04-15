@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Reading register value from the inferior, and provides a
+standardized interface to registers like "sp" and "pc".
+"""
 import re
 import sys
 from types import ModuleType

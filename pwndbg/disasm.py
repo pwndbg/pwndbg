@@ -1,5 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Functionality for disassmebling code at an address, or at an
+address +/- a few instructions.
+"""
 import collections
-
 import gdb
 import pwndbg.arch
 import pwndbg.color

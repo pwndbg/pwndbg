@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Functionality for resolving ASCII printable strings within
+the debuggee's address space.
+"""
+
 import string
 
 import gdb

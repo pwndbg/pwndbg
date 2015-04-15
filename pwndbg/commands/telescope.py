@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Prints out pointer chains starting at some address in memory.
+
+Generally used to print out the stack or register values.
+"""
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.memory

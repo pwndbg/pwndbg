@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Looking up addresses for function names / symbols, and
+vice-versa.
+
+Uses IDA when available if there isn't sufficient symbol
+information available.
+"""
 import gdb
 import pwndbg.elf
 import pwndbg.ida

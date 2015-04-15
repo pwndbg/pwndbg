@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Command to print the vitual memory map a la /proc/self/maps.
+"""
 import gdb
 import pwndbg.color
 import pwndbg.commands

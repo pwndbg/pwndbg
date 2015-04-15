@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Commands for setting temporary breakpoints on the next
+instruction of some type (call, branch, etc.)
+"""
 import gdb
 import pwndbg.disasm
 import pwndbg.regs

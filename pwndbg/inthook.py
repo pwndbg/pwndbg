@@ -1,6 +1,10 @@
-# This hook is necessary for compatibility with Python2.7 versions of GDB
-# since they cannot directly cast to integer a gdb.Value object that is
-# not already an integer type.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+This hook is necessary for compatibility with Python2.7 versions of GDB
+since they cannot directly cast to integer a gdb.Value object that is
+not already an integer type.
+"""
 import sys
 
 import gdb

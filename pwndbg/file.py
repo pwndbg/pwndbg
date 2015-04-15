@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Retrieve files from the debuggee's filesystem.  Useful when
+debugging a remote process over SSH or similar, where e.g.
+/proc/FOO/maps is needed from the remote system.
+"""
 import tempfile
 
 import gdb

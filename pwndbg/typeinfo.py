@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Common types, and routines for manually loading types from file
+via GCC.
+"""
 import glob
 import os
 import subprocess

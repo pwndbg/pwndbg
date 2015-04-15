@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Describes the EGLIBC heap mechanisms.
+
+Work-in-progress.
+"""
 import pwndbg.arch
 import pwndbg.events
 
@@ -6,7 +13,7 @@ malloc_chunk  = None
 
 @pwndbg.events.new_objfile
 def load_malloc_chunk():
-	malloc_chunk = None	
+	malloc_chunk = None
 
 
 def chunk2mem(p):
