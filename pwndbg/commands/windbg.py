@@ -56,7 +56,7 @@ def dX(size, address, count, to_string=False):
         except gdb.MemoryError:
             break
 
-    n_rows = math.ceil(count * size / float(16))
+    n_rows = int(math.ceil(count * size / float(16)))
     row_sz = int(16 / size)
     rows   = [values[i*row_sz:(i+1)*row_sz] for i in range(n_rows)]
     lines  = []

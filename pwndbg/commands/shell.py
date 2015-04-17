@@ -18,7 +18,6 @@ shellcmds = [
     "clear",
     "cp",
     "date",
-    "dd",
     "diff",
     "egrep",
     "find",
