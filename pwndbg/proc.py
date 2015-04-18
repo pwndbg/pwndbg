@@ -30,6 +30,7 @@ class module(ModuleType):
                 return func(*a, **kw)
         wrapper.__name__ = func.__name__
         wrapper.__module__ = func.__module__
+        wrapper.__doc__ = func.__doc__
         return wrapper
 
 # To prevent garbage collection

@@ -14,9 +14,23 @@ import pwndbg.vmmap
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def search(value):
+    """
+    Search memory for the specified value, provided
+    either as a pointer-width integer, or a string.
+
+    > search 0xdeadbeef
+    > search "/bin/sh"
+    """
+    hits = set()
+
     for address in pwndbg.search.search(value):
         if not address:
             continue
+
+        if address in hits:
+            continue
+
+        hits.add(address)
 
         vmmap  = pwndbg.vmmap.find(address)
         if vmmap:
@@ -30,3 +44,15 @@ def search(value):
         addr = pwndbg.color.get(address)
         display = pwndbg.enhance.enhance(address)
         print(region,addr,display)
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def searchmem(value):
+    """
+    Search memory for the specified value, provided
+    either as a pointer-width integer, or a string.
+
+    > search 0xdeadbeef
+    > search "/bin/sh"
+    """
+    return search(value)

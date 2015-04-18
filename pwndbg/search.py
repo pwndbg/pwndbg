@@ -9,6 +9,7 @@ import gdb
 import pwndbg.memory
 import pwndbg.typeinfo
 import pwndbg.vmmap
+import pwndbg.arch
 
 
 def search(searchfor):
@@ -21,9 +22,9 @@ def search(searchfor):
         searchfor = int(searchfor, 16)
 
     if isinstance(searchfor, (long, int)):
-        if searchfor <= 0xffffffff:
+        if pwndbg.arch.ptrsize == 4:
             searchfor = struct.pack('I', searchfor)
-        elif searchfor <= 0xffffffffffffffff:
+        elif pwndbg.arch.ptrsize == 8:
             searchfor = struct.pack('L', searchfor)
 
     i = gdb.selected_inferior()
@@ -34,11 +35,19 @@ def search(searchfor):
         start = vmmap.vaddr
         end   = start + vmmap.memsz
         while True:
+            # No point in searching if we can't read the memory
             if not pwndbg.memory.peek(start):
                 break
+
             start = i.search_memory(start, end - start, searchfor)
+
             if start is None:
                 break
-            hits.append(start)
+
+            # For some reason, search_memory will return a positive hit
+            # when it's unable to read memory.
+            if not pwndbg.memory.peek(start):
+                break
+
+            yield start
             start += len(searchfor)
-    return hits

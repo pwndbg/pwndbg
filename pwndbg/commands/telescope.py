@@ -15,6 +15,10 @@ import pwndbg.typeinfo
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def telescope(address=None, count=8, to_string=False):
+    """
+    Starting at the specified address, recursively dereference
+    N pointers (default 8).
+    """
     if None not in (address, count) and int(address) < int(count):
         count -= address
 
@@ -63,3 +67,14 @@ def telescope(address=None, count=8, to_string=False):
         print('\n'.join(result))
 
     return result
+
+
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def stack(*a):
+    """
+    Starting at the specified address, recursively dereference
+    N pointers (default 8).
+    """
+    telescope(*a)

@@ -12,6 +12,9 @@ import pwndbg.vmmap
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(map=None):
+    """
+    Print the virtal memory map
+    """
     int_map = None
     str_map = None
     if isinstance(map, str):
