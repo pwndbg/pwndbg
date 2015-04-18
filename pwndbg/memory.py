@@ -72,25 +72,20 @@ def page_offset(address): return (address & (PAGE_SIZE-1))
 assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
 
-def find_upper_boundary(addr):
+def find_upper_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
     try:
-        while True:
-            import sys
-            sys.stdout.write(hex(addr) + '\n')
-            sys.stdout.flush()
+        for i in range(max_pages):
             pwndbg.memory.read(addr, 1)
             addr += pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:
         pass
     return addr
 
-def find_lower_boundary(addr):
+def find_lower_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
     try:
-        while True:
-            sys.stdout.write(hex(addr) + '\n')
-            sys.stdout.flush()
+        for i in range(max_pages):
             pwndbg.memory.read(addr, 1)
             addr -= pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:

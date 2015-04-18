@@ -16,11 +16,17 @@ import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.regs
+import pwndbg.compat
 
 try:
     import xmlrpc.client as xmlrpclib
 except:
     import xmlrpclib
+
+if pwndbg.compat.python2:
+    xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+    xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+
 
 _ida = None
 

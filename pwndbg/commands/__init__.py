@@ -34,7 +34,7 @@ debug = True
 
 class Command(gdb.Command):
     def __init__(self, function):
-        function.__doc__
+        self.__doc__ = function.__doc__
         super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
@@ -77,13 +77,4 @@ def fix(arg, sloppy=False):
 
     return None
 
-def OnlyWhenRunning(func):
-    def wrapper(*a, **kw):
-        func.__doc__
-        if not pwndbg.proc.alive:
-            pass
-        else:
-            return func(*a, **kw)
-    wrapper.__name__ = func.__name__
-    wrapper.__module__ = func.__module__
-    return wrapper
+OnlyWhenRunning = pwndbg.proc.OnlyWhenRunning

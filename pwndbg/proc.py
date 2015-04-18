@@ -21,7 +21,16 @@ class module(ModuleType):
 
     @property
     def alive(self):
-        return self.pid > 0
+        return gdb.selected_thread() is not None
+
+    def OnlyWhenRunning(self, func):
+        def wrapper(*a, **kw):
+            func.__doc__
+            if self.alive:
+                return func(*a, **kw)
+        wrapper.__name__ = func.__name__
+        wrapper.__module__ = func.__module__
+        return wrapper
 
 # To prevent garbage collection
 tether = sys.modules[__name__]

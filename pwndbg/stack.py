@@ -37,9 +37,6 @@ def update():
     For each running thread, updates the known address range
     for its stack.
     """
-    # import pdb
-    # pdb.set_trace()
-
     curr_thread = gdb.selected_thread()
 
     try:
@@ -51,7 +48,7 @@ def update():
             # a new Page mapping for it.
             page = stacks.get(thread.ptid, None)
             if page is None:
-                start = sp + 0x1000 & ~(0xfff) #pwndbg.memory.find_lower_boundary(sp)
+                start = pwndbg.memory.find_lower_boundary(sp)
                 stop  = pwndbg.memory.find_upper_boundary(sp)
                 page  = pwndbg.memory.Page(start, stop-start, 6 if not is_executable() else 7, 0, '[stack]')
                 stacks[thread.ptid] = page

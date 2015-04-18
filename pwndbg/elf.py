@@ -18,6 +18,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.events
 import pwndbg.info
+import pwndbg.proc
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.stack
@@ -47,17 +48,17 @@ Elf64_Phdr f;
 
 subprocess.check_output('gcc -c -g %s.c -o %s.o' % (gef_elf, gef_elf), shell=True)
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.proc.OnlyWhenRunning
+@pwndbg.memoize.reset_on_start
 def exe():
     """
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
     """
-    elf = None
-    ptr = entry()
-    return load(ptr)
+    return load(entry())
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.proc.OnlyWhenRunning
+@pwndbg.memoize.reset_on_start
 def entry():
     """
     Return the address of the entry point for the main executable.
@@ -127,9 +128,16 @@ def get_ehdr(pointer):
     try:
         data = pwndbg.memory.read(base, 4)
 
-        while data != b'\x7FELF':
+        # Do not search more than 4MB of memory
+        for i in range(1024):
             base -= pwndbg.memory.PAGE_SIZE
             data = pwndbg.memory.read(base, 4)
+
+            if data == b'\x7FELF':
+                break
+        else:
+            print("ERROR: Could not find ELF base!")
+            return None, None
     except gdb.MemoryError:
         return None, None
 
@@ -203,7 +211,7 @@ def map(pointer, objfile=''):
     ei_class, ehdr         = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.memoize.reset_on_objfile
 def map_inner(ei_class, ehdr, objfile):
     if not ehdr:
         return []
