@@ -1,10 +1,14 @@
+import idaapi
+import idautils
+import idc
+
+import datetime
 import threading
 import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-import idaapi
-import idautils
-import idc
+# Save the database so nothing gets lost.
+idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
 
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
