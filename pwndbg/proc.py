@@ -23,6 +23,10 @@ class module(ModuleType):
     def alive(self):
         return gdb.selected_thread() is not None
 
+    @property
+    def exe(self):
+        auxv = pwndbg.auxv.get()
+
     def OnlyWhenRunning(self, func):
         def wrapper(*a, **kw):
             func.__doc__

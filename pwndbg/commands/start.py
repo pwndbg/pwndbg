@@ -21,11 +21,13 @@ def on_start():
         break_on_first_instruction = False
 
 @pwndbg.commands.Command
-def start():
+def start(*a):
     """
     Set a breakpoint at a convenient location in the binary,
     generally 'main', 'init', or the entry point.
     """
+    run = 'run ' + ' '.join(a)
+
     symbols = ["main",
                 "_main",
                 "start",
@@ -37,20 +39,20 @@ def start():
     for address in filter(bool, map(pwndbg.symbol.address, symbols)):
         if address:
             b = gdb.Breakpoint('*%#x' % address, temporary=True)
-            gdb.execute('run', from_tty=False, to_string=True)
+            gdb.execute(run, from_tty=False, to_string=True)
             break
 
     else:
-        entry()
+        entry(*a)
 
 
 @pwndbg.commands.Command
-def entry():
+def entry(*a):
     """
     Set a breakpoint at the first instruction executed in
     the target binary.
     """
     global break_on_first_instruction
     break_on_first_instruction = True
-    print("Trying experimental breakpoint")
-    gdb.execute('run', from_tty=False, to_string=True)
+    run = 'run ' + ' '.join(a)
+    gdb.execute(run, from_tty=False, to_string=True)

@@ -19,6 +19,7 @@ import pwndbg.commands.vmmap
 import pwndbg.commands.dt
 import pwndbg.commands.search
 import pwndbg.commands.start
+import pwndbg.commands.procinfo
 import pwndbg.commands.auxv
 import pwndbg.commands.windbg
 import pwndbg.commands.ida

@@ -48,7 +48,6 @@ class Command(gdb.Command):
 
     def invoke(self, argument, from_tty):
         argv = self.split_args(argument)
-
         try:
             return self.function(*argv)
         except TypeError:
