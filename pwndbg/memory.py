@@ -76,6 +76,9 @@ def find_upper_boundary(addr):
     addr = pwndbg.memory.page_align(int(addr))
     try:
         while True:
+            import sys
+            sys.stdout.write(hex(addr) + '\n')
+            sys.stdout.flush()
             pwndbg.memory.read(addr, 1)
             addr += pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:
@@ -86,6 +89,8 @@ def find_lower_boundary(addr):
     addr = pwndbg.memory.page_align(int(addr))
     try:
         while True:
+            sys.stdout.write(hex(addr) + '\n')
+            sys.stdout.flush()
             pwndbg.memory.read(addr, 1)
             addr -= pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:

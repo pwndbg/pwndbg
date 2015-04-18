@@ -7,6 +7,7 @@ by using a decorator.
 """
 import traceback
 import gdb
+import sys
 
 debug = False
 pause = 0
@@ -29,7 +30,7 @@ class Pause(object):
 def connect(func, event_handler, name=''):
     def caller(*a):
         func.__doc__
-        if debug: print('%r %s.%s' % (name, func.__module__, func.__name__), a)
+        if debug: sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
         if pause: return
         try:
             func()

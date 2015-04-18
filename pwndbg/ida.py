@@ -63,14 +63,18 @@ def available():
     return True
 
 def l2r(addr):
-    return (addr - int(pwndbg.elf.exe().address) + base()) & pwndbg.arch.ptrmask
+    result = (addr - int(pwndbg.elf.exe().address) + base()) & pwndbg.arch.ptrmask
+    return result
 
 def r2l(addr):
-    return (addr - base() + int(pwndbg.elf.exe().address)) & pwndbg.arch.ptrmask
+    result = (addr - base() + int(pwndbg.elf.exe().address)) & pwndbg.arch.ptrmask
+    return result
 
 @pwndbg.memoize.reset_on_objfile
 def base():
-    return _ida.NextSeg(0) & ~(0xfff)
+    result =  _ida.NextSeg(0) & ~(0xfff)
+    if result < 0x100000:
+        return 0
 
 @withIDA
 @takes_address
