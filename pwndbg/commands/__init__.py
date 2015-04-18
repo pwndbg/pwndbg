@@ -33,10 +33,15 @@ __all__ = [
 debug = True
 
 class Command(gdb.Command):
+    count    = 0
+    commands = []
+
     def __init__(self, function):
         self.__doc__ = function.__doc__
         super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
+
+        Command.commands.append(self)
 
     def split_args(self, argument):
         return gdb.string_to_argv(argument)
@@ -78,3 +83,12 @@ def fix(arg, sloppy=False):
     return None
 
 OnlyWhenRunning = pwndbg.proc.OnlyWhenRunning
+
+@Command
+def pwndbg():
+    """
+    Prints out a list of all pwndbg commands.
+    """
+    names = [C.function.__name__ for C in Command.commands]
+    for name in sorted(names):
+        print(name)

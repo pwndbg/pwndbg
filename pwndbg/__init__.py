@@ -96,3 +96,6 @@ def prompt_hook(*a):
     pwndbg.commands.context.context()
 
 gdb.prompt_hook = prompt_hook
+
+msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands.Command.commands)
+print pwndbg.color.red(msg)
