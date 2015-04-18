@@ -10,6 +10,9 @@ import pwndbg.vmmap
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False):
+    """
+    Disassemble near a specified address.
+    """
     # Fix the case where we only have one argument, and
     # it's a small value.
     if lines is None and (pc is None or int(pc) < 0x100):

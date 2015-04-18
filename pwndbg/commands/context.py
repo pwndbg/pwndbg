@@ -16,6 +16,9 @@ import pwndbg.vmmap
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
+    """
+    Print out the current register, instruction, and stack context.
+    """
     if len(args) == 0:
         args = ['reg','code','stack','backtrace']
 

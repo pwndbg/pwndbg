@@ -8,6 +8,9 @@ import pwndbg.regs
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.events.stop
 def j(*args):
+    """
+    Synchronize IDA's cursor with GDB
+    """
     pc = int(gdb.selected_frame().pc())
     pwndbg.ida.Jump(pc)
 
@@ -15,12 +18,17 @@ def j(*args):
 if pwndbg.ida.available():
     @pwndbg.commands.Command
     @pwndbg.commands.OnlyWhenRunning
-    def up():
+    def up(n=1):
+        """
+        Select and print stack frame that called this one.
+        An argument says how many frames up to go.
+        """
         f = gdb.selected_frame()
-        o = f.older()
 
-        if o:
-            o.select()
+        for i in range(n):
+            o = f.older()
+            if o:
+                o.select()
 
         bt = pwndbg.commands.context.context_backtrace(with_banner=False)
         print('\n'.join(bt))
@@ -29,12 +37,17 @@ if pwndbg.ida.available():
 
     @pwndbg.commands.Command
     @pwndbg.commands.OnlyWhenRunning
-    def down():
+    def down(n=1):
+        """
+        Select and print stack frame called by this one.
+        An argument says how many frames down to go.
+        """
         f = gdb.selected_frame()
-        o = f.newer()
 
-        if o:
-            o.select()
+        for i in range(n):
+            o = f.older()
+            if o:
+                o.select()
 
         bt = pwndbg.commands.context.context_backtrace(with_banner=False)
         print('\n'.join(bt))

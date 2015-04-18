@@ -7,7 +7,12 @@ import pwndbg.regs
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address=None, count=64):
-    """Hexdumps some data"""
+    """
+    Hexdumps data at the specified address.
+    Optionally provide the number of bytes to dump (default 64)
+
+    Note that repeating rows are collapsed.
+    """
     address = int(address or pwndbg.regs.sp)
     count   = int(count)
 
