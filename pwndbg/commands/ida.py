@@ -45,7 +45,7 @@ if pwndbg.ida.available():
         f = gdb.selected_frame()
 
         for i in range(n):
-            o = f.older()
+            o = f.newer()
             if o:
                 o.select()
 
