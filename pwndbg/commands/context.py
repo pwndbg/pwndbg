@@ -66,9 +66,12 @@ def context_stack():
         result.extend(telescope)
     return result
 
-def context_backtrace(frame_count=10):
+def context_backtrace(frame_count=10, with_banner=True):
     result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
+
+    if with_banner:
+        result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
+
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
     oldest_frame  = this_frame
@@ -93,7 +96,10 @@ def context_backtrace(frame_count=10):
     i     = 0
     while True:
         prefix = '> ' if frame == this_frame else '  '
-        addrsz = pwndbg.symbol.get(frame.pc()) or pwndbg.ui.addrsz(frame.pc())
+        addrsz = pwndbg.ui.addrsz(frame.pc())
+        symbol = pwndbg.symbol.get(frame.pc())
+        if symbol:
+            addrsz = addrsz + ' ' + symbol
         line   = map(str, (prefix, 'f', i, addrsz))
         line   = ' '.join(line)
         result.append(line)

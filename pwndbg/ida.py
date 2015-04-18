@@ -184,11 +184,6 @@ colored_pc = None
 #         SetColor(colored_pc, 0xffffff)
 #     colored_pc = None
 
-@pwndbg.events.stop
-@withIDA
-def Auto_Jump():
-    Jump(pwndbg.regs.pc)
-
 @withIDA
 @returns_address
 @pwndbg.memoize.reset_on_objfile

@@ -9,7 +9,7 @@ import traceback
 import gdb
 import sys
 
-debug = False
+debug = True
 pause = 0
 
 # In order to support reloading, we must be able to re-fire
@@ -37,6 +37,7 @@ def connect(func, event_handler, name=''):
         except Exception as e:
             if debug: print(traceback.format_exc())
             raise e
+        if debug: sys.stdout.write('DONE %r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
     registered[event_handler].append(caller)
     caller.name = func.__name__
     event_handler.connect(caller)
