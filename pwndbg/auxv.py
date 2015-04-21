@@ -92,28 +92,6 @@ def get():
     return use_info_auxv() or walk_stack() or AUXV()
 
 def use_info_auxv():
-    example_info_auxv_linux = """
-    33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
-    16   AT_HWCAP             Machine-dependent CPU capability hints 0xfabfbff
-    6    AT_PAGESZ            System page size               4096
-    17   AT_CLKTCK            Frequency of times()           100
-    3    AT_PHDR              Program headers for program    0x400040
-    4    AT_PHENT             Size of program header entry   56
-    5    AT_PHNUM             Number of program headers      9
-    7    AT_BASE              Base address of interpreter    0x7ffff7dda000
-    8    AT_FLAGS             Flags                          0x0
-    9    AT_ENTRY             Entry point of program         0x42020b
-    11   AT_UID               Real user ID                   1000
-    12   AT_EUID              Effective user ID              1000
-    13   AT_GID               Real group ID                  1000
-    14   AT_EGID              Effective group ID             1000
-    23   AT_SECURE            Boolean, was exec setuid-like? 0
-    25   AT_RANDOM            Address of 16 random bytes     0x7fffffffdb39
-    31   AT_EXECFN            File name of executable        0x7fffffffefee "/bin/bash"
-    15   AT_PLATFORM          String identifying platform    0x7fffffffdb49 "x86_64"
-    0    AT_NULL              End of vector                  0x0
-    """
-
     lines = pwndbg.info.auxv().splitlines()
 
     if not lines:
