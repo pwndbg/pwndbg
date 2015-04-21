@@ -28,7 +28,7 @@ def procinfo():
     Display information about the running process.
     """
     if not psutil:
-        print "psutil required but not installed"
+        print("psutil required but not installed")
         return
 
     exe  = repr(str(pwndbg.auxv.get()['AT_EXECFN']))
