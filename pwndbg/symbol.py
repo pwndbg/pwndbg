@@ -12,8 +12,9 @@ import pwndbg.elf
 import pwndbg.ida
 import pwndbg.memoize
 import pwndbg.memory
+import pwndbg.remote
 import pwndbg.stack
-
+import pwndbg.vmmap
 
 @pwndbg.memoize.reset_on_objfile
 def get(address):
@@ -67,3 +68,15 @@ def address(symbol):
         return int(address, 0)
     except gdb.error:
         return None
+
+@pwndbg.events.stop
+@pwndbg.memoize.reset_on_start
+def add_main_exe_to_symbols():
+    if not pwndbg.remote.is_remote():
+        return
+
+    exe  = pwndbg.elf.exe()
+    addr = exe.address
+    path = pwndbg.vmmap.find(addr).objfile
+    if addr and path:
+        gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)

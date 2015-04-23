@@ -5,6 +5,7 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
+import functools
 import socket
 from contextlib import closing
 
@@ -46,7 +47,7 @@ setPort(8888)
 class withIDA(object):
     def __init__(self, fn):
         self.fn = fn
-        self.__name__ = fn.__name__
+        functools.update_wrapper(self, fn)
     def __call__(self, *args, **kwargs):
         if _ida is not None:
             return self.fn(*args, **kwargs)
@@ -55,14 +56,14 @@ class withIDA(object):
 class takes_address(object):
     def __init__(self, fn):
         self.fn = fn
-        self.__name__ = fn.__name__
+        functools.update_wrapper(self, fn)
     def __call__(self, address, *args):
         return self.fn(l2r(address), *args)
 
 class returns_address(object):
     def __init__(self, fn):
         self.fn = fn
-        self.__name__ = fn.__name__
+        functools.update_wrapper(self, fn)
     def __call__(self, *a, **kw):
         return r2l(self.fn(*a, **kw))
 

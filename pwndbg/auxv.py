@@ -6,6 +6,7 @@ import pwndbg.events
 import pwndbg.info
 import pwndbg.memory
 import pwndbg.regs
+import pwndbg.stack
 import pwndbg.typeinfo
 
 example_info_auxv_linux = """
@@ -138,7 +139,10 @@ def walk_stack():
     if not auxv:
         # For whatever reason, sometimes the ARM AUXV under qemu-user is
         # not aligned properly.
-        return walk_stack2(1)
+        auxv = walk_stack2(1)
+
+    if not auxv['AT_EXECFN']:
+        auxv['AT_EXECFN'] = get_execfn()
 
     return auxv
 
@@ -215,3 +219,24 @@ def walk_stack2(offset=0):
         p += 2
 
     return auxv
+
+def get_execfn():
+    # QEMU does not put AT_EXECFN in the Auxiliary Vector
+    # on the stack.
+    #
+    # However, it does put it at the very top of the stack.
+    #
+    # 32c:1960|      0x7fffffffefe0 <-- '/home/user/pwndbg/ld....'
+    # 32d:1968|      0x7fffffffefe8 <-- 'er/pwndbg/ld.so'
+    # 32e:1970|      0x7fffffffeff0 <-- 0x6f732e646c2f67 /* 'g/ld.so' */
+    # 32f:1978|      0x7fffffffeff8 <-- 0
+    # 330:1980|      0x7ffffffff000
+    addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.regs.sp)
+
+    while pwndbg.memory.byte(addr-1) == 0:
+        addr -= 1
+
+    while pwndbg.memory.byte(addr-1) != 0:
+        addr -= 1
+
+    return pwndbg.strings.get(addr, 1024)

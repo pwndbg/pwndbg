@@ -27,7 +27,10 @@ def update_length():
     message = message.strip('.')
     length  = int(message)
 
-def get(address):
+def get(address, maxlen = None):
+    if maxlen is None:
+        maxlen = length
+
     try:
         sz = gdb.Value(address)
         sz = sz.cast(pwndbg.typeinfo.pchar)
@@ -39,7 +42,7 @@ def get(address):
     if not all(s in string.printable for s in sz.rstrip('\x00')):
         return None
 
-    if len(sz) < length:
+    if len(sz) < maxlen:
     	return sz
 
-    return sz[:length] + '...'
+    return sz[:maxlen] + '...'

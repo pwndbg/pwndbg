@@ -1,3 +1,4 @@
+import functools
 import traceback
 import gdb
 
@@ -37,11 +38,11 @@ class Command(gdb.Command):
     commands = []
 
     def __init__(self, function):
-        self.__doc__ = function.__doc__
         super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
         Command.commands.append(self)
+        functools.update_wrapper(self, function)
 
     def split_args(self, argument):
         return gdb.string_to_argv(argument)

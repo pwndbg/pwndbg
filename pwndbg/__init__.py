@@ -8,6 +8,7 @@ import pwndbg.elf
 import pwndbg.proc
 import pwndbg.regs
 import pwndbg.stack
+import pwndbg.stdio
 import pwndbg.color
 import pwndbg.function
 import pwndbg.typeinfo
@@ -26,6 +27,7 @@ import pwndbg.commands.ida
 import pwndbg.commands.reload
 import pwndbg.commands.rop
 import pwndbg.commands.shell
+import pwndbg.commands.aslr
 
 __all__ = [
 'arch',

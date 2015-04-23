@@ -322,8 +322,17 @@ def check_aslr():
     vmmap = sys.modules[__name__]
     vmmap.aslr = False
 
+    system_aslr = True
+    data        = ''
+    try: data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
+    except OSError: pass
+
+
+
     output = gdb.execute('show disable-randomization', to_string=True)
     if "is off." in output:
         vmmap.aslr = True
+
+
 
     return vmmap.aslr

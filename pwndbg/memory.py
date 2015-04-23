@@ -11,9 +11,6 @@ PAGE_SIZE = 0x1000
 MMAP_MIN_ADDR = 0x10000
 
 def read(addr, count):
-    if count < 0:
-        import pdb
-        pdb.set_trace()
     result = gdb.selected_inferior().read_memory(addr, count)
 
     if pwndbg.compat.python3:
@@ -77,6 +74,8 @@ def find_upper_boundary(addr, max_pages=1024):
     try:
         for i in range(max_pages):
             pwndbg.memory.read(addr, 1)
+            import sys
+            sys.stdout.write(hex(addr) + '\n')
             addr += pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:
         pass

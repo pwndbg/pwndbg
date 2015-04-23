@@ -18,6 +18,12 @@ import pwndbg.events
 debug = False
 
 class memoize(object):
+    def __init__(self, func):
+        self.func  = func
+        self.cache = {}
+        self.caches.append(self)
+        functools.update_wrapper(self, func)
+
     def __call__(self, *args):
         how = None
 
@@ -61,11 +67,6 @@ class reset_on_stop(memoize):
     caches = []
     kind   = 'stop'
 
-    def __init__(self, func):
-        self.func  = func
-        self.cache = {}
-        self.caches.append(self)
-
     @staticmethod
     @pwndbg.events.stop
     def __reset():
@@ -75,13 +76,6 @@ class reset_on_stop(memoize):
 class reset_on_exit(memoize):
     caches = []
     kind   = 'exit'
-
-    def __init__(self, func):
-        self.func  = func
-        self.cache = {}
-        self.caches.append(self)
-        self.__name__ = func.__name__
-        self.__module__ = func.__module__
 
     @staticmethod
     @pwndbg.events.exit
@@ -93,13 +87,6 @@ class reset_on_objfile(memoize):
     caches = []
     kind   = 'objfile'
 
-    def __init__(self, func):
-        self.func  = func
-        self.cache = {}
-        self.caches.append(self)
-        self.__name__ = func.__name__
-        self.__module__ = func.__module__
-
     @staticmethod
     @pwndbg.events.new_objfile
     def __reset():
@@ -109,13 +96,6 @@ class reset_on_objfile(memoize):
 class reset_on_start(memoize):
     caches = []
     kind   = 'start'
-
-    def __init__(self, func):
-        self.func  = func
-        self.cache = {}
-        self.caches.append(self)
-        self.__name__ = func.__name__
-        self.__module__ = func.__module__
 
     @staticmethod
     @pwndbg.events.stop

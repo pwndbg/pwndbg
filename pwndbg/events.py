@@ -5,6 +5,7 @@ Enables callbacks into functions to be automatically invoked
 when various events occur to the debuggee (e.g. STOP on SIGINT)
 by using a decorator.
 """
+import functools
 import traceback
 import gdb
 import sys
@@ -31,16 +32,16 @@ class StartEvent(object):
     def disconnect(self, function):
         if function in self.registered:
             self.registered.remove(function)
-    def on_new_objfile(self, o):
+    def on_new_objfile(self):
         if self.running or not gdb.selected_thread():
             return
 
         self.running = True
 
         for function in self.registered:
-            function(o)
+            function()
 
-    def on_stop(self, e):
+    def on_stop(self):
         self.running = False
 
 gdb.events.start = StartEvent()
@@ -65,19 +66,17 @@ def connect(func, event_handler, name=''):
     if debug:
         print("Connecting", func.__name__, event_handler)
 
+    @functools.wraps(func)
     def caller(*a):
-        func.__doc__
         if debug: sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
         if pause: return
         try:
             func()
         except Exception as e:
-            if debug: print(traceback.format_exc())
+            print(traceback.format_exc())
             raise e
 
     registered[event_handler].append(caller)
-    caller.name     = func.__name__
-    caller.__name__ = func.__name__
     event_handler.connect(caller)
     return func
 
@@ -102,9 +101,9 @@ def on_reload():
         registered[event] = []
 
 @new_objfile
-def _start_newobjfile(o=None):
-    gdb.events.start.on_new_objfile(o)
+def _start_newobjfile():
+    gdb.events.start.on_new_objfile()
 
 @stop
-def _start_stop(o=None):
-    gdb.events.start.on_stop(o)
+def _start_stop():
+    gdb.events.start.on_stop()

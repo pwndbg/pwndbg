@@ -27,11 +27,27 @@ def find(address):
     Returns a pwndbg.memory.Page object which corresponds to the
     currently-loaded stack.
     """
+    if not stacks:
+        update()
+
     for stack in stacks:
         if address in stack:
             return stack
 
+def find_upper_stack_boundary(addr, max_pages=1024):
+    addr = pwndbg.memory.page_align(int(addr))
+    try:
+        for i in range(max_pages):
+            data = pwndbg.memory.read(addr, 4)
+            if b'\x7fELF' == pwndbg.memory.read(addr, 4):
+                break
+            addr += pwndbg.memory.PAGE_SIZE
+    except gdb.MemoryError:
+        pass
+    return addr
+
 @pwndbg.events.stop
+@pwndbg.memoize.reset_on_stop
 def update():
     """
     For each running thread, updates the known address range
@@ -49,7 +65,7 @@ def update():
             page = stacks.get(thread.ptid, None)
             if page is None:
                 start = pwndbg.memory.find_lower_boundary(sp)
-                stop  = pwndbg.memory.find_upper_boundary(sp)
+                stop  = find_upper_stack_boundary(sp)
                 page  = pwndbg.memory.Page(start, stop-start, 6 if not is_executable() else 7, 0, '[stack]')
                 stacks[thread.ptid] = page
                 continue
@@ -57,7 +73,7 @@ def update():
                 page.objfile = '[stack]'
 
             # If we *DO* already know about this thread, just
-            # udpate the lower boundary.
+            # update the lower boundary.
             low = pwndbg.memory.find_lower_boundary(page.vaddr)
             if low != page.vaddr:
                 page.memsz  += (page.vaddr - low)

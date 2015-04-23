@@ -130,11 +130,12 @@ def get_ehdr(pointer):
 
         # Do not search more than 4MB of memory
         for i in range(1024):
+            if data == b'\x7FELF':
+                break
+
             base -= pwndbg.memory.PAGE_SIZE
             data = pwndbg.memory.read(base, 4)
 
-            if data == b'\x7FELF':
-                break
         else:
             print("ERROR: Could not find ELF base!")
             return None, None
@@ -288,8 +289,3 @@ def map_inner(ei_class, ehdr, objfile):
         page.objfile = objfile
 
     return tuple(sorted(pages))
-
-@pwndbg.events.stop
-def update_main_exe():
-    addr = int(exe().address)
-    map(addr)

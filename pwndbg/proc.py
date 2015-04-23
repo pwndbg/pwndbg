@@ -5,6 +5,7 @@ Provides values which would be available from /proc which
 are not fulfilled by other modules.
 """
 import sys
+import functools
 from types import ModuleType
 
 import gdb
@@ -28,13 +29,10 @@ class module(ModuleType):
         auxv = pwndbg.auxv.get()
 
     def OnlyWhenRunning(self, func):
+        @functools.wraps(func)
         def wrapper(*a, **kw):
-            func.__doc__
             if self.alive:
                 return func(*a, **kw)
-        wrapper.__name__ = func.__name__
-        wrapper.__module__ = func.__module__
-        wrapper.__doc__ = func.__doc__
         return wrapper
 
 # To prevent garbage collection
