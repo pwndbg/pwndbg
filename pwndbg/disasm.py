@@ -135,6 +135,6 @@ def color(ins):
     asm = ins.asm
     mnem = asm.split()[0].strip().rstrip('+-')
     if mnem in branches:
-        asm = pwndbg.color.yellow(asm)
+        asm = pwndbg.color.bold(asm)
         asm += '\n'
     return asm
