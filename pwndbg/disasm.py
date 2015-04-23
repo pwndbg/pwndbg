@@ -38,7 +38,8 @@ def get(address, instructions=1):
             try:
                 target = split[1]
                 name   = pwndbg.symbol.get(int(target, 0))
-                asm    = asm + ' <%s>' % name
+                if name:
+                    asm = asm + ' <%s>' % name
             except ValueError:
                 pass
 
