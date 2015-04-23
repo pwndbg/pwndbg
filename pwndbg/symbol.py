@@ -17,7 +17,7 @@ import pwndbg.stack
 import pwndbg.vmmap
 
 @pwndbg.memoize.reset_on_objfile
-def get(address):
+def get(address, gdb_only=False):
     """
     Retrieve the textual name for a symbol
     """
@@ -32,7 +32,7 @@ def get(address):
     # This sucks, but there's not a GDB API for this.
     result = gdb.execute('info symbol %#x' % int(address), to_string=True, from_tty=False)
 
-    if result.startswith('No symbol'):
+    if not gdb_only and result.startswith('No symbol'):
         address = int(address)
         exe     = pwndbg.elf.exe()
         if exe:
@@ -65,6 +65,7 @@ def address(symbol):
         result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
         result = result.split()
         address = next(r for r in result if r.startswith('0x'))
+        address = address.rstrip('.')
         return int(address, 0)
     except gdb.error:
         return None

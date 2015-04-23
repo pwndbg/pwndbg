@@ -33,17 +33,21 @@ def start(*a):
                 "start",
                 "_start",
                 "init",
-                "_init",
-                pwndbg.elf.entry()]
+                "_init"]
 
-    for address in filter(bool, map(pwndbg.symbol.address, symbols)):
-        if address:
-            b = gdb.Breakpoint('*%#x' % address, temporary=True)
-            gdb.execute(run, from_tty=False, to_string=True)
-            break
+    # Try a symbolic breakpoint which GDB will automatically update.
+    symbols = {s:pwndbg.symbol.address(s) for s in symbols}
 
-    else:
-        entry(*a)
+    for name, address in symbols.items():
+        if not address:
+            continue
+
+        b = gdb.Breakpoint(name, temporary=True)
+        gdb.execute(run, from_tty=False, to_string=True)
+        return
+
+    # Try a breakpoint at the binary entry
+    entry(*a)
 
 
 @pwndbg.commands.Command

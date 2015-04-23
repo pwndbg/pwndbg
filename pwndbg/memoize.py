@@ -24,7 +24,7 @@ class memoize(object):
         self.caches.append(self)
         functools.update_wrapper(self, func)
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         how = None
 
         if not isinstance(args, collections.Hashable):
@@ -38,7 +38,7 @@ class memoize(object):
 
         else:
             how   = "Executed"
-            value = self.func(*args)
+            value = self.func(*args, **kwargs)
             self.cache[args] = value
 
             if isinstance(value, list):
