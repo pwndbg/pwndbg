@@ -6,9 +6,9 @@ entry point.
 """
 import gdb
 import pwndbg.commands
-import pwndbg.symbol
-import pwndbg.events
 import pwndbg.elf
+import pwndbg.events
+import pwndbg.symbol
 
 break_on_first_instruction = False
 

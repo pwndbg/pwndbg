@@ -1,8 +1,10 @@
-import gdb
 import os
-import pwndbg.proc
-import pwndbg.commands
+
+import gdb
 import pwndbg.auxv
+import pwndbg.commands
+import pwndbg.proc
+
 try:
     import psutil
 except:

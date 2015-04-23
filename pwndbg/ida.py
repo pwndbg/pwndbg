@@ -6,18 +6,18 @@ in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
 import functools
+import os
 import socket
 from contextlib import closing
 
 import gdb
-import os
 import pwndbg.arch
+import pwndbg.compat
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.compat
 
 try:
     import xmlrpc.client as xmlrpclib

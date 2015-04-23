@@ -16,6 +16,7 @@ import pwndbg.remote
 import pwndbg.stack
 import pwndbg.vmmap
 
+
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
     """

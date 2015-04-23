@@ -1,7 +1,8 @@
-import pwndbg.commands
-import pwndbg.regs
 import errno as _errno
 import struct
+
+import pwndbg.commands
+import pwndbg.regs
 
 _errno.errorcode[0] = 'OK'
 

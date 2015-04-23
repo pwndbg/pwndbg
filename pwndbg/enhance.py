@@ -9,6 +9,7 @@ dependent on page permissions, the contents of the data, and any
 supplemental information sources (e.g. active IDA Pro connection).
 """
 import string
+
 import gdb
 import pwndbg.arch
 import pwndbg.color
