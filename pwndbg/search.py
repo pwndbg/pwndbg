@@ -6,10 +6,10 @@ Search the address space for byte patterns or pointer values.
 import struct
 
 import gdb
+import pwndbg.arch
 import pwndbg.memory
 import pwndbg.typeinfo
 import pwndbg.vmmap
-import pwndbg.arch
 
 
 def search(searchfor):

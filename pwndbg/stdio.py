@@ -2,9 +2,10 @@
 Provides functionality to circumvent GDB's hooks on sys.stdin and sys.stdout
 which prevent output from appearing on-screen inside of certain event handlers.
 """
-import gdb
 import io
 import sys
+
+import gdb
 import pwndbg.compat
 
 debug = False

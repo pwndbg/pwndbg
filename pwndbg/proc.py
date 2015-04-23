@@ -4,8 +4,8 @@
 Provides values which would be available from /proc which
 are not fulfilled by other modules.
 """
-import sys
 import functools
+import sys
 from types import ModuleType
 
 import gdb

@@ -4,6 +4,7 @@ import pwndbg.commands.context
 import pwndbg.ida
 import pwndbg.regs
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.events.stop

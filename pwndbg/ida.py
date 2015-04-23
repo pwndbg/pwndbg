@@ -7,19 +7,19 @@ interactive debugging.
 """
 import errno
 import functools
+import os
 import socket
 import traceback
 from contextlib import closing
 
 import gdb
-import os
 import pwndbg.arch
+import pwndbg.compat
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.compat
 
 try:
     import xmlrpc.client as xmlrpclib

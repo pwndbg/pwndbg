@@ -18,9 +18,9 @@ import gdb
 import pwndbg.auxv
 import pwndbg.events
 import pwndbg.info
-import pwndbg.proc
 import pwndbg.memoize
 import pwndbg.memory
+import pwndbg.proc
 import pwndbg.stack
 import pwndbg.typeinfo
 

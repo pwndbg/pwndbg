@@ -6,9 +6,10 @@ when various events occur to the debuggee (e.g. STOP on SIGINT)
 by using a decorator.
 """
 import functools
-import traceback
-import gdb
 import sys
+import traceback
+
+import gdb
 
 debug = False
 pause = 0

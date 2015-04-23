@@ -1,6 +1,7 @@
-import pwndbg.vmmap
-import pwndbg.commands
 import pwndbg.color
+import pwndbg.commands
+import pwndbg.vmmap
+
 
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
@@ -10,4 +11,3 @@ def aslr():
         status = pwndbg.color.green('ON')
 
     print("ASLR is %s" % status)
-
