@@ -7,7 +7,7 @@ import io
 import sys
 import pwndbg.compat
 
-debug = True
+debug = False
 
 def get(fd, mode):
     file = io.open(1, mode=mode, buffering=0, closefd=False)

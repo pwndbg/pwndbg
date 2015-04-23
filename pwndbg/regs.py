@@ -14,7 +14,7 @@ import pwndbg.memoize
 
 
 class RegisterSet(object):
-    def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc, args):
+    def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc, args, retval):
         self.pc = pc
         self.stack = stack
         self.frame = frame
@@ -23,6 +23,7 @@ class RegisterSet(object):
         self.gpr   = gpr
         self.misc  = misc
         self.args  = args
+        self.retval = retval
 
 arm = RegisterSet(  'pc',
                     'sp',
@@ -31,7 +32,8 @@ arm = RegisterSet(  'pc',
                     ('cpsr',),
                     ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
                     None,
-                    ('r0','r1','r2','r3'))
+                    ('r0','r1','r2','r3'),
+                    'r0')
 
 aarch64 = RegisterSet('pc',
                     'sp',
@@ -40,7 +42,8 @@ aarch64 = RegisterSet('pc',
                     ('cpsr',),
                     ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
                     None,
-                    ('x0','x1','x2','x3'))
+                    ('x0','x1','x2','x3'),
+                    'x0')
 
 
 amd64 = RegisterSet('rip',
@@ -52,7 +55,8 @@ amd64 = RegisterSet('rip',
                      'r8', 'r9', 'r10','r11','r12',
                      'r13','r14','r15'),
                     ('cs','ss','ds','es','fs','gs'),
-                    ('rdi','rsi','rdx','rcx','r8','r9'))
+                    ('rdi','rsi','rdx','rcx','r8','r9'),
+                    'rax')
 
 i386 = RegisterSet('eip',
                     'esp',
@@ -67,7 +71,8 @@ i386 = RegisterSet('eip',
                      '*((void**)$sp+3)',
                      '*((void**)$sp+4)',
                      '*((void**)$sp+5)',
-                     '*((void**)$sp+6)',))
+                     '*((void**)$sp+6)',),
+                    'eax')
 
 
 # http://math-atlas.sourceforge.net/devel/assembly/elfspec_ppc.pdf
@@ -87,7 +92,8 @@ powerpc = RegisterSet('pc',
                       ('msr','xer'),
                       tuple('r%i' % i for i in range(3,32)),
                       ('cr','lr','r2'),
-                      tuple())
+                      tuple(),
+                      'r3')
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt
 # http://people.cs.clemson.edu/~mark/subroutines/sparc.html
@@ -126,7 +132,8 @@ sparc = RegisterSet('pc',
                     ('psr',),
                     sparc_gp,
                     None,
-                    ('i0','i1','i2','i3','i4','i5'))
+                    ('i0','i1','i2','i3','i4','i5'),
+                    'o0')
 
 
 # http://logos.cs.uic.edu/366/notes/mips%20quick%20tutorial.htm
@@ -149,7 +156,8 @@ mips = RegisterSet( 'pc',
                     None,
                     tuple('r%i' % i for i in range(1,26)),
                     None,
-                    ('a0','a1','a2','a3'))
+                    ('a0','a1','a2','a3'),
+                    'v0')
 
 arch_to_regs = {
     'i386': i386,
@@ -194,6 +202,10 @@ class module(ModuleType):
     @property
     def stack(self):
         return arch_to_regs[pwndbg.arch.current].stack
+
+    @property
+    def retval(self):
+        return arch_to_regs[pwndbg.arch.current].retval
 
     @property
     def all(self):

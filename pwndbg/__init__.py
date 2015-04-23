@@ -28,6 +28,7 @@ import pwndbg.commands.reload
 import pwndbg.commands.rop
 import pwndbg.commands.shell
 import pwndbg.commands.aslr
+import pwndbg.commands.misc
 
 __all__ = [
 'arch',
