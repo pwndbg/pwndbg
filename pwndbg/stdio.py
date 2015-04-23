@@ -9,10 +9,13 @@ import sys
 import gdb
 import pwndbg.compat
 
+import gdb
+import pwndbg.compat
+
 def get(fd, mode):
     if pwndbg.compat.python3:
         file = io.open(fd, mode=mode, buffering=0, closefd=False)
-        return io.TextIOWrapper(file, write_through=True, **kw)
+        return io.TextIOWrapper(file, write_through=True)
     else:
         return os.fdopen(fd, mode, 0)
 
@@ -33,3 +36,8 @@ class Stdio(object):
         sys.stdin, sys.stdout, sys.stderr = self.queue.pop()
 
 stdio = Stdio()
+
+if False:
+    sys.stdin  = get(0, 'rb')
+    sys.stdout = get(1, 'wb')
+    sys.stderr = get(2, 'wb')

@@ -72,12 +72,12 @@ def connect(func, event_handler, name=''):
     def caller(*a):
         if debug: sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
         if pause: return
-        # with pwndbg.stdio.stdio:
-        try:
-            func()
-        except Exception as e:
-            traceback.print_exc()
-            raise e
+        with pwndbg.stdio.stdio:
+            try:
+                func()
+            except Exception as e:
+                traceback.print_exc()
+                raise e
 
     registered[event_handler].append(caller)
     event_handler.connect(caller)
