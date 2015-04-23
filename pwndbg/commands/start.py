@@ -35,14 +35,13 @@ def start(*a):
                 "init",
                 "_init"]
 
-    # Try a symbolic breakpoint which GDB will automatically update.
-    symbols = {s:pwndbg.symbol.address(s) for s in symbols}
+    for symbol in symbols:
+        address = pwndbg.symbol.address(symbol)
 
-    for name, address in symbols.items():
         if not address:
             continue
 
-        b = gdb.Breakpoint(name, temporary=True)
+        b = gdb.Breakpoint(symbol, temporary=True)
         gdb.execute(run, from_tty=False, to_string=True)
         return
 
