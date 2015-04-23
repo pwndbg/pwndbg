@@ -19,4 +19,4 @@ def errno(err=None):
         err -= (1<<32)
 
     msg = _errno.errorcode.get(int(err), "Unknown error code")
-    print "Errno %i: %s" % (err, msg)
+    print("Errno %i: %s" % (err, msg))
