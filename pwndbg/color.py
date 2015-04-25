@@ -26,6 +26,7 @@ def blue(x): return BLUE + x + NORMAL
 def gray(x): return GRAY + x + NORMAL
 def green(x): return GREEN + x + NORMAL
 def yellow(x): return YELLOW + x + NORMAL
+def underline(x): return UNDERLINE + x + NORMAL
 
 def get(address, text = None):
     """

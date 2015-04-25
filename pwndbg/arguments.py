@@ -6,10 +6,12 @@ may be passed in a combination of registers and stack values.
 """
 import gdb
 import pwndbg.arch
+import pwndbg.disasm
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
-
+import pwndbg.functions
+import pwndbg.symbol
 
 def arguments():
     """
@@ -18,6 +20,7 @@ def arguments():
 
     Otherwise, returns None.
     """
+    pwndbg.disasm.calls
 
 def argument(n):
     """
@@ -25,12 +28,15 @@ def argument(n):
     instruction.
     """
     arch = pwndbg.arch.current
-    regs = []
 
-    if 'x86-64' in arch:
-        regs = ['rdi','rsi','rdx','rcx','r8','r9']
-    elif 'arm' == arch:
-        regs = ['r0','r1','r2','r3']
+    regs = {
+        'x86-64':  ['rdi','rsi','rdx','rcx','r8','r9'],
+        'arm':     ['r%i' % i for i in range(0, 4)],
+        'aarch64': ['x%i' % i for i in range(0, 4)],
+        'powerpc': ['r%i' % i for i in range(3, 10+1)],
+        'mips':    ['r%i' % i for i in range(4, 7+1)],
+        'sparc':   ['i%i' % i for i in range(0,8)],
+    }[arch]
 
     if n < len(regs):
         return getattr(pwndbg.regs, regs[n])
@@ -40,3 +46,4 @@ def argument(n):
     sp = pwndbg.regs.sp + (n * pwndbg.arch.ptrsize)
 
     return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, sp))
+

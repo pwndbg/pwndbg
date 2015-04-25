@@ -23,8 +23,12 @@ def get(path):
 
     if pwndbg.remote.is_remote():
         local_path = tempfile.mktemp()
-        error      = gdb.execute('remote get %s %s' % (path, local_path),
+        error      = None
+        try:
+            error = gdb.execute('remote get %s %s' % (path, local_path),
                                  to_string=True)
+        except gdb.error as e:
+            error = e
 
         if error:
             raise OSError("Could not download remote file %r:\n" \

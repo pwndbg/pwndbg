@@ -40,6 +40,7 @@ def byte(addr):   return readtype(pwndbg.typeinfo.uchar, addr)
 def uchar(addr):  return readtype(pwndbg.typeinfo.uchar, addr)
 def ushort(addr): return readtype(pwndbg.typeinfo.ushort, addr)
 def uint(addr):   return readtype(pwndbg.typeinfo.uint, addr)
+def pvoid(addr):  return readtype(pwndbg.typeinfo.pvoid, addr)
 
 def u8(addr): return readtype(pwndbg.typeinfo.uint8_t, addr)
 def u16(addr): return readtype(pwndbg.typeinfo.uint16_t, addr)

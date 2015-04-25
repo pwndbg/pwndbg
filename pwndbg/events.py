@@ -10,6 +10,7 @@ import sys
 import traceback
 
 import gdb
+import pwndbg.stdio
 
 debug = False
 pause = 0
@@ -71,11 +72,12 @@ def connect(func, event_handler, name=''):
     def caller(*a):
         if debug: sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
         if pause: return
-        try:
-            func()
-        except Exception as e:
-            print(traceback.format_exc())
-            raise e
+        with pwndbg.stdio.stdio:
+            try:
+                func()
+            except Exception as e:
+                print(traceback.format_exc())
+                raise e
 
     registered[event_handler].append(caller)
     event_handler.connect(caller)

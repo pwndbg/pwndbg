@@ -13,8 +13,44 @@ import pwndbg.disasm_powerpc
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.symbol
+import pwndbg.memoize
+import pwndbg.jump
 
-Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm'])
+from capstone import *
+
+Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm', 'target'])
+
+disassembler = None
+last_arch    = None
+
+CapstoneArch = {
+    'arm':     Cs(CS_ARCH_ARM, CS_MODE_ARM),
+    'aarch64': Cs(CS_ARCH_ARM64, CS_MODE_ARM),
+    'i386':    Cs(CS_ARCH_X86, CS_MODE_32),
+    'x86-64':  Cs(CS_ARCH_X86, CS_MODE_64),
+    'powerpc': Cs(CS_ARCH_PPC, CS_MODE_32),
+    'mips':    Cs(CS_ARCH_MIPS, CS_MODE_32),
+    'sparc':   Cs(CS_ARCH_SPARC, 0),
+}
+
+InstructionMaxSize = {
+    'arm': 4,
+    'aarch64': 4,
+    'i386': 16,
+    'x86-64': 16
+}
+
+def get_disassembler(pc):
+    arch = pwndbg.arch.current
+    d    = CapstoneArch[arch]
+    if arch in ('i386', 'x86-64', 'powerpc', 'mips'):
+        d.mode = {4:CS_MODE_32, 8:CS_MODE_64}[pwndbg.arch.ptrsize]
+    if arch in ('arm', 'aarch64'):
+        d.mode = {0:CS_MODE_ARM,1:CS_MODE_THUMB}[pc & 1]
+    return d
+
+def get_one_instruction(pc):
+    pass
 
 def get(address, instructions=1):
     address = int(address)
@@ -30,11 +66,10 @@ def get(address, instructions=1):
         addr   = int(insn['addr'])
         length = insn['length']
         asm    = insn['asm']
-
+        target = 0
         split  = asm.split()
 
         if len(split) == 2:
-            target = 0
             try:
                 target = split[1]
                 name   = pwndbg.symbol.get(int(target, 0))
@@ -43,9 +78,7 @@ def get(address, instructions=1):
             except ValueError:
                 pass
 
-
-
-        retval.append(Instruction(addr,length,asm))
+        retval.append(Instruction(addr,length,asm,target))
     return retval
 
 def near(address, instructions=1):
@@ -94,7 +127,6 @@ calls = set([
 
 returns = set([
 'ret','retn','return',
-'bx', # sometimes
 'jr'
 ])
 
@@ -102,7 +134,6 @@ branches = calls | returns | set([
 # Unconditional x86 branches
 'call', 'callq',
 'jmp',
-'ret',
 # Conditional x86 branches
 'ja',  'jna',
 'jae', 'jnae',
@@ -124,7 +155,7 @@ branches = calls | returns | set([
 'beq', 'beq.w', 'bne', 'bmi', 'bpl', 'blt',
 'ble', 'bgt', 'bge', 'bxne',
 # MIPS branches
-'j', 'jal', 'jr',
+'j', 'jal',
 # SPARC
 'ba', 'bne', 'be', 'bg', 'ble', 'bge', 'bl', 'bgu', 'bleu',
 'jmpl'

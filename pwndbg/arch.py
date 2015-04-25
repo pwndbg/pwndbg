@@ -13,11 +13,15 @@ ptrsize = pwndbg.typeinfo.ptrsize
 fmt     = '=i'
 disasm  = lambda: None
 
+def fix_arch(arch):
+    arches = ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'arm', 'aarch64', arch]
+    return next(a for a in arches if a in arch)
+
 @pwndbg.events.stop
 def update():
     m = sys.modules[__name__]
 
-    m.current = gdb.selected_frame().architecture().name()
+    m.current = fix_arch(gdb.selected_frame().architecture().name())
     m.ptrsize = pwndbg.typeinfo.ptrsize
     m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 

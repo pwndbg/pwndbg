@@ -1,5 +1,6 @@
 import gdb
 import pwndbg.arch
+import pwndbg.arguments
 import pwndbg.vmmap
 import pwndbg.dt
 import pwndbg.memory
@@ -10,7 +11,6 @@ import pwndbg.regs
 import pwndbg.stack
 import pwndbg.stdio
 import pwndbg.color
-import pwndbg.function
 import pwndbg.typeinfo
 import pwndbg.commands
 import pwndbg.commands.hexdump
@@ -95,11 +95,5 @@ for line in pre_commands.splitlines():
 	if line:
 		gdb.execute(line)
 
-@pwndbg.memoize.reset_on_stop
-def prompt_hook(*a):
-    pwndbg.commands.context.context()
-
-gdb.prompt_hook = prompt_hook
-
-msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands.Command.commands)
+msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))

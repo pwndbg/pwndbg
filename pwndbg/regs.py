@@ -10,6 +10,7 @@ from types import ModuleType
 
 import gdb
 import pwndbg.arch
+import pwndbg.events
 import pwndbg.memoize
 
 
@@ -25,13 +26,23 @@ class RegisterSet(object):
         self.args  = args
         self.retval = retval
 
+        self.common = set(i for i in gpr + (frame, stack, pc) if i)
+        self.all    = set(i for i in misc or tuple()) | set(flags or tuple()) | self.common
+
+        self.common -= {None}
+        self.all    -= {None}
+
+    def __iter__(self):
+        for r in self.all:
+            yield r
+
 arm = RegisterSet(  'pc',
                     'sp',
                     None,
                     ('lr',),
                     ('cpsr',),
                     ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
-                    None,
+                    tuple(),
                     ('r0','r1','r2','r3'),
                     'r0')
 
@@ -41,7 +52,7 @@ aarch64 = RegisterSet('pc',
                     ('lr',),
                     ('cpsr',),
                     ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
-                    None,
+                    tuple(),
                     ('x0','x1','x2','x3'),
                     'x0')
 
@@ -49,7 +60,7 @@ aarch64 = RegisterSet('pc',
 amd64 = RegisterSet('rip',
                     'rsp',
                     'rbp',
-                    None,
+                    tuple(),
                     ('eflags',),
                     ('rax','rbx','rcx','rdx','rdi','rsi',
                      'r8', 'r9', 'r10','r11','r12',
@@ -61,7 +72,7 @@ amd64 = RegisterSet('rip',
 i386 = RegisterSet('eip',
                     'esp',
                     'ebp',
-                    None,
+                    tuple(),
                     ('eflags',),
                     ('eax','ebx','ecx','edx','edi','esi'),
                     ('cs','ss','ds','es','fs','gs'),
@@ -131,7 +142,7 @@ sparc = RegisterSet('pc',
                     ('o7',),
                     ('psr',),
                     sparc_gp,
-                    None,
+                    tuple(),
                     ('i0','i1','i2','i3','i4','i5'),
                     'o0')
 
@@ -153,25 +164,29 @@ mips = RegisterSet( 'pc',
                     'sp',
                     'fp',
                     ('ra',),
-                    None,
-                    tuple('r%i' % i for i in range(1,26)),
-                    None,
+                    tuple(),
+                    ('v0','v1','a0','a1','a2','a3') \
+                    + tuple('t%i' % i for i in range(10)) \
+                    + tuple('s%i' % i for i in range(9)),
+                    tuple(),
                     ('a0','a1','a2','a3'),
                     'v0')
 
 arch_to_regs = {
     'i386': i386,
-    'i386:x86-64': amd64,
+    'x86-64': amd64,
     'mips': mips,
     'sparc': sparc,
     'arm': arm,
     'aarch64': aarch64,
-    'powerpc:403': powerpc,
-    'powerpc:common64': powerpc,
+    'powerpc': powerpc,
+    'powerpc': powerpc,
 }
 
 
 class module(ModuleType):
+    last = {}
+
     def __getattr__(self, attr):
         try:
             value = int(gdb.parse_and_eval('$' + attr.lstrip('$')))
@@ -180,12 +195,28 @@ class module(ModuleType):
             return None
 
     def __getitem__(self, item):
-        item = getattr(self, item)
+        if isinstance(item, int):
+            return arch_to_regs[pwndbg.arch.current][item]
+
+        assert isinstance(item, str), "Unknown type %r" % item
+
+        # e.g. if we're looking for register "$rax", turn it into "rax"
+        item = item.lstrip('$')
+        item = getattr(self, item.lower())
 
         if isinstance(item, (int,long)):
             return int(item) & pwndbg.arch.ptrmask
 
         return item
+
+    def __iter__(self):
+        regs = set(arch_to_regs[pwndbg.arch.current]) | set(['pc','sp'])
+        for item in regs:
+            yield item
+
+    @property
+    def current(self):
+        return arch_to_regs[pwndbg.arch.current]
 
     @property
     def gpr(self):
@@ -225,7 +256,6 @@ class module(ModuleType):
             expression = re.sub(r'\$?\b%s\b' % regname, r'$'+regname, expression)
         return expression
 
-
     def items(self):
         for regname in self.all:
             yield regname, self[regname]
@@ -244,8 +274,20 @@ class module(ModuleType):
 
     arch_to_regs = arch_to_regs
 
-
+    @property
+    def changed(self):
+        delta = []
+        for reg, value in self.last.items():
+            if self[reg] != value:
+                delta.append(reg)
+        return delta
 
 # To prevent garbage collection
 tether = sys.modules[__name__]
 sys.modules[__name__] = module(__name__, '')
+
+
+@pwndbg.events.cont
+def update_last():
+    M = sys.modules[__name__]
+    M.last = {k:M[k] for k in M}

@@ -10,7 +10,6 @@ import pwndbg.chain
 import pwndbg.enhance
 import pwndbg.symbol
 import pwndbg.ui
-import pwndbg.proc
 
 __all__ = [
 'asm',
@@ -33,16 +32,18 @@ __all__ = [
 
 debug = True
 
-class Command(gdb.Command):
+class _Command(gdb.Command):
+    """Generic command wrapper"""
     count    = 0
     commands = []
 
     def __init__(self, function):
-        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
-        Command.commands.append(self)
+        self.commands.append(self)
         functools.update_wrapper(self, function)
+        self.__doc__ = function.__doc__
 
     def split_args(self, argument):
         return gdb.string_to_argv(argument)
@@ -60,9 +61,9 @@ class Command(gdb.Command):
         return self.function(*args, **kwargs)
 
 
-class ParsedCommand(Command):
+class _ParsedCommand(_Command):
     def split_args(self, argument):
-        argv = super(ParsedCommand,self).split_args(argument)
+        argv = super(_ParsedCommand,self).split_args(argument)
         return list(filter(lambda x: x is not None, map(fix, argv)))
 
 def fix(arg, sloppy=False):
@@ -74,7 +75,8 @@ def fix(arg, sloppy=False):
     try:
         arg = pwndbg.regs.fix(arg)
         return gdb.parse_and_eval(arg)
-    except Exception:
+    except Exception as e:
+        print(e)
         pass
 
     if sloppy:
@@ -82,13 +84,23 @@ def fix(arg, sloppy=False):
 
     return None
 
-OnlyWhenRunning = pwndbg.proc.OnlyWhenRunning
+def OnlyWhenRunning(function):
+    @functools.wraps(function)
+    def _OnlyWhenRunning(*a, **kw):
+        if pwndbg.proc.alive:
+            return function(*a, **kw)
+        else:
+            print("Only available when running")
+    return _OnlyWhenRunning
 
-@Command
-def pwndbg():
-    """
-    Prints out a list of all pwndbg commands.
-    """
-    names = [C.function.__name__ for C in Command.commands]
-    for name in sorted(names):
-        print(name)
+def Command(func):
+    class C(_Command):
+        __doc__ = func.__doc__
+        __name__ = func.__name__
+    return C(func)
+
+def ParsedCommand(func):
+    class C(_ParsedCommand):
+        __doc__ = func.__doc__
+        __name__ = func.__name__
+    return C(func)

@@ -139,7 +139,7 @@ def proc_pid_maps():
         except (OSError, gdb.error):
             continue
     else:
-        return []
+        return tuple()
 
     if pwndbg.compat.python3:
         data = data.decode()
@@ -202,6 +202,7 @@ def info_sharedlibrary():
     (*): Shared library is missing debugging information.
     """
     pages = []
+
     for line in gdb.execute('info sharedlibrary', to_string=True).splitlines():
         if not line.startswith('0x'):
             continue
@@ -212,7 +213,7 @@ def info_sharedlibrary():
 
         pages.extend(pwndbg.elf.map(text, obj))
 
-    return sorted(pages)
+    return tuple(sorted(pages))
 
 @pwndbg.memoize.reset_on_objfile
 def info_files():
@@ -288,7 +289,7 @@ def info_auxv(skip_exe=False):
     auxv = pwndbg.auxv.get()
 
     if not auxv:
-        return []
+        return tuple()
 
     pages    = []
     exe_name = auxv.AT_EXECFN or 'main.exe'
@@ -302,7 +303,7 @@ def info_auxv(skip_exe=False):
     if vdso:
         pages.append(find_boundaries(vdso, '[vdso]'))
 
-    return sorted(pages)
+    return tuple(sorted(pages))
 
 
 def find_boundaries(addr, name=''):
@@ -327,12 +328,9 @@ def check_aslr():
     try: data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
     except OSError: pass
 
-
-
     output = gdb.execute('show disable-randomization', to_string=True)
     if "is off." in output:
         vmmap.aslr = True
 
-
-
     return vmmap.aslr
+

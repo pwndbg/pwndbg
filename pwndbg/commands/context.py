@@ -12,7 +12,7 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-
+@pwndbg.events.stop
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
@@ -31,15 +31,35 @@ def context(*args):
     if 'c' in args: result.extend(context_code())
     if 's' in args: result.extend(context_stack())
     if 'b' in args: result.extend(context_backtrace())
-    if 'b' in args: result.extend(context_signal())
+    result.extend(context_signal())
 
     print('\n'.join(map(str, result)))
 
 def context_regs():
     result = []
     result.append(pwndbg.color.blue(pwndbg.ui.banner("registers")))
-    for reg in pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.stack, '$pc'):
+    result.extend(get_regs())
+    return result
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def regs(*regs):
+    print('\n'.join(get_regs(*regs)))
+
+def get_regs(*regs):
+    result = []
+
+    if not regs:
+        regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack, pwndbg.regs.current.pc)
+
+    changed = pwndbg.regs.changed
+
+    for reg in regs:
         if reg is None:
+            continue
+
+        if reg not in pwndbg.regs:
+            print("Unknown register: %r" % reg)
             continue
 
         value = pwndbg.regs[reg]
@@ -47,8 +67,14 @@ def context_regs():
         # Make the register stand out
         regname = pwndbg.color.bold(reg.ljust(4).upper())
 
-        result.append("%s %s" % (regname, pwndbg.chain.format(value)))
+        # Show a dot next to the register if it changed
+        m = ' ' if reg not in changed else '*'
+
+        result.append("%s%s %s" % (m, regname, pwndbg.chain.format(value)))
+
     return result
+
+
 
 def context_code():
     banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
@@ -114,7 +140,7 @@ def context_backtrace(frame_count=10, with_banner=True):
         i    += 1
     return result
 
-last_signal = None
+last_signal = []
 
 def save_signal(signal):
     global last_signal

@@ -183,11 +183,11 @@ def dqs(*a):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def da(address):
+def da(address, max=256):
     """
     Dump a string at the specified address.
     """
-    print("%x" % address, pwndbg.strings.get(address))
+    print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
