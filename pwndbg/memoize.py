@@ -18,6 +18,8 @@ import pwndbg.events
 debug = False
 
 class memoize(object):
+    caching = True
+
     def __init__(self, func):
         self.func  = func
         self.cache = {}
@@ -32,7 +34,7 @@ class memoize(object):
             how   = "Not memoizeable!"
             value = self.func(*args)
 
-        if args in self.cache:
+        if self.caching and args in self.cache:
             how   = "Cached"
             value = self.cache[args]
 
@@ -103,3 +105,21 @@ class reset_on_start(memoize):
     def __reset():
         for obj in reset_on_start.caches:
             obj.clear()
+
+class while_running(memoize):
+    caches = []
+    kind   = 'running'
+    caching = False
+
+    @staticmethod
+    @pwndbg.events.start
+    def __start_caching():
+        while_running.caching = True
+
+    @staticmethod
+    @pwndbg.events.exit
+    def __reset():
+        for obj in while_running.caches:
+            obj.clear()
+        while_running.caching = False
+

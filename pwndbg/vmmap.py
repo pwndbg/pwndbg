@@ -317,16 +317,26 @@ def find_boundaries(addr, name=''):
 
 aslr = False
 
-@pwndbg.events.stop
-@pwndbg.memoize.reset_on_exit
+@pwndbg.events.new_objfile
+@pwndbg.memoize.while_running
 def check_aslr():
     vmmap = sys.modules[__name__]
     vmmap.aslr = False
 
+    # Check to see if ASLR is disabled on the system.
+    # if not pwndbg.remote.is_remote():
     system_aslr = True
-    data        = ''
-    try: data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
-    except OSError: pass
+    data        = b''
+
+    try:
+        data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
+    except Exception as e:
+        print(e)
+        pass
+
+    # Systemwide ASLR is disabled
+    if b'0' in data:
+        return
 
     output = gdb.execute('show disable-randomization', to_string=True)
     if "is off." in output:
