@@ -8,6 +8,7 @@ Uses IDA when available if there isn't sufficient symbol
 information available.
 """
 import gdb
+import re
 import pwndbg.elf
 import pwndbg.ida
 import pwndbg.memoize
@@ -69,10 +70,7 @@ def address(symbol):
 
     try:
         result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
-        result = result.split()
-        address = next(r for r in result if r.startswith('0x'))
-        address = address.split('-')[0]
-        address = address.rstrip('.')
+        address = re.search('0x[0-9a-fA-F]+', result).group()
         return int(address, 0)
     except gdb.error:
         return None
