@@ -1,7 +1,7 @@
 import idaapi
 import idautils
 import idc
-
+import functools
 import datetime
 import threading
 import xmlrpclib
@@ -13,8 +13,7 @@ idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-port = 8888
-
+port       = 8888
 orig_LineA = idc.LineA
 
 def LineA(*a,**kw):
@@ -25,10 +24,25 @@ def LineA(*a,**kw):
 
 idc.LineA = LineA
 
+mutex = threading.Condition()
+
+def wrap(f):
+    def wrapper(*a, **kw):
+        try:
+            rv = []
+            def work(): rv.append(f(*a,**kw))
+            with mutex: idaapi.execute_sync(work, idaapi.MFF_WRITE)
+            return rv[0]
+        except:
+            import traceback
+            traceback.print_exc()
+            raise
+    return wrapper
+
 def register_module(module):
     for name, function in module.__dict__.items():
         if hasattr(function, '__call__'):
-            server.register_function(function, name)
+            server.register_function(wrap(function), name)
 
 server = SimpleXMLRPCServer(('127.0.0.1', port), logRequests=True, allow_none=True)
 register_module(idc)

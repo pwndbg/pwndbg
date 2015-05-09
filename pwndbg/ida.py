@@ -5,8 +5,10 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
+import errno
 import functools
 import socket
+import traceback
 from contextlib import closing
 
 import gdb
@@ -35,20 +37,25 @@ _ida = None
 
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-
 def setPort(port):
     global _ida
     _ida = xmlrpclib.ServerProxy('http://localhost:%s' % port)
-    try:     _ida.here()
-    except:  _ida = None
-
-setPort(8888)
+    try:
+        _ida.here()
+    except socket.error as e:
+        if e.errno != errno.ECONNREFUSED:
+            traceback.print_exc()
+        _ida = None
 
 class withIDA(object):
     def __init__(self, fn):
         self.fn = fn
         functools.update_wrapper(self, fn)
     def __call__(self, *args, **kwargs):
+        # import pdb
+        # pdb.set_trace()
+        if _ida is None:
+            setPort(8888)
         if _ida is not None:
             return self.fn(*args, **kwargs)
         return None
