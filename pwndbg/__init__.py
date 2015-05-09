@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import gdb
 import pwndbg.arch
 import pwndbg.arguments
@@ -97,3 +99,9 @@ for line in pre_commands.splitlines():
 
 msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))
+
+@pwndbg.memoize.reset_on_stop
+def prompt_hook(*a):
+    pwndbg.commands.context.context()
+
+gdb.prompt_hook = prompt_hook

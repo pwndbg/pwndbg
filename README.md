@@ -11,10 +11,17 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ## Installation
 
-Pretty easy.
-
 1. Clone the repo: `git clone https://github.com/zachriggle/pwndbg`
 2. Add to `~/.gdbinit`: `source ~/pwndbg/gdbinit.py`
+
+### Prerequisites
+
+As of recent versions, you need Capstone 4.0.
+
+1. Clone the repo: `git clone https://github.com/aquynh/capstone`
+2. Select the `next` branch: `git checkout -t origin/next`
+3. Build and install libcapstone: `sudo make.sh install`
+4. Build and install Python bindings: `cd bindings/python && python setup.py install`
 
 ## Features
 

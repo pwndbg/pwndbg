@@ -11,24 +11,7 @@ import pwndbg.enhance
 import pwndbg.symbol
 import pwndbg.ui
 
-__all__ = [
-'asm',
-'auxv',
-'context',
-'dt',
-'hexdump',
-'ida',
-'nearpc',
-'packing',
-'reload',
-'rop',
-'search',
-'shell',
-'start',
-'telescope',
-'vmmap',
-'windbg',
-]
+
 
 debug = True
 

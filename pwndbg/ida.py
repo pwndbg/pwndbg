@@ -155,6 +155,7 @@ _breakpoints=[]
 @pwndbg.events.stop
 @withIDA
 def UpdateBreakpoints():
+    # XXX: Remove breakpoints from IDA when the user removes them.
     current = set(eval(b.location.lstrip('*')) for b in _breakpoints)
     want    = set(GetBreakpoints())
 

@@ -63,6 +63,11 @@ def address(symbol):
         return symbol
 
     try:
+        return int(symbol, 0)
+    except:
+        pass
+
+    try:
         result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
         result = result.split()
         address = next(r for r in result if r.startswith('0x'))

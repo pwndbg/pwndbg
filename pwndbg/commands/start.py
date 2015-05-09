@@ -58,4 +58,4 @@ def entry(*a):
     global break_on_first_instruction
     break_on_first_instruction = True
     run = 'run ' + ' '.join(a)
-    gdb.execute(run, from_tty=False, to_string=True)
+    gdb.execute(run, from_tty=False)

@@ -3,19 +3,18 @@ Provides functionality to circumvent GDB's hooks on sys.stdin and sys.stdout
 which prevent output from appearing on-screen inside of certain event handlers.
 """
 import io
+import os
 import sys
 
 import gdb
 import pwndbg.compat
 
 def get(fd, mode):
-    file = io.open(1, mode=mode, buffering=0, closefd=False)
-
-    kw = {}
     if pwndbg.compat.python3:
-        kw['write_through']=True
-
-    return io.TextIOWrapper(file, **kw)
+        file = io.open(fd, mode=mode, buffering=0, closefd=False)
+        return io.TextIOWrapper(file, write_through=True, **kw)
+    else:
+        return os.fdopen(fd, mode, 0)
 
 stdin  = get(0, 'rb')
 stdout = get(1, 'wb')

@@ -2,7 +2,7 @@ import os
 
 import gdb
 import pwndbg.commands
-
+import pwndbg.vmmap
 
 @pwndbg.commands.Command
 def rop(start=None, stop=None):
@@ -14,6 +14,7 @@ def rop(start=None, stop=None):
 
     Searches executable mapped pages only.
     """
+    # for page in pwndbg.vmmap.get()
     cmd = ['ROPgadget',
            '--rawArch=x86',
            '--rawMode=32',
