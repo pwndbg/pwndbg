@@ -7,6 +7,10 @@ import threading
 import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
+import idaapi
+import idautils
+import idc
+
 # Save the database so nothing gets lost.
 idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
 

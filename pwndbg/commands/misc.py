@@ -5,6 +5,9 @@ import pwndbg as _pwndbg
 import pwndbg.commands
 import pwndbg.regs
 
+import pwndbg.commands
+import pwndbg.regs
+
 _errno.errorcode[0] = 'OK'
 
 @_pwndbg.commands.ParsedCommand

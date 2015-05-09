@@ -58,6 +58,10 @@ def dq(address, count=8):
     """
     return dX(8, int(address), int(count))
 
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def dc(address, count=8):
+    return pwndbg.commands.hexdump.hexdump(address=address, count=count)
 
 def dX(size, address, count, to_string=False):
     """
