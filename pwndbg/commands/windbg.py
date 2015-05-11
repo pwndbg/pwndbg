@@ -82,6 +82,9 @@ def dX(size, address, count, to_string=False):
     lines  = []
 
     for i, row in enumerate(rows):
+        if not row:
+            continue
+
         line = [enhex(pwndbg.arch.ptrsize, address + i+16)]
         for value in row:
             line.append(enhex(size, value))

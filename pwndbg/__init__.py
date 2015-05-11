@@ -102,6 +102,7 @@ print(pwndbg.color.red(msg))
 
 @pwndbg.memoize.reset_on_stop
 def prompt_hook(*a):
-    pwndbg.commands.context.context()
+    with pwndbg.stdio.stdio:
+        pwndbg.commands.context.context()
 
 gdb.prompt_hook = prompt_hook

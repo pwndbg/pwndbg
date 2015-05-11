@@ -1,13 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import functools
 import traceback
 import gdb
 
-import pwndbg.regs
-import pwndbg.memory
-import pwndbg.hexdump
-import pwndbg.color
 import pwndbg.chain
+import pwndbg.color
 import pwndbg.enhance
+import pwndbg.hexdump
+import pwndbg.memory
+import pwndbg.regs
+import pwndbg.stdio
 import pwndbg.symbol
 import pwndbg.ui
 
@@ -41,7 +44,8 @@ class _Command(gdb.Command):
             raise
 
     def __call__(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+        with pwndbg.stdio.stdio:
+            return self.function(*args, **kwargs)
 
 
 class _ParsedCommand(_Command):

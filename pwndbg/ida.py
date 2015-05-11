@@ -112,6 +112,13 @@ def GetFuncOffset(addr):
     return rv
 
 @withIDA
+@takes_address
+@pwndbg.memoize.reset_on_objfile
+def GetType(addr):
+    rv =  _ida.GetType(addr)
+    return rv
+
+@withIDA
 @returns_address
 def here():
     return _ida.here()
@@ -186,20 +193,20 @@ def SetColor(pc, color):
 
 colored_pc = None
 
-# @pwndbg.events.stop
-# @withIDA
-# def Auto_Color_PC():
-#     global colored_pc
-#     colored_pc = pwndbg.regs.pc
-#     SetColor(colored_pc, 0x7f7fff)c
+@pwndbg.events.stop
+@withIDA
+def Auto_Color_PC():
+    global colored_pc
+    colored_pc = pwndbg.regs.pc
+    SetColor(colored_pc, 0x7f7fff)
 
-# @pwndbg.events.cont
-# @withIDA
-# def Auto_UnColor_PC():
-#     global colored_pc
-#     if colored_pc:
-#         SetColor(colored_pc, 0xffffff)
-#     colored_pc = None
+@pwndbg.events.cont
+@withIDA
+def Auto_UnColor_PC():
+    global colored_pc
+    if colored_pc:
+        SetColor(colored_pc, 0xffffff)
+    colored_pc = None
 
 @withIDA
 @returns_address
@@ -237,3 +244,9 @@ def GetFlags(addr):
 @pwndbg.memoize.reset_on_objfile
 def isASCII(flags):
     return _ida.isASCII(flags)
+
+@withIDA
+@takes_address
+@pwndbg.memoize.reset_on_objfile
+def ArgCount(address):
+    pass

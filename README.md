@@ -16,12 +16,18 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ### Prerequisites
 
-As of recent versions, you need Capstone 4.0.
+#### Capstone 4.0
+
+Currently this is only available via a source build.
 
 1. Clone the repo: `git clone https://github.com/aquynh/capstone`
 2. Select the `next` branch: `git checkout -t origin/next`
 3. Build and install libcapstone: `sudo make.sh install`
 4. Build and install Python bindings: `cd bindings/python && python setup.py install`
+
+#### pycparser
+
+`pip install pycparser`
 
 ## Features
 

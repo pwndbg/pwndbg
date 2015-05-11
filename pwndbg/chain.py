@@ -8,7 +8,7 @@ import pwndbg.vmmap
 
 LIMIT = 5
 
-def get(address, limit=5):
+def get(address, limit=LIMIT):
     """
     Recursively dereferences an address.
 
@@ -30,32 +30,32 @@ def get(address, limit=5):
     return result
 
 
-def format(value):
-        chain = get(value, LIMIT)
+def format(value, limit=LIMIT, code=True):
+    chain = get(value, limit)
 
-        # Enhance the last entry
-        # If there are no pointers (e.g. eax = 0x41414141), then enhance
-        # the only element there is.
-        if len(chain) == 1:
-            enhanced = pwndbg.enhance.enhance(chain[-1])
+    # Enhance the last entry
+    # If there are no pointers (e.g. eax = 0x41414141), then enhance
+    # the only element there is.
+    if len(chain) == 1:
+        enhanced = pwndbg.enhance.enhance(chain[-1], code=code)
 
-        # Otherwise, the last element in the chain is the non-pointer value.
-        # We want to enhance the last pointer value.
-        elif len(chain) < LIMIT:
-            enhanced = pwndbg.enhance.enhance(chain[-2])
+    # Otherwise, the last element in the chain is the non-pointer value.
+    # We want to enhance the last pointer value.
+    elif len(chain) < limit:
+        enhanced = pwndbg.enhance.enhance(chain[-2], code=code)
 
-        else:
-            enhanced = '...'
+    else:
+        enhanced = '...'
 
-        # Colorize the rest
-        rest = []
-        for link in chain[:-1]:
-            symbol = pwndbg.symbol.get(link) or None
-            if symbol:
-                symbol = '%#x (%s)' % (link, symbol)
-            rest.append(pwndbg.color.get(link, symbol))
+    # Colorize the rest
+    rest = []
+    for link in chain[:-1]:
+        symbol = pwndbg.symbol.get(link) or None
+        if symbol:
+            symbol = '%#x (%s)' % (link, symbol)
+        rest.append(pwndbg.color.get(link, symbol))
 
-        if len(chain) == 1:
-            return enhanced
+    if len(chain) == 1:
+        return enhanced
 
-        return ' --> '.join(rest) + ' <-- ' + enhanced
+    return ' --> '.join(rest) + ' <-- ' + enhanced

@@ -12,7 +12,6 @@ import string
 
 import gdb
 import pwndbg.arch
-import pwndbg.color
 import pwndbg.disasm
 import pwndbg.memoize
 import pwndbg.memory
@@ -33,7 +32,7 @@ def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
 
 # @pwndbg.memoize.reset_on_stop
-def enhance(value):
+def enhance(value, code = True):
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -43,6 +42,10 @@ def enhance(value):
     'value'. For example, if it is set to RWX, we try to get information on whether
     it resides on the stack, or in a RW section that *happens* to be RWX, to
     determine which order to print the fields.
+
+    Arguments:
+        value(obj): Value to enhance
+        code(bool): Hint that indicates the value may be an instruction
     """
     value = int(value)
 
@@ -56,7 +59,7 @@ def enhance(value):
         can_read = False
 
     if not can_read:
-        retval = hex(int(value))
+        retval = '%#x' % int(value)
 
         # Try to unpack the value as a string
         packed = pwndbg.arch.pack(int(value))
@@ -82,11 +85,9 @@ def enhance(value):
         rwx = exe = False
 
     if exe:
-        instr = pwndbg.disasm.get(value, 1)[0].asm
-
-        # However, if it contains bad instructions, bail
-        if not good_instr(instr):
-            instr = None
+        instr = pwndbg.disasm.one(value)
+        if instr:
+            instr = "%-6s %s" % (instr.mnemonic, instr.op_str)
 
     szval = pwndbg.strings.get(value) or None
     szval0 = szval
@@ -98,11 +99,13 @@ def enhance(value):
     if 0 <= intval < 10:
         intval = str(intval)
     else:
-        intval = hex(int(intval & pwndbg.arch.ptrmask))
+        intval = '%#x' % int(intval & pwndbg.arch.ptrmask)
 
     retval = []
 
     # print([instr,intval0,szval])
+    if not code:
+        instr = None
 
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:

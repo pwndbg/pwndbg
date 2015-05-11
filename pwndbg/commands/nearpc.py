@@ -1,7 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from capstone import *
+
+import pwndbg.arguments
 import pwndbg.color
 import pwndbg.disasm
+import pwndbg.disasm.color
+import pwndbg.functions
 import pwndbg.ida
 import pwndbg.regs
+import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
@@ -54,16 +62,37 @@ def nearpc(pc=None, lines=None, to_string=False):
         symbols[i] = s.ljust(longest_sym)
 
     # Print out each instruction
+    prev = None
     for i,s in zip(instructions, symbols):
-        asm    = pwndbg.disasm.color(i)
+        asm    = pwndbg.disasm.color.instruction(i)
         prefix = ' =>' if i.address == pc else '   '
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
             result.append(pwndbg.color.bold(pre))
 
-        line   = ' '.join((prefix, s or hex(i.address), asm))
+        line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
+
+        old, prev = prev, i
+
+        # Put an ellipsis between discontiguous code groups
+        if not old:
+            pass
+        elif old.address + old.size != i.address:
+            result.append('...')
+        # Put an empty line after fall-through basic blocks
+        elif any(g in old.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
+            result.append('')
+
         result.append(line)
+
+        # For call instructions, attempt to resolve the target and
+        # determine the number of arguments.
+        for arg, value in pwndbg.arguments.arguments(i):
+            code   = False if arg.type == 'char' else True
+            pretty = pwndbg.chain.format(value, code=code)
+            result.append('%8s%-10s %s' % ('',arg.name+':', pretty))
+
 
     if not to_string:
         print('\n'.join(result))

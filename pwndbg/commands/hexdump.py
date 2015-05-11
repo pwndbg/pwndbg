@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import pwndbg.commands
 import pwndbg.hexdump
 import pwndbg.memory
@@ -26,7 +28,7 @@ def hexdump(address=None, count=64):
     # if address is None:
     # 	address =
 
-    data = pwndbg.memory.read(address, count)
+    data = pwndbg.memory.read(address, count, partial=True)
 
     for line in pwndbg.hexdump.hexdump(data, address=address):
         print(line)

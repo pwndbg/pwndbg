@@ -1,4 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import gdb
+import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
 import pwndbg.commands
@@ -12,15 +15,15 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-@pwndbg.events.stop
-@pwndbg.commands.ParsedCommand
+# @pwndbg.events.stop
+@pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
     """
     Print out the current register, instruction, and stack context.
     """
     if len(args) == 0:
-        args = ['reg','code','stack','backtrace']
+        args = ['reg','code','stack','backtrace','args']
 
     args = [a[0] for a in args]
 
@@ -29,11 +32,13 @@ def context(*args):
     result.append(pwndbg.color.legend())
     if 'r' in args: result.extend(context_regs())
     if 'c' in args: result.extend(context_code())
+    if 'a' in args: result.extend(context_args())
     if 's' in args: result.extend(context_stack())
     if 'b' in args: result.extend(context_backtrace())
     result.extend(context_signal())
 
-    print('\n'.join(map(str, result)))
+    for line in result:
+        print(line.encode('utf-8'))
 
 def context_regs():
     result = []
@@ -138,6 +143,23 @@ def context_backtrace(frame_count=10, with_banner=True):
 
         frame = frame.older()
         i    += 1
+    return result
+
+def context_args():
+    result = []
+
+    ##################################################
+    # DISABLED FOR NOW, I LIKE INLINE DISPLAY BETTER
+    ##################################################
+    # # For call instructions, attempt to resolve the target and
+    # # determine the number of arguments.
+    # for arg, value in pwndbg.arguments.arguments(pwndbg.disasm.one()):
+    #     code   = False if arg.type == 'char' else True
+    #     pretty = pwndbg.chain.format(value, code=code)
+    #     result.append('%-10s %s' % (arg.name+':', pretty))
+    # if not result:
+    #         return []
+    # result.insert(0, pwndbg.color.blue(pwndbg.ui.banner("arguments")))
     return result
 
 last_signal = []

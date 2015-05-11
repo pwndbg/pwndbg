@@ -35,7 +35,12 @@ def wrap(f):
         try:
             rv = []
             def work(): rv.append(f(*a,**kw))
-            with mutex: idaapi.execute_sync(work, idaapi.MFF_WRITE)
+            with mutex:
+                flags = idaapi.MFF_WRITE
+                if f == idc.SetColor:
+                    flags |= idaapi.MFF_NOWAIT
+                    rv.append(None)
+                idaapi.execute_sync(work, flags)
             return rv[0]
         except:
             import traceback

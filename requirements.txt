@@ -1,0 +1,2 @@
+capstone>=4.0
+pycparser

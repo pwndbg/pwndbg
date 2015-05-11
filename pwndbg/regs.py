@@ -189,7 +189,13 @@ class module(ModuleType):
 
     def __getattr__(self, attr):
         try:
-            value = int(gdb.parse_and_eval('$' + attr.lstrip('$')))
+            value = gdb.parse_and_eval('$' + attr.lstrip('$'))
+            if 'eflags' not in attr:
+                value = value.cast(pwndbg.typeinfo.ptrdiff)
+            else:
+                # Seriously, gdb? Only accepts uint32.
+                value = value.cast(pwndbg.typeinfo.uint32)
+            value = int(value)
             return value & pwndbg.arch.ptrmask
         except gdb.error:
             return None
@@ -198,7 +204,12 @@ class module(ModuleType):
         if isinstance(item, int):
             return arch_to_regs[pwndbg.arch.current][item]
 
-        assert isinstance(item, str), "Unknown type %r" % item
+        if not isinstance(item, basestring):
+            print "Unknown register type: %r" % (item)
+            import pdb, traceback
+            traceback.print_stack()
+            pdb.set_trace()
+            return None
 
         # e.g. if we're looking for register "$rax", turn it into "rax"
         item = item.lstrip('$')

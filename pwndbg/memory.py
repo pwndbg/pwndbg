@@ -10,8 +10,15 @@ import pwndbg.typeinfo
 PAGE_SIZE = 0x1000
 MMAP_MIN_ADDR = 0x10000
 
-def read(addr, count):
-    result = gdb.selected_inferior().read_memory(addr, count)
+def read(addr, count, partial=False):
+    try:
+        result = gdb.selected_inferior().read_memory(addr, count)
+    except gdb.error as e:
+        if not partial:
+            raise
+
+        stop_addr = int(e.message.split()[-1], 0)
+        return read(addr, stop_addr-addr)
 
     if pwndbg.compat.python3:
         result = result.tobytes()
@@ -42,15 +49,23 @@ def ushort(addr): return readtype(pwndbg.typeinfo.ushort, addr)
 def uint(addr):   return readtype(pwndbg.typeinfo.uint, addr)
 def pvoid(addr):  return readtype(pwndbg.typeinfo.pvoid, addr)
 
-def u8(addr): return readtype(pwndbg.typeinfo.uint8_t, addr)
-def u16(addr): return readtype(pwndbg.typeinfo.uint16_t, addr)
-def u32(addr): return readtype(pwndbg.typeinfo.uint32_t, addr)
-def u64(addr): return readtype(pwndbg.typeinfo.uint64_t, addr)
+def u8(addr): return readtype(pwndbg.typeinfo.uint8, addr)
+def u16(addr): return readtype(pwndbg.typeinfo.uint16, addr)
+def u32(addr): return readtype(pwndbg.typeinfo.uint32, addr)
+def u64(addr): return readtype(pwndbg.typeinfo.uint64, addr)
 
-def s8(addr): return readtype(pwndbg.typeinfo.int8_t, addr)
-def s16(addr): return readtype(pwndbg.typeinfo.int16_t, addr)
-def s32(addr): return readtype(pwndbg.typeinfo.int32_t, addr)
-def s64(addr): return readtype(pwndbg.typeinfo.int64_t, addr)
+def u(addr, size):
+    return {
+        8: u8,
+        16: u16,
+        32: u32,
+        64: u64
+    }[size](addr)
+
+def s8(addr): return readtype(pwndbg.typeinfo.int8, addr)
+def s16(addr): return readtype(pwndbg.typeinfo.int16, addr)
+def s32(addr): return readtype(pwndbg.typeinfo.int32, addr)
+def s64(addr): return readtype(pwndbg.typeinfo.int64, addr)
 
 def write(addr, data):
     gdb.selected_inferior().write_memory(addr, data)

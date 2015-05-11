@@ -1,4 +1,5 @@
 import gdb
+import pwndbg.enhance
 import pwndbg.vmmap
 
 NORMAL         = "\x1b[0m"
@@ -65,3 +66,4 @@ def legend():
         UNDERLINE + 'RWX' + NORMAL,
         'RODATA'
     ))
+
