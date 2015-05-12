@@ -35,6 +35,8 @@ Does most things that PEDA does.  Doesn't do things that PEDA does that [pwntool
 
 Also has a basic windbg compat layer for e.g. `dd`, `eb`, `da`, `dps`.  Now you can even [`eb eip 90`](https://twitter.com/ebeip90)!
 
+For most standard function calls, it knows how many arguments there are and can print out the function call args.
+
 ## Screenshots
 
 Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`.

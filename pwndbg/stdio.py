@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Provides functionality to circumvent GDB's hooks on sys.stdin and sys.stdout
 which prevent output from appearing on-screen inside of certain event handlers.
 """
+import codecs
 import io
 import os
 import sys
@@ -22,7 +25,7 @@ def get(fd, mode):
 
         return io.TextIOWrapper(file, **kw)
     else:
-        return open(fd, mode=mode)
+        return codecs.open(fd, mode, 'utf-8')
 
 
 class Stdio(object):
