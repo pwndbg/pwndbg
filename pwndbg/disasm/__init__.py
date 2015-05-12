@@ -82,7 +82,7 @@ def get_target(instruction):
     return {
         'i386': pwndbg.disasm.x86.resolve,
         'x86-64': pwndbg.disasm.x86.resolve
-    }.get(pwndbg.arch.current, lambda *a: None)(instruction)
+    }.get(pwndbg.arch.current, lambda *a: (None,None))(instruction)
 
 
 def get_disassembler(pc):
