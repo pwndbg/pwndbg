@@ -12,4 +12,6 @@ python2 = sys.version_info.major == 2
 python3 = sys.version_info.major == 3
 
 if python3:
-    globals()['basestring'] = str
+    basestring = str
+else:
+    basestring = basestring

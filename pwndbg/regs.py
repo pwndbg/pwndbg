@@ -10,6 +10,7 @@ from types import ModuleType
 
 import gdb
 import pwndbg.arch
+import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
 
@@ -204,8 +205,8 @@ class module(ModuleType):
         if isinstance(item, int):
             return arch_to_regs[pwndbg.arch.current][item]
 
-        if not isinstance(item, basestring):
-            print "Unknown register type: %r" % (item)
+        if not isinstance(item, pwndbg.compat.basestring):
+            print("Unknown register type: %r" % (item))
             import pdb, traceback
             traceback.print_stack()
             pdb.set_trace()

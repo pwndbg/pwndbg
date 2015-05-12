@@ -6,6 +6,7 @@ Command to print the vitual memory map a la /proc/self/maps.
 import gdb
 import pwndbg.color
 import pwndbg.commands
+import pwndbg.compat
 import pwndbg.vmmap
 
 
@@ -17,7 +18,7 @@ def vmmap(map=None):
     """
     int_map = None
     str_map = None
-    if isinstance(map, str):
+    if isinstance(map, pwndbg.compat.basestring):
         str_map = map
     elif isinstance(map, (long, int, gdb.Value)):
         int_map = int(map)

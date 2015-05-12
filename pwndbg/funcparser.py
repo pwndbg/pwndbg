@@ -40,8 +40,8 @@ def ExtractFuncDecl(node, verbose=False):
     ftype, fderef, fname = extractTypeAndName(node)
 
     if not fname:
-        print "Skipping function without a name!"
-        print node.show()
+        print("Skipping function without a name!")
+        print(node.show())
         return
 
     fargs = []
@@ -55,7 +55,7 @@ def ExtractFuncDecl(node, verbose=False):
     Func = Function(ftype, fderef, fname, fargs)
 
     if verbose:
-        print Stringify(Func) + '(' + ','.join(Stringify(a) for a in Func.args) + ');'
+        print(Stringify(Func) + '(' + ','.join(Stringify(a) for a in Func.args) + ');')
 
     return Func
 

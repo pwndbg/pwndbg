@@ -38,7 +38,7 @@ def context(*args):
     result.extend(context_signal())
 
     for line in result:
-        print(line.encode('utf-8'))
+        print(line)
 
 def context_regs():
     result = []
