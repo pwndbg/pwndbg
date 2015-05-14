@@ -1,3 +1,6 @@
+# BETA SOFTWARE
+
+This is barely a beta.  If anything works at all, consider yourself lucky.
 
 # pwndbg
 
