@@ -1,6 +1,8 @@
 # BETA SOFTWARE
 
-This is barely a beta.  If anything works at all, consider yourself lucky.
+This is barely a beta.  There are currently no versioned releases, only `master`.  I push to master with impunity.  There are no tests.  If anything works at all, consider yourself lucky.
+
+Feature contributions and bugfixes are both very welcome :)
 
 # pwndbg
 
