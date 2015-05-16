@@ -106,6 +106,17 @@ class reset_on_start(memoize):
         for obj in reset_on_start.caches:
             obj.clear()
 
+class reset_on_cont(memoize):
+    caches = []
+    kind   = 'cont'
+
+    @staticmethod
+    @pwndbg.events.cont
+    def __reset():
+        for obj in reset_on_cont.caches:
+            obj.clear()
+
+
 class while_running(memoize):
     caches = []
     kind   = 'running'

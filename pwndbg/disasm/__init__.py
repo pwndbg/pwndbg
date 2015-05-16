@@ -8,12 +8,13 @@ import collections
 
 import gdb
 import pwndbg.arch
-import pwndbg.disasm.mips
+import pwndbg.disasm.arch
 import pwndbg.disasm.arm
-import pwndbg.disasm.ppc
-import pwndbg.disasm.x86
 import pwndbg.disasm.jump
+import pwndbg.disasm.mips
+import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
+import pwndbg.disasm.x86
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.symbol
@@ -55,6 +56,23 @@ VariableInstructionSizeMax = {
 
 backward_cache = {}
 
+def get_assistant():
+    return {
+        'i386': pwndbg.disasm.x86.assistant,
+        'x86-64': pwndbg.disasm.x86.assistant,
+        'arm': pwndbg.disasm.arm.assistant
+    }.get(pwndbg.arch.current, lambda *a: None)(instruction)
+
+def get_operands(instruction):
+    """
+    IFF instruction is the next instruction to be executed,
+    return an OrderedDict which maps the operand names to
+    their current values.
+
+    Otherwise, returns an empty dict.
+    """
+    if instruction.address != pwndbg.regs.pc:
+        return {}
 
 def get_target(instruction):
     """

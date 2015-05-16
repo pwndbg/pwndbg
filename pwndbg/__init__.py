@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import gdb
+import pwndbg.disasm
 import pwndbg.arch
 import pwndbg.arguments
 import pwndbg.vmmap

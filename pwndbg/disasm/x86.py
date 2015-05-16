@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import collections
+
 import pwndbg.arch
 import pwndbg.memory
 import pwndbg.regs
@@ -12,6 +14,30 @@ ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}
 regs   = {v:k for k,v in globals().items() if k.startswith('X86_REG_')}
 access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
 
+class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+    def memory_sz(self, instruction, operand):
+        segment = ''
+        parts   = []
+
+        if op.mem.segment != 0:
+            segment = '%s:' % instructions.reg_name(op.mem.segment)
+
+
+        if op.mem.base != 0:
+            parts.append(instruction.reg_name(op.mem.base))
+
+        if op.mem.disp != 0:
+            parts.append("%#x" % op.value.mem.disp)
+
+        if op.mem.index != 0:
+            index = pwndbg.regs[instruction.reg_name(op.mem.index)]
+            scale = op.mem.scale
+            parts.append("%s*%#x" % (index, scale))
+
+        return "%s[%s]" % (segment, ' + '.join(parts))
+
+assistant = DisassemblyAssistant()
+
 def is_memory_op(op):
     return op.type == X86_OP_MEM
 
@@ -21,16 +47,16 @@ def get_access(ac):
         if ac & k: rv.append(v)
     return ' | '.join(rv)
 
-def dump(instruction):
-    ins = instruction
-    rv  = []
-    rv.append('%s %s' % (ins.mnemonic,ins.op_str))
-    for i, group in enumerate(ins.groups):
-        rv.append('   groups[%i]   = %s' % (i, groups[group]))
-    for i, op in enumerate(ins.operands):
-        rv.append('   operands[%i] = %s' % (i, ops[op.type]))
-        rv.append('       access   = %s' % (get_access(op.access)))
-    return '\n'.join(rv)
+    def dump(self, instruction):
+        ins = instruction
+        rv  = []
+        rv.append('%s %s' % (ins.mnemonic,ins.op_str))
+        for i, group in enumerate(ins.groups):
+            rv.append('   groups[%i]   = %s' % (i, groups[group]))
+        for i, op in enumerate(ins.operands):
+            rv.append('   operands[%i] = %s' % (i, ops[op.type]))
+            rv.append('       access   = %s' % (get_access(op.access)))
+        return '\n'.join(rv)
 
 def resolve(instruction):
     ops = list(instruction.operands)
@@ -60,6 +86,52 @@ def resolve(instruction):
 
     print("Weird number of operands!!!!!")
     print(dump(instruction))
+
+def register(i, op):
+    assert CS_OP_REG == op.type
+    regname = instruction.reg_name(op.value.reg)
+    return pwndbg.regs[regname]
+
+def immediate(i, op):
+    assert CS_OP_IMM == op.type
+    return op.value.imm
+
+def memory():
+    current = (instruction.address == pwndbg.regs.pc)
+
+    constant = bool(op.mem.base == 0 and op.mem.index == 0)
+    if not current and not constant:
+        return (None, False)
+
+    if op.mem.segment != 0:
+        return (None, False)
+
+    if op.mem.base != 0:
+        regname = instruction.reg_name(op.mem.base)
+        target += pwndbg.regs[regname]
+
+    if op.mem.disp != 0:
+        target += op.value.mem.disp
+
+    if op.mem.index != 0:
+        scale = op.mem.scale
+        index = pwndbg.regs[instruction.reg_name(op.mem.index)]
+        target += (scale * index)
+
+    # for source operands, resolve
+    if op.access == CS_AC_READ:
+        try:
+            target = pwndbg.memory.u(target, op.size * 8)
+        except:
+            return (None, False)
+
+    return (target, constant)
+
+resolvers = {
+    CS_OP_REG: register,
+    CS_OP_IMM: immediate,
+    CS_OP_MEM: memory
+}
 
 def get_operand_target(instruction, op):
     current = (instruction.address == pwndbg.regs.pc)
