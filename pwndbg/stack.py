@@ -54,17 +54,18 @@ def update():
     for its stack.
     """
     curr_thread = gdb.selected_thread()
-
     try:
         for thread in gdb.selected_inferior().threads():
             thread.switch()
             sp = pwndbg.regs.sp
 
+            sp_low = sp & ~(0xfff)
+
             # If we don't already know about this thread, create
             # a new Page mapping for it.
             page = stacks.get(thread.ptid, None)
             if page is None:
-                start = pwndbg.memory.find_lower_boundary(sp)
+                start = sp_low
                 stop  = find_upper_stack_boundary(sp)
                 page  = pwndbg.memory.Page(start, stop-start, 6 if not is_executable() else 7, 0, '[stack]')
                 stacks[thread.ptid] = page
@@ -73,8 +74,8 @@ def update():
                 page.objfile = '[stack]'
 
             # If we *DO* already know about this thread, just
-            # update the lower boundary.
-            low = pwndbg.memory.find_lower_boundary(page.vaddr)
+            # update the lower boundary if it got any lower.
+            low = min(page.vaddr, sp_low)
             if low != page.vaddr:
                 page.memsz  += (page.vaddr - low)
                 page.vaddr   = low
