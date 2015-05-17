@@ -40,32 +40,31 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return '#%#x' % imm
 
-assistant = DisassemblyAssistant()
+    def taken(self, instruction):
+        cpsr = pwndbg.regs.cpsr
 
-def is_jump_taken(instruction):
-    cpsr = pwndbg.regs.cpsr
+        N = cpsr & (1<<31)
+        Z = cpsr & (1<<30)
+        C = cpsr & (1<<29)
+        V = cpsr & (1<<28)
 
-    N = cpsr & (1<<31)
-    Z = cpsr & (1<<30)
-    C = cpsr & (1<<29)
-    V = cpsr & (1<<28)
+        return {
+            ARM_CC_EQ: Z,
+            ARM_CC_NE: not Z,
+            ARM_CC_HS: C,
+            ARM_CC_LO: not C,
+            ARM_CC_MI: N,
+            ARM_CC_PL: not N,
+            ARM_CC_VS: V,
+            ARM_CC_VC: not V,
+            ARM_CC_HI: C and not Z,
+            ARM_CC_LS: Z or not C,
+            ARM_CC_GE: N == V,
+            ARM_CC_LT: N != V,
+            ARM_CC_GT: not Z and (N==V),
+            ARM_CC_LE: Z or (N != V),
+            # ARM_CC_AL: 1,
+        }.get(instruction.id, None)
 
-    return {
-        ARM_CC_EQ: Z,
-        ARM_CC_NE: not Z,
-        ARM_CC_HS: C,
-        ARM_CC_LO: not C,
-        ARM_CC_MI: N,
-        ARM_CC_PL: not N,
-        ARM_CC_VS: V,
-        ARM_CC_VC: not V,
-        ARM_CC_HI: C and not Z,
-        ARM_CC_LS: Z or not C,
-        ARM_CC_GE: N == V,
-        ARM_CC_LT: N != V,
-        ARM_CC_GT: not Z and (N==V),
-        ARM_CC_LE: Z or (N != V),
-        # ARM_CC_AL: 1,
-    }.get(instruction.id, None)
+assistant = DisassemblyAssistant('arm')
 
-is_condition_true = is_jump_taken

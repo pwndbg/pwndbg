@@ -86,7 +86,7 @@ def explore(address_maybe):
 # Automatically ensure that all registers are explored on each stop
 @pwndbg.events.stop
 def explore_registers():
-    for regname in pwndbg.regs.all:
+    for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
 
 

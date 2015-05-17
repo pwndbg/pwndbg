@@ -5,6 +5,7 @@ Prints out pointer chains starting at some address in memory.
 
 Generally used to print out the stack or register values.
 """
+import collections
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.memory
@@ -32,7 +33,9 @@ def telescope(address=None, count=8, to_string=False):
     address = int(address)
     count   = int(count)
 
-    reg_values = {r:v for (r,v) in pwndbg.regs.items()}
+    reg_values = collections.defaultdict(lambda: [])
+    for reg in pwndbg.regs.common:
+        reg_values[pwndbg.regs[reg]].append(reg)
     # address    = pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address)
     ptrsize    = pwndbg.typeinfo.ptrsize
 
@@ -43,11 +46,7 @@ def telescope(address=None, count=8, to_string=False):
     # Find all registers which show up in the trace
     regs = {}
     for i in range(start, stop, step):
-        regs[i] = []
-        for reg, regval in reg_values.items():
-            if i <= regval < i+ptrsize:
-                regs[i].append(reg)
-        regs[i] = ' '.join(regs[i])
+        regs[i] = ' '.join(reg_values[i])
 
     # Find the longest set of register information
     if regs:

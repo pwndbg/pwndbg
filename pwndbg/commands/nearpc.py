@@ -61,8 +61,9 @@ def nearpc(pc=None, lines=None, to_string=False):
     for i,s in enumerate(symbols):
         symbols[i] = s.ljust(longest_sym)
 
-    # Print out each instruction
     prev = None
+
+    # Print out each instruction
     for i,s in zip(instructions, symbols):
         asm    = pwndbg.disasm.color.instruction(i)
         prefix = ' =>' if i.address == pc else '   '
@@ -73,25 +74,26 @@ def nearpc(pc=None, lines=None, to_string=False):
 
         line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
 
-        old, prev = prev, i
-
-        # Put an ellipsis between discontiguous code groups
-        if not old:
-            pass
-        elif old.address + old.size != i.address:
+        # If there was a branch before this instruction which was not
+        # contiguous, put in some ellipses.
+        if prev and prev.address + prev.size != i.address:
             result.append('...')
-        # Put an empty line after fall-through basic blocks
-        elif any(g in old.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
+
+        # Otherwise if it's a branch and it *is* contiguous, just put
+        # and empty line.
+        elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
             result.append('')
 
         result.append(line)
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        for arg, value in pwndbg.arguments.arguments(i):
+        for arg, value in pwndbg.arguments.get(i):
             code   = False if arg.type == 'char' else True
             pretty = pwndbg.chain.format(value, code=code)
             result.append('%8s%-10s %s' % ('',arg.name+':', pretty))
+
+        prev = i
 
 
     if not to_string:

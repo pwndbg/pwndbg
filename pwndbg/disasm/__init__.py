@@ -44,82 +44,37 @@ for cs in CapstoneArch.values():
 #
 # This allows us to consistently disassemble backward.
 VariableInstructionSizeMax = {
-    'i386': 16,
+    'i386':   16,
     'x86-64': 16,
 }
 
-backward_cache = {}
-
-assistancts = {}
-
-def get_assistant():
-    return {
-        'i386': pwndbg.disasm.x86.assistant,
-        'x86-64': pwndbg.disasm.x86.assistant,
-        'arm': pwndbg.disasm.arm.assistant
-    }.get(pwndbg.arch.current, lambda *a: None)(instruction)
-
-def get_operands(instruction):
-    """
-    IFF instruction is the next instruction to be executed,
-    return an OrderedDict which maps the operand names to
-    their current values.
-
-    Otherwise, returns an empty dict.
-    """
-    if instruction.address != pwndbg.regs.pc:
-        return {}
-
-def get_target(instruction):
-    """
-    Make a best effort to determine what value or memory address
-    is important in a given instruction.  For example:
-
-    - Any single-operand instruction ==> that value
-        - push rax ==> evaluate rax
-    - Jump or call ==> target address
-        - jmp rax ==> evaluate rax
-        - jmp 0xdeadbeef ==> deadbeef
-    - Memory load or store ==> target address
-        - mov [eax], ebx ==> evaluate eax
-    - Register move ==> source value
-        - mov eax, ebx ==> evaluate ebx
-    - Register manipulation ==> value after execution*
-        - lea eax, [ebx*4] ==> evaluate ebx*4
-
-    Register arguments are only evaluated for the next instruction.
-
-    Returns:
-        A tuple containing the resolved value (or None) and
-        a boolean indicating whether the value is a constant.
-    """
-    return {
-        'i386': pwndbg.disasm.x86.resolve,
-        'x86-64': pwndbg.disasm.x86.resolve
-    }.get(pwndbg.arch.current, lambda *a: (None,None))(instruction)
-
+backward_cache = collections.defaultdict(lambda: 0)
 
 def get_disassembler(pc):
     arch = pwndbg.arch.current
     d    = CapstoneArch[arch]
     if arch in ('arm', 'aarch64'):
-        d.mode = {0:CS_MODE_ARM,1:CS_MODE_THUMB}[pc & 1]
+        d.mode = {0:CS_MODE_ARM,0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
     else:
         d.mode = {4:CS_MODE_32, 8:CS_MODE_64}[pwndbg.arch.ptrsize]
     return d
 
+@pwndbg.memoize.reset_on_cont
 def get_one_instruction(address):
     md   = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.arch.current, 4)
     data = pwndbg.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        ins.target, ins.target_constant = get_target(ins)
+        pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
 
 def one(address=None):
+    if address == 0:
+        return None
     if address is None:
         address = pwndbg.regs.pc
     for insn in get(address, 1):
+        backward_cache[insn.next] = insn.address
         return insn
 
 def fix(i):
@@ -141,49 +96,30 @@ def get(address, instructions=1):
         i = get_one_instruction(address)
         if i is None:
             break
-        backward_cache[address+i.size] = address
-        address += i.size
+        address = i.next
         retval.append(i)
 
     return retval
 
 def near(address, instructions=1):
-    # # If we have IDA, we can just use it to find out where the various
-    # # isntructions are.
-    # if pwndbg.ida.available():
-    #     head = address
-    #     for i in range(instructions):
-    #         head = pwndbg.ida.PrevHead(head)
-
-    #     retval = []
-    #     for i in range(2*instructions + 1):
-    #         retval.append(get(head))
-    #         head = pwndbg.ida.NextHead(head)
-
-    # See if we can satisfy the request based on the instruction
-    # length cache.
-    needle = address
-    insns  = []
-    while len(insns) < instructions and needle in backward_cache:
-        needle = backward_cache[needle]
-        insn   = one(needle)
-        if not insn:
-            return insns
-        insns.insert(0, insn)
-
     current = one(address)
 
-    if not current:
-        return insns
-
-    target  = current.target
-
-    if not pwndbg.disasm.jump.is_jump_taken(current):
-        target = current.address + current.size
-
-    backward_cache[target] = address
-
+    # Try to go backward by seeing which instructions we've returned
+    # before, which were followed by this one.
+    needle = address
+    insns  = []
+    insn   = one(backward_cache[current.address])
+    while insn and len(insns) < instructions:
+        insns.append(insn)
+        insn = one(backward_cache[insn.address])
+    insns.reverse()
     insns.append(current)
-    insns.extend(get(target, instructions))
+
+    # Now find all of the instructions moving forward.
+    insn  = current
+    while insn and len(insns) < 1+(2*instructions):
+        insn = one(insn.next)
+        if insn:
+            insns.append(insn)
 
     return insns

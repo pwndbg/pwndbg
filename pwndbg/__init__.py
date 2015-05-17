@@ -101,9 +101,8 @@ handle SIGALRM print nopass
 handle SIGSEGV stop print nopass
 """.strip() % prompt
 
-for line in pre_commands.splitlines():
-	if line:
-		gdb.execute(line)
+for line in pre_commands.strip().splitlines():
+	gdb.execute(line)
 
 msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))

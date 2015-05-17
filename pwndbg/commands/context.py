@@ -88,7 +88,7 @@ def context_code():
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
     while len(result) < 11:
-        result.insert(0, '')
+        result.append('')
 
     return banner + result
 

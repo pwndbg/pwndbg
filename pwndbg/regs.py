@@ -4,6 +4,7 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+import collections
 import re
 import sys
 from types import ModuleType
@@ -13,6 +14,7 @@ import pwndbg.arch
 import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
+import pwndbg.proc
 
 
 class RegisterSet(object):
@@ -69,11 +71,14 @@ class RegisterSet(object):
         self.args   = args
         self.retval = retval
 
-        self.common = set(i for i in gpr + (frame, stack, pc) if i)
-        self.all    = set(i for i in misc) | set(flags) | self.common
+        # In 'common', we don't want to lose the ordering of:
+        self.common = []
+        for reg in gpr + (frame, stack, pc):
+            if reg and reg not in self.common:
+                self.common.append(reg)
 
-        self.common -= {None}
-        self.all    -= {None}
+        self.all = set(i for i in misc) | set(flags) | set(self.common)
+        self.all -= {None}
 
     def __iter__(self):
         for r in self.all:
@@ -220,15 +225,18 @@ class module(ModuleType):
     @pwndbg.memoize.reset_on_stop
     def __getattr__(self, attr):
         try:
-            value = gdb.parse_and_eval('$' + attr.lstrip('$'))
-            if 'eflags' not in attr:
-                value = value.cast(pwndbg.typeinfo.ptrdiff)
-            else:
-                # Seriously, gdb? Only accepts uint32.
+            # Seriously, gdb? Only accepts uint32.
+            if 'eflags' in attr:
+                value = gdb.parse_and_eval('$' + attr.lstrip('$'))
                 value = value.cast(pwndbg.typeinfo.uint32)
+            else:
+                value = gdb.newest_frame().read_register(attr)
+                value = value.cast(pwndbg.typeinfo.ptrdiff)
+
             value = int(value)
             return value & pwndbg.arch.ptrmask
-        except gdb.error:
+        except ValueError:
+            # Unknown register
             return None
 
     @pwndbg.memoize.reset_on_stop
@@ -264,6 +272,10 @@ class module(ModuleType):
     @property
     def gpr(self):
         return arch_to_regs[pwndbg.arch.current].gpr
+
+    @property
+    def common(self):
+        return arch_to_regs[pwndbg.arch.current].common
 
     @property
     def frame(self):
@@ -333,4 +345,4 @@ sys.modules[__name__] = module(__name__, '')
 @pwndbg.events.cont
 def update_last():
     M = sys.modules[__name__]
-    M.last = {k:M[k] for k in M}
+    M.last = {k:M[k] for k in M.common}
