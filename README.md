@@ -69,6 +69,8 @@ Here's a few screenshots of some of the cool things pwndbg does.
 
 ![g](caps/g.png?raw=1)
 
+![h](caps/h.png?raw=1)
+
 Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`.
 
 ![a](caps/a.png?raw=1)
