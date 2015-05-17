@@ -21,6 +21,21 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ### Prerequisites
 
+#### GDB 7.9
+
+As of changes made May 17 you must have GDB 7.9 or newer.  Ubuntu Vivid users already have this.  Otherwise, you'll have to build it from source.  This works for Ubuntu 14.04:
+
+```sh
+$ sudo apt-get build-dep gdb
+$ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.9.orig.tar.gz
+$ tar xf gdb_7.9.orig.tar.gz
+$ cd gdb-7.9
+$ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.7-0ubuntu3.debian.tar.gz
+$ tar xf gdb_7.7-0ubuntu3.debian.tar.gz
+$ DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -j -us -uc -nc
+$ sudo dpkg -i gdb-*.deb
+```
+
 #### Capstone 4.0
 
 Currently this is only available via a source build.
