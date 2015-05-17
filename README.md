@@ -1,3 +1,8 @@
+# BETA SOFTWARE
+
+This is barely a beta.  There are currently no versioned releases, only `master`.  I push to master with impunity.  There are no tests.  If anything works at all, consider yourself lucky.
+
+Feature contributions and bugfixes are both very welcome :)
 
 # pwndbg
 
@@ -12,7 +17,7 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 ## Installation
 
 1. Clone the repo: `git clone https://github.com/zachriggle/pwndbg`
-2. Add to `~/.gdbinit`: `source ~/pwndbg/gdbinit.py`
+2. Add to `~/.gdbinit`: `echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit`
 
 ### Prerequisites
 
@@ -21,8 +26,8 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 Currently this is only available via a source build.
 
 1. Clone the repo: `git clone https://github.com/aquynh/capstone`
-2. Select the `next` branch: `git checkout -t origin/next`
-3. Build and install libcapstone: `sudo make.sh install`
+2. Select the `next` branch: `cd capstone && git checkout -t origin/next`
+3. Build and install libcapstone: `sudo ./make.sh install`
 4. Build and install Python bindings: `cd bindings/python && python setup.py install`
 
 #### pycparser
