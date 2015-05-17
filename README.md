@@ -23,7 +23,7 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 #### GDB 7.9
 
-As of changes made May 17 you must have GDB 6.9 or newer.  Ubuntu Vivid users already have this.  Otherwise, you'll have to build it from source.  This works for Ubuntu 14.04:
+As of changes made May 17 you must have GDB 7.9 or newer.  Ubuntu Vivid users already have this.  Otherwise, you'll have to build it from source.  This works for Ubuntu 14.04:
 
 ```sh
 $ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.9.orig.tar.gz
