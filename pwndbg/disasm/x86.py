@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import collections
+
 import pwndbg.arch
 import pwndbg.memory
 import pwndbg.regs
+import pwndbg.typeinfo
 
 from capstone import *
 from capstone.x86 import *
@@ -12,131 +15,164 @@ ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}
 regs   = {v:k for k,v in globals().items() if k.startswith('X86_REG_')}
 access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
 
-def is_memory_op(op):
-    return op.type == X86_OP_MEM
+pc     = X86_REG_RSP
 
-def get_access(ac):
-    rv = []
-    for k,v in access.items():
-        if ac & k: rv.append(v)
-    return ' | '.join(rv)
+class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+    def regs(self, instruction, reg):
+        if reg == X86_REG_RIP:
+            return instruction.address + instruction.size
+        elif instruction.address == pwndbg.regs.pc:
+            name = instruction.reg_name(reg)
+            return pwndbg.regs[name]
+        else:
+            return None
 
-def dump(instruction):
-    ins = instruction
-    rv  = []
-    rv.append('%s %s' % (ins.mnemonic,ins.op_str))
-    for i, group in enumerate(ins.groups):
-        rv.append('   groups[%i]   = %s' % (i, groups[group]))
-    for i, op in enumerate(ins.operands):
-        rv.append('   operands[%i] = %s' % (i, ops[op.type]))
-        rv.append('       access   = %s' % (get_access(op.access)))
-    return '\n'.join(rv)
+    def memory(self, instruction, op):
+        current = (instruction.address == pwndbg.regs.pc)
 
-def resolve(instruction):
-    ops = list(instruction.operands)
+        # The only register we can reason about if it's *not* the current
+        # instruction is $rip.  For example:
+        # lea rdi, [rip - 0x1f6]
 
-    if instruction.mnemonic == 'nop' or not ops:
-        return (None,None)
+        target = 0
 
-    # 'ret', 'syscall'
-    if not ops:
-        return
+        # There doesn't appear to be a good way to read from segmented
+        # addresses within GDB.
+        if op.mem.segment != 0:
+            return None
 
-    # 'jmp rax', 'call 0xdeadbeef'
-    if len(ops) == 1:
-        return get_operand_target(instruction, ops[0])
+        if op.mem.base != 0:
+            base = self.regs(instruction, op.mem.base)
+            if base is None:
+                return None
+            target += base
 
-    # 'mov eax, ebx'  ==> ebx
-    # 'mov [eax], ebx' ==> [eax]
-    # 'mov eax, 0xdeadbeef' ==> 0xdeadbeef
-    if len(ops) == 2:
-        # If there are any memory operands, prefer those
-        for op in filter(is_memory_op, ops):
-            return get_operand_target(instruction, op)
+        if op.mem.disp != 0:
+            target += op.value.mem.disp
 
-        # Otherwise, prefer the 'source' operand
-        return get_operand_target(instruction, ops[1])
+        if op.mem.index != 0:
+            scale = op.mem.scale
+            index = self.regs(instruction, op.mem.index)
+            if index is None:
+                return NOne
 
+            target += (scale * index)
 
-    print("Weird number of operands!!!!!")
-    print(dump(instruction))
+        return target
 
-def get_operand_target(instruction, op):
-    current = (instruction.address == pwndbg.regs.pc)
+    def memory_sz(self, instruction, op):
+        arith   = False
+        segment = op.mem.segment
+        disp    = op.value.mem.disp
+        base    = op.value.mem.base
+        index   = op.value.mem.index
+        scale   = op.value.mem.scale
+        sz      = ''
 
-    # EB/E8/E9 or similar "call $+offset"
-    # Capstone handles the instruction + instruction size.
-    if op.type == X86_OP_IMM:
-        return (op.value.imm, True)
+        if segment != 0:
+            sz += '%s:' % instruction.reg_name(segment)
 
-    # jmp/call REG
-    if op.type == X86_OP_REG:
-        if not current:
-            return (None, False)
+        if base != 0:
+            sz += instruction.reg_name(base)
+            arith = True
 
-        regname = instruction.reg_name(op.value.reg)
-        return (pwndbg.regs[regname], False)
+        if index != 0:
+            if arith:
+                sz += ' + '
 
-    # base + disp + scale * offset
-    assert op.type == X86_OP_MEM, "Invalid operand type %i (%s)" % (op.type, ops[op.type])
+            index = pwndbg.regs[instruction.reg_name(index)]
+            sz += "%s*%#x" % (index, scale)
+            arith = True
 
-    target = 0
+        if op.mem.disp != 0:
+            if arith and op.mem.disp < 0:
+                sz += ' - '
+            elif arith and op.mem.disp >= 0:
+                sz += ' + '
 
-    # Don't resolve registers
-    constant = bool(op.mem.base == 0 and op.mem.index == 0)
-    if not current and not constant:
-        return (None, False)
-
-    if op.mem.segment != 0:
-        return (None, False)
-
-    if op.mem.base != 0:
-        regname = instruction.reg_name(op.mem.base)
-        target += pwndbg.regs[regname]
-
-    if op.mem.disp != 0:
-        target += op.value.mem.disp
-
-    if op.mem.index != 0:
-        scale = op.mem.scale
-        index = pwndbg.regs[instruction.reg_name(op.mem.index)]
-        target += (scale * index)
-
-    # for source operands, resolve
-    if op.access == CS_AC_READ:
-        try:
-            target = pwndbg.memory.u(target, op.size * 8)
-        except:
-            return (None, False)
-
-    return (target, constant)
+        sz += ']'
+        return sz
 
 
-def is_jump_taken(instruction):
-    efl = pwndbg.regs.eflags
+    def register(self, instruction, operand):
+        if operand.value.reg != X86_REG_RIP:
+            return super(DisassemblyAssistant, self).register(instruction, operand)
 
-    cf = efl & (1<<0)
-    pf = efl & (1<<2)
-    af = efl & (1<<4)
-    zf = efl & (1<<6)
-    sf = efl & (1<<7)
-    of = efl & (1<<11)
+        return instruction.address + instruction.size
 
-    return {
-    X86_INS_JO: of,
-    X86_INS_JNO: not of,
-    X86_INS_JS: sf,
-    X86_INS_JNS: not sf,
-    X86_INS_JE: zf,
-    X86_INS_JNE: not zf,
-    X86_INS_JB: cf,
-    X86_INS_JAE: not cf,
-    X86_INS_JBE: cf or zf,
-    X86_INS_JA: not (cf or zf),
-    X86_INS_JL: sf != of,
-    X86_INS_JGE: sf == of,
-    X86_INS_JLE: zf or (sf != of),
-    X86_INS_JP: pf,
-    X86_INS_JNP: not pf,
-    X86_INS_JMP: True,
-    }.get(instruction.id, None)
+    def next(self, instruction):
+        # Only enhance 'ret'
+        if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
+            return super(DisassemblyAssistant, self).next(instruction)
+
+        # Stop disassembling at RET if we won't know where it goes to
+        if instruction.address != pwndbg.regs.pc:
+            return 0
+
+        # Otherwise, resolve the return on the stack
+        pop = 0
+        if instruction.operands:
+            pop = instruction.operands[0].int
+
+        address = (pwndbg.regs.sp) + (pwndbg.arch.ptrsize * pop)
+
+        return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+
+
+
+    def condition(self, instruction):
+        # JMP is unconditional
+        if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
+            return None
+
+        # We can't reason about anything except the current instruction
+        if instruction.address != pwndbg.regs.pc:
+            return False
+
+        efl = pwndbg.regs.eflags
+
+        cf = efl & (1<<0)
+        pf = efl & (1<<2)
+        af = efl & (1<<4)
+        zf = efl & (1<<6)
+        sf = efl & (1<<7)
+        of = efl & (1<<11)
+
+        return {
+            X86_INS_CMOVA:  not (cf or zf),
+            X86_INS_CMOVAE: not cf,
+            X86_INS_CMOVB:  cf,
+            X86_INS_CMOVBE: cf or zf,
+            X86_INS_CMOVE:  zf,
+            X86_INS_CMOVG:  not zf and (sf == of),
+            X86_INS_CMOVGE: sf == of,
+            X86_INS_CMOVL:  sf != of,
+            X86_INS_CMOVLE: zf or (sf != of),
+            X86_INS_CMOVNE: not zf,
+            X86_INS_CMOVNO: not of,
+            X86_INS_CMOVNP: not pf,
+            X86_INS_CMOVNS: not sf,
+            X86_INS_CMOVO:  of,
+            X86_INS_CMOVP:  pf,
+            X86_INS_CMOVS:  sf,
+            X86_INS_JA:  not (cf or zf),
+            X86_INS_JAE: not cf,
+            X86_INS_JB:  cf,
+            X86_INS_JBE: cf or zf,
+            X86_INS_JE:  zf,
+            X86_INS_JG:  not zf and (sf == of),
+            X86_INS_JGE: sf == of,
+            X86_INS_JL:  sf != of,
+            X86_INS_JLE: zf or (sf != of),
+            X86_INS_JNE: not zf,
+            X86_INS_JNO: not of,
+            X86_INS_JNP: not pf,
+            X86_INS_JNS: not sf,
+            X86_INS_JO:  of,
+            X86_INS_JP:  pf,
+            X86_INS_JS:  sf,
+        }.get(instruction.id, None)
+
+
+assistant = DisassemblyAssistant('i386')
+assistant = DisassemblyAssistant('x86-64')

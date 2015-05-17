@@ -17,7 +17,6 @@ UNDERLINE      = "\x1b[4m"
 STACK = YELLOW
 HEAP  = BLUE
 CODE  = RED
-RWX   = RED + BOLD + UNDERLINE
 DATA  = PURPLE
 
 def normal(x): return NORMAL + x

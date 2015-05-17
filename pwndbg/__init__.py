@@ -3,6 +3,14 @@
 import gdb
 import pwndbg.arch
 import pwndbg.arguments
+import pwndbg.disasm
+import pwndbg.disasm.arm
+import pwndbg.disasm.jump
+import pwndbg.disasm.mips
+import pwndbg.disasm.ppc
+import pwndbg.disasm.sparc
+import pwndbg.disasm.x86
+
 import pwndbg.vmmap
 import pwndbg.dt
 import pwndbg.memory
@@ -31,6 +39,7 @@ import pwndbg.commands.rop
 import pwndbg.commands.shell
 import pwndbg.commands.aslr
 import pwndbg.commands.misc
+import pwndbg.commands.next
 
 __all__ = [
 'arch',
@@ -93,9 +102,8 @@ handle SIGALRM print nopass
 handle SIGSEGV stop print nopass
 """.strip() % prompt
 
-for line in pre_commands.splitlines():
-	if line:
-		gdb.execute(line)
+for line in pre_commands.strip().splitlines():
+	gdb.execute(line)
 
 msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))

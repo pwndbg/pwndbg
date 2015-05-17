@@ -4,6 +4,7 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+import collections
 import re
 import sys
 from types import ModuleType
@@ -13,78 +14,120 @@ import pwndbg.arch
 import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
+import pwndbg.proc
 
 
 class RegisterSet(object):
-    def __init__(self, pc, stack, frame, retaddr, flags, gpr, misc, args, retval):
-        self.pc = pc
+    #: Program counter register
+    pc = None
+
+    #: Stack pointer register
+    stack = None
+
+    #: Frame pointer register
+    frame = None
+
+    #: Return address register
+    retaddr = None
+
+    #: Flags register (eflags, cpsr)
+    flags = None
+
+    #: List of native-size generalp-purpose registers
+    gpr = None
+
+    #: List of miscellaneous, valid registers
+    misc = None
+
+    #: Register-based arguments for most common ABI
+    regs = None
+
+    #: Return value register
+    retval = None
+
+    #: Common registers which should be displayed in the register context
+    common = None
+
+    #: All valid registers
+    all = None
+
+    def __init__(self,
+                 pc='pc',
+                 stack='sp',
+                 frame=None,
+                 retaddr=tuple(),
+                 flags=tuple(),
+                 gpr=tuple(),
+                 misc=tuple(),
+                 args=tuple(),
+                 retval=None):
+        self.pc    = pc
         self.stack = stack
         self.frame = frame
         self.retaddr = retaddr
-        self.flags = flags
-        self.gpr   = gpr
-        self.misc  = misc
-        self.args  = args
+        self.flags  = flags
+        self.gpr    = gpr
+        self.misc   = misc
+        self.args   = args
         self.retval = retval
 
-        self.common = set(i for i in gpr + (frame, stack, pc) if i)
-        self.all    = set(i for i in misc or tuple()) | set(flags or tuple()) | self.common
+        # In 'common', we don't want to lose the ordering of:
+        self.common = []
+        for reg in gpr + (frame, stack, pc):
+            if reg and reg not in self.common:
+                self.common.append(reg)
 
-        self.common -= {None}
-        self.all    -= {None}
+        self.all = set(i for i in misc) | set(flags) | set(self.common)
+        self.all -= {None}
 
     def __iter__(self):
         for r in self.all:
             yield r
 
-arm = RegisterSet(  'pc',
-                    'sp',
-                    None,
-                    ('lr',),
-                    ('cpsr',),
-                    ('r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12'),
-                    tuple(),
-                    ('r0','r1','r2','r3'),
-                    'r0')
+arm = RegisterSet(  retaddr = ('lr',),
+                    flags   = ('cpsr',),
+                    gpr     = tuple('r%i' % i for i in range(13)),
+                    args    = ('r0','r1','r2','r3'),
+                    retval  = 'r0')
 
-aarch64 = RegisterSet('pc',
-                    'sp',
-                    None,
-                    ('lr',),
-                    ('cpsr',),
-                    ('x0','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11','x12'),
-                    tuple(),
-                    ('x0','x1','x2','x3'),
-                    'x0')
+aarch64 = RegisterSet(  retaddr = ('lr',),
+                        flags   = ('cpsr',),
+                        gpr     = tuple('x%i' % i for i in range(32)),
+                        misc    = tuple('w%i' % i for i in range(32)),
+                        args    = ('x0','x1','x2','x3'),
+                        retval  = 'x0')
 
 
-amd64 = RegisterSet('rip',
-                    'rsp',
-                    'rbp',
-                    tuple(),
-                    ('eflags',),
-                    ('rax','rbx','rcx','rdx','rdi','rsi',
-                     'r8', 'r9', 'r10','r11','r12',
-                     'r13','r14','r15'),
-                    ('cs','ss','ds','es','fs','gs'),
-                    ('rdi','rsi','rdx','rcx','r8','r9'),
-                    'rax')
+amd64 = RegisterSet(pc      = 'rip',
+                    stack   = 'rsp',
+                    frame   = 'rbp',
+                    flags   = ('eflags',),
+                    gpr     = ('rax','rbx','rcx','rdx','rdi','rsi',
+                               'r8', 'r9', 'r10','r11','r12',
+                               'r13','r14','r15'),
+                    misc    =  ('cs','ss','ds','es','fs','gs',
+                                'ax','ah','al',
+                                'bx','bh','bl',
+                                'cx','ch','cl',
+                                'dx','dh','dl',
+                                'dil','sil','spl','bpl',
+                                'di','si','bp','sp','ip'),
+                    args    =  ('rdi','rsi','rdx','rcx','r8','r9'),
+                    retval  = 'rax')
 
-i386 = RegisterSet('eip',
-                    'esp',
-                    'ebp',
-                    tuple(),
-                    ('eflags',),
-                    ('eax','ebx','ecx','edx','edi','esi'),
-                    ('cs','ss','ds','es','fs','gs'),
-                    ('*((void**)$sp+0)',
-                     '*((void**)$sp+1)',
-                     '*((void**)$sp+2)',
-                     '*((void**)$sp+3)',
-                     '*((void**)$sp+4)',
-                     '*((void**)$sp+5)',
-                     '*((void**)$sp+6)',),
-                    'eax')
+i386 = RegisterSet( pc      = 'eip',
+                    stack   = 'esp',
+                    frame   = 'ebp',
+                    flags   = ('eflags',),
+                    gpr     = ('eax','ebx','ecx','edx','edi','esi'),
+                    misc    =  ('cs','ss','ds','es','fs','gs',
+                                'ax','ah','al',
+                                'bx','bh','bl',
+                                'cx','ch','cl',
+                                'dx','dh','dl',
+                                'dil','sil','spl','bpl',
+                                'di','si','bp','sp','ip'),
+                    retval  = 'eax')
 
 
 # http://math-atlas.sourceforge.net/devel/assembly/elfspec_ppc.pdf
@@ -97,15 +140,12 @@ i386 = RegisterSet('eip',
 # r13     Small data area pointer register (points to TLS)
 # r14-r30 Registers used for local variables
 # r31     Used for local variables or "environment pointers"
-powerpc = RegisterSet('pc',
-                      'sp',
-                      None,
-                      ('lr','r0'),
-                      ('msr','xer'),
-                      tuple('r%i' % i for i in range(3,32)),
-                      ('cr','lr','r2'),
-                      tuple(),
-                      'r3')
+powerpc = RegisterSet(  retaddr = ('lr','r0'),
+                        flags   = ('msr','xer'),
+                        gpr     = tuple('r%i' % i for i in range(3,32)),
+                        misc    = ('cr','lr','r2'),
+                        args    = tuple('r%i' for i in range(3,11)),
+                        retval  = 'r3')
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt
 # http://people.cs.clemson.edu/~mark/subroutines/sparc.html
@@ -137,15 +177,13 @@ sparc_gp = tuple(['g%i' % i for i in range(1,8)]
                 +['o%i' % i for i in range(0,6)]
                 +['l%i' % i for i in range(0,8)]
                 +['i%i' % i for i in range(0,6)])
-sparc = RegisterSet('pc',
-                    'o6',
-                    'i6',
-                    ('o7',),
-                    ('psr',),
-                    sparc_gp,
-                    tuple(),
-                    ('i0','i1','i2','i3','i4','i5'),
-                    'o0')
+sparc = RegisterSet(stack   = 'o6',
+                    frame   = 'i6',
+                    retaddr = ('o7',),
+                    flags   = ('psr',),
+                    gpr     = sparc_gp,
+                    args    = ('i0','i1','i2','i3','i4','i5'),
+                    retval  = 'o0')
 
 
 # http://logos.cs.uic.edu/366/notes/mips%20quick%20tutorial.htm
@@ -161,17 +199,13 @@ sparc = RegisterSet('pc',
 # r29       => stack pointer
 # r30       => frame pointer
 # r31       => return address
-mips = RegisterSet( 'pc',
-                    'sp',
-                    'fp',
-                    ('ra',),
-                    tuple(),
-                    ('v0','v1','a0','a1','a2','a3') \
-                    + tuple('t%i' % i for i in range(10)) \
-                    + tuple('s%i' % i for i in range(9)),
-                    tuple(),
-                    ('a0','a1','a2','a3'),
-                    'v0')
+mips = RegisterSet( frame   = 'fp',
+                    retaddr = ('ra',),
+                    gpr     = ('v0','v1','a0','a1','a2','a3') \
+                              + tuple('t%i' % i for i in range(10)) \
+                              + tuple('s%i' % i for i in range(9)),
+                    args    = ('a0','a1','a2','a3'),
+                    retval  = 'v0')
 
 arch_to_regs = {
     'i386': i386,
@@ -188,19 +222,24 @@ arch_to_regs = {
 class module(ModuleType):
     last = {}
 
+    @pwndbg.memoize.reset_on_stop
     def __getattr__(self, attr):
         try:
-            value = gdb.parse_and_eval('$' + attr.lstrip('$'))
-            if 'eflags' not in attr:
-                value = value.cast(pwndbg.typeinfo.ptrdiff)
-            else:
-                # Seriously, gdb? Only accepts uint32.
+            # Seriously, gdb? Only accepts uint32.
+            if 'eflags' in attr:
+                value = gdb.parse_and_eval('$' + attr.lstrip('$'))
                 value = value.cast(pwndbg.typeinfo.uint32)
+            else:
+                value = gdb.newest_frame().read_register(attr)
+                value = value.cast(pwndbg.typeinfo.ptrdiff)
+
             value = int(value)
             return value & pwndbg.arch.ptrmask
-        except gdb.error:
+        except ValueError:
+            # Unknown register
             return None
 
+    @pwndbg.memoize.reset_on_stop
     def __getitem__(self, item):
         if isinstance(item, int):
             return arch_to_regs[pwndbg.arch.current][item]
@@ -233,6 +272,10 @@ class module(ModuleType):
     @property
     def gpr(self):
         return arch_to_regs[pwndbg.arch.current].gpr
+
+    @property
+    def common(self):
+        return arch_to_regs[pwndbg.arch.current].common
 
     @property
     def frame(self):
@@ -302,4 +345,4 @@ sys.modules[__name__] = module(__name__, '')
 @pwndbg.events.cont
 def update_last():
     M = sys.modules[__name__]
-    M.last = {k:M[k] for k in M}
+    M.last = {k:M[k] for k in M.common}

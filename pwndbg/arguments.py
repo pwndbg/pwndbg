@@ -45,7 +45,7 @@ ida_replacements = {
 }
 
 
-def arguments(instruction):
+def get(instruction):
     """
     Returns an array containing the arguments to the current function,
     if $pc is a 'call' or 'bl' type instruction.
@@ -55,13 +55,19 @@ def arguments(instruction):
     if instruction.address != pwndbg.regs.pc:
         return []
 
-    if not instruction.target:
-        return []
-
     if CS_GRP_CALL not in instruction.groups:
         return []
 
-    sym = pwndbg.symbol.get(instruction.target)
+    # Not sure of any OS which allows multiple operands on
+    # a call instruction.
+    assert len(instruction.operands) == 1
+
+    target = instruction.operands[0].int
+
+    if not target:
+        return []
+
+    sym = pwndbg.symbol.get(target)
     if not sym:
         return []
 
@@ -75,8 +81,8 @@ def arguments(instruction):
     args   = []
 
     # Try to grab the data out of IDA
-    if not func and instruction.target:
-        typename = pwndbg.ida.GetType(instruction.target)
+    if not func and target:
+        typename = pwndbg.ida.GetType(target)
 
         if typename:
             typename += ';'
