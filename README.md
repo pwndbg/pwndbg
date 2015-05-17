@@ -33,7 +33,7 @@ $ cd gdb-7.9
 $ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.7-0ubuntu3.debian.tar.gz
 $ tar xf gdb_7.7-0ubuntu3.debian.tar.gz
 $ DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -j -us -uc -nc
-$ sudo dpkg -i gdb-multiarch*.deb
+$ sudo dpkg -i gdb-*.deb
 ```
 
 #### Capstone 4.0
