@@ -36,7 +36,7 @@ def break_next_branch(address=None):
     ins = next_branch(address)
 
     if ins:
-        gdb.Breakpoint("*%#x" % ins.address, temporary=True)
+        gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
         gdb.execute('continue')
         return ins
 

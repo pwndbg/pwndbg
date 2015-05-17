@@ -4,6 +4,8 @@ import capstone
 import collections
 from capstone import *
 
+debug = False
+
 groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}
 ops    = {v:k for k,v in globals().items() if k.startswith('CS_OP_')}
 access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
@@ -40,7 +42,9 @@ class DisassemblyAssistant(object):
         enhancer.enhance_symbol(instruction)
         enhancer.enhance_conditional(instruction)
         enhancer.enhance_next(instruction)
-        print(enhancer.dump(instruction))
+
+        if debug:
+            print(enhancer.dump(instruction))
 
     def enhance_conditional(self, instruction):
         """
