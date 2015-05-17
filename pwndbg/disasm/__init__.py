@@ -104,6 +104,9 @@ def get(address, instructions=1):
 def near(address, instructions=1):
     current = one(address)
 
+    if not current:
+        return []
+
     # Try to go backward by seeing which instructions we've returned
     # before, which were followed by this one.
     needle = address

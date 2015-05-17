@@ -13,8 +13,8 @@ _errno.errorcode[0] = 'OK'
 @_pwndbg.commands.ParsedCommand
 def errno(err=None):
     if err is None:
-        err = _pwndbg.regs.retval
-        err = _pwndbg.regs[err]
+        # Dont ask.
+        err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
 
     err = abs(int(err))
 
