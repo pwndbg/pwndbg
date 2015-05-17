@@ -39,3 +39,16 @@ def nextc(*args):
     """Breaks at the next call instruction"""
     nextcall(*args)
 
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def stepover(*args):
+    """Sets a breakpoint on the instruction after this one"""
+    pwndbg.next.break_on_next(*args)
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def so(*args):
+    stepover(*args)
+

@@ -94,7 +94,7 @@ class DisassemblyAssistant(object):
         if next_addr is None:
             next_addr = instruction.address + instruction.size
 
-        instruction.next = next_addr
+        instruction.next = next_addr & pwndbg.arch.ptrmask
 
     def next(self, instruction):
         """

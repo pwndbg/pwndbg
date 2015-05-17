@@ -14,7 +14,7 @@ import pwndbg.disasm.arch
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def memory_sz(self, instruction, operand):
+    def memory_sz(self, instruction, op):
         segment = ''
         parts   = []
 
@@ -29,18 +29,20 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             scale = op.mem.scale
             parts.append("%s*%#x" % (index, scale))
 
-        return "[%s]" % (segment, ', '.join(parts))
+        return "[%s]" % (', '.join(parts))
 
     def immediate_sz(self, instruction, operand):
-        imm = self.immediate(instruction, operand)
-        imm = self.arch.signed(imm)
+        return '#' + super(DisassemblyAssistant, self).immediate_sz(instruction, operand)
 
-        if abs(imm) < 0x10:
-            return '#%i' % imm
+    def condition(self, instruction):
 
-        return '#%#x' % imm
+        # We can't reason about anything except the current instruction
+        if instruction.cc == ARM_CC_AL:
+            return None
 
-    def taken(self, instruction):
+        if instruction.address != pwndbg.regs.pc:
+            return False
+
         cpsr = pwndbg.regs.cpsr
 
         N = cpsr & (1<<31)
@@ -63,7 +65,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LT: N != V,
             ARM_CC_GT: not Z and (N==V),
             ARM_CC_LE: Z or (N != V),
-            # ARM_CC_AL: 1,
         }.get(instruction.id, None)
 
 assistant = DisassemblyAssistant('arm')

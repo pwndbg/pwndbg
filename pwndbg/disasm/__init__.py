@@ -118,6 +118,10 @@ def near(address, instructions=1):
     # Now find all of the instructions moving forward.
     insn  = current
     while insn and len(insns) < 1+(2*instructions):
+        # In order to avoid annoying cycles where the current instruction
+        # is a branch, which evaluates to true, and jumps back a short
+        # number of instructions.
+
         insn = one(insn.next)
         if insn:
             insns.append(insn)

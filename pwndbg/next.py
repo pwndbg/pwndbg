@@ -37,7 +37,7 @@ def break_next_branch(address=None):
 
     if ins:
         gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
-        gdb.execute('continue')
+        gdb.execute('continue', from_tty=False, to_string=True)
         return ins
 
 def break_next_call(address=None):
@@ -49,4 +49,12 @@ def break_next_call(address=None):
 
         if capstone.CS_GRP_CALL in ins.groups:
             return ins
+
+def break_on_next(address=None):
+    address = address or pwndbg.regs.pc
+    ins = pwndbg.disasm.one(address)
+
+    gdb.Breakpoint("*%#x" % (ins.address + ins.size), temporary=True)
+    gdb.execute('continue', from_tty=False, to_string=True)
+
 
