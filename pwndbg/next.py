@@ -8,11 +8,45 @@ import gdb
 import pwndbg.disasm
 import pwndbg.regs
 
+import capstone
 
-def next_branch(callback, address=None):
+jumps = set((
+    capstone.CS_GRP_CALL,
+    capstone.CS_GRP_JUMP,
+    capstone.CS_GRP_RET,
+    capstone.CS_GRP_IRET
+))
+
+def next_branch(address=None):
     if address is None:
-        address = pwndbg.regs.pc
+        ins = pwndbg.disasm.one(pwndbg.regs.pc)
+        if not ins:
+            return None
+        address = ins.next
 
-    # Disassemble forward until we find *any* branch instruction
-    # Set a temporary, internal breakpoint on it so the user is
-    # not bothered.
+    ins = pwndbg.disasm.one(address)
+    while ins:
+        if set(ins.groups) & jumps:
+            return ins
+        ins = pwndbg.disasm.one(ins.next)
+
+    return None
+
+def break_next_branch(address=None):
+    ins = next_branch(address)
+
+    if ins:
+        gdb.Breakpoint("*%#x" % ins.address, temporary=True)
+        gdb.execute('continue')
+        return ins
+
+def break_next_call(address=None):
+    while True:
+        ins = break_next_branch(address)
+
+        if not ins:
+            break
+
+        if capstone.CS_GRP_CALL in ins.groups:
+            return ins
+

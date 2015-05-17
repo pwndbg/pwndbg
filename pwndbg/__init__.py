@@ -39,6 +39,7 @@ import pwndbg.commands.rop
 import pwndbg.commands.shell
 import pwndbg.commands.aslr
 import pwndbg.commands.misc
+import pwndbg.commands.next
 
 __all__ = [
 'arch',
