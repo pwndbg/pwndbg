@@ -1,3 +1,4 @@
+import gdb
 import errno as _errno
 import struct
 import pwndbg as _pwndbg
