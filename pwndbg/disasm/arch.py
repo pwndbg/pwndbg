@@ -1,4 +1,5 @@
-
+import capstone
+from capstone import *
 
 groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}
 ops    = {v:k for k,v in globals().items() if k.startswith('CS_OP_')}
@@ -8,7 +9,11 @@ for value1, name1 in access.items():
     for value2, name2 in access.items():
         access.setdefault(value1 | value2, '%s | %s' % (name1, name2))
 
+
 class DisassemblyAssistant(object):
+    # Registry of all instances, {architecture: instance}
+    assistants = {}
+
     def __init__(self):
         self.op_handlers = {
             CS_OP_IMM: self.immediate,
@@ -21,6 +26,10 @@ class DisassemblyAssistant(object):
             CS_OP_REG: self.register_sz,
             CS_OP_MEM: self.memory_sz
         }
+
+    @classmethod
+    def get(cls, architecture):
+        return cls.assistants(architecture)
 
     def operands(self, instruction):
         current = (instruction.address == pwndbg.regs.pc)
@@ -85,5 +94,3 @@ class DisassemblyAssistant(object):
                 rv.append('       %s   = %#x' % (name, value))
 
         return '\n'.join(rv)
-
-assistant = DisassemblyAssistant()

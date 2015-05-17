@@ -9,12 +9,6 @@ import collections
 import gdb
 import pwndbg.arch
 import pwndbg.disasm.arch
-import pwndbg.disasm.arm
-import pwndbg.disasm.jump
-import pwndbg.disasm.mips
-import pwndbg.disasm.ppc
-import pwndbg.disasm.sparc
-import pwndbg.disasm.x86
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.symbol
@@ -55,6 +49,8 @@ VariableInstructionSizeMax = {
 }
 
 backward_cache = {}
+
+assistancts = {}
 
 def get_assistant():
     return {

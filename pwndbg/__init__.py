@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import gdb
-import pwndbg.disasm
 import pwndbg.arch
 import pwndbg.arguments
+import pwndbg.disasm
+import pwndbg.disasm.arm
+import pwndbg.disasm.jump
+import pwndbg.disasm.mips
+import pwndbg.disasm.ppc
+import pwndbg.disasm.sparc
+import pwndbg.disasm.x86
+
 import pwndbg.vmmap
 import pwndbg.dt
 import pwndbg.memory

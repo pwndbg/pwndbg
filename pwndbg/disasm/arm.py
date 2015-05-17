@@ -12,8 +12,6 @@ from capstone.arm import *
 
 import pwndbg.disasm.arch
 
-import pdb
-pdb.set_trace()
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def memory_sz(self, instruction, operand):
