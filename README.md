@@ -61,13 +61,13 @@ For most standard function calls, it knows how many arguments there are and can 
 
 Here's a few screenshots of some of the cool things pwndbg does.
 
-![d](caps/a.png?raw=1)
+![d](caps/d.png?raw=1)
 
-![e](caps/a.png?raw=1)
+![e](caps/e.png?raw=1)
 
-![f](caps/a.png?raw=1)
+![f](caps/f.png?raw=1)
 
-![g](caps/a.png?raw=1)
+![g](caps/g.png?raw=1)
 
 Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`.
 
