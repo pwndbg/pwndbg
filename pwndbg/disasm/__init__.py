@@ -48,7 +48,9 @@ VariableInstructionSizeMax = {
     'x86-64': 16,
 }
 
+smart_backward_cache = collections.defaultdict(lambda: 0)
 backward_cache = collections.defaultdict(lambda: 0)
+
 
 def get_disassembler(pc):
     arch = pwndbg.arch.current
@@ -74,7 +76,8 @@ def one(address=None):
     if address is None:
         address = pwndbg.regs.pc
     for insn in get(address, 1):
-        backward_cache[insn.next] = insn.address
+        smart_backward_cache[insn.next] = insn.address
+        backward_cache[insn.address + insn.size] = insn.address
         return insn
 
 def fix(i):
@@ -119,14 +122,22 @@ def near(address, instructions=1):
     insns.append(current)
 
     # Now find all of the instructions moving forward.
-    insn  = current
-    while insn and len(insns) < 1+(2*instructions):
-        # In order to avoid annoying cycles where the current instruction
-        # is a branch, which evaluates to true, and jumps back a short
-        # number of instructions.
+    next = current.next
+    while len(insns) < 1+(2*instructions):
+        insn = one(next)
+        if not insn:
+            break
+        insns.append(insn)
+        next = insn.next
 
-        insn = one(insn.next)
-        if insn:
-            insns.append(insn)
+        # On a short backward jump, we may get an annoying cycle in the
+        # disassembly listing, because we're reading the jump target and
+        # have evaluated the destination.
+        #
+        # We don't want this loop to show up in the future, so force it
+        # to fall-through, as long as the jump destination is a small-enough
+        # backward jump that it also shows up in the disassembly.
+        if insn.address == current.address and any(i.address == next for i in insns):
+            next = insn.address + insn.size
 
     return insns

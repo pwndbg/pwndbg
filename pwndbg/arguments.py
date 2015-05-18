@@ -100,8 +100,6 @@ def get(instruction):
     else:
         args = [pwndbg.functions.Argument('int',0,argname(i)) for i in range(4)]
 
-    print(repr(args))
-
     for i,arg in enumerate(args):
         result.append((arg, argument(i)))
 
