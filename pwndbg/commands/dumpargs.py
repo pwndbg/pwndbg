@@ -16,4 +16,4 @@ def dumpargs(*a):
         pretty = pwndbg.chain.format(value, code=code)
         result.append('%8s%-10s %s' % ('',arg.name+':', pretty))
 
-    print '\n'.join(result)
+    print('\n'.join(result))
