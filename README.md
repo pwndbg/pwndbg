@@ -31,8 +31,8 @@ cd capstone
 git checkout -t origin/next
 sudo ./make.sh install
 cd bindings/python
-python2 setup.py install # Ubuntu 12.04, GDB uses Python2
-python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
+sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
+sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 ```
 #### pycparser
 
