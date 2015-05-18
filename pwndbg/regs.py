@@ -218,25 +218,40 @@ arch_to_regs = {
     'powerpc': powerpc,
 }
 
+@pwndbg.proc.OnlyWhenRunning
+def gdb77_get_register(name):
+    return gdb.parse_and_eval('$' + name)
+
+@pwndbg.proc.OnlyWhenRunning
+def gdb79_get_register(name):
+    return gdb.newest_frame().read_register(name)
+
+
+try:
+    gdb.Frame.read_register
+    get_register = gdb79_get_register
+except AttributeError:
+    get_register = gdb77_get_register
+
 
 class module(ModuleType):
     last = {}
 
     @pwndbg.memoize.reset_on_stop
     def __getattr__(self, attr):
+        attr = attr.lstrip('$')
         try:
             # Seriously, gdb? Only accepts uint32.
             if 'eflags' in attr:
-                value = gdb.parse_and_eval('$' + attr.lstrip('$'))
+                value = gdb77_get_register(attr)
                 value = value.cast(pwndbg.typeinfo.uint32)
             else:
-                value = gdb.newest_frame().read_register(attr)
+                value = get_register(attr)
                 value = value.cast(pwndbg.typeinfo.ptrdiff)
 
             value = int(value)
             return value & pwndbg.arch.ptrmask
-        except ValueError:
-            # Unknown register
+        except (ValueError, gdb.error):
             return None
 
     @pwndbg.memoize.reset_on_stop
