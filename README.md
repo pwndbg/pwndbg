@@ -21,33 +21,24 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ### Prerequisites
 
-#### GDB 7.9
-
-As of changes made May 17 you must have GDB 7.9 or newer.  Ubuntu Vivid users already have this.  Otherwise, you'll have to build it from source.  This works for Ubuntu 14.04:
-
-```sh
-$ sudo apt-get build-dep gdb
-$ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.9.orig.tar.gz
-$ tar xf gdb_7.9.orig.tar.gz
-$ cd gdb-7.9
-$ wget http://archive.ubuntu.com/ubuntu/pool/main/g/gdb/gdb_7.7-0ubuntu3.debian.tar.gz
-$ tar xf gdb_7.7-0ubuntu3.debian.tar.gz
-$ DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -j -us -uc -nc
-$ sudo dpkg -i gdb-*.deb
-```
-
 #### Capstone 4.0
 
 Currently this is only available via a source build.
 
-1. Clone the repo: `git clone https://github.com/aquynh/capstone`
-2. Select the `next` branch: `cd capstone && git checkout -t origin/next`
-3. Build and install libcapstone: `sudo ./make.sh install`
-4. Build and install Python bindings: `cd bindings/python && python setup.py install`
-
+```sh
+git clone https://github.com/aquynh/capstone
+cd capstone
+git checkout -t origin/next
+sudo ./make.sh install
+cd bindings/python
+python2 setup.py install # Ubuntu 12.04, GDB uses Python2
+python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
+```
 #### pycparser
 
-`pip install pycparser`
+```sh
+pip install pycparser
+```
 
 ## Features
 
