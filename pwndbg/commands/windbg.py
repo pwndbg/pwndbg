@@ -258,3 +258,8 @@ def u(where=None, n=5):
         where = pwndbg.regs.pc
     cmd = 'x/%ii %#x' % (int(n), int(where))
     gdb.execute(cmd)
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def k():
+    gdb.execute('bt')
