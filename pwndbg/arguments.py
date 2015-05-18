@@ -116,7 +116,7 @@ REGS = {
 }
 
 def argname(n):
-    regs = REGS[pwndbg.arch.current]
+    regs = REGS.get(pwndbg.arch.current, [])
 
     if n < len(regs):
         return regs[n]
@@ -128,7 +128,7 @@ def argument(n):
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
     """
-    regs = REGS[pwndbg.arch.current]
+    regs = REGS.get(pwndbg.arch.current, [])
 
     if n < len(regs):
         return getattr(pwndbg.regs, regs[n])
