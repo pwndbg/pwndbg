@@ -16,8 +16,10 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ## Installation
 
-1. Clone the repo: `git clone https://github.com/zachriggle/pwndbg`
-2. Add to `~/.gdbinit`: `echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit`
+```sh
+git clone https://github.com/zachriggle/pwndbg
+echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit
+```
 
 ### Prerequisites
 
