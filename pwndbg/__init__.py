@@ -99,8 +99,8 @@ set print pretty on
 set width 0
 set print elements 15
 set input-radix 16
-handle SIGALRM print nopass
-handle SIGSEGV stop print nopass
+handle SIGALRM nostop print nopass
+handle SIGSEGV stop   print nopass
 """.strip() % prompt
 
 for line in pre_commands.strip().splitlines():
