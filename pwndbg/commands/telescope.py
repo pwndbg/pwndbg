@@ -57,6 +57,9 @@ def telescope(address=None, count=8, to_string=False):
     # Print everything out
     result = []
     for i,addr in enumerate(range(start, stop, step)):
+        if not pwndbg.memory.peek(addr):
+            result.append("<Could not read memory at %#x>" % addr)
+            break
         line = ' '.join(("%02x:%04x|" % (i, addr-start),
                          regs[addr].ljust(longest_regs),
                          pwndbg.chain.format(addr)))
