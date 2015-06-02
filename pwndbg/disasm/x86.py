@@ -54,7 +54,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             scale = op.mem.scale
             index = self.regs(instruction, op.mem.index)
             if index is None:
-                return NOne
+                return None
 
             target += (scale * index)
 
