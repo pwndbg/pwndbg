@@ -39,7 +39,7 @@ sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 #### pycparser
 
 ```sh
-pip install pycparser
+pip install pycparser # Use pip3 for Python3
 ```
 
 ## Features
