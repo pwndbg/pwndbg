@@ -92,8 +92,8 @@ arm = RegisterSet(  retaddr = ('lr',),
 
 aarch64 = RegisterSet(  retaddr = ('lr',),
                         flags   = ('cpsr',),
-                        gpr     = tuple('x%i' % i for i in range(32)),
-                        misc    = tuple('w%i' % i for i in range(32)),
+                        gpr     = tuple('x%i' % i for i in range(29)),
+                        misc    = tuple('w%i' % i for i in range(29)),
                         args    = ('x0','x1','x2','x3'),
                         retval  = 'x0')
 
