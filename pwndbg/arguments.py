@@ -52,6 +52,8 @@ def get(instruction):
 
     Otherwise, returns None.
     """
+    n_args_default = 4
+
     if instruction.address != pwndbg.regs.pc:
         return []
 
@@ -67,18 +69,29 @@ def get(instruction):
     if not target:
         return []
 
-    sym = pwndbg.symbol.get(target)
-    if not sym:
+    name = pwndbg.symbol.get(target)
+    if not name:
         return []
 
-    sym  = sym.strip().lstrip('_')    # _malloc
-    sym  = sym.replace('isoc99_', '') # __isoc99_sscanf
-    sym  = sym.replace('@plt', '')    # getpwiod@plt
-    sym  = sym.replace('_chk', '')    # __printf_chk
-    func = pwndbg.functions.functions.get(sym, None)
+    sym   = gdb.lookup_symbol(name)
+    name  = name.strip().lstrip('_')    # _malloc
+    name  = name.replace('isoc99_', '') # __isoc99_sscanf
+    name  = name.replace('@plt', '')    # getpwiod@plt
+    name  = name.replace('_chk', '')    # __printf_chk
+    func = pwndbg.functions.functions.get(name, None)
 
     result = []
     args   = []
+
+    # Try to extract the data from GDB.
+    # Note that this is currently broken, pending acceptance of
+    # my patch: https://sourceware.org/ml/gdb-patches/2015-06/msg00268.html
+    if sym and sym[0]:
+        try:
+            n_args_default = len(sym[0].type.fields())
+        except TypeError:
+            pass
+
 
     # Try to grab the data out of IDA
     if not func and target:
@@ -98,7 +111,7 @@ def get(instruction):
     if func:
         args = func.args
     else:
-        args = [pwndbg.functions.Argument('int',0,argname(i)) for i in range(4)]
+        args = [pwndbg.functions.Argument('int',0,argname(i)) for i in range(n_args_default)]
 
     for i,arg in enumerate(args):
         result.append((arg, argument(i)))
