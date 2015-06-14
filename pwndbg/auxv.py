@@ -203,14 +203,14 @@ def walk_stack2(offset=0):
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
     #
     # The highest value for the vector is AT_SYSINFO_EHDR, 33.
-    while int((p-2).dereference()) < 37:
+    while (p-2).dereference() < 37:
         p -= 2
 
     # Scan them into our structure
     auxv = AUXV()
     while True:
-        const = int((p+0).dereference())
-        value = int((p+1).dereference())
+        const = int((p+0).dereference()) & pwndbg.arch.ptrmask
+        value = int((p+1).dereference()) & pwndbg.arch.ptrmask
 
         if const == AT_NULL:
             break
