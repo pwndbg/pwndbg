@@ -83,6 +83,14 @@ def add_main_exe_to_symbols():
 
     exe  = pwndbg.elf.exe()
     addr = exe.address
-    path = pwndbg.vmmap.find(addr).objfile
-    if addr and path:
+
+    if not addr:
+        return
+
+    mmap = pwndbg.vmmap.find(addr)
+    if not mmap:
+        return
+
+    path = mmap.objfile
+    if path:
         gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)
