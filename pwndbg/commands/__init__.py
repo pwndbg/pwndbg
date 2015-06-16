@@ -14,6 +14,7 @@ import pwndbg.stdio
 import pwndbg.symbol
 import pwndbg.ui
 
+import sys
 
 
 debug = True
@@ -50,12 +51,18 @@ class _Command(gdb.Command):
 
 class _ParsedCommand(_Command):
     def split_args(self, argument):
+        sys.stdout.write(repr(argument) + '\n')
         argv = super(_ParsedCommand,self).split_args(argument)
+        sys.stdout.write(repr(argv) + '\n')
         return list(filter(lambda x: x is not None, map(fix, argv)))
 
 def fix(arg, sloppy=False):
     try:
-        return gdb.parse_and_eval(arg)
+        parsed = gdb.parse_and_eval(arg)
+
+        sys.stdout.write(str(parsed) + '\n')
+
+        return parsed
     except Exception:
         pass
 

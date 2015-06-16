@@ -196,7 +196,7 @@ class DisassemblyAssistant(object):
         return None
 
     def memory_sz(self, instruction, operand):
-        raise NotImplementedError
+        return None # raise NotImplementedError
 
     def dump(self, instruction):
         ins = instruction
