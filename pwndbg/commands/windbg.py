@@ -4,6 +4,7 @@
 Compatibility functionality for Windbg users.
 """
 import codecs
+import sys
 import math
 
 import gdb
@@ -29,7 +30,7 @@ def db(address, count=64):
     Starting at the specified address, dump N bytes
     (default 64).
     """
-    return dX(1, int(address), int(count))
+    return dX(1, (address), (count))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -38,7 +39,7 @@ def dw(address, count=32):
     Starting at the specified address, dump N words
     (default 32).
     """
-    return dX(2, int(address), int(count))
+    return dX(2, (address), (count))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -47,7 +48,7 @@ def dd(address, count=16):
     Starting at the specified address, dump N dwords
     (default 16).
     """
-    return dX(4, int(address), int(count))
+    return dX(4, (address), (count))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -56,7 +57,7 @@ def dq(address, count=8):
     Starting at the specified address, dump N qwords
     (default 8).
     """
-    return dX(8, int(address), int(count))
+    return dX(8, (address), (count))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -72,6 +73,7 @@ def dX(size, address, count, to_string=False):
     for i in range(count):
         try:
             gval = pwndbg.memory.poi(type, address + i * size)
+            # print(str(gval))
             values.append(int(gval))
         except gdb.MemoryError:
             break
@@ -80,6 +82,8 @@ def dX(size, address, count, to_string=False):
     row_sz = int(16 / size)
     rows   = [values[i*row_sz:(i+1)*row_sz] for i in range(n_rows)]
     lines  = []
+
+    # sys.stdout.write(repr(rows) + '\n')
 
     for i, row in enumerate(rows):
         if not row:
