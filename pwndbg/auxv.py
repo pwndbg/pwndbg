@@ -1,3 +1,4 @@
+import os
 import sys
 
 import gdb
@@ -239,4 +240,5 @@ def get_execfn():
     while pwndbg.memory.byte(addr-1) != 0:
         addr -= 1
 
-    return pwndbg.strings.get(addr, 1024)
+    v = pwndbg.strings.get(addr, 1024)
+    return os.path.abspath(v)
