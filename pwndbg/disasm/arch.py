@@ -158,7 +158,7 @@ class DisassemblyAssistant(object):
             op.symbol = None
 
             op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
-            op.str = self.op_names[op.type](instruction, op)
+            op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if op.int:
                 op.symbol = pwndbg.symbol.get(op.int)
