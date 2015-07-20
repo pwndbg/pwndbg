@@ -1,2 +1,3 @@
 capstone>=4.0
 pycparser
+psutil>=3.1.0

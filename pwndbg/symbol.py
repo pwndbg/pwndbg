@@ -82,6 +82,10 @@ def add_main_exe_to_symbols():
         return
 
     exe  = pwndbg.elf.exe()
+
+    if not exe:
+        return
+
     addr = exe.address
 
     if not addr:
