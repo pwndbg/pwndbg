@@ -81,7 +81,12 @@ class AUXV(dict):
         name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ['AT_EXECFN', 'AT_PLATFORM']:
-            value = gdb.Value(value).cast(pwndbg.typeinfo.pchar).string()
+            try:
+                value = gdb.Value(value)
+                value = value.cast(pwndbg.typeinfo.pchar)
+                value = value.string()
+            except:
+                value = 'couldnt read AUXV!'
 
         self[name] = value
     def __getattr__(self, attr):
