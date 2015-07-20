@@ -46,7 +46,12 @@ def telescope(address=None, count=8, to_string=False):
     # Find all registers which show up in the trace
     regs = {}
     for i in range(start, stop, step):
-        regs[i] = ' '.join(reg_values[i])
+        values = list(reg_values[i])
+
+        for width in range(1, pwndbg.arch.ptrsize):
+            values.extend('%s-%i' % (r,width) for r in reg_values[i+width])
+
+        regs[i] = ' '.join(values)
 
     # Find the longest set of register information
     if regs:
