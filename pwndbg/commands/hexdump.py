@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import pwndbg.arch
 import pwndbg.commands
 import pwndbg.hexdump
 import pwndbg.memory
@@ -15,7 +16,8 @@ def hexdump(address=None, count=64):
 
     Note that repeating rows are collapsed.
     """
-    address = int(address or pwndbg.regs.sp)
+    address = int(address if address is not None else pwndbg.regs.sp)
+    address &= pwndbg.arch.ptrmask
     count   = int(count)
 
     # if None not in (address, count):
