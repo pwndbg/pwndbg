@@ -41,6 +41,7 @@ import pwndbg.commands.aslr
 import pwndbg.commands.misc
 import pwndbg.commands.next
 import pwndbg.commands.dumpargs
+import pwndbg.commands.cpsr
 
 __all__ = [
 'arch',
