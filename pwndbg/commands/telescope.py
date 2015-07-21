@@ -6,6 +6,7 @@ Prints out pointer chains starting at some address in memory.
 Generally used to print out the stack or register values.
 """
 import collections
+import pwndbg.arch
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.memory
@@ -30,7 +31,7 @@ def telescope(address=None, count=8, to_string=False):
         count   = address
         address = pwndbg.regs.sp
 
-    address = int(address)
+    address = int(address) & pwndbg.arch.ptrmask
     count   = int(count)
 
     reg_values = collections.defaultdict(lambda: [])

@@ -331,7 +331,7 @@ def check_aslr():
     try:
         data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
     except Exception as e:
-        print(e)
+        print("Could not check ASLR: Couldn't get randomize_va_space")
         pass
 
     # Systemwide ASLR is disabled
