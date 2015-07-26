@@ -52,3 +52,23 @@ def stepover(*args):
 def so(*args):
     stepover(*args)
 
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def next_syscall(*args):
+    """
+    Returns the address of the syscall inside the current basic block,
+    or None.
+    """
+    if pwndbg.next.break_next_interrupt():
+        pwndbg.commands.context.context()
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def nexti(*args):
+    """
+    Returns the address of the syscall inside the current basic block,
+    or None.
+    """
+    next_syscall(*args)
+
