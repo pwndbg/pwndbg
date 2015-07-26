@@ -5,7 +5,9 @@ Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.
 """
 import gdb
+import pwndbg.abi
 import pwndbg.arch
+import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.functions
 import pwndbg.funcparser
@@ -15,7 +17,7 @@ import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.typeinfo
 
-from capstone import CS_GRP_CALL
+from capstone import CS_GRP_CALL, CS_GRP_INT
 
 ida_replacements = {
     '__int64': 'signed long long int',
@@ -44,6 +46,18 @@ ida_replacements = {
     '__userpurge': '',
 }
 
+def get_syscall_name(instruction):
+    if not CS_GRP_INT in instruction.groups:
+        return None
+
+    try:
+        abi     = pwndbg.abi.ABI.syscall()
+        syscall = getattr(pwndbg.regs, abi.syscall_register)
+        name    = pwndbg.constants.syscall(syscall)
+
+        return 'SYS_' + name
+    except:
+        return None
 
 def get(instruction):
     """
@@ -57,21 +71,35 @@ def get(instruction):
     if instruction.address != pwndbg.regs.pc:
         return []
 
-    if CS_GRP_CALL not in instruction.groups:
+    abi = pwndbg.abi.ABI.default()
+
+    if CS_GRP_CALL in instruction.groups:
+        # Not sure of any OS which allows multiple operands on
+        # a call instruction.
+        assert len(instruction.operands) == 1
+
+        target = instruction.operands[0].int
+
+        if not target:
+            return []
+
+        name = pwndbg.symbol.get(target)
+        if not name:
+            return []
+    elif CS_GRP_INT in instruction.groups:
+        # Get the syscall number and name
+        abi = pwndbg.abi.ABI.syscall()
+
+        print(abi)
+        print(abi.register_arguments)
+
+        syscall = getattr(pwndbg.regs, abi.syscall_register)
+        name    = pwndbg.constants.syscall(syscall)
+    else:
         return []
 
-    # Not sure of any OS which allows multiple operands on
-    # a call instruction.
-    assert len(instruction.operands) == 1
-
-    target = instruction.operands[0].int
-
-    if not target:
-        return []
-
-    name = pwndbg.symbol.get(target)
-    if not name:
-        return []
+    result = []
+    args = []
 
     sym   = gdb.lookup_symbol(name)
     name  = name.strip().lstrip('_')    # _malloc
@@ -79,9 +107,6 @@ def get(instruction):
     name  = name.replace('@plt', '')    # getpwiod@plt
     name  = name.replace('_chk', '')    # __printf_chk
     func = pwndbg.functions.functions.get(name, None)
-
-    result = []
-    args   = []
 
     # Try to extract the data from GDB.
     # Note that this is currently broken, pending acceptance of
@@ -111,37 +136,30 @@ def get(instruction):
     if func:
         args = func.args
     else:
-        args = [pwndbg.functions.Argument('int',0,argname(i)) for i in range(n_args_default)]
+        args = [pwndbg.functions.Argument('int',0,argname(i, abi)) for i in range(n_args_default)]
 
     for i,arg in enumerate(args):
-        result.append((arg, argument(i)))
+        result.append((arg, argument(i, abi)))
 
     return result
 
 
-REGS = {
-    'x86-64':  ['rdi','rsi','rdx','rcx','r8','r9'],
-    'arm':     ['r%i' % i for i in range(0, 4)],
-    'aarch64': ['x%i' % i for i in range(0, 4)],
-    'powerpc': ['r%i' % i for i in range(3, 10+1)],
-    'mips':    ['r%i' % i for i in range(4, 7+1)],
-    'sparc':   ['i%i' % i for i in range(0,8)],
-}
-
-def argname(n):
-    regs = REGS.get(pwndbg.arch.current, [])
+def argname(n, abi=None):
+    abi  = abi or pwndbg.abi.ABI.default()
+    regs = abi.register_arguments
 
     if n < len(regs):
         return regs[n]
 
     return 'arg[%i]' % n
 
-def argument(n):
+def argument(n, abi=None):
     """
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
     """
-    regs = REGS.get(pwndbg.arch.current, [])
+    abi  = abi or pwndbg.abi.ABI.default()
+    regs = abi.register_arguments
 
     if n < len(regs):
         return getattr(pwndbg.regs, regs[n])

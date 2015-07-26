@@ -34,5 +34,8 @@ def get(path):
             raise OSError("Could not download remote file %r:\n" \
                             "Error: %s" % (path, error))
 
-    with open(local_path,'rb') as f:
-        return f.read()
+    try:
+        with open(local_path,'rb') as f:
+            return f.read()
+    except:
+        return ''

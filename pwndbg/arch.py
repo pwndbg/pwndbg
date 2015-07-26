@@ -17,7 +17,7 @@ current = 'i386'
 ptrmask = 0xfffffffff
 endian  = 'little'
 ptrsize = pwndbg.typeinfo.ptrsize
-fmt     = '=i'
+fmt     = '=I'
 
 def fix_arch(arch):
     arches = ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'arm', 'aarch64', arch]
@@ -44,7 +44,7 @@ def update():
     }.get((m.ptrsize, m.endian))
 
 def pack(integer):
-	return struct.pack(fmt, integer & ptrmask)
+    return struct.pack(fmt, integer & ptrmask)
 
 def unpack(data):
 	return struct.unpack(fmt, data)[0]

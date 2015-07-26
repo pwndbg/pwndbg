@@ -22,6 +22,7 @@ import pwndbg.stack
 import pwndbg.stdio
 import pwndbg.color
 import pwndbg.typeinfo
+import pwndbg.constants
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.context

@@ -56,8 +56,7 @@ def so(*args):
 @pwndbg.commands.OnlyWhenRunning
 def next_syscall(*args):
     """
-    Returns the address of the syscall inside the current basic block,
-    or None.
+    Breaks at the next syscall.
     """
     if pwndbg.next.break_next_interrupt():
         pwndbg.commands.context.context()
@@ -65,10 +64,9 @@ def next_syscall(*args):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def nexti(*args):
+def nextsc(*args):
     """
-    Returns the address of the syscall inside the current basic block,
-    or None.
+    Breaks at the next syscall.
     """
     next_syscall(*args)
 

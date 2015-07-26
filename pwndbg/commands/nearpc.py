@@ -84,6 +84,13 @@ def nearpc(pc=None, lines=None, to_string=False):
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
             result.append('')
 
+
+        # For syscall instructions, put the name on the side
+        if i.address == pc:
+            syscall_name = pwndbg.arguments.get_syscall_name(i)
+            if syscall_name:
+                line += ' <%s>' % syscall_name
+
         result.append(line)
 
         # For call instructions, attempt to resolve the target and
