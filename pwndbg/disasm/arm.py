@@ -50,7 +50,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         C = cpsr & (1<<29)
         V = cpsr & (1<<28)
 
-        return {
+        cc = {
             ARM_CC_EQ: Z,
             ARM_CC_NE: not Z,
             ARM_CC_HS: C,
@@ -65,7 +65,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LT: N != V,
             ARM_CC_GT: not Z and (N==V),
             ARM_CC_LE: Z or (N != V),
-        }.get(instruction.id, None)
+        }.get(instruction.cc, None)
+
+        return cc
 
 assistant = DisassemblyAssistant('arm')
 

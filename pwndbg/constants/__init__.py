@@ -5,7 +5,7 @@ arches = {
     'arm': arm,
     'i386': i386,
     'mips': mips,
-    'amd64': amd64,
+    'x86-64': amd64,
     'aarch64': aarch64
 }
 
@@ -19,8 +19,15 @@ def syscall(value):
     if not arch:
         return None
 
+    prefix = '__NR_'
+
     for k, v in arch.__dict__.items():
-        if v == value and k.startswith('__NR_'):
-            return k[len('__NR_'):].lower()
+        if v != value:
+            continue
+
+        if not k.startswith(prefix):
+            continue
+
+        return k[len(prefix):].lower()
 
     return None
