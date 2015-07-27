@@ -19,6 +19,7 @@ def cpsr():
     Z = cpsr & (1<<30)
     C = cpsr & (1<<29)
     V = cpsr & (1<<28)
+    T = cpsr & (1<<5)
 
     bold = pwndbg.color.bold
 
@@ -26,6 +27,7 @@ def cpsr():
         bold('N') if N else 'n',
         bold('Z') if Z else 'z',
         bold('C') if C else 'c',
-        bold('V') if V else 'v'
+        bold('V') if V else 'v',
+        bold('T') if T else 't'
     ]
     print('cpsr %#x [ %s ]' % (cpsr, ' '.join(result)))

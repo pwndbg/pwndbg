@@ -93,6 +93,7 @@ def get(instruction):
         print(abi)
         print(abi.register_arguments)
 
+        target  = None
         syscall = getattr(pwndbg.regs, abi.syscall_register)
         name    = pwndbg.constants.syscall(syscall)
     else:
