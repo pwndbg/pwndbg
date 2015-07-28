@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 from capstone import *
 
+import collections
+import gdb
+
 import pwndbg.arguments
 import pwndbg.color
 import pwndbg.disasm
@@ -35,6 +38,22 @@ def nearpc(pc=None, lines=None, to_string=False):
 
     pc    = int(pc)
     lines = int(lines)
+
+    # # Load source data if it's available
+    # pc_to_linenos = collections.defaultdict(lambda: [])
+    # lineno_to_src = {}
+    # frame = gdb.selected_frame()
+    # if frame:
+    #     sal = frame.find_sal()
+    #     if sal:
+    #         symtab = sal.symtab
+    #         objfile = symtab.objfile
+    #         sourcefilename = symtab.filename
+    #         with open(sourcefilename, 'r') as sourcefile:
+    #             lineno_to_src = {i:l for i,l in enumerate(sourcefile.readlines())}
+
+    #         for line in symtab.linetable():
+    #             pc_to_linenos[line.pc].append(line.line)
 
     result = []
     instructions = pwndbg.disasm.near(pc, lines)
@@ -71,6 +90,9 @@ def nearpc(pc=None, lines=None, to_string=False):
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
             result.append(pwndbg.color.bold(pre))
+
+        # for line in pc_to_linenos[i.address]:
+        #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
 
         line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
 

@@ -32,6 +32,7 @@ def context(*args):
     result.append(pwndbg.color.legend())
     if 'r' in args: result.extend(context_regs())
     if 'c' in args: result.extend(context_code())
+    if 'c' in args: result.extend(context_source())
     if 'a' in args: result.extend(context_args())
     if 's' in args: result.extend(context_stack())
     if 'b' in args: result.extend(context_backtrace())
@@ -91,6 +92,22 @@ def context_code():
         result.append('')
 
     return banner + result
+
+def context_source():
+    try:
+        source = gdb.execute('list', from_tty=False, to_string=True)
+
+        # If it starts on line 1, it's not really using the
+        # correct source code.
+        if not source or source.startswith('1\t'):
+            return []
+
+        banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+        banner.extend(source.splitlines())
+        return banner
+    except:
+        pass
+    return []
 
 def context_stack():
     result = []
