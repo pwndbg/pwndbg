@@ -73,7 +73,11 @@ blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
 'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
 'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
-'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h']
+'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
+'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
+'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h','revm-objects.h',
+'libetrace.h', 'revm-io.h','libasm-mips.h','libstderesi.h','libasm.h','libaspect.h',
+'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h']
 
 def load(name):
     try:
