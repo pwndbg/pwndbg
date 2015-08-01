@@ -49,7 +49,7 @@ def procinfo():
     files = {f.fd:repr(str(f.path)) for f in proc.open_files()}
 
     for c in proc.connections():
-        files[c.fd] = '%s:%s => %s:%s' % (c.laddr + c.raddr)
+        files[c.fd] = '%s => %s' % (':'.join(map(str, c.laddr)), ':'.join(map(str, c.raddr)))
 
     for fd in os.listdir("/proc/%d/fd" % pid):
         fd = int(fd)
