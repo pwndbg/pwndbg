@@ -69,6 +69,7 @@ def dX(size, address, count, to_string=False):
     Traditionally, windbg will display 16 bytes of data per line.
     """
     values = []
+    address = int(address) & pwndbg.arch.ptrmask
     type   = get_type(size)
     for i in range(count):
         try:
@@ -88,8 +89,7 @@ def dX(size, address, count, to_string=False):
     for i, row in enumerate(rows):
         if not row:
             continue
-
-        line = [enhex(pwndbg.arch.ptrsize, address + i+16)]
+        line = [enhex(pwndbg.arch.ptrsize, address + (i*16)),'   ']
         for value in row:
             line.append(enhex(size, value))
         lines.append(' '.join(line))
@@ -100,6 +100,7 @@ def dX(size, address, count, to_string=False):
     return lines
 
 def enhex(size, value):
+    value = value & pwndbg.arch.ptrmask
     x = "%x" % abs(value)
     x = x.rjust(size * 2, '0')
     return x
