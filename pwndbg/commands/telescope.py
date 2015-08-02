@@ -21,18 +21,17 @@ def telescope(address=None, count=8, to_string=False):
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
     """
-    if None not in (address, count) and int(address) < int(count):
-        count -= address
+    address = int(address if address else pwndbg.regs.sp) & pwndbg.arch.ptrmask
+    count   = int(count) & pwndbg.arch.ptrmask
 
-    if address is None:
-        address = pwndbg.regs.sp
-
-    if address < 100:
+    # Allow invocation of "hexdump 20" to dump 20 bytes at the stack pointer
+    if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
         count   = address
         address = pwndbg.regs.sp
 
-    address = int(address) & pwndbg.arch.ptrmask
-    count   = int(count)
+    # Allow invocation of "hexdump a b" to dump all bytes from A to B
+    if int(address) < int(count):
+        count -= address
 
     reg_values = collections.defaultdict(lambda: [])
     for reg in pwndbg.regs.common:
