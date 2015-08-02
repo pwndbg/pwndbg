@@ -8,7 +8,7 @@ import pwndbg.compat
 import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
-MMAP_MIN_ADDR = 0x10000
+MMAP_MIN_ADDR = 0x8000
 
 def read(addr, count, partial=False):
     try:
