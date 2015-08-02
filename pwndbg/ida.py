@@ -170,7 +170,7 @@ def UpdateBreakpoints():
 
     for addr in current-want:
         for bp in _breakpoints:
-            if eval(bp.location) == addr:
+            if int(bp.location.lstrip('*'), 0) == addr:
                 # print("delete", addr)
                 bp.delete()
                 break
