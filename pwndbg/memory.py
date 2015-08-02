@@ -8,9 +8,12 @@ import pwndbg.compat
 import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
+PAGE_MASK = ~(PAGE_SIZE-1)
 MMAP_MIN_ADDR = 0x8000
 
 def read(addr, count, partial=False):
+    result = ''
+
     try:
         result = gdb.selected_inferior().read_memory(addr, count)
     except gdb.error as e:
@@ -18,7 +21,23 @@ def read(addr, count, partial=False):
             raise
 
         stop_addr = int(e.message.split()[-1], 0)
-        return read(addr, stop_addr-addr)
+        if stop_addr != addr:
+            return read(addr, stop_addr-addr)
+
+        # QEMU will return the start address as the failed
+        # read address.  Try moving back a few pages at a time.
+        stop_addr = addr + count
+
+        # Move the stop address down to the previous page boundary
+        stop_addr &= PAGE_MASK
+        while stop_addr > addr:
+            result = read(addr, stop_addr-addr)
+
+            if result:
+                return result
+
+            # Move down by another page
+            stop_addr -= PAGE_SIZE
 
     if pwndbg.compat.python3:
         result = result.tobytes()
