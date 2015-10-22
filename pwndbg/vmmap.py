@@ -46,6 +46,9 @@ def find(address):
     if address is None or address < pwndbg.memory.MMAP_MIN_ADDR:
         return None
 
+    if address:
+        address = int(address)
+
     for page in get():
         if address in page:
             return page

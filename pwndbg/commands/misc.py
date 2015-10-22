@@ -3,11 +3,10 @@ import errno as _errno
 import struct
 import pwndbg as _pwndbg
 
+import pwndbg.arch as _arch
 import pwndbg.commands
 import pwndbg.regs
 
-import pwndbg.commands
-import pwndbg.regs
 
 _errno.errorcode[0] = 'OK'
 
@@ -42,3 +41,12 @@ def pwndbg():
         if docs: docs = docs.splitlines()[0]
 
         print("%-20s %s" % (name, docs))
+
+@_pwndbg.commands.ParsedCommand
+def distance(a, b):
+    a = int(a) & _arch.ptrmask
+    b = int(b) & _arch.ptrmask
+
+    distance = (b-a)
+
+    print "%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance / _arch.ptrsize)

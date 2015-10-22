@@ -91,7 +91,9 @@ def write(addr, data):
 
 def poi(type, addr): return gdb.Value(addr).cast(type.pointer()).dereference()
 
-def round_down(address, align): return address & ~(align-1)
+def round_down(address, align):
+    print repr(address), repr(align)
+    return address & ~(align-1)
 def round_up(address, align):   return (address+(align-1))&(~(align-1))
 
 align_down = round_down
