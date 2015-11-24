@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import gdb
+import sys
+
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -39,7 +41,8 @@ def context(*args):
     result.extend(context_signal())
 
     for line in result:
-        print(line)
+        sys.stdout.write(line + '\n')
+    sys.stdout.flush()
 
 def context_regs():
     result = []
