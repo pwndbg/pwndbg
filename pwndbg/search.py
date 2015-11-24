@@ -18,7 +18,8 @@ def search(searchfor):
 
     if searchfor.isdigit():
         searchfor = int(searchfor)
-    elif all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
+    elif searchfor.startswith('0x') \
+    and all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
         searchfor = int(searchfor, 16)
 
     if isinstance(searchfor, (long, int)):
