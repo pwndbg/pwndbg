@@ -64,13 +64,32 @@ class Pause(object):
         global pause
         pause -= 1
 
+# When performing remote debugging, gdbserver is very noisy about which
+# objects are loaded.  This greatly slows down the debugging session.
+# In order to combat this, we keep track of which objfiles have been loaded
+# this session, and only emit objfile events for each *new* file.
+objfile_cache = set()
+
 def connect(func, event_handler, name=''):
     if debug:
         print("Connecting", func.__name__, event_handler)
 
     @functools.wraps(func)
     def caller(*a):
-        if debug: sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
+        if debug:
+            sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
+
+        if a and isinstance(a[0], gdb.NewObjFileEvent):
+            objfile = a[0].new_objfile
+            path = objfile.filename
+
+            if path in objfile_cache:
+                return
+
+            print path, objfile.is_valid()
+
+            objfile_cache.add(path)
+
         if pause: return
         with pwndbg.stdio.stdio:
             try:
@@ -110,3 +129,8 @@ def _start_newobjfile():
 @stop
 def _start_stop():
     gdb.events.start.on_stop()
+
+@exit
+def _reset_objfiles():
+    global objfile_cache
+    objfile_cache = set()
