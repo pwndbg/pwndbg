@@ -23,6 +23,7 @@ import pwndbg.stdio
 import pwndbg.color
 import pwndbg.typeinfo
 import pwndbg.constants
+import pwndbg.argv
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.context
@@ -43,6 +44,9 @@ import pwndbg.commands.misc
 import pwndbg.commands.next
 import pwndbg.commands.dumpargs
 import pwndbg.commands.cpsr
+import pwndbg.commands.argv
+import pwndbg.commands.heap
+
 
 __all__ = [
 'arch',

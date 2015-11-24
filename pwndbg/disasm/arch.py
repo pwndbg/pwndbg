@@ -4,6 +4,8 @@ import capstone
 import collections
 from capstone import *
 
+CS_OP_IMM
+
 debug = False
 
 groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}

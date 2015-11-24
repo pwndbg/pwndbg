@@ -4,6 +4,7 @@
 Reading, writing, and describing memory.
 """
 import gdb
+import pwndbg.arch
 import pwndbg.compat
 import pwndbg.typeinfo
 
@@ -73,7 +74,9 @@ def u16(addr): return readtype(pwndbg.typeinfo.uint16, addr)
 def u32(addr): return readtype(pwndbg.typeinfo.uint32, addr)
 def u64(addr): return readtype(pwndbg.typeinfo.uint64, addr)
 
-def u(addr, size):
+def u(addr, size=None):
+    if size is None:
+        size = pwndbg.arch.ptrsize * 8
     return {
         8: u8,
         16: u16,
@@ -91,7 +94,8 @@ def write(addr, data):
 
 def poi(type, addr): return gdb.Value(addr).cast(type.pointer()).dereference()
 
-def round_down(address, align): return address & ~(align-1)
+def round_down(address, align):
+    return address & ~(align-1)
 def round_up(address, align):   return (address+(align-1))&(~(align-1))
 
 align_down = round_down

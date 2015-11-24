@@ -9,7 +9,11 @@ information available.
 """
 import gdb
 import re
+import os
+import tempfile
 import pwndbg.elf
+import pwndbg.events
+import pwndbg.file
 import pwndbg.ida
 import pwndbg.memoize
 import pwndbg.memory
@@ -17,6 +21,66 @@ import pwndbg.remote
 import pwndbg.stack
 import pwndbg.vmmap
 
+def get_directory():
+    """
+    Retrieve the debug file directory path.
+
+    The debug file directory path ('show debug-file-directory') is a comma-
+    separated list of directories which GDB will look in to find the binaries
+    currently loaded.
+    """
+    result = gdb.execute('show debug-file-directory', to_string=True, from_tty=False)
+    expr   = r'The directory where separate debug symbols are searched for is "(.*)".\n'
+
+    match = re.search(expr, result)
+
+    if match:
+        return match.group(1)
+    return ''
+
+def set_directory(d):
+    gdb.execute('set debug-file-directory %s' % d, to_string=True, from_tty=False)
+
+def add_directory(d):
+    current = get_directory()
+    if current:
+        set_directory('%s:%s' (current, d))
+    else:
+        set_directory(d)
+
+remote_files = {}
+remote_files_dir = None
+
+@pwndbg.events.on_stop
+def reset_remote_files():
+    global remote_files
+    global remote_files_dir
+    remote_files = {}
+    remote_files_dir = tempfile.mkdtemp()
+
+def autofetch():
+    """
+    """
+    global remote_files_dir
+    if not pwndbg.remote.is_remote():
+        return
+
+    if not remote_files_dir:
+        remote_files_dir = tempfile.mkdtemp()
+        add_directory(remote_files_dir)
+
+    searchpath = get_directory()
+
+    for mapping in pwndbg.vmmap.get():
+        objfile = mapping.objfile
+
+        if not objfile or objfile in remote_files:
+            continue
+
+        data = pwndbg.file.get(objfile)
+        filename = os.path.basename(objfile)
+
+        with open(os.path.join(remote_files_dir))
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
@@ -91,6 +155,8 @@ def add_main_exe_to_symbols():
     if not addr:
         return
 
+    addr = int(addr)
+
     mmap = pwndbg.vmmap.find(addr)
     if not mmap:
         return
@@ -101,3 +167,6 @@ def add_main_exe_to_symbols():
             gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)
         except gdb.error:
             pass
+
+if '/usr/lib/debug' not in get_directory():
+    set_directory(get_directory() + ':/usr/lib/debug')

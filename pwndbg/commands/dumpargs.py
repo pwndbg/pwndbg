@@ -7,6 +7,9 @@ import pwndbg.disasm
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def dumpargs(*a):
+    """
+    If the current instruction is a call instruction, print that arguments.
+    """
     result = []
 
     # For call instructions, attempt to resolve the target and
