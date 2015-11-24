@@ -116,7 +116,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         address = (pwndbg.regs.sp) + (pwndbg.arch.ptrsize * pop)
 
-        return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+        if pwndbg.memory.peek(address):
+            return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
 
 
 
