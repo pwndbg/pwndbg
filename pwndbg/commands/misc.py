@@ -49,4 +49,4 @@ def distance(a, b):
 
     distance = (b-a)
 
-    print "%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance / _arch.ptrsize)
+    print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance / _arch.ptrsize))
