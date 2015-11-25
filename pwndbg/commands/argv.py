@@ -9,7 +9,7 @@ def argc():
     """
     Prints out the number of arguments.
     """
-    print pwndbg.argv.argc
+    print(pwndbg.argv.argc)
 
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
