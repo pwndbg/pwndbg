@@ -31,6 +31,18 @@ bad_instrs = [
 def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
 
+def int_str(value):
+    retval = '%#x' % int(value)
+
+    # Try to unpack the value as a string
+    packed = pwndbg.arch.pack(int(value))
+    if all(c in string.printable.encode('utf-8') for c in packed):
+        if len(retval) > 4:
+            retval = '%s (%r)' % (retval, str(packed.decode('ascii', 'ignore')))
+
+    return retval
+
+
 # @pwndbg.memoize.reset_on_stop
 def enhance(value, code = True):
     """
@@ -59,15 +71,7 @@ def enhance(value, code = True):
         can_read = False
 
     if not can_read:
-        retval = '%#x' % int(value)
-
-        # Try to unpack the value as a string
-        packed = pwndbg.arch.pack(int(value))
-        if all(c in string.printable.encode('utf-8') for c in packed):
-            if len(retval) > 4:
-                retval = '%s (%r)' % (retval, str(packed.decode('ascii', 'ignore')))
-
-        return retval
+        return int_str(value)
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
@@ -136,8 +140,7 @@ def enhance(value, code = True):
 
     # And then integer
     else:
-        retval = [intval]
-
+        return int_str(intval0)
 
     retval = tuple(filter(lambda x: x is not None, retval))
 
