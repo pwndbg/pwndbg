@@ -27,10 +27,11 @@ pause = 0
 # to detect when the binary is running or not.
 class StartEvent(object):
     def __init__(self):
-        self.registered = set()
+        self.registered = list()
         self.running    = False
     def connect(self, function):
-        self.registered.add(function)
+        if function not in self.registered:
+            self.registered.append(function)
     def disconnect(self, function):
         if function in self.registered:
             self.registered.remove(function)
