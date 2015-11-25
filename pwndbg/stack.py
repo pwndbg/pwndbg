@@ -60,6 +60,7 @@ def update():
             sp = pwndbg.regs.sp
 
             sp_low = sp & ~(0xfff)
+            sp_low -= 0x1000
 
             # If we don't already know about this thread, create
             # a new Page mapping for it.
