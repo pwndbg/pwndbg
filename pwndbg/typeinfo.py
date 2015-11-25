@@ -26,8 +26,7 @@ def is_pointer(value):
     type = type.strip_typedefs()
     return type.code == gdb.TYPE_CODE_PTR
 
-@pwndbg.events.new_objfile
-@pwndbg.memoize.reset_on_exit
+@pwndbg.events.start
 def update():
     module.char   = gdb.lookup_type('char')
     module.ulong  = gdb.lookup_type('unsigned long')
@@ -58,10 +57,6 @@ def update():
 
 # Call it once so we load all of the types
 update()
-
-# Reset the cache so that the first load isn't cached.
-update.clear()
-
 
 tempdir = tempfile.gettempdir() + '/pwndbg'
 if not os.path.exists(tempdir):
