@@ -44,20 +44,21 @@ def set_directory(d):
 def add_directory(d):
     current = get_directory()
     if current:
-        set_directory('%s:%s' (current, d))
+        set_directory('%s:%s' % (current, d))
     else:
         set_directory(d)
 
 remote_files = {}
 remote_files_dir = None
 
-@pwndbg.events.on_stop
+@pwndbg.events.exit
 def reset_remote_files():
     global remote_files
     global remote_files_dir
     remote_files = {}
     remote_files_dir = tempfile.mkdtemp()
 
+@pwndbg.events.new_objfile
 def autofetch():
     """
     """
@@ -74,13 +75,25 @@ def autofetch():
     for mapping in pwndbg.vmmap.get():
         objfile = mapping.objfile
 
+        # Don't attempt to download things like '[stack]' and '[heap]'
+        if not objfile.startswith('/'):
+            continue
+
+        # Don't re-download things that we have already downloaded
         if not objfile or objfile in remote_files:
             continue
 
+        print("Downloading %r from the remote server" % objfile)
+
         data = pwndbg.file.get(objfile)
         filename = os.path.basename(objfile)
+        local_path = os.path.join(remote_files_dir, filename)
 
-        with open(os.path.join(remote_files_dir))
+        with open(local_path, 'w+') as f:
+            f.write(data)
+
+        remote_files[objfile] = local_path
+
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
