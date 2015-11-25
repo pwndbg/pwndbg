@@ -86,7 +86,7 @@ def connect(func, event_handler, name=''):
             if path in objfile_cache:
                 return
 
-            print(path, objfile.is_valid())
+            # print(path, objfile.is_valid())
 
             objfile_cache.add(path)
 
