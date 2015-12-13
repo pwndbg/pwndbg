@@ -112,6 +112,11 @@ def use_info_auxv():
         # GDB will attempt to read strings for us, we dont want this
         if '"' in tokens[-1]: tokens.pop(-1)
 
+        # If there' a memory read error, there will be some trash at the end.
+        # 31   AT_EXECFN  File name of executable 0xffffdfef <error: Cannot access memory at address 0xffffdfef>
+        # So we just need to strip the trailing '>'
+        tokens[-1] = tokens[-1].rstrip('>')
+
         value = eval(tokens[-1])
         auxv.set(const, value)
     return auxv
