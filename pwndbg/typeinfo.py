@@ -27,6 +27,7 @@ def is_pointer(value):
     return type.code == gdb.TYPE_CODE_PTR
 
 @pwndbg.events.start
+@pwndbg.events.stop
 def update():
     module.char   = gdb.lookup_type('char')
     module.ulong  = gdb.lookup_type('unsigned long')
