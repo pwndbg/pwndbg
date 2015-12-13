@@ -69,6 +69,9 @@ def explore(address_maybe):
 
         Also assumes the entire contiguous section has the same permission.
     """
+    if proc_pid_maps():
+        return None
+
     address_maybe = pwndbg.memory.page_align(address_maybe)
 
     flags = 4 if pwndbg.memory.peek(address_maybe) else 0
