@@ -7,7 +7,6 @@ import sys
 import gdb
 import pwndbg.events
 import pwndbg.memoize
-import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
