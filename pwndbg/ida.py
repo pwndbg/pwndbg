@@ -60,19 +60,17 @@ class withIDA(object):
             return self.fn(*args, **kwargs)
         return None
 
-class takes_address(object):
-    def __init__(self, fn):
-        self.fn = fn
-        functools.update_wrapper(self, fn)
-    def __call__(self, address, *args):
-        return self.fn(l2r(address), *args)
+def takes_address(function):
+    @functools.wraps(function)
+    def wrapper(address, *args, **kwargs):
+        return function(l2r(address), *args, **kwargs)
+    return wrapper
 
-class returns_address(object):
-    def __init__(self, fn):
-        self.fn = fn
-        functools.update_wrapper(self, fn)
-    def __call__(self, *a, **kw):
-        return r2l(self.fn(*a, **kw))
+def returns_address(function):
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        return r2l(function(*args, **kwargs))
+    return wrapper
 
 @withIDA
 def available():
