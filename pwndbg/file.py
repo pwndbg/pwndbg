@@ -38,4 +38,4 @@ def get(path):
         with open(local_path,'rb') as f:
             return f.read()
     except:
-        return ''
+        return b''
