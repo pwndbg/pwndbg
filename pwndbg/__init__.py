@@ -87,7 +87,10 @@ __all__ = [
 #
 # prompt = pwndbg.color.red('pwn> ')
 # prompt = pwndbg.color.bold(prompt)
-prompt = 'pwn> '
+prompt = "pwn> "
+prompt = "\x01" + prompt + "\x02" # SOH + prompt + STX
+prompt = pwndbg.color.red(prompt)
+prompt = pwndbg.color.bold(prompt)
 
 pre_commands = """
 set confirm off
