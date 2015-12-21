@@ -2,19 +2,17 @@ import gdb
 import pwndbg.enhance
 import pwndbg.vmmap
 
-SOH            = "\x01"
-STX            = "\x02"
-NORMAL         = SOH + "\x1b[0m" + STX
-BLACK          = SOH + "\x1b[30m" + STX
-RED            = SOH + "\x1b[31m" + STX
-GREEN          = SOH + "\x1b[32m" + STX
-YELLOW         = SOH + "\x1b[33m" + STX
-BLUE           = SOH + "\x1b[34m" + STX
-PURPLE         = SOH + "\x1b[35m" + STX
-CYAN           = SOH + "\x1b[36m" + STX
-GREY = GRAY    = SOH + "\x1b[90m" + STX
-BOLD           = SOH + "\x1b[1m" + STX
-UNDERLINE      = SOH + "\x1b[4m" + STX
+NORMAL         = "\x1b[0m"
+BLACK          = "\x1b[30m"
+RED            = "\x1b[31m"
+GREEN          = "\x1b[32m"
+YELLOW         = "\x1b[33m"
+BLUE           = "\x1b[34m"
+PURPLE         = "\x1b[35m"
+CYAN           = "\x1b[36m"
+GREY = GRAY    = "\x1b[90m"
+BOLD           = "\x1b[1m"
+UNDERLINE      = "\x1b[4m"
 
 STACK = YELLOW
 HEAP  = BLUE
@@ -67,3 +65,4 @@ def legend():
         UNDERLINE + 'RWX' + NORMAL,
         'RODATA'
     ))
+
