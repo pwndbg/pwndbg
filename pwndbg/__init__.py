@@ -80,13 +80,6 @@ __all__ = [
 'vmmap'
 ]
 
-# If the prompt is colorized, then the home and end keys
-# don't work properly when on the prompt line.
-#
-# Instead, we set the prompt to be very plain.
-#
-# prompt = pwndbg.color.red('pwn> ')
-# prompt = pwndbg.color.bold(prompt)
 prompt = "pwn> "
 prompt = "\x01" + prompt + "\x02" # SOH + prompt + STX
 prompt = pwndbg.color.red(prompt)
