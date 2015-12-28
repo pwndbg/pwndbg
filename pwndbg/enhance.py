@@ -32,7 +32,7 @@ def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
 
 def int_str(value):
-    retval = '%#x' % int(value)
+    retval = '%#x' % int(value & pwndbg.arch.ptrmask)
 
     # Try to unpack the value as a string
     packed = pwndbg.arch.pack(int(value))
