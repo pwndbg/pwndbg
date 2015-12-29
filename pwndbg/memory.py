@@ -7,6 +7,7 @@ import gdb
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.typeinfo
+import traceback
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE-1)
@@ -20,6 +21,9 @@ def read(addr, count, partial=False):
     except gdb.error as e:
         if not partial:
             raise
+
+        if not hasattr(e, 'message'):
+            e.message=str(e)
 
         stop_addr = int(e.message.split()[-1], 0)
         if stop_addr != addr:
