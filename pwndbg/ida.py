@@ -89,6 +89,7 @@ def base():
     result =  _ida.NextSeg(0) & ~(0xfff)
     if result < 0x100000:
         return 0
+    return result
 
 @withIDA
 @takes_address
