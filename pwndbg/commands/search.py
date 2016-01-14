@@ -13,17 +13,31 @@ import pwndbg.vmmap
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def search(value):
+def search(searchtype, value=None):
     """
     Search memory for the specified value, provided
     either as a pointer-width integer, or a string.
 
     > search 0xdeadbeef
     > search "/bin/sh"
+    
+    To search 1234 in a character string instead of integer
+    > search/c 1234
+    
+    To search for characters using hex values in string
+    > search/xc f0f1f2f3
+    > search/xc \xf0\xf1\xf2\xf3
+    > search/xc \\xf0\\xf1\\xf2\\xf3
     """
+    
+    if value:
+        searchtype = searchtype[1:]
+    else:
+        value, searchtype = searchtype, value
+    
     hits = set()
 
-    for address in pwndbg.search.search(value):
+    for address in pwndbg.search.search(value, searchtype):
         if not address:
             continue
 
@@ -47,12 +61,23 @@ def search(value):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def searchmem(value):
+def searchmem(searchtype, value=None):
     """
     Search memory for the specified value, provided
     either as a pointer-width integer, or a string.
 
     > search 0xdeadbeef
     > search "/bin/sh"
+    
+    To search 1234 in a character string instead of integer
+    > search/c 1234
+    
+    To search for characters using hex values in string
+    > search/xc f0f1f2f3
+    > search/xc \xf0\xf1\xf2\xf3
+    > search/xc \\xf0\\xf1\\xf2\\xf3
     """
-    return search(value)
+    if value:
+        return search(searchtype, value)
+    else:
+        return search(searchtype)
