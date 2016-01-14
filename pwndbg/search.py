@@ -16,7 +16,7 @@ def search(searchfor, searchtype=None):
     value = searchfor
     size  = None
 
-    if searchtype != 'c' and searchtype != 'xc':
+    if searchtype != 'c' and searchtype != 'xc':        #default search when used without any searchtype of invalid search type
         if searchfor.isdigit():
             searchfor = int(searchfor)
         elif searchfor.startswith('0x') \
