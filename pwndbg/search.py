@@ -12,21 +12,31 @@ import pwndbg.typeinfo
 import pwndbg.vmmap
 
 
-def search(searchfor):
+def search(searchfor, searchtype=None):
     value = searchfor
     size  = None
 
-    if searchfor.isdigit():
-        searchfor = int(searchfor)
-    elif searchfor.startswith('0x') \
-    and all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
-        searchfor = int(searchfor, 16)
+    if searchtype != 'c' and searchtype != 'xc':
+        if searchfor.isdigit():
+            searchfor = int(searchfor)
+        elif searchfor.startswith('0x') \
+        and all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
+            searchfor = int(searchfor, 16)
 
-    if isinstance(searchfor, (long, int)):
-        if pwndbg.arch.ptrsize == 4:
-            searchfor = struct.pack('I', searchfor)
-        elif pwndbg.arch.ptrsize == 8:
-            searchfor = struct.pack('L', searchfor)
+        if isinstance(searchfor, (long, int)):
+            if pwndbg.arch.ptrsize == 4:
+                searchfor = struct.pack('I', searchfor)
+            elif pwndbg.arch.ptrsize == 8:
+                searchfor = struct.pack('L', searchfor)
+
+    elif searchtype == 'xc':
+        if '\\x' in searchfor:
+            searchfor = bytes.fromhex(''.join(searchfor.split('\\x')))
+        elif 'x' in searchfor:
+            searchfor = bytes.fromhex(''.join(searchfor.split('x')))
+        else:
+            searchfor = bytes.fromhex(''.join(searchfor[i:i+2]
+                                          for i in range(0, len(searchfor), 2)))
 
     i = gdb.selected_inferior()
 
