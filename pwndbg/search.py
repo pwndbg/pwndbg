@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Search the address space for byte patterns or pointer values.
+Search the address space for byte patterns.
 """
 import struct
 
@@ -15,18 +15,6 @@ import pwndbg.vmmap
 def search(searchfor):
     value = searchfor
     size  = None
-
-    if searchfor.isdigit():
-        searchfor = int(searchfor)
-    elif searchfor.startswith('0x') \
-    and all(c in 'xABCDEFabcdef0123456789' for c in searchfor):
-        searchfor = int(searchfor, 16)
-
-    if isinstance(searchfor, (long, int)):
-        if pwndbg.arch.ptrsize == 4:
-            searchfor = struct.pack('I', searchfor)
-        elif pwndbg.arch.ptrsize == 8:
-            searchfor = struct.pack('L', searchfor)
 
     i = gdb.selected_inferior()
 
