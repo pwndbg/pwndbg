@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 import gdb
@@ -106,19 +107,14 @@ def use_info_auxv():
 
     auxv = AUXV()
     for line in lines:
-        tokens = line.split()
-        const  = int(tokens[0])
+        match = re.match('([0-9]+) .* (0x[0-9a-f]+|[0-9]+)', line)
+        if not match:
+            print("Warning: Skipping auxv entry '{}'".format(line))
+            continue
 
-        # GDB will attempt to read strings for us, we dont want this
-        if '"' in tokens[-1]: tokens.pop(-1)
-
-        # If there' a memory read error, there will be some trash at the end.
-        # 31   AT_EXECFN  File name of executable 0xffffdfef <error: Cannot access memory at address 0xffffdfef>
-        # So we just need to strip the trailing '>'
-        tokens[-1] = tokens[-1].rstrip('>')
-
-        value = eval(tokens[-1])
+        const, value = int(match.group(1)), int(match.group(2), 0)
         auxv.set(const, value)
+
     return auxv
 
 
