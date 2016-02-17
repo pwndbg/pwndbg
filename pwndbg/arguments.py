@@ -101,6 +101,7 @@ def get(instruction):
 
     result = []
     args = []
+    name = name or ''
 
     sym   = gdb.lookup_symbol(name)
     name  = name.strip().lstrip('_')    # _malloc
