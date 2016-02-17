@@ -22,4 +22,4 @@ def chunk2mem(p):
 
 def mem2chunk(mem):
     "conversion from user pointer to malloc header"
-    return p + (2-pwndbg.arch.ptrsize)
+    return mem - (2*pwndbg.arch.ptrsize)
