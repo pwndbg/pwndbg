@@ -55,21 +55,20 @@ shellcmds = [
     "vi",
     "vim",
     "w",
-    "wc",
     "wget",
     "who",
     "whoami",
     "zsh",
 ]
 
-# def register_shell_function(cmd):
-#     def handler(*a):
-#         """Invokes %s""" % cmd
-#         if os.fork() == 0:
-#             os.execvp(cmd, (cmd,) + a)
-#         os.wait()
-#     handler.__name__ = cmd
-#     pwndbg.commands.Command(handler)
+def register_shell_function(cmd):
+    def handler(*a):
+        """Invokes %s""" % cmd
+        if os.fork() == 0:
+            os.execvp(cmd, (cmd,) + a)
+        os.wait()
+    handler.__name__ = cmd
+    pwndbg.commands.Command(handler)
 
-# for cmd in shellcmds:
-#     register_shell_function(cmd)
+for cmd in shellcmds:
+    register_shell_function(cmd)
