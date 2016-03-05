@@ -350,7 +350,7 @@ def check_aslr():
         personality = int(data, 16)
         if personality & 0x40000:
             vmmap.aslr = False
-            return vmmap.aslr
+        return vmmap.aslr
     except:
         print("Could not check ASLR: Couldn't get personality")
         pass
