@@ -334,16 +334,31 @@ def check_aslr():
     system_aslr = True
     data        = b''
 
+    # Systemwide ASLR is disabled
     try:
         data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
+        if b'0' in data:
+            vmmap.aslr = False
+            return vmmap.aslr
     except Exception as e:
         print("Could not check ASLR: Couldn't get randomize_va_space")
         pass
 
-    # Systemwide ASLR is disabled
-    if b'0' in data:
-        return
+    # Check the personality of the process
+    try:
+        data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
+        personality = int(data, 16)
+        if personality & 0x40000:
+            vmmap.aslr = False
+            return vmmap.aslr
+    except:
+        print("Could not check ASLR: Couldn't get personality")
+        pass
 
+    # Just go with whatever GDB says it did.
+    #
+    # This should usually be identical to the above, but we may not have
+    # access to procfs.
     output = gdb.execute('show disable-randomization', to_string=True)
     if "is off." in output:
         vmmap.aslr = True
