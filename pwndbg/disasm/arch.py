@@ -112,6 +112,8 @@ class DisassemblyAssistant(object):
 
         # Memory operands must be dereferenced
         addr = instruction.operands[0].int
+        if addr:
+            addr &= pwndbg.arch.ptrmask
         if instruction.operands[0].type == CS_OP_MEM:
             addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
 
@@ -160,6 +162,8 @@ class DisassemblyAssistant(object):
             op.symbol = None
 
             op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
+            if op.int:
+                op.int &= pwndbg.arch.ptrmask
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if op.int:
