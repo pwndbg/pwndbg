@@ -68,7 +68,7 @@ def register_shell_function(cmd):
             os.execvp(cmd, (cmd,) + a)
         os.wait()
     handler.__name__ = cmd
-    pwndbg.commands.Command(handler)
+    pwndbg.commands.Command(handler, False)
 
 for cmd in shellcmds:
     register_shell_function(cmd)

@@ -24,11 +24,13 @@ class _Command(gdb.Command):
     count    = 0
     commands = []
 
-    def __init__(self, function):
+    def __init__(self, function, inc=True):
         super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
         self.function = function
 
-        self.commands.append(self)
+        if inc:
+            self.commands.append(self)
+
         functools.update_wrapper(self, function)
         self.__doc__ = function.__doc__
 
@@ -86,11 +88,11 @@ def OnlyWhenRunning(function):
             print("Only available when running")
     return _OnlyWhenRunning
 
-def Command(func):
+def Command(func, *a, **kw):
     class C(_Command):
         __doc__ = func.__doc__
         __name__ = func.__name__
-    return C(func)
+    return C(func, *a, **kw)
 
 def ParsedCommand(func):
     class C(_ParsedCommand):
