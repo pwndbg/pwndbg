@@ -111,8 +111,20 @@ for line in pre_commands.strip().splitlines():
 msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))
 
-@pwndbg.memoize.reset_on_stop
+cur = (gdb.selected_inferior(), gdb.selected_thread())
+
 def prompt_hook(*a):
+    global cur
+    new = (gdb.selected_inferior(), gdb.selected_thread())
+
+    if cur != new:
+        pwndbg.events.after_reload()
+        cur = new
+
+    prompt_hook_on_stop(*a)
+
+@pwndbg.memoize.reset_on_stop
+def prompt_hook_on_stop(*a):
     with pwndbg.stdio.stdio:
         pwndbg.commands.context.context()
 

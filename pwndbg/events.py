@@ -110,12 +110,13 @@ def stop(func):        return connect(func, gdb.events.stop, 'stop')
 def start(func):       return connect(func, gdb.events.start, 'start')
 
 def after_reload():
-    return
-    # if gdb.selected_inferior().pid:
-    #     for f in registered[gdb.events.new_objfile]:
-    #         f()
-    #     for f in registered[gdb.events.stop]:
-    #         f()
+    if gdb.selected_inferior().pid:
+        for f in registered[gdb.events.start]:
+            f()
+        for f in registered[gdb.events.new_objfile]:
+            f()
+        for f in registered[gdb.events.stop]:
+            f()
 
 def on_reload():
     for event, functions in registered.items():

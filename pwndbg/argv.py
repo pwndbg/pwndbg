@@ -1,3 +1,5 @@
+import gdb
+
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.memory
@@ -21,7 +23,11 @@ def update():
     ptrsize = pwndbg.arch.ptrsize
     ptrbits  = 8 * ptrsize
 
-    argc = pwndbg.memory.u(sp, ptrbits)
+    try:
+        argc = pwndbg.memory.u(sp, ptrbits)
+    except:
+        return
+
     sp += ptrsize
 
     argv = sp
