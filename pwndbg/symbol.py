@@ -89,7 +89,7 @@ def autofetch():
         filename = os.path.basename(objfile)
         local_path = os.path.join(remote_files_dir, filename)
 
-        with open(local_path, 'w+') as f:
+        with open(local_path, 'wb+') as f:
             f.write(data)
 
         remote_files[objfile] = local_path
