@@ -85,7 +85,12 @@ def autofetch():
 
         print("Downloading %r from the remote server" % objfile)
 
-        data = pwndbg.file.get(objfile)
+        try:
+            data = pwndbg.file.get(objfile)
+        except OSError:
+            # The file could not be downloaded :(
+            return
+
         filename = os.path.basename(objfile)
         local_path = os.path.join(remote_files_dir, filename)
 
