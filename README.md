@@ -42,6 +42,20 @@ sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 pip install pycparser # Use pip3 for Python3
 ```
 
+#### Unicorn Engine
+
+Currently this is only available via a source build.
+
+```sh
+sudo apt-get install libglib2.0-dev
+git clone https://github.com/unicorn-engine/unicorn
+cd unicorn
+sudo ./make.sh install
+cd bindings/python
+sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
+sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
+```
+
 ## Features
 
 Does most things that PEDA does.  Doesn't do things that PEDA does that [pwntools](https://github.com/Gallopsled/pwntools) or [binjitsu](https://binjit.su) (my fork of pwntools) do better.
