@@ -93,16 +93,23 @@ class DisassemblyAssistant(object):
         if instruction.condition in (True, None):
             next_addr = self.next(instruction)
 
+        instruction.target = None
+
         if next_addr is None:
             next_addr = instruction.address + instruction.size
+            instruction.target = self.next(instruction, call=True)
 
         instruction.next = next_addr & pwndbg.arch.ptrmask
 
-    def next(self, instruction):
+        if instruction.target is None:
+            instruction.target = instruction.next
+
+    def next(self, instruction, call=False):
         """
         Architecture-specific hook point for enhance_next.
         """
-        if CS_GRP_JUMP not in instruction.groups:
+        if CS_GRP_JUMP not in instruction.groups \
+        and (not call or (CS_GRP_CALL not in instruction.groups)):
             return None
 
         # At this point, all operands have been resolved.
@@ -111,11 +118,14 @@ class DisassemblyAssistant(object):
             return None
 
         # Memory operands must be dereferenced
-        addr = instruction.operands[0].int
+        op   = instruction.operands[0]
+        addr = op.int
         if addr:
             addr &= pwndbg.arch.ptrmask
-        if instruction.operands[0].type == CS_OP_MEM:
+        if op.type == CS_OP_MEM:
             addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
+        if op.type == CS_OP_REG:
+            addr = self.register(instruction, op)
 
         return addr
 

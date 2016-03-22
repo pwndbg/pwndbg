@@ -100,10 +100,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return instruction.address + instruction.size
 
-    def next(self, instruction):
+    def next(self, instruction, call=False):
         # Only enhance 'ret'
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
-            return super(DisassemblyAssistant, self).next(instruction)
+            return super(DisassemblyAssistant, self).next(instruction, call)
 
         # Stop disassembling at RET if we won't know where it goes to
         if instruction.address != pwndbg.regs.pc:
