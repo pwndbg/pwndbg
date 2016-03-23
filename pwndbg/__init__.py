@@ -10,6 +10,7 @@ import pwndbg.disasm.mips
 import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
+import pwndbg.emu
 
 import pwndbg.vmmap
 import pwndbg.dt
@@ -46,6 +47,7 @@ import pwndbg.commands.dumpargs
 import pwndbg.commands.cpsr
 import pwndbg.commands.argv
 import pwndbg.commands.heap
+import pwndbg.commands.segments
 
 
 __all__ = [

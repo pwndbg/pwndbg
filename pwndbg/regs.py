@@ -5,6 +5,7 @@ Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
 import collections
+import ctypes
 import re
 import sys
 from types import ModuleType
@@ -15,6 +16,7 @@ import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.proc
+import pwndbg.remote
 
 
 class RegisterSet(object):
@@ -106,6 +108,7 @@ amd64 = RegisterSet(pc      = 'rip',
                                'r8', 'r9', 'r10','r11','r12',
                                'r13','r14','r15'),
                     misc    =  ('cs','ss','ds','es','fs','gs',
+                                'fsbase', 'gsbase',
                                 'ax','ah','al',
                                 'bx','bh','bl',
                                 'cx','ch','cl',
@@ -121,6 +124,7 @@ i386 = RegisterSet( pc      = 'eip',
                     flags   = ('eflags',),
                     gpr     = ('eax','ebx','ecx','edx','edi','esi'),
                     misc    =  ('cs','ss','ds','es','fs','gs',
+                                'fsbase', 'gsbase',
                                 'ax','ah','al',
                                 'bx','bh','bl',
                                 'cx','ch','cl',
@@ -233,6 +237,11 @@ try:
 except AttributeError:
     get_register = gdb77_get_register
 
+
+# We need to manually make some ptrace calls to get fs/gs bases on Intel
+PTRACE_ARCH_PRCTL = 30
+ARCH_GET_FS = 0x1003
+ARCH_GET_GS = 0x1004
 
 class module(ModuleType):
     last = {}
@@ -351,6 +360,45 @@ class module(ModuleType):
             if self[reg] != value:
                 delta.append(reg)
         return delta
+
+    @property
+    @pwndbg.memoize.reset_on_stop
+    def fsbase(self):
+        return self._fs_gs_helper(ARCH_GET_FS)
+
+    @property
+    @pwndbg.memoize.reset_on_stop
+    def gsbase(self):
+        return self._fs_gs_helper(ARCH_GET_GS)
+
+    def _fs_gs_helper(self, which):
+        """Supports fetching based on segmented addressing, a la fs:[0x30].
+
+        Requires ptrace'ing the child directly."""
+
+        # We can't really do anything if the process is remote.
+        if pwndbg.remote.is_remote(): return 0
+
+        # Use the lightweight process ID
+        pid, lwpid, tid = gdb.selected_thread().ptid
+
+        # Get the register
+        ppvoid = ctypes.POINTER(ctypes.c_void_p)
+        value  = ppvoid(ctypes.c_void_p())
+        value.contents.value = 0
+
+        libc  = ctypes.CDLL('libc.so.6')
+        result = libc.ptrace(PTRACE_ARCH_PRCTL,
+                             lwpid,
+                             value,
+                             which)
+
+        if result == 0:
+            return (value.contents.value or 0) & pwndbg.arch.ptrmask
+
+        return 0
+
+
 
 # To prevent garbage collection
 tether = sys.modules[__name__]
