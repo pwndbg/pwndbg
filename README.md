@@ -23,6 +23,14 @@ echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit
 
 ### Prerequisites
 
+#### Python Development Headers
+
+These will be needed to build other Python modules below.
+
+```sh
+sudo apt-get install python-dev python3-dev python-pip python3-pip 
+```
+
 #### Capstone 4.0
 
 Currently this is only available via a source build.
@@ -54,8 +62,6 @@ sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 #### Python
 
 There are some other Python requirements which are easier to install.
-
-This step will also verify that you have installed Capstone and Unicorn correctly.
 
 ```sh
 pip install -Ur requirements.txt
