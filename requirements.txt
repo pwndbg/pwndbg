@@ -1,3 +1,5 @@
-capstone>=4.0
 pycparser
 psutil>=3.1.0
+python-ptrace>=0.8
+capstone>=4.0
+unicorn>=0.9

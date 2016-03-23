@@ -36,12 +36,6 @@ cd bindings/python
 sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
 sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 ```
-#### pycparser
-
-```sh
-pip install pycparser # Use pip3 for Python3
-```
-
 #### Unicorn Engine
 
 Currently this is only available via a source build.
@@ -54,6 +48,17 @@ sudo ./make.sh install
 cd bindings/python
 sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
 sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
+```
+
+
+#### Python
+
+There are some other Python requirements which are easier to install.
+
+This step will also verify that you have installed Capstone and Unicorn correctly.
+
+```sh
+pip install -Ur requirements.txt
 ```
 
 ## Features
