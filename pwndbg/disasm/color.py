@@ -18,7 +18,7 @@ def instruction(ins):
     if branch:
         asm = pwndbg.color.bold(asm)
 
-    if ins.target is not None:
+    if ins.target not in (None, ins.address + ins.size):
         sym    = pwndbg.symbol.get(ins.target)
         target = pwndbg.color.get(ins.target)
         const  = ins.target_constant
