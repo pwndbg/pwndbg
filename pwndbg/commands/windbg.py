@@ -160,6 +160,9 @@ def eX(size, address, data, hex=True):
     """
     address = pwndbg.commands.fix(address)
 
+    if address is None:
+        return
+
     for i,bytestr in enumerate(data):
         if hex:
             bytestr = bytestr.rjust(size*2, '0')
