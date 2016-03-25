@@ -33,7 +33,7 @@ sudo apt-get install python-dev python3-dev python-pip python3-pip
 
 #### Capstone 4.0
 
-Currently this is only available via a source build.
+Currently this is only available via a source build.  Be sure to install to the *system* Python; GDB will completely ignore your virtualenv / pyenv.
 
 ```sh
 git clone https://github.com/aquynh/capstone
@@ -46,7 +46,7 @@ sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
 ```
 #### Unicorn Engine
 
-Currently this is only available via a source build.
+Currently this is only available via a source build.  Be sure to install to the *system* Python; GDB will completely ignore your virtualenv / pyenv.
 
 ```sh
 sudo apt-get install libglib2.0-dev
