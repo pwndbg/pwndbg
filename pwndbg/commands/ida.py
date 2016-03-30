@@ -16,8 +16,8 @@ def j(*args):
     """
     Synchronize IDA's cursor with GDB
     """
-    pc = int(gdb.selected_frame().pc())
-    pwndbg.ida.Jump(pc)
+    # pc = int(gdb.selected_frame().pc())
+    # pwndbg.ida.Jump(pc)
 
 
 if pwndbg.ida.available():

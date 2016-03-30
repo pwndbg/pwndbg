@@ -14,12 +14,11 @@ import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.memoize
 import pwndbg.jump
+import pwndbg.emu.emulator
 
 import capstone
 from capstone import *
 
-
-Instruction = collections.namedtuple('Instruction', ['address', 'length', 'asm', 'target'])
 
 disassembler = None
 last_arch    = None
@@ -101,8 +100,28 @@ def get(address, instructions=1):
 
     return retval
 
-def near(address, instructions=1):
+
+# These instruction types should not be emulated through, either
+# because they cannot be emulated without interfering (syscall, etc.)
+# or because they may take a long time (call, etc.), or because they
+# change privilege levels.
+DO_NOT_EMULATE = {
+    capstone.CS_GRP_CALL,
+    capstone.CS_GRP_INT,
+    capstone.CS_GRP_INVALID,
+    capstone.CS_GRP_IRET,
+
+# Note that we explicitly do not include the PRIVILEGE category, since
+# we may be in kernel code, and privileged instructions are just fine
+# in that case.
+#    capstone.CS_GRP_PRIVILEGE,
+}
+
+def near(address, instructions=1, emulate=False):
+
     current = one(address)
+
+    pc = pwndbg.regs.pc
 
     if not current:
         return []
@@ -116,16 +135,56 @@ def near(address, instructions=1):
         insns.append(insn)
         insn = one(backward_cache[insn.address])
     insns.reverse()
+
     insns.append(current)
 
-    # Now find all of the instructions moving forward.
-    insn  = current
-    while insn and len(insns) < 1+(2*instructions):
-        # In order to avoid annoying cycles where the current instruction
-        # is a branch, which evaluates to true, and jumps back a short
-        # number of instructions.
+    # Emulate forward if we are at the current instruction.
+    emu = None
 
-        insn = one(insn.next)
+    # If we hit the current instruction, we can do emulation going forward from there.
+    if address == pc and emulate:
+        emu = pwndbg.emu.emulator.Emulator()
+
+        # For whatever reason, the first instruction is emulated twice.
+        # Skip the first one here.
+        emu.single_step()
+
+    # Now find all of the instructions moving forward.
+    #
+    # At this point, we've already added everything *BEFORE* the requested address,
+    # and the instruction at 'address'.
+    insn  = current
+    total_instructions = 1+(2*instructions)
+
+    while insn and len(insns) < total_instructions:
+        target = insn.target
+
+        # Disable emulation if necessary
+        if emulate and set(insn.groups) & DO_NOT_EMULATE:
+            print("Disabling emulation at %#x" % insn.address)
+            emulate = False
+            emu     = None
+
+        # Continue disassembling after a RET or JUMP, but don't follow through CALL.
+        if capstone.CS_GRP_CALL in insn.groups:
+            target = insn.next
+
+        # If we initialized the emulator and emulation is still enabled, we can use it
+        # to figure out the next instruction.
+        elif emu:
+            target_candidate, size_candidate = emu.single_step()
+
+            if None not in (target_candidate, size_candidate):
+                target = target_candidate
+                size   = size_candidate
+
+        # Continue disassembling at the *next* instruction unless we have emulated
+        # the path of execution.
+        elif target != pc:
+            target = insn.next
+
+
+        insn = one(target)
         if insn:
             insns.append(insn)
 
