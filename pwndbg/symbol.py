@@ -78,7 +78,7 @@ def autofetch():
 
     searchpath = get_directory()
 
-    for mapping, address in pwndbg.vmmap.get().items():
+    for mapping in pwndbg.vmmap.get():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
