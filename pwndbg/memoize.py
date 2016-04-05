@@ -71,9 +71,11 @@ class reset_on_stop(memoize):
 
     @staticmethod
     @pwndbg.events.stop
-    def __reset():
+    def __reset_on_stop():
         for obj in reset_on_stop.caches:
             obj.cache.clear()
+
+    __reset = __reset_on_stop
 
 class reset_on_exit(memoize):
     caches = []
@@ -81,9 +83,11 @@ class reset_on_exit(memoize):
 
     @staticmethod
     @pwndbg.events.exit
-    def __reset():
+    def __reset_on_exit():
         for obj in reset_on_exit.caches:
             obj.clear()
+
+    __reset = __reset_on_exit
 
 class reset_on_objfile(memoize):
     caches = []
@@ -91,9 +95,11 @@ class reset_on_objfile(memoize):
 
     @staticmethod
     @pwndbg.events.new_objfile
-    def __reset():
+    def __reset_on_objfile():
         for obj in reset_on_objfile.caches:
             obj.clear()
+
+    __reset = __reset_on_objfile
 
 class reset_on_start(memoize):
     caches = []
@@ -102,9 +108,11 @@ class reset_on_start(memoize):
     @staticmethod
     @pwndbg.events.stop
     @pwndbg.events.start
-    def __reset():
+    def __reset_on_start():
         for obj in reset_on_start.caches:
             obj.clear()
+
+    __reset = __reset_on_start
 
 class reset_on_cont(memoize):
     caches = []
@@ -112,10 +120,11 @@ class reset_on_cont(memoize):
 
     @staticmethod
     @pwndbg.events.cont
-    def __reset():
+    def __reset_on_cont():
         for obj in reset_on_cont.caches:
             obj.clear()
 
+    __reset = __reset_on_cont
 
 class while_running(memoize):
     caches = []
@@ -129,8 +138,10 @@ class while_running(memoize):
 
     @staticmethod
     @pwndbg.events.exit
-    def __reset():
+    def __reset_while_running():
         for obj in while_running.caches:
             obj.clear()
         while_running.caching = False
+
+    __reset = __reset_while_running
 

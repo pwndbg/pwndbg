@@ -16,6 +16,7 @@ import pwndbg.file
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.proc
+import pwndbg.qemu
 import pwndbg.regs
 import pwndbg.remote
 import pwndbg.stack
@@ -25,6 +26,8 @@ import pwndbg.typeinfo
 # by analyzing the stack or register context.
 explored_pages = []
 
+@pwndbg.events.new_objfile
+@pwndbg.memoize.reset_on_stop
 def get():
     pages = []
     pages.extend(proc_pid_maps())
@@ -39,7 +42,7 @@ def get():
 
     pages.extend(explored_pages)
     pages.sort()
-    return pages
+    return tuple(pages)
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
@@ -333,6 +336,10 @@ def check_aslr():
     # if not pwndbg.remote.is_remote():
     system_aslr = True
     data        = b''
+
+    # QEMU does not support this concept.
+    if pwndbg.qemu.is_qemu_usermode():
+        return vmmap.aslr
 
     # Systemwide ASLR is disabled
     try:

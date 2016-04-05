@@ -18,6 +18,12 @@ def instruction(ins):
     if branch:
         asm = pwndbg.color.bold(asm)
 
+
+    if ins.condition:
+        asm = pwndbg.color.green(u'✔ ') + asm
+    else:
+        asm = '  ' + asm
+
     if ins.target not in (None, ins.address + ins.size):
         sym    = pwndbg.symbol.get(ins.target)
         target = pwndbg.color.get(ins.target)
@@ -34,13 +40,8 @@ def instruction(ins):
         else:
             asm = '%-36s <%s>' % (asm, target)
 
-    if ins.condition:
-        asm = pwndbg.color.green(u'✔ ') + asm
-    else:
-        asm = '  ' + asm
-
-    if ins.symbol:
-        if branch:
+    elif ins.symbol:
+        if branch and not ins.target:
             asm = '%s <%s>' % (asm, ins.symbol)
         else:
             asm = '%-50s # %s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr), ins.symbol)

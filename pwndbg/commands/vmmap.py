@@ -10,14 +10,15 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.QuietSloppyParsedCommand
 def vmmap(map=None):
     """
     Print the virtal memory map
     """
     int_map = None
     str_map = None
+
     if isinstance(map, pwndbg.compat.basestring):
         str_map = map
     elif isinstance(map, (long, int, gdb.Value)):
@@ -32,3 +33,11 @@ def vmmap(map=None):
             continue
 
         print(pwndbg.color.get(page.vaddr, text=str(page)))
+
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.QuietSloppyParsedCommand
+def elfheader(map=None):
+    """
+    Provides PEDA compatibility.  See vmmap command.
+    """
+    return vmmap(map)

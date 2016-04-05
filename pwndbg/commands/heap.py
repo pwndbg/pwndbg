@@ -10,11 +10,13 @@ import pwndbg.commands
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
 def brk(n=0):
+    '''Get the address of brk(n=0)'''
     gdb.execute('call brk(%i)' % n)
 
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
 def sbrk(n=0):
+    '''Get the address of sbrk(n=0)'''
     gdb.execute('call sbrk(%i)' % n)
 
 

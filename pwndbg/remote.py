@@ -5,9 +5,7 @@ Information about whether the debuggee is local (under GDB) or remote
 (under GDBSERVER or QEMU stub).
 """
 import gdb
-import pwndbg.proc
 
-@pwndbg.proc.OnlyWhenRunning
 def is_remote():
     # N.B.: We cannot use "info program" because of:
     # https://sourceware.org/bugzilla/show_bug.cgi?id=18335

@@ -52,15 +52,23 @@ class _Command(gdb.Command):
 
 
 class _ParsedCommand(_Command):
+    #: Whether to return the string 'arg' if parsing fails.
+    sloppy = False
+
+    #: Whether to hide errors during parsing
+    quiet  = False
+
     def split_args(self, argument):
         # sys.stdout.write(repr(argument) + '\n')
         argv = super(_ParsedCommand,self).split_args(argument)
         # sys.stdout.write(repr(argv) + '\n')
-        return list(filter(lambda x: x is not None, map(fix, argv)))
+        return list(filter(lambda x: x is not None, map(self.fix, argv)))
+
+    def fix(self, arg):
+        return fix(arg, self.sloppy, self.quiet)
 
 
-
-def fix(arg, sloppy=False):
+def fix(arg, sloppy=False, quiet=False):
     try:
         parsed = gdb.parse_and_eval(arg)
         return parsed
@@ -71,7 +79,8 @@ def fix(arg, sloppy=False):
         arg = pwndbg.regs.fix(arg)
         return gdb.parse_and_eval(arg)
     except Exception as e:
-        print(e)
+        if not quiet:
+            print(e)
         pass
 
     if sloppy:
@@ -85,7 +94,7 @@ def OnlyWhenRunning(function):
         if pwndbg.proc.alive:
             return function(*a, **kw)
         else:
-            print("Only available when running")
+            print("The program is not being run.")
     return _OnlyWhenRunning
 
 def Command(func, *a, **kw):
@@ -99,3 +108,9 @@ def ParsedCommand(func):
         __doc__ = func.__doc__
         __name__ = func.__name__
     return C(func)
+
+def QuietSloppyParsedCommand(func):
+    c = ParsedCommand(func)
+    c.quiet = True
+    c.sloppy = True
+    return c

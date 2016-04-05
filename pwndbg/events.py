@@ -109,6 +109,18 @@ def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
 def stop(func):        return connect(func, gdb.events.stop, 'stop')
 def start(func):       return connect(func, gdb.events.start, 'start')
 
+
+def log_objfiles(ofile=None):
+    if not (debug and ofile):
+        return
+
+    name = ofile.new_objfile.filename
+
+    print("objfile: %r" % name)
+    gdb.execute('info sharedlibrary')
+
+gdb.events.new_objfile.connect(log_objfiles)
+
 def after_reload():
     if gdb.selected_inferior().pid:
         for f in registered[gdb.events.start]:
@@ -124,9 +136,9 @@ def on_reload():
             event.disconnect(function)
         registered[event] = []
 
-@new_objfile
-def _start_newobjfile():
-    gdb.events.start.on_new_objfile()
+# @new_objfile
+# def _start_newobjfile():
+    # gdb.events.start.on_new_objfile()
 
 @stop
 def _start_stop():

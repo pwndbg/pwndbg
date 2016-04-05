@@ -270,4 +270,7 @@ def u(where=None, n=5):
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def k():
+    """
+    Print a backtrace (alias 'bt')
+    """
     gdb.execute('bt')

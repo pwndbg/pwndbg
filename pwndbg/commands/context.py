@@ -53,6 +53,7 @@ def context_regs():
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def regs(*regs):
+    '''Print out all registers and enhance the information.'''
     print('\n'.join(get_regs(*regs)))
 
 def get_regs(*regs):

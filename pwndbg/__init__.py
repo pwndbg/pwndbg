@@ -48,6 +48,8 @@ import pwndbg.commands.cpsr
 import pwndbg.commands.argv
 import pwndbg.commands.heap
 import pwndbg.commands.segments
+import pwndbg.commands.xor
+import pwndbg.commands.peda
 
 
 __all__ = [

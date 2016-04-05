@@ -7,6 +7,8 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
+from __future__ import print_function
+
 import gdb
 import re
 import os
@@ -17,6 +19,7 @@ import pwndbg.file
 import pwndbg.ida
 import pwndbg.memoize
 import pwndbg.memory
+import pwndbg.qemu
 import pwndbg.remote
 import pwndbg.stack
 import pwndbg.vmmap
@@ -66,13 +69,16 @@ def autofetch():
     if not pwndbg.remote.is_remote():
         return
 
+    if pwndbg.qemu.is_qemu_usermode():
+        return
+
     if not remote_files_dir:
         remote_files_dir = tempfile.mkdtemp()
         add_directory(remote_files_dir)
 
     searchpath = get_directory()
 
-    for mapping in pwndbg.vmmap.get():
+    for mapping, address in pwndbg.vmmap.get().items():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
@@ -83,12 +89,15 @@ def autofetch():
         if not objfile or objfile in remote_files:
             continue
 
-        print("Downloading %r from the remote server" % objfile)
+        msg = "Downloading %r from the remote server" % objfile
+        print(msg, end='')
 
         try:
             data = pwndbg.file.get(objfile)
+            print('\r' + msg + ': OK')
         except OSError:
             # The file could not be downloaded :(
+            print('\r' + msg + ': Failed')
             return
 
         filename = os.path.basename(objfile)

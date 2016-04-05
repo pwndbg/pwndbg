@@ -398,7 +398,8 @@ class module(ModuleType):
 
         return 0
 
-
+    def __repr__(self):
+        return ('<module pwndbg.regs>')
 
 # To prevent garbage collection
 tether = sys.modules[__name__]

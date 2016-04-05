@@ -13,6 +13,7 @@ import pwndbg.typeinfo
 from capstone import *
 
 current = 'i386'
+qemu    = current
 ptrmask = 0xfffffffff
 endian  = 'little'
 ptrsize = pwndbg.typeinfo.ptrsize
@@ -42,6 +43,14 @@ def update():
     (8, 'little'): '<Q',
     (8, 'big'):    '>Q',
     }.get((m.ptrsize, m.endian))
+
+    # Attempt to detect the qemu-user binary name
+    if m.current == 'arm' and m.endian == 'big':
+        m.qemu = 'armeb'
+    elif m.current == 'mips' and m.endian == 'little':
+        m.qemu = 'mipsel'
+    else:
+        m.qemu = m.current
 
 def pack(integer):
     return struct.pack(fmt, integer & ptrmask)

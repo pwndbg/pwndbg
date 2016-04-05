@@ -94,6 +94,13 @@ def entry():
 def load(pointer):
     return get_ehdr(pointer)[1]
 
+ehdr_type_loaded = 0
+
+@pwndbg.memoize.reset_on_start
+def reset_ehdr_type_loaded():
+    global ehdr_type_loaded
+    ehdr_type_loaded = 0
+
 def get_ehdr(pointer):
     """
     Given a pointer into an ELF module, return a list of all loaded
@@ -115,8 +122,12 @@ def get_ehdr(pointer):
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
-    with pwndbg.events.Pause():
-        gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
+    global ehdr_type_loaded
+    
+    if not ehdr_type_loaded:
+        with pwndbg.events.Pause():
+            gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
+        ehdr_type_loaded = 1
 
     Elf32_Ehdr = pwndbg.typeinfo.load('Elf32_Ehdr')
     Elf64_Ehdr = pwndbg.typeinfo.load('Elf64_Ehdr')

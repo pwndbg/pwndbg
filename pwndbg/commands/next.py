@@ -50,6 +50,7 @@ def stepover(*args):
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def so(*args):
+    """Alias for stepover"""
     stepover(*args)
 
 @pwndbg.commands.Command

@@ -57,9 +57,7 @@ if pwndbg.ida.available():
 
 
 class ida(gdb.Function):
-    """
-    Return a value from IDA that can be used in
-    native GDB expressions.
+    """Evaluate ida.LocByName() on the supplied value.
     """
     def __init__(self):
         super(ida, self).__init__('ida')

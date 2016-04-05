@@ -12,6 +12,7 @@ _errno.errorcode[0] = 'OK'
 
 @_pwndbg.commands.ParsedCommand
 def errno(err=None):
+    '''Converts errno (or argument) to its string representation'''
     if err is None:
         # Dont ask.
         err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
@@ -44,6 +45,7 @@ def pwndbg():
 
 @_pwndbg.commands.ParsedCommand
 def distance(a, b):
+    '''Print the distance between the two arguments'''
     a = int(a) & _arch.ptrmask
     b = int(b) & _arch.ptrmask
 
