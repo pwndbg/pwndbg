@@ -136,9 +136,9 @@ def on_reload():
             event.disconnect(function)
         registered[event] = []
 
-# @new_objfile
-# def _start_newobjfile():
-    # gdb.events.start.on_new_objfile()
+@new_objfile
+def _start_newobjfile():
+    gdb.events.start.on_new_objfile()
 
 @stop
 def _start_stop():

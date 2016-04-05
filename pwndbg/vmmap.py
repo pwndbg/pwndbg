@@ -177,8 +177,7 @@ def proc_pid_maps():
 
     return tuple(pages)
 
-
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.memoize.reset_on_stop
 def info_sharedlibrary():
     """
     Parses the output of `info sharedlibrary`.
@@ -224,7 +223,7 @@ def info_sharedlibrary():
 
     return tuple(sorted(pages))
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.memoize.reset_on_stop
 def info_files():
 
     example_info_files_linues = """
