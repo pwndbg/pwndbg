@@ -55,6 +55,7 @@ def update():
     if pvoid.sizeof == 4: module.ptrdiff = uint32
     if pvoid.sizeof == 8: module.ptrdiff = uint64
 
+    module.null = gdb.Value(0).cast(void)
 
 # Call it once so we load all of the types
 update()
