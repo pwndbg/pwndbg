@@ -43,7 +43,7 @@ arch_to_CS = {
     # 'powerpc': C.CS_ARCH_PPC,
 }
 
-DEBUG = True
+DEBUG = False
 
 def debug(*a,**kw):
     if DEBUG: print(*a, **kw)
@@ -122,6 +122,10 @@ class Emulator(object):
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug("# Could not set register %r" % reg)
+                continue
+
+            # All registers are initialized to zero.
+            if value == 0:
                 continue
 
             name = 'U.x86_const.UC_X86_REG_%s' % reg.upper()
@@ -383,7 +387,7 @@ class Emulator(object):
         """
         self._singlestep = (None, None)
 
-        pc = pc or self.rip
+        pc = pc or self.pc
         insn = pwndbg.disasm.one(pc)
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
         debug('# EFLAGS before: %#x' % self.eflags)

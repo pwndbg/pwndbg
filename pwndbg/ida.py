@@ -86,10 +86,10 @@ def r2l(addr):
 
 @pwndbg.memoize.reset_on_objfile
 def base():
-    result =  _ida.NextSeg(0) & ~(0xfff)
-    if result < 0x100000:
-        return 0
-    return result
+    segaddr = _ida.NextSeg(0)
+    base = _ida.get_fileregion_offset(segaddr)
+
+    return segaddr - base
 
 @withIDA
 @takes_address
@@ -257,3 +257,15 @@ def SaveBase(path):
 @withIDA
 def GetIdbPath():
     return _ida.GetIdbPath()
+
+@takes_address
+@pwndbg.memoize.reset_on_stop
+def has_cached_cfunc(addr):
+    return _ida.has_cached_cfunc(addr)
+
+
+@withIDA
+@takes_address
+@pwndbg.memoize.reset_on_stop
+def decompile(addr):
+    return _ida.decompile(addr)

@@ -161,7 +161,6 @@ def near(address, instructions=1, emulate=False):
 
         # Disable emulation if necessary
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
-            print("Disabling emulation at %#x" % insn.address)
             emulate = False
             emu     = None
 

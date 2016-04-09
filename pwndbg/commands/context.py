@@ -124,6 +124,18 @@ def context_source():
         return banner
     except:
         pass
+
+    if not pwndbg.ida.available():
+        return []
+
+    try:
+        name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
+        addr = pwndbg.ida.LocByName(name)
+        lines = pwndbg.ida.decompile(addr)
+        return lines.splitlines()
+    except:
+        pass
+
     return []
 
 def context_stack():
