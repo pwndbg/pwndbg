@@ -12,6 +12,7 @@ import pwndbg.arch
 import pwndbg.commands
 import pwndbg.memory
 import pwndbg.strings
+import pwndbg.symbol
 import pwndbg.typeinfo
 
 
@@ -181,6 +182,14 @@ def dds(*a):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+def kd(*a):
+    """
+    Dump pointers and symbols at the specified address.
+    """
+    return pwndbg.commands.telescope.telescope(*a)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def dps(*a):
     """
     Dump pointers and symbols at the specified address.
@@ -251,9 +260,11 @@ def bc(which = '*'):
 @pwndbg.commands.OnlyWhenRunning
 def bp(where):
     """
-    Set a breakpoint
+    Set a breakpoint at the specified address.
     """
-    gdb.execute('break *%#x' % int(where))
+    result = pwndbg.commands.fix(where)
+    if result is not None:
+        gdb.execute('break *%#x' % int(result))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -274,3 +285,60 @@ def k():
     Print a backtrace (alias 'bt')
     """
     gdb.execute('bt')
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def ln(value=None):
+    """
+    List the symbols nearest to the provided value.
+    """
+    if value is None: value = pwndbg.regs.pc
+    x = pwndbg.symbol.get(value)
+    if x:
+        result = '(%#x)   %s' % (value, x)
+
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.QuietSloppyParsedCommand
+def lm(map):
+    """
+    Windbg compatibility alias for 'vmmap' command.
+    """
+    return pwndbg.commands.vmmap.vmmap(map)
+
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.QuietSloppyParsedCommand
+def address(map):
+    """
+    Windbg compatibility alias for 'vmmap' command.
+    """
+    return pwndbg.commands.vmmap.vmmap(map)
+
+
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.QuietSloppyParsedCommand
+def vprot(map):
+    """
+    Windbg compatibility alias for 'vmmap' command.
+    """
+    return pwndbg.commands.vmmap.vmmap(map)
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def peb(*a):
+    print("This isn't Windows!")
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def go():
+    '''
+    Windbg compatibility alias for 'continue' command.
+    '''
+    gdb.execute('continue')
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def pc():
+    '''
+    Windbg compatibility alias for 'nextcall' command.
+    '''
+    return pwndbg.commands.next.nextcall()

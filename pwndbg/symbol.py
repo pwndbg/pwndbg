@@ -115,7 +115,7 @@ def get(address, gdb_only=False):
     Retrieve the textual name for a symbol
     """
     # Fast path
-    if address < pwndbg.memory.MMAP_MIN_ADDR or address >= (1 << 64):
+    if address < pwndbg.memory.MMAP_MIN_ADDR or address >= ((1 << 64)-1):
         return ''
 
     # Don't look up stack addresses

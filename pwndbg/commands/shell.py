@@ -27,7 +27,7 @@ shellcmds = [
     # "kill",
     # "killall",
     "less",
-    "ln",
+    # "ln",
     "ls",
     "man",
     "mkdir",
