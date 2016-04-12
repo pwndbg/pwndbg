@@ -11,6 +11,7 @@ import gdb
 import pwndbg
 import pwndbg.commands
 import pwndbg.events
+import pwndbg.memoize
 
 
 def rreload(module, mdict=None):
@@ -36,4 +37,12 @@ def rreload(module, mdict=None):
 def reload(*a):
     pwndbg.events.on_reload()
     rreload(pwndbg)
+    pwndbg.events.after_reload()
+
+@pwndbg.commands.Command
+def reinit_pwndbg():
+    """
+    Makes pwndbg reinitialize all state.
+    """
+    pwndbg.memoize.reset()
     pwndbg.events.after_reload()

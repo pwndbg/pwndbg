@@ -75,7 +75,7 @@ class reset_on_stop(memoize):
         for obj in reset_on_stop.caches:
             obj.cache.clear()
 
-    __reset = __reset_on_stop
+    _reset = __reset_on_stop
 
 class reset_on_exit(memoize):
     caches = []
@@ -87,7 +87,7 @@ class reset_on_exit(memoize):
         for obj in reset_on_exit.caches:
             obj.clear()
 
-    __reset = __reset_on_exit
+    _reset = __reset_on_exit
 
 class reset_on_objfile(memoize):
     caches = []
@@ -99,7 +99,7 @@ class reset_on_objfile(memoize):
         for obj in reset_on_objfile.caches:
             obj.clear()
 
-    __reset = __reset_on_objfile
+    _reset = __reset_on_objfile
 
 class reset_on_start(memoize):
     caches = []
@@ -112,7 +112,7 @@ class reset_on_start(memoize):
         for obj in reset_on_start.caches:
             obj.clear()
 
-    __reset = __reset_on_start
+    _reset = __reset_on_start
 
 class reset_on_cont(memoize):
     caches = []
@@ -124,7 +124,7 @@ class reset_on_cont(memoize):
         for obj in reset_on_cont.caches:
             obj.clear()
 
-    __reset = __reset_on_cont
+    _reset = __reset_on_cont
 
 class while_running(memoize):
     caches = []
@@ -143,5 +143,13 @@ class while_running(memoize):
             obj.clear()
         while_running.caching = False
 
-    __reset = __reset_while_running
+    _reset = __reset_while_running
 
+
+def reset():
+    reset_on_stop._reset();
+    reset_on_exit._reset();
+    reset_on_objfile._reset();
+    reset_on_start._reset();
+    reset_on_cont._reset();
+    while_running._reset();
