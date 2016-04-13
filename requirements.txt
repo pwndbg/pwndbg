@@ -2,3 +2,4 @@ pip
 pycparser
 psutil>=3.1.0
 python-ptrace>=0.8
+pyelftools
