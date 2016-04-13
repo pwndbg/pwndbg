@@ -22,31 +22,25 @@ import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
-import pwndbg.typeinfo
+
+from pwndbg.elftypes import *
 
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
 ET_EXEC, ET_DYN  = 2,3
 
-# In order for this file to work, we need to have symbols loaded
-# in GDB for various ELF header types.
-#
-# We can simply create an object file and load its symbols (and types!)
-# into our address space.  This should not pollute any actual symbols
-# since we don't declare any functions, and load the object file at
-# address zero.
-tempdir = tempfile.gettempdir()
-gef_elf = os.path.join(tempdir, 'pwndbg-elf')
-with open(gef_elf + '.c', 'w+') as f:
-    f.write('''#include <elf.h>
-Elf32_Ehdr a;
-Elf64_Ehdr b;
-Elf32_Phdr e;
-Elf64_Phdr f;
-''')
-    f.flush()
+def read(typ, address, blob=None):
+    size = ctypes.sizeof(typ)
 
-subprocess.check_output('gcc -c -g %s.c -o %s.o' % (gef_elf, gef_elf), shell=True)
+    if not blob:
+        data = pwndbg.memory.read(address, size)
+    else:
+        data = blob[address:address+size]
+
+    obj  = typ.from_buffer_copy(data)
+    obj.address = address
+    obj.type = typ
+    return obj
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
@@ -122,16 +116,6 @@ def get_ehdr(pointer):
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
-    global ehdr_type_loaded
-    
-    if not ehdr_type_loaded:
-        with pwndbg.events.Pause():
-            gdb.execute('add-symbol-file %s.o 0' % gef_elf, from_tty=False, to_string=True)
-        ehdr_type_loaded = 1
-
-    Elf32_Ehdr = pwndbg.typeinfo.load('Elf32_Ehdr')
-    Elf64_Ehdr = pwndbg.typeinfo.load('Elf64_Ehdr')
-
     # Align down to a page boundary, and scan until we find
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
@@ -158,7 +142,7 @@ def get_ehdr(pointer):
 
     # Find out where the section headers start
     EhdrType = { 1: Elf32_Ehdr, 2: Elf64_Ehdr }[ei_class]
-    Elfhdr   = pwndbg.memory.poi(EhdrType, base)
+    Elfhdr   = read(EhdrType, base)
     return ei_class, Elfhdr
 
 def get_phdrs(pointer):
@@ -172,32 +156,30 @@ def get_phdrs(pointer):
     if Elfhdr is None:
         return (0, 0, None)
 
-    Elf32_Phdr = pwndbg.typeinfo.load('Elf32_Phdr')
-    Elf64_Phdr = pwndbg.typeinfo.load('Elf64_Phdr')
     PhdrType   = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
 
-    phnum     = int(Elfhdr['e_phnum'])
-    phoff     = int(Elfhdr['e_phoff'])
-    phentsize = int(Elfhdr['e_phentsize'])
+    phnum     = Elfhdr.e_phnum
+    phoff     = Elfhdr.e_phoff
+    phentsize = Elfhdr.e_phentsize
 
-    x = (phnum, phentsize, pwndbg.memory.poi(PhdrType, int(Elfhdr.address) + phoff))
+    x = (phnum, phentsize, read(PhdrType, Elfhdr.address + phoff))
     return x
 
 def iter_phdrs(ehdr):
     if not ehdr:
         raise StopIteration
 
-    phnum, phentsize, phdr = get_phdrs(int(ehdr.address))
+    phnum, phentsize, phdr = get_phdrs(ehdr.address)
 
     if not phdr:
         raise StopIteration
 
-    first_phdr = int(phdr.address)
+    first_phdr = phdr.address
     PhdrType   = phdr.type
 
     for i in range(0, phnum):
         p_phdr = int(first_phdr + (i*phentsize))
-        p_phdr = pwndbg.memory.poi(PhdrType, p_phdr)
+        p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
 
 def map(pointer, objfile=''):
@@ -223,7 +205,6 @@ def map(pointer, objfile=''):
     ei_class, ehdr         = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
 
-@pwndbg.memoize.reset_on_objfile
 def map_inner(ei_class, ehdr, objfile):
     if not ehdr:
         return []
@@ -239,15 +220,15 @@ def map_inner(ei_class, ehdr, objfile):
     # override their small subset of address space.
     pages = []
     for phdr in iter_phdrs(ehdr):
-        memsz   = int(phdr['p_memsz'])
+        memsz   = int(phdr.p_memsz)
 
         if not memsz:
             continue
 
-        vaddr   = int(phdr['p_vaddr'])
-        offset  = int(phdr['p_offset'])
-        flags   = int(phdr['p_flags'])
-        ptype   = int(phdr['p_type'])
+        vaddr   = int(phdr.p_vaddr)
+        offset  = int(phdr.p_offset)
+        flags   = int(phdr.p_flags)
+        ptype   = int(phdr.p_type)
 
         memsz += pwndbg.memory.page_offset(vaddr)
         memsz  = pwndbg.memory.page_size_align(memsz)
@@ -270,7 +251,7 @@ def map_inner(ei_class, ehdr, objfile):
 
     # Adjust against the base address that we discovered
     # for binaries that are relocatable / type DYN.
-    if ET_DYN == int(ehdr['e_type']):
+    if ET_DYN == int(ehdr.e_type):
         for page in pages:
             page.vaddr += base
 

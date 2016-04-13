@@ -9,6 +9,9 @@ information available.
 """
 from __future__ import print_function
 
+import elftools.elf.constants
+import elftools.elf.elffile
+import elftools.elf.segments
 import gdb
 import re
 import os
@@ -108,6 +111,29 @@ def autofetch():
 
         remote_files[objfile] = local_path
 
+        base = None
+        for mapping in pwndbg.vmmap.get():
+            if mapping.objfile != objfile:
+                continue
+
+            if base is None or mapping.vaddr < base.vaddr:
+                base = mapping
+
+        if not base:
+            continue
+
+        base = base.vaddr
+
+        elf = elftools.elf.elffile.ELFFile(open(local_path, 'rb'))
+        gdb_command = ['add-symbol-file', local_path, hex(base)]
+        for section in elf.iter_sections():
+            name = section.name
+            section = section.header
+            if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
+                continue
+            gdb_command += ['-s', name, hex(base + section.sh_addr)]
+
+        gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):

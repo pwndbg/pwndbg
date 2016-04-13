@@ -112,8 +112,7 @@ def is_executable():
     ehdr         = pwndbg.elf.exe()
 
     for phdr in pwndbg.elf.iter_phdrs(ehdr):
-        p_type = int(phdr['p_type'])
-        if p_type == PT_GNU_STACK:
+        if phdr.p_type == PT_GNU_STACK:
             nx = True
 
     return not nx
