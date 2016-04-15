@@ -9,6 +9,7 @@ information available.
 """
 from __future__ import print_function
 
+import elftools.common.exceptions
 import elftools.elf.constants
 import elftools.elf.elffile
 import elftools.elf.segments
@@ -124,16 +125,21 @@ def autofetch():
 
         base = base.vaddr
 
-        elf = elftools.elf.elffile.ELFFile(open(local_path, 'rb'))
+        try:
+            elf = elftools.elf.elffile.ELFFile(open(local_path, 'rb'))
+        except elftools.common.exceptions.ELFError:
+            continue
+
         gdb_command = ['add-symbol-file', local_path, hex(base)]
         for section in elf.iter_sections():
-            name = section.name
+            name = section.name.decode('latin-1')
             section = section.header
             if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
                 continue
             gdb_command += ['-s', name, hex(base + section.sh_addr)]
 
-        gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
+        print(' '.join(gdb_command))
+        # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):

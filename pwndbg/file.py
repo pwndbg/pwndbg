@@ -5,6 +5,8 @@ Retrieve files from the debuggee's filesystem.  Useful when
 debugging a remote process over SSH or similar, where e.g.
 /proc/FOO/maps is needed from the remote system.
 """
+import binascii
+import errno as _errno
 import os
 import tempfile
 
@@ -43,3 +45,74 @@ def get(path, recurse=1):
             return f.read()
     except:
         return b''
+
+def readlink(path):
+    """readlink(path) -> str
+
+    Read the link specified by 'path' on the system being debugged.
+
+    Handles local, qemu-usermode, and remote debugging cases.
+    """
+    is_qemu = pwndbg.qemu.is_qemu_usermode()
+
+    if is_qemu:
+        if not os.path.exists(path):
+            path = os.path.join(pwndbg.qemu.root(), path)
+
+    if is_qemu or not pwndbg.remote.is_remote():
+        try:
+            return os.readlink(path)
+        except Exception:
+            return ''
+
+    #
+    # Hurray unexposed packets!
+    #
+    # The 'vFile:readlink:' packet does exactly what it sounds like,
+    # but there is no API exposed to do this and there is also no
+    # command exposed... so we have to send the packet manually.
+    #
+    cmd = 'maintenance packet vFile:readlink:%s'
+
+    # The path must be uppercase hex-encoded and NULL-terminated.
+    path += '\x00'
+    path = binascii.hexlify(path.encode())
+    path = path.upper()
+    path = path.decode()
+
+    result = gdb.execute(cmd % path, from_tty=False, to_string=True)
+
+    """
+    sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
+    received: "Fc;pipe:[98420]"
+
+    sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
+    received: "F-1,2"
+    """
+
+    _, data = result.split('\n', 1)
+
+    # Sanity check
+    expected = 'received: "F'
+    if not data.startswith(expected):
+        return ''
+
+    # Negative values are errors
+    data = data[len(expected):]
+    if data[0] == '-':
+        return ''
+
+    # If non-negative, there will be a hex-encoded length followed
+    # by a semicolon.
+    n, data = data.split(';', 1)
+
+    n = int(n, 16)
+    if n < 0:
+        return ''
+
+    # The result is quoted by GDB, strip the quote and newline.
+    # I have no idea how well it handles other crazy stuff.
+    ending = '"\n'
+    data = data[:-len(ending)]
+
+    return data

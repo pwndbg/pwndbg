@@ -26,6 +26,8 @@ import pwndbg.color
 import pwndbg.typeinfo
 import pwndbg.constants
 import pwndbg.argv
+import pwndbg.net
+import pwndbg.android
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.context

@@ -19,7 +19,7 @@ class module(ModuleType):
         # QEMU usermode emualtion always returns 42000 for some reason.
         # In any case, we can't use the info.
         if pwndbg.qemu.is_qemu_usermode():
-            return 0
+            return pwndbg.qemu.pid()
 
         i = gdb.selected_inferior()
         if i is not None:
