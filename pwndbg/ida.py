@@ -249,3 +249,11 @@ def isASCII(flags):
 @pwndbg.memoize.reset_on_objfile
 def ArgCount(address):
     pass
+
+@withIDA
+def SaveBase(path):
+    return _ida.SaveBase(path)
+
+@withIDA
+def GetIdbPath():
+    return _ida.GetIdbPath()
