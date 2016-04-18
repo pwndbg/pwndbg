@@ -111,6 +111,8 @@ set width 0
 set print elements 15
 set input-radix 16
 handle SIGALRM nostop print nopass
+handle SIGBUS  stop   print nopass
+handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
 """.strip() % prompt
 
