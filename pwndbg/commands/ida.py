@@ -1,3 +1,7 @@
+import bz2
+import datetime
+import os
+
 import gdb
 import pwndbg.commands
 import pwndbg.commands.context
@@ -55,6 +59,43 @@ if pwndbg.ida.available():
 
         j()
 
+@pwndbg.commands.Command
+def save_ida():
+    if not pwndbg.ida.available():
+        return
+
+    path = pwndbg.ida.GetIdbPath()
+
+    # Need to handle emulated paths for Wine
+    if path.startswith('Z:'):
+        path = path[2:].replace('\\', '/')
+
+    basename = os.path.basename(path)
+    dirname = os.path.dirname(path)
+    backups = os.path.join(dirname, 'ida-backup')
+    
+    if not os.path.isdir(backups):
+        os.mkdir(backups)
+
+    basename, ext = os.path.splitext(basename)
+    basename += '-%s' % datetime.datetime.now().isoformat()
+    basename += ext
+
+    # Windows doesn't like colons in paths
+    basename = basename.replace(':','_')
+
+    full_path = os.path.join(backups, basename)
+
+    pwndbg.ida.SaveBase(full_path)
+
+    data = open(full_path, 'rb').read()
+    
+    # Compress!
+    full_path_compressed = full_path + '.bz2'
+    bz2.BZ2File(full_path_compressed, 'w').write(data)
+
+    # Remove old version
+    os.unlink(full_path)
 
 class ida(gdb.Function):
     """Evaluate ida.LocByName() on the supplied value.
@@ -65,3 +106,4 @@ class ida(gdb.Function):
         return pwndbg.ida.LocByName(name.string())
 
 ida()
+save_ida()
