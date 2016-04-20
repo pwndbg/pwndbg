@@ -94,6 +94,8 @@ class DisassemblyAssistant(object):
             next_addr = self.next(instruction)
 
         instruction.target = None
+        instruction.target_constant = None
+        instruction.next = None
 
         if next_addr is None:
             next_addr = instruction.address + instruction.size

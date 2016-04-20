@@ -113,6 +113,9 @@ def proc_pid_maps():
         A list of pwndbg.memory.Page objects.
     """
 
+    if pwndbg.qemu.is_qemu_usermode():
+        return tuple()
+
     example_proc_pid_maps = """
     7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
     7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
