@@ -11,7 +11,12 @@ import pwndbg.disasm.mips
 import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
-import pwndbg.emu
+
+try:
+	import unicorn
+	import pwndbg.emu
+except:
+	pass
 
 import pwndbg.vmmap
 import pwndbg.dt
