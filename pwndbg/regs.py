@@ -18,6 +18,11 @@ import pwndbg.memoize
 import pwndbg.proc
 import pwndbg.remote
 
+try:
+    long
+except NameError:
+    long=int
+
 
 class RegisterSet(object):
     #: Program counter register
