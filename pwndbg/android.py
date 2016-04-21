@@ -1,3 +1,4 @@
+import gdb
 import pwndbg.events
 import pwndbg.file
 import pwndbg.remote
