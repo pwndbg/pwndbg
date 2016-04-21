@@ -72,7 +72,11 @@ def update():
                 stacks[thread.ptid] = page
                 continue
             elif page.objfile is None:
-                page.objfile = '[stack]'
+                pid, tid, _ = thread.ptid
+                if pid == tid:
+                    page.objfile = '[stack]'
+                else:
+                    page.objfile = '[stack:%i]' % tid
 
             # If we *DO* already know about this thread, just
             # update the lower boundary if it got any lower.
