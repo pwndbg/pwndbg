@@ -69,6 +69,7 @@ def save_ida():
     # Need to handle emulated paths for Wine
     if path.startswith('Z:'):
         path = path[2:].replace('\\', '/')
+        pwndbg.ida.SaveBase(path)
 
     basename = os.path.basename(path)
     dirname = os.path.dirname(path)
