@@ -81,7 +81,8 @@ def update():
                 page.memsz  += (page.vaddr - low)
                 page.vaddr   = low
     finally:
-        curr_thread.switch()
+        if curr_thread:
+            curr_thread.switch()
 
 
 @pwndbg.memoize.reset_on_stop
