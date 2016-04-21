@@ -1,3 +1,4 @@
+import pwndbg.events
 import pwndbg.file
 import pwndbg.remote
 
@@ -6,3 +7,8 @@ def is_android():
         return True
 
     return False
+
+@pwndbg.events.start
+def sysroot():
+    if is_android():
+        gdb.execute('set sysroot remote:/')
