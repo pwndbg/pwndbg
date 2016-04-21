@@ -222,7 +222,6 @@ def ds(address, max=256):
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
 @pwndbg.commands.ParsedCommand
-@pwndbg.commands.OnlyWhenRunning
 def bl():
     """
     List breakpoints
@@ -230,7 +229,6 @@ def bl():
     gdb.execute('info breakpoints')
 
 @pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
 def bd(which = '*'):
     """
     Disable the breapoint with the specified index.
@@ -242,7 +240,6 @@ def bd(which = '*'):
 
 
 @pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
 def be(which = '*'):
     """
     Enable the breapoint with the specified index.
@@ -253,7 +250,6 @@ def be(which = '*'):
         gdb.execute('enable breakpoints %s' % which)
 
 @pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
 def bc(which = '*'):
     """
     Clear the breapoint with the specified index.
@@ -265,7 +261,6 @@ def bc(which = '*'):
 
 
 @pwndbg.commands.ParsedCommand
-@pwndbg.commands.OnlyWhenRunning
 def bp(where):
     """
     Set a breakpoint at the specified address.
