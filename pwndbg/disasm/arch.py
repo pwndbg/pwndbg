@@ -94,7 +94,7 @@ class DisassemblyAssistant(object):
             next_addr = self.next(instruction)
 
         instruction.target = None
-        instruction.target_constant = None
+        instruction.target_const = None
         instruction.next = None
 
         if next_addr is None:
@@ -107,18 +107,19 @@ class DisassemblyAssistant(object):
         if instruction.target is None:
             instruction.target = instruction.next
 
-            if instruction.operands and instruction.operands[0].int:
-                instruction.target_const = True
+        if instruction.operands and instruction.operands[0].int:
+            instruction.target_const = True
 
 
     def next(self, instruction, call=False):
         """
         Architecture-specific hook point for enhance_next.
         """
-        if not call and CS_GRP_CALL in instruction.groups:
-            return None
+        if CS_GRP_CALL in instruction.groups:
+            if not call:
+                return None
 
-        if CS_GRP_JUMP not in instruction.groups:
+        elif CS_GRP_JUMP not in instruction.groups:
             return None
 
         # At this point, all operands have been resolved.
