@@ -27,6 +27,17 @@ class module(ModuleType):
         return 0
 
     @property
+    def tid(self):
+        if pwndbg.qemu.is_qemu_usermode():
+            return pwndbg.qemu.pid()
+
+        i = gdb.selected_thread()
+        if i is not None:
+            return i.ptid[1]
+
+        return self.pid
+
+    @property
     def alive(self):
         return gdb.selected_thread() is not None
 
