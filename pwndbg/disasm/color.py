@@ -15,6 +15,8 @@ def instruction(ins):
 
     branch = set(ins.groups) & capstone_branch_groups
 
+    asm = asm.ljust(36)
+
     if branch:
         asm = pwndbg.color.bold(asm)
 
@@ -25,25 +27,31 @@ def instruction(ins):
         asm = '  ' + asm
 
     if ins.target not in (None, ins.address + ins.size):
-        sym    = pwndbg.symbol.get(ins.target)
+        sym    = pwndbg.symbol.get(ins.target) or None
         target = pwndbg.color.get(ins.target)
-        const  = ins.target_constant
+        const  = ins.target_const
+        hextarget = hex(ins.target)
+        hexlen    = len(hextarget)
 
         # If it's a constant expression, color it directly in the asm.
         if const:
-            asm = asm.replace(hex(ins.target), target)
-
             if sym:
-                asm = '%-36s <%s>' % (asm, sym)
+                asm = asm.replace(hextarget, sym.ljust(hexlen))
+                asm += '<%s>' % (target)
+            else:
+                targ_col_len = target.ljust(hexlen)
+                targ_col_len = pwndbg.color.get(ins.target, targ_col_len)
+                asm = asm.replace(hextarget, targ_col_len)
+                asm += '<%s>' % (sym)
         elif sym:
-            asm = '%-36s <%s; %s>' % (asm, target, sym)
+            asm += '<%s; %s>' % (target, sym)
         else:
-            asm = '%-36s <%s>' % (asm, target)
+            asm += '<%s>' % (target)
 
     elif ins.symbol:
         if branch and not ins.target:
-            asm = '%s <%s>' % (asm, ins.symbol)
+            asm += '<%s>' % (ins.symbol)
         else:
-            asm = '%-50s # %s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr), ins.symbol)
+            asm += '<%s>' % (pwndbg.color.get(ins.symbol_addr, ins.symbol or None))
 
     return asm
