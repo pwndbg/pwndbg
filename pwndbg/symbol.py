@@ -76,6 +76,9 @@ def autofetch():
     if pwndbg.qemu.is_qemu_usermode():
         return
 
+    if pwndbg.android.is_android():
+        return
+
     if not remote_files_dir:
         remote_files_dir = tempfile.mkdtemp()
         add_directory(remote_files_dir)
