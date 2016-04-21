@@ -98,7 +98,7 @@ def aid_name(uid):
     if uid in KNOWN_AIDS:
         return KNOWN_AIDS[uid]
 
-    for closest in sorted(KNOWN_AIDS):
+    for closest in sorted(KNOWN_AIDS, reverse=True):
         if uid > closest:
             break
     else:
