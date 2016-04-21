@@ -390,15 +390,12 @@ class Emulator(object):
         pc = pc or self.pc
         insn = pwndbg.disasm.one(pc)
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
-        debug('# EFLAGS before: %#x' % self.eflags)
 
         try:
             self.emulate_with_hook(self.single_step_hook_code, count=1)
         except U.unicorn.UcError:
             self._singlestep = (None, None)
 
-        debug('# EFLAGS after: %#x' % self.eflags)
-            
         return self._singlestep
 
     def single_step_iter(self, pc=None):
