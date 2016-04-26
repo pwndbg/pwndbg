@@ -55,6 +55,9 @@ def get(address, text = None):
     if text is None:
         text = int(address)
 
+    if color == NORMAL:
+        return text
+
     return "%s%s%s" % (color, text, NORMAL)
 
 def legend():
