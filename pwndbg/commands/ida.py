@@ -16,8 +16,8 @@ def j(*args):
     """
     Synchronize IDA's cursor with GDB
     """
-    pc = int(gdb.selected_frame().pc())
-    pwndbg.ida.Jump(pc)
+    # pc = int(gdb.selected_frame().pc())
+    # pwndbg.ida.Jump(pc)
 
 
 if pwndbg.ida.available():
@@ -104,7 +104,14 @@ class ida(gdb.Function):
     def __init__(self):
         super(ida, self).__init__('ida')
     def invoke(self, name):
-        return pwndbg.ida.LocByName(name.string())
+        name   = name.string()
+        result = pwndbg.ida.LocByName(name)
+
+        if 0xffffe000 <= result <= 0xffffffff \
+        or 0xffffffffffffe000 <= result <= 0xffffffffffffffff:
+            raise ValueError("ida.LocByName(%r) == BADADDR" % name)
+
+        return result
 
 ida()
 save_ida()

@@ -88,7 +88,7 @@ def get_regs(*regs):
 
 def context_code():
     banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
-    result = pwndbg.commands.nearpc.nearpc(to_string=True)
+    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=True)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
@@ -99,7 +99,20 @@ def context_code():
 
 def context_source():
     try:
-        source = gdb.execute('list', from_tty=False, to_string=True)
+        symtab = gdb.selected_frame().find_sal().symtab
+        linetable = symtab.linetable()
+
+        closest_pc = -1
+        closest_line = -1
+        for line in linetable:
+            if line.pc <= pwndbg.regs.pc and line.pc > closest_pc:
+                closest_line = line.line
+                closest_pc   = line.pc
+
+        if closest_line < 0:
+            return []
+
+        source = gdb.execute('list %i' % closest_line, from_tty=False, to_string=True)
 
         # If it starts on line 1, it's not really using the
         # correct source code.
@@ -111,6 +124,18 @@ def context_source():
         return banner
     except:
         pass
+
+    if not pwndbg.ida.available():
+        return []
+
+    try:
+        name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
+        addr = pwndbg.ida.LocByName(name)
+        lines = pwndbg.ida.decompile(addr)
+        return lines.splitlines()
+    except:
+        pass
+
     return []
 
 def context_stack():

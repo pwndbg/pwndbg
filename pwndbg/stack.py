@@ -59,6 +59,9 @@ def update():
             thread.switch()
             sp = pwndbg.regs.sp
 
+            if sp is None:
+                continue
+
             sp_low = sp & ~(0xfff)
             sp_low -= 0x1000
 
