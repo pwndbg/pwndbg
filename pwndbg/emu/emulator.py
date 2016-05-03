@@ -389,6 +389,12 @@ class Emulator(object):
 
         pc = pc or self.pc
         insn = pwndbg.disasm.one(pc)
+
+        # If we don't know how to disassemble, bail.
+        if insn is None:
+            debug("Can't disassemble instruction at %#x" % pc)
+            return self._singlestep
+
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
 
         try:
