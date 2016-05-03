@@ -90,8 +90,8 @@ def get(instruction):
         # Get the syscall number and name
         abi = pwndbg.abi.ABI.syscall()
 
-        print(abi)
-        print(abi.register_arguments)
+        # print(abi)
+        # print(abi.register_arguments)
 
         target  = None
         syscall = getattr(pwndbg.regs, abi.syscall_register)
