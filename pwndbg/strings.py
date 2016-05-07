@@ -4,7 +4,7 @@
 Functionality for resolving ASCII printable strings within
 the debuggee's address space.
 """
-
+from __future__ import print_function
 import string
 
 import gdb

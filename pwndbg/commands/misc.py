@@ -1,3 +1,4 @@
+from __future__ import print_function
 import gdb
 import errno as _errno
 import struct

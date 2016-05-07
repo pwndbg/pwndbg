@@ -1,6 +1,7 @@
 """
 Emulation assistance from Unicorn.
 """
+from __future__ import print_function
 import binascii
 import gdb
 import inspect
@@ -343,7 +344,7 @@ class Emulator(object):
         elif self._prev + self._prevsize == address:
             pass
 
-        # We have branched!  
+        # We have branched!
         # The previous instruction does not immediately precede this one.
         else:
             self._curr = address
@@ -381,7 +382,7 @@ class Emulator(object):
 
         Yields:
             Each iteration, yields a tuple of (address, instruction_size).=
-            
+
             A StopIteration is raised if a fault or syscall or call instruction
             is encountered.
         """

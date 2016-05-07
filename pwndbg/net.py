@@ -2,6 +2,7 @@
 Re-implements some psutil functionality to be able to get information from
 remote debugging sessions.
 """
+from __future__ import print_function
 import binascii
 import socket
 
@@ -40,10 +41,10 @@ class Connection(inode):
 
     def __str__(self):
       return "%s %s:%s => %s:%s (%s)" % (self.family,
-                                        self.lhost, 
-                                        self.lport, 
-                                        self.rhost, 
-                                        self.rport, 
+                                        self.lhost,
+                                        self.lport,
+                                        self.rhost,
+                                        self.rport,
                                         self.status)
 
     def __repr__(self):
@@ -64,7 +65,7 @@ def tcp():
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
     It will first list all listening TCP sockets, and next list all established
-    TCP connections. A typical entry of /proc/net/tcp would look like this (split 
+    TCP connections. A typical entry of /proc/net/tcp would look like this (split
     up into 3 parts because of the length of the line):
     """
     data = pwndbg.file.get("/proc/net/tcp").decode()
@@ -75,7 +76,7 @@ def tcp():
     for line in data.splitlines()[1:]:
         fields = line.split()
         """
-           46: 010310AC:9C4C 030310AC:1770 01 
+           46: 010310AC:9C4C 030310AC:1770 01
            |      |      |      |      |   |--> connection state
            |      |      |      |      |------> remote TCP port number
            |      |      |      |-------------> remote IPv4 address
@@ -87,7 +88,7 @@ def tcp():
         remote = fields[2]
         status = fields[3]
         """
-           00000150:00000000 01:00000019 00000000  
+           00000150:00000000 01:00000019 00000000
               |        |     |     |       |--> number of unrecovered RTO timeouts
               |        |     |     |----------> number of jiffies until timer expires
               |        |     |----------------> timer_active (see below)
@@ -96,7 +97,7 @@ def tcp():
         """
         """
            1000        0 54165785 4 cd1e6040 25 4 27 3 -1
-            |          |    |     |    |     |  | |  | |--> slow start size threshold, 
+            |          |    |     |    |     |  | |  | |--> slow start size threshold,
             |          |    |     |    |     |  | |  |      or -1 if the threshold
             |          |    |     |    |     |  | |  |      is >= 0xFFFF
             |          |    |     |    |     |  | |  |----> sending congestion window
@@ -167,7 +168,7 @@ NETLINK_TYPES = {
 7 : "NETLINK_SELINUX",        #      /* SELinux event notifications */
 8 : "NETLINK_ISCSI",          #      /* Open-iSCSI */
 9 : "NETLINK_AUDIT",          #      /* auditing */
-10: "NETLINK_FIB_LOOKUP",     #      
+10: "NETLINK_FIB_LOOKUP",     #
 11: "NETLINK_CONNECTOR",      #
 12: "NETLINK_NETFILTER",      #      /* netfilter subsystem */
 13: "NETLINK_IP6_FW",         #

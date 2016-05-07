@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import string
 
@@ -158,14 +159,14 @@ class Process():
     @property
     @pwndbg.memoize.reset_on_stop
     def connections(self):
-        # Connections look something like this: 
+        # Connections look something like this:
         # socket:[102422]
         fds = self.open_files
         socket = 'socket:['
         result = []
 
-        functions = [pwndbg.net.tcp, 
-                     pwndbg.net.unix, 
+        functions = [pwndbg.net.tcp,
+                     pwndbg.net.unix,
                      pwndbg.net.netlink]
 
         for fd, path in fds.items():
@@ -195,7 +196,7 @@ def procinfo():
     if not psutil:
         print("psutil required but not installed")
         return
-    
+
     exe  = str(pwndbg.auxv.get()['AT_EXECFN'])
     print("%-10s %r" % ("exe", exe))
 
@@ -208,7 +209,7 @@ def procinfo():
     files = dict(proc.open_files)
 
     for c in proc.connections:
-        files[c.fd] = str(c) 
+        files[c.fd] = str(c)
 
     print("%-10s %s" % ("pid",     proc.pid))
     print("%-10s %s" % ("tid",     proc.tid))

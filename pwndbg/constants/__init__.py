@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pwndbg.arch
 from . import arm, aarch64, thumb, mips, amd64, i386
 

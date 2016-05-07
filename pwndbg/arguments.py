@@ -4,6 +4,7 @@
 Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.
 """
+from __future__ import print_function
 import gdb
 import pwndbg.abi
 import pwndbg.arch

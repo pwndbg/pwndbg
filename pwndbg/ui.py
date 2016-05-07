@@ -3,6 +3,7 @@
 """
 A few helpers for making things print pretty-like.
 """
+from __future__ import print_function
 import fcntl
 import struct
 import sys

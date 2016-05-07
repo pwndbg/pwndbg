@@ -3,6 +3,7 @@
 """
 Hexdump implementation, ~= stolen from pwntools.
 """
+from __future__ import print_function
 import copy
 import string
 

@@ -5,6 +5,7 @@ Prints out pointer chains starting at some address in memory.
 
 Generally used to print out the stack or register values.
 """
+from __future__ import print_function
 import collections
 import pwndbg.arch
 import pwndbg.chain

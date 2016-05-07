@@ -1,4 +1,4 @@
-
+from __future__ import print_function
 import pwndbg.heap.heap
 import pwndbg.heap.dlmalloc
 import pwndbg.heap.ptmalloc

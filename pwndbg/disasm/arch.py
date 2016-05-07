@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pwndbg.memoize
 import pwndbg.symbol
 import capstone

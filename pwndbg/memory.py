@@ -3,6 +3,7 @@
 """
 Reading, writing, and describing memory.
 """
+from __future__ import print_function
 import gdb
 import pwndbg.arch
 import pwndbg.compat

@@ -3,6 +3,7 @@
 """
 Search the address space for byte patterns.
 """
+from __future__ import print_function
 import struct
 
 import gdb

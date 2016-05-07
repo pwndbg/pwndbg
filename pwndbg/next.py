@@ -4,6 +4,7 @@
 Commands for setting temporary breakpoints on the next
 instruction of some type (call, branch, etc.)
 """
+from __future__ import print_function
 import gdb
 import pwndbg.disasm
 import pwndbg.regs

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import bz2
 import datetime
 import os
@@ -74,7 +75,7 @@ def save_ida():
     basename = os.path.basename(path)
     dirname = os.path.dirname(path)
     backups = os.path.join(dirname, 'ida-backup')
-    
+
     if not os.path.isdir(backups):
         os.mkdir(backups)
 
@@ -90,7 +91,7 @@ def save_ida():
     pwndbg.ida.SaveBase(full_path)
 
     data = open(full_path, 'rb').read()
-    
+
     # Compress!
     full_path_compressed = full_path + '.bz2'
     bz2.BZ2File(full_path_compressed, 'w').write(data)

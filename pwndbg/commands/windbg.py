@@ -3,6 +3,7 @@
 """
 Compatibility functionality for Windbg users.
 """
+from __future__ import print_function
 import codecs
 import sys
 import math

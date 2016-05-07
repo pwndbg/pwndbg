@@ -1,3 +1,4 @@
+from __future__ import print_function
 import gdb
 import pwndbg.events
 import pwndbg.file
@@ -88,7 +89,7 @@ KNOWN_AIDS = {
 9999: "AID_NOBODY",
 10000: "AID_APP",
 50000: "AID_SHARED_GID_START",
-59999: "AID_SHARED_GID_END", 
+59999: "AID_SHARED_GID_END",
 99000: "AID_ISOLATED_START",
 99999: "AID_ISOLATED_END",
 100000: "AID_USER",

@@ -3,6 +3,7 @@
 """
 Determine whether the target is being run under QEMU.
 """
+from __future__ import print_function
 import gdb
 import os
 import psutil
@@ -15,7 +16,7 @@ def is_qemu():
     if not pwndbg.remote.is_remote():
         return False
 
-    response = gdb.execute('maintenance packet Qqemu.sstepbits', 
+    response = gdb.execute('maintenance packet Qqemu.sstepbits',
                            to_string=True,
                            from_tty=False)
 
@@ -33,7 +34,7 @@ def is_usermode():
     #
     # However, Ubuntu 14 still has QEMU 2.2, so we have to use
     # a different command as a heuristic.
-    response = gdb.execute('maintenance packet QOffsets', 
+    response = gdb.execute('maintenance packet QOffsets',
                            to_string=True,
                            from_tty=False)
 

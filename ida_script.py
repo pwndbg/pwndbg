@@ -1,3 +1,4 @@
+from __future__ import print_function
 import idaapi
 import idautils
 import idc

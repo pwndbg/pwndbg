@@ -3,6 +3,7 @@
 """
 Stepping until an event occurs
 """
+from __future__ import print_function
 import gdb
 import pwndbg.commands
 import pwndbg.next

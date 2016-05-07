@@ -5,6 +5,7 @@ Runs a few useful commands which are available under "info".
 
 We probably don't need this anymore.
 """
+from __future__ import print_function
 import gdb
 import pwndbg.memoize
 

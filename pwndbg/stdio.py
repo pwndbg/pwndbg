@@ -4,6 +4,7 @@
 Provides functionality to circumvent GDB's hooks on sys.stdin and sys.stdout
 which prevent output from appearing on-screen inside of certain event handlers.
 """
+from __future__ import print_function
 import codecs
 import io
 import os

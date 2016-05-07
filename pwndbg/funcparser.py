@@ -1,3 +1,4 @@
+from __future__ import print_function
 import collections
 from pycparser import c_ast, CParser
 
