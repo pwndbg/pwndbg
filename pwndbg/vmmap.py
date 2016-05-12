@@ -306,11 +306,15 @@ def info_auxv(skip_exe=False):
     pages    = []
     exe_name = auxv.AT_EXECFN or 'main.exe'
     entry    = auxv.AT_ENTRY
-    vdso     = auxv.AT_SYSINFO_EHDR
+    base     = auxv.AT_BASE
+    vdso     = auxv.AT_SYSINFO_EHDR or auxv.AT_SYSINFO
     phdr     = auxv.AT_PHDR
 
     if not skip_exe and (entry or phdr):
         pages.extend(pwndbg.elf.map(entry or phdr, exe_name))
+
+    if base:
+        pages.append(find_boundaries(base, '[linker]'))
 
     if vdso:
         pages.append(find_boundaries(vdso, '[vdso]'))
