@@ -15,7 +15,7 @@ def argc():
     print(pwndbg.argv.argc)
 
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.Command
+@pwndbg.commands.ParsedCommand
 def argv(i=None):
     """
     Prints out the contents of argv.
