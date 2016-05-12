@@ -18,53 +18,8 @@ Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with 
 
 ```sh
 git clone https://github.com/zachriggle/pwndbg
-echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit
-```
-
-### Prerequisites
-
-#### Python Development Headers
-
-These will be needed to build other Python modules below.
-
-```sh
-sudo apt-get install python-dev python3-dev python-pip python3-pip 
-```
-
-#### Capstone 4.0
-
-Currently this is only available via a source build.  Be sure to install to the *system* Python; GDB will completely ignore your virtualenv / pyenv.
-
-```sh
-git clone https://github.com/aquynh/capstone
-cd capstone
-git checkout -t origin/next
-sudo ./make.sh install
-cd bindings/python
-sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
-sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
-```
-#### Unicorn Engine
-
-Currently this is only available via a source build.  Be sure to install to the *system* Python; GDB will completely ignore your virtualenv / pyenv.
-
-```sh
-sudo apt-get install libglib2.0-dev
-git clone https://github.com/unicorn-engine/unicorn
-cd unicorn
-sudo ./make.sh install
-cd bindings/python
-sudo python2 setup.py install # Ubuntu 12.04, GDB uses Python2
-sudo python3 setup.py install # Ubuntu 14.04+, GDB uses Python3
-```
-
-
-#### Python
-
-There are some other Python requirements which are easier to install.
-
-```sh
-pip install -Ur requirements.txt
+cd pwndbg
+./setup.sh
 ```
 
 ## Features
