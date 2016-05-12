@@ -13,7 +13,6 @@ capstone.CS_GRP_JUMP
 
 def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)
-
     branch = set(ins.groups) & capstone_branch_groups
 
     # tl;dr is a branch?
@@ -26,10 +25,10 @@ def instruction(ins):
 
         # If it's a constant expression, color it directly in the asm.
         if const and const != 0:
-            asm = asm.replace(hex(ins.target), target)
+            asm = asm.replace(hex(ins.target), sym or target)
 
             if sym:
-                asm = '%-36s <%s>' % (asm, sym)
+                asm = '%-36s <%s>' % (asm, target)
 
         # It's not a constant expression, but we've calculated the target
         # address by emulation.
