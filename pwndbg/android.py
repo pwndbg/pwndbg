@@ -5,8 +5,11 @@ import pwndbg.file
 import pwndbg.remote
 
 def is_android():
-    if pwndbg.file.get('/system/etc/hosts'):
-        return True
+    try:
+        if pwndbg.file.get('/system/etc/hosts'):
+            return True
+    except Exception:
+        pass
 
     return False
 
