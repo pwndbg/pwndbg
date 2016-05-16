@@ -140,7 +140,7 @@ class DisassemblyAssistant(object):
         if op.type == CS_OP_REG:
             addr = self.register(instruction, op)
 
-        return addr
+        return int(addr)
 
     def enhance_symbol(self, instruction):
         """
