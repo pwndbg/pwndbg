@@ -85,7 +85,7 @@ class Process():
     def selinux(self):
         path = '/proc/%i/task/%i/attr/current' % (self.pid, self.tid)
         raw = pwndbg.file.get(path)
-        return raw.decode().rstrip('\x00')
+        return raw.decode().rstrip('\x00').strip()
 
     @property
     @pwndbg.memoize.reset_on_stop
@@ -124,11 +124,11 @@ class Process():
                 v = int(v.split()[0]) * (1<<20)
 
             # misc integers like pid and ppid
-            elif v.isdigit():
+            elif str(v).isdigit():
                 v = int(v)
 
             # uid and gid and groups
-            elif all(map(str.isdigit, v.split())):
+            elif all((s.isdigit() for s in v.split())):
                 v = list(map(int, v.split()))
 
             # capability sets
