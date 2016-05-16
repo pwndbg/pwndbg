@@ -24,7 +24,7 @@ def instruction(ins):
         hexlen    = len(hextarget)
 
         # If it's a constant expression, color it directly in the asm.
-        if const and const != 0:
+        if const:
             asm = asm.replace(hex(ins.target), sym or target)
 
             if sym:
