@@ -82,7 +82,7 @@ def enhance(value, code = True):
 
     # For the purpose of following pointers, don't display
     # anything on the stack or heap as 'code'
-    if 'stack' in page.objfile or 'heap' in page.objfile:
+    if '[stack' in page.objfile or '[heap' in page.objfile:
         rwx = exe = False
 
     # If IDA doesn't think it's in a function, don't display it as code.
