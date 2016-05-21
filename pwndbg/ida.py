@@ -53,8 +53,6 @@ class withIDA(object):
         self.fn = fn
         functools.update_wrapper(self, fn)
     def __call__(self, *args, **kwargs):
-        # import pdb
-        # pdb.set_trace()
         if _ida is None:
             setPort(8888)
         if _ida is not None:
