@@ -63,7 +63,7 @@ def get_regs(*regs):
     result = []
 
     if not regs:
-        regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack, pwndbg.regs.current.pc)
+        regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack, pwndbg.regs.current.pc) + pwndbg.regs.flags
 
     changed = pwndbg.regs.changed
 
@@ -83,7 +83,19 @@ def get_regs(*regs):
         # Show a dot next to the register if it changed
         m = ' ' if reg not in changed else '*'
 
-        result.append("%s%s %s" % (m, regname, pwndbg.chain.format(value)))
+        # Describe value
+        if reg in pwndbg.regs.flags:
+            desc = []
+            for flg, isset in pwndbg.regs.describe_flags(reg):
+                if isset:
+                    # Stand out
+                    flg = pwndbg.color.green(pwndbg.color.bold(flg))
+                desc.append(flg)
+            desc = '0x%x [ %s ]' % (value, ' '.join(desc))
+        else:
+            desc = pwndbg.chain.format(value)
+
+        result.append("%s%s %s" % (m, regname, desc))
 
     return result
 

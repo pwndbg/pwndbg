@@ -9,6 +9,7 @@ import collections
 import ctypes
 import re
 import sys
+import tempfile
 from types import ModuleType
 
 import gdb
@@ -40,6 +41,7 @@ class RegisterSet(object):
 
     #: Flags register (eflags, cpsr)
     flags = None
+    flags_names = None
 
     #: List of native-size generalp-purpose registers
     gpr = None
@@ -65,6 +67,7 @@ class RegisterSet(object):
                  frame=None,
                  retaddr=tuple(),
                  flags=tuple(),
+                 flags_names=dict(),
                  gpr=tuple(),
                  misc=tuple(),
                  args=tuple(),
@@ -74,6 +77,7 @@ class RegisterSet(object):
         self.frame = frame
         self.retaddr = retaddr
         self.flags  = flags
+        self.flags_names = flags_names
         self.gpr    = gpr
         self.misc   = misc
         self.args   = args
@@ -81,7 +85,7 @@ class RegisterSet(object):
 
         # In 'common', we don't want to lose the ordering of:
         self.common = []
-        for reg in gpr + (frame, stack, pc):
+        for reg in gpr + (frame, stack, pc) + flags:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
@@ -105,11 +109,22 @@ aarch64 = RegisterSet(  retaddr = ('lr',),
                         args    = ('x0','x1','x2','x3'),
                         retval  = 'x0')
 
+x86flags = {'eflags': {
+     0: 'CF',
+     2: 'PF',
+     4: 'AF',
+     6: 'ZF',
+     7: 'SF',
+     9: 'IF',
+    10: 'DF',
+    11: 'OF',
+}}
 
 amd64 = RegisterSet(pc      = 'rip',
                     stack   = 'rsp',
                     frame   = 'rbp',
                     flags   = ('eflags',),
+                    flags_names = x86flags,
                     gpr     = ('rax','rbx','rcx','rdx','rdi','rsi',
                                'r8', 'r9', 'r10','r11','r12',
                                'r13','r14','r15'),
@@ -236,7 +251,6 @@ def gdb77_get_register(name):
 def gdb79_get_register(name):
     return gdb.newest_frame().read_register(name)
 
-
 try:
     gdb.Frame.read_register
     get_register = gdb79_get_register
@@ -316,6 +330,14 @@ class module(ModuleType):
         return arch_to_regs[pwndbg.arch.current].retaddr
 
     @property
+    def flags(self):
+        return arch_to_regs[pwndbg.arch.current].flags
+
+    @property
+    def flags_names(self):
+        return arch_to_regs[pwndbg.arch.current].flags_names
+
+    @property
     def stack(self):
         return arch_to_regs[pwndbg.arch.current].stack
 
@@ -344,6 +366,18 @@ class module(ModuleType):
     def items(self):
         for regname in self.all:
             yield regname, self[regname]
+
+    def describe_flags(self, reg):
+        flags = []
+        names = self.flags_names
+
+        if not names or reg not in names:
+            return
+
+        value = self[reg]
+        for bit, name in sorted(names[reg].items()):
+            isset = value & (2<<bit)
+            yield name, isset
 
     @property
     def arguments(self):
