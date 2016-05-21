@@ -34,13 +34,16 @@ def get(address, maxlen = None):
     try:
         sz = gdb.Value(address)
         sz = sz.cast(pwndbg.typeinfo.pchar)
-        sz = sz.string('ascii', 'ignore')
+        sz = sz.string('ascii', 'replace', maxlen)
+        sz = pwndbg.memory.read(address, len(sz))
+
+        if not all(s in string.printable for s in sz.rstrip('\x00')):
+            return None
+
         sz = str(sz)
     except Exception as e:
         return None
 
-    if not all(s in string.printable for s in sz.rstrip('\x00')):
-        return None
 
     if len(sz) < maxlen:
     	return sz
