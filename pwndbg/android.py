@@ -8,7 +8,7 @@ def is_android():
     try:
         if pwndbg.file.get('/system/etc/hosts'):
             return True
-    except Exception:
+    except OSError:
         pass
 
     return False
