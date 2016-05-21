@@ -60,6 +60,7 @@ import pwndbg.commands.segments
 import pwndbg.commands.xor
 import pwndbg.commands.peda
 import pwndbg.commands.gdbinit
+import pwndbg.commands.defcon
 
 
 
