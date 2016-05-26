@@ -6,6 +6,7 @@ import pwndbg as _pwndbg
 
 import pwndbg.arch as _arch
 import pwndbg.commands
+import pwndbg.symbol
 import pwndbg.regs
 
 
@@ -16,7 +17,9 @@ def errno(err=None):
     '''Converts errno (or argument) to its string representation'''
     if err is None:
         # Dont ask.
-        err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
+        errno_location = pwndbg.symbol.get('__errno_location')
+        err = pwndbg.memory.int(errno_location)
+        # err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
 
     err = abs(int(err))
 

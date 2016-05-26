@@ -77,7 +77,7 @@ def entry():
     # Try common names
     for name in ['_start', 'start', '__start', 'main']:
         try:
-            return int(gdb.parse_and_eval(name))
+            return pwndbg.symbol.get(name)
         except gdb.error:
             pass
 
@@ -106,7 +106,7 @@ def get_ehdr(pointer):
 
     Example:
 
-        >>> pwndbg.elf.load(gdb.parse_and_eval('$pc'))
+        >>> pwndbg.elf.load(pwndbg.regs.pc)
         [Page('400000-4ef000 r-xp 0'),
          Page('6ef000-6f0000 r--p ef000'),
          Page('6f0000-6ff000 rw-p f0000')]
@@ -192,7 +192,7 @@ def map(pointer, objfile=''):
 
     Example:
 
-        >>> pwndbg.elf.load(gdb.parse_and_eval('$pc'))
+        >>> pwndbg.elf.load(pwndbg.regs.pc)
         [Page('400000-4ef000 r-xp 0'),
          Page('6ef000-6f0000 r--p ef000'),
          Page('6f0000-6ff000 rw-p f0000')]
