@@ -1,8 +1,8 @@
 #!/bin/bash -ex
 
 if uname | grep -i Linux &>/dev/null; then
-sudo apt-get update
-sudo apt-get install python-dev python3-dev python-pip python3-pip libglib2.0-dev
+    sudo apt-get update
+    sudo apt-get -y install python-dev python3-dev python-pip python3-pip libglib2.0-dev
 fi
 
 # Update all submodules
