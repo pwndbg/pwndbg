@@ -13,12 +13,16 @@ import pwndbg.regs
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.events.stop
+@pwndbg.ida.withIDA
 def j(*args):
     """
     Synchronize IDA's cursor with GDB
     """
-    # pc = int(gdb.selected_frame().pc())
-    # pwndbg.ida.Jump(pc)
+    try:
+        pc = int(gdb.selected_frame().pc())
+        pwndbg.ida.Jump(pc)
+    except Exception:
+        pass
 
 
 if pwndbg.ida.available():

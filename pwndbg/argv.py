@@ -41,8 +41,10 @@ def update():
     envp = sp
 
     envc = 0
-    while pwndbg.memory.u(sp, ptrbits):
-        sp += ptrsize
-        envc += 1
-
+    try:
+        while pwndbg.memory.u(sp, ptrbits):
+            sp += ptrsize
+            envc += 1
+    except gdb.MemoryError:
+        pass
 

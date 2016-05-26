@@ -51,7 +51,7 @@ def hexdump(data, address = 0, width = 16, skip = True):
         if skip and line == last_line:
             if not skipping:
                 skipping = True
-                yield '*'
+                yield '...'
             continue
         else:
             skipping  = False

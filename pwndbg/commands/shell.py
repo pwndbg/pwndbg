@@ -16,7 +16,7 @@ shellcmds = [
     "chattr",
     "chmod",
     "chown",
-    "clear",
+    # "clear",
     "cp",
     "date",
     "diff",

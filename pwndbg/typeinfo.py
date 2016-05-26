@@ -47,6 +47,9 @@ def update():
     module.int32  = gdb.lookup_type('int')
     module.int64  = gdb.lookup_type('long long')
 
+    module.ssize_t = module.long
+    module.size_t = module.ulong
+
     module.pvoid  = void.pointer()
     module.ppvoid = pvoid.pointer()
     module.pchar  = char.pointer()
