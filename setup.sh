@@ -29,5 +29,5 @@ done
 
 # Load Pwndbg into GDB on every launch.
 if ! grep pwndbg ~/.gdbinit &>/dev/null; then
-    echo "source $PWD/pwndbg/gdbinit.py" >> ~/.gdbinit
+    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
 fi
