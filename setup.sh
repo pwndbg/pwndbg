@@ -8,11 +8,17 @@ fi
 # Update all submodules
 git submodule update --init --recursive
 
-# Find the path to the Python interpreter used by GDB.
-PYTHON=$(gdb -batch -q --nx -ex 'pi import platform; print("python%s.%s" % platform.python_version_tuple()[:2])')
+# Find the Python version used by GDB.
+PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
+PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+PYTHON="${PYTHON}${PYVER}"
+
+# Find the Python site-packages that we need to use so that
+# GDB can find the files once we've installed them.
+SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
 
 # Install Python dependencies
-sudo $PYTHON -m pip install -Ur requirements.txt
+sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
 # Find the path to the Python2 interpreter needed by the Unicorn install process.
 export UNICORN_QEMU_FLAGS="--python=$(which python2)"
@@ -23,7 +29,7 @@ for directory in capstone unicorn; do
     git clean -xdf
     sudo ./make.sh install
     cd bindings/python
-    sudo ${PYTHON} setup.py install
+    sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} .
     popd
 done
 
