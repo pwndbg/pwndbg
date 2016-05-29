@@ -83,7 +83,7 @@ arch_to_SYSCALL = {
     ],
 }
 
-blacklisted_regs = ['ip']
+blacklisted_regs = ['ip','cs','ds','es','fs','gs','ss','fsbase','gsbase']
 
 '''
 e = pwndbg.emu.emulator.Emulator()
@@ -119,6 +119,9 @@ class Emulator(object):
                 debug("# Could not set register %r" % reg)
                 continue
 
+            if reg in blacklisted_regs:
+                debug("Skipping blacklisted register %r" % reg)
+                continue 
             value = getattr(pwndbg.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
