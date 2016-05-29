@@ -36,8 +36,9 @@ def get(address, maxlen = None):
         sz = sz.cast(pwndbg.typeinfo.pchar)
         sz = sz.string('ascii', 'replace', maxlen)
         sz = pwndbg.memory.read(address, len(sz))
+        sz = sz.rstrip('\x00')
 
-        if not all(s in string.printable for s in sz.rstrip('\x00')):
+        if not sz or not all(s in string.printable for s in sz):
             return None
 
         sz = str(sz)
