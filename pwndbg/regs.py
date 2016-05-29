@@ -365,6 +365,7 @@ class module(ModuleType):
     def gsbase(self):
         return self._fs_gs_helper(ARCH_GET_GS)
 
+    @pwndbg.memoize.reset_on_stop
     def _fs_gs_helper(self, which):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
 
