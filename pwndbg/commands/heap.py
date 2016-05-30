@@ -12,20 +12,35 @@ PREV_INUSE = 1
 IS_MMAPED = 2
 NON_MAIN_ARENA = 4
 
-def get_main_arena():
-    main_arena = gdb.lookup_symbol('main_arena')[0].value()
+def get_main_arena(addr=None):
+    if addr == None:
+        main_arena = gdb.lookup_symbol('main_arena')[0].value()
+    else:
+        if isinstance(addr, (long, int)):
+            addr = hex(addr)
+        main_arena = gdb.parse_and_eval('(struct malloc_state)*' + addr)
 
     if main_arena == None:
         print(red('Symbol \'main_arena\' not found. Try installing libc ' \
-                  'debugging symbols and try again'))
+                  'debugging symbols or specifying the main arena address ' \
+                  'and try again'))
 
     return main_arena
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def heap():
-    main_arena = get_main_arena()
+def heap(addr=None):
+    main_arena = get_main_arena(addr)
     if main_arena == None:
+        return
+
+    heap_base = None
+    for m in pwndbg.vmmap.get():
+        if m.objfile == '[heap]':
+            heap_base = m.vaddr
+
+    if heap_base == None:
+        print(red('Could not find the heap'))
         return
 
     top = main_arena['top']
@@ -34,14 +49,6 @@ def heap():
     print(bold('Top Chunk: ') + str(top))
     print(bold('Last Remainder: ') + str(last_remainder))
     print()
-
-    for m in pwndbg.vmmap.get():
-        if m.objfile == '[heap]':
-            heap_base = m.vaddr
-
-    if heap_base == None:
-        print(red('Could not find the heap'))
-        return
 
     # Print out all chunks on the heap
     # TODO: Add an option to only print out free/allocated chunks
@@ -56,13 +63,17 @@ def heap():
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def arena():
-    gdb.execute('p main_arena')
+def arena(addr=None):
+    main_arena = get_main_arena(addr)
+    if main_arena == None:
+        return
+
+    print(main_arena)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def bins():
-    main_arena = get_main_arena()
+def bins(addr=None):
+    main_arena = get_main_arena(addr)
     if main_arena == None:
         return
 
@@ -82,16 +93,13 @@ def bins():
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def top_chunk(print_addr=True):
-    main_arena = get_main_arena()
+def top_chunk(addr=None):
+    main_arena = get_main_arena(addr)
     if main_arena == None:
         return
 
     top = main_arena['top']
-    if print_addr:
-        print(top)
-
-    return top
+    print(top)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
