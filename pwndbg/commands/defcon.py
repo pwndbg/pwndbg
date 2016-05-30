@@ -10,7 +10,7 @@ from pwndbg.color import bold, blue, green, red
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def heap(addr=0x2aaaaaad5000):
+def defcon_heap(addr=0x2aaaaaad5000):
 # def heap(addr=0x2aaaaaaaf000):
     free = []
 
@@ -59,7 +59,7 @@ def heap_freebins(addr=0x0602558):
 
         print('    %#x %#x %s' % (addr, size, '*' if in_use else ''))
         addr = bk
-    
+
     print()
     return free
 
