@@ -248,4 +248,5 @@ def get_execfn():
         addr -= 1
 
     v = pwndbg.strings.get(addr, 1024)
-    return os.path.abspath(v)
+    if v:
+        return os.path.abspath(v)

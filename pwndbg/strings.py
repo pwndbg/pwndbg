@@ -9,6 +9,7 @@ import string
 
 import gdb
 import pwndbg.events
+import pwndbg.memory
 import pwndbg.typeinfo
 
 length = 15
@@ -32,19 +33,13 @@ def get(address, maxlen = None):
         maxlen = length
 
     try:
-        sz = gdb.Value(address)
-        sz = sz.cast(pwndbg.typeinfo.pchar)
-        sz = sz.string('ascii', 'replace', maxlen)
-        sz = pwndbg.memory.read(address, len(sz))
-        sz = sz.rstrip('\x00')
+        sz = pwndbg.memory.string(address)
+        sz = sz.decode('latin-1', 'replace')
 
         if not sz or not all(s in string.printable for s in sz):
             return None
-
-        sz = str(sz)
     except Exception as e:
         return None
-
 
     if len(sz) < maxlen:
     	return sz

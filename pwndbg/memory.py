@@ -68,6 +68,16 @@ def poke(address):
     except: return False
     return True
 
+def string(addr):
+    data = bytearray()
+    while peek(addr):
+        byte = read(addr, 1)
+        if byte == b'\x00':
+            break
+        data += byte
+        addr += 1
+    return data
+
 def byte(addr):   return readtype(pwndbg.typeinfo.uchar, addr)
 def uchar(addr):  return readtype(pwndbg.typeinfo.uchar, addr)
 def ushort(addr): return readtype(pwndbg.typeinfo.ushort, addr)
