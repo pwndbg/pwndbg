@@ -1,10 +1,9 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 import gdb
 
-import pwndbg.vmmap
 import pwndbg.commands
-import pwndbg.symbol
-import pwndbg.memory
 
 from pwndbg.color import bold, yellow, red, underline
 
@@ -16,7 +15,7 @@ def get_main_arena(addr=None):
     if addr == None:
         main_arena = gdb.lookup_symbol('main_arena')[0].value()
     else:
-        if isinstance(addr, (long, int)):
+        if isinstance(addr, int):
             addr = hex(addr)
         main_arena = gdb.parse_and_eval('(struct malloc_state)*' + addr)
 
@@ -27,18 +26,26 @@ def get_main_arena(addr=None):
 
     return main_arena
 
-@pwndbg.commands.Command
+def get_heap_bounds():
+    page = None
+    for m in pwndbg.vmmap.get():
+        if m.objfile == '[heap]':
+            page = m
+            break
+
+    if m != None:
+        return (m.vaddr, m.vaddr + m.memsz)
+    else:
+        return (None, None)
+
+@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def heap(addr=None):
     main_arena = get_main_arena(addr)
     if main_arena == None:
         return
 
-    heap_base = None
-    for m in pwndbg.vmmap.get():
-        if m.objfile == '[heap]':
-            heap_base = m.vaddr
-
+    heap_base = get_heap_bounds()[0]
     if heap_base == None:
         print(red('Could not find the heap'))
         return
@@ -46,12 +53,12 @@ def heap(addr=None):
     top = main_arena['top']
     last_remainder = main_arena['last_remainder']
 
-    print(bold('Top Chunk: ') + str(top))
-    print(bold('Last Remainder: ') + str(last_remainder))
+    print(bold('Top Chunk: ') + pwndbg.color.get(int(top)))
+    print(bold('Last Remainder: ') + pwndbg.color.get(int(last_remainder)))
     print()
 
     # Print out all chunks on the heap
-    # TODO: Add an option to only print out free/allocated chunks
+    # TODO: Add an option to print out only free or allocated chunks
     addr = heap_base
     while addr <= top:
         chunk = malloc_chunk(addr)
@@ -61,7 +68,7 @@ def heap(addr=None):
         size &= ~7
         addr += size
 
-@pwndbg.commands.Command
+@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def arena(addr=None):
     main_arena = get_main_arena(addr)
@@ -70,7 +77,7 @@ def arena(addr=None):
 
     print(main_arena)
 
-@pwndbg.commands.Command
+@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def bins(addr=None):
     main_arena = get_main_arena(addr)
@@ -80,41 +87,59 @@ def bins(addr=None):
     fastbins = main_arena['fastbinsY']
     bins = main_arena['bins']
 
+    size_t_size = gdb.lookup_type('size_t').sizeof
     num_fastbins = int(fastbins.type.sizeof / fastbins.type.target().sizeof)
     num_bins = int(bins.type.sizeof / bins.type.target().sizeof)
-    fd_field_offset = 16
+    fd_field_offset = 2 * size_t_size
 
     print(underline(yellow('Fastbins')))
     for i in range(num_fastbins):
+        size = 2 * size_t_size * (i + 1)
         chain = pwndbg.chain.format(int(fastbins[i]), offset=fd_field_offset)
-        print(bold(str(i)) + ': ' + chain)
+        print(bold(str(size)) + ': ' + chain)
 
     # TODO: Print other bins
 
-@pwndbg.commands.Command
+@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def top_chunk(addr=None):
     main_arena = get_main_arena(addr)
     if main_arena == None:
-        return
+        heap_start, heap_end = get_heap_bounds()
+        if heap_start == None:
+            print(red('Could not find the heap'))
+            return
 
-    top = main_arena['top']
-    print(top)
+        # If we don't know where the main_arena struct is, just iterate
+        # through all the heap objects until we hit the last one
+        last_addr = None
+        addr = heap_start
+        while addr < heap_end:
+            chunk = gdb.parse_and_eval('(struct malloc_chunk)*' + hex(addr))
+            size = int(chunk['size'])
 
-@pwndbg.commands.Command
+            # Clear the bottom 3 bits
+            size &= ~7
+
+            last_addr = addr
+            addr += size
+        print(pwndbg.color.get(last_addr))
+    else:
+        print(pwndbg.color.get(int(main_arena['top'])))
+
+@pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def malloc_chunk(addr):
-    if isinstance(addr, (long, int)):
-        addr = hex(addr)
+    if not isinstance(addr, int):
+        addr = int(addr)
 
-    gdb.lookup_type('struct malloc_chunk')
-    chunk = gdb.parse_and_eval('(struct malloc_chunk)*' + addr)
+    chunk = gdb.parse_and_eval('(struct malloc_chunk)*' + hex(addr))
     size = int(chunk['size'])
     prev_inuse = (size & PREV_INUSE) == 1
     is_mmaped = (size & IS_MMAPED) == 1
     non_main_arena = (size & NON_MAIN_ARENA) == 1
 
-    header = bold(addr)
+    header = pwndbg.color.get(addr)
     if prev_inuse:
         header += yellow(' PREV_INUSE')
     if is_mmaped:
