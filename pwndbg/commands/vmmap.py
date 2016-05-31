@@ -36,11 +36,3 @@ def vmmap(map=None):
             continue
 
         print(pwndbg.color.get(page.vaddr, text=str(page)))
-
-@pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.QuietSloppyParsedCommand
-def elfheader(map=None):
-    """
-    Provides PEDA compatibility.  See vmmap command.
-    """
-    return vmmap(map)
