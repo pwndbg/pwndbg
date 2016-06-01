@@ -140,6 +140,10 @@ class DisassemblyAssistant(object):
         if op.type == CS_OP_REG:
             addr = self.register(instruction, op)
 
+        # Evidently this can happen?
+        if addr is None:
+            return None
+
         return int(addr)
 
     def enhance_symbol(self, instruction):
