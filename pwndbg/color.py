@@ -38,6 +38,8 @@ def get(address, text = None):
         text(str): Optional text to use in place of the address
               in the return value string.
     """
+    address = int(address)
+
     page = pwndbg.vmmap.find(int(address))
 
     if page is None:                 color = NORMAL
