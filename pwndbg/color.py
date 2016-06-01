@@ -20,14 +20,14 @@ HEAP  = BLUE
 CODE  = RED
 DATA  = PURPLE
 
-def normal(x): return NORMAL + x
-def bold(x): return BOLD + x + NORMAL
-def red(x): return RED + x + NORMAL
-def blue(x): return BLUE + x + NORMAL
-def gray(x): return GRAY + x + NORMAL
-def green(x): return GREEN + x + NORMAL
-def yellow(x): return YELLOW + x + NORMAL
-def underline(x): return UNDERLINE + x + NORMAL
+def normal(x): return NORMAL + str(x)
+def bold(x): return BOLD + str(x) + NORMAL
+def red(x): return RED + str(x) + NORMAL
+def blue(x): return BLUE + str(x) + NORMAL
+def gray(x): return GRAY + str(x) + NORMAL
+def green(x): return GREEN + str(x) + NORMAL
+def yellow(x): return YELLOW + str(x) + NORMAL
+def underline(x): return UNDERLINE + str(x) + NORMAL
 
 def get(address, text = None):
     """
