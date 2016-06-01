@@ -268,3 +268,83 @@ def has_cached_cfunc(addr):
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
     return _ida.decompile(addr)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetStrucQty():
+    return _ida.GetStrucQty()
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetStrucId(idx):
+    return _ida.GetStrucId(idx)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetStrucName(sid):
+    return _ida.GetStrucName(sid)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetStrucSize(sid):
+    return _ida.GetStrucSize(sid)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetMemberQty(sid):
+    return _ida.GetMemberQty(sid)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetMemberSize(sid, offset):
+    return _ida.GetMemberSize(sid, offset)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetMemberId(sid, offset):
+    return _ida.GetMemberId(sid, offset)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetMemberName(sid, offset):
+    return _ida.GetMemberName(sid, offset)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetMemberFlag(sid, offset):
+    return _ida.GetMemberFlag(sid, offset)
+
+@withIDA
+@pwndbg.memoize.reset_on_stop
+def GetStrucNextOff(sid, offset):
+    return _ida.GetStrucNextOff(sid, offset)
+
+class IDC(object):
+    query = "{k:v for k,v in globals()['idc'].__dict__.items() if type(v) in (int,long)}"
+    def __init__(self):
+        if available():
+            data = _ida.eval(self.query)
+            self.__dict__.update(data)
+idc = IDC()
+
+def print_member(sid, offset):
+    mid = GetMemberId(sid, offset)
+    mname = GetMemberName(sid, offset) or '(no name)'
+    msize = GetMemberSize(sid, offset) or 0
+    mflag = GetMemberFlag(sid, offset) or 0
+    print("    +%#x - %s [%#x bytes]" % (offset, mname, msize))
+
+
+def print_structs():
+    for i in range(GetStrucQty() or 0):
+        sid = GetStrucId(i)
+
+        name = GetStrucName(sid)
+        size = GetStrucSize(sid)
+
+        print("%s - %#x bytes" % (name, size))
+
+        offset = 0
+        while offset < size:
+            print_member(sid, offset)
+            offset = GetStrucNextOff(sid, offset)
