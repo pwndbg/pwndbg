@@ -1,5 +1,6 @@
 from __future__ import print_function
 import gdb
+import pwndbg.color
 import pwndbg.events
 import pwndbg.file
 import pwndbg.remote
@@ -15,8 +16,12 @@ def is_android():
 
 @pwndbg.events.start
 def sysroot():
+    cmd = 'set sysroot remote:/'
     if is_android():
-        gdb.execute('set sysroot remote:/')
+        if gdb.parameter('sysroot') == 'target:':
+            gdb.execute(cmd)
+        else:
+            print(pwndbg.color.bold("sysroot is already set, skipping %r" % cmd))
 
 KNOWN_AIDS = {
 0: "AID_ROOT",
