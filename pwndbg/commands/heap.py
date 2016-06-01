@@ -8,14 +8,14 @@ import argparse
 import gdb
 import pwndbg.commands
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def brk(n=0):
     '''Get the address of brk(n=0)'''
     gdb.execute('call brk(%i)' % n)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def sbrk(n=0):
     '''Get the address of sbrk(n=0)'''
     gdb.execute('call sbrk(%i)' % n)
@@ -34,8 +34,8 @@ p.add_argument('--free', action='store_true',
 p.add_argument('address', type=int, default=0,
                help='Heap allocation to display')
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def hheap(*a):
     """Prints out heap information.
     """ + p.format_help()

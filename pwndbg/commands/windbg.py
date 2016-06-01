@@ -301,16 +301,16 @@ def ln(value=None):
     if x:
         result = '(%#x)   %s' % (value, x)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.QuietSloppyParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def lm(map):
     """
     Windbg compatibility alias for 'vmmap' command.
     """
     return pwndbg.commands.vmmap.vmmap(map)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.QuietSloppyParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def address(map):
     """
     Windbg compatibility alias for 'vmmap' command.
@@ -318,8 +318,8 @@ def address(map):
     return pwndbg.commands.vmmap.vmmap(map)
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.QuietSloppyParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def vprot(map):
     """
     Windbg compatibility alias for 'vmmap' command.

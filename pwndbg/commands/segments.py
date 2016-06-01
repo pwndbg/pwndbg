@@ -16,8 +16,8 @@ class segment(gdb.Function):
 segment('fsbase')
 segment('gsbase')
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def fsbase():
     """
     Prints out the FS base address.  See also $fsbase.
@@ -25,8 +25,8 @@ def fsbase():
     print(hex(pwndbg.regs.fsbase))
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def gsbase():
     """
     Prints out the GS base address.  See also $gsbase.

@@ -6,8 +6,8 @@ import pwndbg.proc
 import pwndbg.vmmap
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def aslr(on_or_off=None):
     """
     Check the current ASLR status, or turn it on/off.

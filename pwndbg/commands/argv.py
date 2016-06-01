@@ -6,16 +6,16 @@ import pwndbg.commands
 import pwndbg.typeinfo
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def argc():
     """
     Prints out the number of arguments.
     """
     print(pwndbg.argv.argc)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def argv(i=None):
     """
     Prints out the contents of argv.
@@ -29,16 +29,16 @@ def argv(i=None):
 
     pwndbg.commands.telescope.telescope(start, n)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def args():
     """
     Prints out the contents of argv.
     """
     argv()
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def envp(name=None):
     """
     Prints out the contents of the environment.
@@ -49,8 +49,8 @@ def envp(name=None):
     return pwndbg.commands.telescope.telescope(start, n)
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def env(name=None):
     """
     Prints out the contents of the environment.
@@ -60,8 +60,8 @@ def env(name=None):
 
     gdb.execute('p $environ("%s")' % name)
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def environ(name=None):
     """
     Prints out the contents of the environment.

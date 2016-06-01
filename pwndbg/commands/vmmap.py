@@ -11,8 +11,8 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.QuietSloppyParsedCommand
+@pwndbg.commands.OnlyWhenRunning
 def vmmap(map=None):
     """
     Print the virtal memory map, or the specific mapping for the

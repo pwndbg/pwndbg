@@ -9,33 +9,33 @@ from __future__ import print_function
 import gdb
 import pwndbg.commands
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def init():
     """GDBINIT compatibility alias for 'start' command."""
     pwndbg.commands.start.start()
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def sstart():
     """GDBINIT compatibility alias for 'tbreak __libc_start_main; run' command."""
     gdb.execute('tbreak __libc_start_main')
     gdb.execute('run')
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def main():
     """GDBINIT compatibility alias for 'start' command."""
     pwndbg.commands.start.start()
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def libs():
     """GDBINIT compatibility alias for 'start' command."""
     pwndbg.commands.vmmap.vmmap()
 
-@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def entry_point():
     """GDBINIT compatibility alias to print the entry point.
     See also the 'entry' command."""
