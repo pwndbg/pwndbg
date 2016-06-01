@@ -53,8 +53,8 @@ def heap(addr=None):
     top = main_arena['top']
     last_remainder = main_arena['last_remainder']
 
-    print(bold('Top Chunk: ') + pwndbg.color.get(int(top)))
-    print(bold('Last Remainder: ') + pwndbg.color.get(int(last_remainder)))
+    print(bold('Top Chunk: ') + pwndbg.color.get(top))
+    print(bold('Last Remainder: ') + pwndbg.color.get(last_remainder))
     print()
 
     # Print out all chunks on the heap
@@ -96,7 +96,7 @@ def bins(addr=None):
     for i in range(num_fastbins):
         size = 2 * size_t_size * (i + 1)
         chain = pwndbg.chain.format(int(fastbins[i]), offset=fd_field_offset)
-        print(bold(str(size)) + ': ' + chain)
+        print(bold(size) + ': ' + chain)
 
     # TODO: Print other bins
 
@@ -125,7 +125,7 @@ def top_chunk(addr=None):
             addr += size
         print(pwndbg.color.get(last_addr))
     else:
-        print(pwndbg.color.get(int(main_arena['top'])))
+        print(pwndbg.color.get(main_arena['top']))
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
