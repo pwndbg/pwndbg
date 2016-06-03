@@ -140,9 +140,10 @@ class ArgparsedCommand(object):
         for action in parser._actions:
             if action.dest == 'help':
                 continue
-            if action.type not in (int, None):
-                continue
-            action.type = fix_int
+            if action.type in (int, None):
+                action.type = fix_int
+            if action.default is not None:
+                action.help += ' (default: %(default)s)'
 
     def __call__(self, function):
         self.parser.prog = function.__name__
