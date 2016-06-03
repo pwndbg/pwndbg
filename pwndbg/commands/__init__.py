@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import argparse
 import functools
 import traceback
 import gdb
@@ -56,7 +57,6 @@ class _Command(gdb.Command):
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
 
-
 class _ParsedCommand(_Command):
     #: Whether to return the string 'arg' if parsing fails.
     sloppy = False
@@ -100,6 +100,9 @@ def fix(arg, sloppy=False, quiet=False):
 
     return None
 
+def fix_int(*a, **kw):
+    return int(fix(*a,**kw))
+
 def OnlyWhenRunning(function):
     @functools.wraps(function)
     def _OnlyWhenRunning(*a, **kw):
@@ -126,3 +129,30 @@ def QuietSloppyParsedCommand(func):
     c.quiet = True
     c.sloppy = True
     return c
+
+class ArgparsedCommand(object):
+    """Adds documentation and offloads parsing for a Command via argparse"""
+    def __init__(self, parser):
+        self.parser = parser
+
+        # We want to run all integer and otherwise-unspecified arguments
+        # through fix() so that GDB parses it.
+        for action in parser._actions:
+            if action.dest == 'help':
+                continue
+            if action.type not in (int, None):
+                continue
+            action.type = fix_int
+
+    def __call__(self, function):
+        self.parser.prog = function.__name__
+        @functools.wraps(function)
+        def _ArgparsedCommand(*args):
+            try:
+                args = self.parser.parse_args(args)
+            except SystemExit:
+                # If passing '-h' or '--help', argparse attempts to kill the process.
+                return
+            return function(**vars(args))
+        _ArgparsedCommand.__doc__ = self.parser.format_usage().strip()
+        return Command(_ArgparsedCommand)
