@@ -155,5 +155,5 @@ class ArgparsedCommand(object):
                 # If passing '-h' or '--help', argparse attempts to kill the process.
                 return
             return function(**vars(args))
-        _ArgparsedCommand.__doc__ = self.parser.format_usage().strip()
+        _ArgparsedCommand.__doc__ = self.parser.description
         return Command(_ArgparsedCommand)
