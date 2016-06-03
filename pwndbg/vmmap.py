@@ -359,15 +359,16 @@ def check_aslr():
         pass
 
     # Check the personality of the process
-    try:
-        data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
-        personality = int(data, 16)
-        if personality & 0x40000 == 0:
-            vmmap.aslr = True
-        return vmmap.aslr
-    except:
-        print("Could not check ASLR: Couldn't get personality")
-        pass
+    if pwndbg.proc.alive:
+        try:
+            data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
+            personality = int(data, 16)
+            if personality & 0x40000 == 0:
+                vmmap.aslr = True
+            return vmmap.aslr
+        except:
+            print("Could not check ASLR: Couldn't get personality")
+            pass
 
     # Just go with whatever GDB says it did.
     #
