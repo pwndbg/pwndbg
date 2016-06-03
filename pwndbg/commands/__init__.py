@@ -56,6 +56,8 @@ class _Command(gdb.Command):
             print(te)
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
+        except Exception:
+            print(traceback.format_exc())
 
 class _ParsedCommand(_Command):
     #: Whether to return the string 'arg' if parsing fails.
