@@ -14,10 +14,10 @@ import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
 
 try:
-	import unicorn
-	import pwndbg.emu
+    import unicorn
+    import pwndbg.emu
 except:
-	pass
+    pass
 
 import pwndbg.vmmap
 import pwndbg.dt
@@ -124,7 +124,7 @@ handle SIGSEGV stop   print nopass
 """.strip() % prompt
 
 for line in pre_commands.strip().splitlines():
-	gdb.execute(line)
+    gdb.execute(line)
 
 msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))
@@ -139,7 +139,9 @@ def prompt_hook(*a):
         pwndbg.events.after_reload()
         cur = new
 
-    prompt_hook_on_stop(*a)
+    if pwndbg.proc.alive:
+        prompt_hook_on_stop(*a)
+
 
 @pwndbg.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
