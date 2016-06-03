@@ -10,14 +10,19 @@ import collections
 import pwndbg.arch
 import pwndbg.chain
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
+telescope_lines = pwndbg.config.Parameter('telescope-lines',
+                                         8,
+                                         'number of lines to printed by the telescope command')
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=8, to_string=False):
+def telescope(address=None, count=telescope_lines, to_string=False):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)

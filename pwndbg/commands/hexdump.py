@@ -3,17 +3,25 @@
 from __future__ import print_function
 import pwndbg.arch
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.hexdump
 import pwndbg.memory
 import pwndbg.regs
 
+default_width = pwndbg.config.Parameter('hexdump-width',
+                                         16,
+                                         'line width of hexdump command')
+default_bytes = pwndbg.config.Parameter('hexdump-bytes',
+                                         16,
+                                         'number of bytes printed by hexdump command')
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address=None, count=64):
+def hexdump(address=None, count=default_bytes):
     """
     Hexdumps data at the specified address.
-    Optionally provide the number of bytes to dump (default 64)
+    Optionally provide the number of bytes to dump (default is controlled
+    by the 'hexdump-bytes' config.)
 
     Note that repeating rows are collapsed.
     """
@@ -33,5 +41,5 @@ def hexdump(address=None, count=64):
 
     data = pwndbg.memory.read(address, count, partial=True)
 
-    for line in pwndbg.hexdump.hexdump(data, address=address):
+    for line in pwndbg.hexdump.hexdump(data, address=address, width=int(default_width)):
         print(line)
