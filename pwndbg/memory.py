@@ -15,7 +15,7 @@ PAGE_MASK = ~(PAGE_SIZE-1)
 MMAP_MIN_ADDR = 0x8000
 
 def read(addr, count, partial=False):
-    result = ''
+    result = b''
 
     try:
         result = gdb.selected_inferior().read_memory(addr, count)
