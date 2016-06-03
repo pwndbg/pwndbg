@@ -55,7 +55,7 @@ def get(address, text = None):
     if text is None and isinstance(address, (long, int)) and address > 255:
         text = hex(int(address))
     if text is None:
-        text = int(address)
+        text = str(int(address))
 
     if color == NORMAL:
         return text
@@ -71,4 +71,3 @@ def legend():
         UNDERLINE + 'RWX' + NORMAL,
         'RODATA'
     ))
-

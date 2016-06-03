@@ -9,7 +9,7 @@ import pwndbg.vmmap
 
 LIMIT = 5
 
-def get(address, limit=LIMIT):
+def get(address, limit=LIMIT, offset=0):
     """
     Recursively dereferences an address.
 
@@ -24,15 +24,15 @@ def get(address, limit=LIMIT):
 
         result.append(address)
         try:
-            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address + offset))
         except gdb.MemoryError:
             break
 
     return result
 
 
-def format(value, limit=LIMIT, code=True):
-    chain = get(value, limit)
+def format(value, limit=LIMIT, code=True, offset=0):
+    chain = get(value, limit, offset)
 
     # Enhance the last entry
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
