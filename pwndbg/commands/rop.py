@@ -1,24 +1,55 @@
 from __future__ import print_function
-import os
+import argparse
+import re
+import subprocess
+import tempfile
 
 import gdb
 import pwndbg.commands
 import pwndbg.vmmap
 
-@pwndbg.commands.Command
-def rop(start=None, stop=None):
-    """
-    Dump ROP gadgets.
+parser = argparse.ArgumentParser(description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
+                                epilog="Example: rop --grep 'pop rdi' -- --nojop")
+parser.add_argument('--grep', type=str,
+                    help='String to grep the output for')
+parser.add_argument('argument', nargs='*', type=str,
+                    help='Arguments to pass to ROPgadget')
 
-    Optionally specify an address to dump all gadgets in that memory
-    area, or also specify a stop address.
+@pwndbg.commands.ArgparsedCommand(parser)
+def rop(grep, argument):
+    with tempfile.NamedTemporaryFile() as corefile:
 
-    Searches executable mapped pages only.
-    """
-    # for page in pwndbg.vmmap.get()
-    cmd = ['ROPgadget',
-           '--rawArch=x86',
-           '--rawMode=32',
-           '--binary=dump',
-           '--offset=0xdeadbeef']
-    os.system(' '.join(cmd))
+        # If the process is running, dump a corefile so we get actual addresses.
+        if pwndbg.proc.alive:
+            filename = corefile.name
+            gdb.execute('gcore %s' % filename)
+        else:
+            filename = pwndbg.proc.exe
+
+        # If no binary was specified, we can't do anything
+        if not filename:
+            print("No file to get gadgets from")
+            return
+
+        # Build up the command line to run
+        cmd = ['ROPgadget',
+               '--binary',
+               filename] 
+        cmd += argument
+
+        try:
+            io = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        except Exception:
+            print("Could not run ROPgadget.  Please ensure it's installed and in $PATH.")
+
+        (stdout, stderr) = io.communicate()
+
+        stdout = stdout.decode('latin-1')
+
+        if not grep:
+            print(stdout)
+            return
+
+        for line in stdout.splitlines():
+            if re.search(grep, line):
+                print(line)
