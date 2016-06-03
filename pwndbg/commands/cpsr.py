@@ -10,6 +10,7 @@ import pwndbg.regs
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def cpsr():
+    'Print out the ARM CPSR register'
     if pwndbg.arch.current != 'arm':
         print("This is only available on ARM")
         return
