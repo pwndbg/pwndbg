@@ -9,11 +9,11 @@ def elfheader():
     """
     Prints the section mappings contained in the ELF header.
     """
-    exe = str(pwndbg.auxv.get()['AT_EXECFN'])
-    with open(exe, 'rb') as f:
+    with open(pwndbg.proc.exe, 'rb') as f:
         elffile = ELFFile(f)
         load_segment = elffile.get_segment(3)
         segment_base = load_segment['p_vaddr']
+        sections = []
         for section in elffile.iter_sections():
             start = section['sh_addr']
 
@@ -22,7 +22,11 @@ def elfheader():
                 continue
 
             size = section['sh_size']
-            print('%#x - %#x %s' % (start, start + size, section.name.decode('ascii')))
+            sections.append((start, start + size, section.name.decode('ascii')))
+
+        sections.sort()
+        for start, end, name in sections:
+            print('%#x - %#x %s' % (start, end, name))
 
 @pwndbg.commands.Command
 def gotplt():
@@ -40,8 +44,7 @@ def plt():
 
 def get_section_bounds(section_name):
     section_name = section_name.encode('ascii')
-    exe = str(pwndbg.auxv.get()['AT_EXECFN'])
-    with open(exe, 'rb') as f:
+    with open(pwndbg.proc.exe, 'rb') as f:
         elffile = ELFFile(f)
 
         section = elffile.get_section_by_name(section_name)
