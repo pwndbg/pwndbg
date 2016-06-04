@@ -9,7 +9,8 @@ def elfheader():
     """
     Prints the section mappings contained in the ELF header.
     """
-    with open(pwndbg.proc.exe, 'rb') as f:
+    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
         load_segment = elffile.get_segment(3)
         segment_base = load_segment['p_vaddr']
