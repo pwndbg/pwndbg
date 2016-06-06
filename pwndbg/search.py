@@ -13,7 +13,8 @@ import pwndbg.typeinfo
 import pwndbg.vmmap
 
 
-def search(searchfor):
+def search(searchfor, mapping=None, start=None, end=None, 
+           executable=False, writable=False):
     value = searchfor
     size  = None
 
@@ -21,9 +22,23 @@ def search(searchfor):
 
     maps = pwndbg.vmmap.get()
     hits = []
+
+    if end and start:
+        maps = [m for m in maps if start <= m < end]
+
+    if executable:
+        maps = [m for m in maps if m.execute]
+
+    if writable:
+        maps = [m for m in maps if m.write]
+
     for vmmap in maps:
         start = vmmap.vaddr
         end   = start + vmmap.memsz
+
+        if mapping and mapping not in vmmap.objfile:
+            continue
+
         while True:
             # No point in searching if we can't read the memory
             if not pwndbg.memory.peek(start):

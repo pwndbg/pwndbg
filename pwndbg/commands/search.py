@@ -1,5 +1,6 @@
 from __future__ import print_function
-
+import argparse
+import codecs
 import os
 import struct
 
@@ -11,10 +12,10 @@ import pwndbg.search
 import pwndbg.vmmap
 
 
-def print_search(value):
+def print_search(value, *a, **kw):
     hits = set()
 
-    for address in pwndbg.search.search(value):
+    for address in pwndbg.search.search(value, *a, **kw):
         if not address:
             continue
 
@@ -36,108 +37,66 @@ def print_search(value):
         display = pwndbg.enhance.enhance(address)
         print(region,addr,display)
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser(description='''
+Search memory for byte sequences, strings, pointers, and integer values
+''')
+parser.add_argument('-t', '--type', choices=['byte','short','dword','qword','pointer','string','bytes'],
+                    help='Size of search target', default='bytes', type=str)
+parser.add_argument('-1', '--byte', dest='type', action='store_const', const='byte',
+                    help='Search for a 1-byte integer')
+parser.add_argument('-2', '--word', dest='type', action='store_const', const='word',
+                    help='Search for a 2-byte integer')
+parser.add_argument('-4', '--dword', dest='type', action='store_const', const='dword',
+                    help='Search for a 4-byte integer')
+parser.add_argument('-8', '--qword', dest='type', action='store_const', const='qword',
+                    help='Search for an 8-byte integer')
+parser.add_argument('-p', '--pointer', dest='type', action='store_const', const='pointer',
+                    help='Search for a pointer-width integer')
+parser.add_argument('-x', '--hex', action='store_true',
+                    help='Target is a hex-encoded (for bytes/strings)')
+parser.add_argument('-s', '--string', action='store_true',
+                    help='Target is a raw string')
+parser.add_argument('-e', '--executable', action='store_true',
+                    help='Search executable segments only')
+parser.add_argument('-w', '--writable', action='store_true',
+                    help='Search writable segments only')
+parser.add_argument('value', type=str,
+                    help='Value to search for')
+parser.add_argument('mapping', type=str, nargs='?', default=None,
+                    help='Mapping to search [e.g. libc]')
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(searchtype, value=None):
-    """
-    Search memory for the specified value, provided
-    either as a pointer-width integer, or a string.
+def search(type, hex, string, executable, writable, value, mapping):
+    # Adjust pointer sizes to the local architecture
+    if type == 'pointer':
+        type = {
+            4: 'dword',
+            8: 'qword'
+        }[pwndbg.arch.ptrsize]
 
-    > search 0xdeadbeef
-    > search "/bin/sh"
+    if hex:
+        value = codecs.decode(value, 'hex')
 
-    To search 1234 in a character string instead of integer
-    > search/c 1234
+    # Convert to an integer if needed, and pack to bytes
+    if type not in ('string', 'bytes'):
+        value = pwndbg.commands.fix_int(value)
+        fmt = {
+            'little': '<',
+            'big': '>'
+        }[pwndbg.arch.endian] + {
+            'byte': 'B',
+            'short': 'H',
+            'dword': 'L',
+            'qword': 'Q'
+        }[type]
 
-    To search for characters using hex values in string
-    > search/x f0f1f2f3
-    > search/x \\xf0\\xf1\\xf2\\xf3
-    > search/x \\\\xf0\\\\xf1\\\\xf2\\\\xf3
-    """
-    if value:
-        searchtype = searchtype[1:]
-    else:
-        value, searchtype = searchtype, value
+        value = struct.pack(fmt, value)
+    
+    # Null-terminate strings
+    elif type == 'string':
+        value += '\x00'
 
-    if searchtype:
-        if searchtype == 'c' or searchtype == 'x':
-            searchtype = '/' + searchtype
-            searchb(searchtype,value)
-            return
-        else:
-            print(pwndbg.color.red("Invalid option {0}".format(searchtype)))
-            return
+    # Perform the search
+    print_search(value, mapping=mapping, executable=executable, writable=writable)
 
-    if value.isdigit():
-        value = int(value)
-    elif value.startswith('0x') \
-    and all(c in 'xABCDEFabcdef0123456789' for c in value):
-        value = int(value, 16)
-
-    if isinstance(value, (long, int)):
-        if pwndbg.arch.ptrsize == 4:
-            value = struct.pack('I', value)
-        elif pwndbg.arch.ptrsize == 8:
-            value = struct.pack('L', value)
-
-    print_search(value)
-
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def searchmem(searchtype, searchvalue=None):
-    """
-    Search memory for the specified value, provided
-    either as a pointer-width integer, or a string.
-
-    > searchmem 0xdeadbeef
-    > searchmem "/bin/sh"
-
-    To search 1234 in a character string instead of integer
-    > searchmem/c 1234
-
-    To search for characters using hex values in string
-    > searchmem/x f0f1f2f3
-    > searchmem/x \\xf0\\xf1\\xf2\\xf3
-    > searchmem/x \\\\xf0\\\\xf1\\\\xf2\\\\xf3
-    """
-    return search(searchtype,searchvalue)
-
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def searchb(searchtype, value=None):
-    """
-    Search memory for the specified value, provided
-    as a string of characters or hexadecimal values.
-
-    > searchb 1234
-
-    To search for characters using hex values in string
-    > searchb/x f0f1f2f3
-    > searchb/x \\xf0\\xf1\\xf2\\xf3
-    > searchb/x \\\\xf0\\\\xf1\\\\xf2\\\\xf3
-    """
-    if value:
-        searchtype = searchtype[1:]
-    else:
-        value, searchtype = searchtype, value
-
-    if searchtype == 'x':
-        if '\\x' in value:
-            value = bytes.fromhex(''.join(value.split('\\x')))
-        elif 'x' in value:
-            value = bytes.fromhex(''.join(value.split('x')))
-        else:
-            value = bytes.fromhex(''.join(value[i:i+2]
-                                          for i in range(0, len(value), 2)))
-    print_search(value)
-
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def searchd(value):
-    """
-    Searches memory for the specified value,
-    provided as a pointer-width integer.
-
-    > searchd 0xdeadbeef
-    """
-    return search(value)
