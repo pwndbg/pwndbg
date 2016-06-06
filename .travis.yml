@@ -1,5 +1,3 @@
-sudo: required
-distro: trusty
 language: python
 install:
   - pip install -r requirements.txt
