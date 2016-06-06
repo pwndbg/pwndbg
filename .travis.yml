@@ -2,5 +2,5 @@ sudo: true
 language: python
 install:
   - pip install -r requirements.txt
-  - sudo setup.sh
+  - sudo ./setup.sh
 script: nosetests ./tests/
