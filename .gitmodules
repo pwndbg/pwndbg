@@ -6,3 +6,6 @@
 	path = unicorn
 	url = https://github.com/unicorn-engine/unicorn
 	branch = master
+[submodule "binutils-gdb"]
+	path = binutils-gdb
+	url = git://sourceware.org/git/binutils-gdb.git
