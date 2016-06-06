@@ -2,7 +2,7 @@
 
 if uname | grep -i Linux &>/dev/null; then
     sudo apt-get update
-    sudo apt-get -y install python-dev python3-dev python-pip libglib2.0-dev
+    sudo apt-get -y install python-dev python3-dev python-pip libglib2.0-dev gdb gdbserver gdb-multiarch
 
     # Ubuntu Precise does not have a python3-pip package
     sudo apt-get install python3-setuptools
