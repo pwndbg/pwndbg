@@ -11,8 +11,7 @@ def checksec():
     Prints out the binary security settings. Attempts to call the binjitsu
     checksec first, and then falls back to checksec.sh.
     '''
-    #local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    local_path = pwndbg.proc.exe
+    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     try:
         subprocess.call(['checksec', local_path])
     except:
