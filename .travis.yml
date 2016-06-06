@@ -1,5 +1,5 @@
 sudo: required
-distro: xenial
+distro: trusty
 language: python
 install:
   - pip install -r requirements.txt
