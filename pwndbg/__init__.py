@@ -61,7 +61,6 @@ import pwndbg.commands.xor
 import pwndbg.commands.peda
 import pwndbg.commands.gdbinit
 import pwndbg.commands.defcon
-import pwndbg.commands.elfheader
 import pwndbg.commands.checksec
 
 
