@@ -16,13 +16,13 @@ import pwndbg.qemu
 import pwndbg.remote
 
 
-def get(path, recurse=1):
+def get_file(path, recurse=1):
     """
-    Retrieves the contents of the specified file on the system
-    where the current process is being debugged.
+    Downloads the specified file from the system where the current process is
+    being debugged.
 
     Returns:
-        A byte array, or None.
+        The local path to the file
     """
     local_path = path
 
@@ -40,6 +40,18 @@ def get(path, recurse=1):
         if error:
             raise OSError("Could not download remote file %r:\n" \
                             "Error: %s" % (path, error))
+
+    return local_path
+
+def get(path, recurse=1):
+    """
+    Retrieves the contents of the specified file on the system
+    where the current process is being debugged.
+
+    Returns:
+        A byte array, or None.
+    """
+    local_path = get_file(path, recurse)
 
     try:
         with open(local_path,'rb') as f:
