@@ -56,7 +56,9 @@ registered = {gdb.events.exited: [],
               gdb.events.cont: [],
               gdb.events.new_objfile: [],
               gdb.events.stop: [],
-              gdb.events.start: []}
+              gdb.events.start: [],
+              gdb.events.memory_changed: [],
+              gdb.events.register_changed: []}
 
 class Pause(object):
     def __enter__(self, *a, **kw):
@@ -109,7 +111,16 @@ def cont(func):        return connect(func, gdb.events.cont, 'cont')
 def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
 def stop(func):        return connect(func, gdb.events.stop, 'stop')
 def start(func):       return connect(func, gdb.events.start, 'start')
-
+def reg_changed(func): 
+    try:
+        return connect(func, gdb.events.register_changed, 'reg_changed')
+    except Exception:
+        return func
+def mem_changed(func): 
+    try:
+        return connect(func, gdb.events.memory_changed, 'mem_changed')
+    except Exception:
+        return func
 
 def log_objfiles(ofile=None):
     if not (debug and ofile):

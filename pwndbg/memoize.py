@@ -71,6 +71,8 @@ class reset_on_stop(memoize):
 
     @staticmethod
     @pwndbg.events.stop
+    @pwndbg.events.mem_changed
+    @pwndbg.events.reg_changed
     def __reset_on_stop():
         for obj in reset_on_stop.caches:
             obj.cache.clear()
