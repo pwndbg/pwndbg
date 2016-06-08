@@ -63,6 +63,7 @@ import pwndbg.commands.gdbinit
 import pwndbg.commands.defcon
 import pwndbg.commands.elf
 import pwndbg.commands.checksec
+import pwndbg.commands.config
 
 
 __all__ = [
