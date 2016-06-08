@@ -87,11 +87,14 @@ def get_regs(*regs):
 
     return result
 
-
+pwndbg.config.Parameter('emulate', True, '''
+Unicorn emulation of code near the current instruction
+''')
 
 def context_code():
     banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
-    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=True)
+    emulate = bool(pwndbg.config.emulate)
+    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
