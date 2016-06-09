@@ -61,6 +61,7 @@ def regs(*regs):
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
+pwndbg.config.Parameter('colored-flags', False, 'whether to colorize flags registers')
 
 def get_regs(*regs):
     result = []
@@ -103,8 +104,12 @@ def get_regs(*regs):
                 if value & bit:
                     name = name.upper()
                     name = pwndbg.color.bold(name)
+                    if pwndbg.config.colored_flags:
+                        name = pwndbg.color.green(name)
                 else:
                     name = name.lower()
+                    if pwndbg.config.colored_flags:
+                        name = pwndbg.color.red(name)
 
                 if value & bit != last & bit:
                     name = pwndbg.color.underline(name)
