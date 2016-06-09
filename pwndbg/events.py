@@ -56,9 +56,14 @@ registered = {gdb.events.exited: [],
               gdb.events.cont: [],
               gdb.events.new_objfile: [],
               gdb.events.stop: [],
-              gdb.events.start: [],
-              gdb.events.memory_changed: [],
-              gdb.events.register_changed: []}
+              gdb.events.start: []}
+
+# GDB 7.9 and above only
+try:
+    registered[gdb.events.memory_changed] = []
+    registered[gdb.events.register_changed] = []
+except NameError:
+    pass
 
 class Pause(object):
     def __enter__(self, *a, **kw):
@@ -111,12 +116,12 @@ def cont(func):        return connect(func, gdb.events.cont, 'cont')
 def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
 def stop(func):        return connect(func, gdb.events.stop, 'stop')
 def start(func):       return connect(func, gdb.events.start, 'start')
-def reg_changed(func): 
+def reg_changed(func):
     try:
         return connect(func, gdb.events.register_changed, 'reg_changed')
     except Exception:
         return func
-def mem_changed(func): 
+def mem_changed(func):
     try:
         return connect(func, gdb.events.memory_changed, 'mem_changed')
     except Exception:
