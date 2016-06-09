@@ -62,7 +62,7 @@ registered = {gdb.events.exited: [],
 try:
     registered[gdb.events.memory_changed] = []
     registered[gdb.events.register_changed] = []
-except NameError:
+except (NameError, AttributeError):
     pass
 
 class Pause(object):
