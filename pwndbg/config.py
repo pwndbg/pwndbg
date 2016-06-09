@@ -68,6 +68,9 @@ class Parameter(gdb.Parameter):
     def __bool__(self):
         return bool(self.value)
 
+    # Python2 compatibility
+    __nonzero__ = __bool__
+
 class ConfigModule(types.ModuleType):
     def __init__(self, name, module):
         super(ConfigModule, self).__init__(name)

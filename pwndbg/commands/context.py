@@ -10,6 +10,7 @@ import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
+import pwndbg.config
 import pwndbg.disasm
 import pwndbg.events
 import pwndbg.ida
@@ -59,11 +60,16 @@ def regs(*regs):
     '''Print out all registers and enhance the information.'''
     print('\n'.join(get_regs(*regs)))
 
+pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
+
 def get_regs(*regs):
     result = []
 
     if not regs:
         regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack, pwndbg.regs.current.pc)
+
+    if pwndbg.config.show_flags:
+        regs += tuple(pwndbg.regs.flags)
 
     changed = pwndbg.regs.changed
 
@@ -83,7 +89,31 @@ def get_regs(*regs):
         # Show a dot next to the register if it changed
         m = ' ' if reg not in changed else '*'
 
-        result.append("%s%s %s" % (m, regname, pwndbg.chain.format(value)))
+        if reg not in pwndbg.regs.flags:
+            desc = pwndbg.chain.format(value)
+
+        else:
+            names = []
+            desc  = '%#x' % value
+            last  = pwndbg.regs.last.get(reg, 0) or 0
+            flags = pwndbg.regs.flags[reg]
+
+            for name, bit in sorted(flags.items()):
+                bit = 1<<bit
+                if value & bit:
+                    name = name.upper()
+                    name = pwndbg.color.bold(name)
+                else:
+                    name = name.lower()
+
+                if value & bit != last & bit:
+                    name = pwndbg.color.underline(name)
+                names.append(name)
+
+            if names:
+                desc = '%s [ %s ]' % (desc, ' '.join(names))
+
+        result.append("%s%s %s" % (m, regname, desc))
 
     return result
 
