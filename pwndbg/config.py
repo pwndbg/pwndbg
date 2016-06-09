@@ -22,20 +22,25 @@ import sys
 import types
 
 TYPES = {
-    # The value is an integer. 
+    # The value is an integer.
     # This is like PARAM_INTEGER, except 0 is interpreted as itself.
     int: gdb.PARAM_ZINTEGER,
- 
-    # The value is a string. 
-    # When the user modifies the string, any escape sequences, 
-    # such as ‘\t’, ‘\f’, and octal escapes, are translated into 
+
+    # The value is a string.
+    # When the user modifies the string, any escape sequences,
+    # such as ‘\t’, ‘\f’, and octal escapes, are translated into
     # corresponding characters and encoded into the current host charset.
     str: gdb.PARAM_STRING,
 
-    # The value is a plain boolean. 
+    # The value is a plain boolean.
     # The Python boolean values, True and False are the only valid values.
     bool: gdb.PARAM_BOOLEAN
 }
+
+def getParam(value):
+    for k,v in TYPES.items():
+        if isinstance(value, k):
+            return v
 
 class Parameter(gdb.Parameter):
 
@@ -47,7 +52,7 @@ class Parameter(gdb.Parameter):
         self.show_doc  = docstring + ':'
         super(Parameter, self).__init__(name,
                                         gdb.COMMAND_SUPPORT,
-                                        TYPES[type(default)])
+                                        getParam(default))
         self.value = default
 
         setattr(module, self.name, self)
