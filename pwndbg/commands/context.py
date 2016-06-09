@@ -141,6 +141,8 @@ def context_code():
 
     return banner + result
 
+pwndbg.config.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+
 def context_source():
     try:
         symtab = gdb.selected_frame().find_sal().symtab
@@ -163,8 +165,16 @@ def context_source():
         if not source or closest_line <= 1:
             return []
 
+        # highlight the current code line
+        source_lines = source.splitlines()
+        if pwndbg.config.highlight_source:
+            for i in range(len(source_lines)):
+                if source_lines[i].startswith('%s\t' % closest_line):
+                    source_lines[i] = pwndbg.color.highlight(source_lines[i])
+                    break
+
         banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
-        banner.extend(source.splitlines())
+        banner.extend(source_lines)
         return banner
     except:
         pass

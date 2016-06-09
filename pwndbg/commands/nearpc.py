@@ -21,6 +21,8 @@ import pwndbg.ui
 import pwndbg.vmmap
 
 
+pwndbg.config.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False, emulate=False):
@@ -98,6 +100,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
 
         line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
+
+        # Highlight the current line if the config is enabled
+        if pwndbg.config.highlight_pc and i.address == pc:
+            line = pwndbg.color.highlight(line)
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.

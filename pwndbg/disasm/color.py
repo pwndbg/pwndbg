@@ -51,7 +51,6 @@ def instruction(ins):
             # XXX: not sure when this ever happens
             asm += '<-- file a pwndbg bug for this'
         else:
-            colored_addr = pwndbg.color.get(ins.symbol_addr)
             asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
             asm = '%-36s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr))
 
