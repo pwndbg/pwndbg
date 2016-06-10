@@ -13,12 +13,15 @@ def checksec():
     '''
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     try:
-        subprocess.call(['checksec', local_path])
+        print(subprocess.check_output(['checksec', local_path]).decode(), end='')
     except:
         try:
-            subprocess.call(['checksec.sh', '--file', local_path])
+            print(subprocess.check_output(['checksec.sh', '--file', local_path]).decode(), end='')
         except:
-            print(pwndbg.color.red(
-                'An error occurred when calling checksec. ' \
-                'Make sure the checksec binary is in your PATH.'
-            ))
+            try:
+                print(subprocess.check_output(['checksec', '--file', local_path]).decode(), end='')
+            except:
+                print(pwndbg.color.red(
+                    'An error occurred when calling checksec. ' \
+                    'Make sure the checksec binary is in your PATH.'
+                ))
