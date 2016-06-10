@@ -9,7 +9,6 @@ import string
 
 import pwndbg.color
 
-
 def groupby(array, count, fill=None):
     array = copy.copy(array)
     while fill and len(array) % count:
