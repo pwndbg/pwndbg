@@ -1,59 +1,35 @@
-# BETA SOFTWARE
-
-This is barely a beta.  There are currently no versioned releases, only `master`.  I push to master with impunity.  There are no tests.  If anything works at all, consider yourself lucky.
-
-Feature contributions and bugfixes are both very welcome :)
-
 # pwndbg [![Build Status](https://travis-ci.org/pwndbg/pwndbg.svg?branch=master)](https://travis-ci.org/pwndbg/pwndbg) [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]()
 
-A PEDA replacement.  In the spirit of our good friend `windbg`, `pwndbg` is pronounced `pwnd-bag`.
+# pwndbg  
+### /pōndbag/
+#### noun
+1. a collection of python that makes debugging with gdb suck less  
+2. a [PEDA](https://github.com/longld/peda) replacement
 
-- Speed
-- Resiliency
-- Clean code
+## Why?
 
-Best supported on Ubuntu 14.04 with default `gdb` or `gdb-multiarch` (e.g. with Python3).
+Vanilla GDB is terrible to use for reverse engineering and exploit development. Typing `x/g30x $esp` is not fun, and does not  confer much information.  The year is 2016 and GDB still lacks a hexdump command.  GDB's syntax is arcane and difficult to approach.  Windbg users are completely lost when they occasionally need to bump into GDB.
 
-## Installation
+## What?
 
-```sh
-git clone https://github.com/zachriggle/pwndbg
+Pwndbg is a Python module which is loaded directly into GDB, and provides a suite of utilities and crutches to hack around all of the cruft that is GDB and smooth out the rough edges.
+
+Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and presesnt (e.g. [GEF][GEF]) exist to fill some these gaps.  Unfortunately, they're all either unmaintained, unmaintainable, or not well suited to easily navigating the code to hack in new features (respectively).
+
+Pwndbg exists not only to replace all of its predecessors, but also to have a clean implementation that runs quickly and is resilient against all the weird corner cases that come up.
+
+## How? 
+
+Installation is straightforward.  Pwndbg is best supported on Ubuntu 14.04 with GDB 7.7, and Ubuntu 16.04 with GDB 7.11.  
+
+```shell
+git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
-./setup.sh
+sudo ./setup.sh
 ```
 
-## Features
+If you use any other Linux distribution, we recommend using the latest available GDB built from source.  Be sure to pass `--with-python=/path/to/python` to `configure`.
 
-Does most things that PEDA does.  Doesn't do things that PEDA does that [pwntools](https://github.com/Gallopsled/pwntools) or [binjitsu](https://binjit.su) (my fork of pwntools) do better.
+## Who?
 
-Also has a basic windbg compat layer for e.g. `dd`, `eb`, `da`, `dps`.  Now you can even [`eb eip 90`](https://twitter.com/ebeip90)!
-
-For most standard function calls, it knows how many arguments there are and can print out the function call args.
-
-## Screenshots
-
-Here's a few screenshots of some of the cool things pwndbg does.
-
-![e](caps/e.png?raw=1)
-*Function arguments*
-
-![f](caps/f.png?raw=1)
-*Conditional jump evaluation and jump following*
-
-![g](caps/g.png?raw=1)
-*More dump following*
-
-![h](caps/h.png?raw=1)
-*RET following, useful for ROP*
-
-Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`.
-
-![a](caps/a.png?raw=1)
-
-Here's a screenshot of `PEDA`.  That it's aarch64 doesn't matter -- it chokes in the same way for everything qemu-user.
-
-![c](caps/b.png?raw=1)
-
-And here's a screenshot of GDB's built-in commands failing horribly.  Note that while, yes, it gives output -- the addresses it does give are all wrong, and are just file offsets.
-
-![c](caps/c.png?raw=1)
+Most of Pwndbg was written by [Zach Riggle](https://twitter.com/ebeip90), with [many other contributors](https://github.com/pwndbg/pwndbg/graphs/contributors) offering up patches via Pull Requests.
