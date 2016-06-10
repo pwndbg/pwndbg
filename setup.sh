@@ -26,7 +26,6 @@ export UNICORN_QEMU_FLAGS="--python=$(which python2)"
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
     pushd $directory
-    git clean -xdf
     sudo ./make.sh install
     cd bindings/python
     sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} .
