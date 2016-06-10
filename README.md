@@ -1,6 +1,4 @@
-[![Build Status](https://travis-ci.org/pwndbg/pwndbg.svg?branch=master)](https://travis-ci.org/pwndbg/pwndbg) [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]()
-
-# pwndbg  
+# pwndbg [![Build Status](https://travis-ci.org/pwndbg/pwndbg.svg?branch=master)](https://travis-ci.org/pwndbg/pwndbg) [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]()
 ### /poʊndbæg/
 #### noun
 1. a collection of python that makes debugging with gdb suck less  
