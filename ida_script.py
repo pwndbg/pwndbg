@@ -12,6 +12,9 @@ import idaapi
 import idautils
 import idc
 
+# Wait for any processing to get done
+idaapi.autoWait()
+
 # Save the database so nothing gets lost.
 idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
 

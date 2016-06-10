@@ -29,7 +29,16 @@ def fix_arch(arch):
 def update():
     m = sys.modules[__name__]
 
-    m.current = fix_arch(gdb.selected_frame().architecture().name())
+    # GDB 7.7 (Ubuntu Trusty) does not like selected_frame() when EBP/RBP
+    # is not mapped / pounts to an invalid address.
+    #
+    # As a work-around for Trusty users, handle the exception and bail.
+    # This may lead to inaccurate results, but there's not much to be done.
+    try:
+        m.current = fix_arch(gdb.newest_frame().architecture().name())
+    except Exception:
+        return
+
     m.ptrsize = pwndbg.typeinfo.ptrsize
     m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 
