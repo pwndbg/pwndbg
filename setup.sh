@@ -1,4 +1,5 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -ex
 
 if uname | grep -i Linux &>/dev/null; then
     sudo apt-get update
