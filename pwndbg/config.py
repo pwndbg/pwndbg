@@ -46,6 +46,7 @@ class Parameter(gdb.Parameter):
 
     def __init__(self, name, default, docstring):
         self.docstring = docstring.strip()
+        self.optname = name
         self.name = name.replace('-','_')
         self.default = default
         self.set_doc   = 'Set ' + docstring
