@@ -82,7 +82,8 @@ def get(address, text = None):
     else:                            color = normal
 
     if page and page.rwx:
-        color = lambda x: rwx(color(x))
+        old_color = color
+        color = lambda x: rwx(old_color(x))
 
     if text is None and isinstance(address, (long, int)) and address > 255:
         text = hex(int(address))
