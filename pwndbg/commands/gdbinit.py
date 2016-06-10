@@ -25,13 +25,13 @@ def sstart():
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def main():
-    """GDBINIT compatibility alias for 'start' command."""
+    """GDBINIT compatibility alias for 'main' command."""
     pwndbg.commands.start.start()
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def libs():
-    """GDBINIT compatibility alias for 'start' command."""
+    """GDBINIT compatibility alias for 'libs' command."""
     pwndbg.commands.vmmap.vmmap()
 
 @pwndbg.commands.Command
