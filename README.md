@@ -4,7 +4,7 @@ This is barely a beta.  There are currently no versioned releases, only `master`
 
 Feature contributions and bugfixes are both very welcome :)
 
-# pwndbg
+# pwndbg [![Build Status](https://travis-ci.org/pwndbg/pwndbg.svg?branch=master)](https://travis-ci.org/pwndbg/pwndbg) [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]()
 
 A PEDA replacement.  In the spirit of our good friend `windbg`, `pwndbg` is pronounced `pwnd-bag`.
 
@@ -34,16 +34,16 @@ For most standard function calls, it knows how many arguments there are and can 
 
 Here's a few screenshots of some of the cool things pwndbg does.
 
-![e](caps/e.png?raw=1)  
+![e](caps/e.png?raw=1)
 *Function arguments*
 
-![f](caps/f.png?raw=1)  
+![f](caps/f.png?raw=1)
 *Conditional jump evaluation and jump following*
 
-![g](caps/g.png?raw=1)  
+![g](caps/g.png?raw=1)
 *More dump following*
 
-![h](caps/h.png?raw=1)  
+![h](caps/h.png?raw=1)
 *RET following, useful for ROP*
 
 Here's a screenshot of `pwndbg` working on an aarch64 binary running under `qemu-user`.
