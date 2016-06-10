@@ -1,0 +1,9 @@
+sudo: required
+dist: trusty
+language: python
+install:
+  - sudo apt-get -y install gdb
+  - lsb_release -a
+  - pip install -r requirements.txt
+  - sudo ./setup.sh
+script: nosetests ./tests/
