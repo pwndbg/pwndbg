@@ -3,6 +3,7 @@ dist: trusty
 branches:
   only:
     - master
+    - dev
 language: python
 cache:
     - pip
