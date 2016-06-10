@@ -1,6 +1,13 @@
 sudo: required
 dist: trusty
 language: python
+cache:
+    - pip
+    - directories:
+        - /home/travis/virtualenv/python2.7.9/lib/python2.7/site-packages/
+        - /home/travis/virtualenv/python2.7.9/bin/
+        - capstone
+        - unicorn
 install:
   - sudo apt-get -y install gdb
   - lsb_release -a
