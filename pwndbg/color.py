@@ -31,6 +31,7 @@ def red(x): return RED + str(x) + NORMAL
 def blue(x): return BLUE + str(x) + NORMAL
 def gray(x): return GRAY + str(x) + NORMAL
 def green(x): return GREEN + str(x) + NORMAL
+def cyan(x): return CYAN + str(x) + NORMAL
 def yellow(x): return YELLOW + str(x) + NORMAL
 def purple(x): return PURPLE + str(x) + NORMAL
 def underline(x): return UNDERLINE + str(x) + NORMAL
