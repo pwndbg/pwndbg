@@ -244,7 +244,7 @@ class DisassemblyAssistant(object):
 
         for i, op in enumerate(ins.operands):
             rv.append('   operands[%i] = %s' % (i, ops.get(op.type, op.type)))
-            rv.append('       access   = %s' % (access.get(op.access, op.access)))
+            #rv.append('       access   = %s' % (access.get(op.access, op.access)))
 
             if op.int is not None:
                 rv.append('            int = %#x' % (op.int))
