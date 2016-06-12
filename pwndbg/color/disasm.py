@@ -35,6 +35,8 @@ def syntax_highlight(ins):
 
 def instruction(ins):
     asm = '%-06s %s' % (ins.mnemonic, ins.op_str)
+    if pwndbg.config.syntax_highlight:
+        asm = syntax_highlight(asm)
     is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
