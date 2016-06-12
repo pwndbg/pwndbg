@@ -22,7 +22,7 @@ pwndbg.config.Parameter('color-stack', 'yellow', 'color for stack memory')
 pwndbg.config.Parameter('color-heap', 'blue', 'color for heap memory')
 pwndbg.config.Parameter('color-code', 'red', 'color for executable memory')
 pwndbg.config.Parameter('color-data', 'purple', 'color for all other writable memory')
-pwndbg.config.Parameter('color-rodata', 'normal', 'color for all other writable memory')
+pwndbg.config.Parameter('color-rodata', 'normal', 'color for all read only memory')
 pwndbg.config.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
 
 def normal(x): return NORMAL + str(x)
