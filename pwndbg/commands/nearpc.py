@@ -18,6 +18,9 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
+def ljust_padding(lst):
+    longest_len = max(map(len, lst)) if lst else 0
+    return [s.ljust(longest_len) for s in lst]
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -64,27 +67,17 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     pwndbg.vmmap.find(pc)
 
     # Find all of the symbols for the addresses
-    symbols = []
-    for i in instructions:
-        symbol = pwndbg.symbol.get(i.address)
-        if symbol:
-            symbol = '<%s> ' % symbol
-        symbols.append(symbol)
+    symbols = [pwndbg.symbol.get(i.address) for i in instructions]
+    symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
+    symbols = ljust_padding(symbols)
 
-    # Find the longest symbol name so we can adjust
-    if symbols:
-        longest_sym = max(map(len, symbols))
-    else:
-        longest_sym = ''
-
-    # Pad them all out
-    for i,s in enumerate(symbols):
-        symbols[i] = s.ljust(longest_sym)
+    addresses = ["%#x" % i.address for i in instructions]
+    addresses = ljust_padding(addresses)
 
     prev = None
 
     # Print out each instruction
-    for i,s in zip(instructions, symbols):
+    for address_str, s, i in zip(addresses, symbols, instructions):
         asm    = pwndbg.disasm.color.instruction(i)
         prefix = ' =>' if i.address == pc else '   '
 
@@ -95,7 +88,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # for line in pc_to_linenos[i.address]:
         #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
 
-        line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
+        line   = ' '.join((prefix, address_str, s, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
