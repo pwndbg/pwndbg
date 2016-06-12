@@ -20,7 +20,6 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-
 pwndbg.config.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
 
 @pwndbg.commands.ParsedCommand
