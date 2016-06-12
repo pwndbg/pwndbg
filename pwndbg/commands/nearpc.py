@@ -21,6 +21,11 @@ import pwndbg.ui
 import pwndbg.vmmap
 
 pwndbg.config.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
+
+def ljust_padding(lst):
+    longest_len = max(map(len, lst)) if lst else 0
+    return [s.ljust(longest_len) for s in lst]
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -66,28 +71,22 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # this will trigger an exploratory search.
     pwndbg.vmmap.find(pc)
 
-    # Find all of the symbols for the addresses
-    symbols = []
-    for i in instructions:
-        symbol = pwndbg.symbol.get(i.address)
-        if symbol:
-            symbol = '<%s> ' % symbol
-        symbols.append(symbol)
+    # Gather all addresses and symbols for each instruction
+    symbols = [pwndbg.symbol.get(i.address) for i in instructions]
+    addresses = [hex(i.address) for i in instructions]
 
-    # Find the longest symbol name so we can adjust
-    if symbols:
-        longest_sym = max(map(len, symbols))
-    else:
-        longest_sym = ''
+    # Format the symbol name for each instruction
+    symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
 
-    # Pad them all out
-    for i,s in enumerate(symbols):
-        symbols[i] = s.ljust(longest_sym)
+    # Pad out all of the symbols and addresses
+    if pwndbg.config.left_pad_disasm:
+        symbols   = ljust_padding(symbols)
+        addresses = ljust_padding(addresses)
 
     prev = None
 
     # Print out each instruction
-    for i,s in zip(instructions, symbols):
+    for address_str, s, i in zip(addresses, symbols, instructions):
         asm    = pwndbg.disasm.color.instruction(i)
         prefix = ' =>' if i.address == pc else '   '
 
@@ -98,7 +97,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # for line in pc_to_linenos[i.address]:
         #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
 
-        line   = ' '.join((prefix, "%#x" % i.address, s or '', asm))
+        line   = ' '.join((prefix, address_str, s, asm))
 
         # Highlight the current line if the config is enabled
         if pwndbg.config.highlight_pc and i.address == pc:
