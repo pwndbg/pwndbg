@@ -22,5 +22,5 @@ def banner(title):
     return ("[{:-^%ss}]" % width).format(title)
 
 def addrsz(address):
-	address = int(address) & pwndbg.arch.ptrmask
-	return "%{}x".format(2*pwndbg.arch.ptrsize) % address
+    address = int(address) & pwndbg.arch.ptrmask
+    return "%{}x".format(2*pwndbg.arch.ptrsize) % address
