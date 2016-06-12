@@ -129,7 +129,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # We can't reason about anything except the current instruction
         if instruction.address != pwndbg.regs.pc:
-            return False
+            return None
 
         efl = pwndbg.regs.eflags
 

@@ -72,7 +72,7 @@ class DisassemblyAssistant(object):
         instruction.condition = c
 
     def condition(self, instruction):
-        return False
+        return None
 
     def enhance_next(self, instruction):
         """
