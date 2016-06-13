@@ -42,6 +42,6 @@ def get(address, maxlen = None):
         return None
 
     if len(sz) < maxlen:
-    	return sz
+        return sz
 
     return sz[:maxlen] + '...'

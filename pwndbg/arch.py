@@ -66,7 +66,7 @@ def pack(integer):
     return struct.pack(fmt, integer & ptrmask)
 
 def unpack(data):
-	return struct.unpack(fmt, data)[0]
+    return struct.unpack(fmt, data)[0]
 
 def signed(integer):
     return unpack(pack(integer), signed=True)

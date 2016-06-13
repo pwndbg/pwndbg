@@ -14,7 +14,7 @@ malloc_chunk  = None
 
 @pwndbg.events.new_objfile
 def load_malloc_chunk():
-	malloc_chunk = None
+    malloc_chunk = None
 
 
 def chunk2mem(p):
