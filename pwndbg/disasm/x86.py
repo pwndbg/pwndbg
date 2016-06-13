@@ -108,7 +108,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # Stop disassembling at RET if we won't know where it goes to
         if instruction.address != pwndbg.regs.pc:
-            return 0
+            return None
 
         # Otherwise, resolve the return on the stack
         pop = 0
