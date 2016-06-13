@@ -22,6 +22,7 @@ pwndbg.config.Parameter('color-stack', 'yellow', 'color for stack memory')
 pwndbg.config.Parameter('color-heap', 'blue', 'color for heap memory')
 pwndbg.config.Parameter('color-code', 'red', 'color for executable memory')
 pwndbg.config.Parameter('color-data', 'purple', 'color for all other writable memory')
+pwndbg.config.Parameter('color-rodata', 'normal', 'color for all read only memory')
 pwndbg.config.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
 
 def normal(x): return NORMAL + str(x)
@@ -30,6 +31,7 @@ def red(x): return RED + str(x) + NORMAL
 def blue(x): return BLUE + str(x) + NORMAL
 def gray(x): return GRAY + str(x) + NORMAL
 def green(x): return GREEN + str(x) + NORMAL
+def cyan(x): return CYAN + str(x) + NORMAL
 def yellow(x): return YELLOW + str(x) + NORMAL
 def purple(x): return PURPLE + str(x) + NORMAL
 def underline(x): return UNDERLINE + str(x) + NORMAL
@@ -58,6 +60,9 @@ def code(x):
 def data(x):
     return generateColorFunction(pwndbg.config.color_data)(x)
 
+def rodata(x):
+    return generateColorFunction(pwndbg.config.color_rodata)(x)
+
 def rwx(x):
     return generateColorFunction(pwndbg.config.color_rwx)(x)
 
@@ -79,7 +84,7 @@ def get(address, text = None):
     elif '[heap'  in page.objfile:   color = heap
     elif page.execute:               color = code
     elif page.rw:                    color = data
-    else:                            color = normal
+    else:                            color = rodata
 
     if page and page.rwx:
         old_color = color
@@ -99,5 +104,5 @@ def legend():
         code('CODE'),
         data('DATA'),
         rwx('RWX'),
-        'RODATA'
+        rodata('RODATA')
     ))
