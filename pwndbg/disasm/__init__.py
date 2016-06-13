@@ -15,7 +15,10 @@ import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.memoize
 import pwndbg.jump
-import pwndbg.emu.emulator
+try:
+    import pwndbg.emu.emulator
+except:
+    pwndbg.emu = None
 
 import capstone
 from capstone import *
@@ -143,7 +146,7 @@ def near(address, instructions=1, emulate=False):
     emu = None
 
     # If we hit the current instruction, we can do emulation going forward from there.
-    if address == pc and emulate:
+    if address == pc and pwndbg.emu and emulate:
         emu = pwndbg.emu.emulator.Emulator()
 
         # For whatever reason, the first instruction is emulated twice.
