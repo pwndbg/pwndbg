@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import unittest
 
+
 def pywrite(data):
     return write(data, suffix='.py')
 

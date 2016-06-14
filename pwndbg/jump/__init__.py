@@ -15,4 +15,3 @@
 #     @property
 #     def foobar(self):
 #         return self._foobar
-

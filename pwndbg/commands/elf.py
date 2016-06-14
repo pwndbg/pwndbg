@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from elftools.elf.elffile import ELFFile
+
 import gdb
 import pwndbg.commands
-from elftools.elf.elffile import ELFFile
+
 
 @pwndbg.commands.Command
 def elfheader():

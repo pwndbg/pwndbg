@@ -17,9 +17,10 @@ module, for example:
     >>> int(pwndbg.config.example_value)
     7
 """
-import gdb
 import sys
 import types
+
+import gdb
 
 TYPES = {
     # The value is an integer.

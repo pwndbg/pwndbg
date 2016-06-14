@@ -1,6 +1,10 @@
 from __future__ import print_function
+
 import collections
-from pycparser import c_ast, CParser
+
+from pycparser import CParser
+from pycparser import c_ast
+
 
 def extractTypeAndName(n, defaultName=None):
     if isinstance(n, c_ast.EllipsisParam):

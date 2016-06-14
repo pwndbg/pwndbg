@@ -6,8 +6,10 @@ Compatibility functionality for GDBINIT users.
 https://github.com/gdbinit/Gdbinit/blob/master/gdbinit
 """
 from __future__ import print_function
+
 import gdb
 import pwndbg.commands
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -40,4 +42,3 @@ def entry_point():
     """GDBINIT compatibility alias to print the entry point.
     See also the 'entry' command."""
     print(hex(pwndbg.elf.entry()))
-

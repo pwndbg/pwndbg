@@ -1,12 +1,15 @@
 from __future__ import print_function
+
 import gdb
-
-import pwndbg.vmmap
 import pwndbg.commands
-import pwndbg.symbol
 import pwndbg.memory
+import pwndbg.symbol
+import pwndbg.vmmap
+from pwndbg.color import blue
+from pwndbg.color import bold
+from pwndbg.color import green
+from pwndbg.color import red
 
-from pwndbg.color import bold, blue, green, red
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning

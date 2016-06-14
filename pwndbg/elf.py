@@ -22,7 +22,6 @@ import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
-
 from pwndbg.elftypes import *
 
 # ELF constants

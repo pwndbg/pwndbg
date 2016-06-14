@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
+from capstone import CS_GRP_JUMP
+
 import pwndbg.arch
 import pwndbg.disasm.x86
 
-from capstone import CS_GRP_JUMP
 
 def is_jump_taken(instruction):
     """

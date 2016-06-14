@@ -1,5 +1,7 @@
 from __future__ import print_function
+
 import argparse
+
 import gdb
 import pwndbg.color
 import pwndbg.commands

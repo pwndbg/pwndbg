@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import argparse
+
 import pwndbg.arch
 import pwndbg.commands
 import pwndbg.config

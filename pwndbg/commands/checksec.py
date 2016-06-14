@@ -7,6 +7,7 @@ import gdb
 import pwndbg.commands
 import pwndbg.which
 
+
 @pwndbg.commands.Command
 def checksec(file=None):
     '''

@@ -2,16 +2,19 @@
 Emulation assistance from Unicorn.
 """
 from __future__ import print_function
+
 import binascii
-import gdb
 import inspect
-import unicorn as U
+
 import capstone as C
+import unicorn as U
+
+import gdb
 import pwndbg.arch
 import pwndbg.disasm
+import pwndbg.emu.emulator
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.emu.emulator
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {

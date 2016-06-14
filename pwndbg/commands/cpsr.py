@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import gdb
 import pwndbg.arch
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.regs
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning

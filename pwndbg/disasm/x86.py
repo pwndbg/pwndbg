@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import collections
+
+from capstone import *
+from capstone.x86 import *
 
 import pwndbg.arch
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
-
-from capstone import *
-from capstone.x86 import *
 
 groups = {v:k for k,v in globals().items() if k.startswith('X86_GRP_')}
 ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}

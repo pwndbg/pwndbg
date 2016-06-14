@@ -5,20 +5,22 @@ Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.
 """
 from __future__ import print_function
+
+from capstone import CS_GRP_CALL
+from capstone import CS_GRP_INT
+
 import gdb
 import pwndbg.abi
 import pwndbg.arch
 import pwndbg.constants
 import pwndbg.disasm
-import pwndbg.functions
 import pwndbg.funcparser
+import pwndbg.functions
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.typeinfo
-
-from capstone import CS_GRP_CALL, CS_GRP_INT
 
 ida_replacements = {
     '__int64': 'signed long long int',
@@ -172,4 +174,3 @@ def argument(n, abi=None):
     sp = pwndbg.regs.sp + (n * pwndbg.arch.ptrsize)
 
     return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, sp))
-

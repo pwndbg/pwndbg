@@ -1,7 +1,9 @@
 from __future__ import print_function
+
 import gdb
-import pwndbg.regs
 import pwndbg.commands
+import pwndbg.regs
+
 
 class segment(gdb.Function):
     """Get the flat address of memory based off of the named segment register.

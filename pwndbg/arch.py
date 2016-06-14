@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import collections
 import struct
 import sys
+
+from capstone import *
 
 import gdb
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.regs
 import pwndbg.typeinfo
-
-from capstone import *
 
 current = 'i386'
 qemu    = current
@@ -73,4 +74,3 @@ def signed(integer):
 
 def unsigned(integer):
     return unpack(pack(integer))
-

@@ -1,10 +1,45 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import gdb
+
 import sys
+
+import gdb
+import pwndbg.android
 import pwndbg.arch
 import pwndbg.arguments
+import pwndbg.argv
+import pwndbg.color
+import pwndbg.commands
+import pwndbg.commands.argv
+import pwndbg.commands.aslr
+import pwndbg.commands.auxv
+import pwndbg.commands.checksec
+import pwndbg.commands.config
+import pwndbg.commands.context
+import pwndbg.commands.cpsr
+import pwndbg.commands.dt
+import pwndbg.commands.dumpargs
+import pwndbg.commands.elf
+import pwndbg.commands.gdbinit
+import pwndbg.commands.heap
+import pwndbg.commands.hexdump
+import pwndbg.commands.ida
+import pwndbg.commands.misc
+import pwndbg.commands.next
+import pwndbg.commands.peda
+import pwndbg.commands.procinfo
+import pwndbg.commands.reload
+import pwndbg.commands.rop
+import pwndbg.commands.search
+import pwndbg.commands.segments
+import pwndbg.commands.shell
+import pwndbg.commands.start
+import pwndbg.commands.telescope
+import pwndbg.commands.vmmap
+import pwndbg.commands.windbg
+import pwndbg.commands.xor
+import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm
 import pwndbg.disasm.jump
@@ -12,6 +47,17 @@ import pwndbg.disasm.mips
 import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
+import pwndbg.dt
+import pwndbg.elf
+import pwndbg.inthook
+import pwndbg.memory
+import pwndbg.net
+import pwndbg.proc
+import pwndbg.regs
+import pwndbg.stack
+import pwndbg.stdio
+import pwndbg.typeinfo
+import pwndbg.vmmap
 
 try:
     import unicorn
@@ -19,50 +65,6 @@ try:
 except:
     pass
 
-import pwndbg.vmmap
-import pwndbg.dt
-import pwndbg.memory
-import pwndbg.inthook
-import pwndbg.elf
-import pwndbg.proc
-import pwndbg.regs
-import pwndbg.stack
-import pwndbg.stdio
-import pwndbg.color
-import pwndbg.typeinfo
-import pwndbg.constants
-import pwndbg.argv
-import pwndbg.net
-import pwndbg.android
-import pwndbg.commands
-import pwndbg.commands.hexdump
-import pwndbg.commands.context
-import pwndbg.commands.telescope
-import pwndbg.commands.vmmap
-import pwndbg.commands.dt
-import pwndbg.commands.search
-import pwndbg.commands.start
-import pwndbg.commands.procinfo
-import pwndbg.commands.auxv
-import pwndbg.commands.windbg
-import pwndbg.commands.ida
-import pwndbg.commands.reload
-import pwndbg.commands.rop
-import pwndbg.commands.shell
-import pwndbg.commands.aslr
-import pwndbg.commands.misc
-import pwndbg.commands.next
-import pwndbg.commands.dumpargs
-import pwndbg.commands.cpsr
-import pwndbg.commands.argv
-import pwndbg.commands.heap
-import pwndbg.commands.segments
-import pwndbg.commands.xor
-import pwndbg.commands.peda
-import pwndbg.commands.gdbinit
-import pwndbg.commands.elf
-import pwndbg.commands.checksec
-import pwndbg.commands.config
 
 
 __all__ = [

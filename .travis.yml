@@ -17,4 +17,6 @@ install:
   - lsb_release -a
   - pip install -r requirements.txt
   - sudo ./setup.sh
+before_script:
+  - isort --check-only --diff pwndbg
 script: nosetests ./tests/

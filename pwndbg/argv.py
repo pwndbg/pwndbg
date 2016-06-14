@@ -1,6 +1,6 @@
 from __future__ import print_function
-import gdb
 
+import gdb
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.memory
@@ -47,4 +47,3 @@ def update():
             envc += 1
     except gdb.MemoryError:
         pass
-

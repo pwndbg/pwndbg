@@ -9,14 +9,16 @@ information available.
 """
 from __future__ import print_function
 
+import os
+import re
+import tempfile
+
 import elftools.common.exceptions
 import elftools.elf.constants
 import elftools.elf.elffile
 import elftools.elf.segments
+
 import gdb
-import re
-import os
-import tempfile
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.file
@@ -27,6 +29,7 @@ import pwndbg.qemu
 import pwndbg.remote
 import pwndbg.stack
 import pwndbg.vmmap
+
 
 def get_directory():
     """

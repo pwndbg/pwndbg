@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import argparse
 import codecs
 import os
@@ -99,4 +100,3 @@ def search(type, hex, string, executable, writable, value, mapping):
 
     # Perform the search
     print_search(value, mapping=mapping, executable=executable, writable=writable)
-

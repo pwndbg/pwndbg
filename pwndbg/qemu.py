@@ -4,12 +4,15 @@
 Determine whether the target is being run under QEMU.
 """
 from __future__ import print_function
-import gdb
+
 import os
+
 import psutil
 
-import pwndbg.remote
+import gdb
 import pwndbg.events
+import pwndbg.remote
+
 
 @pwndbg.memoize.reset_on_stop
 def is_qemu():
@@ -90,5 +93,3 @@ def pid():
     for c in connections:
       if c.laddr in targets:
         return process.pid
-
-

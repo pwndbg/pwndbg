@@ -5,7 +5,9 @@ Information about whether the debuggee is local (under GDB) or remote
 (under GDBSERVER or QEMU stub).
 """
 from __future__ import print_function
+
 import gdb
+
 
 def is_remote():
     # N.B.: We cannot use "info program" because of:

@@ -4,11 +4,13 @@
 Reading, writing, and describing memory.
 """
 from __future__ import print_function
+
+import traceback
+
 import gdb
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.typeinfo
-import traceback
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE-1)

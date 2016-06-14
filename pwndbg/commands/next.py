@@ -4,9 +4,11 @@
 Stepping until an event occurs
 """
 from __future__ import print_function
+
 import gdb
 import pwndbg.commands
 import pwndbg.next
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -72,4 +74,3 @@ def nextsc(*args):
     Breaks at the next syscall.
     """
     next_syscall(*args)
-

@@ -5,6 +5,7 @@ Common types, and routines for manually loading types from file
 via GCC.
 """
 from __future__ import print_function
+
 import glob
 import os
 import subprocess

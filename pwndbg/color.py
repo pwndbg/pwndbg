@@ -1,5 +1,7 @@
 from __future__ import print_function
+
 import functools
+
 import gdb
 import pwndbg.config
 import pwndbg.enhance

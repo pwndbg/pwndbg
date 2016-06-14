@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-from capstone import *
 
 import collections
-import gdb
 
+from capstone import *
+
+import gdb
 import pwndbg.arguments
 import pwndbg.color
 import pwndbg.disasm

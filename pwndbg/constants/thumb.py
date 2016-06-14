@@ -1,4 +1,5 @@
 from .constant import Constant
+
 __NR_OABI_SYSCALL_BASE = Constant('__NR_OABI_SYSCALL_BASE',0x900000)
 __NR_SYSCALL_BASE = Constant('__NR_SYSCALL_BASE',0)
 __NR_restart_syscall = Constant('__NR_restart_syscall',(0+  0))

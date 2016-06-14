@@ -5,6 +5,7 @@ Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
 from __future__ import print_function
+
 import collections
 import ctypes
 import re

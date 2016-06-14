@@ -4,6 +4,7 @@
 Wrapper for shell commands.
 """
 from __future__ import print_function
+
 import os
 
 import gdb

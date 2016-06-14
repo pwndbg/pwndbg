@@ -8,6 +8,7 @@ The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 from __future__ import print_function
+
 import sys
 
 import gdb
@@ -379,4 +380,3 @@ def check_aslr():
         vmmap.aslr = True
 
     return vmmap.aslr
-

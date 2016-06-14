@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+
 import gdb
-
 import pwndbg.commands
-
-from pwndbg.color import bold, yellow, red, underline
+from pwndbg.color import bold
+from pwndbg.color import red
+from pwndbg.color import underline
+from pwndbg.color import yellow
 
 PREV_INUSE = 1
 IS_MMAPED = 2

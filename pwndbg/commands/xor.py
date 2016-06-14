@@ -3,6 +3,7 @@ from __future__ import print_function
 import pwndbg.commands
 import pwndbg.memory
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def xor(self, address, key, count):

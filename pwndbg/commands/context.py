@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import gdb
+
 import sys
 
+import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -18,6 +19,7 @@ import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
+
 
 # @pwndbg.events.stop
 @pwndbg.commands.Command

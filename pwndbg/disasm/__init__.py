@@ -5,21 +5,21 @@ Functionality for disassmebling code at an address, or at an
 address +/- a few instructions.
 """
 from __future__ import print_function
-import collections
 
-import gdb
-import pwndbg.arch
-import pwndbg.disasm.arch
-import pwndbg.ida
-import pwndbg.memory
-import pwndbg.symbol
-import pwndbg.memoize
-import pwndbg.jump
-import pwndbg.emu.emulator
+import collections
 
 import capstone
 from capstone import *
 
+import gdb
+import pwndbg.arch
+import pwndbg.disasm.arch
+import pwndbg.emu.emulator
+import pwndbg.ida
+import pwndbg.jump
+import pwndbg.memoize
+import pwndbg.memory
+import pwndbg.symbol
 
 disassembler = None
 last_arch    = None
