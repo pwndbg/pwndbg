@@ -160,7 +160,7 @@ def context_source():
 
         # If it starts on line 1, it's not really using the
         # correct source code.
-        if not source or source.startswith('1\t'):
+        if not source or closest_line <= 1:
             return []
 
         banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
