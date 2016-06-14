@@ -17,26 +17,32 @@ module, for example:
     >>> int(pwndbg.config.example_value)
     7
 """
+from __future__ import unicode_literals
+
 import sys
 import types
 
+import six
+
 import gdb
 
-TYPES = {
-    # The value is an integer.
-    # This is like PARAM_INTEGER, except 0 is interpreted as itself.
-    int: gdb.PARAM_ZINTEGER,
+TYPES = {}
 
-    # The value is a string.
-    # When the user modifies the string, any escape sequences,
-    # such as ‘\t’, ‘\f’, and octal escapes, are translated into
-    # corresponding characters and encoded into the current host charset.
-    str: gdb.PARAM_STRING,
+# The value is an integer.
+# This is like PARAM_INTEGER, except 0 is interpreted as itself.
+for type in six.integer_types:
+    TYPES[type] = gdb.PARAM_ZINTEGER
 
-    # The value is a plain boolean.
-    # The Python boolean values, True and False are the only valid values.
-    bool: gdb.PARAM_BOOLEAN
-}
+# The value is a string.
+# When the user modifies the string, any escape sequences,
+# such as ‘\t’, ‘\f’, and octal escapes, are translated into
+# corresponding characters and encoded into the current host charset.
+for type in six.string_types:
+    TYPES[type] = gdb.PARAM_STRING
+
+# The value is a plain boolean.
+# The Python boolean values, True and False are the only valid values.
+TYPES[bool] = gdb.PARAM_BOOLEAN
 
 def getParam(value):
     for k,v in TYPES.items():
