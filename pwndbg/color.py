@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 import functools
 
+import six
+
 import gdb
 import pwndbg.config
 import pwndbg.enhance
@@ -93,7 +95,7 @@ def get(address, text = None):
         old_color = color
         color = lambda x: rwx(old_color(x))
 
-    if text is None and isinstance(address, (long, int)) and address > 255:
+    if text is None and isinstance(address, six.integer_types) and address > 255:
         text = hex(int(address))
     if text is None:
         text = str(int(address))

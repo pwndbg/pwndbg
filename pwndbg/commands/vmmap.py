@@ -6,6 +6,8 @@ Command to print the vitual memory map a la /proc/self/maps.
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import six
+
 import gdb
 import pwndbg.color
 import pwndbg.commands
@@ -24,9 +26,9 @@ def vmmap(map=None):
     int_map = None
     str_map = None
 
-    if isinstance(map, pwndbg.compat.basestring):
+    if isinstance(map, six.string_types):
         str_map = map
-    elif isinstance(map, (long, int, gdb.Value)):
+    elif isinstance(map, six.integer_types + (gdb.Value,)):
         int_map = int(map)
 
     print(pwndbg.color.legend())

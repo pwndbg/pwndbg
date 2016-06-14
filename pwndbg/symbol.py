@@ -18,6 +18,7 @@ import elftools.common.exceptions
 import elftools.elf.constants
 import elftools.elf.elffile
 import elftools.elf.segments
+import six
 
 import gdb
 import pwndbg.elf
@@ -190,7 +191,7 @@ def get(address, gdb_only=False):
 
 @pwndbg.memoize.reset_on_objfile
 def address(symbol):
-    if isinstance(symbol, (int,long)):
+    if isinstance(symbol, six.integer_types):
         return symbol
 
     try:

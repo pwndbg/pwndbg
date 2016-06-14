@@ -13,6 +13,8 @@ import subprocess
 import sys
 import tempfile
 
+import six
+
 import gdb
 import pwndbg.events
 import pwndbg.gcc

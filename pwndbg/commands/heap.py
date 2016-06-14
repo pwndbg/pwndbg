@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 from __future__ import unicode_literals
+
+import six
 
 import gdb
 import pwndbg.commands
@@ -152,7 +153,7 @@ def malloc_chunk(addr):
     """
     Prints out the malloc_chunk at the specified address.
     """
-    if not isinstance(addr, int):
+    if not isinstance(addr, six.integer_types):
         addr = int(addr)
 
     chunk = value_from_type('struct malloc_chunk', addr)

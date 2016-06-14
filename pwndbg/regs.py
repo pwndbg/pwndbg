@@ -13,6 +13,8 @@ import re
 import sys
 from types import ModuleType
 
+import six
+
 import gdb
 import pwndbg.arch
 import pwndbg.compat
@@ -282,10 +284,10 @@ class module(ModuleType):
 
     @pwndbg.memoize.reset_on_stop
     def __getitem__(self, item):
-        if isinstance(item, int):
+        if isinstance(item, six.integer_types):
             return arch_to_regs[pwndbg.arch.current][item]
 
-        if not isinstance(item, pwndbg.compat.basestring):
+        if not isinstance(item, six.string_types):
             print("Unknown register type: %r" % (item))
             import pdb, traceback
             traceback.print_stack()
@@ -296,7 +298,7 @@ class module(ModuleType):
         item = item.lstrip('$')
         item = getattr(self, item.lower())
 
-        if isinstance(item, (int,long)):
+        if isinstance(item, six.integer_types):
             return int(item) & pwndbg.arch.ptrmask
 
         return item

@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import six
+
 import gdb
 import pwndbg.auxv
 import pwndbg.chain
@@ -15,4 +17,4 @@ def auxv():
     """
     for k,v in sorted(pwndbg.auxv.get().items()):
         if v is not None:
-            print(k.ljust(24), v if not isinstance(v, (long, int)) else pwndbg.chain.format(v))
+            print(k.ljust(24), v if not isinstance(v, six.integer_types) else pwndbg.chain.format(v))
