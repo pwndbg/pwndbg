@@ -8,6 +8,7 @@ Generally not needed, except under qemu-user and for when
 binaries do things to remap the stack (e.g. pwnies' postit).
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import gdb
 import pwndbg.events

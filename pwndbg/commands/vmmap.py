@@ -4,6 +4,7 @@
 Command to print the vitual memory map a la /proc/self/maps.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import gdb
 import pwndbg.color

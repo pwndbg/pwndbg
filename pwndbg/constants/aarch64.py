@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from .constant import Constant
 
 __NR_io_setup = Constant('__NR_io_setup',0)

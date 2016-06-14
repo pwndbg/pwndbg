@@ -6,6 +6,7 @@ running under Python2 or Python3, and resolving any
 inconsistencies which arise from this.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from .constant import Constant
 
 __NR_read = Constant('__NR_read',0)

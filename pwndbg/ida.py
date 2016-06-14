@@ -6,6 +6,7 @@ in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import errno
 import functools

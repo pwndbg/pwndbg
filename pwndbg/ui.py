@@ -4,6 +4,7 @@
 A few helpers for making things print pretty-like.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import fcntl
 import struct

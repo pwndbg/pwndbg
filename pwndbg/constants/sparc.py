@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from .constant import Constant
 
 __NR_exit = Constant('__NR_exit',1)

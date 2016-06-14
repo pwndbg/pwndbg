@@ -1,4 +1,7 @@
-import common
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+from . import common
 
 
 def test_loads_wivout_crashing_bruv():

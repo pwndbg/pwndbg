@@ -6,6 +6,7 @@ when various events occur to the debuggee (e.g. STOP on SIGINT)
 by using a decorator.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import functools
 import sys

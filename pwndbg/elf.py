@@ -8,6 +8,7 @@ This is necessary for when access to /proc is restricted, or when
 working on a BSD system which simply does not have /proc.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 import re

@@ -6,6 +6,7 @@ Compatibility functionality for GDBINIT users.
 https://github.com/gdbinit/Gdbinit/blob/master/gdbinit
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import gdb
 import pwndbg.commands

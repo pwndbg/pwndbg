@@ -30,6 +30,8 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import unicode_literals
+
 import ctypes
 
 Elf32_Addr = ctypes.c_uint32

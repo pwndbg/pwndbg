@@ -6,6 +6,7 @@ debugging a remote process over SSH or similar, where e.g.
 /proc/FOO/maps is needed from the remote system.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import binascii
 import errno as _errno

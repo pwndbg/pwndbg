@@ -6,6 +6,7 @@ e.g. execution stops because of a SIGINT or breakpoint, or a
 new library/objfile are loaded, etc.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import collections
 import copy

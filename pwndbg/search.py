@@ -4,6 +4,7 @@
 Search the address space for byte patterns.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import struct
 

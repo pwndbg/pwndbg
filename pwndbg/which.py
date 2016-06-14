@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 # This license covers everything within this project, except for a few pieces
 # of code that we either did not write ourselves or which we derived from code
 # that we did not write ourselves. These few pieces have their license specified

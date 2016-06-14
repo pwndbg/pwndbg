@@ -8,6 +8,7 @@ Uses IDA when available if there isn't sufficient symbol
 information available.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 import re

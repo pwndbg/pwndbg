@@ -3,6 +3,8 @@
 """
 Dumps all pwndbg-specific configuration points.
 """
+from __future__ import unicode_literals
+
 import pwndbg.commands
 import pwndbg.config
 

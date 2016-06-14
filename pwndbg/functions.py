@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import collections
 
 Function = collections.namedtuple('Function', ('type', 'derefcnt', 'name', 'args'))

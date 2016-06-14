@@ -4,6 +4,7 @@
 Wrapper for shell commands.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 
@@ -69,7 +70,7 @@ def register_shell_function(cmd):
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()
-    handler.__name__ = cmd
+    handler.__name__ = str(cmd)
     pwndbg.commands.Command(handler, False)
 
 for cmd in shellcmds:

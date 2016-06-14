@@ -5,6 +5,7 @@ Functions for determining the architecture-dependent path to
 GCC and any flags it should be executed with.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import collections
 import glob

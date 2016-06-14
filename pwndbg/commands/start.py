@@ -5,6 +5,7 @@ Launches the target process after setting a breakpoint at a convenient
 entry point.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import gdb
 import pwndbg.commands

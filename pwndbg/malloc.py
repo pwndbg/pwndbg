@@ -6,6 +6,7 @@ Describes the EGLIBC heap mechanisms.
 Work-in-progress.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import pwndbg.arch
 import pwndbg.events

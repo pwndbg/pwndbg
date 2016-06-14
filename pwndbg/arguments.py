@@ -5,6 +5,7 @@ Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
