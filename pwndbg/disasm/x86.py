@@ -92,8 +92,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 sz += ' - '
             elif arith and op.mem.disp >= 0:
                 sz += ' + '
+            sz += '%#x' % abs(op.mem.disp)
 
-        sz += ']'
+        sz = '[%s]' % sz
         return sz
 
 
