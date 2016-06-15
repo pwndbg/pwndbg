@@ -2,8 +2,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
-
 import six
+import re
 
 import gdb
 import pwndbg.config
@@ -19,6 +19,7 @@ YELLOW         = "\x1b[33m"
 BLUE           = "\x1b[34m"
 PURPLE         = "\x1b[35m"
 CYAN           = "\x1b[36m"
+WHITE          = "\x1b[37m"
 GREY = GRAY    = "\x1b[90m"
 BOLD           = "\x1b[1m"
 UNDERLINE      = "\x1b[4m"
@@ -29,17 +30,21 @@ pwndbg.config.Parameter('color-code', 'red', 'color for executable memory')
 pwndbg.config.Parameter('color-data', 'purple', 'color for all other writable memory')
 pwndbg.config.Parameter('color-rodata', 'normal', 'color for all read only memory')
 pwndbg.config.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
+pwndbg.config.Parameter('color-highlight', 'green,bold', 'color added to highlights like source/pc')
 
-def normal(x): return NORMAL + str(x)
-def bold(x): return BOLD + str(x) + NORMAL
-def red(x): return RED + str(x) + NORMAL
-def blue(x): return BLUE + str(x) + NORMAL
-def gray(x): return GRAY + str(x) + NORMAL
-def green(x): return GREEN + str(x) + NORMAL
-def cyan(x): return CYAN + str(x) + NORMAL
-def yellow(x): return YELLOW + str(x) + NORMAL
-def purple(x): return PURPLE + str(x) + NORMAL
-def underline(x): return UNDERLINE + str(x) + NORMAL
+def normal(x): return colorize(x, NORMAL)
+def black(x): return colorize(x, BLACK)
+def red(x): return colorize(x, RED)
+def green(x): return colorize(x, GREEN)
+def yellow(x): return colorize(x, YELLOW)
+def blue(x): return colorize(x, BLUE)
+def purple(x): return colorize(x, PURPLE)
+def cyan(x): return colorize(x, CYAN)
+def white(x): return colorize(x, WHITE)
+def gray(x): return colorize(x, GRAY)
+def bold(x): return colorize(x, BOLD)
+def underline(x): return colorize(x, UNDERLINE)
+def colorize(x, color): return color + terminateWith(str(x), color) + NORMAL
 
 @pwndbg.memoize.reset_on_stop
 def generateColorFunctionInner(old, new):
@@ -70,6 +75,9 @@ def rodata(x):
 
 def rwx(x):
     return generateColorFunction(pwndbg.config.color_rwx)(x)
+
+def highlight(x):
+    return generateColorFunction(pwndbg.config.color_highlight)(x)
 
 def get(address, text = None):
     """
@@ -111,3 +119,9 @@ def legend():
         rwx('RWX'),
         rodata('RODATA')
     ))
+
+def strip(x):
+    return re.sub('\x1b\\[\d+m', '', x)
+
+def terminateWith(x, color):
+    return re.sub('\x1b\\[0m', NORMAL + color, x)
