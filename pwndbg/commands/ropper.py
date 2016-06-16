@@ -92,10 +92,14 @@ def ropper(search, set, settings, ropchain):
 
             if set:
                 sets = parse_settings(set)
+                need_to_reload = False
                 for key, value in sets.items():
                     rs.options[key] = value
-                    if key == 'type':
-                        rs.loadGadgetsFor(file)
+                    if key in ['inst_count','type']:
+                        has_to_reload = True
+
+                if has_to_reload:
+                    rs.loadGadgetsFor(file)
                 return
 
             if settings:
