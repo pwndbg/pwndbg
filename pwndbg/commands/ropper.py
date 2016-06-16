@@ -83,6 +83,11 @@ def ropper(search, set, settings, ropchain):
             return
 
         try:
+            if settings:
+                for key, value in rs.options.items():
+                    print("%s: %s" % (key, value))
+                return
+
             if not rs.getFileFor(filename):
                 for file in rs.files:
                     rs.removeFile(file)
@@ -100,11 +105,6 @@ def ropper(search, set, settings, ropchain):
 
                 if has_to_reload:
                     rs.loadGadgetsFor(file)
-                return
-
-            if settings:
-                for key, value in rs.options.items():
-                    print("%s: %s" % (key, value))
                 return
 
             if ropchain:
