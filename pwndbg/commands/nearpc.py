@@ -94,14 +94,13 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if pre:
             result.append(pwndbg.color.bold(pre))
 
-        # for line in pc_to_linenos[i.address]:
-        #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
+        # Colorize address and symbol if not highlighted
+        if not pwndbg.config.highlight_pc or i.address != pc:
+            address_str = pwndbg.color.nearpc_address(address_str)
+            s = pwndbg.color.nearpc_symbol(s)
 
+        prefix = pwndbg.color.nearpc_prefix(prefix)
         line   = ' '.join((prefix, address_str, s, asm))
-
-        # Highlight the current line if the config is enabled
-        if pwndbg.config.highlight_pc and i.address == pc:
-            line = pwndbg.color.highlight(line)
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
@@ -113,12 +112,15 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
             result.append('')
 
-
         # For syscall instructions, put the name on the side
         if i.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(i)
             if syscall_name:
-                line += ' <%s>' % syscall_name
+                line += ' <%s>' % pwndbg.color.nearpc_syscall(syscall_name)
+
+        # Highlight the current line if enabled
+        if pwndbg.config.highlight_pc and i.address == pc:
+            line = pwndbg.color.highlight(line)
 
         result.append(line)
 
@@ -127,7 +129,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         for arg, value in pwndbg.arguments.get(i):
             code   = False if arg.type == 'char' else True
             pretty = pwndbg.chain.format(value, code=code)
-            result.append('%8s%-10s %s' % ('',arg.name+':', pretty))
+            result.append('%8s%-10s %s' % ('', pwndbg.color.nearpc_argument(arg.name) + ':', pretty))
 
         prev = i
 

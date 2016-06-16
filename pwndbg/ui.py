@@ -12,6 +12,7 @@ import sys
 import termios
 
 import pwndbg.arch
+import pwndbg.color
 
 
 def banner(title):
@@ -21,7 +22,7 @@ def banner(title):
     except:
         width = 80
     width -= 2
-    return ("[{:-^%ss}]" % width).format(title)
+    return pwndbg.color.banner(("[{:-^%ss}]" % width).format(title))
 
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask

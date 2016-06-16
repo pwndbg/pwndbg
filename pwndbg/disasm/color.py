@@ -54,9 +54,9 @@ def instruction(ins):
             asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
             asm = '%-36s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr))
 
-    # Make the instruction mnemonic bold if it's a branch instruction.
+    # Style the instruction mnemonic if it's a branch instruction.
     if branch:
-        asm = asm.replace(ins.mnemonic, pwndbg.color.bold(ins.mnemonic))
+        asm = asm.replace(ins.mnemonic, pwndbg.color.disasm_branch(ins.mnemonic))
 
     # If we know the conditional is taken, mark it as green.
     if ins.condition is None:

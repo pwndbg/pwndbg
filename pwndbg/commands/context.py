@@ -53,7 +53,7 @@ def context(*args):
 
 def context_regs():
     result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("registers")))
+    result.append(pwndbg.ui.banner("registers"))
     result.extend(get_regs())
     return result
 
@@ -64,7 +64,6 @@ def regs(*regs):
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
-pwndbg.config.Parameter('colored-flags', False, 'whether to colorize flags registers')
 
 def get_regs(*regs):
     result = []
@@ -88,10 +87,10 @@ def get_regs(*regs):
         value = pwndbg.regs[reg]
 
         # Make the register stand out
-        regname = pwndbg.color.bold(reg.ljust(4).upper())
+        regname = pwndbg.color.register(reg.ljust(4).upper())
 
         # Show a dot next to the register if it changed
-        m = ' ' if reg not in changed else '*'
+        m = ' ' if reg not in changed else pwndbg.color.register_changed('*')
 
         if reg not in pwndbg.regs.flags:
             desc = pwndbg.chain.format(value)
@@ -106,13 +105,10 @@ def get_regs(*regs):
                 bit = 1<<bit
                 if value & bit:
                     name = name.upper()
-                    name = pwndbg.color.bold(name)
-                    if pwndbg.config.colored_flags:
-                        name = pwndbg.color.green(name)
+                    name = pwndbg.color.flag_set(name)
                 else:
                     name = name.lower()
-                    if pwndbg.config.colored_flags:
-                        name = pwndbg.color.red(name)
+                    name = pwndbg.color.flag_unset(name)
 
                 if value & bit != last & bit:
                     name = pwndbg.color.underline(name)
@@ -130,7 +126,7 @@ Unicorn emulation of code near the current instruction
 ''')
 
 def context_code():
-    banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+    banner = [pwndbg.ui.banner("code")]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate)
 
@@ -173,7 +169,7 @@ def context_source():
                     source_lines[i] = pwndbg.color.highlight(source_lines[i])
                     break
 
-        banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+        banner = [pwndbg.ui.banner("code")]
         banner.extend(source_lines)
         return banner
     except:
@@ -194,7 +190,7 @@ def context_source():
 
 def context_stack():
     result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("stack")))
+    result.append(pwndbg.ui.banner("stack"))
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True)
     if telescope:
         result.extend(telescope)
@@ -204,7 +200,7 @@ def context_backtrace(frame_count=10, with_banner=True):
     result = []
 
     if with_banner:
-        result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
+        result.append(pwndbg.ui.banner("backtrace"))
 
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
@@ -259,7 +255,7 @@ def context_args():
     #     result.append('%-10s %s' % (arg.name+':', pretty))
     # if not result:
     #         return []
-    # result.insert(0, pwndbg.color.blue(pwndbg.ui.banner("arguments")))
+    # result.insert(0, pwndbg.ui.banner("arguments"))
     return result
 
 last_signal = []
