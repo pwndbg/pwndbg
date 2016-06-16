@@ -37,7 +37,7 @@ def parse_settings(settings):
         if opt[0] in ['all','badbytes','type', 'color', 'detailed', 'cfg_only', 'inst_count']:
             if len(opt) > 1:
                 if opt[0] in ['all', 'color', 'detailed']:
-                    to_return[opt[0]] = opt[1].strip() == 'True'
+                    to_return[opt[0]] = opt[1].strip().capitalize() == 'True'
                 elif opt[0] in ['inst_count']:
                     to_return[opt[0]] = int(opt[1])
                 else:
