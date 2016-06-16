@@ -45,6 +45,21 @@ for type in six.integer_types:
 for type in six.string_types:
     TYPES[type] = gdb.PARAM_STRING
 
+triggers = collections.defaultdict(lambda: [])
+
+class Trigger(object):
+    def __init__(self, names):
+        if not isinstance(names, list):
+            names = [names]
+        self.names = list(map(lambda n: n.replace('-', '_'), names))
+
+    def __call__(self, function):
+        global triggers
+        for name in self.names:
+            triggers[name].append(function)
+        return function
+
+
 def getParam(value):
     for k,v in TYPES.items():
         if isinstance(value, k):
@@ -67,6 +82,8 @@ class Parameter(gdb.Parameter):
         setattr(module, self.name, self)
 
     def get_set_string(self):
+        for trigger in triggers[self.name]:
+            trigger()
         return 'Set %s to %r' % (self.docstring, self.value)
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)

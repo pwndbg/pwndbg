@@ -10,6 +10,7 @@ import copy
 import string
 
 import pwndbg.color
+import pwndbg.config
 
 
 color_scheme = None
@@ -22,6 +23,7 @@ def groupby(array, count, fill=None):
     for i in range(0, len(array), count):
         yield array[i:i+count]
 
+@pwndbg.config.Trigger(['color-hexdump-normal', 'color-hexdump-zero', 'color-hexdump-special', 'color-hexdump-printable'])
 def load_color_scheme():
     global color_scheme, printable
     #

@@ -11,7 +11,6 @@ import pwndbg.config
 import pwndbg.enhance
 import pwndbg.memoize
 import pwndbg.vmmap
-import pwndbg.hexdump
 
 NORMAL         = "\x1b[0m"
 BLACK          = "\x1b[30m"
@@ -51,7 +50,7 @@ pwndbg.config.Parameter('color-nearpc-address', 'normal', 'color for nearpc comm
 pwndbg.config.Parameter('color-nearpc-prefix', 'red,bold', 'color for nearpc command (prefix marker)')
 pwndbg.config.Parameter('color-nearpc-syscall', 'red', 'color for nearpc command (syscall name)')
 pwndbg.config.Parameter('color-nearpc-argument', 'bold', 'color for nearpc command (target argument)')
-pwndbg.config.Parameter('color-disasm-branch', 'red,bold', 'color for disasm (branch/call instruction)')
+pwndbg.config.Parameter('color-disasm-branch', 'bold', 'color for disasm (branch/call instruction)')
 pwndbg.config.Parameter('color-hexdump-normal', 'normal', 'color for hexdump command (normal bytes)')
 pwndbg.config.Parameter('color-hexdump-printable', 'bold', 'color for hexdump command (printable characters)')
 pwndbg.config.Parameter('color-hexdump-zero', 'red', 'color for hexdump command (zero bytes)')
