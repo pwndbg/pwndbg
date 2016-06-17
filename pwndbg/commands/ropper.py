@@ -13,22 +13,23 @@ import pwndbg.vmmap
 
 rs = None
 
-parser = argparse.ArgumentParser(description="Gadget search with ropper",
+parser = argparse.ArgumentParser(description="Gadget search, ropchaining and more using ropper",
                                 epilog="Examples: \"ropper --search 'pop rdi'\", \"ropper --search 'mov e?x'\", \"ropper --ropchain 'execve'\", \"ropper --ropchain 'mprotect address=0xbfff0000 size=0x20fff'\"")
+parser.add_argument('--gadgets',
+                    help='Prints all gadgets found in the binary', action='store_true')
 parser.add_argument('--search', type=str,
                     help='String to grep the output for')
 parser.add_argument('--set', type=str, metavar='<settings>',
                     help="""'sets a setting. setting[=value]] [setting[=value]]...'        
 If no value is given, this option is set to the default
                     """)
-
 parser.add_argument('--settings',
                      help='Prints all settings',
                      action='store_true')
-
 parser.add_argument('--ropchain', 
                     help="Generates a ropchain [generator parameter=value[ parameter=value]]. (execve, mprotect(address,size))", 
                     metavar='<generator>', type=str)
+
 
 def parse_settings(settings):
     to_return = {}
@@ -50,9 +51,50 @@ def parse_settings(settings):
 
     return to_return
 
+def create_chain(params):
+    split = params.split(' ')
+    generator = split[0]
+    options = {}
+    if len(split) > 1:
+        for option in split[1:]:
+            key, value = option.split('=')
+            options[key] = value
+    print(rs.createRopChain(generator, options))
+
+def set_settings(set):
+    sets = parse_settings(set)
+    need_to_reload = False
+    for key, value in sets.items():
+        rs.options[key] = value
+        if key in ['inst_count','type']:
+            need_to_reload = True
+
+    if need_to_reload:
+        rs.loadGadgetsFor(file)
+    return
+
+def print_settings():
+    description = {'inst_count' : 'Max count of instructions in a gadget',
+                    'color' : 'Colored output (true|false)',
+                    'badbytes' : 'These bytes should not be in gadget addresses (format example: 000a0d)',
+                    'detailed' : 'Detailed output format for gadgets (true|false)',
+                    'all' : 'Show all gadgets. double gadgets are not removed',
+                    'type' : 'Type of gadgets (rop, jop, sys, all)'
+                }
+    for key, value in rs.options.items():
+        if not key == 'cfg_only':
+            print("%s - %s\t%s" % (key+' '*(10-len(key)), str(value)+' '*(6-len(str(value))), description[key]))
+
+    print()
+    print('How to set settings:')
+    print('ropper --set badbytes=00 all=true')
+    print()
+    print('How to clear/reset settings:')
+    print('ropper --set badbytes')
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def ropper(search, set, settings, ropchain):
+def ropper(gadgets, search, set, settings, ropchain, asm, out):
     with tempfile.NamedTemporaryFile() as corefile:
         global rs
         # check if ropper is installed
@@ -83,139 +125,74 @@ def ropper(search, set, settings, ropchain):
             return
 
         try:
-            if settings:
-                for key, value in rs.options.items():
-                    print("%s: %s" % (key, value))
-                return
-
             if not rs.getFileFor(filename):
                 for file in rs.files:
                     rs.removeFile(file)
 
                 rs.addFile(filename)
-                rs.loadGadgetsFor(filename)
 
-            if set:
-                sets = parse_settings(set)
-                need_to_reload = False
-                for key, value in sets.items():
-                    rs.options[key] = value
-                    if key in ['inst_count','type']:
-                        need_to_reload = True
-
-                if need_to_reload:
-                    rs.loadGadgetsFor(file)
-                return
-
-            if ropchain:
-                split = ropchain.split(' ')
-                generator = split[0]
-                options = {}
-                if len(split) > 1:
-                    for option in split[1:]:
-                        key, value = option.split('=')
-                        options[key] = value
-                print(rs.createRopChain(generator, options))
-                return
-
-            if search:
+            if gadgets:
+                if not rs.getFileFor(filename).loaded:
+                    rs.loadGadgetsFor()
+                rs.printGadgetsFor(filename)
+            elif settings:
+                print_settings()
+            elif set:
+                set_settings(set)
+            elif ropchain:
+                create_chain(ropchain)
+            elif search:
                 for f, g in rs.search(search=search, name=filename):
                     print(g)
-                return
-
-            rs.printGadgetsFor(filename)
+            else:
+                print(parser.print_help())
+    
         except BaseException as e:
             print(e)
 
 
 class CallbackClass(object):
+    """Callback class for RopperService
+    
+    This class is used for different callbacks in ropper like progress when searching rop gadgets.
+    """
 
-    def __init__(self):
-        self.__console = ConsolePrinter()
+    def printProgress(self, message, progress):
+        stdout.write('\r%s %s %s' % (pwndbg.color.green('[LOAD]'), message, str(int(progress * 100))))
+        stdout.flush()
+
+    def printInfo(self, message):
+        print(pwndbg.color.green('[INFO]'), message)
 
     def __gadgetSearchProgress__(self, section, gadgets, progress):
         if gadgets is not None:
-            self.__console.printProgress('loading...', progress)
+            self.printProgress('loading...', progress)
 
             if progress == 1.0:
-                self.__console.finishProgress()
+                print()
         else:
-            self.__console.printInfo(
+            self.printInfo(
                 'Load gadgets for section: ' + section.name)
 
     def __deleteDoubleGadgetsProgress__(self, gadget, added, progress):
-        self.__console.printProgress('removing double gadgets...', progress)
+        self.printProgress('removing double gadgets...', progress)
         if progress == 1.0:
-            self.__console.finishProgress()
+            print()
 
     def __filterCfgGadgetsProgress__(self, gadget, added, progress):
-        self.__console.printProgress('filtering cfg gadgets...', progress)
+        self.printProgress('filtering cfg gadgets...', progress)
         if progress == 1.0:
-            self.__console.finishProgress()
+            print()
 
     def __filterBadBytesGadgetsProgress__(self, gadget, added, progress):
-        self.__console.printProgress('filtering badbytes...', progress)
+        self.printProgress('filtering badbytes...', progress)
         if progress == 1.0:
-            self.__console.finishProgress()
+            print()
 
     def __ropchainMessages__(self, message):
         if message.startswith('[*]'):
-            self.__console.puts('\r' + message)
+            stdout.write('\r' + message)
+            stdout.flush()
         else:
-            self.__console.printInfo(message)
+            print(message)
 
-class ConsolePrinter(object):
-
-    def __init__(self, out=stdout, err=stderr):
-        super(ConsolePrinter, self).__init__()
-        self._out = out
-        self._err = err
-
-    def putsErr(self, *args):
-        for i, arg in enumerate(args):
-            self._err.write(str(arg))
-            if i != len(args) - 1:
-                self._err.write(' ')
-        self._err.flush()
-
-    def puts(self, *args):
-
-        for i, arg in enumerate(args):
-            self._out.write(str(arg))
-            if i != len(args) - 1:
-                self._out.write(' ')
-        self._out.flush()
-
-    def println(self, *args):
-
-        self.puts(*args)
-        self._out.write('\n')
-
-    def printlnErr(self, *args):
-
-        self.putsErr(*args)
-        self._err.write('\n')
-
-    def printHelpText(self, cmd, desc):
-        self.println('{}  -  {}\n'.format(cmd, desc))
-
-    def printMessage(self, mtype, message):
-        self.printlnErr(mtype, message)
-
-    def printError(self, message):
-        self.printMessage(pwndbg.color.red('[ERROR]'), message)
-
-    def printInfo(self, message):
-        self.printMessage(pwndbg.color.green('[INFO]'), message)
-
-    def startProgress(self, message=None):
-        if message:
-            self.printInfo(message)
-
-    def printProgress(self, message, progress):
-        self.putsErr('\r' + pwndbg.color.green('[LOAD]'),message, str(int(progress * 100)) + '%')
-
-    def finishProgress(self, message=None):
-        self.printlnErr('')
-        if message:
-            self.printInfo(message)
