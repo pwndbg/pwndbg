@@ -26,9 +26,7 @@ parser.add_argument('--opcode', type=str,
 parser.add_argument('--instructions', type=str,
                     help='Looks for the opcode of the given instructions in the binary (keystone is needed. www.keystone-engine.org). Example: ropper --instructions "mov eax, 4; jmp esp"', metavar='<reg[,<reg>]>')
 parser.add_argument('--set', type=str, metavar='<settings>',
-                    help="""'sets a setting. setting[=value]] [setting[=value]]...'        
-If no value is given, this option is set to the default
-                    """)
+                    help='Sets a setting. setting[=value]] [setting[=value]].... If no value is given, this option is set to the default')
 parser.add_argument('--settings',
                      help='Prints all settings',
                      action='store_true')
