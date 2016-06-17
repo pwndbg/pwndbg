@@ -59,7 +59,7 @@ def instruction(ins):
         asm = asm.replace(ins.mnemonic, pwndbg.color.bold(ins.mnemonic))
 
     # If we know the conditional is taken, mark it as green.
-    if ins.codition is None:
+    if ins.condition is None:
         asm = '  ' + asm
     elif ins.condition:
         asm = pwndbg.color.green(u'✔ ') + asm
