@@ -22,7 +22,6 @@ def vmmap(map=None):
     Print the virtal memory map, or the specific mapping for the
     provided address / module name.
     """
-    print(repr(map))
     int_map = None
     str_map = None
 
