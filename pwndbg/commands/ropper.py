@@ -18,7 +18,13 @@ parser = argparse.ArgumentParser(description="Gadget search, ropchaining and mor
 parser.add_argument('--gadgets',
                     help='Prints all gadgets found in the binary', action='store_true')
 parser.add_argument('--search', type=str,
-                    help='String to grep the output for')
+                    help='String to search for gadgets. ? - any character; %  - any string. Example: ropper --search "mov [e?x]"')
+parser.add_argument('--jmp', type=str,
+                    help='Looks for jmp reg or equivalent instructions. Example: ropper --jmp esp,eax', metavar='<reg[,<reg>]>')
+parser.add_argument('--opcode', type=str,
+                    help='Looks for the specified opcode. Valid formats examples: ffe4, ffe?, ff??. Example: ropper --opcode ffe4', metavar='<reg[,<reg>]>')
+parser.add_argument('--instructions', type=str,
+                    help='Looks for the opcode of the given instructions in the binary (keystone is needed. www.keystone-engine.org). Example: ropper --instructions "mov eax, 4; jmp esp"', metavar='<reg[,<reg>]>')
 parser.add_argument('--set', type=str, metavar='<settings>',
                     help="""'sets a setting. setting[=value]] [setting[=value]]...'        
 If no value is given, this option is set to the default
@@ -29,6 +35,11 @@ parser.add_argument('--settings',
 parser.add_argument('--ropchain', 
                     help="Generates a ropchain [generator parameter=value[ parameter=value]]. (execve, mprotect(address,size))", 
                     metavar='<generator>', type=str)
+parser.add_argument('--asm', type=str,
+                    help='Assemble instructions. The architecture of the opened file is used (keystone is needed. www.keystone-engine.org). Example: ropper --asm "jmp esp"', metavar='<code>')
+parser.add_argument('--out', type=str, help="Specify the output format for asm. (hex, string, raw; default: hex)", default='hex', metavar='<format>')
+parser.add_argument('--disasm', type=str,
+                    help='Disassemble instructions. The architecture of the opened file is used. Example: ropper --disasm ffe4', metavar='<opcode>')
 
 
 def parse_settings(settings):
@@ -70,7 +81,7 @@ def set_settings(set):
             need_to_reload = True
 
     if need_to_reload:
-        rs.loadGadgetsFor(file)
+        rs.loadGadgetsFor()
     return
 
 def print_settings():
@@ -93,8 +104,14 @@ def print_settings():
     print('ropper --set badbytes')
 
 
+def print_gadgets_from_dict(gadgetsdict):
+    for file, opcodes in gadgetsdict.items():
+        print(file)
+        for gadget in opcodes:
+            print(gadget.simpleString())
+
 @pwndbg.commands.ArgparsedCommand(parser)
-def ropper(gadgets, search, set, settings, ropchain, asm, out):
+def ropper(gadgets, search, jmp, opcode, instructions, set, settings, ropchain, asm, out, disasm):
     with tempfile.NamedTemporaryFile() as corefile:
         global rs
         # check if ropper is installed
@@ -135,6 +152,12 @@ def ropper(gadgets, search, set, settings, ropchain, asm, out):
                 if not rs.getFileFor(filename).loaded:
                     rs.loadGadgetsFor()
                 rs.printGadgetsFor(filename)
+            elif jmp:
+                print_gadgets_from_dict(rs.searchJmpReg(regs=jmp.split(',')))
+            elif opcode:
+                print_gadgets_from_dict(rs.searchOpcode(opcode=opcode).items())
+            elif instructions:
+                print_gadgets_from_dict(rs.searchInstructions(code=instructions.encode('ascii')))
             elif settings:
                 print_settings()
             elif set:
@@ -142,8 +165,26 @@ def ropper(gadgets, search, set, settings, ropchain, asm, out):
             elif ropchain:
                 create_chain(ropchain)
             elif search:
+                if not rs.getFileFor(filename).loaded:
+                    rs.loadGadgetsFor(filename)
+                found = False
                 for f, g in rs.search(search=search, name=filename):
+                    found = True
                     print(g)
+                if not found:
+                    print('No gadgets found for: %s' % search)
+            elif asm:
+                arch = 'x86'
+                f = rs.getFileFor(filename)
+                if f:
+                    arch = str(f.arch)
+                print(rs.asm(asm.encode('ascii'),arch=arch, format=out))
+            elif disasm:
+                arch = 'x86'
+                f = rs.getFileFor(filename)
+                if f:
+                    arch = str(f.arch)
+                print(rs.disasm(opcode=disasm,arch=arch))
             else:
                 print(parser.print_help())
     
