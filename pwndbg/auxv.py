@@ -151,7 +151,7 @@ def walk_stack():
         # not aligned properly.
         auxv = walk_stack2(1)
 
-    if not auxv['AT_EXECFN']:
+    if not auxv.get('AT_EXECFN', None):
         auxv['AT_EXECFN'] = get_execfn()
 
     return auxv
@@ -160,7 +160,7 @@ def walk_stack2(offset=0):
     sp  = pwndbg.regs.sp
 
     if not sp:
-        return None
+        return {}
 
     #
     # Strategy looks like this:
@@ -207,7 +207,7 @@ def walk_stack2(offset=0):
             break
         p -= 2
     else:
-        return
+        return {}
 
     # If we continue to p back, we should bump into the
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
