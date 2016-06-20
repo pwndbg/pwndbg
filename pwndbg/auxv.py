@@ -163,7 +163,7 @@ def walk_stack2(offset=0):
     sp  = pwndbg.regs.sp
 
     if not sp:
-        return {}
+        return AUXV()
 
     #
     # Strategy looks like this:
@@ -210,7 +210,7 @@ def walk_stack2(offset=0):
             break
         p -= 2
     else:
-        return {}
+        return AUXV()
 
     # If we continue to p back, we should bump into the
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
