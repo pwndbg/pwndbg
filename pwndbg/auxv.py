@@ -152,7 +152,10 @@ def walk_stack():
         auxv = walk_stack2(1)
 
     if not auxv.get('AT_EXECFN', None):
-        auxv['AT_EXECFN'] = get_execfn()
+        try:
+            auxv['AT_EXECFN'] = get_execfn()
+        except gdb.MemoryError:
+            pass
 
     return auxv
 
@@ -231,6 +234,10 @@ def walk_stack2(offset=0):
     return auxv
 
 def get_execfn():
+    # If the stack is not sane, this won't work
+    if not pwndbg.memory.peek(pwndbg.regs.sp):
+        return
+
     # QEMU does not put AT_EXECFN in the Auxiliary Vector
     # on the stack.
     #
