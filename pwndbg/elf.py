@@ -49,7 +49,9 @@ def exe():
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
     """
-    return load(entry())
+    e = entry()
+    if e:
+        return load(e)
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start

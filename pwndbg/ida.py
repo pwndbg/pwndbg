@@ -78,11 +78,17 @@ def available():
     return True
 
 def l2r(addr):
-    result = (addr - int(pwndbg.elf.exe().address) + base()) & pwndbg.arch.ptrmask
+    exe = pwndbg.elf.exe()
+    if not exe:
+        raise Exception("Can't find EXE base")
+    result = (addr - int(exe.address) + base()) & pwndbg.arch.ptrmask
     return result
 
 def r2l(addr):
-    result = (addr - base() + int(pwndbg.elf.exe().address)) & pwndbg.arch.ptrmask
+    exe = pwndbg.elf.exe()
+    if not exe:
+        raise Exception("Can't find EXE base")
+    result = (addr - base() + int(exe.address)) & pwndbg.arch.ptrmask
     return result
 
 @pwndbg.memoize.reset_on_objfile
