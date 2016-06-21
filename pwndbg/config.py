@@ -51,6 +51,7 @@ class Trigger(object):
     def __init__(self, names):
         if not isinstance(names, list):
             names = [names]
+        names = list(map(lambda n: n.name if isinstance(n, Parameter) else n, names))
         self.names = list(map(lambda n: n.replace('-', '_'), names))
 
     def __call__(self, function):

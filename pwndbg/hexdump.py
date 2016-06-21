@@ -23,7 +23,7 @@ def groupby(array, count, fill=None):
     for i in range(0, len(array), count):
         yield array[i:i+count]
 
-@pwndbg.config.Trigger(['color-hexdump-normal', 'color-hexdump-zero', 'color-hexdump-special', 'color-hexdump-printable'])
+@pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable])
 def load_color_scheme():
     global color_scheme, printable
     #
