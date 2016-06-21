@@ -36,7 +36,7 @@ def rop(grep, argument):
         # Build up the command line to run
         cmd = ['ROPgadget',
                '--binary',
-               filename] 
+               filename]
         cmd += argument
 
         try:
@@ -55,3 +55,7 @@ def rop(grep, argument):
         for line in stdout.splitlines():
             if re.search(grep, line):
                 print(line)
+
+@pwndbg.commands.Command
+def ropgadget(*a):
+    return rop(*a)
