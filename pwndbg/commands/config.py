@@ -30,4 +30,6 @@ def config():
     for k,v in sorted(pwndbg.config.__dict__.items()):
         if not isinstance(v, pwndbg.config.Parameter):
             continue
+        if not v.scope == 'config':
+            continue
         print_row(v.optname, repr(v.value), repr(v.default), v.docstring)

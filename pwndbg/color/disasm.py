@@ -1,10 +1,11 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pwndbg.config
 import pwndbg.chain
-import pwndbg.color.memory as M
 import pwndbg.disasm.jump
+import pwndbg.config as config
+import pwndbg.color.memory as M
+import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction, green, red
 
 import capstone
@@ -14,10 +15,10 @@ capstone_branch_groups = set((
     capstone.CS_GRP_JUMP
 ))
 
-config_branch = pwndbg.config.Parameter('color-disasm-branch', 'bold', 'color for disasm (branch/call instruction)')
+config_branch = theme.Parameter('color-disasm-branch', 'bold', 'color for disasm (branch/call instruction)')
 
 def branch(x):
-    return generateColorFunction(pwndbg.config.color_disasm_branch)(x)
+    return generateColorFunction(config.color_disasm_branch)(x)
 
 def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)

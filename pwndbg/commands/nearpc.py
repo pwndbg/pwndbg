@@ -7,6 +7,7 @@ from capstone import *
 
 import gdb
 import pwndbg.arguments
+import pwndbg.color.theme
 import pwndbg.color.nearpc as N
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
@@ -19,7 +20,7 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-pwndbg.config.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
 pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 
 def ljust_padding(lst):

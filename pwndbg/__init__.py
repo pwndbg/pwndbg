@@ -41,6 +41,7 @@ import pwndbg.commands.telescope
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
 import pwndbg.commands.xor
+import pwndbg.commands.theme
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm

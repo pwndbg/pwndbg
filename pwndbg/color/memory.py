@@ -1,33 +1,34 @@
 import six
 
-import pwndbg.config
+import pwndbg.config as config
+import pwndbg.color.theme as theme
 import pwndbg.vmmap
 from pwndbg.color import generateColorFunction, normal
 
-config_stack  = pwndbg.config.Parameter('color-stack', 'yellow', 'color for stack memory')
-config_heap   = pwndbg.config.Parameter('color-heap', 'blue', 'color for heap memory')
-config_code   = pwndbg.config.Parameter('color-code', 'red', 'color for executable memory')
-config_data   = pwndbg.config.Parameter('color-data', 'purple', 'color for all other writable memory')
-config_rodata = pwndbg.config.Parameter('color-rodata', 'normal', 'color for all read only memory')
-config_rwx    = pwndbg.config.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
+config_stack  = theme.Parameter('color-stack', 'yellow', 'color for stack memory')
+config_heap   = theme.Parameter('color-heap', 'blue', 'color for heap memory')
+config_code   = theme.Parameter('color-code', 'red', 'color for executable memory')
+config_data   = theme.Parameter('color-data', 'purple', 'color for all other writable memory')
+config_rodata = theme.Parameter('color-rodata', 'normal', 'color for all read only memory')
+config_rwx    = theme.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
 
 def stack(x):
-    return generateColorFunction(pwndbg.config.color_stack)(x)
+    return generateColorFunction(config.color_stack)(x)
 
 def heap(x):
-    return generateColorFunction(pwndbg.config.color_heap)(x)
+    return generateColorFunction(config.color_heap)(x)
 
 def code(x):
-    return generateColorFunction(pwndbg.config.color_code)(x)
+    return generateColorFunction(config.color_code)(x)
 
 def data(x):
-    return generateColorFunction(pwndbg.config.color_data)(x)
+    return generateColorFunction(config.color_data)(x)
 
 def rodata(x):
-    return generateColorFunction(pwndbg.config.color_rodata)(x)
+    return generateColorFunction(config.color_rodata)(x)
 
 def rwx(x):
-    return generateColorFunction(pwndbg.config.color_rwx)(x)
+    return generateColorFunction(config.color_rwx)(x)
 
 def get(address, text = None):
     """

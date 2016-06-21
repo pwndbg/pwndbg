@@ -68,7 +68,7 @@ def getParam(value):
 
 class Parameter(gdb.Parameter):
 
-    def __init__(self, name, default, docstring):
+    def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
         self.optname = name
         self.name = name.replace('-','_')
@@ -79,7 +79,7 @@ class Parameter(gdb.Parameter):
                                         gdb.COMMAND_SUPPORT,
                                         getParam(default))
         self.value = default
-
+        self.scope = scope
         setattr(module, self.name, self)
 
     def get_set_string(self):

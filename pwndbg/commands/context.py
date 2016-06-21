@@ -9,6 +9,7 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
+import pwndbg.color.theme
 import pwndbg.color.memory as M
 import pwndbg.color.context as C
 import pwndbg.commands
@@ -139,7 +140,7 @@ def context_code():
 
     return banner + result
 
-pwndbg.config.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+pwndbg.color.theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
 def context_source():
     try:
