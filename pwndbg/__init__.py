@@ -32,6 +32,7 @@ import pwndbg.commands.peda
 import pwndbg.commands.procinfo
 import pwndbg.commands.reload
 import pwndbg.commands.rop
+import pwndbg.commands.ropper
 import pwndbg.commands.search
 import pwndbg.commands.segments
 import pwndbg.commands.shell
