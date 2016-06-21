@@ -9,6 +9,8 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
+import pwndbg.color.memory as M
+import pwndbg.color.context as C
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
@@ -38,7 +40,7 @@ def context(*args):
 
     result = []
 
-    result.append(pwndbg.color.legend())
+    result.append(M.legend())
     if 'r' in args: result.extend(context_regs())
     if 'c' in args: result.extend(context_code())
     if 'c' in args: result.extend(context_source())
@@ -87,10 +89,10 @@ def get_regs(*regs):
         value = pwndbg.regs[reg]
 
         # Make the register stand out
-        regname = pwndbg.color.register(reg.ljust(4).upper())
+        regname = C.register(reg.ljust(4).upper())
 
         # Show a dot next to the register if it changed
-        m = ' ' if reg not in changed else pwndbg.color.register_changed('*')
+        m = ' ' if reg not in changed else C.register_changed('*')
 
         if reg not in pwndbg.regs.flags:
             desc = pwndbg.chain.format(value)
@@ -105,10 +107,10 @@ def get_regs(*regs):
                 bit = 1<<bit
                 if value & bit:
                     name = name.upper()
-                    name = pwndbg.color.flag_set(name)
+                    name = C.flag_set(name)
                 else:
                     name = name.lower()
-                    name = pwndbg.color.flag_unset(name)
+                    name = C.flag_unset(name)
 
                 if value & bit != last & bit:
                     name = pwndbg.color.underline(name)
@@ -166,7 +168,7 @@ def context_source():
         if pwndbg.config.highlight_source:
             for i in range(len(source_lines)):
                 if source_lines[i].startswith('%s\t' % closest_line):
-                    source_lines[i] = pwndbg.color.highlight(source_lines[i])
+                    source_lines[i] = C.highlight(source_lines[i])
                     break
 
         banner = [pwndbg.ui.banner("code")]

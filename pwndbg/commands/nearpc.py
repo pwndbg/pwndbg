@@ -3,15 +3,14 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
-
 from capstone import *
 
 import gdb
 import pwndbg.arguments
-import pwndbg.color
+import pwndbg.color.nearpc as N
+import pwndbg.color.context as C
+import pwndbg.color.disasm as D
 import pwndbg.disasm
-import pwndbg.disasm.color
 import pwndbg.functions
 import pwndbg.ida
 import pwndbg.regs
@@ -63,7 +62,6 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-
     result = []
     instructions = pwndbg.disasm.near(pc, lines, emulate=emulate)
 
@@ -87,19 +85,19 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Print out each instruction
     for address_str, s, i in zip(addresses, symbols, instructions):
-        asm    = pwndbg.disasm.color.instruction(i)
+        asm    = D.instruction(i)
         prefix = ' =>' if i.address == pc else '   '
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
-            result.append(pwndbg.color.bold(pre))
+            result.append(N.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
         if not pwndbg.config.highlight_pc or i.address != pc:
-            address_str = pwndbg.color.nearpc_address(address_str)
-            s = pwndbg.color.nearpc_symbol(s)
+            address_str = N.address(address_str)
+            s = N.symbol(s)
 
-        prefix = pwndbg.color.nearpc_prefix(prefix)
+        prefix = N.prefix(prefix)
         line   = ' '.join((prefix, address_str, s, asm))
 
         # If there was a branch before this instruction which was not
@@ -116,11 +114,11 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if i.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(i)
             if syscall_name:
-                line += ' <%s>' % pwndbg.color.nearpc_syscall(syscall_name)
+                line += ' <%s>' % N.syscall_name(syscall_name)
 
         # Highlight the current line if enabled
         if pwndbg.config.highlight_pc and i.address == pc:
-            line = pwndbg.color.highlight(line)
+            line = C.highlight(line)
 
         result.append(line)
 
@@ -129,7 +127,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         for arg, value in pwndbg.arguments.get(i):
             code   = False if arg.type == 'char' else True
             pretty = pwndbg.chain.format(value, code=code)
-            result.append('%8s%-10s %s' % ('', pwndbg.color.nearpc_argument(arg.name) + ':', pretty))
+            result.append('%8s%-10s %s' % ('', N.argument(arg.name) + ':', pretty))
 
         prev = i
 

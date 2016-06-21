@@ -1,27 +1,32 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import pwndbg.config
+import pwndbg.chain
+import pwndbg.color.memory as M
+import pwndbg.disasm.jump
+from pwndbg.color import generateColorFunction, green, red
+
 import capstone
 
-import pwndbg.chain
-import pwndbg.color
-import pwndbg.disasm.jump
-
 capstone_branch_groups = set((
-capstone.CS_GRP_CALL,
-capstone.CS_GRP_JUMP
+    capstone.CS_GRP_CALL,
+    capstone.CS_GRP_JUMP
 ))
+
+config_branch = pwndbg.config.Parameter('color-disasm-branch', 'bold', 'color for disasm (branch/call instruction)')
+
+def branch(x):
+    return generateColorFunction(pwndbg.config.color_disasm_branch)(x)
 
 def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)
-    branch = set(ins.groups) & capstone_branch_groups
+    is_branch = set(ins.groups) & capstone_branch_groups
 
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
         sym    = pwndbg.symbol.get(ins.target) or None
-        target = pwndbg.color.get(ins.target)
+        target = M.get(ins.target)
         const  = ins.target_const
         hextarget = hex(ins.target)
         hexlen    = len(hextarget)
@@ -45,24 +50,24 @@ def instruction(ins):
 
     # not a branch
     elif ins.symbol:
-        if branch and not ins.target:
+        if is_branch and not ins.target:
             asm = '%s <%s>' % (asm, ins.symbol)
 
             # XXX: not sure when this ever happens
             asm += '<-- file a pwndbg bug for this'
         else:
             asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
-            asm = '%-36s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr))
+            asm = '%-36s <%s>' % (asm, M.get(ins.symbol_addr))
 
     # Style the instruction mnemonic if it's a branch instruction.
-    if branch:
-        asm = asm.replace(ins.mnemonic, pwndbg.color.disasm_branch(ins.mnemonic))
+    if is_branch:
+        asm = asm.replace(ins.mnemonic, branch(ins.mnemonic))
 
     # If we know the conditional is taken, mark it as green.
     if ins.condition is None:
         asm = '  ' + asm
     elif ins.condition:
-        asm = pwndbg.color.green(u'✔ ') + asm
+        asm = green(u'✔ ') + asm
     else:
         asm = '  ' + asm
 

@@ -2,7 +2,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
-import pwndbg.color
+import pwndbg.color.memory as M
 import pwndbg.enhance
 import pwndbg.memory
 import pwndbg.symbol
@@ -56,7 +56,7 @@ def format(value, limit=LIMIT, code=True, offset=0):
         symbol = pwndbg.symbol.get(link) or None
         if symbol:
             symbol = '%#x (%s)' % (link, symbol)
-        rest.append(pwndbg.color.get(link, symbol))
+        rest.append(M.get(link, symbol))
 
     if len(chain) == 1:
         return enhanced

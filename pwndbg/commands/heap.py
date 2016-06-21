@@ -6,6 +6,7 @@ import six
 
 import gdb
 import pwndbg.commands
+import pwndbg.color.memory as M
 from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.color import underline
@@ -62,8 +63,8 @@ def heap(addr=None):
     top = main_arena['top']
     last_remainder = main_arena['last_remainder']
 
-    print(bold('Top Chunk: ') + pwndbg.color.get(top))
-    print(bold('Last Remainder: ') + pwndbg.color.get(last_remainder))
+    print(bold('Top Chunk: ') + M.get(top))
+    print(bold('Last Remainder: ') + M.get(last_remainder))
     print()
 
     # Print out all chunks on the heap
@@ -143,6 +144,7 @@ def top_chunk(addr=None):
 
             last_addr = addr
             addr += size
+            addr += size
         address = last_addr
     else:
         address = main_arena['top']
@@ -164,7 +166,7 @@ def malloc_chunk(addr):
     is_mmaped = (size & IS_MMAPED) == 1
     non_main_arena = (size & NON_MAIN_ARENA) == 1
 
-    header = pwndbg.color.get(addr)
+    header = M.get(addr)
     if prev_inuse:
         header += yellow(' PREV_INUSE')
     if is_mmaped:
