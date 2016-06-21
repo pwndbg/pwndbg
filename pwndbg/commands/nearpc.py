@@ -7,6 +7,7 @@ from capstone import *
 
 import gdb
 import pwndbg.arguments
+import pwndbg.config
 import pwndbg.color.theme
 import pwndbg.color.nearpc as N
 import pwndbg.color.context as C
@@ -21,6 +22,7 @@ import pwndbg.ui
 import pwndbg.vmmap
 
 pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+pwndbg.color.theme.Parameter('nearpc-prefix', '=>', 'prefix marker for nearpc command')
 pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 
 def ljust_padding(lst):
@@ -87,7 +89,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Print out each instruction
     for address_str, s, i in zip(addresses, symbols, instructions):
         asm    = D.instruction(i)
-        prefix = ' =>' if i.address == pc else '   '
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value))
+        prefix = N.prefix(prefix)
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
@@ -98,7 +101,6 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
             address_str = N.address(address_str)
             s = N.symbol(s)
 
-        prefix = N.prefix(prefix)
         line   = ' '.join((prefix, address_str, s, asm))
 
         # If there was a branch before this instruction which was not

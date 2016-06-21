@@ -12,8 +12,11 @@ import sys
 import termios
 
 import pwndbg.arch
+import pwndbg.config as config
+import pwndbg.color.theme as theme
 import pwndbg.color.context as C
 
+theme.Parameter('banner-separator', '-', 'repeated banner separator character')
 
 def banner(title):
     title = title.upper()
@@ -22,7 +25,7 @@ def banner(title):
     except:
         width = 80
     width -= 2
-    return C.banner(("[{:-^%ss}]" % width).format(title))
+    return C.banner(("[{:%s^%ss}]" % (config.banner_separator, width)).format(title))
 
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask

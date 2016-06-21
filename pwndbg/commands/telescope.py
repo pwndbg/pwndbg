@@ -18,6 +18,7 @@ import pwndbg.config
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
+import pwndbg.color.telescope as T
 
 telescope_lines = pwndbg.config.Parameter('telescope-lines',
                                          8,
@@ -88,8 +89,8 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         last = value
         skip = False
 
-        line = ' '.join(("%02x:%04x|" % (i, addr-start),
-                         regs[addr].ljust(longest_regs),
+        line = ' '.join((T.offset("%02x:%04x|" % (i, addr-start)),
+                         T.register(regs[addr].ljust(longest_regs)),
                          pwndbg.chain.format(addr)))
         result.append(line)
 

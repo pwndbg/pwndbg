@@ -15,10 +15,10 @@ capstone_branch_groups = set((
     capstone.CS_GRP_JUMP
 ))
 
-config_branch = theme.Parameter('color-disasm-branch', 'bold', 'color for disasm (branch/call instruction)')
+config_branch = theme.Parameter('disasm-branch-color', 'bold', 'color for disasm (branch/call instruction)')
 
 def branch(x):
-    return generateColorFunction(config.color_disasm_branch)(x)
+    return generateColorFunction(config.disasm_branch_color)(x)
 
 def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)

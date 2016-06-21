@@ -5,30 +5,30 @@ import pwndbg.color.theme as theme
 import pwndbg.vmmap
 from pwndbg.color import generateColorFunction, normal
 
-config_stack  = theme.Parameter('color-stack', 'yellow', 'color for stack memory')
-config_heap   = theme.Parameter('color-heap', 'blue', 'color for heap memory')
-config_code   = theme.Parameter('color-code', 'red', 'color for executable memory')
-config_data   = theme.Parameter('color-data', 'purple', 'color for all other writable memory')
-config_rodata = theme.Parameter('color-rodata', 'normal', 'color for all read only memory')
-config_rwx    = theme.Parameter('color-rwx', 'underline', 'color added to all RWX memory')
+config_stack  = theme.Parameter('memory-stack-color', 'yellow', 'color for stack memory')
+config_heap   = theme.Parameter('memory-heap-color', 'blue', 'color for heap memory')
+config_code   = theme.Parameter('memory-code-color', 'red', 'color for executable memory')
+config_data   = theme.Parameter('memory-data-color', 'purple', 'color for all other writable memory')
+config_rodata = theme.Parameter('memory-rodata-color', 'normal', 'color for all read only memory')
+config_rwx    = theme.Parameter('memory-rwx-color', 'underline', 'color added to all RWX memory')
 
 def stack(x):
-    return generateColorFunction(config.color_stack)(x)
+    return generateColorFunction(config.memory_stack_color)(x)
 
 def heap(x):
-    return generateColorFunction(config.color_heap)(x)
+    return generateColorFunction(config.memory_heap_color)(x)
 
 def code(x):
-    return generateColorFunction(config.color_code)(x)
+    return generateColorFunction(config.memory_code_color)(x)
 
 def data(x):
-    return generateColorFunction(config.color_data)(x)
+    return generateColorFunction(config.memory_data_color)(x)
 
 def rodata(x):
-    return generateColorFunction(config.color_rodata)(x)
+    return generateColorFunction(config.memory_rodata_color)(x)
 
 def rwx(x):
-    return generateColorFunction(config.color_rwx)(x)
+    return generateColorFunction(config.memory_rwx_color)(x)
 
 def get(address, text = None):
     """
