@@ -12,6 +12,7 @@ import gdb
 import pwndbg.commands
 
 shellcmds = [
+    "asm", # pwntools
     "awk",
     "bash",
     "cat",
@@ -19,9 +20,12 @@ shellcmds = [
     "chmod",
     "chown",
     # "clear",
+    "constgrep", # pwntools
     "cp",
+    "cyclic", # pwntools
     "date",
     "diff",
+    "disasm", # pwntools
     "egrep",
     "find",
     "grep",
@@ -54,6 +58,7 @@ shellcmds = [
     "tail",
     "top",
     "touch",
+    "unhex", # pwntools
     "uniq",
     "vi",
     "vim",
