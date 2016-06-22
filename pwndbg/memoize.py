@@ -150,9 +150,9 @@ class while_running(memoize):
 
 
 def reset():
-    reset_on_stop._reset();
-    reset_on_exit._reset();
-    reset_on_objfile._reset();
-    reset_on_start._reset();
-    reset_on_cont._reset();
-    while_running._reset();
+    reset_on_stop._reset()
+    reset_on_exit._reset()
+    reset_on_objfile._reset()
+    reset_on_start._reset()
+    reset_on_cont._reset()
+    while_running._reset()
