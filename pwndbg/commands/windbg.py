@@ -281,8 +281,7 @@ def u(where=None, n=5):
     """
     if where is None:
         where = pwndbg.regs.pc
-    cmd = 'x/%ii %#x' % (int(n), int(where))
-    gdb.execute(cmd)
+    pwndbg.commands.nearpc(where, n)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
