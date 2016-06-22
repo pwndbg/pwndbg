@@ -15,7 +15,6 @@ from capstone import *
 import gdb
 import pwndbg.arch
 import pwndbg.disasm.arch
-import pwndbg.emu.emulator
 import pwndbg.ida
 import pwndbg.jump
 import pwndbg.memoize
