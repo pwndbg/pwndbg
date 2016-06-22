@@ -85,6 +85,8 @@ class Parameter(gdb.Parameter):
     def get_set_string(self):
         for trigger in triggers[self.name]:
             trigger()
+        if isinstance(self.value, str):
+            self.value = self.value.replace("'", '').replace('"', '')
         return 'Set %s to %r' % (self.docstring, self.value)
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)

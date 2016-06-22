@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import re
 
-import pwndbg.enhance
 import pwndbg.memoize
 
 NORMAL         = "\x1b[0m"
@@ -67,3 +66,6 @@ def strip(x):
 
 def terminateWith(x, color):
     return re.sub('\x1b\\[0m', NORMAL + color, x)
+
+def ljust_colored(x, length, char=' '):
+    return x + (length - len(strip(x))) * char

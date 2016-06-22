@@ -10,8 +10,8 @@ import pwndbg.arguments
 import pwndbg.config
 import pwndbg.color.theme
 import pwndbg.color.nearpc as N
-import pwndbg.color.context as C
 import pwndbg.color.disasm as D
+import pwndbg.color.context as C
 import pwndbg.disasm
 import pwndbg.functions
 import pwndbg.ida
@@ -21,13 +21,15 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
-pwndbg.color.theme.Parameter('nearpc-prefix', '=>', 'prefix marker for nearpc command')
-pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
-
 def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
+
+nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', u'    ↓', 'branch marker line for nearpc command')
+nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-marker-contiguous', ' ', 'contiguous branch marker line for nearpc command')
+pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+pwndbg.color.theme.Parameter('nearpc-prefix', u'►', 'prefix marker for nearpc command')
+pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -91,37 +93,39 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         asm    = D.instruction(i)
         prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value))
         prefix = N.prefix(prefix)
+        if pwndbg.config.highlight_pc:
+            prefix = C.highlight(prefix)
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
             result.append(N.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
-        if not pwndbg.config.highlight_pc or i.address != pc:
+        if i.address != pc or not pwndbg.config.highlight_pc:
             address_str = N.address(address_str)
             s = N.symbol(s)
+        elif pwndbg.config.highlight_pc:
+            address_str = C.highlight(address_str)
+            s = C.highlight(s)
 
         line   = ' '.join((prefix, address_str, s, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
         if prev and prev.address + prev.size != i.address:
-            result.append('...')
+            result.append(N.branch_marker('%s' % nearpc_branch_marker))
 
         # Otherwise if it's a branch and it *is* contiguous, just put
         # and empty line.
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            result.append('')
+            if len('%s' % nearpc_branch_marker_contiguous) > 0:
+                result.append('%s' % nearpc_branch_marker_contiguous)
 
         # For syscall instructions, put the name on the side
         if i.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(i)
             if syscall_name:
                 line += ' <%s>' % N.syscall_name(syscall_name)
-
-        # Highlight the current line if enabled
-        if pwndbg.config.highlight_pc and i.address == pc:
-            line = C.highlight(line)
 
         result.append(line)
 

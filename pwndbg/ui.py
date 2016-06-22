@@ -16,7 +16,7 @@ import pwndbg.config as config
 import pwndbg.color.theme as theme
 import pwndbg.color.context as C
 
-theme.Parameter('banner-separator', '-', 'repeated banner separator character')
+theme.Parameter('banner-separator', u'─', 'repeated banner separator character')
 
 def banner(title):
     title = title.upper()

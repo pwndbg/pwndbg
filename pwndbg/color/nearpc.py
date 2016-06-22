@@ -2,12 +2,13 @@ import pwndbg.config as config
 import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction
 
-config_symbol       = theme.Parameter('nearpc-symbol-color', 'normal', 'color for nearpc command (symbol)')
-config_address      = theme.Parameter('nearpc-address-color', 'normal', 'color for nearpc command (address)')
-config_prefix       = theme.Parameter('nearpc-prefix-color', 'red,bold', 'color for nearpc command (prefix marker)')
-config_syscall_name = theme.Parameter('nearpc-syscall-name-color', 'red', 'color for nearpc command (resolved syscall name)')
-config_argument     = theme.Parameter('nearpc-argument-color', 'bold', 'color for nearpc command (target argument)')
-config_ida_anterior = theme.Parameter('nearpc-ida-anterior-color', 'bold', 'color for nearpc command (IDA anterior)')
+config_symbol        = theme.Parameter('nearpc-symbol-color', 'normal', 'color for nearpc command (symbol)')
+config_address       = theme.Parameter('nearpc-address-color', 'normal', 'color for nearpc command (address)')
+config_prefix        = theme.Parameter('nearpc-prefix-color', 'none', 'color for nearpc command (prefix marker)')
+config_syscall_name  = theme.Parameter('nearpc-syscall-name-color', 'red', 'color for nearpc command (resolved syscall name)')
+config_argument      = theme.Parameter('nearpc-argument-color', 'bold', 'color for nearpc command (target argument)')
+config_ida_anterior  = theme.Parameter('nearpc-ida-anterior-color', 'bold', 'color for nearpc command (IDA anterior)')
+config_branch_marker = theme.Parameter('nearpc-branch-marker-color', 'normal', 'color for nearpc command (branch marker line)')
 
 def symbol(x):
     return generateColorFunction(config.nearpc_symbol_color)(x)
@@ -26,3 +27,6 @@ def argument(x):
 
 def ida_anterior(x):
     return generateColorFunction(config.nearpc_ida_anterior_color)(x)
+
+def branch_marker(x):
+    return generateColorFunction(config.nearpc_branch_marker_color)(x)

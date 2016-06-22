@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import copy
 import string
 
+import pwndbg.color.theme as theme
 import pwndbg.color.hexdump as H
 import pwndbg.config
 
@@ -23,7 +24,10 @@ def groupby(array, count, fill=None):
     for i in range(0, len(array), count):
         yield array[i:i+count]
 
-@pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable])
+config_colorize_ascii = theme.Parameter('hexdump-colorize-ascii', True, 'whether to colorize the hexdump command ascii section')
+config_separator      = theme.Parameter('hexdump-ascii-block-separator', u'│', 'block separator char of the hexdump command')
+
+@pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii])
 def load_color_scheme():
     global color_scheme, printable
     #
@@ -35,15 +39,15 @@ def load_color_scheme():
 
     for c in bytearray((string.ascii_letters + string.digits + string.punctuation).encode('utf-8', 'ignore')):
         color_scheme[c] = H.printable("%02x" % c)
-        printable[c] = H.printable("%s" % chr(c))
+        printable[c] = H.printable("%s" % chr(c)) if pwndbg.config.hexdump_colorize_ascii else "%s" % chr(c)
 
     for c in bytearray(b'\x00'):
         color_scheme[c] = H.zero("%02x" % c)
-        printable[c] = H.zero('.')
+        printable[c] = H.zero('.') if pwndbg.config.hexdump_colorize_ascii else '.'
 
     for c in bytearray(b'\xff\x7f\x80'):
         color_scheme[c] = H.special("%02x" % c)
-        printable[c] = H.special('.')
+        printable[c] = H.special('.') if pwndbg.config.hexdump_colorize_ascii else '.'
 
     color_scheme[-1] = '  '
     printable[-1] = ' '
@@ -70,7 +74,7 @@ def hexdump(data, address = 0, width = 16, skip = True):
         if address:
             hexline.append(H.offset("+%04x " % (i*width)))
 
-        hexline.append(H.offset("%#08x  " % (base + (i*width))))
+        hexline.append(H.address("%#08x  " % (base + (i*width))))
 
         for group in groupby(line, 4):
             for char in group:
@@ -78,11 +82,11 @@ def hexdump(data, address = 0, width = 16, skip = True):
                 hexline.append(' ')
             hexline.append(' ')
 
-        hexline.append(H.separator('|'))
+        hexline.append(H.separator('%s' % config_separator))
         for group in groupby(line, 4):
             for char in group:
                 hexline.append(printable[char])
-            hexline.append(H.separator('|'))
+            hexline.append(H.separator('%s' % config_separator))
 
 
         yield(''.join(hexline))
@@ -92,6 +96,6 @@ def hexdump(data, address = 0, width = 16, skip = True):
     if address:
         hexline.append(H.offset("+%04x " % len(data)))
 
-    hexline.append(H.offset("%#08x  " % (base + len(data))))
+    hexline.append(H.address("%#08x  " % (base + len(data))))
 
     yield ''.join(hexline)

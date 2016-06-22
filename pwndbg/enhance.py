@@ -21,6 +21,8 @@ import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.typeinfo
+import pwndbg.color as color
+import pwndbg.color.enhance as E
 
 bad_instrs = [
 '.byte',
@@ -74,7 +76,7 @@ def enhance(value, code = True):
         can_read = False
 
     if not can_read:
-        return int_str(value)
+        return E.integer(int_str(value))
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
@@ -99,14 +101,14 @@ def enhance(value, code = True):
     szval = pwndbg.strings.get(value) or None
     szval0 = szval
     if szval:
-        szval = repr(szval)
+        szval = E.string(repr(szval))
 
     intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     intval0 = intval
     if 0 <= intval < 10:
-        intval = str(intval)
+        intval = E.integer(str(intval))
     else:
-        intval = '%#x' % int(intval & pwndbg.arch.ptrmask)
+        intval = E.integer('%#x' % int(intval & pwndbg.arch.ptrmask))
 
     retval = []
 
@@ -143,14 +145,14 @@ def enhance(value, code = True):
 
     # And then integer
     else:
-        return int_str(intval0)
+        return E.integer(int_str(intval0))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 
     if len(retval) == 0:
-        return "???"
+        return E.unknown("???")
 
     if len(retval) == 1:
         return retval[0]
 
-    return retval[0] + ' /* {} */'.format('; '.join(retval[1:]))
+    return retval[0] + E.comment(color.strip(' /* {} */'.format('; '.join(retval[1:]))))

@@ -9,9 +9,10 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
-import pwndbg.color.theme
+import pwndbg.color.theme as theme
 import pwndbg.color.memory as M
 import pwndbg.color.context as C
+import pwndbg.color.backtrace as B
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
@@ -93,14 +94,15 @@ def get_regs(*regs):
         regname = C.register(reg.ljust(4).upper())
 
         # Show a dot next to the register if it changed
-        m = ' ' if reg not in changed else C.register_changed('*')
+        change_marker = "%s" % C.config_register_changed_marker
+        m = ' ' * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
         if reg not in pwndbg.regs.flags:
             desc = pwndbg.chain.format(value)
 
         else:
             names = []
-            desc  = '%#x' % value
+            desc  = C.flag_value('%#x' % value)
             last  = pwndbg.regs.last.get(reg, 0) or 0
             flags = pwndbg.regs.flags[reg]
 
@@ -118,7 +120,7 @@ def get_regs(*regs):
                 names.append(name)
 
             if names:
-                desc = '%s [ %s ]' % (desc, ' '.join(names))
+                desc = '%s %s %s %s' % (desc, C.flag_bracket('['), ' '.join(names), C.flag_bracket(']'))
 
         result.append("%s%s %s" % (m, regname, desc))
 
@@ -140,7 +142,7 @@ def context_code():
 
     return banner + result
 
-pwndbg.color.theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
 def context_source():
     try:
@@ -199,6 +201,8 @@ def context_stack():
         result.extend(telescope)
     return result
 
+backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
+
 def context_backtrace(frame_count=10, with_banner=True):
     result = []
 
@@ -227,13 +231,16 @@ def context_backtrace(frame_count=10, with_banner=True):
 
     frame = newest_frame
     i     = 0
+    bt_prefix = "%s" % B.config_prefix
     while True:
-        prefix = '> ' if frame == this_frame else '  '
-        addrsz = pwndbg.ui.addrsz(frame.pc())
-        symbol = pwndbg.symbol.get(frame.pc())
+
+        prefix = bt_prefix if frame == this_frame else ' ' * len(bt_prefix)
+        prefix = " %s" % B.prefix(prefix)
+        addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
+        symbol = B.symbol(pwndbg.symbol.get(frame.pc()))
         if symbol:
             addrsz = addrsz + ' ' + symbol
-        line   = map(str, (prefix, 'f', i, addrsz))
+        line   = map(str, (prefix, B.frame_label('%s%i' % (backtrace_frame_label, i)), addrsz))
         line   = ' '.join(line)
         result.append(line)
 

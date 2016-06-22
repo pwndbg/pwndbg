@@ -5,8 +5,9 @@ import pwndbg.chain
 import pwndbg.disasm.jump
 import pwndbg.config as config
 import pwndbg.color.memory as M
+import pwndbg.color.context as C
 import pwndbg.color.theme as theme
-from pwndbg.color import generateColorFunction, green, red
+from pwndbg.color import generateColorFunction, green, red, ljust_colored
 
 import capstone
 
@@ -24,6 +25,10 @@ def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)
     is_branch = set(ins.groups) & capstone_branch_groups
 
+    # Highlight the current line if enabled
+    if pwndbg.config.highlight_pc and ins.address == pwndbg.regs.pc:
+        asm = C.highlight(asm)
+
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
         sym    = pwndbg.symbol.get(ins.target) or None
@@ -37,12 +42,12 @@ def instruction(ins):
             asm = asm.replace(hex(ins.target), sym or target)
 
             if sym:
-                asm = '%-36s <%s>' % (asm, target)
+                asm = '%s <%s>' % (ljust_colored(asm, 36), target)
 
         # It's not a constant expression, but we've calculated the target
         # address by emulation.
         elif sym:
-            asm = '%-36s <%s; %s>' % (asm, target, sym)
+            asm = '%s <%s; %s>' % (ljust_colored(asm, 36), target, sym)
 
         # We were able to calculate the target, but there is no symbol
         # name for it.
@@ -58,7 +63,7 @@ def instruction(ins):
             asm += '<-- file a pwndbg bug for this'
         else:
             asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
-            asm = '%-36s <%s>' % (asm, M.get(ins.symbol_addr))
+            asm = '%s <%s>' % (ljust_colored(asm, 36), M.get(ins.symbol_addr))
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:
