@@ -144,3 +144,11 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
     return nearpc(pc, lines, to_string, emulate)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def pdisass(pc=None, lines=None):
+    """
+    Compatibility layer for PEDA's pdisass command
+    """
+    return nearpc(pc, lines, False, False)
