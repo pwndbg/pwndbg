@@ -47,7 +47,7 @@ class StartEvent(object):
         for function in self.registered:
             function()
 
-    def on_stop(self):
+    def on_exited(self):
         self.running = False
 
 gdb.events.start = StartEvent()
@@ -159,9 +159,9 @@ def on_reload():
 def _start_newobjfile():
     gdb.events.start.on_new_objfile()
 
-@stop
+@exit
 def _start_stop():
-    gdb.events.start.on_stop()
+    gdb.events.start.on_exited()
 
 @exit
 def _reset_objfiles():
