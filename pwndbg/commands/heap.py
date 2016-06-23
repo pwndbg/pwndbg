@@ -143,9 +143,11 @@ def top_chunk(addr=None):
 
             last_addr = addr
             addr += size
-        print(pwndbg.color.get(last_addr))
+        address = last_addr
     else:
-        print(pwndbg.color.get(main_arena['top']))
+        address = main_arena['top']
+
+    return malloc_chunk(address)
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
