@@ -64,6 +64,6 @@ def instruction(ins):
     elif ins.condition:
         asm = pwndbg.color.green(u'✔ ') + asm
     else:
-        asm = pwndbg.color.red(u'✘ ') + asm
+        asm = '  ' + asm
 
     return asm

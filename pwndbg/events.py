@@ -13,9 +13,10 @@ import sys
 import traceback
 
 import gdb
+import pwndbg.config
 import pwndbg.stdio
 
-debug = False
+debug = pwndbg.config.Parameter('debug-events', False, 'display internal event debugging info')
 pause = 0
 
 
@@ -39,15 +40,19 @@ class StartEvent(object):
         if function in self.registered:
             self.registered.remove(function)
     def on_new_objfile(self):
+        print("start.on_new_objfile")
         if self.running or not gdb.selected_thread():
+            print("already running, or not running")
             return
 
+        print("set running=true")
         self.running = True
 
         for function in self.registered:
             function()
 
-    def on_stop(self):
+    def on_exited(self):
+        print("set running=false")
         self.running = False
 
 gdb.events.start = StartEvent()
@@ -142,11 +147,11 @@ gdb.events.new_objfile.connect(log_objfiles)
 
 def after_reload():
     if gdb.selected_inferior().pid:
+        for f in registered[gdb.events.stop]:
+            f()
         for f in registered[gdb.events.start]:
             f()
         for f in registered[gdb.events.new_objfile]:
-            f()
-        for f in registered[gdb.events.stop]:
             f()
 
 def on_reload():
@@ -159,9 +164,9 @@ def on_reload():
 def _start_newobjfile():
     gdb.events.start.on_new_objfile()
 
-@stop
+@exit
 def _start_stop():
-    gdb.events.start.on_stop()
+    gdb.events.start.on_exited()
 
 @exit
 def _reset_objfiles():
