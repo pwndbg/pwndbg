@@ -40,15 +40,19 @@ class StartEvent(object):
         if function in self.registered:
             self.registered.remove(function)
     def on_new_objfile(self):
+        print("start.on_new_objfile")
         if self.running or not gdb.selected_thread():
+            print("already running, or not running")
             return
 
+        print("set running=true")
         self.running = True
 
         for function in self.registered:
             function()
 
     def on_exited(self):
+        print("set running=false")
         self.running = False
 
 gdb.events.start = StartEvent()
