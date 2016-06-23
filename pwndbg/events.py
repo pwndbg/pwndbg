@@ -13,9 +13,10 @@ import sys
 import traceback
 
 import gdb
+import pwndbg.config
 import pwndbg.stdio
 
-debug = False
+debug = pwndbg.config.Parameter('debug-events', False, 'display internal event debugging info')
 pause = 0
 
 
