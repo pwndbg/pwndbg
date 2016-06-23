@@ -142,11 +142,11 @@ gdb.events.new_objfile.connect(log_objfiles)
 
 def after_reload():
     if gdb.selected_inferior().pid:
+        for f in registered[gdb.events.stop]:
+            f()
         for f in registered[gdb.events.start]:
             f()
         for f in registered[gdb.events.new_objfile]:
-            f()
-        for f in registered[gdb.events.stop]:
             f()
 
 def on_reload():
