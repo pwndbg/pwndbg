@@ -42,7 +42,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
         if instruction.address != pwndbg.regs.pc:
-            return None
+            return False
 
         cpsr = pwndbg.regs.cpsr
 
