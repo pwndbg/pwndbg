@@ -4,6 +4,8 @@
 1. a collection of python that makes debugging with gdb suck less  
 2. a [PEDA](https://github.com/longld/peda) replacement
 
+[![Pwndbg](/caps/best.png?raw=true "Pwndbg")]
+
 ## Why?
 
 Vanilla GDB is terrible to use for reverse engineering and exploit development. Typing `x/g30x $esp` is not fun, and does not  confer much information.  The year is 2016 and GDB still lacks a hexdump command.  GDB's syntax is arcane and difficult to approach.  Windbg users are completely lost when they occasionally need to bump into GDB.
