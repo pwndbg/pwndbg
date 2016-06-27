@@ -130,7 +130,7 @@ handle SIGSEGV stop   print nopass
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
 
-msg = "Loaded %i commands.  Type pwndbg for a list." % len(pwndbg.commands._Command.commands)
+msg = "Loaded %i commands.  Type pwndbg [filter] for a list." % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(msg))
 
 cur = (gdb.selected_inferior(), gdb.selected_thread())

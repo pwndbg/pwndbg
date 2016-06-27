@@ -33,12 +33,16 @@ def errno(err=None):
     print("Errno %i: %s" % (err, msg))
 
 @_pwndbg.commands.Command
-def pwndbg():
+def pwndbg(filter_pattern=None):
     """
-    Prints out a list of all pwndbg commands.
+    Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
     """
     sorted_commands = list(_pwndbg.commands._Command.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
+
+    if filter_pattern:
+        filter_pattern = filter_pattern.lower()
+
     for c in sorted_commands:
         name = c.__name__
         docs = c.__doc__
@@ -46,7 +50,8 @@ def pwndbg():
         if docs: docs = docs.strip()
         if docs: docs = docs.splitlines()[0]
 
-        print("%-20s %s" % (name, docs))
+        if not filter_pattern or filter_pattern in name.lower() or (docs and filter_pattern in docs.lower()):
+            print("%-20s %s" % (name, docs))
 
 @_pwndbg.commands.ParsedCommand
 def distance(a, b):
