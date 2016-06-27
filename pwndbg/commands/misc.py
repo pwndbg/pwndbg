@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import errno as _errno
 import struct
 
@@ -13,9 +14,13 @@ import pwndbg.symbol
 
 _errno.errorcode[0] = 'OK'
 
-@_pwndbg.commands.ParsedCommand
-def errno(err=None):
-    '''Converts errno (or argument) to its string representation'''
+parser = argparse.ArgumentParser(description='''
+Converts errno (or argument) to its string representation.
+''')
+parser.add_argument('err', type=int, nargs='?', default=None, help='Errno; if not passed, it is retrieved from __errno_location')
+
+@_pwndbg.commands.ArgparsedCommand(parser)
+def errno(err):
     if err is None:
         # Dont ask.
         errno_location = pwndbg.symbol.get('__errno_location')
@@ -32,11 +37,13 @@ def errno(err=None):
     msg = _errno.errorcode.get(int(err), "Unknown error code")
     print("Errno %i: %s" % (err, msg))
 
-@_pwndbg.commands.Command
-def pwndbg(filter_pattern=None):
-    """
-    Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
-    """
+parser = argparse.ArgumentParser(description='''
+Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
+''')
+parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='Filter to apply to commands names/docs')
+
+@_pwndbg.commands.ArgparsedCommand(parser)
+def pwndbg(filter_pattern):
     sorted_commands = list(_pwndbg.commands._Command.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
