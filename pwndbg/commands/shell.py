@@ -10,6 +10,7 @@ import os
 
 import gdb
 import pwndbg.commands
+import pwndbg.which
 
 shellcmds = [
     "asm", # pwntools
@@ -68,6 +69,8 @@ shellcmds = [
     "whoami",
     "zsh",
 ]
+
+shellcmds = filter(pwndbg.which.which, shellcmds)
 
 def register_shell_function(cmd):
     def handler(*a):
