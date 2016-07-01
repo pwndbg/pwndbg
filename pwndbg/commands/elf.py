@@ -53,6 +53,10 @@ def get_section_bounds(section_name):
         elffile = ELFFile(f)
 
         section = elffile.get_section_by_name(section_name)
+
+        if not section:
+            return (None, None)
+
         start = section['sh_addr']
         size = section['sh_size']
         return (start, start + size)
