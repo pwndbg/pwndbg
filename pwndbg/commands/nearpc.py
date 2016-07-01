@@ -73,7 +73,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Gather all addresses and symbols for each instruction
     symbols = [pwndbg.symbol.get(i.address) for i in instructions]
-    addresses = [hex(i.address) for i in instructions]
+    addresses = ['%#x' % i.address for i in instructions]
 
     # Format the symbol name for each instruction
     symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
