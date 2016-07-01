@@ -138,13 +138,13 @@ def autofetch():
         except elftools.common.exceptions.ELFError:
             continue
 
-        gdb_command = ['add-symbol-file', local_path, hex(base)]
+        gdb_command = ['add-symbol-file', local_path, hex(int(base))]
         for section in elf.iter_sections():
             name = section.name.decode('latin-1')
             section = section.header
             if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
                 continue
-            gdb_command += ['-s', name, hex(base + section.sh_addr)]
+            gdb_command += ['-s', name, hex(int(base + section.sh_addr))]
 
         print(' '.join(gdb_command))
         # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)

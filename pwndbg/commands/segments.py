@@ -25,7 +25,7 @@ def fsbase():
     """
     Prints out the FS base address.  See also $fsbase.
     """
-    print(hex(pwndbg.regs.fsbase))
+    print(hex(int(pwndbg.regs.fsbase)))
 
 
 @pwndbg.commands.ParsedCommand
@@ -34,4 +34,4 @@ def gsbase():
     """
     Prints out the GS base address.  See also $gsbase.
     """
-    print(hex(pwndbg.regs.gsbase))
+    print(hex(int(pwndbg.regs.gsbase)))

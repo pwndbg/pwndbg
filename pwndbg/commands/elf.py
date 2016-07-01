@@ -65,7 +65,7 @@ def print_symbols_in_section(section_name, filter_text=''):
 
     symbols = get_symbols_in_region(start, end, filter_text)
     for symbol, addr in symbols:
-        print(hex(addr) + ': ' + symbol)
+        print(hex(int(addr)) + ': ' + symbol)
 
 def get_symbols_in_region(start, end, filter_text=''):
     symbols = []

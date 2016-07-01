@@ -42,4 +42,4 @@ def libs():
 def entry_point():
     """GDBINIT compatibility alias to print the entry point.
     See also the 'entry' command."""
-    print(hex(pwndbg.elf.entry()))
+    print(hex(int(pwndbg.elf.entry())))
