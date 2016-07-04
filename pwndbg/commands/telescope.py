@@ -8,6 +8,7 @@ Generally used to print out the stack or register values.
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import collections
 
 import pwndbg.arch
@@ -98,11 +99,16 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     return result
 
 
-
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description='dereferences on stack data with specified count and offset')
+parser.add_argument('count', nargs='?', default=8, type=int,
+                    help='number of element to dump')
+parser.add_argument('offset', nargs='?', default=0, type=int,
+                    help='Element offset from $sp (support negative offset)')
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def stack(*a):
+def stack(count, offset):
     """
     Recursively dereferences pointers on the stack
     """
-    telescope(*a)
+    ptrsize = pwndbg.typeinfo.ptrsize
+    telescope(address=pwndbg.regs.sp + offset * ptrsize, count=count)
