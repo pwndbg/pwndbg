@@ -3,10 +3,10 @@ import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction
 
 config_prefix         = theme.Parameter('backtrace-prefix', '►', 'prefix for current backtrace label')
-config_prefix_color   = theme.Parameter('backtrace-prefix-color', 'none', 'color for prefix of current backtrace label')
-config_address_color  = theme.Parameter('backtrace-address-color', 'none', 'color for backtrace (address)')
-config_symbol_color   = theme.Parameter('backtrace-symbol-color', 'none', 'color for backtrace (symbol)')
-config_label_color    = theme.Parameter('backtrace-frame-label-color', 'none', 'color for backtrace (frame label)')
+config_prefix_color   = theme.ColoredParameter('backtrace-prefix-color', 'none', 'color for prefix of current backtrace label')
+config_address_color  = theme.ColoredParameter('backtrace-address-color', 'none', 'color for backtrace (address)')
+config_symbol_color   = theme.ColoredParameter('backtrace-symbol-color', 'none', 'color for backtrace (symbol)')
+config_label_color    = theme.ColoredParameter('backtrace-frame-label-color', 'none', 'color for backtrace (frame label)')
 
 def prefix(x):
     return generateColorFunction(config.backtrace_prefix_color)(x)

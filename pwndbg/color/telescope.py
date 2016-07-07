@@ -2,11 +2,11 @@ import pwndbg.config as config
 import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction
 
-offset_color = theme.Parameter('telescope-offset-color', 'normal', 'color of the telescope command (offset prefix)')
-register_color = theme.Parameter('telescope-register-color', 'bold', 'color of the telescope command (register)')
-offset_separator_color = theme.Parameter('telescope-offset-separator-color', 'normal', 'color of the telescope command (offset separator)')
-offset_delimiter_color = theme.Parameter('telescope-offset-delimiter-color', 'normal', 'color of the telescope command (offset delimiter)')
-repeating_marker_color = theme.Parameter('telescope-repeating-marker-color', 'normal', 'color of the telescope command (repeating values marker)')
+offset_color = theme.ColoredParameter('telescope-offset-color', 'normal', 'color of the telescope command (offset prefix)')
+register_color = theme.ColoredParameter('telescope-register-color', 'bold', 'color of the telescope command (register)')
+offset_separator_color = theme.ColoredParameter('telescope-offset-separator-color', 'normal', 'color of the telescope command (offset separator)')
+offset_delimiter_color = theme.ColoredParameter('telescope-offset-delimiter-color', 'normal', 'color of the telescope command (offset delimiter)')
+repeating_marker_color = theme.ColoredParameter('telescope-repeating-marker-color', 'normal', 'color of the telescope command (repeating values marker)')
 
 def offset(x):
     return generateColorFunction(config.telescope_offset_color)(x)

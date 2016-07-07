@@ -96,6 +96,8 @@ class Parameter(gdb.Parameter):
         return str(self.value)
     def __bool__(self):
         return bool(self.value)
+    def __lt__(self, other):
+        return self.optname <= other.optname
 
     # Python2 compatibility
     __nonzero__ = __bool__

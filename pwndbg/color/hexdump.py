@@ -2,13 +2,13 @@ import pwndbg.config as config
 import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction
 
-config_normal    = theme.Parameter('hexdump-normal-color', 'none', 'color for hexdump command (normal bytes)')
-config_printable = theme.Parameter('hexdump-printable-color', 'bold', 'color for hexdump command (printable characters)')
-config_zero      = theme.Parameter('hexdump-zero-color', 'red', 'color for hexdump command (zero bytes)')
-config_special   = theme.Parameter('hexdump-special-color', 'yellow', 'color for hexdump command (special bytes)')
-config_offset    = theme.Parameter('hexdump-offset-color', 'none', 'color for hexdump command (offset label)')
-config_address   = theme.Parameter('hexdump-address-color', 'none', 'color for hexdump command (address label)')
-config_separator = theme.Parameter('hexdump-separator-color', 'none', 'color for hexdump command (group separator)')
+config_normal    = theme.ColoredParameter('hexdump-normal-color', 'none', 'color for hexdump command (normal bytes)')
+config_printable = theme.ColoredParameter('hexdump-printable-color', 'bold', 'color for hexdump command (printable characters)')
+config_zero      = theme.ColoredParameter('hexdump-zero-color', 'red', 'color for hexdump command (zero bytes)')
+config_special   = theme.ColoredParameter('hexdump-special-color', 'yellow', 'color for hexdump command (special bytes)')
+config_offset    = theme.ColoredParameter('hexdump-offset-color', 'none', 'color for hexdump command (offset label)')
+config_address   = theme.ColoredParameter('hexdump-address-color', 'none', 'color for hexdump command (address label)')
+config_separator = theme.ColoredParameter('hexdump-separator-color', 'none', 'color for hexdump command (group separator)')
 
 def normal(x):
     return generateColorFunction(config.hexdump_normal_color)(x)

@@ -7,3 +7,10 @@ class Parameter(pwndbg.config.Parameter):
                                         default,
                                         docstring,
                                         'theme')
+
+class ColoredParameter(Parameter):
+
+    def __init__(self, name, default, docstring):
+        super(ColoredParameter, self).__init__(name,
+                                               default,
+                                               docstring)

@@ -5,12 +5,12 @@ import pwndbg.color.theme as theme
 import pwndbg.vmmap
 from pwndbg.color import generateColorFunction, normal
 
-config_stack  = theme.Parameter('memory-stack-color', 'yellow', 'color for stack memory')
-config_heap   = theme.Parameter('memory-heap-color', 'blue', 'color for heap memory')
-config_code   = theme.Parameter('memory-code-color', 'red', 'color for executable memory')
-config_data   = theme.Parameter('memory-data-color', 'purple', 'color for all other writable memory')
-config_rodata = theme.Parameter('memory-rodata-color', 'normal', 'color for all read only memory')
-config_rwx    = theme.Parameter('memory-rwx-color', 'underline', 'color added to all RWX memory')
+config_stack  = theme.ColoredParameter('memory-stack-color', 'yellow', 'color for stack memory')
+config_heap   = theme.ColoredParameter('memory-heap-color', 'blue', 'color for heap memory')
+config_code   = theme.ColoredParameter('memory-code-color', 'red', 'color for executable memory')
+config_data   = theme.ColoredParameter('memory-data-color', 'purple', 'color for all other writable memory')
+config_rodata = theme.ColoredParameter('memory-rodata-color', 'normal', 'color for all read only memory')
+config_rwx    = theme.ColoredParameter('memory-rwx-color', 'underline', 'color added to all RWX memory')
 
 def stack(x):
     return generateColorFunction(config.memory_stack_color)(x)
