@@ -19,4 +19,6 @@ install:
   - sudo ./setup.sh
 before_script:
   - isort --check-only --diff pwndbg
-script: nosetests ./tests/
+script:
+  - nosetests ./tests/
+  - python -m py_compile ida_script.py
