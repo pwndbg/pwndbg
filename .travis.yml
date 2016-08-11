@@ -21,4 +21,5 @@ before_script:
   - isort --check-only --diff pwndbg
 script:
   - nosetests ./tests/
-  - python -m py_compile ida_script.py
+  - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
+  - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')

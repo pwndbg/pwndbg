@@ -27,11 +27,11 @@ def elfheader():
                 continue
 
             size = section['sh_size']
-            sections.append((start, start + size, section.name.decode('ascii')))
+            sections.append((start, start + size, section.name))
 
         sections.sort()
         for start, end, name in sections:
-            print('%#x - %#x %s' % (start, end, name))
+            print('%#x - %#x ' % (start, end), name)
 
 @pwndbg.commands.Command
 def gotplt():
