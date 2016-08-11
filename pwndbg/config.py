@@ -21,12 +21,17 @@ from __future__ import unicode_literals
 
 import sys
 import types
+import collections
 
 import six
 
 import gdb
 
-TYPES = {}
+TYPES = collections.OrderedDict()
+
+# The value is a plain boolean.
+# The Python boolean values, True and False are the only valid values.
+TYPES[bool] = gdb.PARAM_BOOLEAN
 
 # The value is an integer.
 # This is like PARAM_INTEGER, except 0 is interpreted as itself.
@@ -39,10 +44,6 @@ for type in six.integer_types:
 # corresponding characters and encoded into the current host charset.
 for type in six.string_types:
     TYPES[type] = gdb.PARAM_STRING
-
-# The value is a plain boolean.
-# The Python boolean values, True and False are the only valid values.
-TYPES[bool] = gdb.PARAM_BOOLEAN
 
 def getParam(value):
     for k,v in TYPES.items():
