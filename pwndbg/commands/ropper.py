@@ -41,5 +41,3 @@ def ropper(argument):
             io = subprocess.call(cmd)
         except Exception:
             print("Could not run ropper.  Please ensure it's installed and in $PATH.")
-
-        

@@ -19,9 +19,9 @@ module, for example:
 """
 from __future__ import unicode_literals
 
+import collections
 import sys
 import types
-import collections
 
 import six
 
