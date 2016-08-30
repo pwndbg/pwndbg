@@ -9,6 +9,10 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
+import pwndbg.color.theme as theme
+import pwndbg.color.memory as M
+import pwndbg.color.context as C
+import pwndbg.color.backtrace as B
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
@@ -38,7 +42,7 @@ def context(*args):
 
     result = []
 
-    result.append(pwndbg.color.legend())
+    result.append(M.legend())
     if 'r' in args: result.extend(context_regs())
     if 'c' in args: result.extend(context_code())
     if 'c' in args: result.extend(context_source())
@@ -53,7 +57,7 @@ def context(*args):
 
 def context_regs():
     result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("registers")))
+    result.append(pwndbg.ui.banner("registers"))
     result.extend(get_regs())
     return result
 
@@ -64,7 +68,6 @@ def regs(*regs):
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
-pwndbg.config.Parameter('colored-flags', False, 'whether to colorize flags registers')
 
 def get_regs(*regs):
     result = []
@@ -88,17 +91,18 @@ def get_regs(*regs):
         value = pwndbg.regs[reg]
 
         # Make the register stand out
-        regname = pwndbg.color.bold(reg.ljust(4).upper())
+        regname = C.register(reg.ljust(4).upper())
 
         # Show a dot next to the register if it changed
-        m = ' ' if reg not in changed else '*'
+        change_marker = "%s" % C.config_register_changed_marker
+        m = ' ' * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
         if reg not in pwndbg.regs.flags:
             desc = pwndbg.chain.format(value)
 
         else:
             names = []
-            desc  = '%#x' % value
+            desc  = C.flag_value('%#x' % value)
             last  = pwndbg.regs.last.get(reg, 0) or 0
             flags = pwndbg.regs.flags[reg]
 
@@ -106,20 +110,17 @@ def get_regs(*regs):
                 bit = 1<<bit
                 if value & bit:
                     name = name.upper()
-                    name = pwndbg.color.bold(name)
-                    if pwndbg.config.colored_flags:
-                        name = pwndbg.color.green(name)
+                    name = C.flag_set(name)
                 else:
                     name = name.lower()
-                    if pwndbg.config.colored_flags:
-                        name = pwndbg.color.red(name)
+                    name = C.flag_unset(name)
 
                 if value & bit != last & bit:
                     name = pwndbg.color.underline(name)
                 names.append(name)
 
             if names:
-                desc = '%s [ %s ]' % (desc, ' '.join(names))
+                desc = '%s %s %s %s' % (desc, C.flag_bracket('['), ' '.join(names), C.flag_bracket(']'))
 
         result.append("%s%s %s" % (m, regname, desc))
 
@@ -130,7 +131,7 @@ Unicorn emulation of code near the current instruction
 ''')
 
 def context_code():
-    banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+    banner = [pwndbg.ui.banner("code")]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate)
 
@@ -141,7 +142,7 @@ def context_code():
 
     return banner + result
 
-pwndbg.config.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
 def context_source():
     try:
@@ -170,10 +171,10 @@ def context_source():
         if pwndbg.config.highlight_source:
             for i in range(len(source_lines)):
                 if source_lines[i].startswith('%s\t' % closest_line):
-                    source_lines[i] = pwndbg.color.highlight(source_lines[i])
+                    source_lines[i] = C.highlight(source_lines[i])
                     break
 
-        banner = [pwndbg.color.blue(pwndbg.ui.banner("code"))]
+        banner = [pwndbg.ui.banner("code")]
         banner.extend(source_lines)
         return banner
     except:
@@ -194,17 +195,19 @@ def context_source():
 
 def context_stack():
     result = []
-    result.append(pwndbg.color.blue(pwndbg.ui.banner("stack")))
+    result.append(pwndbg.ui.banner("stack"))
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True)
     if telescope:
         result.extend(telescope)
     return result
 
+backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
+
 def context_backtrace(frame_count=10, with_banner=True):
     result = []
 
     if with_banner:
-        result.append(pwndbg.color.blue(pwndbg.ui.banner("backtrace")))
+        result.append(pwndbg.ui.banner("backtrace"))
 
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
@@ -228,13 +231,16 @@ def context_backtrace(frame_count=10, with_banner=True):
 
     frame = newest_frame
     i     = 0
+    bt_prefix = "%s" % B.config_prefix
     while True:
-        prefix = '> ' if frame == this_frame else '  '
-        addrsz = pwndbg.ui.addrsz(frame.pc())
-        symbol = pwndbg.symbol.get(frame.pc())
+
+        prefix = bt_prefix if frame == this_frame else ' ' * len(bt_prefix)
+        prefix = " %s" % B.prefix(prefix)
+        addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
+        symbol = B.symbol(pwndbg.symbol.get(frame.pc()))
         if symbol:
             addrsz = addrsz + ' ' + symbol
-        line   = map(str, (prefix, 'f', i, addrsz))
+        line   = map(str, (prefix, B.frame_label('%s%i' % (backtrace_frame_label, i)), addrsz))
         line   = ' '.join(line)
         result.append(line)
 
@@ -259,7 +265,7 @@ def context_args():
     #     result.append('%-10s %s' % (arg.name+':', pretty))
     # if not result:
     #         return []
-    # result.insert(0, pwndbg.color.blue(pwndbg.ui.banner("arguments")))
+    # result.insert(0, pwndbg.ui.banner("arguments"))
     return result
 
 last_signal = []

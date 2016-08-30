@@ -45,6 +45,22 @@ for type in six.integer_types:
 for type in six.string_types:
     TYPES[type] = gdb.PARAM_STRING
 
+triggers = collections.defaultdict(lambda: [])
+
+class Trigger(object):
+    def __init__(self, names):
+        if not isinstance(names, list):
+            names = [names]
+        names = list(map(lambda n: n.name if isinstance(n, Parameter) else n, names))
+        self.names = list(map(lambda n: n.replace('-', '_'), names))
+
+    def __call__(self, function):
+        global triggers
+        for name in self.names:
+            triggers[name].append(function)
+        return function
+
+
 def getParam(value):
     for k,v in TYPES.items():
         if isinstance(value, k):
@@ -52,7 +68,7 @@ def getParam(value):
 
 class Parameter(gdb.Parameter):
 
-    def __init__(self, name, default, docstring):
+    def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
         self.optname = name
         self.name = name.replace('-','_')
@@ -63,10 +79,14 @@ class Parameter(gdb.Parameter):
                                         gdb.COMMAND_SUPPORT,
                                         getParam(default))
         self.value = default
-
+        self.scope = scope
         setattr(module, self.name, self)
 
     def get_set_string(self):
+        for trigger in triggers[self.name]:
+            trigger()
+        if isinstance(self.value, str):
+            self.value = self.value.replace("'", '').replace('"', '')
         return 'Set %s to %r' % (self.docstring, self.value)
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)
@@ -76,6 +96,8 @@ class Parameter(gdb.Parameter):
         return str(self.value)
     def __bool__(self):
         return bool(self.value)
+    def __lt__(self, other):
+        return self.optname <= other.optname
 
     # Python2 compatibility
     __nonzero__ = __bool__

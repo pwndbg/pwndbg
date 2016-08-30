@@ -7,7 +7,7 @@ import os
 import struct
 
 import gdb
-import pwndbg.color
+import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.search
@@ -34,8 +34,8 @@ def print_search(value, *a, **kw):
 
         region = region.ljust(15)
 
-        region = pwndbg.color.get(address, region)
-        addr = pwndbg.color.get(address)
+        region = M.get(address, region)
+        addr = M.get(address)
         display = pwndbg.enhance.enhance(address)
         print(region,addr,display)
 

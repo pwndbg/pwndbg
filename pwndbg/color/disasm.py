@@ -1,27 +1,38 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import pwndbg.chain
+import pwndbg.disasm.jump
+import pwndbg.config as config
+import pwndbg.color.memory as M
+import pwndbg.color.context as C
+import pwndbg.color.theme as theme
+from pwndbg.color import generateColorFunction, green, red, ljust_colored
+
 import capstone
 
-import pwndbg.chain
-import pwndbg.color
-import pwndbg.disasm.jump
-
 capstone_branch_groups = set((
-capstone.CS_GRP_CALL,
-capstone.CS_GRP_JUMP
+    capstone.CS_GRP_CALL,
+    capstone.CS_GRP_JUMP
 ))
+
+config_branch = theme.ColoredParameter('disasm-branch-color', 'bold', 'color for disasm (branch/call instruction)')
+
+def branch(x):
+    return generateColorFunction(config.disasm_branch_color)(x)
 
 def instruction(ins):
     asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)
-    branch = set(ins.groups) & capstone_branch_groups
+    is_branch = set(ins.groups) & capstone_branch_groups
+
+    # Highlight the current line if enabled
+    if pwndbg.config.highlight_pc and ins.address == pwndbg.regs.pc:
+        asm = C.highlight(asm)
 
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
         sym    = pwndbg.symbol.get(ins.target) or None
-        target = pwndbg.color.get(ins.target)
+        target = M.get(ins.target)
         const  = ins.target_const
         hextarget = hex(ins.target)
         hexlen    = len(hextarget)
@@ -31,12 +42,12 @@ def instruction(ins):
             asm = asm.replace(hex(ins.target), sym or target)
 
             if sym:
-                asm = '%-36s <%s>' % (asm, target)
+                asm = '%s <%s>' % (ljust_colored(asm, 36), target)
 
         # It's not a constant expression, but we've calculated the target
         # address by emulation.
         elif sym:
-            asm = '%-36s <%s; %s>' % (asm, target, sym)
+            asm = '%s <%s; %s>' % (ljust_colored(asm, 36), target, sym)
 
         # We were able to calculate the target, but there is no symbol
         # name for it.
@@ -45,24 +56,24 @@ def instruction(ins):
 
     # not a branch
     elif ins.symbol:
-        if branch and not ins.target:
+        if is_branch and not ins.target:
             asm = '%s <%s>' % (asm, ins.symbol)
 
             # XXX: not sure when this ever happens
             asm += '<-- file a pwndbg bug for this'
         else:
             asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
-            asm = '%-36s <%s>' % (asm, pwndbg.color.get(ins.symbol_addr))
+            asm = '%s <%s>' % (ljust_colored(asm, 36), M.get(ins.symbol_addr))
 
-    # Make the instruction mnemonic bold if it's a branch instruction.
-    if branch:
-        asm = asm.replace(ins.mnemonic, pwndbg.color.bold(ins.mnemonic))
+    # Style the instruction mnemonic if it's a branch instruction.
+    if is_branch:
+        asm = asm.replace(ins.mnemonic, branch(ins.mnemonic))
 
     # If we know the conditional is taken, mark it as green.
     if ins.condition is None:
         asm = '  ' + asm
     elif ins.condition:
-        asm = pwndbg.color.green(u'✔ ') + asm
+        asm = green(u'✔ ') + asm
     else:
         asm = '  ' + asm
 

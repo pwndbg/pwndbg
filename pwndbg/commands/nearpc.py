@@ -3,15 +3,16 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
-
 from capstone import *
 
 import gdb
 import pwndbg.arguments
-import pwndbg.color
+import pwndbg.config
+import pwndbg.color.theme
+import pwndbg.color.nearpc as N
+import pwndbg.color.disasm as D
+import pwndbg.color.context as C
 import pwndbg.disasm
-import pwndbg.disasm.color
 import pwndbg.functions
 import pwndbg.ida
 import pwndbg.regs
@@ -20,12 +21,15 @@ import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 
-pwndbg.config.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
-pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
-
 def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
+
+nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', u'    ↓', 'branch marker line for nearpc command')
+nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-marker-contiguous', ' ', 'contiguous branch marker line for nearpc command')
+pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
+pwndbg.color.theme.Parameter('nearpc-prefix', u'►', 'prefix marker for nearpc command')
+pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -63,7 +67,6 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-
     result = []
     instructions = pwndbg.disasm.near(pc, lines, emulate=emulate)
 
@@ -87,38 +90,42 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Print out each instruction
     for address_str, s, i in zip(addresses, symbols, instructions):
-        asm    = pwndbg.disasm.color.instruction(i)
-        prefix = ' =>' if i.address == pc else '   '
+        asm    = D.instruction(i)
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value))
+        prefix = N.prefix(prefix)
+        if pwndbg.config.highlight_pc:
+            prefix = C.highlight(prefix)
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
-            result.append(pwndbg.color.bold(pre))
+            result.append(N.ida_anterior(pre))
 
-        # for line in pc_to_linenos[i.address]:
-        #     result.append('%s %s' % (line, lineno_to_src[line].strip()))
+        # Colorize address and symbol if not highlighted
+        if i.address != pc or not pwndbg.config.highlight_pc:
+            address_str = N.address(address_str)
+            s = N.symbol(s)
+        elif pwndbg.config.highlight_pc:
+            address_str = C.highlight(address_str)
+            s = C.highlight(s)
 
         line   = ' '.join((prefix, address_str, s, asm))
-
-        # Highlight the current line if the config is enabled
-        if pwndbg.config.highlight_pc and i.address == pc:
-            line = pwndbg.color.highlight(line)
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
         if prev and prev.address + prev.size != i.address:
-            result.append('...')
+            result.append(N.branch_marker('%s' % nearpc_branch_marker))
 
         # Otherwise if it's a branch and it *is* contiguous, just put
         # and empty line.
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            result.append('')
-
+            if len('%s' % nearpc_branch_marker_contiguous) > 0:
+                result.append('%s' % nearpc_branch_marker_contiguous)
 
         # For syscall instructions, put the name on the side
         if i.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(i)
             if syscall_name:
-                line += ' <%s>' % syscall_name
+                line += ' <%s>' % N.syscall_name(syscall_name)
 
         result.append(line)
 
@@ -127,7 +134,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         for arg, value in pwndbg.arguments.get(i):
             code   = False if arg.type == 'char' else True
             pretty = pwndbg.chain.format(value, code=code)
-            result.append('%8s%-10s %s' % ('',arg.name+':', pretty))
+            result.append('%8s%-10s %s' % ('', N.argument(arg.name) + ':', pretty))
 
         prev = i
 

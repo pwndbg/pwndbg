@@ -18,10 +18,15 @@ import pwndbg.config
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
+import pwndbg.color.theme as theme
+import pwndbg.color.telescope as T
 
 telescope_lines = pwndbg.config.Parameter('telescope-lines',
                                          8,
                                          'number of lines to printed by the telescope command')
+offset_separator = theme.Parameter('telescope-offset-separator', u'│', 'offset separator of the telescope command')
+offset_delimiter = theme.Parameter('telescope-offset-delimiter', ':', 'offset delimiter of the telescope command')
+repeating_maker  = theme.Parameter('telescope-repeating-marker', u'... ↓', 'repeating values marker of the telescope command')
 
 
 @pwndbg.commands.ParsedCommand
@@ -33,6 +38,8 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     """
     address = int(address if address else pwndbg.regs.sp) & pwndbg.arch.ptrmask
     count   = int(count) & pwndbg.arch.ptrmask
+    delimiter = T.delimiter(offset_delimiter)
+    separator = T.separator(offset_separator)
 
     # Allow invocation of "hexdump 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
@@ -82,14 +89,14 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         value = pwndbg.memory.pvoid(addr)
         if last == value:
             if not skip:
-                result.append('...')
+                result.append(T.repeating_marker('%s' % repeating_maker))
                 skip = True
             continue
         last = value
         skip = False
 
-        line = ' '.join(("%02x:%04x|" % (i, addr-start),
-                         regs[addr].ljust(longest_regs),
+        line = ' '.join((T.offset("%02x%s%04x%s" % (i, delimiter, addr-start, separator)),
+                         T.register(regs[addr].ljust(longest_regs)),
                          pwndbg.chain.format(addr)))
         result.append(line)
 
