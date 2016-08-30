@@ -97,7 +97,7 @@ def search(type, hex, string, executable, writable, value, mapping):
     
     # Null-terminate strings
     elif type == 'string':
-        value += '\x00'
+        value += b'\x00'
 
     # Perform the search
     print_search(value, mapping=mapping, executable=executable, writable=writable)
