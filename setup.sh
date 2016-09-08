@@ -21,13 +21,10 @@ SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackag
 # Install Python dependencies
 sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
-# Find the path to the Python2 interpreter needed by the Unicorn install process.
-export UNICORN_QEMU_FLAGS="--python=$(which python2)"
-
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
     pushd $directory
-    sudo ./make.sh install
+    sudo UNICORN_QEMU_FLAGS="--python=$(which python2)" ./make.sh install
     cd bindings/python
     sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} .
     popd

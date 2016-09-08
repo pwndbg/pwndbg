@@ -29,7 +29,7 @@ Installation is straightforward.  Pwndbg is best supported on Ubuntu 14.04 with 
 ```shell
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
-sudo ./setup.sh
+./setup.sh
 ```
 
 If you use any other Linux distribution, we recommend using the latest available GDB built from source.  Be sure to pass `--with-python=/path/to/python` to `configure`.
