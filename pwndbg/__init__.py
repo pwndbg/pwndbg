@@ -111,7 +111,6 @@ prompt = pwndbg.color.bold(prompt)
 pre_commands = """
 set confirm off
 set verbose off
-set output-radix 0x10
 set prompt %s
 set height 0
 set history expansion on
@@ -122,7 +121,6 @@ set step-mode on
 set print pretty on
 set width 0
 set print elements 15
-set input-radix 16
 handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
