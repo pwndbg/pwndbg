@@ -15,31 +15,29 @@ import pwndbg.enhance
 import pwndbg.search
 import pwndbg.vmmap
 
+saved = set()
 
-def print_search(value, *a, **kw):
-    hits = set()
+def print_search_hit(address):
+    """Prints out a single search hit.
 
-    for address in pwndbg.search.search(value, *a, **kw):
-        if not address:
-            continue
+    Arguments:
+        address(int): Address to print
+    """
+    if not address:
+        return
 
-        if address in hits:
-            continue
+    vmmap = pwndbg.vmmap.find(address)
+    if vmmap:
+        region = os.path.basename(vmmap.objfile)
+    else:
+        region = '[mapped]'
 
-        hits.add(address)
+    region = region.ljust(15)
 
-        vmmap = pwndbg.vmmap.find(address)
-        if vmmap:
-            region = os.path.basename(vmmap.objfile)
-        else:
-            region = '[mapped]'
-
-        region = region.ljust(15)
-
-        region = M.get(address, region)
-        addr = M.get(address)
-        display = pwndbg.enhance.enhance(address)
-        print(region,addr,display)
+    region = M.get(address, region)
+    addr = M.get(address)
+    display = pwndbg.enhance.enhance(address)
+    print(region,addr,display)
 
 parser = argparse.ArgumentParser(description='''
 Search memory for byte sequences, strings, pointers, and integer values
@@ -68,10 +66,14 @@ parser.add_argument('value', type=str,
                     help='Value to search for')
 parser.add_argument('mapping', type=str, nargs='?', default=None,
                     help='Mapping to search [e.g. libc]')
+parser.add_argument('--save', action='store_true',
+                    help='Save results for --resume')
+parser.add_argument('-n', '--next', action='store_true',
+                    help='Search only locations returned by previous search with --save')
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping):
+def search(type, hex, string, executable, writable, value, mapping, save, next):
     # Adjust pointer sizes to the local architecture
     if type == 'pointer':
         type = {
@@ -96,10 +98,26 @@ def search(type, hex, string, executable, writable, value, mapping):
         }[type]
 
         value = struct.pack(fmt, value)
-    
+
     # Null-terminate strings
     elif type == 'string':
         value += b'\x00'
 
+    # Prep the saved set if necessary
+    global saved
+    if save:
+        saved = set()
+    
     # Perform the search
-    print_search(value, mapping=mapping, executable=executable, writable=writable)
+    for address in pwndbg.search.search(value,
+                                        mapping=mapping,
+                                        executable=executable,
+                                        writable=writable):
+
+        if next and address not in saved:
+            continue
+
+        if save:
+            saved.add(address)
+
+        print_search_hit(address)
