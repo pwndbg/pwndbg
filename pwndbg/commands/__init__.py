@@ -79,7 +79,7 @@ class _ParsedCommandPrefix(_ParsedCommand):
     def __init__(self, function, inc=True, prefix=True):
         super(_ParsedCommand, self).__init__(function, inc, prefix)
 
-def fix(arg, sloppy=False, quiet=False):
+def fix(arg, sloppy=False, quiet=True):
     if isinstance(arg, gdb.Value):
         return arg
 

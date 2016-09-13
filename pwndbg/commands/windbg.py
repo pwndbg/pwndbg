@@ -173,6 +173,10 @@ def eX(size, address, data, hex=True):
             data    = codecs.decode(bytestr, 'hex')
         else:
             data    = bytestr
+
+        if pwndbg.arch.endian == 'little':
+            data = data[::-1]
+
         pwndbg.memory.write(address + (i * size), data)
 
 @pwndbg.commands.ParsedCommand
