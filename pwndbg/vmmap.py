@@ -10,6 +10,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import sys
 
 import gdb
@@ -381,3 +382,9 @@ def check_aslr():
         vmmap.aslr = True
 
     return vmmap.aslr
+
+@pwndbg.events.cont
+def mark_pc_as_executable():
+    mapping = find(pwndbg.regs.pc)
+    if not mapping.execute:
+        mapping.flags |= os.X_OK
