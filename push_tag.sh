@@ -2,12 +2,9 @@
 
 git fetch --all
 
-LAST_TAG=$(git log --tags -1 --pretty='%h')
-COMMITS=$(git log $LAST_TAG..origin/master)
-TAG=$(date '+%Y.%m.%d')
+TAG=$(date -d "$(git log --tags -1 --format='%aD')" '+%Y.%m.%d')
 
-if [ -n "$COMMITS" ]; then
-    git tag $TAG origin/master
+if git tag $TAG origin/master; then
     git push origin $TAG
 fi
 
