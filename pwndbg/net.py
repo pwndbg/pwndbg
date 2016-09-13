@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Re-implements some psutil functionality to be able to get information from
 remote debugging sessions.

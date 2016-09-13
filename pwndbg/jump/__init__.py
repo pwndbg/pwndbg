@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # import pwndbg.arch
 # import pwndbg.jump.mips
 # import pwndbg.jump.arm
