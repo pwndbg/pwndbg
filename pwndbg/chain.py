@@ -2,9 +2,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
-import pwndbg.color.theme as theme
-import pwndbg.color.memory as M
 import pwndbg.color.chain as C
+import pwndbg.color.memory as M
+import pwndbg.color.theme as theme
 import pwndbg.enhance
 import pwndbg.memory
 import pwndbg.symbol

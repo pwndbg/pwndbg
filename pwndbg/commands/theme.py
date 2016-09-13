@@ -3,11 +3,13 @@ Dumps all pwndbg-specific theme configuration points.
 """
 from __future__ import unicode_literals
 
-import pwndbg.config
-import pwndbg.commands
 import pwndbg.color.theme
-from pwndbg.commands.config import print_row, extend_value_with_default
+import pwndbg.commands
+import pwndbg.config
 from pwndbg.color import generateColorFunction
+from pwndbg.commands.config import extend_value_with_default
+from pwndbg.commands.config import print_row
+
 
 @pwndbg.commands.Command
 def theme():

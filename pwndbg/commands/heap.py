@@ -5,8 +5,8 @@ from __future__ import unicode_literals
 import six
 
 import gdb
-import pwndbg.commands
 import pwndbg.color.memory as M
+import pwndbg.commands
 from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.color import underline

@@ -1,5 +1,5 @@
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
 offset_color = theme.ColoredParameter('telescope-offset-color', 'normal', 'color of the telescope command (offset prefix)')

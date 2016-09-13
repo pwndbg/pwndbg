@@ -1,5 +1,6 @@
 import pwndbg.config
 
+
 class Parameter(pwndbg.config.Parameter):
 
     def __init__(self, name, default, docstring):

@@ -1,5 +1,5 @@
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
 config_highlight_color          = theme.ColoredParameter('highlight-color', 'green,bold', 'color added to highlights like source/pc')

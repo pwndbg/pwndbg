@@ -7,11 +7,11 @@ from capstone import *
 
 import gdb
 import pwndbg.arguments
-import pwndbg.config
-import pwndbg.color.theme
-import pwndbg.color.nearpc as N
-import pwndbg.color.disasm as D
 import pwndbg.color.context as C
+import pwndbg.color.disasm as D
+import pwndbg.color.nearpc as N
+import pwndbg.color.theme
+import pwndbg.config
 import pwndbg.disasm
 import pwndbg.functions
 import pwndbg.ida
@@ -20,6 +20,7 @@ import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
+
 
 def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0

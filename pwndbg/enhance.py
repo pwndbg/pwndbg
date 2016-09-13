@@ -15,14 +15,14 @@ import string
 
 import gdb
 import pwndbg.arch
+import pwndbg.color as color
+import pwndbg.color.enhance as E
 import pwndbg.disasm
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.typeinfo
-import pwndbg.color as color
-import pwndbg.color.enhance as E
 
 bad_instrs = [
 '.byte',

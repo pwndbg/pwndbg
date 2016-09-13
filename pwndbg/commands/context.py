@@ -9,10 +9,10 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
-import pwndbg.color.theme as theme
-import pwndbg.color.memory as M
-import pwndbg.color.context as C
 import pwndbg.color.backtrace as B
+import pwndbg.color.context as C
+import pwndbg.color.memory as M
+import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope

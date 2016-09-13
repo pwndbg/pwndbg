@@ -13,13 +13,13 @@ import collections
 
 import pwndbg.arch
 import pwndbg.chain
+import pwndbg.color.telescope as T
+import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
-import pwndbg.color.theme as theme
-import pwndbg.color.telescope as T
 
 telescope_lines = pwndbg.config.Parameter('telescope-lines',
                                          8,

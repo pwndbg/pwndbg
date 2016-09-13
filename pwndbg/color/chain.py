@@ -1,5 +1,5 @@
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
 config_arrow_color      = theme.ColoredParameter('chain-arrow-color', 'normal', 'color of chain formatting (arrow)')

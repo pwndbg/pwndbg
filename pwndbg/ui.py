@@ -12,9 +12,9 @@ import sys
 import termios
 
 import pwndbg.arch
-import pwndbg.config as config
-import pwndbg.color.theme as theme
 import pwndbg.color.context as C
+import pwndbg.color.theme as theme
+import pwndbg.config as config
 
 theme.Parameter('banner-separator', u'─', 'repeated banner separator character')
 

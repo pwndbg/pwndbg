@@ -1,5 +1,5 @@
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
 config_symbol        = theme.ColoredParameter('nearpc-symbol-color', 'normal', 'color for nearpc command (symbol)')

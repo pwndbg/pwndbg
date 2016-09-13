@@ -9,10 +9,9 @@ from __future__ import unicode_literals
 import copy
 import string
 
-import pwndbg.color.theme as theme
 import pwndbg.color.hexdump as H
+import pwndbg.color.theme as theme
 import pwndbg.config
-
 
 color_scheme = None
 printable = None

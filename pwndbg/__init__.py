@@ -38,10 +38,10 @@ import pwndbg.commands.segments
 import pwndbg.commands.shell
 import pwndbg.commands.start
 import pwndbg.commands.telescope
+import pwndbg.commands.theme
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
 import pwndbg.commands.xor
-import pwndbg.commands.theme
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm

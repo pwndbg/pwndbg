@@ -1,15 +1,18 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pwndbg.chain
-import pwndbg.disasm.jump
-import pwndbg.config as config
-import pwndbg.color.memory as M
-import pwndbg.color.context as C
-import pwndbg.color.theme as theme
-from pwndbg.color import generateColorFunction, green, red, ljust_colored
-
 import capstone
+
+import pwndbg.chain
+import pwndbg.color.context as C
+import pwndbg.color.memory as M
+import pwndbg.color.theme as theme
+import pwndbg.config as config
+import pwndbg.disasm.jump
+from pwndbg.color import generateColorFunction
+from pwndbg.color import green
+from pwndbg.color import ljust_colored
+from pwndbg.color import red
 
 capstone_branch_groups = set((
     capstone.CS_GRP_CALL,

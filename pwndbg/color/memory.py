@@ -1,9 +1,10 @@
 import six
 
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 import pwndbg.vmmap
-from pwndbg.color import generateColorFunction, normal
+from pwndbg.color import generateColorFunction
+from pwndbg.color import normal
 
 config_stack  = theme.ColoredParameter('memory-stack-color', 'yellow', 'color for stack memory')
 config_heap   = theme.ColoredParameter('memory-heap-color', 'blue', 'color for heap memory')

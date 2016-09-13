@@ -1,5 +1,5 @@
-import pwndbg.config as config
 import pwndbg.color.theme as theme
+import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
 config_normal    = theme.ColoredParameter('hexdump-normal-color', 'none', 'color for hexdump command (normal bytes)')
