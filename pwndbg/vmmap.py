@@ -391,5 +391,5 @@ def check_aslr():
 @pwndbg.events.cont
 def mark_pc_as_executable():
     mapping = find(pwndbg.regs.pc)
-    if not mapping.execute:
+    if mapping and not mapping.execute:
         mapping.flags |= os.X_OK
