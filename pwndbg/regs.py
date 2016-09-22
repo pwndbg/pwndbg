@@ -349,6 +349,8 @@ class module(ModuleType):
                 continue
             elif isinstance(regset, (list, tuple)):
                 retval.extend(regset)
+            elif isinstance(regset, dict):
+                retval.extend(regset.keys())
             else:
                 retval.append(regset)
         return retval
