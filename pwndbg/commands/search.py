@@ -11,6 +11,7 @@ import struct
 import gdb
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.enhance
 import pwndbg.search
 import pwndbg.vmmap
@@ -39,6 +40,9 @@ def print_search_hit(address):
     display = pwndbg.enhance.enhance(address)
     print(region,addr,display)
 
+auto_save = pwndbg.config.Parameter('auto-save-search', False,
+                        'automatically pass --save to "search" command')
+
 parser = argparse.ArgumentParser(description='''
 Search memory for byte sequences, strings, pointers, and integer values
 ''')
@@ -66,8 +70,10 @@ parser.add_argument('value', type=str,
                     help='Value to search for')
 parser.add_argument('mapping', type=str, nargs='?', default=None,
                     help='Mapping to search [e.g. libc]')
-parser.add_argument('--save', action='store_true',
-                    help='Save results for --resume')
+parser.add_argument('--save', action='store_true', default=None,
+                    help='Save results for --resume.  Default comes from config %r' % auto_save.name)
+parser.add_argument('--no-save', action='store_false', default=None, dest='save',
+                    help='Invert --save')
 parser.add_argument('-n', '--next', action='store_true',
                     help='Search only locations returned by previous search with --save')
 
@@ -80,6 +86,9 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
             4: 'dword',
             8: 'qword'
         }[pwndbg.arch.ptrsize]
+
+    if save is None:
+        save = bool(pwndbg.config.auto_save_search)
 
     if hex:
         value = codecs.decode(value, 'hex')
@@ -107,7 +116,7 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
     global saved
     if save:
         saved = set()
-    
+
     # Perform the search
     for address in pwndbg.search.search(value,
                                         mapping=mapping,
