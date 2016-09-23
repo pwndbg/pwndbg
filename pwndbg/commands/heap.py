@@ -107,13 +107,14 @@ def bins(addr=None):
     bins = main_arena['bins']
 
     size_t_size = pwndbg.typeinfo.load('size_t').sizeof
-    num_fastbins = int(fastbins.type.sizeof / fastbins.type.target().sizeof)
+    num_fastbins = 7
     num_bins = int(bins.type.sizeof / bins.type.target().sizeof)
     fd_field_offset = 2 * size_t_size
 
     print(underline(yellow('fastbins')))
+    size = 2 * size_t_size
     for i in range(num_fastbins):
-        size = 2 * size_t_size * (i + 1)
+        size += 2 * size_t_size
         chain = pwndbg.chain.format(int(fastbins[i]), offset=fd_field_offset)
         print((bold(size) + ': ').ljust(13) + chain)
 
