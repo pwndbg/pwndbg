@@ -37,8 +37,8 @@ def get(address, limit=LIMIT, offset=0):
     return result
 
 
-config_arrow_left  = theme.Parameter('chain-arrow-left', u'—▸', 'left arrow of chain formatting')
-config_arrow_right = theme.Parameter('chain-arrow-right', u'◂—', 'right arrow of chain formatting')
+config_arrow_left  = theme.Parameter('chain-arrow-left', u'◂—', 'left arrow of chain formatting')
+config_arrow_right = theme.Parameter('chain-arrow-right', u'—▸', 'right arrow of chain formatting')
 config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
 
 def format(value, limit=LIMIT, code=True, offset=0):
