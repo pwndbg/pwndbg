@@ -17,9 +17,10 @@ install:
   - lsb_release -a
   - pip install -r requirements.txt
   - sudo ./setup.sh
-before_script:
-  - isort --check-only --diff pwndbg
 script:
+  - isort --check-only --diff pwndbg
   - nosetests ./tests/
   - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
   - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
+  - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
+  - git diff-index --quiet HEAD --

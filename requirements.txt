@@ -5,3 +5,4 @@ python-ptrace>=0.8
 pyelftools
 isort
 six
+future
