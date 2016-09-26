@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import struct
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.memory
 import pwndbg.typeinfo

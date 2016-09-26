@@ -15,6 +15,7 @@ import sys
 import traceback
 
 import gdb
+
 import pwndbg.config
 import pwndbg.stdio
 

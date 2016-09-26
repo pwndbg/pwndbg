@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gdb
 from capstone import *
 
-import gdb
 import pwndbg.arguments
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D

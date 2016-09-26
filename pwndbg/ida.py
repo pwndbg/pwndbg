@@ -19,6 +19,7 @@ import traceback
 from contextlib import closing
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.elf

@@ -12,9 +12,9 @@ import binascii
 import inspect
 
 import capstone as C
+import gdb
 import unicorn as U
 
-import gdb
 import pwndbg.arch
 import pwndbg.disasm
 import pwndbg.emu.emulator

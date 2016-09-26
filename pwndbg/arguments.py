@@ -9,10 +9,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gdb
 from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
-import gdb
 import pwndbg.abi
 import pwndbg.arch
 import pwndbg.constants

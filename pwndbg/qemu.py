@@ -10,9 +10,9 @@ from __future__ import unicode_literals
 
 import os
 
+import gdb
 import psutil
 
-import gdb
 import pwndbg.events
 import pwndbg.remote
 

@@ -12,9 +12,9 @@ from __future__ import unicode_literals
 import collections
 
 import capstone
+import gdb
 from capstone import *
 
-import gdb
 import pwndbg.arch
 import pwndbg.disasm.arch
 import pwndbg.ida

@@ -11,6 +11,7 @@ import sys
 import traceback
 
 import gdb
+
 import pwndbg.chain
 import pwndbg.color
 import pwndbg.enhance

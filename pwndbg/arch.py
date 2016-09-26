@@ -9,9 +9,9 @@ import collections
 import struct
 import sys
 
+import gdb
 from capstone import *
 
-import gdb
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.regs

@@ -16,6 +16,7 @@ import os
 import sys
 
 import gdb
+
 import pwndbg.compat
 import pwndbg.elf
 import pwndbg.events

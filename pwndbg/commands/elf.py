@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gdb
 from elftools.elf.elffile import ELFFile
 
-import gdb
 import pwndbg.commands
 
 

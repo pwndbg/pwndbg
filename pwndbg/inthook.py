@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import sys
 
 import gdb
+
 import pwndbg.typeinfo
 
 if sys.version_info < (3,0):

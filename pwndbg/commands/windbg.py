@@ -13,6 +13,7 @@ import math
 import sys
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.commands
 import pwndbg.memory

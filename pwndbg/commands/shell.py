@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import os
 
 import gdb
+
 import pwndbg.commands
 import pwndbg.which
 

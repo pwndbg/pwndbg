@@ -12,6 +12,7 @@ import os
 import traceback
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.typeinfo

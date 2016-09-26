@@ -9,6 +9,7 @@ import os
 import subprocess
 
 import gdb
+
 import pwndbg.commands
 import pwndbg.which
 

@@ -26,9 +26,8 @@ import collections
 import sys
 import types
 
-import six
-
 import gdb
+import six
 
 TYPES = collections.OrderedDict()
 

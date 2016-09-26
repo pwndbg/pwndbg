@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
+
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory

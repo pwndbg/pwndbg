@@ -20,9 +20,9 @@ import elftools.common.exceptions
 import elftools.elf.constants
 import elftools.elf.elffile
 import elftools.elf.segments
+import gdb
 import six
 
-import gdb
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.file

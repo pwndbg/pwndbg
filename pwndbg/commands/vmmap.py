@@ -8,9 +8,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gdb
 import six
 
-import gdb
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.compat

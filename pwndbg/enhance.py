@@ -16,6 +16,7 @@ from __future__ import unicode_literals
 import string
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.color as color
 import pwndbg.color.enhance as E

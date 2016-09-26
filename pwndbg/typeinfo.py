@@ -15,9 +15,9 @@ import subprocess
 import sys
 import tempfile
 
+import gdb
 import six
 
-import gdb
 import pwndbg.events
 import pwndbg.gcc
 import pwndbg.memoize

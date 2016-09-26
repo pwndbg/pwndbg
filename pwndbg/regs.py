@@ -15,9 +15,9 @@ import re
 import sys
 from types import ModuleType
 
+import gdb
 import six
 
-import gdb
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.events

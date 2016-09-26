@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 
 import gdb
+
 import pwndbg.commands
 import pwndbg.vmmap
 

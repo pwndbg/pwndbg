@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import argparse
 
 import gdb
+
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.proc

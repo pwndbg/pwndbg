@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 import string
 
 import gdb
+
 import pwndbg.events
 import pwndbg.memory
 import pwndbg.typeinfo

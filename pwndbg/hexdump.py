@@ -26,7 +26,7 @@ def groupby(array, count, fill=None):
         yield array[i:i+count]
 
 config_colorize_ascii = theme.Parameter('hexdump-colorize-ascii', True, 'whether to colorize the hexdump command ascii section')
-config_separator      = theme.Parameter('hexdump-ascii-block-separator', u'│', 'block separator char of the hexdump command')
+config_separator      = theme.Parameter('hexdump-ascii-block-separator', '│', 'block separator char of the hexdump command')
 
 @pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii])
 def load_color_scheme():

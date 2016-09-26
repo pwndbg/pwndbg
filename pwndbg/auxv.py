@@ -10,6 +10,7 @@ import re
 import sys
 
 import gdb
+
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.info

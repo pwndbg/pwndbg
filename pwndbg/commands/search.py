@@ -11,6 +11,7 @@ import os
 import struct
 
 import gdb
+
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config

@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 
 import gdb
+
 import pwndbg.memory
 import pwndbg.typeinfo
 

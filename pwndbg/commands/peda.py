@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import sys
 
 import gdb
+
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.context

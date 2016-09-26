@@ -10,6 +10,7 @@ import datetime
 import os
 
 import gdb
+
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.ida

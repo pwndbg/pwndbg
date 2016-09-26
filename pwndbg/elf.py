@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 
 import gdb
+
 import pwndbg.auxv
 import pwndbg.events
 import pwndbg.info
