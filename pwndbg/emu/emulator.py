@@ -3,16 +3,15 @@
 """
 Emulation assistance from Unicorn.
 """
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-from __future__ import division
-from __future__ import absolute_import
 
 import binascii
 import inspect
 
 import capstone as C
-import unicorn as U
 
 import gdb
 import pwndbg.arch
@@ -20,6 +19,7 @@ import pwndbg.disasm
 import pwndbg.emu.emulator
 import pwndbg.memory
 import pwndbg.regs
+import unicorn as U
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {

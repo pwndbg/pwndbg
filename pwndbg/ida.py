@@ -5,10 +5,10 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-from __future__ import division
-from __future__ import absolute_import
 
 import errno
 import functools

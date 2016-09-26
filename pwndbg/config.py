@@ -17,10 +17,10 @@ module, for example:
     >>> int(pwndbg.config.example_value)
     7
 """
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import division
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import collections
 import sys
