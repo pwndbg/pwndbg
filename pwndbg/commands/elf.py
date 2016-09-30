@@ -48,7 +48,6 @@ def plt():
     print_symbols_in_section('.plt', '@plt')
 
 def get_section_bounds(section_name):
-    section_name = section_name.encode('ascii')
     with open(pwndbg.proc.exe, 'rb') as f:
         elffile = ELFFile(f)
 
