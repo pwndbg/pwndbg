@@ -14,7 +14,7 @@ Vanilla GDB is terrible to use for reverse engineering and exploit development. 
 
 Pwndbg is a Python module which is loaded directly into GDB, and provides a suite of utilities and crutches to hack around all of the cruft that is GDB and smooth out the rough edges.
 
-Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and presesnt (e.g. [GEF][GEF]) exist to fill some these gaps.  Unfortunately, they're all either unmaintained, unmaintainable, or not well suited to easily navigating the code to hack in new features (respectively).
+Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and present (e.g. [GEF][GEF]) exist to fill some these gaps.  Unfortunately, they're all either unmaintained, unmaintainable, or not well suited to easily navigating the code to hack in new features (respectively).
 
 Pwndbg exists not only to replace all of its predecessors, but also to have a clean implementation that runs quickly and is resilient against all the weird corner cases that come up.
 
