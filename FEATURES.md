@@ -27,7 +27,7 @@ All absolute jumps are folded away, only displaying relevant instructions.
 
 ![](caps/disasm_taken_folded.png)  
 
-Additioanlly, if the current instruction is conditional, Pwndbg displays whether or not it is evaluated with a green check or a red X, and folds away instructions as necessary.
+Additionally, if the current instruction is conditional, Pwndbg displays whether or not it is evaluated with a green check or a red X, and folds away instructions as necessary.
 
 ![](caps/disasm_taken_after.png)  
 ![](caps/disasm_taken_before.png)  
@@ -35,7 +35,7 @@ Additioanlly, if the current instruction is conditional, Pwndbg displays whether
 
 ## Emulation
 
-Pwndbg leverages Unicorn Engine in order to only show instructions which will actually be emulated.  At each debugger stop (e.g. breakpoint or single-step) the next few instructions are silently emulated, and only instrucitons which will actually be executed are displayed.
+Pwndbg leverages Unicorn Engine in order to only show instructions which will actually be emulated.  At each debugger stop (e.g. breakpoint or single-step) the next few instructions are silently emulated, and only instructions which will actually be executed are displayed.
 
 This is incredibly useful when stepping through jump tables, PLT entries, and even while ROPping!
 
