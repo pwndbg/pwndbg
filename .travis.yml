@@ -18,9 +18,11 @@ install:
   - pip install -r requirements.txt
   - sudo ./setup.sh
 script:
+  - git status -sb
+  - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
+  - git diff-index --quiet HEAD --
+  - git status -sb
   - isort --check-only --diff --recursive pwndbg
   - nosetests ./tests/
   - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
   - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
-  - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
-  - git diff-index --quiet HEAD --
