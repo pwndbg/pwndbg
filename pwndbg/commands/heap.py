@@ -80,6 +80,8 @@ def heap(addr=None):
 
         # Clear the bottom 3 bits
         size &= ~7
+        if size == 0:
+            break
         addr += size
 
 @pwndbg.commands.ParsedCommand
