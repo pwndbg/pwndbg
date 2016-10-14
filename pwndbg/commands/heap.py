@@ -26,7 +26,9 @@ def value_from_type(type_name, addr):
 
 def get_main_arena(addr=None):
     if addr == None:
-        main_arena = gdb.lookup_symbol('main_arena')[0].value()
+        main_arena = gdb.lookup_symbol('main_arena')[0]
+        if main_arena is not None:
+            main_arena = main_arena.value()
     else:
         main_arena = value_from_type('struct malloc_state', addr)
 
