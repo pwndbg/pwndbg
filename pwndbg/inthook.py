@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import sys
 
 import gdb
+from future.utils import with_metaclass
 
 import pwndbg.typeinfo
 
@@ -28,8 +29,7 @@ class IsAnInt(type):
     def __instancecheck__(self, other):
         return isinstance(other, _int)
 
-class xint(builtins.int):
-    __metaclass__ = IsAnInt
+class xint(with_metaclass(IsAnInt, builtins.int)):
     def __new__(cls, value, *a, **kw):
         if isinstance(value, gdb.Value):
             if pwndbg.typeinfo.is_pointer(value):
@@ -44,4 +44,3 @@ globals()['int'] = xint
 if sys.version_info >= (3,0):
     builtins.long = xint
     globals()['long'] = xint
-
