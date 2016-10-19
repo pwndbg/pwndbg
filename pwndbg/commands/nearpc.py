@@ -28,10 +28,10 @@ def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
 
-nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', u'    ↓', 'branch marker line for nearpc command')
+nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', '    ↓', 'branch marker line for nearpc command')
 nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-marker-contiguous', ' ', 'contiguous branch marker line for nearpc command')
 pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
-pwndbg.color.theme.Parameter('nearpc-prefix', u'►', 'prefix marker for nearpc command')
+pwndbg.color.theme.Parameter('nearpc-prefix', '►', 'prefix marker for nearpc command')
 pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 
 @pwndbg.commands.ParsedCommand
