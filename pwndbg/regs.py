@@ -91,7 +91,7 @@ class RegisterSet(object):
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = set(i for i in misc) | set(flags) | set(self.common)
+        self.all = set(i for i in misc) | set(flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
 
     def __iter__(self):
@@ -240,7 +240,6 @@ arch_to_regs = {
     'sparc': sparc,
     'arm': arm,
     'aarch64': aarch64,
-    'powerpc': powerpc,
     'powerpc': powerpc,
 }
 
@@ -426,3 +425,5 @@ sys.modules[__name__] = module(__name__, '')
 def update_last():
     M = sys.modules[__name__]
     M.last = {k:M[k] for k in M.common}
+    if pwndbg.config.show_retaddr_reg:
+        M.last.update({k:M[k] for k in M.retaddr})

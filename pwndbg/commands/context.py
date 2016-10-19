@@ -71,11 +71,14 @@ def regs(*regs):
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
+pwndbg.config.Parameter('show-retaddr-reg', False, 'whether to show return address register')
 
 def get_regs(*regs):
     result = []
 
-    if not regs:
+    if not regs and pwndbg.config.show_retaddr_reg:
+        regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack) + pwndbg.regs.retaddr + (pwndbg.regs.current.pc,)
+    elif not regs:
         regs = pwndbg.regs.gpr + (pwndbg.regs.frame, pwndbg.regs.current.stack, pwndbg.regs.current.pc)
 
     if pwndbg.config.show_flags:
