@@ -29,7 +29,7 @@ def branch(x):
     return generateColorFunction(config.disasm_branch_color)(x)
 
 def instruction(ins):
-    asm = u'%-06s %s' % (ins.mnemonic, ins.op_str)
+    asm = '%-06s %s' % (ins.mnemonic, ins.op_str)
     is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
@@ -80,7 +80,7 @@ def instruction(ins):
     if ins.condition is None:
         asm = '  ' + asm
     elif ins.condition:
-        asm = green(u'✔ ') + asm
+        asm = green('✔ ') + asm
     else:
         asm = '  ' + asm
 

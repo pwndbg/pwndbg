@@ -26,9 +26,9 @@ import pwndbg.typeinfo
 telescope_lines = pwndbg.config.Parameter('telescope-lines',
                                          8,
                                          'number of lines to printed by the telescope command')
-offset_separator = theme.Parameter('telescope-offset-separator', u'│', 'offset separator of the telescope command')
+offset_separator = theme.Parameter('telescope-offset-separator', '│', 'offset separator of the telescope command')
 offset_delimiter = theme.Parameter('telescope-offset-delimiter', ':', 'offset delimiter of the telescope command')
-repeating_maker  = theme.Parameter('telescope-repeating-marker', u'... ↓', 'repeating values marker of the telescope command')
+repeating_maker  = theme.Parameter('telescope-repeating-marker', '... ↓', 'repeating values marker of the telescope command')
 
 
 @pwndbg.commands.ParsedCommand
