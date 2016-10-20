@@ -12,6 +12,7 @@ import struct
 
 import gdb
 
+import pwndbg.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
@@ -99,6 +100,7 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
     # Convert to an integer if needed, and pack to bytes
     if type not in ('string', 'bytes'):
         value = pwndbg.commands.fix_int(value)
+        value &= pwndbg.arch.ptrmask
         fmt = {
             'little': '<',
             'big': '>'
