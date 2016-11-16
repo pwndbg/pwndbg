@@ -29,6 +29,16 @@ import pwndbg.ui
 import pwndbg.vmmap
 
 
+def clear_screen():
+    """
+    Clear the screen by moving the cursor to top-left corner and
+    clear the content
+    """
+    sys.stdout.write('\x1b[H\x1b[J')
+
+config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
+
+
 # @pwndbg.events.stop
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -53,6 +63,9 @@ def context(*args):
     if 's' in args: result.extend(context_stack())
     if 'b' in args: result.extend(context_backtrace())
     result.extend(context_signal())
+
+    if config_clear_screen:
+        clear_screen()
 
     for line in result:
         sys.stdout.write(line + '\n')
