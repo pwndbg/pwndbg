@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import sys
 
 import gdb
-import six
 
 import pwndbg.android
 import pwndbg.arch
@@ -72,14 +71,6 @@ try:
     import pwndbg.emu
 except:
     pass
-
-# this is an unconventional workaround to
-# support unicode printing for python2
-# https://github.com/pwndbg/pwndbg/issues/117
-if six.PY2:
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
 
 __all__ = [
 'arch',
