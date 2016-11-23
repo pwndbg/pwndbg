@@ -41,3 +41,25 @@ def config():
 
     for v in sorted(values):
         print_row(v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value)
+
+@pwndbg.commands.Command
+def configfile():
+    """Generates a configuration file for the current Pwndbg options"""
+    configfile_print_scope('config')
+
+@pwndbg.commands.Command
+def themefile():
+    """Generates a configuration file for the current Pwndbg theme options"""
+    configfile_print_scope('theme')
+
+def configfile_print_scope(scope):
+    values = [v for k, v in pwndbg.config.__dict__.items()
+              if isinstance(v, pwndbg.config.Parameter) and v.scope == scope]
+    longest_optname = max(map(len, [v.optname for v in values]))
+    longest_value = max(map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values]))
+
+    for v in sorted(values):
+        print('# %s: %s' % (v.optname, v.docstring))
+        print('# default: %r' % v.default)
+        print('py pwndbg.config.%s=%r' % (v.name, v.value))
+        print()
