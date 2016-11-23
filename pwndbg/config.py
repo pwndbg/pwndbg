@@ -72,9 +72,9 @@ class Parameter(gdb.Parameter):
 
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
-        self.optname = name
-        self.name = name.replace('-','_')
-        self.default = default
+        self.optname   = name
+        self.name      = name.replace('-','_')
+        self.default   = default
         self.set_doc   = 'Set ' + docstring
         self.show_doc  = docstring + ':'
         super(Parameter, self).__init__(name,
