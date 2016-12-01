@@ -58,3 +58,6 @@ target/
 
 npm-debug.log
 .gdb_history
+
+# PyCharm project files
+.idea/
