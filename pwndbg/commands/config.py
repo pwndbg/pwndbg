@@ -10,8 +10,7 @@ from __future__ import unicode_literals
 
 import pwndbg.commands
 import pwndbg.config
-from pwndbg.color import ljust_colored
-from pwndbg.color import strip
+from pwndbg.color import ljust_colored, strip, light_yellow
 
 
 def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty_space=6):
@@ -22,10 +21,12 @@ def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty
     print(result)
     return result
 
+
 def extend_value_with_default(value, default):
     if strip(value) != strip(default):
         return '%s (%s)' % (value, default)
     return value
+
 
 @pwndbg.commands.Command
 def config():
@@ -42,15 +43,21 @@ def config():
     for v in sorted(values):
         print_row(v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value)
 
+    print(light_yellow('You can set config variable with `set <config-var> <value>`'))
+    print(light_yellow('You can generate configuration file using `configfile`'))
+
+
 @pwndbg.commands.Command
 def configfile():
     """Generates a configuration file for the current Pwndbg options"""
     configfile_print_scope('config')
 
+
 @pwndbg.commands.Command
 def themefile():
     """Generates a configuration file for the current Pwndbg theme options"""
     configfile_print_scope('theme')
+
 
 def configfile_print_scope(scope):
     values = [v for k, v in pwndbg.config.__dict__.items()

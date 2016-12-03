@@ -11,7 +11,7 @@ from __future__ import unicode_literals
 import pwndbg.color.theme
 import pwndbg.commands
 import pwndbg.config
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generateColorFunction, light_yellow
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import print_row
 
@@ -37,3 +37,6 @@ def theme():
             value = repr(v.value)
             default = repr(v.default)
         print_row(v.optname, value, default, v.docstring, longest_optname, longest_value)
+
+    print(light_yellow('You can set config variable with `set <config-var> <value>`'))
+    print(light_yellow('You can generate configuration file using `configfile`'))
