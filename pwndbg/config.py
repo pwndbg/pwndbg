@@ -85,6 +85,15 @@ class Parameter(gdb.Parameter):
         self.scope = scope
         setattr(module, self.name, self)
 
+    @property
+    def native_value(self):
+        """Translates Python value into native GDB syntax string."""
+        mapping = {
+            bool: lambda v: 'on' if v else 'off',
+        }
+
+        return mapping.get(type(self.value), str)(self.value)
+
     def get_set_string(self):
         for trigger in triggers[self.name]:
             trigger()

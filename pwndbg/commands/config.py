@@ -60,13 +60,19 @@ def themefile():
 
 
 def configfile_print_scope(scope):
-    values = [v for k, v in pwndbg.config.__dict__.items()
-              if isinstance(v, pwndbg.config.Parameter) and v.scope == scope]
-    longest_optname = max(map(len, [v.optname for v in values]))
-    longest_value = max(map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values]))
+    filter_cond = lambda v: \
+        isinstance(v, pwndbg.config.Parameter) and \
+        v.scope == scope and \
+        v.value != v.default
 
-    for v in sorted(values):
-        print('# %s: %s' % (v.optname, v.docstring))
-        print('# default: %r' % v.default)
-        print('py pwndbg.config.%s=%r' % (v.name, v.value))
-        print()
+    values = list(sorted(filter(filter_cond, pwndbg.config.__dict__.values())))
+
+    if values:
+        print(light_yellow('Showing only changed values:'))
+        for v in values:
+            print('# %s: %s' % (v.optname, v.docstring))
+            print('# default: %s' % v.default)
+            print('set %s = %s' % (v.optname, v.native_value))
+            print()
+    else:
+        print(light_yellow('No changed values. To see current values use `%s`.' % scope))
