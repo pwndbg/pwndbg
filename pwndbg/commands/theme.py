@@ -38,5 +38,6 @@ def theme():
             default = repr(v.default)
         print_row(v.optname, value, default, v.docstring, longest_optname, longest_value)
 
-    print(light_yellow('You can set config variable with `set <config-var> <value>`'))
-    print(light_yellow('You can generate configuration file using `configfile`'))
+    print(light_yellow('You can set theme variable with `set <theme-var> <value>`'))
+    print(light_yellow('You can generate theme config file using `themefile` '
+                       '- then put it in your .gdbinit after initializing pwndbg'))

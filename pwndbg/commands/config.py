@@ -44,7 +44,8 @@ def config():
         print_row(v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value)
 
     print(light_yellow('You can set config variable with `set <config-var> <value>`'))
-    print(light_yellow('You can generate configuration file using `configfile`'))
+    print(light_yellow('You can generate configuration file using `configfile` '
+                       '- then put it in your .gdbinit after initializing pwndbg'))
 
 
 @pwndbg.commands.Command
