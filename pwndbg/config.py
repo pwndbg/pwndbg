@@ -49,6 +49,7 @@ for type in six.string_types:
 
 triggers = collections.defaultdict(lambda: [])
 
+
 class Trigger(object):
     def __init__(self, names):
         if not isinstance(names, list):
@@ -64,19 +65,19 @@ class Trigger(object):
 
 
 def getParam(value):
-    for k,v in TYPES.items():
+    for k, v in TYPES.items():
         if isinstance(value, k):
             return v
 
-class Parameter(gdb.Parameter):
 
+class Parameter(gdb.Parameter):
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
-        self.optname   = name
-        self.name      = name.replace('-','_')
-        self.default   = default
-        self.set_doc   = 'Set ' + docstring
-        self.show_doc  = docstring + ':'
+        self.optname = name
+        self.name = name.replace('-', '_')
+        self.default = default
+        self.set_doc = 'Set ' + docstring
+        self.show_doc = docstring + ':'
         super(Parameter, self).__init__(name,
                                         gdb.COMMAND_SUPPORT,
                                         getParam(default))
@@ -90,24 +91,31 @@ class Parameter(gdb.Parameter):
         if isinstance(self.value, str):
             self.value = self.value.replace("'", '').replace('"', '')
         return 'Set %s to %r' % (self.docstring, self.value)
+
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)
+
     def __int__(self):
         return int(self.value)
+
     def __str__(self):
         return str(self.value)
+
     def __bool__(self):
         return bool(self.value)
+
     def __lt__(self, other):
         return self.optname <= other.optname
 
     # Python2 compatibility
     __nonzero__ = __bool__
 
+
 class ConfigModule(types.ModuleType):
     def __init__(self, name, module):
         super(ConfigModule, self).__init__(name)
         self.__dict__.update(module.__dict__)
+
     Parameter = Parameter
 
 
