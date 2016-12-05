@@ -142,7 +142,7 @@ def autofetch():
 
         gdb_command = ['add-symbol-file', local_path, hex(int(base))]
         for section in elf.iter_sections():
-            name = section.name.decode('latin-1')
+            name = section.name #.decode('latin-1')
             section = section.header
             if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
                 continue
