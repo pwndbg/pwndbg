@@ -14,8 +14,13 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 # Wait for any processing to get done
 idaapi.autoWait()
 
+# On Windows with NTFS filesystem a filepath with ':'
+# is treated as NTFS ADS (Alternative Data Stream)
+# and so saving file with such name fails
+dt = datetime.datetime.now().isoformat().replace(':', '-')
+
 # Save the database so nothing gets lost.
-idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
+idc.SaveBase(idc.GetIdbPath() + '.' + dt)
 
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
