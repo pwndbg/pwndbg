@@ -19,6 +19,23 @@ def value_from_type(type_name, addr):
     gdb_type = pwndbg.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
+def format_bin(bins, verbose=False):
+    result = []
+
+    for size in bins:
+        chain = bins[size]
+
+        if not verbose and chain == [0]:
+            continue
+
+        formatted_chain = pwndbg.chain.format(chain)
+        result.append((bold(size) + ': ').ljust(13) + formatted_chain)
+
+    if not result:
+        result.append(bold('empty'))
+
+    return result
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def heap(addr=None):
@@ -169,7 +186,7 @@ def fastbins(addr=None, verbose=True):
     if fastbins == None:
         return
 
-    formatted_bins = main_heap.format_bin(fastbins, verbose)
+    formatted_bins = format_bin(fastbins, verbose)
 
     print(underline(yellow('fastbins')))
     for node in formatted_bins:
@@ -188,7 +205,7 @@ def unsortedbin(addr=None, verbose=True):
     if unsortedbin == None:
         return
 
-    formatted_bins = main_heap.format_bin(unsortedbin, verbose)
+    formatted_bins = format_bin(unsortedbin, verbose)
 
     print(underline(yellow('unsortedbin')))
     for node in formatted_bins:
@@ -207,7 +224,7 @@ def smallbins(addr=None, verbose=False):
     if smallbins == None:
         return
 
-    formatted_bins = main_heap.format_bin(smallbins, verbose)
+    formatted_bins = format_bin(smallbins, verbose)
 
     print(underline(yellow('smallbins')))
     for node in formatted_bins:
@@ -226,7 +243,7 @@ def largebins(addr=None, verbose=False):
     if largebins == None:
         return
 
-    formatted_bins = main_heap.format_bin(largebins, verbose)
+    formatted_bins = format_bin(largebins, verbose)
 
     print(underline(yellow('largebins')))
     for node in formatted_bins:

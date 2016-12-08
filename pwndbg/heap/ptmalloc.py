@@ -237,21 +237,3 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             result[size] = chain
 
         return result
-
-
-    def format_bin(self, bins, verbose=False):
-        result = []
-
-        for size in bins:
-            chain = bins[size]
-
-            if not verbose and chain == [0]:
-                continue
-
-            formatted_chain = pwndbg.chain.format(chain)
-            result.append((bold(size) + ': ').ljust(13) + formatted_chain)
-
-        if not result:
-            result.append(bold('empty'))
-
-        return result
