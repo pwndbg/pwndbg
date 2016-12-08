@@ -146,12 +146,17 @@ def malloc_chunk(addr):
 
     chunk = value_from_type('struct malloc_chunk', addr)
     size = int(chunk['size'])
+    actual_size = size & ~7
+    fastbins = main_heap.fastbins()
 
     prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
 
     header = M.get(addr)
     if prev_inuse:
-        header += yellow(' PREV_INUSE')
+        if actual_size in fastbins:
+            header += yellow(' FASTBIN')
+        else:
+            header += yellow(' PREV_INUSE')
     if is_mmapped:
         header += yellow(' IS_MMAPED')
     if non_main_arena:

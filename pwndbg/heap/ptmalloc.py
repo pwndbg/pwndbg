@@ -11,9 +11,9 @@ import gdb
 
 import pwndbg.events
 import pwndbg.typeinfo
-from pwndbg.constants import ptmalloc
 from pwndbg.color import bold
 from pwndbg.color import red
+from pwndbg.constants import ptmalloc
 
 class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
@@ -225,8 +225,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def largebins(self, arena_addr=None):
         size         = ptmalloc.MIN_LARGE_SIZE - (pwndbg.arch.ptrsize * 2)
         spaces_table = self._spaces_table()
-
-        print(spaces_table)
 
         result = OrderedDict()
         for index in range(64, 127):
