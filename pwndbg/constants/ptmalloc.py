@@ -5,8 +5,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import gdb
 import platform
+
+import gdb
 
 # Heap flags
 PREV_INUSE      = 1
