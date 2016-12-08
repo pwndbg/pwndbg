@@ -28,11 +28,17 @@ class Heap(pwndbg.heap.heap.Heap):
 
     @property
     def main_arena(self):
+        from pwndbg.color import bold
+        from pwndbg.color import red
+
         if not self._main_arena:
             main_arena_symbol = gdb.lookup_symbol('main_arena')[0]
 
             if main_arena_symbol is not None:
                 self._main_arena = main_arena_symbol.value()
+            else:
+                print(bold(red('Symbol \'main arena\' not found. Try installing libc '
+                          'debugging symbols and try again.')))
 
         return self._main_arena
 
@@ -105,7 +111,12 @@ class Heap(pwndbg.heap.heap.Heap):
         return (None, None)
 
     def fastbins(self, arena_addr=None):
-        fastbinsY    = self.get_arena(arena_addr)['fastbinsY']
+        arena        = self.get_arena(arena_addr)
+
+        if arena == None:
+            return
+
+        fastbinsY    = arena['fastbinsY']
         fd_offset    = self.malloc_chunk.keys().index('fd') * SIZE_SZ
         num_fastbins = 7
         size         = SIZE_SZ * 2
@@ -133,6 +144,10 @@ class Heap(pwndbg.heap.heap.Heap):
         index = index - 1
 
         arena       = self.get_arena(arena_addr)
+
+        if arena == None:
+            return
+
         normal_bins = arena['bins']
         num_bins    = normal_bins.type.sizeof // normal_bins.type.target().sizeof
 
@@ -147,7 +162,12 @@ class Heap(pwndbg.heap.heap.Heap):
 
     def unsortedbin(self, arena_addr=None):
         result = OrderedDict()
-        result['all'] = self.bin_at(1, arena_addr=arena_addr)
+        chain = self.bin_at(1, arena_addr=arena_addr)
+
+        if chain == None:
+            return
+
+        result['all'] = chain
 
         return result
 
@@ -158,6 +178,9 @@ class Heap(pwndbg.heap.heap.Heap):
         for index in range(2, 64):
             size += SPACES_TABLE[SIZE_SZ][index]
             chain = self.bin_at(index, arena_addr=arena_addr)
+
+            if chain == None:
+                return
 
             result[size] = chain
 
@@ -170,6 +193,9 @@ class Heap(pwndbg.heap.heap.Heap):
         for index in range(64, 127):
             size += SPACES_TABLE[SIZE_SZ][index]
             chain = self.bin_at(index, arena_addr=arena_addr)
+
+            if chain == None:
+                return
 
             result[size] = chain
 

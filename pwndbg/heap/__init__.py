@@ -21,11 +21,10 @@ def update():
     if pwndbg.symbol.address('ptmalloc_init'):
         current_heap = pwndbg.heap.ptmalloc.Heap()
 
-    elif pwndbg.symbol.address('malloc_stats'):
-        current_heap = pwndbg.heap.dlmalloc.Heap()
-
     else:
-        current_heap = pwndbg.heap.heap.Heap()
+        # Default to ptmalloc heap for now until
+        # there are more implementations
+        current_heap = pwndbg.heap.ptmalloc.Heap()
 
 def get_heap():
     return current_heap

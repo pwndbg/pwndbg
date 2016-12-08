@@ -26,7 +26,7 @@ def heap(addr=None):
     Prints out all chunks in the main_arena, or the arena specified by `addr`.
     """
     main_heap   = pwndbg.heap.get_heap()
-    main_arena  = main_heap.get_arena()
+    main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
         return
@@ -166,6 +166,9 @@ def fastbins(addr=None, verbose=True):
     main_heap = pwndbg.heap.get_heap()
     fastbins  = main_heap.fastbins(addr)
 
+    if fastbins == None:
+        return
+
     formatted_bins = main_heap.format_bin(fastbins, verbose)
 
     print(underline(yellow('fastbins')))
@@ -181,6 +184,9 @@ def unsortedbin(addr=None, verbose=True):
     """
     main_heap   = pwndbg.heap.get_heap()
     unsortedbin = main_heap.unsortedbin(addr)
+
+    if unsortedbin == None:
+        return
 
     formatted_bins = main_heap.format_bin(unsortedbin, verbose)
 
@@ -198,6 +204,9 @@ def smallbins(addr=None, verbose=False):
     main_heap = pwndbg.heap.get_heap()
     smallbins = main_heap.smallbins(addr)
 
+    if smallbins == None:
+        return
+
     formatted_bins = main_heap.format_bin(smallbins, verbose)
 
     print(underline(yellow('smallbins')))
@@ -213,6 +222,9 @@ def largebins(addr=None, verbose=False):
     """
     main_heap = pwndbg.heap.get_heap()
     largebins = main_heap.largebins(addr)
+
+    if largebins == None:
+        return
 
     formatted_bins = main_heap.format_bin(largebins, verbose)
 
