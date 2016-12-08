@@ -11,11 +11,11 @@ import gdb
 
 import pwndbg.events
 import pwndbg.typeinfo
-from pwndbg.constants.ptmalloc import *
+from pwndbg.constants import ptmalloc
+from pwndbg.color import bold
+from pwndbg.color import red
 
-
-class Heap(pwndbg.heap.heap.Heap):
-
+class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
         self._main_arena    = None
@@ -27,21 +27,20 @@ class Heap(pwndbg.heap.heap.Heap):
         self._mallinfo      = None
         self._malloc_par    = None
 
+
     @property
     def main_arena(self):
-        from pwndbg.color import bold
-        from pwndbg.color import red
-
         if not self._main_arena:
-            main_arena_symbol = gdb.lookup_symbol('main_arena')[0]
+            main_arena_addr = pwndbg.symbol.address('main_arena')
 
-            if main_arena_symbol is not None:
-                self._main_arena = main_arena_symbol.value()
+            if main_arena_addr is not None:
+                self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
             else:
                 print(bold(red('Symbol \'main arena\' not found. Try installing libc '
                           'debugging symbols and try again.')))
 
         return self._main_arena
+
 
     @property
     def mp(self):
@@ -53,11 +52,13 @@ class Heap(pwndbg.heap.heap.Heap):
 
         return self._mp
 
+
     @property
     def malloc_chunk(self):
         if not self._malloc_chunk:
             self._malloc_chunk = pwndbg.typeinfo.load('struct malloc_chunk')
         return self._malloc_chunk
+
 
     @property
     def malloc_state(self):
@@ -65,11 +66,13 @@ class Heap(pwndbg.heap.heap.Heap):
             self._malloc_state = pwndbg.typeinfo.load('struct malloc_state')
         return self._malloc_state
 
+
     @property
     def mallinfo(self):
         if not self._mallinfo:
             self._mallinfo = pwndbg.typeinfo.load('struct mallinfo')
         return self._mallinfo
+
 
     @property
     def malloc_par(self):
@@ -77,14 +80,42 @@ class Heap(pwndbg.heap.heap.Heap):
             self._malloc_par = pwndbg.typeinfo.load('struct malloc_par')
         return self._malloc_par
 
+    def _spaces_table(self):
+        spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
+                      + [ pwndbg.arch.ptrsize * 8 ]      * 32 \
+                      + [ pwndbg.arch.ptrsize * 64 ]     * 16 \
+                      + [ pwndbg.arch.ptrsize * 512 ]    * 8  \
+                      + [ pwndbg.arch.ptrsize * 4096 ]   * 4  \
+                      + [ pwndbg.arch.ptrsize * 32768 ]  * 2  \
+                      + [ pwndbg.arch.ptrsize * 262144 ] * 1
+
+        # There is no index 0
+        spaces_table = [ None ] + spaces_table
+
+        # Fix up the slop in bin spacing ( part of libc - they made
+        # the trade off of some slop for speed
+        if pwndbg.arch.ptrsize == 8:
+            spaces_table[97] = 64
+            spaces_table[98] = 448
+
+        spaces_table[113] = 1536
+        spaces_table[121] = 24576
+        spaces_table[125] = 98304
+
+        return spaces_table
+
     def chunk_flags(self, size):
-        return ( size & PREV_INUSE, size & IS_MMAPPED, size & NON_MAIN_ARENA )
+        return ( size & ptmalloc.PREV_INUSE ,
+                 size & ptmalloc.IS_MMAPPED,
+                 size & ptmalloc.NON_MAIN_ARENA )
+
 
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
             return self.main_arena
 
-        return gdb.Value(arena_addr).cast(self.malloc_state.pointer()).dereference()
+        return pwndbg.memory.poi(self.malloc_state, arena_addr)
+
 
     def get_bounds(self):
         """
@@ -105,31 +136,33 @@ class Heap(pwndbg.heap.heap.Heap):
                 page = m
                 break
 
-        if page != None:
+        if page is not None:
             lower = lower or page.vaddr
             return (lower, page.vaddr + page.memsz)
 
         return (None, None)
 
+
     def fastbins(self, arena_addr=None):
         arena        = self.get_arena(arena_addr)
 
-        if arena == None:
+        if arena is None:
             return
 
         fastbinsY    = arena['fastbinsY']
-        fd_offset    = self.malloc_chunk.keys().index('fd') * SIZE_SZ
+        fd_offset    = self.malloc_chunk.keys().index('fd') * pwndbg.arch.ptrsize
         num_fastbins = 7
-        size         = SIZE_SZ * 2
+        size         = pwndbg.arch.ptrsize * 2
 
         result = OrderedDict()
         for i in range(num_fastbins):
-            size += SIZE_SZ * 2
+            size += pwndbg.arch.ptrsize * 2
             chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset)
 
             result[size] = chain
 
         return result
+
 
     def bin_at(self, index, arena_addr=None):
         """
@@ -141,71 +174,74 @@ class Heap(pwndbg.heap.heap.Heap):
         Bin 2 to 63    - Smallbins
         Bin 64 to 126  - Largebins
         """
-        assert( index > 0 and index < NBINS )
         index = index - 1
+        arena = self.get_arena(arena_addr)
 
-        arena       = self.get_arena(arena_addr)
-
-        if arena == None:
+        if arena is None:
             return
 
         normal_bins = arena['bins']
         num_bins    = normal_bins.type.sizeof // normal_bins.type.target().sizeof
 
-        bins_base    = int(normal_bins.address) - (SIZE_SZ * 2)
-        current_base = bins_base + (index * SIZE_SZ * 2)
+        bins_base    = int(normal_bins.address) - (pwndbg.arch.ptrsize* 2)
+        current_base = bins_base + (index * pwndbg.arch.ptrsize * 2)
 
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
-        fd_offset   = self.malloc_chunk.keys().index('fd') * SIZE_SZ
+        fd_offset   = self.malloc_chunk.keys().index('fd') * pwndbg.arch.ptrsize
 
         chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base)
         return chain
+
 
     def unsortedbin(self, arena_addr=None):
         result = OrderedDict()
         chain = self.bin_at(1, arena_addr=arena_addr)
 
-        if chain == None:
+        if chain is None:
             return
 
         result['all'] = chain
 
         return result
 
-    def smallbins(self, arena_addr=None):
-        size   = MIN_SMALL_SIZE - (SIZE_SZ * 2)
-        result = OrderedDict()
 
+    def smallbins(self, arena_addr=None):
+        size         = ptmalloc.MIN_SMALL_SIZE - (pwndbg.arch.ptrsize * 2)
+        spaces_table = self._spaces_table()
+
+        result = OrderedDict()
         for index in range(2, 64):
-            size += SPACES_TABLE[SIZE_SZ][index]
+            size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
 
-            if chain == None:
+            if chain is None:
                 return
 
             result[size] = chain
 
         return result
+
 
     def largebins(self, arena_addr=None):
-        size    = MIN_LARGE_SIZE - (SIZE_SZ * 2)
-        result  = OrderedDict()
+        size         = ptmalloc.MIN_LARGE_SIZE - (pwndbg.arch.ptrsize * 2)
+        spaces_table = self._spaces_table()
 
+        result = OrderedDict()
         for index in range(64, 127):
-            size += SPACES_TABLE[SIZE_SZ][index]
+            size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
 
-            if chain == None:
+            if chain is None:
                 return
 
             result[size] = chain
 
         return result
 
-    def format_bin(self, bins, verbose=False):
-        from pwndbg.color import bold
 
+    def format_bin(self, bins, verbose=False):
         result = []
+
         for size in bins:
             chain = bins[size]
 

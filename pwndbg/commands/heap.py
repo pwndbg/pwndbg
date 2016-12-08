@@ -25,7 +25,7 @@ def heap(addr=None):
     """
     Prints out all chunks in the main_arena, or the arena specified by `addr`.
     """
-    main_heap   = pwndbg.heap.get_heap()
+    main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
@@ -62,7 +62,7 @@ def arena(addr=None):
     """
     Prints out the main arena or the arena at the specified by address.
     """
-    main_heap   = pwndbg.heap.get_heap()
+    main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
@@ -76,7 +76,7 @@ def mp():
     """
     Prints out the mp_ structure from glibc
     """
-    main_heap   = pwndbg.heap.get_heap()
+    main_heap   = pwndbg.heap.current
 
     print(main_heap.mp)
 
@@ -87,7 +87,7 @@ def top_chunk(addr=None):
     Prints out the address of the top chunk of the main arena, or of the arena
     at the specified address.
     """
-    main_heap   = pwndbg.heap.get_heap()
+    main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
@@ -122,7 +122,7 @@ def malloc_chunk(addr):
     """
     Prints out the malloc_chunk at the specified address.
     """
-    main_heap = pwndbg.heap.get_heap()
+    main_heap = pwndbg.heap.current
 
     if not isinstance(addr, six.integer_types):
         addr = int(addr)
@@ -148,8 +148,8 @@ def malloc_chunk(addr):
 @pwndbg.commands.OnlyWhenRunning
 def bins(addr=None):
     """
-    Prints out the contents of the fastbins of the main arena or the arena
-    at the specified address.
+    Prints out the contents of the fastbins, unsortedbin, smallbins, and largebins from the
+    main_arena or the specified address.
     """
     fastbins(addr)
     unsortedbin(addr)
@@ -163,7 +163,7 @@ def fastbins(addr=None, verbose=True):
     Prints out the contents of the fastbins of the main arena or the arena
     at the specified address.
     """
-    main_heap = pwndbg.heap.get_heap()
+    main_heap = pwndbg.heap.current
     fastbins  = main_heap.fastbins(addr)
 
     if fastbins == None:
@@ -182,7 +182,7 @@ def unsortedbin(addr=None, verbose=True):
     Prints out the contents of the unsorted bin of the main arena or the
     arena at the specified address.
     """
-    main_heap   = pwndbg.heap.get_heap()
+    main_heap   = pwndbg.heap.current
     unsortedbin = main_heap.unsortedbin(addr)
 
     if unsortedbin == None:
@@ -201,7 +201,7 @@ def smallbins(addr=None, verbose=False):
     Prints out the contents of the small bin of the main arena or the arena
     at the specified address.
     """
-    main_heap = pwndbg.heap.get_heap()
+    main_heap = pwndbg.heap.current
     smallbins = main_heap.smallbins(addr)
 
     if smallbins == None:
@@ -220,7 +220,7 @@ def largebins(addr=None, verbose=False):
     Prints out the contents of the large bin of the main arena or the arena
     at the specified address.
     """
-    main_heap = pwndbg.heap.get_heap()
+    main_heap = pwndbg.heap.current
     largebins = main_heap.largebins(addr)
 
     if largebins == None:

@@ -8,23 +8,20 @@ from __future__ import unicode_literals
 import pwndbg.heap.heap
 import pwndbg.symbol
 
-current_heap = None
+current = None
 
 @pwndbg.events.new_objfile
 def update():
     import pwndbg.heap.dlmalloc
     import pwndbg.heap.ptmalloc
 
-    global current_heap
+    global current
 
 
     if pwndbg.symbol.address('ptmalloc_init'):
-        current_heap = pwndbg.heap.ptmalloc.Heap()
+        current = pwndbg.heap.ptmalloc.Heap()
 
     else:
         # Default to ptmalloc heap for now until
         # there are more implementations
-        current_heap = pwndbg.heap.ptmalloc.Heap()
-
-def get_heap():
-    return current_heap
+        current = pwndbg.heap.ptmalloc.Heap()

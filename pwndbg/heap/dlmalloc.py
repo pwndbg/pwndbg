@@ -10,7 +10,5 @@ import gdb
 import pwndbg.events
 import pwndbg.typeinfo
 
-class Heap(pwndbg.heap.heap.Heap):
-
-    def __init__(self):
-        pass
+class Heap(pwndbg.heap.heap.BaseHeap):
+    pass
