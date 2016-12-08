@@ -83,35 +83,6 @@ def mp():
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def bins(addr=None):
-    """
-    Prints out the contents of the fastbins of the main arena or the arena
-    at the specified address.
-    """
-    main_heap   = pwndbg.heap.get_heap()
-    main_arena  = main_heap.get_arena(addr)
-    if main_arena == None:
-        return
-
-    fastbins = main_arena['fastbinsY']
-    bins = main_arena['bins']
-
-    size_t_size = pwndbg.typeinfo.load('size_t').sizeof
-    num_fastbins = 7
-    num_bins = int(bins.type.sizeof / bins.type.target().sizeof)
-    fd_field_offset = 2 * size_t_size
-
-    print(underline(yellow('fastbins')))
-    size = 2 * size_t_size
-    for i in range(num_fastbins):
-        size += 2 * size_t_size
-        chain = pwndbg.chain.format(int(fastbins[i]), offset=fd_field_offset)
-        print((bold(size) + ': ').ljust(13) + chain)
-
-    # TODO: Print other bins
-
-@pwndbg.commands.ParsedCommand
-@pwndbg.commands.OnlyWhenRunning
 def top_chunk(addr=None):
     """
     Prints out the address of the top chunk of the main arena, or of the arena
