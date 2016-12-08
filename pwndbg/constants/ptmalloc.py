@@ -6,8 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
-
-import pwndbg.typeinfo
+import platform
 
 # Heap flags
 PREV_INUSE      = 1
@@ -15,8 +14,25 @@ IS_MMAPPED      = 2
 NON_MAIN_ARENA  = 4
 SIZE_BITS       = ( PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA )
 
+# Use this instead of pwndbg.typeinfo, typeinfo will fail is
+# glibc-dbg is not installed
+def get_arch():
+    maintenance = gdb.execute('maintenance info sections ?', to_string=True)
+    return maintenance.strip().split()[-1:]
+
+try:
+    _machine = get_arch()[0]
+except IndexError:
+    _machine = ""
+
+if "elf64" in _machine:
+    SIZE_SZ = 8
+elif "elf32" in _machine:
+    SIZE_SZ = 4
+else:
+    SIZE_SZ = 0
+
 # Constants taken from glibc mallo.c
-SIZE_SZ             = pwndbg.typeinfo.load('size_t').sizeof
 MIN_CHUNK_SIZE      = SIZE_SZ * 4
 MALLOC_ALLIGNMENT   = SIZE_SZ * 2
 

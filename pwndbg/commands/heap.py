@@ -32,7 +32,6 @@ def heap(addr=None):
         return
 
     heap_base = main_heap.get_bounds()[0]
-    print(heap_base)
     if heap_base == None:
         print(red('Could not find the heap'))
         return

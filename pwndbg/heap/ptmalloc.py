@@ -6,12 +6,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
+from collections import OrderedDict
 
 import pwndbg.events
 import pwndbg.typeinfo
-
-from collections import OrderedDict
 from pwndbg.constants.ptmalloc import *
+
 
 class Heap(pwndbg.heap.heap.Heap):
 
@@ -77,7 +77,7 @@ class Heap(pwndbg.heap.heap.Heap):
         if arena_addr is None:
             return self.main_arena
 
-        return gdb.Value(addr).cast(self.malloc_state.pointer()).dereference()
+        return gdb.Value(arena_addr).cast(self.malloc_state.pointer()).dereference()
 
     def get_bounds(self):
         """
