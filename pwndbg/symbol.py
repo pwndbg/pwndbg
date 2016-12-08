@@ -215,6 +215,13 @@ def address(symbol):
     except gdb.error:
         return None
 
+    try:
+        address = pwndbg.ida.LocByName(symbol)
+        if address:
+            return address
+    except Exception:
+        pass
+
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_start
 def add_main_exe_to_symbols():
