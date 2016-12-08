@@ -202,6 +202,13 @@ def address(symbol):
         pass
 
     try:
+        symbol_obj = gdb.lookup_symbol(symbol)[0]
+        if symbol_obj:
+            return int(symbol_obj)
+    except Exception:
+        pass
+
+    try:
         result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
         address = re.search('0x[0-9a-fA-F]+', result).group()
         return int(address, 0)

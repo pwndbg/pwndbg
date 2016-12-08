@@ -36,6 +36,11 @@ class xint(builtins.int):
                 value = value.cast(pwndbg.typeinfo.ulong)
             else:
                 value = value.cast(pwndbg.typeinfo.long)
+        if isinstance(value, gdb.Symbol):
+            symbol = value
+            value  = symbol.value()
+            if symbol.is_function:
+                value = value.cast(pwndbg.typeinfo.ulong)
         return _int(_int(value, *a, **kw))
 
 builtins.int = xint
