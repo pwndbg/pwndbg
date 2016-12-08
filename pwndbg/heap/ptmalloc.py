@@ -82,12 +82,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def _spaces_table(self):
         spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
-                      + [ pwndbg.arch.ptrsize * 8 ]      * 32 \
-                      + [ pwndbg.arch.ptrsize * 64 ]     * 16 \
-                      + [ pwndbg.arch.ptrsize * 512 ]    * 8  \
-                      + [ pwndbg.arch.ptrsize * 4096 ]   * 4  \
-                      + [ pwndbg.arch.ptrsize * 32768 ]  * 2  \
-                      + [ pwndbg.arch.ptrsize * 262144 ] * 1
+                      + [ pow(2, 6) ]                    * 32 \
+                      + [ pow(2, 9) ]                    * 16 \
+                      + [ pow(2, 12) ]                   * 8  \
+                      + [ pow(2, 15) ]                   * 4  \
+                      + [ pow(2, 18) ]                   * 2  \
+                      + [ pow(2, 21) ]                   * 1
 
         # There is no index 0
         spaces_table = [ None ] + spaces_table
@@ -225,6 +225,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def largebins(self, arena_addr=None):
         size         = ptmalloc.MIN_LARGE_SIZE - (pwndbg.arch.ptrsize * 2)
         spaces_table = self._spaces_table()
+
+        print(spaces_table)
 
         result = OrderedDict()
         for index in range(64, 127):
