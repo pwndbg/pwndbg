@@ -15,10 +15,6 @@ from pwndbg.color import red
 from pwndbg.color import underline
 from pwndbg.color import yellow
 
-PREV_INUSE = 1
-IS_MMAPED = 2
-NON_MAIN_ARENA = 4
-
 def value_from_type(type_name, addr):
     gdb_type = pwndbg.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
@@ -156,19 +152,20 @@ def malloc_chunk(addr):
     """
     Prints out the malloc_chunk at the specified address.
     """
+    main_heap = pwndbg.heap.get_heap()
+
     if not isinstance(addr, six.integer_types):
         addr = int(addr)
 
     chunk = value_from_type('struct malloc_chunk', addr)
     size = int(chunk['size'])
-    prev_inuse = (size & PREV_INUSE) == 1
-    is_mmaped = (size & IS_MMAPED) == 1
-    non_main_arena = (size & NON_MAIN_ARENA) == 1
+
+    prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
 
     header = M.get(addr)
     if prev_inuse:
         header += yellow(' PREV_INUSE')
-    if is_mmaped:
+    if is_mmapped:
         header += yellow(' IS_MMAPED')
     if non_main_arena:
         header += yellow(' NON_MAIN_ARENA')
@@ -176,3 +173,79 @@ def malloc_chunk(addr):
     print(chunk)
 
     return chunk
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def bins(addr=None):
+    """
+    Prints out the contents of the fastbins of the main arena or the arena
+    at the specified address.
+    """
+    fastbins(addr)
+    unsortedbin(addr)
+    smallbins(addr)
+    largebins(addr)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def fastbins(addr=None, verbose=True):
+    """
+    Prints out the contents of the fastbins of the main arena or the arena
+    at the specified address.
+    """
+    main_heap = pwndbg.heap.get_heap()
+    fastbins  = main_heap.fastbins(addr)
+
+    formatted_bins = main_heap.format_bin(fastbins, verbose)
+
+    print(underline(yellow('fastbins')))
+    for node in formatted_bins:
+        print(node)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def unsortedbin(addr=None, verbose=True):
+    """
+    Prints out the contents of the unsorted bin of the main arena or the
+    arena at the specified address.
+    """
+    main_heap   = pwndbg.heap.get_heap()
+    unsortedbin = main_heap.unsortedbin(addr)
+
+    formatted_bins = main_heap.format_bin(unsortedbin, verbose)
+
+    print(underline(yellow('unsortedbin')))
+    for node in formatted_bins:
+        print(node)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def smallbins(addr=None, verbose=False):
+    """
+    Prints out the contents of the small bin of the main arena or the arena
+    at the specified address.
+    """
+    main_heap = pwndbg.heap.get_heap()
+    smallbins = main_heap.smallbins(addr)
+
+    formatted_bins = main_heap.format_bin(smallbins, verbose)
+
+    print(underline(yellow('smallbins')))
+    for node in formatted_bins:
+        print(node)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def largebins(addr=None, verbose=False):
+    """
+    Prints out the contents of the large bin of the main arena or the arena
+    at the specified address.
+    """
+    main_heap = pwndbg.heap.get_heap()
+    largebins = main_heap.largebins(addr)
+
+    formatted_bins = main_heap.format_bin(largebins, verbose)
+
+    print(underline(yellow('largebins')))
+    for node in formatted_bins:
+        print(node)

@@ -18,7 +18,7 @@ import pwndbg.vmmap
 
 LIMIT = 5
 
-def get(address, limit=LIMIT, offset=0):
+def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
     """
     Recursively dereferences an address.
 
@@ -29,6 +29,10 @@ def get(address, limit=LIMIT, offset=0):
     for i in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
         if result.count(address) >= 2:
+            break
+
+        if hard_stop is not None and address == hard_stop:
+            result.append(hard_end)
             break
 
         result.append(address)
@@ -44,8 +48,14 @@ config_arrow_left  = theme.Parameter('chain-arrow-left', '◂—', 'left arrow o
 config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow of chain formatting')
 config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
 
-def format(value, limit=LIMIT, code=True, offset=0):
-    chain = get(value, limit, offset)
+def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
+
+    # Allow results from get function to be passed to format
+    if type(value) == list:
+        chain = value
+    else:
+        chain = get(value, limit, offset, hard_stop, hard_end)
+
     arrow_left  = C.arrow(' %s ' % config_arrow_left)
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 

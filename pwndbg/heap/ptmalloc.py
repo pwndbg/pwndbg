@@ -10,6 +10,9 @@ import gdb
 import pwndbg.events
 import pwndbg.typeinfo
 
+from collections import OrderedDict
+from pwndbg.constants.ptmalloc import *
+
 class Heap(pwndbg.heap.heap.Heap):
 
     def __init__(self):
@@ -67,6 +70,9 @@ class Heap(pwndbg.heap.heap.Heap):
             self._malloc_par = pwndbg.typeinfo.load('struct malloc_par')
         return self._malloc_par
 
+    def chunk_flags(self, size):
+        return ( size & PREV_INUSE, size & IS_MMAPPED, size & NON_MAIN_ARENA )
+
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
             return self.main_arena
@@ -97,3 +103,92 @@ class Heap(pwndbg.heap.heap.Heap):
             return (lower, page.vaddr + page.memsz)
 
         return (None, None)
+
+    def fastbins(self, arena_addr=None):
+        fastbinsY    = self.get_arena(arena_addr)['fastbinsY']
+        fd_offset    = self.malloc_chunk.keys().index('fd') * SIZE_SZ
+        num_fastbins = 7
+        size         = SIZE_SZ * 2
+
+        result = OrderedDict()
+        for i in range(num_fastbins):
+            size += SIZE_SZ * 2
+            chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset)
+
+            result[size] = chain
+
+        return result
+
+    def bin_at(self, index, arena_addr=None):
+        """
+        Modeled after glibc's bin_at function - so starts indexing from 1
+
+        bin_at(1) returns the unsorted bin
+
+        Bin 1          - Unsorted Bin
+        Bin 2 to 63    - Smallbins
+        Bin 64 to 126  - Largebins
+        """
+        assert( index > 0 and index < NBINS )
+        index = index - 1
+
+        arena       = self.get_arena(arena_addr)
+        normal_bins = arena['bins']
+        num_bins    = normal_bins.type.sizeof // normal_bins.type.target().sizeof
+
+        bins_base    = int(normal_bins.address) - (SIZE_SZ * 2)
+        current_base = bins_base + (index * SIZE_SZ * 2)
+
+        front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
+        fd_offset   = self.malloc_chunk.keys().index('fd') * SIZE_SZ
+
+        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base)
+        return chain
+
+    def unsortedbin(self, arena_addr=None):
+        result = OrderedDict()
+        result['all'] = self.bin_at(1, arena_addr=arena_addr)
+
+        return result
+
+    def smallbins(self, arena_addr=None):
+        size   = MIN_SMALL_SIZE - (SIZE_SZ * 2)
+        result = OrderedDict()
+
+        for index in range(2, 64):
+            size += SPACES_TABLE[SIZE_SZ][index]
+            chain = self.bin_at(index, arena_addr=arena_addr)
+
+            result[size] = chain
+
+        return result
+
+    def largebins(self, arena_addr=None):
+        size    = MIN_LARGE_SIZE - (SIZE_SZ * 2)
+        result  = OrderedDict()
+
+        for index in range(64, 127):
+            size += SPACES_TABLE[SIZE_SZ][index]
+            chain = self.bin_at(index, arena_addr=arena_addr)
+
+            result[size] = chain
+
+        return result
+
+    def format_bin(self, bins, verbose=False):
+        from pwndbg.color import bold
+
+        result = []
+        for size in bins:
+            chain = bins[size]
+
+            if not verbose and chain == [0]:
+                continue
+
+            formatted_chain = pwndbg.chain.format(chain)
+            result.append((bold(size) + ': ').ljust(13) + formatted_chain)
+
+        if not result:
+            result.append(bold('empty'))
+
+        return result
