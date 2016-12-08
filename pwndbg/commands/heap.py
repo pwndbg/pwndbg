@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -24,44 +23,20 @@ def value_from_type(type_name, addr):
     gdb_type = pwndbg.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
-def get_main_arena(addr=None):
-    if addr == None:
-        main_arena = gdb.lookup_symbol('main_arena')[0]
-        if main_arena is not None:
-            main_arena = main_arena.value()
-    else:
-        main_arena = value_from_type('struct malloc_state', addr)
-
-    if main_arena == None:
-        print(red('Symbol \'main_arena\' not found. Try installing libc ' \
-                  'debugging symbols or specifying the main arena address ' \
-                  'and try again'))
-
-    return main_arena
-
-def get_heap_bounds():
-    page = None
-    for m in pwndbg.vmmap.get():
-        if m.objfile == '[heap]':
-            page = m
-            break
-
-    if m != None:
-        return (m.vaddr, m.vaddr + m.memsz)
-    else:
-        return (None, None)
-
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def heap(addr=None):
     """
     Prints out all chunks in the main_arena, or the arena specified by `addr`.
     """
-    main_arena = get_main_arena(addr)
+    main_heap   = pwndbg.heap.get_heap()
+    main_arena  = main_heap.get_arena()
+
     if main_arena == None:
         return
 
-    heap_base = get_heap_bounds()[0]
+    heap_base = main_heap.get_bounds()[0]
+    print(heap_base)
     if heap_base == None:
         print(red('Could not find the heap'))
         return
@@ -92,11 +67,23 @@ def arena(addr=None):
     """
     Prints out the main arena or the arena at the specified by address.
     """
-    main_arena = get_main_arena(addr)
+    main_heap   = pwndbg.heap.get_heap()
+    main_arena  = main_heap.get_arena(addr)
+
     if main_arena == None:
         return
 
     print(main_arena)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def mp():
+    """
+    Prints out the mp_ structure from glibc
+    """
+    main_heap   = pwndbg.heap.get_heap()
+
+    print(main_heap.mp)
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -105,7 +92,8 @@ def bins(addr=None):
     Prints out the contents of the fastbins of the main arena or the arena
     at the specified address.
     """
-    main_arena = get_main_arena(addr)
+    main_heap   = pwndbg.heap.get_heap()
+    main_arena  = main_heap.get_arena(addr)
     if main_arena == None:
         return
 
@@ -133,9 +121,11 @@ def top_chunk(addr=None):
     Prints out the address of the top chunk of the main arena, or of the arena
     at the specified address.
     """
-    main_arena = get_main_arena(addr)
+    main_heap   = pwndbg.heap.get_heap()
+    main_arena  = main_heap.get_arena(addr)
+
     if main_arena == None:
-        heap_start, heap_end = get_heap_bounds()
+        heap_start, heap_end = main_heap.get_bounds()
         if heap_start == None:
             print(red('Could not find the heap'))
             return

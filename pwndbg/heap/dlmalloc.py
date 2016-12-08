@@ -10,12 +10,7 @@ import gdb
 import pwndbg.events
 import pwndbg.typeinfo
 
-malloc_chunk = None
-malloc_state = None
-mallinfo     = None
+class Heap(pwndbg.heap.heap.Heap):
 
-@pwndbg.events.new_objfile
-def update():
-  malloc_chunk = gdb.lookup_type('struct malloc_chunk')
-  malloc_state = gdb.lookup_type('struct malloc_state')
-  mallinfo = gdb.lookup_type('struct mallinfo')
+    def __init__(self):
+        pass
