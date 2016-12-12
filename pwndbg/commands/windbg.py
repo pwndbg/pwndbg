@@ -78,6 +78,7 @@ def dX(size, address, count, to_string=False):
     values = []
     address = int(address) & pwndbg.arch.ptrmask
     type   = get_type(size)
+    count = int(count)
     for i in range(count):
         try:
             gval = pwndbg.memory.poi(type, address + i * size)
