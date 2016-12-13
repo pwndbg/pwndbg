@@ -66,6 +66,10 @@ This allows extraction of comments, decompiled lines of source, breakpoints, and
 
 Since the complete IDA API is exposed, new tools can be built on this functionality to further enhance Pwndbg's usefulness.
 
+You can also connect to Ida Pro XMLRPC server hosted on different machine. In order to achieve it, you need to change:
+* Ida Pro XMLRPC server host (in [ida_script](ida_script.py); as by default it binds to localhost)
+* The config parameters responsible for connection (see `config` command)
+
 ## QEMU Compatibility
 
 Pwndbg is designed to work with minimally-implemented or otherwise debugger-hostile implementations of the GDB Serial Protocol.  One such implementation is that used by QEMU User-Mode Emulation (`qemu-user`) which is frequently used by CTF players to execute and debug cross-architecture binaries.
