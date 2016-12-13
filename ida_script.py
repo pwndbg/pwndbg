@@ -20,7 +20,8 @@ idc.SaveBase(idc.GetIdbPath() + '.' + datetime.datetime.now().isoformat())
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-port       = 8888
+host = '127.0.0.1'
+port = 8888
 orig_LineA = idc.LineA
 
 
@@ -64,7 +65,8 @@ def register_module(module):
         if hasattr(function, '__call__'):
             server.register_function(wrap(function), name)
 
-server = SimpleXMLRPCServer(('127.0.0.1', port), logRequests=True, allow_none=True)
+
+server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
 register_module(idc)
 register_module(idautils)
 register_module(idaapi)
