@@ -19,6 +19,7 @@ import gdb
 
 import pwndbg.arch
 import pwndbg.compat
+import pwndbg.config
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
@@ -30,6 +31,10 @@ try:
 except:
     import xmlrpclib
 
+
+ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
+ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 8888, 'ida xmlrpc server port')
+
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 if pwndbg.compat.python2:
@@ -40,9 +45,12 @@ _ida = None
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 
-def setPort(port):
+def init_ida_rpc_client():
     global _ida
-    _ida = xmlrpclib.ServerProxy('http://localhost:%s' % port)
+    addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
+
+    _ida = xmlrpclib.ServerProxy(addr)
+
     try:
         _ida.here()
     except socket.error as e:
@@ -58,7 +66,7 @@ class withIDA(object):
 
     def __call__(self, *args, **kwargs):
         if _ida is None:
-            setPort(8888)
+            init_ida_rpc_client()
         if _ida is not None:
             return self.fn(*args, **kwargs)
         return None
