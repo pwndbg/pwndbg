@@ -280,6 +280,22 @@ def bp(where):
     if result is not None:
         gdb.execute('break *%#x' % int(result))
 
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def ba(kind='r', where=None):
+    '''Break on memory access to address'''
+    commands = {'r': 'awatch',
+                'w': 'watch'}
+    if len(kind) > 1:
+        kind = kind[0]
+
+    command = commands.get(kind, None)
+    if not command:
+        print("Type of access breakpoint not recognized: %s" % kind)
+        return
+
+    gdb.execute('%s *%#x' % (command, int(where, 16)))
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def u(where=None, n=5):
