@@ -46,6 +46,7 @@ xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></
 _ida = None
 
 
+@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port])
 def init_ida_rpc_client():
     global _ida
     addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
