@@ -11,7 +11,8 @@ from __future__ import unicode_literals
 import pwndbg.color.theme
 import pwndbg.commands
 import pwndbg.config
-from pwndbg.color import generateColorFunction, light_yellow
+from pwndbg.color import generateColorFunction
+from pwndbg.color import light_yellow
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import print_row
 

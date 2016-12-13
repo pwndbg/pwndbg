@@ -10,7 +10,9 @@ from __future__ import unicode_literals
 
 import pwndbg.commands
 import pwndbg.config
-from pwndbg.color import ljust_colored, strip, light_yellow
+from pwndbg.color import light_yellow
+from pwndbg.color import ljust_colored
+from pwndbg.color import strip
 
 
 def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty_space=6):

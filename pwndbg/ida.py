@@ -17,8 +17,8 @@ import traceback
 
 import gdb
 
-import pwndbg.color
 import pwndbg.arch
+import pwndbg.color
 import pwndbg.compat
 import pwndbg.config
 import pwndbg.elf
