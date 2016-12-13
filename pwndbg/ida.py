@@ -17,6 +17,7 @@ import traceback
 
 import gdb
 
+import pwndbg.color
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.config
@@ -40,9 +41,9 @@ xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></valu
 if pwndbg.compat.python2:
     xmlrpclib.Marshaller.dispatch[long] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-_ida = None
-
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+
+_ida = None
 
 
 def init_ida_rpc_client():
@@ -53,6 +54,7 @@ def init_ida_rpc_client():
 
     try:
         _ida.here()
+        print(pwndbg.color.green("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
     except socket.error as e:
         if e.errno != errno.ECONNREFUSED:
             traceback.print_exc()
