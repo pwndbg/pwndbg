@@ -73,6 +73,8 @@ register_module(idaapi)
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
 server.register_introspection_functions()
 
+print('Ida Pro xmlrpc hosted on http://%s:%s' % (host, port))
+
 thread = threading.Thread(target=server.serve_forever)
 thread.daemon = True
 thread.start()
