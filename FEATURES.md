@@ -70,6 +70,20 @@ You can also connect to Ida Pro XMLRPC server hosted on different machine. In or
 * Ida Pro XMLRPC server host (in [ida_script](ida_script.py); as by default it binds to localhost)
 * The config parameters responsible for connection (see `config` command)
 
+## Configuration, customization
+
+There are two commands to set various options:
+
+* `theme` - to set particular output color/style 
+![](caps/theme.png)
+
+* `config` - to set parameters like whether to emulate code near current instruction, ida rpc connection info, hexdump bytes/width (and more)
+![](caps/config.png)
+
+Of course you can generate and put it in `.gdbinit` after pwndbg initialization to keep it persistent between pwngdb sessions.
+
+This can be seen and achieved by `configfile`/`themefile` commands.
+
 ## QEMU Compatibility
 
 Pwndbg is designed to work with minimally-implemented or otherwise debugger-hostile implementations of the GDB Serial Protocol.  One such implementation is that used by QEMU User-Mode Emulation (`qemu-user`) which is frequently used by CTF players to execute and debug cross-architecture binaries.
