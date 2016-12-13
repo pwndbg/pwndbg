@@ -48,7 +48,12 @@ This is incredibly useful when stepping through jump tables, PLT entries, and ev
 Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of introspection functions.
 
 ![](caps/heap_arena.png)  
+![](caps/heap_mp.png)  
 ![](caps/heap_bins.png)  
+![](caps/heap_fastbins.png)  
+![](caps/heap_unsortedbin.png)  
+![](caps/heap_smallbins.png)  
+![](caps/heap_largebins.png)  
 ![](caps/heap_heap.png)  
 ![](caps/heap_heap2.png)  
 ![](caps/heap_mallocchunk.png)  

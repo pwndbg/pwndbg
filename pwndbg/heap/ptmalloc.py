@@ -30,25 +30,23 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     def main_arena(self):
-        if not self._main_arena:
-            main_arena_addr = pwndbg.symbol.address('main_arena')
+        main_arena_addr = pwndbg.symbol.address('main_arena')
 
-            if main_arena_addr is not None:
-                self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
-            else:
-                print(bold(red('Symbol \'main arena\' not found. Try installing libc '
-                          'debugging symbols and try again.')))
+        if main_arena_addr is not None:
+            self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
+        else:
+            print(bold(red('Symbol \'main arena\' not found. Try installing libc '
+                           'debugging symbols and try again.')))
 
         return self._main_arena
 
 
     @property
     def mp(self):
-        if not self._mp:
-            mp_symbol = gdb.lookup_symbol('mp_')[0]
+        mp_addr = pwndbg.symbol.address('mp_')
 
-            if mp_symbol is not None:
-                self._mp = mp_symbol.value()
+        if mp_addr is not None:
+            self._mp = pwndbg.memory.poi(self.malloc_par, mp_addr)
 
         return self._mp
 
@@ -92,8 +90,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         # There is no index 0
         spaces_table = [ None ] + spaces_table
 
-        # Fix up the slop in bin spacing ( part of libc - they made
-        # the trade off of some slop for speed
+        # Fix up the slop in bin spacing (part of libc - they made
+        # the trade off of some slop for speed)
+        # https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
         if pwndbg.arch.ptrsize == 8:
             spaces_table[97] = 64
             spaces_table[98] = 448
@@ -108,6 +107,15 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return ( size & ptmalloc.PREV_INUSE ,
                  size & ptmalloc.IS_MMAPPED,
                  size & ptmalloc.NON_MAIN_ARENA )
+
+
+    def chunk_key_offset(self, key):
+        chunk_keys = self.malloc_chunk.keys()
+
+        try:
+            return chunk_keys.index(key) * pwndbg.arch.ptrsize
+        except:
+            return None
 
 
     def get_arena(self, arena_addr=None):
@@ -150,7 +158,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             return
 
         fastbinsY    = arena['fastbinsY']
-        fd_offset    = self.malloc_chunk.keys().index('fd') * pwndbg.arch.ptrsize
+        fd_offset    = self.chunk_key_offset('fd')
         num_fastbins = 7
         size         = pwndbg.arch.ptrsize * 2
 
@@ -167,10 +175,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def bin_at(self, index, arena_addr=None):
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
+        https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1394
 
         bin_at(1) returns the unsorted bin
 
-        Bin 1          - Unsorted Bin
+        Bin 1          - Unsorted BiN
         Bin 2 to 63    - Smallbins
         Bin 64 to 126  - Largebins
         """
@@ -187,15 +196,15 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         current_base = bins_base + (index * pwndbg.arch.ptrsize * 2)
 
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
-        fd_offset   = self.malloc_chunk.keys().index('fd') * pwndbg.arch.ptrsize
+        fd_offset   = self.chunk_key_offset('fd')
 
         chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base)
         return chain
 
 
     def unsortedbin(self, arena_addr=None):
+        chain  = self.bin_at(1, arena_addr=arena_addr)
         result = OrderedDict()
-        chain = self.bin_at(1, arena_addr=arena_addr)
 
         if chain is None:
             return

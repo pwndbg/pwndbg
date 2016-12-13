@@ -20,15 +20,21 @@ def value_from_type(type_name, addr):
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
 def format_bin(bins, verbose=False):
-    result = []
+    main_heap = pwndbg.heap.current
+    fd_offset = main_heap.chunk_key_offset('fd')
 
+    result = []
     for size in bins:
         chain = bins[size]
 
         if not verbose and chain == [0]:
             continue
 
-        formatted_chain = pwndbg.chain.format(chain)
+        formatted_chain = pwndbg.chain.format(chain, offset=fd_offset)
+
+        if isinstance(size, int):
+            size = hex(size)
+
         result.append((bold(size) + ': ').ljust(13) + formatted_chain)
 
     if not result:
@@ -161,8 +167,7 @@ def malloc_chunk(addr):
         header += yellow(' IS_MMAPED')
     if non_main_arena:
         header += yellow(' NON_MAIN_ARENA')
-    print(header)
-    print(chunk)
+    print(header, chunk)
 
     return chunk
 

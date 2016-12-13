@@ -22,9 +22,17 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
     """
     Recursively dereferences an address.
 
+    Args:
+        address: the first address to begin dereferencing
+        limit: number of valid pointers
+        offset: offset into the address to get the next pointer
+        hard_stop: pointer value to stop on
+        hard_end: value to append when hard_stop is reached
+
     Returns:
-        A list containing ``address``, followed by up to ``limit`` valid pointers.
+        A list representing pointers of each ```address``` and reference
     """
+
     result = []
     for i in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
@@ -49,6 +57,20 @@ config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow
 config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
 
 def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
+    """
+    Recursively dereferences an address.
+
+    Args:
+        value: either the starting address to be sent to get, or the result of get (a list)
+        limit: number of valid pointers
+        offset: offset into the address to get the next pointer
+        hard_stop: pointer value to stop on
+        hard_end: value to append when hard_stop is reached
+
+    Returns:
+        A string representing pointers of each address and reference
+        Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
+    """
 
     # Allow results from get function to be passed to format
     if type(value) == list:
@@ -66,9 +88,10 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
         enhanced = pwndbg.enhance.enhance(chain[-1], code=code)
 
     # Otherwise, the last element in the chain is the non-pointer value.
-    # We want to enhance the last pointer value.
+    # We want to enhance the last pointer value. If an offset was used
+    # chain failed at that offset, so display that offset.
     elif len(chain) < limit:
-        enhanced = pwndbg.enhance.enhance(chain[-2], code=code)
+        enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code)
 
     else:
         enhanced = C.contiguous('%s' % config_contiguous)
