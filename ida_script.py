@@ -3,14 +3,13 @@
 from __future__ import print_function
 
 import datetime
-import functools
 import threading
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import idaapi
 import idautils
 import idc
+import xmlrpclib
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 # Wait for any processing to get done
 idaapi.autoWait()
@@ -24,21 +23,27 @@ xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></
 port       = 8888
 orig_LineA = idc.LineA
 
-def LineA(*a,**kw):
-    v = orig_LineA(*a,**kw)
+
+def LineA(*a, **kw):
+    v = orig_LineA(*a, **kw)
     if v and v.startswith('\x01\x04; '):
         v = v[4:]
     return v
+
 
 idc.LineA = LineA
 
 mutex = threading.Condition()
 
+
 def wrap(f):
     def wrapper(*a, **kw):
         try:
             rv = []
-            def work(): rv.append(f(*a,**kw))
+
+            def work():
+                rv.append(f(*a, **kw))
+
             with mutex:
                 flags = idaapi.MFF_WRITE
                 if f == idc.SetColor:
@@ -50,7 +55,9 @@ def wrap(f):
             import traceback
             traceback.print_exc()
             raise
+
     return wrapper
+
 
 def register_module(module):
     for name, function in module.__dict__.items():
