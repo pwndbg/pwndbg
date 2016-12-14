@@ -76,6 +76,15 @@ def get_params(scope):
     return sorted(filter(lambda p: isinstance(p, Parameter) and p.scope == scope, module_attributes))
 
 
+def value_to_gdb_native(value):
+    """Translates Python value into native GDB syntax string."""
+    mapping = {
+        bool: lambda value: 'on' if value else 'off',
+    }
+
+    return mapping.get(type(value), str)(value)
+
+
 class Parameter(gdb.Parameter):
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
@@ -93,12 +102,11 @@ class Parameter(gdb.Parameter):
 
     @property
     def native_value(self):
-        """Translates Python value into native GDB syntax string."""
-        mapping = {
-            bool: lambda v: 'on' if v else 'off',
-        }
+        return value_to_gdb_native(self.value)
 
-        return mapping.get(type(self.value), str)(self.value)
+    @property
+    def native_default(self):
+        return value_to_gdb_native(self.default)
 
     @property
     def is_changed(self):

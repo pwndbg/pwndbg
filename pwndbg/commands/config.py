@@ -69,10 +69,10 @@ def configfile_print_scope(scope):
 
     if params:
         print(light_yellow('Showing only changed values:'))
-        for v in params:
-            print('# %s: %s' % (v.optname, v.docstring))
-            print('# default: %s' % v.default)
-            print('set %s = %s' % (v.optname, v.native_value))
+        for p in params:
+            print('# %s: %s' % (p.optname, p.docstring))
+            print('# default: %s' % p.native_default)
+            print('set %s = %s' % (p.optname, p.native_value))
             print()
     else:
         print(light_yellow('No changed values. To see current values use `%s`.' % scope))
