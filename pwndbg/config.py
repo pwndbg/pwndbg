@@ -29,6 +29,7 @@ import types
 import gdb
 import six
 
+
 TYPES = collections.OrderedDict()
 
 # The value is a plain boolean.
@@ -64,7 +65,7 @@ class Trigger(object):
         return function
 
 
-def getParam(value):
+def get_param(value):
     for k, v in TYPES.items():
         if isinstance(value, k):
             return v
@@ -85,7 +86,7 @@ class Parameter(gdb.Parameter):
         self.show_doc = docstring + ':'
         super(Parameter, self).__init__(name,
                                         gdb.COMMAND_SUPPORT,
-                                        getParam(default))
+                                        get_param(default))
         self.value = default
         self.scope = scope
         setattr(module, self.name, self)
