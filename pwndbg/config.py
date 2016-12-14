@@ -70,6 +70,11 @@ def getParam(value):
             return v
 
 
+def get_params(scope):
+    module_attributes = globals()['module'].__dict__.values()
+    return sorted(filter(lambda p: isinstance(p, Parameter) and p.scope == scope, module_attributes))
+
+
 class Parameter(gdb.Parameter):
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
@@ -93,6 +98,10 @@ class Parameter(gdb.Parameter):
         }
 
         return mapping.get(type(self.value), str)(self.value)
+
+    @property
+    def is_changed(self):
+        return self.value != self.default
 
     def get_set_string(self):
         for trigger in triggers[self.name]:

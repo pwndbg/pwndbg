@@ -63,16 +63,13 @@ def themefile():
 
 
 def configfile_print_scope(scope):
-    filter_cond = lambda v: \
-        isinstance(v, pwndbg.config.Parameter) and \
-        v.scope == scope and \
-        v.value != v.default
+    params = pwndbg.config.get_params(scope)
 
-    values = list(sorted(filter(filter_cond, pwndbg.config.__dict__.values())))
+    params = list(filter(lambda p: p.is_changed, params))
 
-    if values:
+    if params:
         print(light_yellow('Showing only changed values:'))
-        for v in values:
+        for v in params:
             print('# %s: %s' % (v.optname, v.docstring))
             print('# default: %s' % v.default)
             print('set %s = %s' % (v.optname, v.native_value))
