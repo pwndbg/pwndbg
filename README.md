@@ -34,6 +34,10 @@ cd pwndbg
 
 If you use any other Linux distribution, we recommend using the latest available GDB built from source.  Be sure to pass `--with-python=/path/to/python` to `configure`.
 
+## What can I do with that?
+
+For further info about features/functionalities, see [FEATURES](FEATURES.md).
+
 ## Who?
 
 Most of Pwndbg was written by [Zach Riggle](https://twitter.com/ebeip90), with [many other contributors](https://github.com/pwndbg/pwndbg/graphs/contributors) offering up patches via Pull Requests.
