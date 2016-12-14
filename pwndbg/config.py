@@ -78,11 +78,13 @@ def get_params(scope):
 
 def value_to_gdb_native(value):
     """Translates Python value into native GDB syntax string."""
-    mapping = {
-        bool: lambda value: 'on' if value else 'off',
-    }
+    mapping = collections.OrderedDict()
+    mapping[bool] = lambda value: 'on' if value else 'off'
 
-    return mapping.get(type(value), str)(value)
+    for k, v in mapping.items():
+        if isinstance(value, k):
+            return v(value)
+    return value
 
 
 class Parameter(gdb.Parameter):
