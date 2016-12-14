@@ -52,6 +52,7 @@ if pwndbg.ida.available():
 
         j()
 
+
     @pwndbg.commands.Command
     @pwndbg.commands.OnlyWhenRunning
     def down(n=1):
@@ -70,6 +71,7 @@ if pwndbg.ida.available():
         print('\n'.join(bt))
 
         j()
+
 
 @pwndbg.commands.Command
 def save_ida():
@@ -95,7 +97,7 @@ def save_ida():
     basename += ext
 
     # Windows doesn't like colons in paths
-    basename = basename.replace(':','_')
+    basename = basename.replace(':', '_')
 
     full_path = os.path.join(backups, basename)
 
@@ -110,20 +112,23 @@ def save_ida():
     # Remove old version
     os.unlink(full_path)
 
+
 class ida(gdb.Function):
     """Evaluate ida.LocByName() on the supplied value.
     """
+
     def __init__(self):
         super(ida, self).__init__('ida')
+
     def invoke(self, name):
-        name   = name.string()
+        name = name.string()
         result = pwndbg.ida.LocByName(name)
 
-        if 0xffffe000 <= result <= 0xffffffff \
-        or 0xffffffffffffe000 <= result <= 0xffffffffffffffff:
+        if 0xffffe000 <= result <= 0xffffffff or 0xffffffffffffe000 <= result <= 0xffffffffffffffff:
             raise ValueError("ida.LocByName(%r) == BADADDR" % name)
 
         return result
+
 
 ida()
 save_ida()
