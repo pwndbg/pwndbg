@@ -22,11 +22,11 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
     """
     Recursively dereferences an address.
 
-    Args:
-        address: the first address to begin dereferencing
-        limit: number of valid pointers
-        offset: offset into the address to get the next pointer
-        hard_stop: pointer value to stop on
+    Arguments:
+        address(int): the first address to begin dereferencing
+        limit(int): number of valid pointers
+        offset(int): offset into the address to get the next pointer
+        hard_stop(int): address to stop at
         hard_end: value to append when hard_stop is reached
 
     Returns:
@@ -58,14 +58,16 @@ config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguo
 
 def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
     """
-    Recursively dereferences an address.
+    Recursively dereferences an address into string representation, or convert the list representation
+    of address dereferences into string representation.
 
-    Args:
-        value: either the starting address to be sent to get, or the result of get (a list)
-        limit: number of valid pointers
-        offset: offset into the address to get the next pointer
-        hard_stop: pointer value to stop on
-        hard_end: value to append when hard_stop is reached
+    Arguments:
+        value(int|list): Either the starting address to be sent to get, or the result of get (a list)
+        limit(int): Number of valid pointers
+        code(bool): Hint that indicates the value may be an instruction
+        offset(int): Offset into the address to get the next pointer
+        hard_stop(int): Value to stop on
+        hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
 
     Returns:
         A string representing pointers of each address and reference
