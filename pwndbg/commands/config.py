@@ -51,24 +51,26 @@ def config():
 
 
 @pwndbg.commands.Command
-def configfile():
+def configfile(show_all=False):
     """Generates a configuration file for the current Pwndbg options"""
-    configfile_print_scope('config')
+    configfile_print_scope('config', show_all)
 
 
 @pwndbg.commands.Command
-def themefile():
+def themefile(show_all=False):
     """Generates a configuration file for the current Pwndbg theme options"""
-    configfile_print_scope('theme')
+    configfile_print_scope('theme', show_all)
 
 
-def configfile_print_scope(scope):
+def configfile_print_scope(scope, show_all=False):
     params = pwndbg.config.get_params(scope)
 
-    params = list(filter(lambda p: p.is_changed, params))
+    if not show_all:
+        params = list(filter(lambda p: p.is_changed, params))
 
     if params:
-        print(light_yellow('Showing only changed values:'))
+        if not show_all:
+            print(light_yellow('Showing only changed values:'))
         for p in params:
             print('# %s: %s' % (p.optname, p.docstring))
             print('# default: %s' % p.native_default)
