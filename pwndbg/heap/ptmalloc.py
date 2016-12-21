@@ -15,17 +15,12 @@ from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.constants import ptmalloc
 
+
 class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
         self._main_arena    = None
         self._mp            = None
-
-        # Symbols and types
-        self._malloc_chunk  = None
-        self._malloc_state  = None
-        self._mallinfo      = None
-        self._malloc_par    = None
 
 
     @property
@@ -52,31 +47,40 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     @property
+    @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
-        if not self._malloc_chunk:
-            self._malloc_chunk = pwndbg.typeinfo.load('struct malloc_chunk')
-        return self._malloc_chunk
+        return pwndbg.typeinfo.load('struct malloc_chunk')
 
 
     @property
+    @pwndbg.memoize.reset_on_objfile
     def malloc_state(self):
-        if not self._malloc_state:
-            self._malloc_state = pwndbg.typeinfo.load('struct malloc_state')
-        return self._malloc_state
+        return pwndbg.typeinfo.load('struct malloc_state')
 
 
     @property
+    @pwndbg.memoize.reset_on_objfile
     def mallinfo(self):
-        if not self._mallinfo:
-            self._mallinfo = pwndbg.typeinfo.load('struct mallinfo')
-        return self._mallinfo
+        return pwndbg.typeinfo.load('struct mallinfo')
 
 
     @property
+    @pwndbg.memoize.reset_on_objfile
     def malloc_par(self):
-        if not self._malloc_par:
-            self._malloc_par = pwndbg.typeinfo.load('struct malloc_par')
-        return self._malloc_par
+        return pwndbg.typeinfo.load('struct malloc_par')
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def malloc_alignment(self):
+        return pwndbg.arch.ptrsize * 2
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def min_chunk_size(self):
+        return pwndbg.arch.ptrsize * 4
+
 
     def _spaces_table(self):
         spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
@@ -215,7 +219,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def smallbins(self, arena_addr=None):
-        size         = ptmalloc.MIN_SMALL_SIZE - (pwndbg.arch.ptrsize * 2)
+        size         = self.min_chunk_size - self.malloc_alignment
         spaces_table = self._spaces_table()
 
         result = OrderedDict()
@@ -232,7 +236,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def largebins(self, arena_addr=None):
-        size         = ptmalloc.MIN_LARGE_SIZE - (pwndbg.arch.ptrsize * 2)
+        size         = (ptmalloc.NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
         spaces_table = self._spaces_table()
 
         result = OrderedDict()
