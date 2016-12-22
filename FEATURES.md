@@ -51,7 +51,7 @@ Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of
 ![](caps/heap_mp.png)  
 ![](caps/heap_bins.png)  
 ![](caps/heap_fastbins.png)  
-![](caps/heap_unsortedbin.png)  
+![](caps/heap_unsorted.png)  
 ![](caps/heap_smallbins.png)  
 ![](caps/heap_largebins.png)  
 ![](caps/heap_heap.png)  
