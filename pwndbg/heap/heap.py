@@ -9,7 +9,7 @@ import pwndbg.events
 import pwndbg.symbol
 
 
-class Heap(object):
+class BaseHeap(object):
     """Heap abstraction layer."""
 
     def breakpoint(event):

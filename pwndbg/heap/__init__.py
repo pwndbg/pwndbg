@@ -5,19 +5,23 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pwndbg.heap.dlmalloc
 import pwndbg.heap.heap
-import pwndbg.heap.ptmalloc
+import pwndbg.symbol
 
-current = pwndbg.heap.heap.Heap()
+current = None
 
 @pwndbg.events.new_objfile
 def update():
+    import pwndbg.heap.dlmalloc
+    import pwndbg.heap.ptmalloc
+
     global current
 
 
-    if pwndbg.symbol.get('ptmalloc_init'):
-      current = pwndbg.heap.ptmalloc.Heap()
+    if pwndbg.symbol.address('ptmalloc_init'):
+        current = pwndbg.heap.ptmalloc.Heap()
 
-    elif pwndbg.symbol.get('malloc_stats'):
-      current = pwndbg.heap.dlmalloc.Heap()
+    else:
+        # Default to ptmalloc heap for now until
+        # there are more implementations
+        current = pwndbg.heap.ptmalloc.Heap()
