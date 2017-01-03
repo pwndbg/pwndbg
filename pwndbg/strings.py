@@ -31,7 +31,13 @@ def update_length():
     message = gdb.execute('show print elements', from_tty=False, to_string=True)
     message = message.split()[-1]
     message = message.strip('.')
-    length  = int(message)
+    try:
+        length  = int(message)
+    except ValueError:
+        if message == 'unlimited:
+            length = 0
+        else:
+            raise
 
 def get(address, maxlen = None):
     if maxlen is None:
@@ -46,7 +52,7 @@ def get(address, maxlen = None):
     except Exception as e:
         return None
 
-    if len(sz) < maxlen:
+    if len(sz) < maxlen or not maxlen:
         return sz
 
     return sz[:maxlen] + '...'
