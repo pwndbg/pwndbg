@@ -34,7 +34,7 @@ def update_length():
     try:
         length  = int(message)
     except ValueError:
-        if message == 'unlimited:
+        if message == 'unlimited':
             length = 0
         else:
             raise
