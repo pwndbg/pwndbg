@@ -133,3 +133,11 @@ handle SIGSEGV stop   print nopass
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
+
+# This may throw an exception, see pwndbg/pwndbg#27
+try:
+    gdb.execute("set disassembly-flavor intel")
+except gdb.error:
+    pass
+
+
