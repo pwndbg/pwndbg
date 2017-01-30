@@ -46,6 +46,7 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
         result.append(address)
         try:
             address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address + offset))
+            address &= pwndbg.arch.ptrmask
         except gdb.MemoryError:
             break
 
