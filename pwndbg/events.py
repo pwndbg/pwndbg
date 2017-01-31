@@ -32,6 +32,10 @@ pause = 0
 #
 # We also get an Objfile event when we load up GDB, so we need
 # to detect when the binary is running or not.
+#
+# Additionally, when attaching to a process running under QEMU, the
+# very first event which is fired is a 'stop' event.  We need to
+# capture this so that we can fire off all of the 'start' events first.
 class StartEvent(object):
     def __init__(self):
         self.registered = list()
@@ -49,10 +53,15 @@ class StartEvent(object):
         self.running = True
 
         for function in self.registered:
+            if debug:
+                sys.stdout.write('%r %s.%s\n' % ('start', function.__module__, function.__name__))
             function()
 
     def on_exited(self):
         self.running = False
+
+    def on_stop(self):
+        self.on_new_objfile()
 
 gdb.events.start = StartEvent()
 
@@ -164,8 +173,12 @@ def _start_newobjfile():
     gdb.events.start.on_new_objfile()
 
 @exit
-def _start_stop():
+def _start_exit():
     gdb.events.start.on_exited()
+
+@stop
+def _start_stop():
+    gdb.events.start.on_stop()
 
 @exit
 def _reset_objfiles():
