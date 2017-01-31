@@ -29,13 +29,16 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
+
+import pwndbg.arch
+import pwndbg.ctypes
+import pwndbg.events
 
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16
@@ -257,9 +260,7 @@ class constants:
     AT_L2_CACHESHAPE        = 36
     AT_L3_CACHESHAPE        = 37
 
-
-
-class Elf32_Ehdr(ctypes.Structure):
+class Elf32_Ehdr(pwndbg.ctypes.Structure):
     _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
                 ("e_type", Elf32_Half),
                 ("e_machine", Elf32_Half),
@@ -275,7 +276,7 @@ class Elf32_Ehdr(ctypes.Structure):
                 ("e_shnum", Elf32_Half),
                 ("e_shstrndx", Elf32_Half),]
 
-class Elf64_Ehdr(ctypes.Structure):
+class Elf64_Ehdr(pwndbg.ctypes.Structure):
     _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
                 ("e_type", Elf64_Half),
                 ("e_machine", Elf64_Half),
@@ -291,7 +292,7 @@ class Elf64_Ehdr(ctypes.Structure):
                 ("e_shnum", Elf64_Half),
                 ("e_shstrndx", Elf64_Half),]
 
-class Elf32_Phdr(ctypes.Structure):
+class Elf32_Phdr(pwndbg.ctypes.Structure):
     _fields_ = [("p_type", Elf32_Word),
                 ("p_offset", Elf32_Off),
                 ("p_vaddr", Elf32_Addr),
@@ -301,7 +302,7 @@ class Elf32_Phdr(ctypes.Structure):
                 ("p_flags", Elf32_Word),
                 ("p_align", Elf32_Word),]
 
-class Elf64_Phdr(ctypes.Structure):
+class Elf64_Phdr(pwndbg.ctypes.Structure):
     _fields_ = [("p_type", Elf64_Word),
                 ("p_flags", Elf64_Word),
                 ("p_offset", Elf64_Off),
@@ -311,7 +312,7 @@ class Elf64_Phdr(ctypes.Structure):
                 ("p_memsz", Elf64_Xword),
                 ("p_align", Elf64_Xword),]
 
-class Elf32_Shdr(ctypes.Structure):
+class Elf32_Shdr(pwndbg.ctypes.Structure):
     _fields_ = [("sh_name", Elf32_Word),
                 ("sh_type", Elf32_Word),
                 ("sh_flags", Elf32_Word),
@@ -323,7 +324,7 @@ class Elf32_Shdr(ctypes.Structure):
                 ("sh_addralign", Elf32_Word),
                 ("sh_entsize", Elf32_Word),]
 
-class Elf64_Shdr(ctypes.Structure):
+class Elf64_Shdr(pwndbg.ctypes.Structure):
     _fields_ = [("sh_name", Elf64_Word),
                 ("sh_type", Elf64_Word),
                 ("sh_flags", Elf64_Xword),
@@ -335,25 +336,25 @@ class Elf64_Shdr(ctypes.Structure):
                 ("sh_addralign", Elf64_Xword),
                 ("sh_entsize", Elf64_Xword),]
 
-class _U__Elf32_Dyn(ctypes.Union):
+class _U__Elf32_Dyn(pwndbg.ctypes.Union):
     _fields_ = [("d_val", Elf32_Sword),
                 ("d_ptr", Elf32_Addr),]
 
-class Elf32_Dyn(ctypes.Structure):
+class Elf32_Dyn(pwndbg.ctypes.Structure):
     _anonymous_ = ("d_un",)
     _fields_ = [("d_tag", Elf32_Sword),
                 ("d_un", _U__Elf32_Dyn),]
 
-class _U__Elf64_Dyn(ctypes.Union):
+class _U__Elf64_Dyn(pwndbg.ctypes.Union):
     _fields_ = [("d_val", Elf64_Xword),
                 ("d_ptr", Elf64_Addr),]
 
-class Elf64_Dyn(ctypes.Structure):
+class Elf64_Dyn(pwndbg.ctypes.Structure):
     _anonymous_ = ("d_un",)
     _fields_ = [("d_tag", Elf64_Sxword),
                 ("d_un", _U__Elf64_Dyn),]
 
-class Elf32_Sym(ctypes.Structure):
+class Elf32_Sym(pwndbg.ctypes.Structure):
     _fields_ = [("st_name", Elf32_Word),
                 ("st_value", Elf32_Addr),
                 ("st_size", Elf32_Word),
@@ -361,7 +362,7 @@ class Elf32_Sym(ctypes.Structure):
                 ("st_other", ctypes.c_ubyte),
                 ("st_shndx", Elf32_Half),]
 
-class Elf64_Sym(ctypes.Structure):
+class Elf64_Sym(pwndbg.ctypes.Structure):
     _fields_ = [("st_name", Elf64_Word),
                 ("st_info", ctypes.c_ubyte),
                 ("st_other", ctypes.c_ubyte),
@@ -369,14 +370,14 @@ class Elf64_Sym(ctypes.Structure):
                 ("st_value", Elf64_Addr),
                 ("st_size", Elf64_Xword),]
 
-class Elf32_Link_Map(ctypes.Structure):
+class Elf32_Link_Map(pwndbg.ctypes.Structure):
     _fields_ = [("l_addr", Elf32_Addr),
                 ("l_name", Elf32_Addr),
                 ("l_ld", Elf32_Addr),
                 ("l_next", Elf32_Addr),
                 ("l_prev", Elf32_Addr),]
 
-class Elf64_Link_Map(ctypes.Structure):
+class Elf64_Link_Map(pwndbg.ctypes.Structure):
     _fields_ = [("l_addr", Elf64_Addr),
                 ("l_name", Elf64_Addr),
                 ("l_ld",   Elf64_Addr),
@@ -400,7 +401,7 @@ class Elf64_Link_Map(ctypes.Structure):
 char = ctypes.c_char
 byte = ctypes.c_byte
 
-class Elf_eident(ctypes.Structure):
+class Elf_eident(pwndbg.ctypes.Structure):
     _fields_ = [('EI_MAG',char*4),
                 ('EI_CLASS',byte),
                 ('EI_DATA',byte),
@@ -409,33 +410,34 @@ class Elf_eident(ctypes.Structure):
                 ('EI_ABIVERSION',byte),
                 ('EI_PAD', byte*(16-9))]
 
-class Elf_i386_GOT(ctypes.Structure):
+class Elf_i386_GOT(pwndbg.ctypes.Structure):
     _fields_ = [("jmp", Elf32_Addr),
                 ("linkmap", Elf32_Addr),
                 ("dl_runtime_resolve", Elf32_Addr)]
-class Elf_x86_64_GOT(ctypes.Structure):
+
+class Elf_x86_64_GOT(pwndbg.ctypes.Structure):
     _fields_ = [("jmp", Elf64_Addr),
                 ("linkmap", Elf64_Addr),
                 ("dl_runtime_resolve", Elf64_Addr)]
 
-class Elf_HashTable(ctypes.Structure):
+class Elf_HashTable(pwndbg.ctypes.Structure):
     _fields_ = [('nbucket', Elf32_Word),
                 ('nchain', Elf32_Word),]
               # ('bucket', nbucket * Elf32_Word),
               # ('chain',  nchain * Elf32_Word)]
 
 # Docs: http://dyncall.org/svn/dyncall/tags/r0.4/dyncall/dynload/dynload_syms_elf.c
-class GNU_HASH(ctypes.Structure):
+class GNU_HASH(pwndbg.ctypes.Structure):
     _fields_ = [('nbuckets',  Elf32_Word),
                 ('symndx',    Elf32_Word),
                 ('maskwords', Elf32_Word),
                 ('shift2',    Elf32_Word)]
 
-class Elf32_r_debug(ctypes.Structure):
+class Elf32_r_debug(pwndbg.ctypes.Structure):
     _fields_ = [('r_version', Elf32_Word),
                 ('r_map', Elf32_Addr)]
 
-class Elf64_r_debug(ctypes.Structure):
+class Elf64_r_debug(pwndbg.ctypes.Structure):
     _fields_ = [('r_version', Elf32_Word),
                 ('r_map', Elf64_Addr)]
 
@@ -444,16 +446,16 @@ constants.STN_UNDEF   = 0
 
 pid_t = ctypes.c_uint32
 
-class elf_siginfo(ctypes.Structure):
+class elf_siginfo(pwndbg.ctypes.Structure):
     _fields_ = [('si_signo', ctypes.c_int32),
                 ('si_code', ctypes.c_int32),
                 ('si_errno', ctypes.c_int32)]
 
-class timeval32(ctypes.Structure):
+class timeval32(pwndbg.ctypes.Structure):
     _fields_ = [('tv_sec', ctypes.c_int32),
                 ('tv_usec', ctypes.c_int32),]
 
-class timeval64(ctypes.Structure):
+class timeval64(pwndbg.ctypes.Structure):
     _fields_ = [('tv_sec', ctypes.c_int64),
                 ('tv_usec', ctypes.c_int64),]
 
@@ -479,7 +481,7 @@ def generate_prstatus_common(size, regtype):
             ]
 
 # See i386-linux-gnu/sys/user.h
-class user_regs_struct_i386(ctypes.Structure):
+class user_regs_struct_i386(pwndbg.ctypes.Structure):
     _fields_ = [(name, ctypes.c_uint32) for name in [
                 'ebx',
                 'ecx',
@@ -500,12 +502,10 @@ class user_regs_struct_i386(ctypes.Structure):
                 'xss',
                 ]]
 
-
-assert ctypes.sizeof(user_regs_struct_i386) == 0x44
-
+assert ctypes.sizeof(user_regs_struct_i386) == 0x44, ctypes.sizeof(user_regs_struct_i386)
 
 # See i386-linux-gnu/sys/user.h
-class user_regs_struct_amd64(ctypes.Structure):
+class user_regs_struct_amd64(pwndbg.ctypes.Structure):
     _fields_ = [(name, ctypes.c_uint64) for name in [
                 'r15',
                 'r14',
@@ -538,19 +538,19 @@ class user_regs_struct_amd64(ctypes.Structure):
 
 assert ctypes.sizeof(user_regs_struct_amd64) == 0xd8
 
-class elf_prstatus_i386(ctypes.Structure):
+class elf_prstatus_i386(pwndbg.ctypes.Structure):
     _fields_ = generate_prstatus_common(32, user_regs_struct_i386)
 
 assert ctypes.sizeof(elf_prstatus_i386) == 0x90
 
-class elf_prstatus_amd64(ctypes.Structure):
+class elf_prstatus_amd64(pwndbg.ctypes.Structure):
     _fields_ = generate_prstatus_common(64, user_regs_struct_amd64)
 
 assert ctypes.sizeof(elf_prstatus_amd64) == 0x150
 
-class Elf32_auxv_t(ctypes.Structure):
+class Elf32_auxv_t(pwndbg.ctypes.Structure):
     _fields_ = [('a_type', ctypes.c_uint32),
                 ('a_val', ctypes.c_uint32),]
-class Elf64_auxv_t(ctypes.Structure):
+class Elf64_auxv_t(pwndbg.ctypes.Structure):
     _fields_ = [('a_type', ctypes.c_uint64),
                 ('a_val', ctypes.c_uint64),]

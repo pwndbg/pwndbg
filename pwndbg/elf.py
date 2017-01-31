@@ -40,7 +40,7 @@ def read(typ, address, blob=None):
     else:
         data = blob[address:address+size]
 
-    obj  = typ.from_buffer_copy(data)
+    obj = typ.from_buffer_copy(data)
     obj.address = address
     obj.type = typ
     return obj

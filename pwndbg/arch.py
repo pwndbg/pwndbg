@@ -23,6 +23,7 @@ ptrmask = 0xfffffffff
 endian  = 'little'
 ptrsize = pwndbg.typeinfo.ptrsize
 fmt     = '=I'
+native_endian = str(sys.byteorder)
 
 def fix_arch(arch):
     arches = ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'arm', 'aarch64', arch]
