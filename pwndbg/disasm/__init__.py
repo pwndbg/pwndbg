@@ -31,20 +31,25 @@ except:
 disassembler = None
 last_arch    = None
 
-
 CapstoneArch = {
-    ('arm', 'little'):     Cs(CS_ARCH_ARM, CS_MODE_ARM),
-    ('aarch64', 'little'): Cs(CS_ARCH_ARM64, CS_MODE_ARM),
-    ('i386', 'little'):    Cs(CS_ARCH_X86, CS_MODE_32),
-    ('x86-64', 'little'):  Cs(CS_ARCH_X86, CS_MODE_64),
-    ('powerpc', 'little'): Cs(CS_ARCH_PPC, CS_MODE_32),
-    ('mips', 'little'):    Cs(CS_ARCH_MIPS, CS_MODE_32),
-    ('mips', 'big'):       Cs(CS_ARCH_MIPS, CS_MODE_32 | CS_MODE_BIG_ENDIAN),
-    ('sparc', 'little'):   Cs(CS_ARCH_SPARC, 0),
+    'arm': CS_ARCH_ARM,
+    'aarch64': CS_ARCH_ARM64,
+    'i386': CS_ARCH_X86,
+    'x86-64': CS_ARCH_X86,
+    'powerpc': CS_ARCH_PPC,
+    'mips': CS_ARCH_MIPS,
+    'sparc': CS_ARCH_SPARC,
 }
 
-for cs in CapstoneArch.values():
-    cs.detail = True
+CapstoneEndian = {
+    'little': CS_MODE_LITTLE_ENDIAN,
+    'big': CS_MODE_BIG_ENDIAN,
+}
+
+CapstoneMode = {
+    4: CS_MODE_32,
+    8: CS_MODE_64
+}
 
 # For variable-instruction-width architectures
 # (x86 and amd64), we keep a cache of instruction
@@ -54,21 +59,31 @@ for cs in CapstoneArch.values():
 VariableInstructionSizeMax = {
     'i386':   16,
     'x86-64': 16,
+    'mips':   8,
 }
 
 backward_cache = collections.defaultdict(lambda: 0)
 
+@pwndbg.memoize.reset_on_objfile
+def get_disassembler_cached(arch, ptrsize, endian, extra=0):
+    arch = CapstoneArch[arch]
+    mode = CapstoneMode[ptrsize]
+    mode |= CapstoneEndian[endian]
+    mode |= extra
+    cs = Cs(arch, mode)
+    cs.detail = True
+    return cs
+
 def get_disassembler(pc):
-    arch = pwndbg.arch.current
-    endian = pwndbg.arch.endian
-    d    = CapstoneArch[(arch, endian)]
+    extra = 0
 
-    if arch in ('arm', 'aarch64'):
-        d.mode = {0:CS_MODE_ARM,0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
-    else:
-        d.mode = {4:CS_MODE_32, 8:CS_MODE_64}[pwndbg.arch.ptrsize]
+    if pwndbg.arch.current in ('arm', 'aarch64'):
+        extra = {0:CS_MODE_ARM,0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
 
-    return d
+    return get_disassembler_cached(pwndbg.arch.current,
+                                   pwndbg.arch.ptrsize,
+                                   pwndbg.arch.endian,
+                                   extra)
 
 @pwndbg.memoize.reset_on_cont
 def get_one_instruction(address):
