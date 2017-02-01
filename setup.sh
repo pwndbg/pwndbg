@@ -18,12 +18,6 @@ PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.pyth
 PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 PYTHON="${PYTHON}${PYVER}"
 
-# Find the Python site-packages that we need to use so that
-# GDB can find the files once we've installed them.
-SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
-PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.prefix)')
-EXEC_PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.exec_prefix)')
-
 # Install Python dependencies
 sudo ${PYTHON} -m pip install -Ur requirements.txt
 
