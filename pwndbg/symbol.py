@@ -23,6 +23,7 @@ import elftools.elf.segments
 import gdb
 import six
 
+import pwndbg.arch
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.file
@@ -245,7 +246,7 @@ def add_main_exe_to_symbols():
         return
 
     path = mmap.objfile
-    if path:
+    if path and (pwndbg.arch.endian == pwndbg.arch.native_endian):
         try:
             gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)
         except gdb.error:
