@@ -106,12 +106,11 @@ class Emulator(object):
             raise NotImplementedError("Cannot emulate code for %s" % self.arch)
 
         self.consts = arch_to_UC_consts[self.arch]
-        self.mode = self.get_mode()
-        self.cs = C.Cs(arch_to_CS[self.arch], self.mode)
 
+        self.uc_mode = self.get_uc_mode()
         debug("# Instantiating Unicorn for %s" % self.arch)
-        debug("uc = U.Uc(%r, %r)" % (arch_to_UC[self.arch], self.mode))
-        self.uc = U.Uc(arch_to_UC[self.arch], self.mode)
+        debug("uc = U.Uc(%r, %r)" % (arch_to_UC[self.arch], self.uc_mode))
+        self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
         self.regs = pwndbg.regs.current
 
         # Jump tracking state
@@ -129,7 +128,7 @@ class Emulator(object):
 
             if reg in blacklisted_regs:
                 debug("Skipping blacklisted register %r" % reg)
-                continue 
+                continue
             value = getattr(pwndbg.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
@@ -171,19 +170,24 @@ class Emulator(object):
             pc = pwndbg.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
 
-    def get_mode(self):
+    def get_uc_mode(self):
         """
-        Retrieve the mode used by Capstone and Unicorn for the current
-        architecture.
-
-        This relies on the enums being the same.
+        Retrieve the mode used by Unicorn for the current architecture.
         """
         arch = pwndbg.arch.current
+        mode = 0
 
         if arch in ('arm', 'aarch64'):
-            return {0:C.CS_MODE_ARM,0x20:C.CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
+            mode |= {0:U.UC_MODE_ARM,0x20:U.UC_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
         else:
-            return {4:C.CS_MODE_32, 8:C.CS_MODE_64}[pwndbg.arch.ptrsize]
+            mode |= {4:U.UC_MODE_32, 8:U.UC_MODE_64}[pwndbg.arch.ptrsize]
+
+        if pwndbg.arch.endian == 'little':
+            mode |= U.UC_MODE_LITTLE_ENDIAN
+        else:
+            mode |= U.UC_MODE_BIG_ENDIAN
+
+        return mode
 
     def map_page(self, page):
         page = pwndbg.memory.page_align(page)
