@@ -171,6 +171,10 @@ def near(address, instructions=1, emulate=False):
 
     insns.append(current)
 
+    # Some architecture aren't emulated yet
+    if pwndbg.arch.current not in pwndbg.emu.emulator.arch_to_UC:
+        emulate = False
+
     # Emulate forward if we are at the current instruction.
     emu = None
 
