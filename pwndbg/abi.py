@@ -42,6 +42,8 @@ class ABI(object):
         (32, 'arm', 'linux'):   linux_arm,
         (32, 'thumb', 'linux'):   linux_arm,
         (32, 'mips', 'linux'):   linux_mips,
+        (32, 'powerpc', 'linux'): linux_ppc,
+        (64, 'powerpc', 'linux'): linux_ppc64,
         }[(8*pwndbg.arch.ptrsize, pwndbg.arch.current, 'linux')]
 
     @staticmethod
@@ -53,6 +55,8 @@ class ABI(object):
         (32, 'arm', 'linux'):   linux_arm_syscall,
         (32, 'thumb', 'linux'):   linux_arm_syscall,
         (32, 'mips', 'linux'):   linux_mips_syscall,
+        (32, 'powerpc', 'linux'): linux_ppc_syscall,
+        (64, 'powerpc', 'linux'): linux_ppc64_syscall,
         }[(8*pwndbg.arch.ptrsize, pwndbg.arch.current, 'linux')]
 
     @staticmethod
@@ -88,12 +92,16 @@ linux_amd64  = ABI(['rdi','rsi','rdx','rcx','r8','r9'], 8, 0)
 linux_arm    = ABI(['r0', 'r1', 'r2', 'r3'], 8, 0)
 linux_aarch64 = ABI(['x0', 'x1', 'x2', 'x3'], 16, 0)
 linux_mips  = ABI(['$a0','$a1','$a2','$a3'], 4, 0)
+linux_ppc = ABI(['r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'], 4, 0)
+linux_ppc64 = ABI(['r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'], 8, 0)
 
 linux_i386_syscall = SyscallABI(['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp'], 4, 0)
 linux_amd64_syscall = SyscallABI(['rax','rdi', 'rsi', 'rdx', 'r10', 'r8', 'r9'],   8, 0)
 linux_arm_syscall   = SyscallABI(['r7', 'r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6'], 4, 0)
 linux_aarch64_syscall   = SyscallABI(['x8', 'x0', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6'], 16, 0)
 linux_mips_syscall  = SyscallABI(['$v0', '$a0','$a1','$a2','$a3'], 4, 0)
+linux_ppc_syscall = ABI(['r0', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9'], 4, 0)
+linux_ppc64_syscall = ABI(['r0', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9'], 8, 0)
 
 linux_i386_sigreturn = SigreturnABI(['eax'], 4, 0)
 linux_amd64_sigreturn = SigreturnABI(['rax'], 4, 0)
