@@ -29,7 +29,6 @@ import types
 import gdb
 import six
 
-
 TYPES = collections.OrderedDict()
 
 # The value is a plain boolean.

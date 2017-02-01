@@ -15,6 +15,7 @@ from pwndbg.color import red
 from pwndbg.color import underline
 from pwndbg.color import yellow
 
+
 def value_from_type(type_name, addr):
     gdb_type = pwndbg.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()

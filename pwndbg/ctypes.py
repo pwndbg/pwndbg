@@ -13,40 +13,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import ctypes._endian
-import six
 import struct
+
+import six
 
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.memory
 
-endian_swap_type = ctypes._endian._other_endian
-
-all_endian_prefixes = '@=<>!'
-
-native_endian_prefix = '=@'
-
-native = pwndbg.arch.native_endian
-
-foreign = {
-    'big': 'little',
-    'little': 'big'
-}[native]
-
-magic_fields = {
-    'big': '__ctype_be__',
-    'little': '__ctype_le__'
-}
-magic_native = magic_fields[native]
-magic_foreign = magic_fields[foreign]
-
-suffix_foreign = {'big': '_BE', 'little': '_LE'}[foreign]
-
 endian = {'big': '>', 'little': '<'}
-
-ctypes_Structure_meta = type(ctypes.Structure)
-ctypes_Union_meta = type(ctypes.Union)
 
 def getattribute(self, attrname):
     value = super(EndianAwareStructure, self).__getattribute__(attrname)
@@ -81,7 +56,5 @@ class EndianAwareUnion(ctypes.Union):
     def __getattribute__(self, attrname):
         return getattribute(self, attrname)
 
-# ctypes.Union =
 Union = EndianAwareUnion
-# ctypes.Structure =
 Structure = EndianAwareStructure

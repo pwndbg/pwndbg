@@ -139,5 +139,3 @@ try:
     gdb.execute("set disassembly-flavor intel")
 except gdb.error:
     pass
-
-
