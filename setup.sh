@@ -21,6 +21,8 @@ PYTHON="${PYTHON}${PYVER}"
 # Find the Python site-packages that we need to use so that
 # GDB can find the files once we've installed them.
 SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
+PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.prefix)')
+EXEC_PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.exec_prefix)')
 
 # Install Python dependencies
 sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
@@ -28,9 +30,11 @@ sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
     pushd $directory
+    UNICORN_QEMU_FLAGS="--python=$(which python2)" ./make.sh
     sudo UNICORN_QEMU_FLAGS="--python=$(which python2)" ./make.sh install
+
     cd bindings/python
-    sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} .
+    sudo ${PYTHON} setup.py install
     popd
 done
 
