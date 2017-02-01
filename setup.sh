@@ -25,7 +25,7 @@ PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.prefix)')
 EXEC_PREFIX=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.exec_prefix)')
 
 # Install Python dependencies
-sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
+sudo ${PYTHON} -m pip install -Ur requirements.txt
 
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
