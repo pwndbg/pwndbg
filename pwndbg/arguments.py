@@ -77,7 +77,10 @@ def get(instruction):
     if instruction.address != pwndbg.regs.pc:
         return []
 
-    abi = pwndbg.abi.ABI.default()
+    try:
+        abi = pwndbg.abi.ABI.default()
+    except KeyError:
+        return []
 
     if CS_GRP_CALL in instruction.groups:
         # Not sure of any OS which allows multiple operands on
