@@ -65,11 +65,16 @@ VariableInstructionSizeMax = {
 backward_cache = collections.defaultdict(lambda: 0)
 
 @pwndbg.memoize.reset_on_objfile
-def get_disassembler_cached(arch, ptrsize, endian, extra=0):
+def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     arch = CapstoneArch[arch]
-    mode = CapstoneMode[ptrsize]
+
+    if extra is None:
+        mode = CapstoneMode[ptrsize]
+    else:
+        mode = extra
+
     mode |= CapstoneEndian[endian]
-    mode |= extra
+
     cs = Cs(arch, mode)
     cs.detail = True
     return cs
@@ -78,7 +83,8 @@ def get_disassembler(pc):
     extra = 0
 
     if pwndbg.arch.current in ('arm', 'aarch64'):
-        extra = {0:CS_MODE_ARM,0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
+        extra = {0:CS_MODE_ARM,
+                 0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
 
     return get_disassembler_cached(pwndbg.arch.current,
                                    pwndbg.arch.ptrsize,
