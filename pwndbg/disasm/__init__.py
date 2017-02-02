@@ -80,7 +80,7 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     return cs
 
 def get_disassembler(pc):
-    extra = 0
+    extra = None
 
     if pwndbg.arch.current in ('arm', 'aarch64'):
         extra = {0:CS_MODE_ARM,
