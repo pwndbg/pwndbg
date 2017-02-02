@@ -20,13 +20,13 @@ import tempfile
 import gdb
 
 import pwndbg.auxv
+import pwndbg.elftypes as E
 import pwndbg.events
 import pwndbg.info
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
-from pwndbg.elftypes import *
 
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
@@ -128,8 +128,7 @@ def get_ehdr(pointer):
     ei_class = pwndbg.memory.byte(base+4)
 
     # Find out where the section headers start
-    EhdrType = { 1: Elf32_Ehdr, 2: Elf64_Ehdr }[ei_class]
-    Elfhdr   = read(EhdrType, base)
+    Elfhdr   = read(E.Ehdr, base)
     return ei_class, Elfhdr
 
 def get_phdrs(pointer):
@@ -143,13 +142,11 @@ def get_phdrs(pointer):
     if Elfhdr is None:
         return (0, 0, None)
 
-    PhdrType   = { 1: Elf32_Phdr, 2: Elf64_Phdr }[ei_class]
-
     phnum     = Elfhdr.e_phnum
     phoff     = Elfhdr.e_phoff
     phentsize = Elfhdr.e_phentsize
 
-    x = (phnum, phentsize, read(PhdrType, Elfhdr.address + phoff))
+    x = (phnum, phentsize, read(E.Phdr, Elfhdr.address + phoff))
     return x
 
 def iter_phdrs(ehdr):
