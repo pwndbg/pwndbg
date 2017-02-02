@@ -13,6 +13,7 @@ import gdb
 
 import pwndbg as _pwndbg
 import pwndbg.arch as _arch
+import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.regs
 import pwndbg.symbol
@@ -74,3 +75,12 @@ def distance(a, b):
     distance = (b-a)
 
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
+
+@_pwndbg.commands.Command
+def canary():
+    """Print out the current stack canary"""
+    auxv = pwndbg.auxv.get()
+    if 'AT_SECURE' in auxv:
+        print("AT_SECURE=%#x" % auxv['AT_SECURE'])
+    else:
+        print("Couldn't find AT_SECURE")
