@@ -122,6 +122,13 @@ def connect(func, event_handler, name=''):
                 traceback.print_exc()
                 raise e
 
+    registry = registered[event_handler]
+
+    for event in registry.copy():
+        if event.__name__ == func.__name__ \
+        and event.__module__ == func.__module__:
+            print("Re-registered %s" % func)
+
     registered[event_handler].append(caller)
     event_handler.connect(caller)
     return func

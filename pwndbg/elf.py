@@ -12,15 +12,17 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import ctypes
 import os
 import re
 import subprocess
+import sys
 import tempfile
 
 import gdb
 
 import pwndbg.auxv
-import pwndbg.elftypes as E
+import pwndbg.elftypes
 import pwndbg.events
 import pwndbg.info
 import pwndbg.memoize
@@ -31,6 +33,24 @@ import pwndbg.stack
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
 ET_EXEC, ET_DYN  = 2,3
+
+
+module = sys.modules[__name__]
+
+@pwndbg.events.start
+@pwndbg.events.new_objfile
+def update():
+    if pwndbg.arch.ptrsize == 4:
+        Ehdr = pwndbg.elftypes.Elf32_Ehdr
+        Phdr = pwndbg.elftypes.Elf32_Phdr
+    else:
+        Ehdr = pwndbg.elftypes.Elf64_Ehdr
+        Phdr = pwndbg.elftypes.Elf64_Phdr
+
+    module.__dict__.update(locals())
+
+update()
+
 
 def read(typ, address, blob=None):
     size = ctypes.sizeof(typ)
@@ -128,7 +148,7 @@ def get_ehdr(pointer):
     ei_class = pwndbg.memory.byte(base+4)
 
     # Find out where the section headers start
-    Elfhdr   = read(E.Ehdr, base)
+    Elfhdr   = read(Ehdr, base)
     return ei_class, Elfhdr
 
 def get_phdrs(pointer):
@@ -146,7 +166,7 @@ def get_phdrs(pointer):
     phoff     = Elfhdr.e_phoff
     phentsize = Elfhdr.e_phentsize
 
-    x = (phnum, phentsize, read(E.Phdr, Elfhdr.address + phoff))
+    x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
     return x
 
 def iter_phdrs(ehdr):

@@ -313,23 +313,3 @@ class Elf64_Phdr(pwndbg.ctypes.Structure):
                 ("p_filesz", Elf64_Xword),
                 ("p_memsz", Elf64_Xword),
                 ("p_align", Elf64_Xword),]
-
-module = sys.modules[__name__]
-
-@pwndbg.events.start
-@pwndbg.events.new_objfile
-def reload():
-    six.moves.reload_module(module)
-    module.update()
-
-def update():
-    if pwndbg.arch.ptrsize == 4:
-        Ehdr = Elf32_Ehdr
-        Phdr = Elf32_Phdr
-    else:
-        Ehdr = Elf64_Ehdr
-        Phdr = Elf64_Phdr
-
-    module.__dict__.update(locals())
-
-update()
