@@ -79,8 +79,9 @@ def distance(a, b):
 @_pwndbg.commands.Command
 def canary():
     """Print out the current stack canary"""
-    auxv = pwndbg.auxv.get()
-    if 'AT_SECURE' in auxv:
-        print("AT_SECURE=%#x" % auxv['AT_SECURE'])
+    auxv = _pwndbg.auxv.get()
+    at_random = auxv.get('AT_RANDOM', None)
+    if at_secure is not None:
+        print("AT_RANDOM=%#x" % at_secure)
     else:
-        print("Couldn't find AT_SECURE")
+        print("Couldn't find AT_RANDOM")
