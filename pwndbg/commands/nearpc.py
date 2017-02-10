@@ -41,6 +41,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     """
     Disassemble near a specified address.
     """
+    result = []
+
     # Fix the case where we only have one argument, and
     # it's a small value.
     if lines is None and (pc is None or int(pc) < 0x100):
@@ -58,7 +60,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Check whether we can even read this address
     if not pwndbg.memory.peek(pc):
-        return [pwndbg.color.red('Invalid address %#x' % pc)]
+        result.append(pwndbg.color.red('Invalid address %#x' % pc))
 
     # # Load source data if it's available
     # pc_to_linenos = collections.defaultdict(lambda: [])
@@ -75,8 +77,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-    result = []
     instructions = pwndbg.disasm.near(pc, lines, emulate=emulate)
+
+    if pwndbg.memory.peek(pc) and not instructions:
+        result.append(pwndbg.color.red('Invalid instructions at %#x' % pc))
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
