@@ -3,10 +3,11 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
-import six
 import locale
+import sys
 from os import path
+
+import six
 
 directory, file = path.split(__file__)
 directory       = path.expanduser(directory)

@@ -4,12 +4,12 @@ from __future__ import print_function
 
 import datetime
 import threading
+import xmlrpclib
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import idaapi
 import idautils
 import idc
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 # Wait for any processing to get done
 idaapi.autoWait()

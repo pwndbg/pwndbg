@@ -35,8 +35,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import six
 import sys
+
+import six
 
 import pwndbg.arch
 import pwndbg.ctypes
