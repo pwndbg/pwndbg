@@ -57,8 +57,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     lines = int(lines)
 
     # Check whether we can even read this address
-    if not pwndbg.memory.peek(address):
-        return [pwndbg.color.red('Invalid address %#x' % address)]
+    if not pwndbg.memory.peek(pc):
+        return [pwndbg.color.red('Invalid address %#x' % pc)]
 
     # # Load source data if it's available
     # pc_to_linenos = collections.defaultdict(lambda: [])
