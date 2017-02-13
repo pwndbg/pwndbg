@@ -81,7 +81,7 @@ def canary():
     """Print out the current stack canary"""
     auxv = _pwndbg.auxv.get()
     at_random = auxv.get('AT_RANDOM', None)
-    if at_secure is not None:
-        print("AT_RANDOM=%#x" % at_secure)
+    if at_random is not None:
+        print("AT_RANDOM=%#x" % at_random)
     else:
         print("Couldn't find AT_RANDOM")
