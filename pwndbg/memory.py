@@ -75,15 +75,23 @@ def poke(address):
     except: return False
     return True
 
-def string(addr):
-    data = bytearray()
-    while peek(addr):
-        byte = read(addr, 1)
-        if byte == b'\x00':
-            break
-        data += byte
-        addr += 1
-    return data
+def string(addr, max=4096):
+    """Reads a null-terminated string from memory.
+
+    Arguments:
+        addr(int): Address to read from
+        max(int): Maximum string length (default 4096)
+
+    Returns:
+        An empty bytearray, or a NULL-terminated bytearray.
+    """
+    if peek(addr):
+        data = bytearray(read(addr, max, partial=True))
+
+        if b'\x00' in data:
+            return data.split(b'\x00')[0]
+
+    return bytearray()
 
 def byte(addr):   return readtype(pwndbg.typeinfo.uchar, addr)
 def uchar(addr):  return readtype(pwndbg.typeinfo.uchar, addr)

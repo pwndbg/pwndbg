@@ -41,7 +41,7 @@ def get(address, maxlen = None):
         maxlen = length
 
     try:
-        sz = pwndbg.memory.string(address)
+        sz = pwndbg.memory.string(address, maxlen)
         sz = sz.decode('latin-1', 'replace')
 
         if not sz or not all(s in string.printable for s in sz):

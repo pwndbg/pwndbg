@@ -14,7 +14,6 @@ import pwndbg.vmmap
 
 
 @pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
 def dt(typename, address=None):
     """
     Dump out information on a type (e.g. ucontext_t).
