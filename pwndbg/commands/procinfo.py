@@ -81,6 +81,8 @@ class Process():
             pid = pwndbg.proc.pid
         if tid is None:
             tid = pwndbg.proc.tid
+        if not tid:
+            tid = pid
         self.pid = pid
         self.tid = tid
 
