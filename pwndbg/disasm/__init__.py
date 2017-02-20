@@ -172,14 +172,14 @@ def near(address, instructions=1, emulate=False):
     insns.append(current)
 
     # Some architecture aren't emulated yet
-    if pwndbg.arch.current not in pwndbg.emu.emulator.arch_to_UC:
+    if not pwndbg.emu or pwndbg.arch.current not in pwndbg.emu.emulator.arch_to_UC:
         emulate = False
 
     # Emulate forward if we are at the current instruction.
     emu = None
 
     # If we hit the current instruction, we can do emulation going forward from there.
-    if address == pc and pwndbg.emu and emulate:
+    if address == pc and emulate:
         emu = pwndbg.emu.emulator.Emulator()
 
         # For whatever reason, the first instruction is emulated twice.
