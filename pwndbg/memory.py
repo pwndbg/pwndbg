@@ -146,6 +146,8 @@ def find_upper_boundary(addr, max_pages=1024):
             # import sys
             # sys.stdout.write(hex(addr) + '\n')
             addr += pwndbg.memory.PAGE_SIZE
+            if addr > pwndbg.arch.ptrmask:
+                break
     except gdb.MemoryError:
         pass
     return addr
@@ -156,6 +158,8 @@ def find_lower_boundary(addr, max_pages=1024):
         for i in range(max_pages):
             pwndbg.memory.read(addr, 1)
             addr -= pwndbg.memory.PAGE_SIZE
+            if addr < 0:
+                break
     except gdb.MemoryError:
         pass
     return addr
