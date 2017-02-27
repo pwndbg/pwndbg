@@ -15,6 +15,8 @@ import gdb
 
 import pwndbg.arch
 import pwndbg.compat
+import pwndbg.events
+import pwndbg.qemu
 import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
@@ -225,3 +227,9 @@ class Page(object):
         return self.vaddr < getattr(other, 'vaddr', other)
     def __hash__(self):
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
+
+@pwndbg.events.start
+def update_min_addr():
+    global MMAP_MIN_ADDR
+    if pwndbg.qemu.is_qemu_kernel():
+        MMAP_MIN_ADDR=0
