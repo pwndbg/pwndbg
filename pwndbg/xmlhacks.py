@@ -37,6 +37,7 @@ def marshall_binary(self, value, write):
         return self.dump_string(value, write)
     template = "<value><binary>%s</binary></value>"
     value = codecs.encode(value, 'hex')
+    value = value.encode('latin-1')
     write(template % value)
 
 def unmarshall_int(self, data):
