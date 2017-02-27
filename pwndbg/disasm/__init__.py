@@ -62,7 +62,7 @@ VariableInstructionSizeMax = {
     'mips':   8,
 }
 
-backward_cache = collections.defaultdict(lambda: 0)
+backward_cache = collections.defaultdict(lambda: None)
 
 @pwndbg.memoize.reset_on_objfile
 def get_disassembler_cached(arch, ptrsize, endian, extra=None):
@@ -101,7 +101,7 @@ def get_one_instruction(address):
         return ins
 
 def one(address=None):
-    if address == 0:
+    if address is None or not pwndbg.memory.peek(address):
         return None
     if address is None:
         address = pwndbg.regs.pc
@@ -156,7 +156,7 @@ def near(address, instructions=1, emulate=False):
 
     pc = pwndbg.regs.pc
 
-    if not current:
+    if current is None or not pwndbg.memory.peek(address):
         return []
 
     # Try to go backward by seeing which instructions we've returned
@@ -164,7 +164,7 @@ def near(address, instructions=1, emulate=False):
     needle = address
     insns  = []
     insn   = one(backward_cache[current.address])
-    while insn and len(insns) < instructions:
+    while insn is not None and len(insns) < instructions:
         insns.append(insn)
         insn = one(backward_cache[insn.address])
     insns.reverse()
