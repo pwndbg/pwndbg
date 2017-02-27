@@ -63,6 +63,7 @@ import pwndbg.net
 import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
+import pwndbg.server
 import pwndbg.stack
 import pwndbg.stdio
 import pwndbg.typeinfo
