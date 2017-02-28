@@ -19,7 +19,13 @@
 import os
 import subprocess
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+
+# These paths are relative to the 'source' directory
+os.environ['SPHINX'] = '1'
+sys.path.insert(0, os.path.abspath('..'))    # <-- For 'gdb'
+sys.path.insert(0, os.path.abspath('../..')) # <-- For 'pwndbg'
+
+import pwndbg
 
 # -- General configuration ------------------------------------------------
 

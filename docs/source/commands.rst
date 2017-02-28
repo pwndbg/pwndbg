@@ -1,12 +1,3 @@
-.. testsetup:: *
-
-   from pwn import *
-   old = context.defaults.copy()
-
-.. testcleanup:: *
-
-    context.defaults.copy = old
-
 Commands
 ========
 
@@ -15,6 +6,7 @@ Commands
 Some of the commands are listed here.
 
 .. toctree::
+    :maxdepth: 3
+    :glob:
 
-.. autoprogram:: pwnlib.commandline.main:parser
-   :prog: pwn
+    commands/*
