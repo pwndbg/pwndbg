@@ -15,6 +15,7 @@ import pwndbg.arch
 import pwndbg.events
 import pwndbg.info
 import pwndbg.memory
+import pwndbg.qemu
 import pwndbg.regs
 import pwndbg.stack
 import pwndbg.typeinfo
@@ -149,6 +150,9 @@ def find_stack_boundary(addr):
     return addr
 
 def walk_stack():
+    if pwndbg.qemu.is_qemu_kernel():
+        return None
+
     auxv = walk_stack2(0)
 
     if not auxv:

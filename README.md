@@ -1,10 +1,8 @@
 # pwndbg [![Build Status](https://travis-ci.org/pwndbg/pwndbg.svg?branch=master)](https://travis-ci.org/pwndbg/pwndbg) [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]()
-### /poʊndbæg/
-#### noun
-1. a collection of python that makes debugging with gdb suck less  
-2. a [PEDA](https://github.com/longld/peda) replacement
 
-[![Pwndbg](/caps/best.png?raw=true "Pwndbg")]
+`pwndbg` (/poʊndbæg/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
+
+It has a boatload of features, see [FEATURES.md](FEATURES.md).
 
 ## Why?
 

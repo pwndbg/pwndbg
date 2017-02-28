@@ -15,6 +15,8 @@ import gdb
 
 import pwndbg.arch
 import pwndbg.compat
+import pwndbg.events
+import pwndbg.qemu
 import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
@@ -146,6 +148,8 @@ def find_upper_boundary(addr, max_pages=1024):
             # import sys
             # sys.stdout.write(hex(addr) + '\n')
             addr += pwndbg.memory.PAGE_SIZE
+            if addr > pwndbg.arch.ptrmask:
+                break
     except gdb.MemoryError:
         pass
     return addr
@@ -156,6 +160,8 @@ def find_lower_boundary(addr, max_pages=1024):
         for i in range(max_pages):
             pwndbg.memory.read(addr, 1)
             addr -= pwndbg.memory.PAGE_SIZE
+            if addr < 0:
+                break
     except gdb.MemoryError:
         pass
     return addr
@@ -221,3 +227,9 @@ class Page(object):
         return self.vaddr < getattr(other, 'vaddr', other)
     def __hash__(self):
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
+
+@pwndbg.events.start
+def update_min_addr():
+    global MMAP_MIN_ADDR
+    if pwndbg.qemu.is_qemu_kernel():
+        MMAP_MIN_ADDR=0

@@ -54,6 +54,10 @@ def is_qemu_usermode():
 
     return is_qemu() and is_usermode()
 
+@pwndbg.memoize.reset_on_stop
+def is_qemu_kernel():
+    return is_qemu() and not is_usermode()
+
 @pwndbg.events.start
 @pwndbg.memoize.reset_on_stop
 def root():
