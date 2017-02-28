@@ -14,7 +14,7 @@ It is written in Python, and designed to assist in software debugging, reverse e
    :maxdepth: 2
 
    commands
-
+   api
 
 
 Indices and tables
