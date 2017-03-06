@@ -2,7 +2,3 @@
 	path = capstone
 	url = https://github.com/aquynh/capstone
 	branch = next
-[submodule "unicorn"]
-	path = unicorn
-	url = https://github.com/unicorn-engine/unicorn
-	branch = master
