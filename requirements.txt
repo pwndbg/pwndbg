@@ -6,3 +6,4 @@ pyelftools
 isort
 six
 future
+ROPgadget
