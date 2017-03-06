@@ -24,6 +24,19 @@ PAGE_MASK = ~(PAGE_SIZE-1)
 MMAP_MIN_ADDR = 0x8000
 
 def read(addr, count, partial=False):
+    """read(addr, count, partial=False) -> bytearray
+
+    Read memory from the program being debugged.
+
+    Arguments:
+        addr(int): Address to read
+        count(int): Number of bytes to read
+        partial(bool): Whether less than ``count`` bytes can be returned
+
+    Returns:
+        :class:`bytearray`: The memory at the specified address,
+        or ``None``.
+    """
     result = b''
 
     try:
@@ -60,17 +73,58 @@ def read(addr, count, partial=False):
     return bytearray(result)
 
 def readtype(gdb_type, addr):
+    """readtype(gdb_type, addr) -> int
+
+    Reads an integer-type (e.g. ``uint64``) and returns a Python
+    native integer representation of the same.
+
+    Arguments:
+        gdb_type(gdb.Type): GDB type to read
+        addr(int): Address at which the value to be read resides
+
+    Returns:
+        :class:`int`
+    """
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
 def write(addr, data):
+    """write(addr, data)
+
+    Writes data into the memory of the process being debugged.
+
+    Arguments:
+        addr(int): Address to write
+        data(str,bytes,bytearray): Data to write
+    """
     gdb.selected_inferior().write_memory(addr, data)
 
 def peek(address):
+    """peek(address) -> str
+
+    Read one byte from the specified address.
+
+    Arguments:
+        address(int): Address to read
+
+    Returns:
+        :class:`str`: A single byte of data, or ``None`` if the
+        address cannot be read.
+    """
     try:    return read(address, 1)
     except: pass
     return None
 
 def poke(address):
+    """poke(address)
+
+    Checks whether an address is writable.
+
+    Arguments:
+        address(int): Address to check
+
+    Returns:
+        :class:`bool`: Whether the address is writable.
+    """
     c = peek(address)
     if c is None: return False
     try:    write(address, c)
@@ -95,18 +149,76 @@ def string(addr, max=4096):
 
     return bytearray()
 
-def byte(addr):   return readtype(pwndbg.typeinfo.uchar, addr)
-def uchar(addr):  return readtype(pwndbg.typeinfo.uchar, addr)
-def ushort(addr): return readtype(pwndbg.typeinfo.ushort, addr)
-def uint(addr):   return readtype(pwndbg.typeinfo.uint, addr)
-def pvoid(addr):  return readtype(pwndbg.typeinfo.pvoid, addr)
+def byte(addr):
+    """byte(addr) -> int
 
-def u8(addr): return readtype(pwndbg.typeinfo.uint8, addr)
-def u16(addr): return readtype(pwndbg.typeinfo.uint16, addr)
-def u32(addr): return readtype(pwndbg.typeinfo.uint32, addr)
-def u64(addr): return readtype(pwndbg.typeinfo.uint64, addr)
+    Read one byte at the specified address
+    """
+    return readtype(pwndbg.typeinfo.uchar, addr)
+
+def uchar(addr):
+    """uchar(addr) -> int
+
+    Read one ``unsigned char`` at the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uchar, addr)
+
+def ushort(addr):
+    """ushort(addr) -> int
+
+    Read one ``unisgned short`` at the specified address.
+    """
+    return readtype(pwndbg.typeinfo.ushort, addr)
+
+def uint(addr):
+    """uint(addr) -> int
+
+    Read one ``unsigned int`` at the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uint, addr)
+
+def pvoid(addr):
+    """pvoid(addr) -> int
+
+    Read one pointer from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.pvoid, addr)
+
+def u8(addr):
+    """u8(addr) -> int
+
+    Read one ``uint8_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uint8, addr)
+
+def u16(addr):
+    """u16(addr) -> int
+
+    Read one ``uint16_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uint16, addr)
+
+def u32(addr):
+    """u32(addr) -> int
+
+    Read one ``uint32_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uint32, addr)
+
+def u64(addr):
+    """u64(addr) -> int
+
+    Read one ``uint64_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.uint64, addr)
 
 def u(addr, size=None):
+    """u(addr, size=None) -> int
+
+    Read one ``unsigned`` integer from the specified address,
+    with the bit-width specified by ``size``, which defaults
+    to the pointer width.
+    """
     if size is None:
         size = pwndbg.arch.ptrsize * 8
     return {
@@ -116,24 +228,64 @@ def u(addr, size=None):
         64: u64
     }[size](addr)
 
-def s8(addr): return readtype(pwndbg.typeinfo.int8, addr)
-def s16(addr): return readtype(pwndbg.typeinfo.int16, addr)
-def s32(addr): return readtype(pwndbg.typeinfo.int32, addr)
-def s64(addr): return readtype(pwndbg.typeinfo.int64, addr)
+def s8(addr):
+    """s8(addr) -> int
 
-def write(addr, data):
-    gdb.selected_inferior().write_memory(addr, data)
+    Read one ``int8_t`` from the specified address
+    """
+    return readtype(pwndbg.typeinfo.int8, addr)
 
-def poi(type, addr): return gdb.Value(addr).cast(type.pointer()).dereference()
+def s16(addr):
+    """s16(addr) -> int
+
+    Read one ``int16_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.int16, addr)
+
+def s32(addr):
+    """s32(addr) -> int
+
+    Read one ``int32_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.int32, addr)
+def s64(addr):
+    """s64(addr) -> int
+
+    Read one ``int64_t`` from the specified address.
+    """
+    return readtype(pwndbg.typeinfo.int64, addr)
+
+def poi(type, addr):
+    """poi(addr) -> gdb.Value
+
+    Read one ``gdb.Type`` object at the specified address.
+    """
+    return gdb.Value(addr).cast(type.pointer()).dereference()
 
 def round_down(address, align):
+    """round_down(address, align) -> int
+
+    Round down ``address`` to the nearest increment of ``align``.
+    """
     return address & ~(align-1)
-def round_up(address, align):   return (address+(align-1))&(~(align-1))
+
+def round_up(address, align):
+    """round_up(address, align) -> int
+
+    Round up ``address`` to the nearest increment of ``align``.
+    """
+    return (address+(align-1))&(~(align-1))
 
 align_down = round_down
 align_up   = round_up
 
-def page_align(address): return round_down(address, PAGE_SIZE)
+def page_align(address):
+    """page_align(address) -> int
+
+    Round down ``address`` to the nearest page boundary.
+    """
+    return round_down(address, PAGE_SIZE)
+
 def page_size_align(address): return round_up(address, PAGE_SIZE)
 def page_offset(address): return (address & (PAGE_SIZE-1))
 
@@ -141,6 +293,12 @@ assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
 
 def find_upper_boundary(addr, max_pages=1024):
+    """find_upper_boundary(addr, max_pages=1024) -> int
+
+    Brute-force search the upper boundary of a memory mapping,
+    by reading the first byte of each page, until an unmapped
+    page is found.
+    """
     addr = pwndbg.memory.page_align(int(addr))
     try:
         for i in range(max_pages):
@@ -155,6 +313,12 @@ def find_upper_boundary(addr, max_pages=1024):
     return addr
 
 def find_lower_boundary(addr, max_pages=1024):
+    """find_lower_boundary(addr, max_pages=1024) -> int
+
+    Brute-force search the lower boundary of a memory mapping,
+    by reading the first byte of each page, until an unmapped
+    page is found.
+    """
     addr = pwndbg.memory.page_align(int(addr))
     try:
         for i in range(max_pages):

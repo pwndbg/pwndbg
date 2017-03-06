@@ -12,9 +12,16 @@ import pwndbg.events
 import pwndbg.memory
 import pwndbg.regs
 
+#: Total number of arguments
 argc = None
+
+#: Pointer to argv on the stack
 argv = None
+
+#: Pointer to envp on the stack
 envp = None
+
+#: Total number of environment variables
 envc = None
 
 @pwndbg.events.start

@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import sys
 
 import gdb
@@ -43,9 +44,11 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
                 value = value.cast(pwndbg.typeinfo.ulong)
         return _int(_int(value, *a, **kw))
 
-builtins.int = xint
-globals()['int'] = xint
+# Do not hook 'int' if we are just generating documentation
+if os.environ.get('SPHINX', None) is None:
+    builtins.int = xint
+    globals()['int'] = xint
 
-if sys.version_info >= (3,0):
-    builtins.long = xint
-    globals()['long'] = xint
+    if sys.version_info >= (3,0):
+        builtins.long = xint
+        globals()['long'] = xint
