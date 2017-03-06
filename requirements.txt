@@ -7,3 +7,4 @@ isort
 six
 future
 ROPgadget
+unicorn>=1.0.0
