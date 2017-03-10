@@ -1,4 +1,0 @@
-[submodule "capstone"]
-	path = capstone
-	url = https://github.com/aquynh/capstone
-	branch = next

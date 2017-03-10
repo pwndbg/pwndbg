@@ -8,3 +8,4 @@ six
 future
 ROPgadget
 unicorn>=1.0.0
+https://github.com/aquynh/capstone/archive/next.zip#egg=capstone&subdirectory=bindings/python
