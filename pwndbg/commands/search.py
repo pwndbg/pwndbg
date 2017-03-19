@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import binascii
 import codecs
 import os
 import struct
@@ -95,7 +96,11 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
         save = bool(pwndbg.config.auto_save_search)
 
     if hex:
-        value = codecs.decode(value, 'hex')
+        try:
+            value = codecs.decode(value, 'hex')
+        except binascii.Error as e:
+            print('invalid input for type hex: {}'.format(e))
+            return
 
     # Convert to an integer if needed, and pack to bytes
     if type not in ('string', 'bytes'):
@@ -112,7 +117,12 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
             'qword': 'Q'
         }[type]
 
-        value = struct.pack(fmt, value)
+        try:
+            value = struct.pack(fmt, value)
+        except struct.error as e:
+            print('invalid input for type {}: {}'.format(type, e))
+            return
+
 
     # Null-terminate strings
     elif type == 'string':
