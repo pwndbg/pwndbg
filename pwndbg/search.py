@@ -49,7 +49,11 @@ def search(searchfor, mapping=None, start=None, end=None,
             if not pwndbg.memory.peek(start):
                 break
 
-            start = i.search_memory(start, end - start, searchfor)
+            length = end - start
+            if length <= 0:
+                break
+
+            start = i.search_memory(start, length, searchfor)
 
             if start is None:
                 break
