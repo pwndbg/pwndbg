@@ -56,7 +56,6 @@ shellcmds = [
     "sed",
     "sh",
     "sort",
-    "sort",
     "ssh",
     "sudo",
     "tail",
