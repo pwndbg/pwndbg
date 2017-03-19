@@ -50,11 +50,11 @@ auto_save = pwndbg.config.Parameter('auto-save-search', False,
 parser = argparse.ArgumentParser(description='''
 Search memory for byte sequences, strings, pointers, and integer values
 ''')
-parser.add_argument('-t', '--type', choices=['byte','short','dword','qword','pointer','string','bytes'],
+parser.add_argument('-t', '--type', choices=['byte','short','word','dword','qword','pointer','string','bytes'],
                     help='Size of search target', default='bytes', type=str)
 parser.add_argument('-1', '--byte', dest='type', action='store_const', const='byte',
                     help='Search for a 1-byte integer')
-parser.add_argument('-2', '--word', dest='type', action='store_const', const='word',
+parser.add_argument('-2', '--word', '--short', dest='type', action='store_const', const='word',
                     help='Search for a 2-byte integer')
 parser.add_argument('-4', '--dword', dest='type', action='store_const', const='dword',
                     help='Search for a 4-byte integer')
@@ -107,6 +107,7 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
         }[pwndbg.arch.endian] + {
             'byte': 'B',
             'short': 'H',
+            'word': 'H',
             'dword': 'L',
             'qword': 'Q'
         }[type]
