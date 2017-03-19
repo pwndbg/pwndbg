@@ -153,11 +153,11 @@ code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additi
 def context_code():
     banner = [pwndbg.ui.banner("code")]
     emulate = bool(pwndbg.config.emulate)
-    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=int(code_lines) // 2)
+    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
-    while len(result) < int(code_lines) + 1:
+    while len(result) < code_lines + 1:
         result.append('')
 
     return banner + result
@@ -218,7 +218,7 @@ stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines
 def context_stack():
     result = []
     result.append(pwndbg.ui.banner("stack"))
-    telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=int(stack_lines))
+    telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
     return result

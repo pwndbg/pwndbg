@@ -54,7 +54,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         pc = pwndbg.regs.pc
 
     if lines is None:
-        lines = int(nearpc_lines) // 2
+        lines = nearpc_lines // 2
 
     pc    = int(pc)
     lines = int(lines)
