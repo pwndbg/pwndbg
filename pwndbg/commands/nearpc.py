@@ -34,6 +34,7 @@ nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-ma
 pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
 pwndbg.color.theme.Parameter('nearpc-prefix', '►', 'prefix marker for nearpc command')
 pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
+nearpc_lines = pwndbg.config.Parameter('nearpc-lines', 10, 'number of additional lines to print for the nearpc command')
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -53,7 +54,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         pc = pwndbg.regs.pc
 
     if lines is None:
-        lines = 5
+        lines = int(nearpc_lines) // 2
 
     pc    = int(pc)
     lines = int(lines)
