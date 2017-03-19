@@ -31,7 +31,7 @@ shellcmds = [
     "diff",
     "disasm", # pwntools
     "egrep",
-    "find",
+    # "find", don't expose find as its an internal gdb command
     "grep",
     "htop",
     "id",
