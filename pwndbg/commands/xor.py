@@ -16,12 +16,12 @@ def xor_memory(address, key, count):
     Helper function for xorring memory in gdb
     """
     mem = pwndbg.memory.read(address, count, partial=True)
-    
+
     for index, byte in enumerate(mem):
         key_index = index % len(key)
         mem[index] = byte ^ ord(key[key_index])
 
-    return mem 
+    return mem
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -31,10 +31,17 @@ def xor(address, key, count):
     XOR ``count`` bytes at ``address`` with the key ``key``.
     '''
     if not isinstance(address, six.integer_types):
-        address = int(address, 16)
+        try:
+            address = int(address, 0)
+        except ValueError:
+            print('Invalid address %s' % address)
+            return
 
-    xorred_memory = xor_memory(address, key, count)
-    pwndbg.memory.write(address, xorred_memory)
+    try:
+        xorred_memory = xor_memory(address, key, count)
+        pwndbg.memory.write(address, xorred_memory)
+    except gdb.MemoryError as e:
+        print(e)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -44,7 +51,14 @@ def memfrob(address, count):
     Run the memfrob command on a region of memory
     '''
     if not isinstance(address, six.integer_types):
-        address = int(address, 16)
+        try:
+            address = int(address, 0)
+        except ValueError:
+            print('Invalid address %s' % address)
+            return
 
-    xorred_memory = xor_memory(address, '*', count)
-    pwndbg.memory.write(address, xorred_memory)
+    try:
+        xorred_memory = xor_memory(address, '*', count)
+        pwndbg.memory.write(address, xorred_memory)
+    except gdb.MemoryError as e:
+        print(e)

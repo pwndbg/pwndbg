@@ -38,6 +38,7 @@ def read(addr, count, partial=False):
         or ``None``.
     """
     result = b''
+    count = max(int(count), 0)
 
     try:
         result = gdb.selected_inferior().read_memory(addr, count)
