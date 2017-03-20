@@ -19,6 +19,7 @@ Print out the stack addresses that contain return addresses
 ''')
 
 @pwndbg.commands.ArgparsedCommand(p)
+@pwndbg.commands.OnlyWhenRunning
 def retaddr():
     sp = pwndbg.regs.sp
     stack = pwndbg.vmmap.find(sp)
