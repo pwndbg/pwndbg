@@ -135,6 +135,27 @@ class Parameter(gdb.Parameter):
     def __lt__(self, other):
         return self.optname <= other.optname
 
+    def __div__(self, other):
+        return self.value / other
+
+    def __floordiv__(self, other):
+        return self.value // other
+
+    def __mul__(self, other):
+        return self.value * other
+
+    def __sub__(self, other):
+        return self.value - other
+
+    def __add__(self, other):
+        return self.value + other
+
+    def __pow__(self, other):
+        return self.value ** other
+
+    def __mod__(self, other):
+        return self.value % other
+
     # Python2 compatibility
     __nonzero__ = __bool__
 
