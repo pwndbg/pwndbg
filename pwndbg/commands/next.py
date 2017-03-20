@@ -53,7 +53,7 @@ def next_syscall(*args):
     """
     Breaks at the next syscall.
     """
-    while not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
+    while pwndbg.proc.alive and not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
         continue
     pwndbg.commands.context.context()
 
