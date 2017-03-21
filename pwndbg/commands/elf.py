@@ -17,6 +17,10 @@ def elfheader():
     Prints the section mappings contained in the ELF header.
     """
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    if not local_path:
+        print('No file is selected')
+        return
+
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
         load_segment = elffile.get_segment(3)
@@ -52,6 +56,10 @@ def plt():
 
 def get_section_bounds(section_name):
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    if not local_path:
+        print('No file is selected')
+        return (None, None)
+
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
 

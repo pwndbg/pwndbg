@@ -24,6 +24,7 @@ def checksec(file=None):
 
     if not local_path:
         print('No file is selected')
+        return
 
     for program in ['checksec', 'checksec.sh']:
         program = pwndbg.which.which(program)
