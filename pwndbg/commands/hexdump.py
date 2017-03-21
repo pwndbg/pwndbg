@@ -41,7 +41,7 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
 
     try:
         data = pwndbg.memory.read(address, count, partial=True)
-    except gdb.MemoryError as e:
+    except gdb.error as e:
         print(e)
         return
 

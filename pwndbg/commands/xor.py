@@ -40,7 +40,7 @@ def xor(address, key, count):
     try:
         xorred_memory = xor_memory(address, key, count)
         pwndbg.memory.write(address, xorred_memory)
-    except gdb.MemoryError as e:
+    except gdb.error as e:
         print(e)
 
 @pwndbg.commands.Command
@@ -60,5 +60,5 @@ def memfrob(address, count):
     try:
         xorred_memory = xor_memory(address, '*', count)
         pwndbg.memory.write(address, xorred_memory)
-    except gdb.MemoryError as e:
+    except gdb.error as e:
         print(e)
