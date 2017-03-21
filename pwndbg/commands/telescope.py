@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 
 import argparse
 import collections
+import math
 
 import pwndbg.arch
 import pwndbg.chain
@@ -39,24 +40,27 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     ($sp by default)
     """
     address = int(address if address else pwndbg.regs.sp) & pwndbg.arch.ptrmask
-    count   = int(count) & pwndbg.arch.ptrmask
+    count   = max(int(count), 1) & pwndbg.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
+    ptrsize   = pwndbg.typeinfo.ptrsize
 
-    # Allow invocation of "hexdump 20" to dump 20 bytes at the stack pointer
+    # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
         count   = address
         address = pwndbg.regs.sp
 
-    # Allow invocation of "hexdump a b" to dump all bytes from A to B
-    if int(address) < int(count):
+    # Allow invocation of "telescope a b" to dump all bytes from A to B
+    if int(address) <= int(count):
+        # adjust count if it is an address. use ceil divison as count is number of
+        # ptrsize values and we don't want to strip out a value if dest is unaligned
         count -= address
+        count = max(math.ceil(count / ptrsize), 1)
 
     reg_values = collections.defaultdict(lambda: [])
     for reg in pwndbg.regs.common:
         reg_values[pwndbg.regs[reg]].append(reg)
     # address    = pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address)
-    ptrsize    = pwndbg.typeinfo.ptrsize
 
     start = address
     stop  = address + (count*ptrsize)
