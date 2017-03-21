@@ -101,10 +101,10 @@ def get_one_instruction(address):
         return ins
 
 def one(address=None):
-    if address is None or not pwndbg.memory.peek(address):
-        return None
     if address is None:
         address = pwndbg.regs.pc
+    if not pwndbg.memory.peek(address):
+        return None
     for insn in get(address, 1):
         backward_cache[insn.next] = insn.address
         return insn
@@ -163,10 +163,12 @@ def near(address, instructions=1, emulate=False):
     # before, which were followed by this one.
     needle = address
     insns  = []
-    insn   = one(backward_cache[current.address])
+    cached = backward_cache[current.address]
+    insn   = one(cached) if cached else None
     while insn is not None and len(insns) < instructions:
         insns.append(insn)
-        insn = one(backward_cache[insn.address])
+        cached = backward_cache[insn.address]
+        insn = one(cached) if cached else None
     insns.reverse()
 
     insns.append(current)
