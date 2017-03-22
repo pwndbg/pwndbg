@@ -77,6 +77,7 @@ def distance(a, b):
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
 
 @_pwndbg.commands.Command
+@_pwndbg.commands.OnlyWhenRunning
 def canary():
     """Print out the current stack canary"""
     auxv = _pwndbg.auxv.get()
