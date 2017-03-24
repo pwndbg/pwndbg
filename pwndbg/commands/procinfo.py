@@ -194,10 +194,12 @@ class Process():
         return tuple(result)
 
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def pid():
     print(pwndbg.proc.pid)
 
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def procinfo():
     """
     Display information about the running process.
