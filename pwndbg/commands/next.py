@@ -36,6 +36,13 @@ def nextcall(*args):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
+def nextsymbol(*args):
+    """Breaks at the next call instruction matching a given regex. If no regex given, it behaves like nextcall."""
+    if pwndbg.next.break_call_regex(*args):
+        pwndbg.commands.context.context()
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def stepover(*args):
     """Sets a breakpoint on the instruction after this one"""
     pwndbg.next.break_on_next(*args)
