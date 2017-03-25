@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 import capstone
 import gdb
+import re
 
 import pwndbg.disasm
 import pwndbg.regs
@@ -86,6 +87,16 @@ def break_next_call(address=None):
             break
 
         if capstone.CS_GRP_CALL in ins.groups:
+            return ins
+
+def break_call_regex(regex=''):
+    while True:
+        ins = break_next_call()
+
+        if not ins:
+            break
+
+        if re.search(regex, ins.symbol):
             return ins
 
 def break_on_next(address=None):
