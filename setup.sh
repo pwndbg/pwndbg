@@ -3,7 +3,7 @@ set -ex
 
 if uname | grep -i Linux &>/dev/null; then
     sudo apt-get update || true
-    sudo apt-get -y install python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+    sudo apt-get -y install git gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo apt-get install libc6-dbg:i386 || true
