@@ -90,7 +90,7 @@ def break_next_call(address=None):
             return ins
 
 def break_call_regex(regex=''):
-    while True:
+    while pwndbg.proc.alive:
         ins = break_next_call()
 
         if not ins:
