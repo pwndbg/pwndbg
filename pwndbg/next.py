@@ -13,6 +13,7 @@ import re
 
 import capstone
 import gdb
+import re
 
 import pwndbg.disasm
 import pwndbg.regs
