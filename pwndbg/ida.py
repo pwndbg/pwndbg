@@ -130,7 +130,13 @@ def base():
 @withIDA
 @takes_address
 def Comment(addr):
-    return _ida.GetCommentEx(addr, 0) or _ida.GetCommentEx(addr)
+    return _ida.GetCommentEx(addr, 0)
+
+
+@withIDA
+@takes_address
+def RepeatableComment(addr):
+    return _ida.GetCommentEx(addr, 1)
 
 
 @withIDA
