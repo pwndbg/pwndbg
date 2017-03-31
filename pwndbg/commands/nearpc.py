@@ -128,6 +128,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if not comment:
             comment = pwndbg.ida.RepeatableComment(i.address)
         if comment:
+            comment = pwndbg.color.green(comment)
+            comment = pwndbg.color.bold(comment)
             line += " ; {}".format(comment)
 
         # If there was a branch before this instruction which was not
