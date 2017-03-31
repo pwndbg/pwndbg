@@ -326,7 +326,8 @@ def has_cached_cfunc(addr):
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
-    return _ida.decompile(addr)
+    return None
+    # return _ida.decompile(addr)
 
 
 @withIDA
