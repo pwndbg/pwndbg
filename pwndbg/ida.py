@@ -97,19 +97,13 @@ def available():
 
 
 def l2r(addr):
-    exe = pwndbg.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
-    result = (addr - int(exe.address) + base()) & pwndbg.arch.ptrmask
-    return result
+    vaddr = pwndbg.vmmap.find(pwndbg.regs.pc).vaddr
+    return (addr - vaddr + base()) & pwndbg.arch.ptrmask
 
 
 def r2l(addr):
-    exe = pwndbg.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
-    result = (addr - base() + int(exe.address)) & pwndbg.arch.ptrmask
-    return result
+    vaddr = pwndbg.vmmap.find(pwndbg.regs.pc).vaddr
+    return (addr - base() + vaddr) & pwndbg.arch.ptrmask
 
 
 def remote(function):
