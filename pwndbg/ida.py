@@ -203,8 +203,6 @@ def GetBptEA(i):
 _breakpoints = []
 
 
-@pwndbg.events.cont
-@pwndbg.events.stop
 @withIDA
 def UpdateBreakpoints():
     # XXX: Remove breakpoints from IDA when the user removes them.
