@@ -226,4 +226,21 @@ def near(address, instructions=1, emulate=False):
         if insn:
             insns.append(insn)
 
+    # Removing all duplicate instructions from the end
+    # makes display more clear when we are in an 1 instruction infinite loop
+    if insns:
+        last_insn = insns[-1]
+        last_idx = len(insns) - 1
+
+        for i, insn in enumerate(reversed(insns)):
+            if i == 0:
+                continue
+
+            if insn == last_insn:
+                idx = last_idx - i
+                insns.pop(idx)
+            else:
+                break
+
     return insns
+
