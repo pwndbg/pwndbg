@@ -28,7 +28,9 @@ PYTHON="${PYTHON}${PYVER}"
 SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
 
 # Make sure that pip is available
-sudo ${PYTHON} -m ensurepip --upgrade
+if ! python -m pip -V; then
+    sudo ${PYTHON} -m ensurepip --upgrade
+fi
 
 # Upgrade pip itself
 sudo ${PYHTON} -m pip install --upgrade pip
