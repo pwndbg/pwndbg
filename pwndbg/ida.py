@@ -130,7 +130,6 @@ def base():
 @withIDA
 @takes_address
 def Comment(addr):
-    addr = l2r(addr)
     return _ida.GetCommentEx(addr, 0) or _ida.GetCommentEx(addr)
 
 

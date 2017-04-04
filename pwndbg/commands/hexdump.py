@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import gdb
 
 import pwndbg.arch
 import pwndbg.commands
@@ -32,13 +33,17 @@ parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
 def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
     address = int(address)
     address &= pwndbg.arch.ptrmask
-    count   = int(count)
+    count   = max(int(count), 0)
     width   = int(pwndbg.config.hexdump_width)
 
     if count > address > 0x10000:
         count -= address
 
-    data = pwndbg.memory.read(address, count, partial=True)
+    try:
+        data = pwndbg.memory.read(address, count, partial=True)
+    except gdb.error as e:
+        print(e)
+        return
 
     for line in pwndbg.hexdump.hexdump(data, address=address, width=width):
         print(line)

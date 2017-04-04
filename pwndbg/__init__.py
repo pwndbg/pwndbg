@@ -33,6 +33,7 @@ import pwndbg.commands.misc
 import pwndbg.commands.next
 import pwndbg.commands.peda
 import pwndbg.commands.procinfo
+import pwndbg.commands.radare2
 import pwndbg.commands.reload
 import pwndbg.commands.rop
 import pwndbg.commands.ropper

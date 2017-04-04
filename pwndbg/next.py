@@ -79,7 +79,7 @@ def break_next_interrupt(address=None):
         return ins
 
 def break_next_call(address=None):
-    while True:
+    while pwndbg.proc.alive:
         ins = break_next_branch(address)
 
         if not ins:
