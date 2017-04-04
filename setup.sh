@@ -24,7 +24,7 @@ PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 PYTHON="${PYTHON}${PYVER}"
 
 # Install Python dependencies
-sudo ${PYTHON} -m pip install -Ur requirements.txt
+sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
