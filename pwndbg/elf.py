@@ -40,13 +40,7 @@ module = sys.modules[__name__]
 @pwndbg.events.start
 @pwndbg.events.new_objfile
 def update():
-    if pwndbg.arch.ptrsize == 4:
-        Ehdr = pwndbg.elftypes.Elf32_Ehdr
-        Phdr = pwndbg.elftypes.Elf32_Phdr
-    else:
-        Ehdr = pwndbg.elftypes.Elf64_Ehdr
-        Phdr = pwndbg.elftypes.Elf64_Phdr
-
+    Ehdr, Phdr = pwndbg.elftypes.get_ehdr_phdr(pwndbg.arch.ptrsize, pwndbg.arch.endian)
     module.__dict__.update(locals())
 
 update()
