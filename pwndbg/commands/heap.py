@@ -5,9 +5,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import struct
+
 import gdb
 import six
-import struct
 
 import pwndbg.color.memory as M
 import pwndbg.commands
