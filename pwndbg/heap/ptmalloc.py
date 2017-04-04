@@ -47,6 +47,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     @property
+    def global_max_fast(self):
+        return pwndbg.symbol.address('global_max_fast')
+
+
+    @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
         return pwndbg.typeinfo.load('struct malloc_chunk')
@@ -114,6 +119,16 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def chunk_key_offset(self, key):
+        """
+        Finds the index of a field in the malloc_chunk struct.
+
+        64 bit example.)
+            prev_size == 0
+            size      == 8
+            fd        == 16
+            bk        == 24
+            ...
+        """
         chunk_keys = self.malloc_chunk.keys()
 
         try:
@@ -154,9 +169,15 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return (None, None)
 
+    
+    def fastbin_index(self, size):
+        if pwndbg.arch.ptrsize == 8:
+            return (size >> 4) - 2
+        else:
+            return (size >> 3) - 2
 
     def fastbins(self, arena_addr=None):
-        arena        = self.get_arena(arena_addr)
+        arena = self.get_arena(arena_addr)
 
         if arena is None:
             return
