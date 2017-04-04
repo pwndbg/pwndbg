@@ -10,6 +10,11 @@ if uname | grep -i Linux &>/dev/null; then
     fi
 fi
 
+if ! hash gdb; then
+    echo 'Could not find gdb in $PATH'
+    exit
+fi
+
 # Update all submodules
 git submodule update --init --recursive
 
