@@ -30,6 +30,9 @@ SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackag
 # Make sure that pip is available
 sudo ${PYTHON} -m ensurepip --upgrade
 
+# Upgrade pip itself
+sudo ${PYHTON} -m pip install --upgrade pip
+
 # Install Python dependencies
 sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
