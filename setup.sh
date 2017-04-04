@@ -13,6 +13,9 @@ fi
 # Update all submodules
 git submodule update --init --recursive
 
+# Check if GDB exists in current Path
+command -v gdb >/dev/null 2>&1 || { echo >&2 "[ERROR]: I require gdb but it's not installed.  Aborting."; exit 1; }
+
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
 PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
