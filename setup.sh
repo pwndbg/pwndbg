@@ -27,6 +27,9 @@ PYTHON="${PYTHON}${PYVER}"
 # GDB can find the files once we've installed them.
 SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
 
+# Make sure that pip is available
+sudo ${PYTHON} -m ensurepip --upgrade
+
 # Install Python dependencies
 sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
