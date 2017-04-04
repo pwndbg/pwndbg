@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import gdb
 import six
+import struct
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -259,3 +260,32 @@ def largebins(addr=None, verbose=False):
     print(underline(yellow('largebins')))
     for node in formatted_bins:
         print(node)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def find_fake_fast(addr, size):
+    """
+    Finds candidate fake fast chunks that will overlap with the specified
+    address. Used for fastbin dups and house of spirit
+    """
+    main_heap = pwndbg.heap.current
+
+    fastbin  = main_heap.fastbin_index(int(size))
+    max_fast = main_heap.global_max_fast
+    start    = int(addr) - int(max_fast)
+    mem      = pwndbg.memory.read(start, max_fast, partial=True)
+
+    fmt = {
+        'little': '<',
+        'big': '>'
+    }[pwndbg.arch.endian] + {
+        4: 'I',
+        8: 'Q'
+    }[pwndbg.arch.ptrsize]
+
+    print(red("FAKE CHUNKS"))
+    for offset in range(max_fast - pwndbg.arch.ptrsize):
+        value = struct.unpack(fmt, mem[offset:offset+pwndbg.arch.ptrsize])[0]
+
+        if main_heap.fastbin_index(value) == fastbin:
+            malloc_chunk(start+offset-pwndbg.arch.ptrsize)
