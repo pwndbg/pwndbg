@@ -136,12 +136,20 @@ def compile(filename=None, address=0):
         print("Specify a filename to compile.")
         return
 
-    objectname = filename.split(".")[0] + ".o"
+    objectname = os.path.splitext(filename)[0] + ".o"
 
     if not os.path.exists(objectname):
         gcc     = pwndbg.gcc.which()
         gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
         subprocess.check_output(' '.join(gcc), shell=True)
 
+    add_symbol_file(objectname, address)
+
+def add_symbol_file(filename=None, address=0):
+    """Read additional symbol table information from the object file filename"""
+    if filename is None:
+        print("Specify a symbol file to add.")
+        return
+
     with pwndbg.events.Pause():
-        gdb.execute('add-symbol-file %s %s' % (objectname, address), from_tty=False, to_string=True)
+        gdb.execute('add-symbol-file %s %s' % (filename, address), from_tty=False, to_string=True)
