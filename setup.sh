@@ -3,11 +3,16 @@ set -ex
 
 if uname | grep -i Linux &>/dev/null; then
     sudo apt-get update || true
-    sudo apt-get -y install python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo apt-get install libc6-dbg:i386 || true
     fi
+fi
+
+if ! hash gdb; then
+    echo 'Could not find gdb in $PATH'
+    exit
 fi
 
 # Update all submodules
@@ -18,8 +23,20 @@ PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.pyth
 PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 PYTHON="${PYTHON}${PYVER}"
 
+# Find the Python site-packages that we need to use so that
+# GDB can find the files once we've installed them.
+SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
+
+# Make sure that pip is available
+if ! ${PYTHON} -m pip -V; then
+    sudo ${PYTHON} -m ensurepip --upgrade
+fi
+
+# Upgrade pip itself
+sudo ${PYTHON} -m pip install --upgrade pip
+
 # Install Python dependencies
-sudo ${PYTHON} -m pip install -Ur requirements.txt
+sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
 
 # Install both Unicorn and Capstone
 for directory in capstone unicorn; do
