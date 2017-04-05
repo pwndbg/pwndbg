@@ -124,6 +124,8 @@ def load(name):
 
     with open(filename, 'w+') as f:
         f.write(source)
+        f.flush()
+        os.fsync(f.fileno())
 
     compile(filename)
 
