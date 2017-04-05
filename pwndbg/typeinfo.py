@@ -87,6 +87,7 @@ blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h']
 
 def load(name):
+    """Load symbol by name from headers in standard system include directory"""
     try:
         return gdb.lookup_type(name)
     except gdb.error:
@@ -119,18 +120,37 @@ def load(name):
 {name} foo;
 '''.format(**locals())
 
-    filename = '%s/%s_%s' % (tempdir, arch, '-'.join(name.split()))
+    filename = '%s/%s_%s.cc' % (tempdir, arch, '-'.join(name.split()))
 
-    if not os.path.exists(filename + '.o'):
-        with open(filename + '.cc', 'w+') as f:
-            f.write(source)
-            f.flush()
+    with open(filename, 'w+') as f:
+        f.write(source)
+        f.flush()
+        os.fsync(f.fileno())
 
-        gcc     = pwndbg.gcc.which()
-        gcc    += ['-w','-c','-g',filename + '.cc','-o',filename + '.o']
-        subprocess.check_output(' '.join(gcc), shell=True)
-
-    with pwndbg.events.Pause():
-        gdb.execute('add-symbol-file %s.o 0' % filename, from_tty=False, to_string=True)
+    compile(filename)
 
     return gdb.lookup_type(name)
+
+def compile(filename=None, address=0):
+    """Compile and extract symbols from specified file"""
+    if filename is None:
+        print("Specify a filename to compile.")
+        return
+
+    objectname = os.path.splitext(filename)[0] + ".o"
+
+    if not os.path.exists(objectname):
+        gcc     = pwndbg.gcc.which()
+        gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
+        subprocess.check_output(' '.join(gcc), shell=True)
+
+    add_symbol_file(objectname, address)
+
+def add_symbol_file(filename=None, address=0):
+    """Read additional symbol table information from the object file filename"""
+    if filename is None:
+        print("Specify a symbol file to add.")
+        return
+
+    with pwndbg.events.Pause():
+        gdb.execute('add-symbol-file %s %s' % (filename, address), from_tty=False, to_string=True)
