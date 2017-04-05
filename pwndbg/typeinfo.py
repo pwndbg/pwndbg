@@ -124,7 +124,6 @@ def load(name):
 
     with open(filename, 'w+') as f:
         f.write(source)
-        f.flush()
 
     compile(filename)
 
