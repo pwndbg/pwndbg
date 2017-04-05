@@ -226,4 +226,12 @@ def near(address, instructions=1, emulate=False):
         if insn:
             insns.append(insn)
 
+    # Remove repeated instructions at the end of disassembly.
+    # Always ensure we display the current and *next* instruction,
+    # but any repeats after that are removed.
+    #
+    # This helps with infinite loops and RET sleds.
+    while insns and len(insns) > 2 and len(set(insns[-3:])) == 1:
+        del insns[-1]
+
     return insns
