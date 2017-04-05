@@ -37,7 +37,9 @@ def clear_screen():
     sys.stdout.write('\x1b[H\x1b[J')
 
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
-
+config_context_sections = pwndbg.config.Parameter('context-sections',
+                                                  'regs disassembly source stack backtrace',
+                                                  'which context sections are displayed by default (also controls order)')
 
 # @pwndbg.events.stop
 @pwndbg.commands.Command
@@ -49,19 +51,19 @@ def context(*args):
     Accepts subcommands 'reg', 'code', 'stack', 'backtrace', and 'args'.
     """
     if len(args) == 0:
-        args = ['reg','code','stack','backtrace','args']
+        args = str(config_context_sections).split()
 
     args = [a[0] for a in args]
 
     result = []
 
     result.append(M.legend())
-    if 'r' in args: result.extend(context_regs())
-    if 'c' in args: result.extend(context_code())
-    if 'c' in args: result.extend(context_source())
-    if 'a' in args: result.extend(context_args())
-    if 's' in args: result.extend(context_stack())
-    if 'b' in args: result.extend(context_backtrace())
+    for arg in args:
+        if 'r' == arg: result.extend(context_regs())
+        if 'd' == arg: result.extend(context_code())
+        if 's' == arg: result.extend(context_source())
+        if 's' == arg: result.extend(context_stack())
+        if 'b' == arg: result.extend(context_backtrace())
     result.extend(context_signal())
 
     if config_clear_screen:
