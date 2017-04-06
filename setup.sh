@@ -51,18 +51,6 @@ fi
 
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
-    ${PYTHON} -m ensurepip --upgrade
-fi
-
-# Upgrade pip itself
-${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
-
-# Find the Python site-packages that we need to use so that
-# GDB can find the files once we've installed them.
-SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
-
-# Make sure that pip is available
-if ! ${PYTHON} -m pip -V; then
     ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
 fi
 
