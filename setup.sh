@@ -1,7 +1,26 @@
 #!/bin/bash
 set -ex
 
-if uname | grep -i Linux &>/dev/null; then
+
+# Helper functions
+linux() {
+    uname | grep -i Linux &>/dev/null
+}
+osx() {
+    uname | grep -i Darwin &>/dev/null
+}
+
+
+PYTHON=''
+INSTALLFLAGS=''
+
+if osx || [ "$1" == "--user" ]; then
+    INSTALLFLAGS="--user"
+else
+    PYTHON="sudo "
+fi
+
+if linux; then
     sudo apt-get update || true
     sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
 
@@ -20,34 +39,26 @@ git submodule update --init --recursive
 
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
-PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
-PYTHON="${PYTHON}${PYVER}"
+PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+PYTHON+="${PYVER}"
 
 # Find the Python site-packages that we need to use so that
 # GDB can find the files once we've installed them.
-SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
+if linux && [ -z "$INSTALLFLAGS" ]; then
+    SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
+    INSTALLFLAGS="--target ${SITE_PACKAGES}"
+fi
 
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
-    sudo ${PYTHON} -m ensurepip --upgrade
+    ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
 fi
 
 # Upgrade pip itself
-sudo ${PYTHON} -m pip install --upgrade pip
+${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 
 # Install Python dependencies
-sudo ${PYTHON} -m pip install --target ${SITE_PACKAGES} -Ur requirements.txt
-
-# Install both Unicorn and Capstone
-for directory in capstone unicorn; do
-    pushd $directory
-    UNICORN_QEMU_FLAGS="--python=$(which python2)" ./make.sh
-    sudo UNICORN_QEMU_FLAGS="--python=$(which python2)" ./make.sh install
-
-    cd bindings/python
-    sudo ${PYTHON} setup.py install
-    popd
-done
+${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
 # Load Pwndbg into GDB on every launch.
 if ! grep pwndbg ~/.gdbinit &>/dev/null; then
