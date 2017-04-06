@@ -1,16 +1,26 @@
 #!/bin/bash
 set -ex
 
+
+# Helper functions
+linux() {
+    uname | grep -i Linux &>/dev/null
+}
+osx() {
+    uname | grep -i Darwin &>/dev/null
+}
+
+
 PYTHON=''
 INSTALLFLAGS=''
 
-if [ "$1" == "--user" ] || (uname | grep -i Darwin &>/dev/null); then
+if osx || [ "$1" == "--user" ]; then
     INSTALLFLAGS="--user"
 else
     PYTHON="sudo "
 fi
 
-if uname | grep -i Linux &>/dev/null; then
+if linux; then
     sudo apt-get update || true
     sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
 
@@ -34,7 +44,7 @@ PYTHON+="${PYVER}"
 
 # Find the Python site-packages that we need to use so that
 # GDB can find the files once we've installed them.
-if (uname | grep -i Linux &>/dev/null) && [ -z "$INSTALLFLAGS" ]; then
+if linux && [ -z "$INSTALLFLAGS" ]; then
     SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackages()[0])')
     INSTALLFLAGS="--target ${SITE_PACKAGES}"
 fi
@@ -53,11 +63,11 @@ SITE_PACKAGES=$(gdb -batch -q --nx -ex 'pi import site; print(site.getsitepackag
 
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
-    sudo ${PYTHON} -m ensurepip --upgrade
+    ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
 fi
 
 # Upgrade pip itself
-sudo ${PYTHON} -m pip install --upgrade pip
+${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 
 # Install Python dependencies
 ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
