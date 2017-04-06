@@ -42,15 +42,6 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'which context sections are displayed by default (also controls order)')
 
 
-context_sections = {
-    'r': context_regs,
-    'd': context_disasm,
-    'c': context_code,
-    's': context_stack,
-    'b': context_backtrace
-}
-
-
 # @pwndbg.events.stop
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -333,3 +324,12 @@ gdb.events.exited.connect(save_signal)
 
 def context_signal():
     return last_signal
+
+
+context_sections = {
+    'r': context_regs,
+    'd': context_disasm,
+    'c': context_code,
+    's': context_stack,
+    'b': context_backtrace
+}
