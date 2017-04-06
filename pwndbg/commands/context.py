@@ -38,7 +38,7 @@ def clear_screen():
 
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
 config_context_sections = pwndbg.config.Parameter('context-sections',
-                                                  'regs disassembly source stack backtrace',
+                                                  'regs disasm code stack backtrace',
                                                   'which context sections are displayed by default (also controls order)')
 
 # @pwndbg.events.stop
@@ -61,7 +61,7 @@ def context(*args):
     for arg in args:
         if 'r' == arg: result.extend(context_regs())
         if 'd' == arg: result.extend(context_code())
-        if 's' == arg: result.extend(context_source())
+        if 'c' == arg: result.extend(context_source())
         if 's' == arg: result.extend(context_stack())
         if 'b' == arg: result.extend(context_backtrace())
     result.extend(context_signal())
