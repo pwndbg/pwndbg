@@ -60,8 +60,8 @@ def context(*args):
     result.append(M.legend())
     for arg in args:
         if 'r' == arg: result.extend(context_regs())
-        if 'd' == arg: result.extend(context_code())
-        if 'c' == arg: result.extend(context_source())
+        if 'd' == arg: result.extend(context_disasm())
+        if 'c' == arg: result.extend(context_code())
         if 's' == arg: result.extend(context_stack())
         if 'b' == arg: result.extend(context_backtrace())
     result.extend(context_signal())
@@ -152,7 +152,7 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
-def context_code():
+def context_disasm():
     banner = [pwndbg.ui.banner("code")]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
@@ -166,7 +166,7 @@ def context_code():
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
-def context_source():
+def context_code():
     try:
         symtab = gdb.selected_frame().find_sal().symtab
         linetable = symtab.linetable()
