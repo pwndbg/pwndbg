@@ -41,6 +41,16 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'regs disasm code stack backtrace',
                                                   'which context sections are displayed by default (also controls order)')
 
+
+context_sections = {
+    'r': context_regs,
+    'd': context_disasm,
+    'c': context_code,
+    's': context_stack,
+    'b': context_backtrace
+}
+
+
 # @pwndbg.events.stop
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -59,11 +69,9 @@ def context(*args):
 
     result.append(M.legend())
     for arg in args:
-        if 'r' == arg: result.extend(context_regs())
-        if 'd' == arg: result.extend(context_disasm())
-        if 'c' == arg: result.extend(context_code())
-        if 's' == arg: result.extend(context_stack())
-        if 'b' == arg: result.extend(context_backtrace())
+        func = context_sections.get(arg, None)
+        if func:
+            result.extend(func())
     result.extend(context_signal())
 
     if config_clear_screen:
