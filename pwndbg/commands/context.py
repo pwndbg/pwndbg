@@ -49,7 +49,7 @@ def context(*args):
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'code', 'stack', 'backtrace', and 'args'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
     """
     if len(args) == 0:
         args = str(config_context_sections).split()
