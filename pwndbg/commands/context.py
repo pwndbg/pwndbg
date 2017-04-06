@@ -152,7 +152,7 @@ Unicorn emulation of code near the current instruction
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
 def context_disasm():
-    banner = [pwndbg.ui.banner("code")]
+    banner = [pwndbg.ui.banner("disasm")]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
@@ -195,7 +195,7 @@ def context_code():
                     source_lines[i] = C.highlight(source_lines[i])
                     break
 
-        banner = [pwndbg.ui.banner("code")]
+        banner = [pwndbg.ui.banner("source")]
         banner.extend(source_lines)
         return banner
     except:
