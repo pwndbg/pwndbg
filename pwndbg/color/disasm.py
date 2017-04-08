@@ -74,7 +74,7 @@ def instruction(ins):
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:
-        asm = asm.replace(ins.mnemonic, branch(ins.mnemonic))
+        asm = asm.replace(ins.mnemonic, branch(ins.mnemonic), 1)
 
     # If we know the conditional is taken, mark it as green.
     if ins.condition is None:
