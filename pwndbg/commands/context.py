@@ -37,6 +37,9 @@ def clear_screen():
     sys.stdout.write('\x1b[H\x1b[J')
 
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
+config_context_sections = pwndbg.config.Parameter('context-sections',
+                                                  'regs disasm code stack backtrace',
+                                                  'which context sections are displayed by default (also controls order)')
 
 
 # @pwndbg.events.stop
@@ -46,22 +49,20 @@ def context(*args):
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'code', 'stack', 'backtrace', and 'args'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
     """
     if len(args) == 0:
-        args = ['reg','code','stack','backtrace','args']
+        args = str(config_context_sections).split()
 
     args = [a[0] for a in args]
 
     result = []
 
     result.append(M.legend())
-    if 'r' in args: result.extend(context_regs())
-    if 'c' in args: result.extend(context_code())
-    if 'c' in args: result.extend(context_source())
-    if 'a' in args: result.extend(context_args())
-    if 's' in args: result.extend(context_stack())
-    if 'b' in args: result.extend(context_backtrace())
+    for arg in args:
+        func = context_sections.get(arg, None)
+        if func:
+            result.extend(func())
     result.extend(context_signal())
 
     if config_clear_screen:
@@ -150,8 +151,8 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
-def context_code():
-    banner = [pwndbg.ui.banner("code")]
+def context_disasm():
+    banner = [pwndbg.ui.banner("disasm")]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
@@ -164,7 +165,7 @@ def context_code():
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
-def context_source():
+def context_code():
     try:
         symtab = gdb.selected_frame().find_sal().symtab
         linetable = symtab.linetable()
@@ -194,7 +195,7 @@ def context_source():
                     source_lines[i] = C.highlight(source_lines[i])
                     break
 
-        banner = [pwndbg.ui.banner("code")]
+        banner = [pwndbg.ui.banner("source")]
         banner.extend(source_lines)
         return banner
     except:
@@ -323,3 +324,12 @@ gdb.events.exited.connect(save_signal)
 
 def context_signal():
     return last_signal
+
+
+context_sections = {
+    'r': context_regs,
+    'd': context_disasm,
+    'c': context_code,
+    's': context_stack,
+    'b': context_backtrace
+}
