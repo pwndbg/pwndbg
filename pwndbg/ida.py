@@ -328,7 +328,6 @@ def has_cached_cfunc(addr):
     return _ida.has_cached_cfunc(addr)
 
 
-@withIDA
 @withHexrays
 @takes_address
 @pwndbg.memoize.reset_on_stop
