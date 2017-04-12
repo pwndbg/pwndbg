@@ -16,7 +16,6 @@ import sys
 import tempfile
 
 import gdb
-import six
 
 import pwndbg.events
 import pwndbg.gcc
