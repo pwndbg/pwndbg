@@ -74,6 +74,12 @@ class withIDA(object):
             return self.fn(*args, **kwargs)
         return None
 
+def withHexrays(f):
+    @withIDA
+    @functools.wraps(f)
+    def wrapper(*a, **kw):
+        if _ida.init_hexrays_plugin():
+            return f(*a, **kw)
 
 def takes_address(function):
     @functools.wraps(function)
@@ -322,7 +328,7 @@ def has_cached_cfunc(addr):
     return _ida.has_cached_cfunc(addr)
 
 
-@withIDA
+@withHexrays
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
