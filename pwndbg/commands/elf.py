@@ -56,9 +56,6 @@ def plt():
 
 def get_section_bounds(section_name):
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    if not local_path:
-        print('No file is selected')
-        return None, None
 
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
@@ -66,11 +63,11 @@ def get_section_bounds(section_name):
         section = elffile.get_section_by_name(section_name)
 
         if not section:
-            return None, None
+            return (None, None)
 
         start = section['sh_addr']
         size = section['sh_size']
-        return start, start + size
+        return (start, start + size)
 
 
 def print_symbols_in_section(section_name, filter_text=''):
