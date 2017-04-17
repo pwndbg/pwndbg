@@ -56,9 +56,8 @@ def context(*args):
 
     args = [a[0] for a in args]
 
-    result = []
+    result = [M.legend()] if args else []
 
-    result.append(M.legend())
     for arg in args:
         func = context_sections.get(arg, None)
         if func:
