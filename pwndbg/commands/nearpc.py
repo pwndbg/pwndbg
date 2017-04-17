@@ -123,6 +123,15 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         line   = ' '.join((prefix, address_str, s, asm))
 
+        # Add any comment from ida to the end of the assembly
+        comment = pwndbg.ida.Comment(i.address)
+        if not comment:
+            comment = pwndbg.ida.RepeatableComment(i.address)
+        if comment:
+            comment = pwndbg.color.green(comment)
+            comment = pwndbg.color.bold(comment)
+            line += " ; {}".format(comment)
+
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
         if prev and prev.address + prev.size != i.address:

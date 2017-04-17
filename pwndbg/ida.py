@@ -103,19 +103,13 @@ def available():
 
 
 def l2r(addr):
-    exe = pwndbg.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
-    result = (addr - int(exe.address) + base()) & pwndbg.arch.ptrmask
-    return result
+    vaddr = pwndbg.vmmap.find(pwndbg.regs.pc).vaddr
+    return (addr - vaddr + base()) & pwndbg.arch.ptrmask
 
 
 def r2l(addr):
-    exe = pwndbg.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
-    result = (addr - base() + int(exe.address)) & pwndbg.arch.ptrmask
-    return result
+    vaddr = pwndbg.vmmap.find(pwndbg.regs.pc).vaddr
+    return (addr - base() + vaddr) & pwndbg.arch.ptrmask
 
 
 def remote(function):
@@ -136,7 +130,13 @@ def base():
 @withIDA
 @takes_address
 def Comment(addr):
-    return _ida.GetCommentEx(addr, 0) or _ida.GetCommentEx(addr)
+    return _ida.GetCommentEx(addr, 0)
+
+
+@withIDA
+@takes_address
+def RepeatableComment(addr):
+    return _ida.GetCommentEx(addr, 1)
 
 
 @withIDA
@@ -209,8 +209,6 @@ def GetBptEA(i):
 _breakpoints = []
 
 
-@pwndbg.events.cont
-@pwndbg.events.stop
 @withIDA
 def UpdateBreakpoints():
     # XXX: Remove breakpoints from IDA when the user removes them.
@@ -332,7 +330,8 @@ def has_cached_cfunc(addr):
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
-    return _ida.decompile(addr)
+    return None
+    # return _ida.decompile(addr)
 
 
 @withIDA
