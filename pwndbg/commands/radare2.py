@@ -17,13 +17,11 @@ parser.add_argument('--no-seek', action='store_true',
 parser.add_argument('arguments', nargs='*', type=str,
                     help='Arguments to pass to radare')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False):
     filename = pwndbg.file.get_file(pwndbg.proc.exe)
-
-    if not filename:
-        print('No file is selected')
-        return
 
     # Build up the command line to run
     cmd = ['radare2', filename]
