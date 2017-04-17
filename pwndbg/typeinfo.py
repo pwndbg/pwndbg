@@ -16,13 +16,13 @@ import sys
 import tempfile
 
 import gdb
-import six
 
 import pwndbg.events
 import pwndbg.gcc
 import pwndbg.memoize
 
 module = sys.modules[__name__]
+
 
 def is_pointer(value):
     type = value
@@ -33,25 +33,36 @@ def is_pointer(value):
     type = type.strip_typedefs()
     return type.code == gdb.TYPE_CODE_PTR
 
+
+def lookup_types(*types):
+    for type_str in types:
+        try:
+            return gdb.lookup_type(type_str)
+        except Exception as e:
+            exc = e
+    raise exc
+
+
 @pwndbg.events.start
 @pwndbg.events.stop
 def update():
+
     module.char   = gdb.lookup_type('char')
-    module.ulong  = gdb.lookup_type('unsigned long')
-    module.long   = gdb.lookup_type('long')
-    module.uchar  = gdb.lookup_type('unsigned char')
-    module.ushort = gdb.lookup_type('unsigned short')
-    module.uint   = gdb.lookup_type('unsigned int')
+    module.ulong  = lookup_types('unsigned long', 'uint')
+    module.long   = lookup_types('long', 'int')
+    module.uchar  = lookup_types('unsigned char', 'ubyte')
+    module.ushort = lookup_types('unsigned short', 'ushort')
+    module.uint   = lookup_types('unsigned int', 'uint')
     module.void   = gdb.lookup_type('void')
-    module.uint8  = gdb.lookup_type('unsigned char')
-    module.uint16 = gdb.lookup_type('unsigned short')
-    module.uint32 = gdb.lookup_type('unsigned int')
-    module.uint64 = gdb.lookup_type('unsigned long long')
+    module.uint8  = module.uchar
+    module.uint16 = module.ushort
+    module.uint32 = module.uint
+    module.uint64 = lookup_types('unsigned long long', 'ulong')
 
     module.int8   = gdb.lookup_type('char')
     module.int16  = gdb.lookup_type('short')
     module.int32  = gdb.lookup_type('int')
-    module.int64  = gdb.lookup_type('long long')
+    module.int64  = lookup_types('long long', 'long')
 
     module.ssize_t = module.long
     module.size_t = module.ulong
