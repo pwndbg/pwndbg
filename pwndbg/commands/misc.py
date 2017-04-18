@@ -7,9 +7,6 @@ from __future__ import unicode_literals
 
 import argparse
 import errno as _errno
-import struct
-
-import gdb
 
 import pwndbg as _pwndbg
 import pwndbg.arch as _arch
@@ -25,7 +22,9 @@ Converts errno (or argument) to its string representation.
 ''')
 parser.add_argument('err', type=int, nargs='?', default=None, help='Errno; if not passed, it is retrieved from __errno_location')
 
+
 @_pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
 def errno(err):
     if err is None:
         # Dont ask.
@@ -48,6 +47,7 @@ Prints out a list of all pwndbg commands. The list can be optionally filtered if
 ''')
 parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='Filter to apply to commands names/docs')
 
+
 @_pwndbg.commands.ArgparsedCommand(parser)
 def pwndbg(filter_pattern):
     sorted_commands = list(_pwndbg.commands._Command.commands)
@@ -66,6 +66,7 @@ def pwndbg(filter_pattern):
         if not filter_pattern or filter_pattern in name.lower() or (docs and filter_pattern in docs.lower()):
             print("%-20s %s" % (name, docs))
 
+
 @_pwndbg.commands.ParsedCommand
 def distance(a, b):
     '''Print the distance between the two arguments'''
@@ -75,6 +76,7 @@ def distance(a, b):
     distance = (b-a)
 
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
+
 
 @_pwndbg.commands.Command
 @_pwndbg.commands.OnlyWhenRunning

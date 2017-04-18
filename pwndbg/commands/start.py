@@ -18,6 +18,7 @@ import pwndbg.symbol
 
 break_on_first_instruction = False
 
+
 @pwndbg.events.start
 def on_start():
     global break_on_first_instruction
@@ -25,6 +26,7 @@ def on_start():
         spec = "*%#x" % (int(pwndbg.elf.entry()))
         gdb.Breakpoint(spec, temporary=True)
         break_on_first_instruction = False
+
 
 @pwndbg.commands.Command
 def start(*a):
@@ -56,6 +58,7 @@ def start(*a):
 
 
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWithFile
 def entry(*a):
     """
     Set a breakpoint at the first instruction executed in

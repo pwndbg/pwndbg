@@ -6,7 +6,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import re
 import subprocess
 import tempfile
 
@@ -20,7 +19,9 @@ parser = argparse.ArgumentParser(description="ROP gadget search with ropper.",
 parser.add_argument('argument', nargs='*', type=str,
                     help='Arguments to pass to ropper')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWithFile
 def ropper(argument):
     with tempfile.NamedTemporaryFile() as corefile:
 
@@ -30,11 +31,6 @@ def ropper(argument):
             gdb.execute('gcore %s' % filename)
         else:
             filename = pwndbg.proc.exe
-
-        # If no binary was specified, we can't do anything
-        if not filename:
-            print("No file to get gadgets from")
-            return
 
         # Build up the command line to run
         cmd = ['ropper',

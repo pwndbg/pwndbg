@@ -5,9 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
 import functools
-import sys
 import traceback
 
 import gdb
@@ -23,6 +21,7 @@ import pwndbg.symbol
 import pwndbg.ui
 
 debug = True
+
 
 class _Command(gdb.Command):
     """Generic command wrapper"""
@@ -62,6 +61,7 @@ class _Command(gdb.Command):
         except Exception:
             print(traceback.format_exc())
 
+
 class _ParsedCommand(_Command):
     #: Whether to return the string 'arg' if parsing fails.
     sloppy = False
@@ -78,9 +78,11 @@ class _ParsedCommand(_Command):
     def fix(self, arg):
         return fix(arg, self.sloppy, self.quiet)
 
+
 class _ParsedCommandPrefix(_ParsedCommand):
     def __init__(self, function, inc=True, prefix=True):
         super(_ParsedCommand, self).__init__(function, inc, prefix)
+
 
 def fix(arg, sloppy=False, quiet=True):
     if isinstance(arg, gdb.Value):
@@ -105,8 +107,21 @@ def fix(arg, sloppy=False, quiet=True):
 
     return None
 
+
 def fix_int(*a, **kw):
     return int(fix(*a,**kw))
+
+
+def OnlyWithFile(function):
+    @functools.wraps(function)
+    def _OnlyWithFile(*a, **kw):
+        if pwndbg.proc.exe:
+            return function(*a, **kw)
+        else:
+            print("There is no file loaded.")
+
+    return _OnlyWithFile
+
 
 def OnlyWhenRunning(function):
     @functools.wraps(function)
@@ -117,11 +132,13 @@ def OnlyWhenRunning(function):
             print("The program is not being run.")
     return _OnlyWhenRunning
 
+
 def Command(func, *a, **kw):
     class C(_Command):
         __doc__ = func.__doc__
         __name__ = func.__name__
     return C(func, *a, **kw)
+
 
 def ParsedCommand(func):
     class C(_ParsedCommand):
@@ -129,11 +146,13 @@ def ParsedCommand(func):
         __name__ = func.__name__
     return C(func)
 
+
 def QuietSloppyParsedCommand(func):
     c = ParsedCommand(func)
     c.quiet = True
     c.sloppy = True
     return c
+
 
 class ArgparsedCommand(object):
     """Adds documentation and offloads parsing for a Command via argparse"""
@@ -152,6 +171,7 @@ class ArgparsedCommand(object):
 
     def __call__(self, function):
         self.parser.prog = function.__name__
+
         @functools.wraps(function)
         def _ArgparsedCommand(*args):
             try:

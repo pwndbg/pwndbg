@@ -22,7 +22,9 @@ parser.add_argument('--grep', type=str,
 parser.add_argument('argument', nargs='*', type=str,
                     help='Arguments to pass to ROPgadget')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWithFile
 def rop(grep, argument):
     with tempfile.NamedTemporaryFile() as corefile:
 
@@ -32,11 +34,6 @@ def rop(grep, argument):
             gdb.execute('gcore %s' % filename)
         else:
             filename = pwndbg.proc.exe
-
-        # If no binary was specified, we can't do anything
-        if not filename:
-            print("No file to get gadgets from")
-            return
 
         # Build up the command line to run
         cmd = ['ROPgadget',

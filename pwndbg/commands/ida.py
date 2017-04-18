@@ -73,44 +73,46 @@ if pwndbg.ida.available():
         j()
 
 
-@pwndbg.commands.Command
-def save_ida():
-    if not pwndbg.ida.available():
-        return
+    @pwndbg.commands.Command
+    def save_ida():
+        if not pwndbg.ida.available():
+            return
 
-    path = pwndbg.ida.GetIdbPath()
+        path = pwndbg.ida.GetIdbPath()
 
-    # Need to handle emulated paths for Wine
-    if path.startswith('Z:'):
-        path = path[2:].replace('\\', '/')
-        pwndbg.ida.SaveBase(path)
+        # Need to handle emulated paths for Wine
+        if path.startswith('Z:'):
+            path = path[2:].replace('\\', '/')
+            pwndbg.ida.SaveBase(path)
 
-    basename = os.path.basename(path)
-    dirname = os.path.dirname(path)
-    backups = os.path.join(dirname, 'ida-backup')
+        basename = os.path.basename(path)
+        dirname = os.path.dirname(path)
+        backups = os.path.join(dirname, 'ida-backup')
 
-    if not os.path.isdir(backups):
-        os.mkdir(backups)
+        if not os.path.isdir(backups):
+            os.mkdir(backups)
 
-    basename, ext = os.path.splitext(basename)
-    basename += '-%s' % datetime.datetime.now().isoformat()
-    basename += ext
+        basename, ext = os.path.splitext(basename)
+        basename += '-%s' % datetime.datetime.now().isoformat()
+        basename += ext
 
-    # Windows doesn't like colons in paths
-    basename = basename.replace(':', '_')
+        # Windows doesn't like colons in paths
+        basename = basename.replace(':', '_')
 
-    full_path = os.path.join(backups, basename)
+        full_path = os.path.join(backups, basename)
 
-    pwndbg.ida.SaveBase(full_path)
+        pwndbg.ida.SaveBase(full_path)
 
-    data = open(full_path, 'rb').read()
+        data = open(full_path, 'rb').read()
 
-    # Compress!
-    full_path_compressed = full_path + '.bz2'
-    bz2.BZ2File(full_path_compressed, 'w').write(data)
+        # Compress!
+        full_path_compressed = full_path + '.bz2'
+        bz2.BZ2File(full_path_compressed, 'w').write(data)
 
-    # Remove old version
-    os.unlink(full_path)
+        # Remove old version
+        os.unlink(full_path)
+
+    save_ida()
 
 
 class ida(gdb.Function):
@@ -131,4 +133,3 @@ class ida(gdb.Function):
 
 
 ida()
-save_ida()
