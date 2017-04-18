@@ -68,10 +68,10 @@ def update():
         m.qemu = m.current
 
 def pack(integer):
-    return struct.pack(fmt, integer & ptrmask)
+    return struct.pack(str(fmt), integer & ptrmask)
 
 def unpack(data):
-    return struct.unpack(fmt, data)[0]
+    return struct.unpack(str(fmt), data)[0]
 
 def signed(integer):
     return unpack(pack(integer), signed=True)
