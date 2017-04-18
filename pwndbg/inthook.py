@@ -14,6 +14,7 @@ import os
 import sys
 
 import gdb
+import six
 from future.utils import with_metaclass
 
 import pwndbg.typeinfo
@@ -46,7 +47,7 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
             if symbol.is_function:
                 value = value.cast(pwndbg.typeinfo.ulong)
 
-        else:
+        elif not isinstance(value, six.string_types):
             return _int.__new__(cls, value, *a, **kw)
 
         return _int(_int(value, *a, **kw))
