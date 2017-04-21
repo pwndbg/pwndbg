@@ -14,8 +14,8 @@ import sys
 import gdb
 
 import pwndbg
-import pwndbg.commands
 import pwndbg.color
+import pwndbg.commands
 
 
 def _gdb_version():
