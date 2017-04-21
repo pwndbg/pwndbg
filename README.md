@@ -40,7 +40,9 @@ For further info about features/functionalities, see [FEATURES](FEATURES.md).
 
 Most of Pwndbg was written by [Zach Riggle](https://twitter.com/ebeip90), with [many other contributors](https://github.com/pwndbg/pwndbg/graphs/contributors) offering up patches via Pull Requests.
 
+Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md).
+
 ## Contact
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
-at [`ebeip90` on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
+[`ebeip90` at #pwndbg on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
 Click [here](https://kiwiirc.com/client/irc.freenode.net/pwndbg) to connect.
