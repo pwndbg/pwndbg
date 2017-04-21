@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
-
 import gdb
 
 import pwndbg.android
@@ -44,6 +42,7 @@ import pwndbg.commands.stack
 import pwndbg.commands.start
 import pwndbg.commands.telescope
 import pwndbg.commands.theme
+import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
 import pwndbg.commands.xor
@@ -67,7 +66,11 @@ import pwndbg.regs
 import pwndbg.stack
 import pwndbg.stdio
 import pwndbg.typeinfo
+import pwndbg.version
 import pwndbg.vmmap
+
+__version__ = pwndbg.version.__version__
+version = __version__
 
 try:
     import unicorn
