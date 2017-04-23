@@ -17,15 +17,28 @@ import pwndbg.memory
 import pwndbg.typeinfo
 import pwndbg.vmmap
 
-
-def search(searchfor, mapping=None, start=None, end=None, 
+def search(searchfor, mappings=None, start=None, end=None, 
            executable=False, writable=False):
+    """Search inferior memory for a byte sequence.
+
+    Arguments:
+        searchfor(bytes): Byte sequence to find
+        mappings(list): List of pwndbg.memory.Page objects to search
+            By default, uses all available mappings.
+        start(int): First address to search, inclusive.
+        end(int): Last address to search, exclusive.
+        executable(bool): Restrict search to executable pages
+        writable(bool): Restrict search to writable pages
+
+    Yields:
+        An iterator on the address matches
+    """
     value = searchfor
     size  = None
 
     i = gdb.selected_inferior()
 
-    maps = pwndbg.vmmap.get()
+    maps = mappings or pwndbg.vmmap.get()
     hits = []
 
     if end and start:
@@ -40,9 +53,6 @@ def search(searchfor, mapping=None, start=None, end=None,
     for vmmap in maps:
         start = vmmap.vaddr
         end   = start + vmmap.memsz
-
-        if mapping and mapping not in vmmap.objfile:
-            continue
 
         while True:
             # No point in searching if we can't read the memory
