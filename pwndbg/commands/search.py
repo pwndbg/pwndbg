@@ -129,6 +129,16 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
         value = value.encode()
         value += b'\x00'
 
+    # Find the mappings that we're looking for
+    mappings = pwndbg.vmmap.get()
+
+    if mapping:
+        mappings = [m for m in mappings if mapping in m.objfile]
+
+    if not mappings:
+        print(M.red("Could not find mapping %r" % mapping))
+        return
+
     # Prep the saved set if necessary
     global saved
     if save:
