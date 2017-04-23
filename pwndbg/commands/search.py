@@ -126,6 +126,7 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
 
     # Null-terminate strings
     elif type == 'string':
+        value = value.encode()
         value += b'\x00'
 
     # Prep the saved set if necessary
