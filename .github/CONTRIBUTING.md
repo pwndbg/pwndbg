@@ -6,6 +6,8 @@ If you want to help, fork the project, hack your changes and create a pull reque
 
 If this is something big/new feature or a bug, consider creating an issue first.
 
+Some internal stuff that might be helpful during development:
+* [Our replacement for pdb - just `import pwndbg.pdb` and the magic will happen](pwndbg/pdb.py)
 
 Some guides:
 * [Fork a project](https://help.github.com/articles/fork-a-repo/)
