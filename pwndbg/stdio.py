@@ -20,16 +20,7 @@ import pwndbg.compat
 
 
 def get(fd, mode):
-    if pwndbg.compat.python3:
-        file = io.open(fd, mode=mode, buffering=0)
-
-        kw ={}
-        if pwndbg.compat.python3:
-            kw['write_through']=True
-
-        return io.TextIOWrapper(file, **kw)
-    else:
-        return codecs.open(fd, mode, 'utf-8')
+    return io.open(fd, mode + 'b', buffering=0)
 
 
 class Stdio(object):
@@ -37,11 +28,10 @@ class Stdio(object):
 
     def __enter__(self, *a, **kw):
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
-
         if pwndbg.compat.python3 or True:
-            sys.stdin  = get('/dev/stdin', 'rb')
-            sys.stdout = get('/dev/stdout', 'wb')
-            sys.stderr = get('/dev/stderr', 'wb')
+            sys.stdin  = get('/dev/stdin', 'r')
+            sys.stdout = get('/dev/stdout', 'w')
+            sys.stderr = get('/dev/stderr', 'w')
 
     def __exit__(self, *a, **kw):
         sys.stdin, sys.stdout, sys.stderr = self.queue.pop()
