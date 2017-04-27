@@ -47,7 +47,7 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
             if symbol.is_function:
                 value = value.cast(pwndbg.typeinfo.ulong)
 
-        elif not isinstance(value, six.string_types):
+        elif not isinstance(value, six.string_types) and not isinstance(value, six.integer_types):
             return _int.__new__(cls, value, *a, **kw)
 
         return _int(_int(value, *a, **kw))
