@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import pdb
 import functools
 import traceback
 
@@ -20,7 +21,16 @@ import pwndbg.stdio
 import pwndbg.symbol
 import pwndbg.ui
 
-debug = True
+
+verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktracefor exceptions raised in Pwndbg commands')
+debug = pwndbg.config.Parameter('exception-debugger', False, 'whether to debug exceptions raised in Pwndbg commands')
+
+def handle_exception():
+    if debug or verbose:
+        print(traceback.format_exc())
+    if debug:
+        with pwndbg.stdio.stdio:
+            pdb.post_mortem()
 
 
 class _Command(gdb.Command):
@@ -48,8 +58,7 @@ class _Command(gdb.Command):
             self.repeat = self.check_repeated(argument, from_tty)
             return self(*argv)
         except TypeError:
-            if debug:
-                print(traceback.format_exc())
+            handle_exception()
             raise
         finally:
             self.repeat = False
@@ -88,14 +97,14 @@ class _Command(gdb.Command):
 
     def __call__(self, *args, **kwargs):
         try:
-            with pwndbg.stdio.stdio:
-                return self.function(*args, **kwargs)
+            return self.function(*args, **kwargs)
         except TypeError as te:
             print(te)
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
+            handle_exception()
         except Exception:
-            print(traceback.format_exc())
+            handle_exception()
 
 
 class _ParsedCommand(_Command):
