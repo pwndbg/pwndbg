@@ -5,8 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pdb
 import functools
+import pdb
 import traceback
 
 import gdb
@@ -20,7 +20,6 @@ import pwndbg.regs
 import pwndbg.stdio
 import pwndbg.symbol
 import pwndbg.ui
-
 
 verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktracefor exceptions raised in Pwndbg commands')
 debug = pwndbg.config.Parameter('exception-debugger', False, 'whether to debug exceptions raised in Pwndbg commands')
