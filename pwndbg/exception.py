@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import pdb
+import sys
 import traceback
 
 import pwndbg.config
@@ -19,7 +20,7 @@ def handle():
     if debug or verbose:
         print(traceback.format_exc())
     else:
-        print(e)
+        print(sys.exc_info()[1])
 
     # Break into the interactive debugger
     if debug:
