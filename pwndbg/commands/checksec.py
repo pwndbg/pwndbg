@@ -68,7 +68,7 @@ def _checksec():
             if "No RUNPATH" in cs_out:
                 result['RUNPATH'] = 0
             else:
-                result['PIE'] = 1
+                result['RUNPATH'] = 1
 
             return result
     else:
