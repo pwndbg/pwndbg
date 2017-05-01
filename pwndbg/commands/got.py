@@ -17,6 +17,7 @@ from pwndbg.color import *
 
 
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithFile
 def got():
     '''
@@ -33,6 +34,7 @@ def got():
             break
     else:
         print('Could not find checksec or checksec.sh in $PATH.')
+        return
 
     ispie = False
     bin_text_base = None
