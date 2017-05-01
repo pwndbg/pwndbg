@@ -82,14 +82,14 @@ def got():
                                 got_address = struct.unpack("<I", pwndbg.memory.read(int(address, 16), 4))[0]
                                 print("[%s] %s -> %s" % (address, light_yellow(name), pwndbg.chain.format(got_address)))
                         else:
-                            for (address, info, rtype, value, name, _ , _ ) in f_line:
-                                if ispie:
-                                    address = hex(bin_text_base + int(address, 16))
-                                    got_address = struct.unpack("<Q",pwndbg.memory.read(int(address, 16), 8))[0]
-                                    print("[%s] %s -> %s" % (address, light_yellow(name),pwndbg.chain.format(got_address)))
-                                else:
-                                    got_address = struct.unpack("<Q", pwndbg.memory.read(int(address, 16), 8))[0]
-                                    print("[%s] %s -> %s" % (address,light_yellow(name),pwndbg.chain.format(got_address)))
+                            for (address, info, rtype, value, name, _, _) in f_line:
+                                addressval = int(address,16)
+
+                                if ispie: # if PIE, address is only the offset from the binary base address
+                                    addressval = bin_text_base + addressval
+
+                                got_address = struct.unpack("<Q",pwndbg.memory.read(addressval, 8))[0]
+                                print("[%s] %s -> %s" % (hex(addressval), light_yellow(name),pwndbg.chain.format(got_address)))
             else:
                 print('Could not find readelf in $PATH')
     else:
