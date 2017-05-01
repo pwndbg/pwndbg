@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import codecs
+import six
 import string
 
 printable = set(string.printable)
@@ -33,19 +34,58 @@ def marshall_int(self, value, write):
     write(template % value)
 
 def marshall_binary(self, value, write):
-    if isprint(value):
-        return self.dump_string(value, write)
-    template = "<value><binary>%s</binary></value>"
+    template = "<value><binary>%s,%s</binary></value>"
+
+    encoding = None
+
+    # Python2 string and bytes are the same
+    if isinstance(value, bytes):
+        encoding = 'bytes'
+
+    # Python2 unicode and Python3 string need to be *encoded* to bytes
+    elif isinstance(value, six.string_types):
+        try:
+            value.encode('latin-1')
+            encoding = 'latin-1'
+        except Exception as e:
+            print(type(e), e)
+            pass
+
+        try:
+            value.encode('utf-8')
+            encoding = 'utf-8'
+        except Exception as e:
+            print(type(e), e)
+            pass
+
+        value = value.encode(encoding)
+
+    elif isinstance(value, bytearray):
+        encoding = 'bytearray'
+
     value = codecs.encode(value, 'hex')
-    value = value.encode('latin-1')
-    write(template % value)
+    value = value.decode('latin-1')
+
+    print(template % (encoding, value))
+    write(template % (encoding, value))
 
 def unmarshall_int(self, data):
     self.append(int(data))
     self._value = 0
 
 def unmarshall_binary(self, data):
-    self.append(bytearray(codecs.decode(data, 'hex')))
+    encoding, data = data.split(',', 1)
+
+    data = codecs.decode(data, 'hex')
+
+    if encoding in ('latin-1', 'utf-8'):
+        data = data.decode(encoding)
+    elif encoding == 'bytes':
+        pass
+    elif encoding == 'bytearray':
+        data = bytearray(data)
+
+    self.append(data)
     self._value = 0
 
 # Registration routines
@@ -56,10 +96,11 @@ def register_binary_type(t):
     xmlrpclib.Marshaller.dispatch[t] = marshall_binary
 
 # We make some changes to the XMLRPC spec to support our needs
-register_integer_type(type(1))
-register_integer_type(type(1 << 100))
+register_integer_type(type(1))          # int
+register_integer_type(type(1 << 100))   # python2 long
 
-register_binary_type(type(''))  # Unicode strings
+register_binary_type(type(''))  # Python2 strings
+register_binary_type(type('🤖'))  # Unicode strings
 register_binary_type(type(b'')) # Byte strings
 register_binary_type(bytearray) # Byte arrays
 

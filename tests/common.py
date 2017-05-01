@@ -10,7 +10,7 @@ import tempfile
 import time
 import unittest
 
-from . import xmlhacks
+from pwndbg.xmlhacks import hacks
 
 def pywrite(data):
     return write(data, suffix='.py')
@@ -43,6 +43,6 @@ def run_with_server():
     return subprocess.Popen(command, stdout=subprocess.PIPE)
 
 gdb_with_server = run_with_server()
-server = xmlhacks.xmlrpclib.ServerProxy('http://127.0.0.1:8889', verbose=1)
+server = hacks.xmlrpclib.ServerProxy('http://127.0.0.1:8889', verbose=1)
 
 atexit.register(lambda: gdb_with_server.kill())
