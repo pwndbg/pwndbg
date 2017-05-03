@@ -14,6 +14,7 @@ import binascii
 import errno as _errno
 import os
 import tempfile
+import subprocess
 
 import gdb
 
@@ -134,3 +135,15 @@ def readlink(path):
     data = data[:-len(ending)]
 
     return data
+
+def file(path):
+    """
+    Execute the 'file' command over the target binary
+    specified in path
+    """
+    program = pwndbg.which.which("file")
+    if program:
+        argv = [program, path]
+        return subprocess.check_output(argv).decode('utf-8')
+    else:
+        return None

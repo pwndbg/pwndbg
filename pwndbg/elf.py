@@ -285,3 +285,27 @@ def map_inner(ei_class, ehdr, objfile):
         page.objfile = objfile
 
     return tuple(sorted(pages))
+
+
+def getjmpslots(path):
+    """
+    Use the readelf command with the parameter -r
+    in order to retrieve the jump slots inside the 
+    binary specified in path.
+    """
+    program = pwndbg.which.which("readelf")
+    if program:
+        argv = [program, "-r", path]
+        readelf_out = subprocess.check_output(argv).decode('utf-8')
+        if "Error" in readelf_out:
+            return "Error"
+        else:
+            jmpslots = ""
+            for line in readelf_out.splitlines():
+                if "JUMP" not in line:
+                    continue
+                else:
+                    jmpslots = jmpslots + line + "\n"
+            return jmpslots
+    else:
+        return None
