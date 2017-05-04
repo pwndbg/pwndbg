@@ -51,13 +51,14 @@ def heap(addr=None):
     """
     Prints out all chunks in the main_arena, or the arena specified by `addr`.
     """
+
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
         return
 
-    heap_base = main_heap.get_bounds()[0]
+    heap_base = main_heap.get_bounds(addr)[0]
     if heap_base == None:
         print(red('Could not find the heap'))
         return
@@ -96,6 +97,24 @@ def arena(addr=None):
 
     print(main_arena)
 
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def arenas():
+
+    heap  = pwndbg.heap.current
+    addr  = None
+    arena = heap.get_arena(addr)
+    main_arena_addr = int(arena.address)
+    while addr != main_arena_addr:
+        
+        low,top = heap.get_bounds(addr)
+        print("[%s] begin: %#x end: %#x"%( hex(addr) if addr else 'main',int(low),int(top)))        
+        addr = int(arena['next'])        
+        arena = heap.get_arena(addr)
+
+
+    
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def mp():
@@ -156,10 +175,12 @@ def malloc_chunk(addr):
     chunk = value_from_type('struct malloc_chunk', addr)
     size = int(chunk['size'])
     actual_size = size & ~7
-    fastbins = main_heap.fastbins()
-
     prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
-
+    arena = None
+    if non_main_arena:
+        arena = main_heap.get_heap(addr)['ar_ptr']
+        
+    fastbins = main_heap.fastbins(arena)
     header = M.get(addr)
     if prev_inuse:
         if actual_size in fastbins:

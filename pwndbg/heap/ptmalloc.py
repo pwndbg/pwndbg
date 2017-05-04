@@ -16,6 +16,13 @@ from pwndbg.color import red
 from pwndbg.constants import ptmalloc
 
 
+HEAP_MAX_SIZE     = 1024 * 1024
+
+def heap_for_ptr(ptr):
+    "find the heap and corresponding arena for a given ptr"
+    return (ptr & ~(HEAP_MAX_SIZE-1))
+
+
 class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
@@ -51,6 +58,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return pwndbg.symbol.address('global_max_fast')
 
 
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def heap_info(self):
+        return pwndbg.typeinfo.load('heap_info')
+
+    
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
@@ -136,6 +149,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         except:
             return None
 
+    def get_heap(self,addr):
+        return pwndbg.memory.poi(self.heap_info,heap_for_ptr(addr))
+        
 
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
@@ -144,12 +160,27 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return pwndbg.memory.poi(self.malloc_state, arena_addr)
 
 
-    def get_bounds(self):
+    def get_arena_for_chunk(self,addr):
+        chunk = pwndbg.memory.poi(self.malloc_state,addr)
+        _,_,nm = self.chunk_flags(chunk['size'])
+        if nm:
+            r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
+        else:
+            r=self.main_arena
+        return r
+            
+    def get_bounds(self,addr=None):
         """
         Finds the heap bounds by using mp_ structure's sbrk_base property
         and falls back to using /proc/self/maps (vmmap) which can be wrong
         when .bss is very large
         """
+
+        if addr:
+            heap  = self.get_heap(addr)
+            base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
+            return (base,base+heap['size'])
+        
         lower, upper = None, None
 
         try:
@@ -196,6 +227,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
+    
 
     def bin_at(self, index, arena_addr=None):
         """
