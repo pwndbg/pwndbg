@@ -55,7 +55,7 @@ def heap(addr=None):
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
-    if main_arena == None:
+    if main_arena is None:
         return
 
     heap_region = main_heap.get_region(addr)
@@ -93,7 +93,7 @@ def arena(addr=None):
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
-    if main_arena == None:
+    if main_arena is None:
         return
 
     print(main_arena)
@@ -141,7 +141,7 @@ def top_chunk(addr=None):
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
-    if main_arena == None:
+    if main_arena is None:
         heap_region = main_heap.get_region()
         if not heap_region:
             print(red('Could not find the heap'))
@@ -226,7 +226,7 @@ def fastbins(addr=None, verbose=True):
     main_heap = pwndbg.heap.current
     fastbins  = main_heap.fastbins(addr)
 
-    if fastbins == None:
+    if fastbins is None:
         return
 
     formatted_bins = format_bin(fastbins, verbose)
@@ -245,7 +245,7 @@ def unsortedbin(addr=None, verbose=True):
     main_heap   = pwndbg.heap.current
     unsortedbin = main_heap.unsortedbin(addr)
 
-    if unsortedbin == None:
+    if unsortedbin is None:
         return
 
     formatted_bins = format_bin(unsortedbin, verbose)
@@ -264,7 +264,7 @@ def smallbins(addr=None, verbose=False):
     main_heap = pwndbg.heap.current
     smallbins = main_heap.smallbins(addr)
 
-    if smallbins == None:
+    if smallbins is None:
         return
 
     formatted_bins = format_bin(smallbins, verbose)
@@ -283,7 +283,7 @@ def largebins(addr=None, verbose=False):
     main_heap = pwndbg.heap.current
     largebins = main_heap.largebins(addr)
 
-    if largebins == None:
+    if largebins is None:
         return
 
     formatted_bins = format_bin(largebins, verbose)
