@@ -15,10 +15,11 @@ def build_id():
     """
     try:
         git_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.git')
-        commit_id = subprocess.check_output(['git', '--git-dir', git_path, 'rev-parse', 'HEAD'])
-        commit_id = commit_id[:8].decode('utf-8')
+        cmd = ['git', '--git-dir', git_path, 'rev-parse', 'HEAD']
 
-        return 'build: %s' % commit_id
+        commit_id = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+
+        return 'build: %s' % commit_id[:8].decode('utf-8')
     except:
         return ''
 
