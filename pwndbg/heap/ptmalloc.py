@@ -27,7 +27,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
         self._main_arena    = None
-        self._mp            = None
+        self._mp            = {}
 
 
     @property
@@ -181,19 +181,16 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             heap  = self.get_heap(addr)
             base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
             page  = pwndbg.vmmap.find(base)
-            ## trim whole page to look exact like heap
+            ## trim whole page to look exactly like heap
             page.size = heap['size']
             page.vaddr = base
             
             return page
-        
-        lower, upper = None, None
 
-        try:
-            lower = int(self.mp['sbrk_base'])
-        except:
-            lower = None
 
+
+        lower = self.mp.get('sbrk_base',None)
+            
         page = None
         for m in pwndbg.vmmap.get():
             if m.objfile == '[heap]':
