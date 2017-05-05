@@ -102,6 +102,9 @@ def arena(addr=None):
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def arenas():
+    """
+    Prints out allocated arenas 
+    """
 
     heap  = pwndbg.heap.current
     addr  = None
@@ -115,7 +118,7 @@ def arenas():
             print(red('Could not find the heap'))
             return
         
-        print(fmt%(hex(addr) if addr else 'main'),str(h))
+        print(fmt%(hex(addr) if addr else 'main'), h)
         addr = int(arena['next'])        
         arena = heap.get_arena(addr)
 
