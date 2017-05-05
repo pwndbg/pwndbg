@@ -27,7 +27,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
         self._main_arena    = None
-        self._mp            = {}
+        self._mp            = None
 
 
     @property
@@ -187,10 +187,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             
             return page
 
-
-
-        lower = self.mp.get('sbrk_base',None)
-            
         page = None
         for m in pwndbg.vmmap.get():
             if m.objfile == '[heap]':
@@ -198,8 +194,10 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 break
 
         if page is not None:
-            lower = lower or page.vaddr
-            page.vaddr = lower
+            mp = self.mp
+            if mp:
+                ## this can't fail right?
+                page.vaddr = mp['sbrk_base']
             return page
 
         return None
