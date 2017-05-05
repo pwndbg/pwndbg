@@ -169,17 +169,23 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             r=self.main_arena
         return r
             
-    def get_bounds(self,addr=None):
+    def get_region(self,addr=None):
         """
-        Finds the heap bounds by using mp_ structure's sbrk_base property
+        Finds the memory region used for heap by using mp_ structure's sbrk_base property
         and falls back to using /proc/self/maps (vmmap) which can be wrong
         when .bss is very large
+        For non main-arena heaps use heap_info struct provieded at the beging of the page.
         """
 
         if addr:
             heap  = self.get_heap(addr)
             base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
-            return (base,base+heap['size'])
+            page  = pwndbg.vmmap.find(base)
+            ## trim whole page to look exact like heap
+            page.size = heap['size']
+            page.vaddr = base
+            
+            return page
         
         lower, upper = None, None
 
@@ -196,9 +202,10 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         if page is not None:
             lower = lower or page.vaddr
-            return (lower, page.vaddr + page.memsz)
+            page.vaddr = lower
+            return page
 
-        return (None, None)
+        return None
 
     
     def fastbin_index(self, size):

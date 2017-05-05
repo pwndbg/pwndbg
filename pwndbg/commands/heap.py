@@ -58,8 +58,9 @@ def heap(addr=None):
     if main_arena == None:
         return
 
-    heap_base = main_heap.get_bounds(addr)[0]
-    if heap_base == None:
+    heap_region = main_heap.get_region(addr)
+
+    if heap_region is None:
         print(red('Could not find the heap'))
         return
 
@@ -72,7 +73,7 @@ def heap(addr=None):
 
     # Print out all chunks on the heap
     # TODO: Add an option to print out only free or allocated chunks
-    addr = heap_base
+    addr = heap_region.vaddr
     while addr <= top:
         chunk = malloc_chunk(addr)
         size = int(chunk['size'])
@@ -106,10 +107,15 @@ def arenas():
     addr  = None
     arena = heap.get_arena(addr)
     main_arena_addr = int(arena.address)
+    fmt = '[%%%ds]' % (pwndbg.arch.ptrsize *2)
     while addr != main_arena_addr:
         
-        low,top = heap.get_bounds(addr)
-        print("[%s] begin: %#x end: %#x"%( hex(addr) if addr else 'main',int(low),int(top)))        
+        h = heap.get_region(addr)
+        if not h:
+            print(red('Could not find the heap'))
+            return
+        
+        print(fmt%(hex(addr) if addr else 'main'),str(h))
         addr = int(arena['next'])        
         arena = heap.get_arena(addr)
 
@@ -136,10 +142,13 @@ def top_chunk(addr=None):
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena == None:
-        heap_start, heap_end = main_heap.get_bounds()
-        if heap_start == None:
+        heap_region = main_heap.get_region()
+        if not heap_region:
             print(red('Could not find the heap'))
             return
+
+        heap_start = heap_region.vaddr
+        heap_end   = heap_start + heap_region.size
 
         # If we don't know where the main_arena struct is, just iterate
         # through all the heap objects until we hit the last one
