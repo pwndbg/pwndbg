@@ -182,7 +182,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
             page  = pwndbg.vmmap.find(base)
             ## trim whole page to look exactly like heap
-            page.size = heap['size']
+            page.size = int(heap['size'])
             page.vaddr = base
             
             return page
@@ -197,7 +197,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             mp = self.mp
             if mp:
                 ## this can't fail right?
-                page.vaddr = mp['sbrk_base']
+                page.vaddr = int(mp['sbrk_base'])
             return page
 
         return None
