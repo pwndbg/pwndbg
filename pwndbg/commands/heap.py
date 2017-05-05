@@ -117,8 +117,9 @@ def arenas():
         if not h:
             print(red('Could not find the heap'))
             return
-        
-        print(fmt%(hex(addr) if addr else 'main'), h)
+
+        hdr = bold(fmt%(hex(addr) if addr else 'main'))
+        print(hdr, M.heap(str(h)))
         addr = int(arena['next'])        
         arena = heap.get_arena(addr)
 
