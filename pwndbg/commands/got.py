@@ -44,21 +44,21 @@ def got():
     if cs_out['RELRO'] == 1:
         relro_status = "Partial RELRO"
 
-    f_line = [" ".join(x.split()).split(" ") for x in jmpslots.split("\n")][:-1]
-    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(f_line)))
+    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
 
     if pwndbg.arch.ptrsize == 4:
-        for (address, info, rtype, value, name) in f_line:
-            addressval = int(address, 16)
-            got_address = pwndbg.memory.pvoid(addressval)
+        for line in jmpslots.splitlines():
+            address, info, rtype, value, name = line.split()
+            got_address = pwndbg.memory.pvoid(int(address, 16))
             print("[%s] %s -> %s" % (address, light_yellow(name), pwndbg.chain.format(got_address)))
     else:
-        for (address, info, rtype, value, name, _, _) in f_line:
-            addressval = int(address,16)
+        for line in jmpslots.splitlines():
+            address, info, rtype, value, name, _, _ = line.split()
+            address_val = int(address,16)
 
             if cs_out['PIE']: # if PIE, address is only the offset from the binary base address
-                addressval = bin_text_base + addressval
+                address_val = bin_text_base + address_val
 
-            got_address = pwndbg.memory.pvoid(addressval)
-            print("[%s] %s -> %s" % (hex(addressval), light_yellow(name), pwndbg.chain.format(got_address)))
+            got_address = pwndbg.memory.pvoid(address_val)
+            print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
 

@@ -299,7 +299,16 @@ def getjmpslots(path):
         try:
             readelf_out = subprocess.check_output(argv).decode('utf-8')
         except: raise OSError("Error during readelf execution.")
-        relocations = filter(lambda l: "JUMP" in l, readelf_out.splitlines())
+        relocations = filter(lambda l: _extract_Type(l), readelf_out.splitlines()) #l.split()[2] takes the column Type
         return '\n'.join(relocations)
     else:
         raise OSError("Could not find readelf command in $PATH.")
+
+def _extract_Type(l):
+    try:
+        if "JUMP" in l.split()[2]:
+            return l
+        else:
+            return False
+    except IndexError:
+        return False
