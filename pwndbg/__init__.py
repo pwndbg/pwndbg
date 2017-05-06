@@ -60,6 +60,7 @@ import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
 import pwndbg.net
+import pwndbg.pdb
 import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
