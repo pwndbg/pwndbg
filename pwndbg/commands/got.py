@@ -6,10 +6,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import pwndbg.commands
-import pwndbg.checksec
-import pwndbg.file
-import pwndbg.enhance
 import pwndbg.chain
+import pwndbg.checksec
+import pwndbg.enhance
+import pwndbg.file
 import pwndbg.which
 
 from pwndbg.color import green

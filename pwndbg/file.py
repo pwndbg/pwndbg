@@ -13,8 +13,8 @@ from __future__ import unicode_literals
 import binascii
 import errno as _errno
 import os
-import tempfile
 import subprocess
+import tempfile
 
 import gdb
 
