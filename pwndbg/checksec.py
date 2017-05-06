@@ -8,53 +8,52 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
 import subprocess
 
 import pwndbg.file
 
-def checksec():
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    result = {}
-
+def checksec(path):
     for program in ['checksec', 'checksec.sh']:
         program = pwndbg.which.which(program)
         if program:
-            cs_out = subprocess.check_output([program, '--file', local_path]).decode('utf-8')
+            result = {}
+            try:
+                cs_out = subprocess.check_output([program, '--file', path]).decode('utf-8')
+                if "Full RELRO" in cs_out:
+                    result['RELRO'] = 2
+                if "Partial RELRO" in cs_out:
+                    result['RELRO'] = 1
+                if "No RELRO" in cs_out:
+                    result['RELRO'] = 0
 
-            if "Full RELRO" in cs_out:
-                result['RELRO'] = 2
-            if "Partial RELRO" in cs_out:
-                result['RELRO'] = 1
-            if "No RELRO" in cs_out:
-                result['RELRO'] = 0
+                if "Canary found" in cs_out:
+                    result['CANARY'] = True
+                else:
+                    result['CANARY'] = False
 
-            if "Canary found" in cs_out:
-                result['CANARY'] = 1
-            else:
-                result['CANARY'] = 0
+                if "NX enabled" in cs_out:
+                    result['NX'] = True
+                else:
+                    result['NX'] = False
 
-            if "NX enabled" in cs_out:
-                result['NX'] = 1
-            else:
-                result['NX'] = 0
+                if "PIE enabled" in cs_out:
+                    result['PIE'] = True
+                else:
+                    result['PIE'] = False
 
-            if "PIE enabled" in cs_out:
-                result['PIE'] = 1
-            else:
-                result['PIE'] = 0
+                if "No RPATH" in cs_out:
+                    result['RPATH'] = False
+                else:
+                    result['RPATH'] = True
 
-            if "No RPATH" in cs_out:
-                result['RPATH'] = 0
-            else:
-                result['RPATH'] = 1
+                if "No RUNPATH" in cs_out:
+                    result['RUNPATH'] = False
+                else:
+                    result['RUNPATH'] = True
+                return result
 
-            if "No RUNPATH" in cs_out:
-                result['RUNPATH'] = 0
-            else:
-                result['RUNPATH'] = 1
-
-            return result
+            except:
+                raise OSError("Error during execution of checksec command.\n")
     else:
-        return None
+        raise OSError("Could not find checksec or checksec.sh in $PATH.\n")
 

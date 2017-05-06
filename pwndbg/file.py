@@ -146,4 +146,4 @@ def file(path):
         argv = [program, path]
         return subprocess.check_output(argv).decode('utf-8')
     else:
-        return None
+        raise OSError("Could not find file command in $PATH.")

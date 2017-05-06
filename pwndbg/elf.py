@@ -296,16 +296,10 @@ def getjmpslots(path):
     program = pwndbg.which.which("readelf")
     if program:
         argv = [program, "-r", path]
-        readelf_out = subprocess.check_output(argv).decode('utf-8')
-        if "Error" in readelf_out:
-            return "Error"
-        else:
-            jmpslots = ""
-            for line in readelf_out.splitlines():
-                if "JUMP" not in line:
-                    continue
-                else:
-                    jmpslots = jmpslots + line + "\n"
-            return jmpslots
+        try:
+            readelf_out = subprocess.check_output(argv).decode('utf-8')
+        except: raise OSError("Error during readelf execution.")
+        relocations = filter(lambda l: "JUMP" in l, readelf_out.splitlines())
+        return '\n'.join(relocations)
     else:
-        return None
+        raise OSError("Could not find readelf command in $PATH.")

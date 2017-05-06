@@ -9,6 +9,7 @@ import subprocess
 
 import pwndbg.commands
 import pwndbg.which
+import pwndbg.checksec
 
 
 @pwndbg.commands.Command
