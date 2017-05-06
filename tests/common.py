@@ -4,13 +4,17 @@ from __future__ import unicode_literals
 
 import atexit
 import functools
+import os
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
 
-from pwndbg.xmlhacks import hacks
+import xmlhacks
+
+testdir = os.path.dirname(__file__)
+root = os.path.dirname(testdir)
 
 def pywrite(data):
     return write(data, suffix='.py')
@@ -26,7 +30,7 @@ def gdb_with_script(pybefore='', pyafter=''):
     if pybefore:
         command += ['--command', pywrite(pybefore).name]
 
-    command += ['--command', 'gdbinit.py']
+    command += ['--command', os.path.join(root, 'gdbinit.py')]
 
     if pyafter:
         command += ['--command', pywrite(pyafter).name]
@@ -43,6 +47,6 @@ def run_with_server():
     return subprocess.Popen(command, stdout=subprocess.PIPE)
 
 gdb_with_server = run_with_server()
-server = hacks.xmlrpclib.ServerProxy('http://127.0.0.1:8889', verbose=1)
+server = xmlhacks.xmlrpclib.ServerProxy('http://127.0.0.1:8889', verbose=1)
 
 atexit.register(lambda: gdb_with_server.kill())
