@@ -19,8 +19,8 @@ def checksec(path):
             result = {}
             try:
                 cs_out = subprocess.check_output([program, '--file', path]).decode('utf-8')
-            except:
-                raise OSError("Error during execution of checksec command.\n")
+            except (OSError, subprocess.CalledProcessError):
+                raise OSError("Error during execution of checksec command.\n",subprocess.CalledProcessError)
 
             if "Full RELRO" in cs_out:
                 result['RELRO'] = 2

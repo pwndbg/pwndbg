@@ -298,7 +298,7 @@ def getjmpslots(path):
         argv = [program, "-r", path]
         try:
             readelf_out = subprocess.check_output(argv).decode('utf-8')
-        except: raise OSError("Error during readelf execution.")
+        except: raise OSError("Error during execution of readelf command.")
         relocations = filter(lambda l: _extract_Type(l), readelf_out.splitlines()) #l.split()[2] takes the column Type
         return '\n'.join(relocations)
     else:
