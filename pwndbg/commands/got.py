@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pwndbg.commands
 import pwndbg.chain
 import pwndbg.checksec
+import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
