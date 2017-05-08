@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
 import struct
 import sys
 
@@ -25,12 +24,14 @@ ptrsize = pwndbg.typeinfo.ptrsize
 fmt     = '=I'
 native_endian = str(sys.byteorder)
 
+
 def fix_arch(arch):
     arches = ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'arm', 'aarch64', arch]
     return next(a for a in arches if a in arch)
 
+
 @pwndbg.events.start
-@pwndbg.events.stop
+@pwndbg.events.new_objfile
 def update():
     m = sys.modules[__name__]
 
@@ -67,14 +68,18 @@ def update():
     else:
         m.qemu = m.current
 
+
 def pack(integer):
     return struct.pack(fmt, integer & ptrmask)
+
 
 def unpack(data):
     return struct.unpack(fmt, data)[0]
 
+
 def signed(integer):
     return unpack(pack(integer), signed=True)
+
 
 def unsigned(integer):
     return unpack(pack(integer))
