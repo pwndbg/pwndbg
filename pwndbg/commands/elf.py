@@ -37,6 +37,25 @@ def elfheader():
 
 
 @pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def ehdr():
+    """
+    Prints ELF header structure.
+    """
+    print(pwndbg.elf.exe())
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def phdr():
+    """
+    Prints ELF Program Headers structures.
+    """
+    for phdr in pwndbg.elf.iter_phdrs(pwndbg.elf.exe()):
+        print(phdr)
+
+
+@pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile
 def gotplt():
     """
