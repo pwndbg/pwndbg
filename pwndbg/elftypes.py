@@ -35,11 +35,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import sys
 
-import six
-
-import pwndbg.arch
 import pwndbg.ctypes
 import pwndbg.events
 
@@ -390,12 +386,15 @@ def print_struct(obj, extra='', fields_constants=None):
     for field, _ in obj._fields_:
         value = getattr(obj, field)
 
+        if isinstance(value, ctypes.Array):
+            value = repr(''.join(map(chr, value)))
+
         value_str = hex(value) if isinstance(value, int) else str(value)
 
         if field in fields_constants:
-            value = '{} ({})'.format(fields_constants.get(value, '<unknown-const>'), value_str)
+            value = '{} ({})'.format(fields_constants[field].get(value, '<unknown-const>'), value_str)
 
-        s += '{field:>20}: {value}\n'.format(field=green(field), value=value)
+        s += '{field:>24}: {value}\n'.format(field=green(field), value=value)
 
     return s
 
