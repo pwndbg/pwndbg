@@ -95,6 +95,7 @@ AT_CONSTANTS = {
     37: 'AT_L3_CACHESHAPE',
 }
 
+
 class constants:
     EI_MAG0                 = 0
     EI_MAG1                 = 1
@@ -263,8 +264,9 @@ class constants:
     AT_L2_CACHESHAPE        = 36
     AT_L3_CACHESHAPE        = 37
 
+
 class Elf32_Ehdr(pwndbg.ctypes.Structure):
-    _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
+    _fields_ = (("e_ident", (ctypes.c_ubyte * 16)),
                 ("e_type", Elf32_Half),
                 ("e_machine", Elf32_Half),
                 ("e_version", Elf32_Word),
@@ -277,10 +279,11 @@ class Elf32_Ehdr(pwndbg.ctypes.Structure):
                 ("e_phnum", Elf32_Half),
                 ("e_shentsize", Elf32_Half),
                 ("e_shnum", Elf32_Half),
-                ("e_shstrndx", Elf32_Half),]
+                ("e_shstrndx", Elf32_Half))
+
 
 class Elf64_Ehdr(pwndbg.ctypes.Structure):
-    _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
+    _fields_ = (("e_ident", (ctypes.c_ubyte * 16)),
                 ("e_type", Elf64_Half),
                 ("e_machine", Elf64_Half),
                 ("e_version", Elf64_Word),
@@ -293,24 +296,25 @@ class Elf64_Ehdr(pwndbg.ctypes.Structure):
                 ("e_phnum", Elf64_Half),
                 ("e_shentsize", Elf64_Half),
                 ("e_shnum", Elf64_Half),
-                ("e_shstrndx", Elf64_Half),]
+                ("e_shstrndx", Elf64_Half))
+
 
 class Elf32_Phdr(pwndbg.ctypes.Structure):
-    _fields_ = [("p_type", Elf32_Word),
+    _fields_ = (("p_type", Elf32_Word),
                 ("p_offset", Elf32_Off),
                 ("p_vaddr", Elf32_Addr),
                 ("p_paddr", Elf32_Addr),
                 ("p_filesz", Elf32_Word),
                 ("p_memsz", Elf32_Word),
                 ("p_flags", Elf32_Word),
-                ("p_align", Elf32_Word),]
+                ("p_align", Elf32_Word))
 
 class Elf64_Phdr(pwndbg.ctypes.Structure):
-    _fields_ = [("p_type", Elf64_Word),
+    _fields_ = (("p_type", Elf64_Word),
                 ("p_flags", Elf64_Word),
                 ("p_offset", Elf64_Off),
                 ("p_vaddr", Elf64_Addr),
                 ("p_paddr", Elf64_Addr),
                 ("p_filesz", Elf64_Xword),
                 ("p_memsz", Elf64_Xword),
-                ("p_align", Elf64_Xword),]
+                ("p_align", Elf64_Xword))
