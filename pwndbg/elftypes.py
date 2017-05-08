@@ -43,6 +43,9 @@ import pwndbg.arch
 import pwndbg.ctypes
 import pwndbg.events
 
+from pwndbg.color import green, red
+
+
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16
 Elf32_Off = ctypes.c_uint32
@@ -281,6 +284,9 @@ class Elf32_Ehdr(pwndbg.ctypes.Structure):
                 ("e_shnum", Elf32_Half),
                 ("e_shstrndx", Elf32_Half))
 
+    def __str__(self):
+        return ehdr2str(self)
+
 
 class Elf64_Ehdr(pwndbg.ctypes.Structure):
     _fields_ = (("e_ident", (ctypes.c_ubyte * 16)),
@@ -298,6 +304,9 @@ class Elf64_Ehdr(pwndbg.ctypes.Structure):
                 ("e_shnum", Elf64_Half),
                 ("e_shstrndx", Elf64_Half))
 
+    def __str__(self):
+        return ehdr2str(self)
+
 
 class Elf32_Phdr(pwndbg.ctypes.Structure):
     _fields_ = (("p_type", Elf32_Word),
@@ -309,6 +318,10 @@ class Elf32_Phdr(pwndbg.ctypes.Structure):
                 ("p_flags", Elf32_Word),
                 ("p_align", Elf32_Word))
 
+    def __str__(self):
+        return phdr2str(self)
+
+
 class Elf64_Phdr(pwndbg.ctypes.Structure):
     _fields_ = (("p_type", Elf64_Word),
                 ("p_flags", Elf64_Word),
@@ -318,3 +331,91 @@ class Elf64_Phdr(pwndbg.ctypes.Structure):
                 ("p_filesz", Elf64_Xword),
                 ("p_memsz", Elf64_Xword),
                 ("p_align", Elf64_Xword))
+
+    def __str__(self):
+        return phdr2str(self)
+
+
+class Elf32_Dyn(pwndbg.ctypes.Structure):
+    # d_val (Elf32_Word is union with d_ptr (Elf32_Addr)
+    _fields_ = (('d_tag', Elf32_Sword),
+                ('d_val', Elf32_Word))
+
+    @property
+    def d_ptr(self):
+        return self.d_val
+
+    @d_ptr.setter
+    def d_ptr(self, value):
+        self.d_val = value
+
+    def __str__(self):
+        return dyn2str(self)
+
+
+class Elf64_Dyn(pwndbg.ctypes.Structure):
+    # d_val (Elf64_Xword is union with d_ptr (Elf64_Addr)
+    _fields_ = (('d_tag', Elf64_Sxword),
+                ('d_val', Elf64_Xword))
+
+    @property
+    def d_ptr(self):
+        return self.d_val
+
+    @d_ptr.setter
+    def d_ptr(self, value):
+        self.d_val = value
+
+    def __str__(self):
+        return dyn2str(self)
+
+# assertions for Elf32_Dyn, Elf64_Dyn validity
+assert Elf32_Word is Elf32_Addr, 'Elf32_Dyn union error: fields types mismatch'
+assert Elf64_Xword is Elf64_Addr, 'Elf64_Dyn union error: fields types mismatch'
+
+
+def get_constants_startswith(string):
+    return {getattr(constants, attr): attr for attr in dir(constants) if attr.startswith(string)}
+
+
+def print_struct(obj, extra='', fields_constants=None):
+    """
+    Converts given ctypes structure instance into string.
+    """
+    if not fields_constants:
+        fields_constants = {}
+
+    s = red(obj.__class__.__name__) + extra + ':\n'
+
+    for field, _ in obj._fields_:
+        value = getattr(obj, field)
+
+        value_str = hex(value) if isinstance(value, int) else str(value)
+
+        if field in fields_constants:
+            value = '{} ({})'.format(fields_constants.get(value, '<unknown-const>'), value_str)
+
+        s += '{field:>20}: {value}\n'.format(field=green(field), value=value)
+
+    return s
+
+
+def ehdr2str(obj):
+    """
+    Converts ElfXX_Ehdr to string.
+    """
+    return print_struct(obj, fields_constants={'e_type': get_constants_startswith('ET_')})
+
+
+def phdr2str(obj):
+    """
+    Converts ElfXX_Phdr to string.
+    """
+    return print_struct(obj, fields_constants={'p_type': get_constants_startswith('PT_')})
+
+
+def dyn2str(obj):
+    """
+    Converts ElfXX_Dyn to string.
+    """
+    return print_struct(obj, extra=' (d_ptr=d_val) ', fields_constants={'d_tag': get_constants_startswith('DT_')})
