@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import gdb
 
 import pwndbg.arch
@@ -13,43 +15,38 @@ import pwndbg.commands
 import pwndbg.typeinfo
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints out the number of arguments.')
 @pwndbg.commands.OnlyWhenRunning
 def argc():
-    """
-    Prints out the number of arguments.
-    """
     print(pwndbg.argv.argc)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser(description='Prints out the contents of argv.')
+parser.add_argument('i', nargs='?', default=0, type=int, help='argv index')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None):
-    """
-    Prints out the contents of argv.
-    """
     start = pwndbg.argv.argv
     n     = pwndbg.argv.argc+1
 
     if i is not None:
         n = 1
-        start += (pwndbg.arch.ptrsize) * i
+        start += pwndbg.arch.ptrsize * i
 
     pwndbg.commands.telescope.telescope(start, n)
 
-@pwndbg.commands.Command
+
+@pwndbg.commands.ArgparsedCommand('Prints out the contents of argv.')
 @pwndbg.commands.OnlyWhenRunning
 def args():
-    """
-    Prints out the contents of argv.
-    """
     argv()
 
-@pwndbg.commands.Command
+
+@pwndbg.commands.ArgparsedCommand('Prints out the contents of the environment.')
 @pwndbg.commands.OnlyWhenRunning
-def envp(name=None):
-    """
-    Prints out the contents of the environment.
-    """
+def envp():
     start = pwndbg.argv.envp
     n     = pwndbg.argv.envc+1
 
