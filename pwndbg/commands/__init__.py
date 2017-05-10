@@ -27,6 +27,7 @@ class _Command(gdb.Command):
     """Generic command wrapper"""
     count    = 0
     commands = []
+    history  = {}
 
     def __init__(self, function, inc=True, prefix=False):
         super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
@@ -44,11 +45,46 @@ class _Command(gdb.Command):
     def invoke(self, argument, from_tty):
         argv = self.split_args(argument)
         try:
+            self.repeat = self.check_repeated(argument, from_tty)
             return self(*argv)
         except TypeError:
             if debug:
                 print(traceback.format_exc())
             raise
+        finally:
+            self.repeat = False
+
+    def check_repeated(self, argument, from_tty):
+        """Keep a record of all commands which come from the TTY.
+
+        Returns:
+            True if this command was executed by the user just hitting "enter".
+        """
+        # Don't care unless it's interactive use
+        if not from_tty:
+            return False
+
+        lines = gdb.execute('show commands', from_tty=False, to_string=True)
+        lines = lines.splitlines()
+
+        # No history
+        if not lines:
+            return False
+
+        last_line = lines[-1]
+        number, command = last_line.split(None, 1)
+        number = int(number)
+
+        # A new command was entered by the user
+        if number not in _Command.history:
+            _Command.history[number] = command
+            return False
+
+        # Somehow the command is different than we got before?
+        if not command.endswith(argument):
+            return False
+
+        return True
 
     def __call__(self, *args, **kwargs):
         try:
