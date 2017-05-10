@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 import glob
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,7 @@ import gdb
 import pwndbg.events
 import pwndbg.gcc
 import pwndbg.memoize
+import pwndbg.storage
 
 module = sys.modules[__name__]
 
@@ -81,23 +83,39 @@ def update():
 # Call it once so we load all of the types
 update()
 
-tempdir = tempfile.gettempdir() + '/pwndbg'
+tempdir = os.path.join(tempfile.gettempdir(), 'pwndbg')
 if not os.path.exists(tempdir):
     os.mkdir(tempdir)
 
-# Trial and error until things work
-blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
-'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
-'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
-'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
-'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
-'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
-'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
-'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h','revm-objects.h',
-'libetrace.h', 'revm-io.h','libasm-mips.h','libstderesi.h','libasm.h','libaspect.h',
-'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h']
+@pwndbg.storage.file_cache_with_signature_for_text('{0}.skeleton.h')
+def find_compilable_headers(arch, headers):
+    """Find maximum fixed point of compilable header files by alternating compiling and removing bad headers."""
+    print('typeinfo: %s' % find_compilable_headers.__doc__)
+    filename = '{}/{}.skeleton.cc'.format(tempdir, arch)
+    headers = set(headers)
+    tries = 0
 
-def load(name):
+    while True:
+        if tries % 10 == 0:
+            print('typeinfo: Trial %d, compiling with %d header files' % (tries, len(headers)))
+        body = ''.join('#include "%s"\n' % i for i in headers)
+        with open(filename, 'w') as f:
+            f.write(body)
+        try:
+            subprocess.check_output(pwndbg.gcc.which() + ['-fsyntax-only', '-w', filename], stderr=subprocess.STDOUT)
+            return body
+        except subprocess.CalledProcessError as e:
+            found = False
+            for header in re.findall(r'/usr/\S+\.h', e.stdout.decode('utf-8')):
+                try:
+                    headers.remove(header)
+                    found = True
+                except KeyError:
+                    pass
+            assert found, 'Failed to find a bad header file.'
+            tries += 1
+
+def load(name, include_system_headers=True, extra_headers=()):
     """Load symbol by name from headers in standard system include directory"""
     try:
         return gdb.lookup_type(name)
@@ -108,35 +126,28 @@ def load(name):
 
     # Try to find an architecture-specific include path
     arch = pwndbg.arch.current.split(':')[0]
-
-    include_dir = glob.glob('/usr/%s*/include' % arch)
-
-    if include_dir:
-        include_dir = include_dir[0]
-    else:
+    include_dir = None
+    for i in glob.glob('/usr/%s*/include' % arch):
+        if 'mingw' not in i:
+            include_dir = i
+    if not include_dir:
         include_dir = '/usr/include'
-
-    source = '#include <fstream>\n'
-
+    headers = []
     for subdir in ['', 'sys', 'netinet']:
         dirname = os.path.join(include_dir, subdir)
-        for path in glob.glob(os.path.join(dirname, '*.h')):
-            if any(b in path for b in blacklist):
-              continue
-            print(path)
-            source += '#include "%s"\n' % path
-
-
-    source += '''
-{name} foo;
-'''.format(**locals())
+        headers.extend(glob.glob(os.path.join(dirname, '*.h')))
+    headers = set(headers)
+    skeleton = find_compilable_headers(arch, headers, signature=sum(len(i) for i in headers))
 
     filename = '%s/%s_%s.cc' % (tempdir, arch, '-'.join(name.split()))
-
-    with open(filename, 'w+') as f:
-        f.write(source)
-        f.flush()
-        os.fsync(f.fileno())
+    with open(filename, 'w') as f:
+        if include_system_headers:
+            f.write(skeleton)
+        if extra_headers:
+            f.write(''.join('#include "%s"\n' % i for i in extra_headers))
+        f.write('''
+{name} foo;
+'''.format(**locals()))
 
     compile(filename)
 
@@ -151,9 +162,7 @@ def compile(filename=None, address=0):
     objectname = os.path.splitext(filename)[0] + ".o"
 
     if not os.path.exists(objectname):
-        gcc     = pwndbg.gcc.which()
-        gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
-        subprocess.check_output(' '.join(gcc), shell=True)
+        subprocess.check_output(pwndbg.gcc.which() + ['-w', '-c', '-g', filename, '-o', objectname])
 
     add_symbol_file(objectname, address)
 
