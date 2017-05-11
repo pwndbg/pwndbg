@@ -14,26 +14,26 @@ import pwndbg.commands
 import pwndbg.next
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Breaks at the next jump instruction')
 @pwndbg.commands.OnlyWhenRunning
-def nextjmp(*args):
-    """Breaks at the next jump instruction"""
+def nextjmp():
     if pwndbg.next.break_next_branch():
         pwndbg.commands.context.context()
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def nextjump(*args):
-    """Breaks at the next jump instruction"""
-    nextjmp(*args)
 
-@pwndbg.commands.Command
+@pwndbg.commands.AliasCommand(nextjmp)
+def nextjump():
+    pass
+
+
+@pwndbg.commands.ArgparsedCommand('Breaks at the next call instruction')
 @pwndbg.commands.OnlyWhenRunning
-def nextcall(*args):
-    """Breaks at the next call instruction"""
+def nextcall():
     if pwndbg.next.break_next_call():
         pwndbg.commands.context.context()
 
+
+# TODO/FIXME ArgparsedCommand
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def stepover(*args):
@@ -41,27 +41,22 @@ def stepover(*args):
     pwndbg.next.break_on_next(*args)
 
 
+# TODO/FIXME: AliasCommand
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def so(*args):
     """Alias for stepover"""
     stepover(*args)
 
-@pwndbg.commands.Command
+
+@pwndbg.commands.ArgparsedCommand('Breaks at the next syscall.')
 @pwndbg.commands.OnlyWhenRunning
-def next_syscall(*args):
-    """
-    Breaks at the next syscall.
-    """
+def next_syscall():
     while pwndbg.proc.alive and not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
         continue
     pwndbg.commands.context.context()
 
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def nextsc(*args):
-    """
-    Breaks at the next syscall.
-    """
-    next_syscall(*args)
+@pwndbg.commands.AliasCommand(next_syscall)
+def nextsc():
+    pass
