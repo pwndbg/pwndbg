@@ -9,6 +9,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import gdb
 
 import pwndbg.commands
@@ -28,12 +30,14 @@ def on_start():
         break_on_first_instruction = False
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser()
+parser.description = "Set a breakpoint at a convenient location in the binary, "
+parser.description += "generally 'main', 'init', or the entry point."
+parser.add_argument('a', nargs='*', type=str)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, unpack='a')
 def start(*a):
-    """
-    Set a breakpoint at a convenient location in the binary,
-    generally 'main', 'init', or the entry point.
-    """
     run = 'run ' + ' '.join(a)
 
     symbols = ["main",
@@ -57,13 +61,15 @@ def start(*a):
     entry(*a)
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser(
+    description='Set a breakpoint at the first instruction executed in the target binary.'
+)
+parser.add_argument('a', nargs='*', type=str)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, unpack='a')
 @pwndbg.commands.OnlyWithFile
 def entry(*a):
-    """
-    Set a breakpoint at the first instruction executed in
-    the target binary.
-    """
     global break_on_first_instruction
     break_on_first_instruction = True
     run = 'run ' + ' '.join(a)

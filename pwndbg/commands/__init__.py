@@ -195,7 +195,12 @@ def QuietSloppyParsedCommand(func):
 
 class ArgparsedCommand(object):
     """Adds documentation and offloads parsing for a Command via argparse"""
-    def __init__(self, parser_or_desc):
+    def __init__(self, parser_or_desc, unpack=False):
+        """
+        :param parser_or_desc: `argparse.ArgumentParser` or `str`
+        :param unpack: Field name to unpack.
+        """
+        self.unpack = unpack
 
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
@@ -215,6 +220,7 @@ class ArgparsedCommand(object):
     def __call__(self, function, alias=None):
         self.parser.prog = function.__name__
         function.parser = self.parser
+        function.unpack = self.unpack
 
         @functools.wraps(function)
         def _ArgparsedCommand(*args):
@@ -223,7 +229,12 @@ class ArgparsedCommand(object):
             except SystemExit:
                 # If passing '-h' or '--help', argparse attempts to kill the process.
                 return
-            return function(**vars(args))
+
+            kwargs = vars(args)
+            args = kwargs.pop(self.unpack, [])
+
+            return function(*args, **kwargs)
+
         _ArgparsedCommand.__doc__ = self.parser.description
 
         return Command(_ArgparsedCommand, alias=alias)
@@ -238,4 +249,4 @@ class AliasCommand(object):
 
         wrapped = functools.wraps(alias_func)(func)
 
-        return ArgparsedCommand(func.parser)(wrapped)
+        return ArgparsedCommand(func.parser, func.unpack)(wrapped)

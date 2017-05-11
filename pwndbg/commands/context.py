@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import sys
 
 import gdb
@@ -44,15 +45,19 @@ config_context_sections = pwndbg.config.Parameter(
     'which context sections are displayed by default (also controls order)'
 )
 
+opts_long = ('reg', 'disasm', 'code', 'stack', 'backtrace', 'args')
+opts_short = tuple(i[0] for i in opts_long)
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser('Print out the current register, instruction, and stack context.')
+parser.add_argument(
+    'args', nargs='*', type=str, choices=opts_short + opts_long + ('',), default='',
+    help='Turn ASLR on or off (takes effect when target is started)'
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, unpack='args')
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
-    """
-    Print out the current register, instruction, and stack context.
-
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
-    """
     if len(args) == 0:
         args = str(config_context_sections).split()
 
@@ -78,10 +83,13 @@ def context_regs():
     return [pwndbg.ui.banner('registers')] + get_regs()
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser('Print out all registers and enhance the information.')
+parser.add_argument('regs', nargs='*', type=str, default='', help='List of registers')
+
+
+@pwndbg.commands.ArgparsedCommand(parser, unpack='regs')
 @pwndbg.commands.OnlyWhenRunning
 def regs(*regs):
-    '''Print out all registers and enhance the information.'''
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')

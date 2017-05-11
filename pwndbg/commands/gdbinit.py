@@ -12,7 +12,8 @@ from __future__ import unicode_literals
 
 import gdb
 
-import pwndbg.commands
+import pwndbg.commands.vmmap
+import pwndbg.commands.start
 
 
 @pwndbg.commands.AliasCommand(pwndbg.commands.start.start)
@@ -20,7 +21,7 @@ def init():
     pass
 
 
-@pwndbg.commands.ArgparsedCommand(pwndbg.commands.start.start)
+@pwndbg.commands.AliasCommand(pwndbg.commands.start.start)
 def main():
     pass
 
