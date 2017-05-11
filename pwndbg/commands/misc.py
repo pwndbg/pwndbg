@@ -17,27 +17,28 @@ import pwndbg.symbol
 
 _errno.errorcode[0] = 'OK'
 
-parser = argparse.ArgumentParser(description='''
-Converts errno (or argument) to its string representation.
-''')
-parser.add_argument('err', type=int, nargs='?', default=None, help='Errno; if not passed, it is retrieved from __errno_location')
+parser = argparse.ArgumentParser(
+    description='Converts errno (or argument) to its string representation.'
+)
+parser.add_argument('err', type=int, nargs='?', default=None,
+                    help='Errno; if not passed, it is retrieved from __errno_location')
 
 
 @_pwndbg.commands.ArgparsedCommand(parser)
-@pwndbg.commands.OnlyWhenRunning
+@_pwndbg.commands.OnlyWhenRunning
 def errno(err):
     if err is None:
         # Dont ask.
-        errno_location = pwndbg.symbol.get('__errno_location')
+        errno_location = _pwndbg.symbol.get('__errno_location')
         err = pwndbg.memory.int(errno_location)
         # err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
 
     err = abs(int(err))
 
     if err >> 63:
-        err -= (1<<64)
+        err -= (1 << 64)
     elif err >> 31:
-        err -= (1<<32)
+        err -= (1 << 32)
 
     msg = _errno.errorcode.get(int(err), "Unknown error code")
     print("Errno %i: %s" % (err, msg))
@@ -67,9 +68,13 @@ def pwndbg(filter_pattern):
             print("%-20s %s" % (name, docs))
 
 
-@_pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description='Print the distance between the two arguments')
+parser.add_argument('a', type=str, help='GDB expression')
+parser.add_argument('b', type=str, help='GDB expression')
+
+
+@_pwndbg.commands.ArgparsedCommand(parser)
 def distance(a, b):
-    '''Print the distance between the two arguments'''
     a = int(a) & _arch.ptrmask
     b = int(b) & _arch.ptrmask
 
@@ -78,13 +83,12 @@ def distance(a, b):
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
 
 
-@_pwndbg.commands.Command
+@_pwndbg.commands.ArgparsedCommand('Print out the current stack canary.')
 @_pwndbg.commands.OnlyWhenRunning
 def canary():
-    """Print out the current stack canary"""
     auxv = _pwndbg.auxv.get()
     at_random = auxv.get('AT_RANDOM', None)
     if at_random is not None:
         print("AT_RANDOM=%#x" % at_random)
     else:
-        print("Couldn't find AT_RANDOM")
+        print("Couldn't find AT_RANDOM in AUXV")
