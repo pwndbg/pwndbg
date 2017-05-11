@@ -36,13 +36,15 @@ def clear_screen():
     """
     sys.stdout.write('\x1b[H\x1b[J')
 
-config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
-config_context_sections = pwndbg.config.Parameter('context-sections',
-                                                  'regs disasm code stack backtrace',
-                                                  'which context sections are displayed by default (also controls order)')
+config_clear_screen = pwndbg.config.Parameter(
+    'context-clear-screen', False, 'whether to clear the screen before printing the context'
+)
+config_context_sections = pwndbg.config.Parameter(
+    'context-sections', 'regs disasm code stack backtrace',
+    'which context sections are displayed by default (also controls order)'
+)
 
 
-# @pwndbg.events.stop
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
@@ -71,11 +73,10 @@ def context(*args):
         sys.stdout.write(line + '\n')
     sys.stdout.flush()
 
+
 def context_regs():
-    result = []
-    result.append(pwndbg.ui.banner("registers"))
-    result.extend(get_regs())
-    return result
+    return [pwndbg.ui.banner('registers')] + get_regs()
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -85,6 +86,7 @@ def regs(*regs):
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
 pwndbg.config.Parameter('show-retaddr-reg', False, 'whether to show return address register')
+
 
 def get_regs(*regs):
     result = []
@@ -126,7 +128,7 @@ def get_regs(*regs):
             flags = pwndbg.regs.flags[reg]
 
             for name, bit in sorted(flags.items()):
-                bit = 1<<bit
+                bit = 1 << bit
                 if value & bit:
                     name = name.upper()
                     name = C.flag_set(name)
@@ -150,6 +152,7 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
+
 def context_disasm():
     banner = [pwndbg.ui.banner("disasm")]
     emulate = bool(pwndbg.config.emulate)
@@ -163,6 +166,7 @@ def context_disasm():
     return banner + result
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+
 
 def context_code():
     try:
@@ -194,9 +198,7 @@ def context_code():
                     source_lines[i] = C.highlight(source_lines[i])
                     break
 
-        banner = [pwndbg.ui.banner("source")]
-        banner.extend(source_lines)
-        return banner
+        return [pwndbg.ui.banner('source')] + source_lines
     except:
         pass
 
@@ -215,9 +217,10 @@ def context_code():
 
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
+
 def context_stack():
-    result = []
-    result.append(pwndbg.ui.banner("stack"))
+    result = [pwndbg.ui.banner('stack')]
+
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
@@ -225,11 +228,12 @@ def context_stack():
 
 backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
 
+
 def context_backtrace(frame_count=10, with_banner=True):
     result = []
 
     if with_banner:
-        result.append(pwndbg.ui.banner("backtrace"))
+        result.append(pwndbg.ui.banner('backtrace'))
 
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
@@ -254,14 +258,16 @@ def context_backtrace(frame_count=10, with_banner=True):
     frame = newest_frame
     i     = 0
     bt_prefix = "%s" % B.config_prefix
-    while True:
 
+    while True:
         prefix = bt_prefix if frame == this_frame else ' ' * len(bt_prefix)
         prefix = " %s" % B.prefix(prefix)
         addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = B.symbol(pwndbg.symbol.get(frame.pc()))
+
         if symbol:
             addrsz = addrsz + ' ' + symbol
+
         line   = map(str, (prefix, B.frame_label('%s%i' % (backtrace_frame_label, i)), addrsz))
         line   = ' '.join(line)
         result.append(line)
@@ -271,7 +277,9 @@ def context_backtrace(frame_count=10, with_banner=True):
 
         frame = frame.older()
         i    += 1
+
     return result
+
 
 def context_args():
     result = []
@@ -291,6 +299,7 @@ def context_args():
     return result
 
 last_signal = []
+
 
 def save_signal(signal):
     global last_signal
@@ -320,6 +329,7 @@ def save_signal(signal):
 gdb.events.cont.connect(save_signal)
 gdb.events.stop.connect(save_signal)
 gdb.events.exited.connect(save_signal)
+
 
 def context_signal():
     return last_signal
