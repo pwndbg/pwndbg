@@ -77,6 +77,7 @@ class argv_function(gdb.Function):
     """
     def __init__(self):
         super(argv_function, self).__init__('argv')
+
     def invoke(self, number=0):
         number = int(number)
 
@@ -86,7 +87,8 @@ class argv_function(gdb.Function):
         ppchar = pwndbg.typeinfo.pchar.pointer()
         value  = gdb.Value(pwndbg.argv.argv)
         argv   = value.cast(ppchar)
-        return((argv+number).dereference())
+
+        return (argv+number).dereference()
 
 argv_function()
 
@@ -97,6 +99,7 @@ class envp_function(gdb.Function):
     """
     def __init__(self):
         super(envp_function, self).__init__('envp')
+
     def invoke(self, number=0):
         number = int(number)
 
@@ -106,7 +109,8 @@ class envp_function(gdb.Function):
         ppchar = pwndbg.typeinfo.pchar.pointer()
         value  = gdb.Value(pwndbg.argv.envp)
         envp   = value.cast(ppchar)
-        return((envp+number).dereference())
+
+        return (envp+number).dereference()
 
 envp_function()
 
@@ -117,6 +121,7 @@ class argc_function(gdb.Function):
     """
     def __init__(self):
         super(argc_function, self).__init__('argc')
+
     def invoke(self, number=0):
         return pwndbg.argv.argc
 
@@ -129,6 +134,7 @@ class environ_function(gdb.Function):
     """
     def __init__(self):
         super(environ_function, self).__init__('environ')
+
     def invoke(self, name):
         name   = name.string() + '='
         ppchar = pwndbg.typeinfo.pchar.pointer()
