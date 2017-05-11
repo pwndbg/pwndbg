@@ -38,10 +38,9 @@ def argv(i=None):
     pwndbg.commands.telescope.telescope(start, n)
 
 
-@pwndbg.commands.ArgparsedCommand('Prints out the contents of argv.')
-@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.AliasCommand(argv)
 def args():
-    argv()
+    pass
 
 
 @pwndbg.commands.ArgparsedCommand('Prints out the contents of the environment.')
@@ -53,27 +52,24 @@ def envp():
     return pwndbg.commands.telescope.telescope(start, n)
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser(description='Prints out the contents of the environment.')
+parser.add_argument('name', nargs='?', default=None, type=str, help='Environment variable name')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def env(name=None):
-    """
-    Prints out the contents of the environment.
-    """
+
     if name is None:
         return envp()
 
     gdb.execute('p $environ("%s")' % name)
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def environ(name=None):
-    """
-    Prints out the contents of the environment.
-    """
-    if name is None:
-        return envp()
 
-    gdb.execute('p $environ("%s")' % name)
+@pwndbg.commands.AliasCommand(env)
+def environ():
+    pass
+
 
 class argv_function(gdb.Function):
     """

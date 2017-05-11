@@ -30,8 +30,10 @@ class _Command(gdb.Command):
     commands = []
     history  = {}
 
-    def __init__(self, function, inc=True, prefix=False):
-        super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+    def __init__(self, function, inc=True, prefix=False, alias=None):
+        command_name = alias if alias else function.__name__
+
+        super(_Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if inc:
@@ -210,8 +212,9 @@ class ArgparsedCommand(object):
             if action.default is not None:
                 action.help += ' (default: %(default)s)'
 
-    def __call__(self, function):
+    def __call__(self, function, alias=None):
         self.parser.prog = function.__name__
+        function.parser = self.parser
 
         @functools.wraps(function)
         def _ArgparsedCommand(*args):
@@ -222,4 +225,17 @@ class ArgparsedCommand(object):
                 return
             return function(**vars(args))
         _ArgparsedCommand.__doc__ = self.parser.description
-        return Command(_ArgparsedCommand)
+
+        return Command(_ArgparsedCommand, alias=alias)
+
+
+class AliasCommand(object):
+    def __init__(self, alias_to):
+        self.alias_to = alias_to
+
+    def __call__(self, alias_func):
+        func = self.alias_to.__wrapped__.__wrapped__
+
+        wrapped = functools.wraps(alias_func)(func)
+
+        return ArgparsedCommand(func.parser)(wrapped)
