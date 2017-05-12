@@ -25,13 +25,13 @@ def got():
     '''
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cs_out = pwndbg.wrappers.checksec(local_path)
+    cs_out = pwndbg.wrappers.checksec("--file", local_path)
 
     file_out = pwndbg.wrappers.file(local_path)
     if "statically" in file_out:
         return "Binary is statically linked."
 
-    readelf_out = pwndbg.wrappers.readelf(local_path,"-r")
+    readelf_out = pwndbg.wrappers.readelf("-r", local_path)
 
     jmpslots = '\n'.join(filter(lambda l: _extract_Jumps(l),
                          readelf_out.splitlines()))
@@ -39,10 +39,16 @@ def got():
     if not len(jmpslots):
         return "NO JUMP_SLOT entries available in the GOT"
 
-    if cs_out['PIE'] == "PIE enabled":
+    if "PIE enabled" in cs_out:
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
 
-    print("\nGOT protection: %s | GOT functions: %d\n " % (green(cs_out['RELRO']), len(jmpslots.splitlines())))
+    relro_status = "No RELRO"
+    if "Full RELRO" in cs_out:
+        relro_status = "Full RELRO"
+    elif "Partial RELRO" in cs_out:
+        relro_status = "Partial RELRO"
+
+    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
 
     if pwndbg.arch.ptrsize == 4:
         for line in jmpslots.splitlines():
@@ -54,7 +60,7 @@ def got():
             address, info, rtype, value, name, _, _ = line.split()
             address_val = int(address,16)
 
-            if cs_out['PIE']: # if PIE, address is only the offset from the binary base address
+            if "PIE enabled" in cs_out: # if PIE, address is only the offset from the binary base address
                 address_val = bin_text_base + address_val
 
             got_address = pwndbg.memory.pvoid(address_val)
