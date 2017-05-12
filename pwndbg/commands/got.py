@@ -67,7 +67,7 @@ def got():
             print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
 
 
-def _extract_Jumps(l):
+def _extract_jumps(l):
     try:
         if "JUMP" in l.split()[2]:
             return l
