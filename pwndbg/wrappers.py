@@ -13,12 +13,12 @@ import subprocess
 
 import pwndbg.file
 
-'''
- Wrapper to checksec utility.
- Returns a dictionary for each protection supported containing the
- output of the utility.
-'''
 def checksec(path):
+    '''
+     Wrapper to checksec utility.
+     Returns a dictionary for each protection supported containing the
+     output of the utility.
+    '''
     for program in ['checksec', 'checksec.sh']:
         program = pwndbg.which.which(program)
         if program:
@@ -63,10 +63,11 @@ def checksec(path):
     else:
         raise OSError("Could not find checksec or checksec.sh in $PATH.\n")
 
-"""
- Utility: /usr/bin/file
-"""
+
 def file(path):
+    """
+     Utility: /usr/bin/file
+    """
     program = pwndbg.which.which("file")
     argv = [program, path]
     if program:
@@ -77,10 +78,10 @@ def file(path):
     else:
         raise OSError("Could not find file command in $PATH.")
 
-"""
- Utility: /usr/bin/readelf
-"""
 def readelf(path,argv):
+    """
+     Utility: /usr/bin/readelf
+    """
     program = pwndbg.which.which("readelf")
     if program:
         argv = [program, argv, path]
