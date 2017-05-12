@@ -34,7 +34,7 @@ def got():
     readelf_out = pwndbg.wrappers.readelf(local_path,"-r")
 
     jmpslots = '\n'.join(filter(lambda l: _extract_Jumps(l),
-                         readelf_out.splitlines()))  # l.split()[2] takes the column Type
+                         readelf_out.splitlines())) 
 
     if not len(jmpslots):
         return "NO JUMP_SLOT entries available in the GOT"
