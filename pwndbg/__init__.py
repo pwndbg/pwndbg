@@ -69,6 +69,7 @@ import pwndbg.stdio
 import pwndbg.typeinfo
 import pwndbg.version
 import pwndbg.vmmap
+import pwndbg.wrappers
 
 __version__ = pwndbg.version.__version__
 version = __version__

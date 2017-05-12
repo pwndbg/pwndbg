@@ -285,30 +285,3 @@ def map_inner(ei_class, ehdr, objfile):
         page.objfile = objfile
 
     return tuple(sorted(pages))
-
-
-def getjmpslots(path):
-    """
-    Use the readelf command with the parameter -r
-    in order to retrieve the jump slots inside the 
-    binary specified in path.
-    """
-    program = pwndbg.which.which("readelf")
-    if program:
-        argv = [program, "-r", path]
-        try:
-            readelf_out = subprocess.check_output(argv).decode('utf-8')
-        except: raise OSError("Error during execution of readelf command.")
-        relocations = filter(lambda l: _extract_Type(l), readelf_out.splitlines()) #l.split()[2] takes the column Type
-        return '\n'.join(relocations)
-    else:
-        raise OSError("Could not find readelf command in $PATH.")
-
-def _extract_Type(l):
-    try:
-        if "JUMP" in l.split()[2]:
-            return l
-        else:
-            return False
-    except IndexError:
-        return False

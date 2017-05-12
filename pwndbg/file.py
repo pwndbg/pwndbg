@@ -136,17 +136,3 @@ def readlink(path):
 
     return data
 
-def file(path):
-    """
-    Execute the 'file' command over the target binary
-    specified in path
-    """
-    program = pwndbg.which.which("file")
-    argv = [program, path]
-    if program:
-        try:
-            return subprocess.check_output(argv).decode('utf-8')
-        except:
-            raise OSError("Error during execution of file command", subprocess.CalledProcessError)
-    else:
-        raise OSError("Could not find file command in $PATH.")

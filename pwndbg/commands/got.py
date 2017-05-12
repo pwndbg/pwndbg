@@ -6,11 +6,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import pwndbg.chain
-import pwndbg.checksec
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
+import pwndbg.wrappers
 
 from pwndbg.color import green
 from pwndbg.color import light_yellow
@@ -25,26 +25,24 @@ def got():
     '''
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cs_out = pwndbg.checksec.checksec(local_path)
+    cs_out = pwndbg.wrappers.checksec(local_path)
 
-    file_out = pwndbg.file.file(local_path)
+    file_out = pwndbg.wrappers.file(local_path)
     if "statically" in file_out:
         return "Binary is statically linked."
 
-    jmpslots = pwndbg.elf.getjmpslots(local_path)
+    readelf_out = pwndbg.wrappers.readelf(local_path,"-r")
+
+    jmpslots = '\n'.join(filter(lambda l: _extract_Jumps(l),
+                         readelf_out.splitlines()))  # l.split()[2] takes the column Type
+
     if not len(jmpslots):
         return "NO JUMP_SLOT entries available in the GOT"
 
-    if cs_out['PIE']:
+    if cs_out['PIE'] == "PIE enabled":
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
 
-    relro_status = "No RELRO"
-    if cs_out['RELRO'] == 2:
-        relro_status = "Full RELRO"
-    if cs_out['RELRO'] == 1:
-        relro_status = "Partial RELRO"
-
-    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
+    print("\nGOT protection: %s | GOT functions: %d\n " % (green(cs_out['RELRO']), len(jmpslots.splitlines())))
 
     if pwndbg.arch.ptrsize == 4:
         for line in jmpslots.splitlines():
@@ -62,3 +60,12 @@ def got():
             got_address = pwndbg.memory.pvoid(address_val)
             print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
 
+
+def _extract_Jumps(l):
+    try:
+        if "JUMP" in l.split()[2]:
+            return l
+        else:
+            return False
+    except IndexError:
+        return False
