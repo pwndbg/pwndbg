@@ -21,10 +21,7 @@ def call_program(progname, *args):
     if not program:
         raise OSError('Could not find %s command in $PATH.' % progname)
 
-    cmd = [progname]
-
-    for arg in args:
-        cmd.append(arg)
+    cmd = [progname] + list(args)
 
     try:
         return subprocess.check_output(cmd).decode('utf-8')
