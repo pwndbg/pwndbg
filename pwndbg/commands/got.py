@@ -33,7 +33,7 @@ def got():
 
     readelf_out = pwndbg.wrappers.readelf("-r", local_path)
 
-    jmpslots = '\n'.join(filter(lambda l: _extract_Jumps(l),
+    jmpslots = '\n'.join(filter(lambda l: _extract_jumps(l),
                          readelf_out.splitlines()))
 
     if not len(jmpslots):
@@ -50,21 +50,15 @@ def got():
 
     print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
 
-    if pwndbg.arch.ptrsize == 4:
-        for line in jmpslots.splitlines():
-            address, info, rtype, value, name = line.split()
-            got_address = pwndbg.memory.pvoid(int(address, 16))
-            print("[%s] %s -> %s" % (address, light_yellow(name), pwndbg.chain.format(got_address)))
-    else:
-        for line in jmpslots.splitlines():
-            address, info, rtype, value, name, _, _ = line.split()
-            address_val = int(address,16)
+    for line in jmpslots.splitlines():
+        address, info, rtype, value, name = line.split()[:5]
+        address_val = int(address, 16)
 
-            if "PIE enabled" in cs_out: # if PIE, address is only the offset from the binary base address
-                address_val = bin_text_base + address_val
+        if "PIE enabled" in cs_out: # if PIE, address is only the offset from the binary base address
+            address_val = bin_text_base + address_val
 
-            got_address = pwndbg.memory.pvoid(address_val)
-            print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
+        got_address = pwndbg.memory.pvoid(address_val)
+        print("[%s] %s -> %s" % (address, light_yellow(name), pwndbg.chain.format(got_address)))
 
 
 def _extract_jumps(l):
