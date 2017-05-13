@@ -5,7 +5,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import abc
+import argparse
 import functools
+import future.utils
 import traceback
 
 import gdb
@@ -218,3 +221,138 @@ class ArgparsedCommand(object):
             return function(**vars(args))
         _ArgparsedCommand.__doc__ = self.parser.description
         return Command(_ArgparsedCommand)
+
+## TODO(pick an appropriate filename for these) Common types for argparse.add_argument(type=...), which will also be used for command completion
+
+class ArgparseType(future.utils.with_metaclass(abc.ABCMeta)):
+    @abc.abstractmethod
+    def __call__(self, x): pass
+
+    def do_complete(self, text, word, **kwargs):
+        return gdb.COMPLETE_NONE
+
+class ArgparseTypeInt(ArgparseType):
+    def __call__(self, x):
+        # eval $pc-10
+        return x
+
+    def do_complete(self, text, word, dest):
+        return [dest]
+
+class ArgparseTypeLocation(ArgparseType):
+    def __call__(self, x):
+        return x
+
+    def do_complete(self, text, word, **kwargs):
+        return gdb.COMPLETE_LOCATION
+
+
+commands = []
+
+class MetaCommand(type):
+    def __init__(cls, name, bases, dct):
+        commands.append(cls)
+        return super().__init__(name, bases, dct)
+
+class GenericCommand(future.utils.with_metaclass(MetaCommand, gdb.Command)):
+    complete_type = -1
+    prefix = False
+
+    def __init__(self, *args, **kwargs):
+        name = getattr(self, 'name', type(self).__name__)
+        command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
+
+        self.parser = getattr(self, 'parser', None)
+        if self.parser is None:
+            pass
+        elif isinstance(self.parser, argparse.ArgumentParser):
+            self.parser.description = self.__doc__
+        else:
+            parser = self.parser
+            self.parser = argparse.ArgumentParser(description=self.__doc__)
+            for kw in parser:
+                self.parser.add_argument(**kw)
+
+        super().__init__(name, command_type, self.complete_type, self.prefix)
+
+    def invoke(self, args, from_tty):
+        try:
+            args = gdb.string_to_argv(args)
+            if self.parser is None:
+                self.do_invoke(*args)
+            else:
+                try:
+                    args = self.parser.parse_args(args)
+                except SystemExit:
+                    # If passing '-h' or '--help', argparse attempts to kill the process.
+                    return
+                self.do_invoke(**args.__dict__)
+        except Exception as e:
+            # TODO better error messages (`inspect` module) when arguments do not match parameters
+            print('error' , type(e), e)
+
+    def complete(self, text, word):
+        if hasattr(self, 'do_complete'):
+            try:
+                return self.do_complete(text, word)
+            except Exception as e:
+                print('error' , type(e), e)
+        else:
+            positional = self.parser._get_positional_actions()
+            text = gdb.string_to_argv(text)
+            pos = len(text)
+            if pos and word:
+                pos -= 1
+            if pos < len(positional):
+                arg = positional[pos]
+                if hasattr(arg.type, 'do_complete'):
+                    return arg.type.do_complete(text, word, dest=arg.dest)
+                else:
+                    return [arg.dest]
+            return []
+
+    @abc.abstractmethod
+    def do_invoke(self, **kwargs): pass
+
+
+# TODO These are use cases
+
+class aa(GenericCommand):
+    complete_type = gdb.COMPLETE_FILENAME
+
+    def do_invoke(self, argv):
+        print('+aa', argv)
+
+class bb(GenericCommand):
+    """Document."""
+    name = 'bb'
+    parser = (
+        dict(dest='address', nargs='?', default='$sp', help='hello'),
+    )
+
+    def do_invoke(self, address):
+        print('+bb', address)
+
+    def do_complete(self, text, word):
+        #print('+bb complete', text, '++', word)
+        return ['d']
+
+class cc(GenericCommand):
+    """Document."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('aaa', type=ArgparseTypeLocation())
+    parser.add_argument('bbb', type=ArgparseTypeInt())
+
+    def do_invoke(self, aaa, bbb):
+        print('+cc', aaa, bbb)
+
+class dd(GenericCommand):
+    @OnlyWhenRunning
+    def do_invoke(self):
+        print('+dd')
+
+
+# TODO(choose an appropriate file) Register all commands.
+
+for cls in commands:
+    cls()
