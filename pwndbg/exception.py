@@ -13,7 +13,6 @@ import traceback
 import gdb
 
 import pwndbg.config
-import pwndbg.stdio
 
 try:
 	import ipdb as pdb
@@ -45,14 +44,14 @@ def handle():
 
 
 
-pdb_set_trace = pdb.set_trace
-
-@functools.wraps(pdb_set_trace)
+@functools.wraps(pdb.set_trace)
 def set_trace():
     """Enable sane debugging in Pwndbg by switching to the "real" stdio.
     """
-    with pwndbg.stdio.stdio:
-        pdb_set_trace()
+    debugger = pdb.Pdb(stdin=sys.__stdin__,
+                       stdout=sys.__stdout__,
+                       skip=['pwndbg.stdio', 'pwndbg.exception'])
+    debugger.set_trace()
 
 pdb.set_trace = set_trace
 
