@@ -6,21 +6,18 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
-import traceback
 
 import gdb
 
 import pwndbg.chain
 import pwndbg.color
 import pwndbg.enhance
+import pwndbg.exception
 import pwndbg.hexdump
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.stdio
 import pwndbg.symbol
 import pwndbg.ui
-
-debug = True
 
 
 class _Command(gdb.Command):
@@ -48,8 +45,7 @@ class _Command(gdb.Command):
             self.repeat = self.check_repeated(argument, from_tty)
             return self(*argv)
         except TypeError:
-            if debug:
-                print(traceback.format_exc())
+            pwndbg.exception.handle()
             raise
         finally:
             self.repeat = False
@@ -88,14 +84,13 @@ class _Command(gdb.Command):
 
     def __call__(self, *args, **kwargs):
         try:
-            with pwndbg.stdio.stdio:
-                return self.function(*args, **kwargs)
+            return self.function(*args, **kwargs)
         except TypeError as te:
-            print(te)
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
+            pwndbg.exception.handle()
         except Exception:
-            print(traceback.format_exc())
+            pwndbg.exception.handle()
 
 
 class _ParsedCommand(_Command):
