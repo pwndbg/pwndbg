@@ -10,7 +10,8 @@ import pdb
 import sys
 import traceback
 
-import pwndbg.color as C
+import gdb
+
 import pwndbg.config
 import pwndbg.stdio
 
@@ -35,7 +36,7 @@ def handle():
         print(traceback.format_exc())
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        print(C.red(exc_type), exc_value)
+        print(exc_type, exc_value)
 
     # Break into the interactive debugger
     if debug:
@@ -53,4 +54,13 @@ def set_trace():
     with pwndbg.stdio.stdio:
         pdb_set_trace()
 
-pdb.set_trace = set_trace()
+pdb.set_trace = set_trace
+
+@pwndbg.config.Trigger([verbose, debug])
+def update():
+    if verbose or debug:
+        command = 'set python print-stack on'
+    else:
+        command = 'set python print-stack off'
+
+    gdb.execute(command, from_tty=True, to_string=True)
