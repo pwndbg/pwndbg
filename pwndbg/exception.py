@@ -59,8 +59,8 @@ pdb.set_trace = set_trace
 @pwndbg.config.Trigger([verbose, debug])
 def update():
     if verbose or debug:
-        command = 'set python print-stack on'
+        command = 'set python print-stack full'
     else:
-        command = 'set python print-stack off'
+        command = 'set python print-stack message'
 
     gdb.execute(command, from_tty=True, to_string=True)
