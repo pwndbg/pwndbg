@@ -1,7 +1,6 @@
 future
 isort
 pip
-ipdb
 psutil>=3.1.0
 pycparser
 pyelftools
