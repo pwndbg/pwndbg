@@ -9,6 +9,7 @@ import pdb
 import sys
 import traceback
 
+import pwndbg.color as C
 import pwndbg.config
 import pwndbg.stdio
 
@@ -25,7 +26,8 @@ def handle():
     if debug or verbose:
         print(traceback.format_exc())
     else:
-        print(sys.exc_info()[1])
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(C.red(exc_type), exc_value)
 
     # Break into the interactive debugger
     if debug:

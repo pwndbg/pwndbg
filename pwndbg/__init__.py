@@ -65,7 +65,6 @@ import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
-import pwndbg.stdio
 import pwndbg.typeinfo
 import pwndbg.version
 import pwndbg.vmmap
