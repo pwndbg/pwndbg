@@ -121,6 +121,7 @@ pre_commands = """
 set confirm off
 set verbose off
 set prompt %s
+set pagination off
 set height 0
 set history expansion on
 set history save on
