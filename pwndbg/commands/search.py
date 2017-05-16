@@ -73,7 +73,7 @@ parser.add_argument('-w', '--writable', action='store_true',
                     help='Search writable segments only')
 parser.add_argument('value', type=str,
                     help='Value to search for')
-parser.add_argument('mapping', type=str, nargs='?', default=None,
+parser.add_argument('mapping_name', type=str, nargs='?', default=None,
                     help='Mapping to search [e.g. libc]')
 parser.add_argument('--save', action='store_true', default=None,
                     help='Save results for --resume.  Default comes from config %r' % auto_save.name)
@@ -84,7 +84,7 @@ parser.add_argument('-n', '--next', action='store_true',
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping, save, next):
+def search(type, hex, string, executable, writable, value, mapping_name, save, next):
     # Adjust pointer sizes to the local architecture
     if type == 'pointer':
         type = {
@@ -132,11 +132,11 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
     # Find the mappings that we're looking for
     mappings = pwndbg.vmmap.get()
 
-    if mapping:
-        mappings = [m for m in mappings if mapping in m.objfile]
+    if mapping_name:
+        mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(M.red("Could not find mapping %r" % mapping))
+        print(M.red("Could not find mapping %r" % mapping_name))
         return
 
     # Prep the saved set if necessary
@@ -146,7 +146,7 @@ def search(type, hex, string, executable, writable, value, mapping, save, next):
 
     # Perform the search
     for address in pwndbg.search.search(value,
-                                        mapping=mapping,
+                                        mappings=mappings,
                                         executable=executable,
                                         writable=writable):
 
