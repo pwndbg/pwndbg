@@ -40,13 +40,18 @@ class Command(gdb.Command):
         return gdb.string_to_argv(argument), {}
 
     def invoke(self, argument, from_tty):
-        args, kwargs = self.split_args(argument)
         try:
-            self.repeat = self.check_repeated(argument, from_tty)
-            return self(*args, **kwargs)
+            args, kwargs = self.split_args(argument)
+        except SystemExit:
+            # Raised when the usage is printed by an ArgparsedCommand
+            return
         except TypeError:
             pwndbg.exception.handle()
             raise
+
+        try:
+            self.repeat = self.check_repeated(argument, from_tty)
+            return self(*args, **kwargs)
         finally:
             self.repeat = False
 
@@ -89,9 +94,6 @@ class Command(gdb.Command):
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
             pwndbg.exception.handle()
-        except SystemExit:
-            # Raised when the usage is printed by an ArgparsedCommand
-            pass
         except Exception:
             pwndbg.exception.handle()
 
