@@ -15,18 +15,13 @@ import pwndbg.hexdump
 import pwndbg.memory
 import pwndbg.regs
 
-pwndbg.config.Parameter('hexdump-width',
-                         16,
-                         'line width of hexdump command')
-pwndbg.config.Parameter('hexdump-bytes',
-                         64,
-                         'number of bytes printed by hexdump command')
+pwndbg.config.Parameter('hexdump-width', 16, 'line width of hexdump command')
+pwndbg.config.Parameter('hexdump-bytes', 64, 'number of bytes printed by hexdump command')
 
 parser = argparse.ArgumentParser(description='Hexdumps data at the specified address (or at $sp)')
-parser.add_argument('address', nargs='?', default='$sp',
-                    help='Address to dump')
-parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
-                    help='Number of bytes to dump')
+parser.add_argument('address', nargs='?', default='$sp', help='Address to dump')
+parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,  help='Number of bytes to dump')
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning

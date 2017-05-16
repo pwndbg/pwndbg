@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import bz2
 import datetime
 import os
@@ -17,14 +18,11 @@ import pwndbg.ida
 import pwndbg.regs
 
 
-@pwndbg.commands.ParsedCommand
+@pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.events.stop
 @pwndbg.ida.withIDA
-def j(*args):
-    """
-    Synchronize IDA's cursor with GDB
-    """
+def j():
     try:
         pc = int(gdb.selected_frame().pc())
         pwndbg.ida.Jump(pc)
@@ -33,13 +31,12 @@ def j(*args):
 
 
 if pwndbg.ida.available():
-    @pwndbg.commands.Command
+    parser = argparse.ArgumentParser(description='Select and print stack frame that called this one.')
+    parser.add_argument('n', nargs='?', default=1, type=int, help='How many frames to go up.')
+
+    @pwndbg.commands.ArgparsedCommand(parser)
     @pwndbg.commands.OnlyWhenRunning
     def up(n=1):
-        """
-        Select and print stack frame that called this one.
-        An argument says how many frames up to go.
-        """
         f = gdb.selected_frame()
 
         for i in range(n):
@@ -52,14 +49,12 @@ if pwndbg.ida.available():
 
         j()
 
+    parser = argparse.ArgumentParser(description='Select and print stack frame called by this one.')
+    parser.add_argument('n', nargs='?', default=1, type=int, help='How many frames to go down.')
 
-    @pwndbg.commands.Command
+    @pwndbg.commands.ArgparsedCommand(parser)
     @pwndbg.commands.OnlyWhenRunning
     def down(n=1):
-        """
-        Select and print stack frame called by this one.
-        An argument says how many frames down to go.
-        """
         f = gdb.selected_frame()
 
         for i in range(n):
@@ -73,7 +68,7 @@ if pwndbg.ida.available():
         j()
 
 
-    @pwndbg.commands.Command
+    @pwndbg.commands.ArgparsedCommand('Makes backup of IDA database')
     def save_ida():
         if not pwndbg.ida.available():
             return

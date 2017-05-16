@@ -5,29 +5,26 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import gdb
-
 import pwndbg.arch
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.regs
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints out the ARM CPSR register.')
 @pwndbg.commands.OnlyWhenRunning
 def cpsr():
-    'Print out the ARM CPSR register'
     if pwndbg.arch.current != 'arm':
-        print("This is only available on ARM")
+        print('This is only available on ARM (current arch: %s)' % pwndbg.arch.current)
         return
 
     cpsr = pwndbg.regs.cpsr
 
-    N = cpsr & (1<<31)
-    Z = cpsr & (1<<30)
-    C = cpsr & (1<<29)
-    V = cpsr & (1<<28)
-    T = cpsr & (1<<5)
+    N = cpsr & (1 << 31)
+    Z = cpsr & (1 << 30)
+    C = cpsr & (1 << 29)
+    V = cpsr & (1 << 28)
+    T = cpsr & (1 << 5)
 
     bold = pwndbg.color.bold
 
@@ -38,4 +35,5 @@ def cpsr():
         bold('V') if V else 'v',
         bold('T') if T else 't'
     ]
+
     print('cpsr %#x [ %s ]' % (cpsr, ' '.join(result)))

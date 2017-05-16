@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import pwndbg.commands
 import pwndbg.config
 from pwndbg.color import light_yellow
@@ -50,16 +52,26 @@ def config():
                        '- then put it in your .gdbinit after initializing pwndbg'))
 
 
-@pwndbg.commands.Command
-def configfile(show_all=False):
-    """Generates a configuration file for the current Pwndbg options"""
-    configfile_print_scope('config', show_all)
+parser = argparse.ArgumentParser(
+    description='Generates a configuration file for the current Pwndbg options'
+)
+parser.add_argument('-a', '--all', action='store_true', help='Whether to show all config params')
 
 
-@pwndbg.commands.Command
-def themefile(show_all=False):
-    """Generates a configuration file for the current Pwndbg theme options"""
-    configfile_print_scope('theme', show_all)
+@pwndbg.commands.ArgparsedCommand(parser)
+def configfile(all=False):
+    configfile_print_scope('config', all)
+
+
+parser = argparse.ArgumentParser(
+    description='Generates a configuration file for the current Pwndbg theme options'
+)
+parser.add_argument('-a', '--all', action='store_true', help='Whether to show all theme params')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+def themefile(all=False):
+    configfile_print_scope('theme', all)
 
 
 def configfile_print_scope(scope, show_all=False):

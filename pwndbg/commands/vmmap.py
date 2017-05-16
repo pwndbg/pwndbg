@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import gdb
 import six
 
@@ -17,13 +19,14 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-@pwndbg.commands.QuietSloppyParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = 'Print the virtal memory map, or the specific mapping for the provided address / module name.'
+parser.add_argument('map', type=str, nargs='?', default=None, help='GDB expression to print mapping for.')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(map=None):
-    """
-    Print the virtal memory map, or the specific mapping for the
-    provided address / module name.
-    """
     int_map = None
     str_map = None
 

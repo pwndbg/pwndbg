@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import functools
 
 import gdb
@@ -26,8 +27,10 @@ class _Command(gdb.Command):
     commands = []
     history  = {}
 
-    def __init__(self, function, inc=True, prefix=False):
-        super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+    def __init__(self, function, inc=True, prefix=False, alias=None):
+        command_name = alias if alias else function.__name__
+
+        super(_Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if inc:
@@ -187,12 +190,21 @@ def QuietSloppyParsedCommand(func):
 
 class ArgparsedCommand(object):
     """Adds documentation and offloads parsing for a Command via argparse"""
-    def __init__(self, parser):
-        self.parser = parser
+    def __init__(self, parser_or_desc, unpack=False):
+        """
+        :param parser_or_desc: `argparse.ArgumentParser` or `str`
+        :param unpack: Field name to unpack.
+        """
+        self.unpack = unpack
+
+        if isinstance(parser_or_desc, str):
+            self.parser = argparse.ArgumentParser(description=parser_or_desc)
+        else:
+            self.parser = parser_or_desc
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
-        for action in parser._actions:
+        for action in self.parser._actions:
             if action.dest == 'help':
                 continue
             if action.type in (int, None):
@@ -200,8 +212,10 @@ class ArgparsedCommand(object):
             if action.default is not None:
                 action.help += ' (default: %(default)s)'
 
-    def __call__(self, function):
+    def __call__(self, function, alias=None):
         self.parser.prog = function.__name__
+        function.parser = self.parser
+        function.unpack = self.unpack
 
         @functools.wraps(function)
         def _ArgparsedCommand(*args):
@@ -210,6 +224,24 @@ class ArgparsedCommand(object):
             except SystemExit:
                 # If passing '-h' or '--help', argparse attempts to kill the process.
                 return
-            return function(**vars(args))
+
+            kwargs = vars(args)
+            args = kwargs.pop(self.unpack, [])
+
+            return function(*args, **kwargs)
+
         _ArgparsedCommand.__doc__ = self.parser.description
-        return Command(_ArgparsedCommand)
+
+        return Command(_ArgparsedCommand, alias=alias)
+
+
+class AliasCommand(object):
+    def __init__(self, alias_to):
+        self.alias_to = alias_to
+
+    def __call__(self, alias_func):
+        func = self.alias_to.__wrapped__.__wrapped__
+
+        wrapped = functools.wraps(alias_func)(func)
+
+        return ArgparsedCommand(func.parser, func.unpack)(wrapped)

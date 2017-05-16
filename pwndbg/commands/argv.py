@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import gdb
 
 import pwndbg.arch
@@ -13,70 +15,61 @@ import pwndbg.commands
 import pwndbg.typeinfo
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints out the number of arguments.')
 @pwndbg.commands.OnlyWhenRunning
 def argc():
-    """
-    Prints out the number of arguments.
-    """
     print(pwndbg.argv.argc)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser(description='Prints out the contents of argv.')
+parser.add_argument('i', nargs='?', default=0, type=int, help='argv index')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None):
-    """
-    Prints out the contents of argv.
-    """
     start = pwndbg.argv.argv
     n     = pwndbg.argv.argc+1
 
     if i is not None:
         n = 1
-        start += (pwndbg.arch.ptrsize) * i
+        start += pwndbg.arch.ptrsize * i
 
     pwndbg.commands.telescope.telescope(start, n)
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def args():
-    """
-    Prints out the contents of argv.
-    """
-    argv()
 
-@pwndbg.commands.Command
+@pwndbg.commands.AliasCommand(argv)
+def args():
+    pass
+
+
+@pwndbg.commands.ArgparsedCommand('Prints out the contents of the environment.')
 @pwndbg.commands.OnlyWhenRunning
-def envp(name=None):
-    """
-    Prints out the contents of the environment.
-    """
+def envp():
     start = pwndbg.argv.envp
     n     = pwndbg.argv.envc+1
 
     return pwndbg.commands.telescope.telescope(start, n)
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser(description='Prints out the contents of the environment.')
+parser.add_argument('name', nargs='?', default=None, type=str, help='Environment variable name')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def env(name=None):
-    """
-    Prints out the contents of the environment.
-    """
+
     if name is None:
         return envp()
 
     gdb.execute('p $environ("%s")' % name)
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def environ(name=None):
-    """
-    Prints out the contents of the environment.
-    """
-    if name is None:
-        return envp()
 
-    gdb.execute('p $environ("%s")' % name)
+@pwndbg.commands.AliasCommand(env)
+def environ():
+    pass
+
 
 class argv_function(gdb.Function):
     """
@@ -84,6 +77,7 @@ class argv_function(gdb.Function):
     """
     def __init__(self):
         super(argv_function, self).__init__('argv')
+
     def invoke(self, number=0):
         number = int(number)
 
@@ -93,7 +87,8 @@ class argv_function(gdb.Function):
         ppchar = pwndbg.typeinfo.pchar.pointer()
         value  = gdb.Value(pwndbg.argv.argv)
         argv   = value.cast(ppchar)
-        return((argv+number).dereference())
+
+        return (argv+number).dereference()
 
 argv_function()
 
@@ -104,6 +99,7 @@ class envp_function(gdb.Function):
     """
     def __init__(self):
         super(envp_function, self).__init__('envp')
+
     def invoke(self, number=0):
         number = int(number)
 
@@ -113,7 +109,8 @@ class envp_function(gdb.Function):
         ppchar = pwndbg.typeinfo.pchar.pointer()
         value  = gdb.Value(pwndbg.argv.envp)
         envp   = value.cast(ppchar)
-        return((envp+number).dereference())
+
+        return (envp+number).dereference()
 
 envp_function()
 
@@ -124,6 +121,7 @@ class argc_function(gdb.Function):
     """
     def __init__(self):
         super(argc_function, self).__init__('argc')
+
     def invoke(self, number=0):
         return pwndbg.argv.argc
 
@@ -136,6 +134,7 @@ class environ_function(gdb.Function):
     """
     def __init__(self):
         super(environ_function, self).__init__('environ')
+
     def invoke(self, name):
         name   = name.string() + '='
         ppchar = pwndbg.typeinfo.pchar.pointer()
