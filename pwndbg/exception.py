@@ -13,6 +13,7 @@ import traceback
 import gdb
 
 import pwndbg.config
+import pwndbg.stdio
 
 try:
 	import ipdb as pdb
