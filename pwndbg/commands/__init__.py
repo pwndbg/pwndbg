@@ -20,14 +20,14 @@ import pwndbg.symbol
 import pwndbg.ui
 
 
-class _Command(gdb.Command):
+class Command(gdb.Command):
     """Generic command wrapper"""
     count    = 0
     commands = []
     history  = {}
 
     def __init__(self, function, inc=True, prefix=False):
-        super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if inc:
@@ -47,6 +47,8 @@ class _Command(gdb.Command):
         except TypeError:
             pwndbg.exception.handle()
             raise
+        except SystemExit:
+            pass
         finally:
             self.repeat = False
 
@@ -72,8 +74,8 @@ class _Command(gdb.Command):
         number = int(number)
 
         # A new command was entered by the user
-        if number not in _Command.history:
-            _Command.history[number] = command
+        if number not in Command.history:
+            Command.history[number] = command
             return False
 
         # Somehow the command is different than we got before?
@@ -93,7 +95,7 @@ class _Command(gdb.Command):
             pwndbg.exception.handle()
 
 
-class _ParsedCommand(_Command):
+class ParsedCommand(Command):
     #: Whether to return the string 'arg' if parsing fails.
     sloppy = False
 
@@ -102,7 +104,7 @@ class _ParsedCommand(_Command):
 
     def split_args(self, argument):
         # sys.stdout.write(repr(argument) + '\n')
-        argv = super(_ParsedCommand,self).split_args(argument)
+        argv = super(ParsedCommand,self).split_args(argument)
         # sys.stdout.write(repr(argv) + '\n')
         return list(filter(lambda x: x is not None, map(self.fix, argv)))
 
@@ -110,9 +112,9 @@ class _ParsedCommand(_Command):
         return fix(arg, self.sloppy, self.quiet)
 
 
-class _ParsedCommandPrefix(_ParsedCommand):
+class ParsedCommandPrefix(ParsedCommand):
     def __init__(self, function, inc=True, prefix=True):
-        super(_ParsedCommand, self).__init__(function, inc, prefix)
+        super(ParsedCommand, self).__init__(function, inc, prefix)
 
 
 def fix(arg, sloppy=False, quiet=True):
@@ -164,25 +166,23 @@ def OnlyWhenRunning(function):
     return _OnlyWhenRunning
 
 
-def Command(func, *a, **kw):
-    class C(_Command):
-        __doc__ = func.__doc__
-        __name__ = func.__name__
-    return C(func, *a, **kw)
+class QuietSloppyParsedCommand(ParsedCommand):
+    def __init__(self, *a, **kw):
+        super(QuietSloppyParsedCommand, self).__init__(*a, **kw)
+        self.quiet = True
+        self.sloppy = True
 
 
-def ParsedCommand(func):
-    class C(_ParsedCommand):
-        __doc__ = func.__doc__
-        __name__ = func.__name__
-    return C(func)
+class _ArgparsedCommand(Command):
+    def __init__(self, parser, function, *a, **kw):
+        self.parser = parser
+        self.parser.prog = function.__name__
+        function.__doc__ = self.parser.description
+        super(_ArgparsedCommand, self).__init__(function, *a, **kw)
 
-
-def QuietSloppyParsedCommand(func):
-    c = ParsedCommand(func)
-    c.quiet = True
-    c.sloppy = True
-    return c
+    def split_args(self, argument):
+        argv = super(_ArgparsedCommand, self).string_to_argv(argument)
+        return self.parser.parse_args(argv)
 
 
 class ArgparsedCommand(object):
@@ -201,15 +201,4 @@ class ArgparsedCommand(object):
                 action.help += ' (default: %(default)s)'
 
     def __call__(self, function):
-        self.parser.prog = function.__name__
-
-        @functools.wraps(function)
-        def _ArgparsedCommand(*args):
-            try:
-                args = self.parser.parse_args(args)
-            except SystemExit:
-                # If passing '-h' or '--help', argparse attempts to kill the process.
-                return
-            return function(**vars(args))
-        _ArgparsedCommand.__doc__ = self.parser.description
-        return Command(_ArgparsedCommand)
+        return _ArgparsedCommand(self.parser, function)
