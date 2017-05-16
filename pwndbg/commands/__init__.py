@@ -37,9 +37,16 @@ class Command(gdb.Command):
         self.__doc__ = function.__doc__
 
     def split_args(self, argument):
+        """Split a command-line string from the user into arguments.
+
+        Returns:
+            A tuple / dict, in the form of ``*args, **args``.
+            The contents of the tuple/dict are undefined.
+        """
         return gdb.string_to_argv(argument), {}
 
     def invoke(self, argument, from_tty):
+        """Invoke the command with an argument string"""
         try:
             args, kwargs = self.split_args(argument)
         except SystemExit:
