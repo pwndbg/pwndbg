@@ -23,7 +23,7 @@ except ImportError:
 verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktracefor exceptions raised in Pwndbg commands')
 debug = pwndbg.config.Parameter('exception-debugger', False, 'whether to debug exceptions raised in Pwndbg commands')
 
-def handle():
+def handle(name = 'Error'):
     """Displays an exception to the user, optionally displaying a full traceback
     and spawning an interactive post-moretem debugger.
 
@@ -36,7 +36,7 @@ def handle():
         print(traceback.format_exc())
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        print(exc_type, exc_value)
+        print('{}: {} ({})'.format(name, exc_value, exc_type))
 
     # Break into the interactive debugger
     if debug:

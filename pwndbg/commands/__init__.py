@@ -52,9 +52,9 @@ class Command(gdb.Command):
         except SystemExit:
             # Raised when the usage is printed by an ArgparsedCommand
             return
-        except TypeError:
-            pwndbg.exception.handle()
-            raise
+        except (TypeError, gdb.error):
+            pwndbg.exception.handle(self.function.__name__)
+            return
 
         try:
             self.repeat = self.check_repeated(argument, from_tty)
@@ -100,9 +100,9 @@ class Command(gdb.Command):
         except TypeError as te:
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
-            pwndbg.exception.handle()
+            pwndbg.exception.handle(self.function.__name__)
         except Exception:
-            pwndbg.exception.handle()
+            pwndbg.exception.handle(self.function.__name__)
 
 
 class ParsedCommand(Command):
@@ -127,7 +127,20 @@ class ParsedCommandPrefix(ParsedCommand):
         super(ParsedCommand, self).__init__(function, inc, prefix)
 
 
-def fix(arg, sloppy=False, quiet=True):
+
+def fix(arg, sloppy=False, quiet=True, reraise=False):
+    """Fix a single command-line argument coming from the GDB CLI.
+
+    Arguments:
+        arg(str): Original string representation (e.g. '0', '$rax', '$rax+44')
+        sloppy(bool): If ``arg`` cannot be evaluated, return ``arg``. (default: False)
+        quiet(bool): If an error occurs, suppress it. (default: True)
+        reraise(bool): If an error occurs, raise the exception. (default: False)
+
+    Returns:
+        Ideally ``gdb.Value`` object.  May return a ``str`` if ``sloppy==True``.
+        May return ``None`` if ``sloppy == False and reraise == False``.
+    """
     if isinstance(arg, gdb.Value):
         return arg
 
@@ -143,6 +156,8 @@ def fix(arg, sloppy=False, quiet=True):
     except Exception as e:
         if not quiet:
             print(e)
+        if reraise:
+            raise e
         pass
 
     if sloppy:
@@ -153,6 +168,9 @@ def fix(arg, sloppy=False, quiet=True):
 
 def fix_int(*a, **kw):
     return int(fix(*a,**kw))
+
+def fix_int_reraise(*a, **kw):
+    return fix(*a, reraise=True, **kw)
 
 
 def OnlyWithFile(function):
@@ -206,7 +224,7 @@ class ArgparsedCommand(object):
             if action.dest == 'help':
                 continue
             if action.type in (int, None):
-                action.type = fix_int
+                action.type = fix_int_reraise
             if action.default is not None:
                 action.help += ' (default: %(default)s)'
 
