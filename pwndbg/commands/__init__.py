@@ -37,13 +37,13 @@ class Command(gdb.Command):
         self.__doc__ = function.__doc__
 
     def split_args(self, argument):
-        return gdb.string_to_argv(argument)
+        return gdb.string_to_argv(argument), {}
 
     def invoke(self, argument, from_tty):
-        argv = self.split_args(argument)
+        args, kwargs = self.split_args(argument)
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            return self(*argv)
+            return self(*args, **kwargs)
         except TypeError:
             pwndbg.exception.handle()
             raise
@@ -106,7 +106,7 @@ class ParsedCommand(Command):
         # sys.stdout.write(repr(argument) + '\n')
         argv = super(ParsedCommand,self).split_args(argument)
         # sys.stdout.write(repr(argv) + '\n')
-        return list(filter(lambda x: x is not None, map(self.fix, argv)))
+        return list(filter(lambda x: x is not None, map(self.fix, argv))), {}
 
     def fix(self, arg):
         return fix(arg, self.sloppy, self.quiet)
@@ -181,8 +181,8 @@ class _ArgparsedCommand(Command):
         super(_ArgparsedCommand, self).__init__(function, *a, **kw)
 
     def split_args(self, argument):
-        argv = super(_ArgparsedCommand, self).string_to_argv(argument)
-        return self.parser.parse_args(argv)
+        argv = gdb.string_to_argv(argument)
+        return tuple(), vars(self.parser.parse_args(argv))
 
 
 class ArgparsedCommand(object):
