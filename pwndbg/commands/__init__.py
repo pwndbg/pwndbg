@@ -47,8 +47,6 @@ class Command(gdb.Command):
         except TypeError:
             pwndbg.exception.handle()
             raise
-        except SystemExit:
-            pass
         finally:
             self.repeat = False
 
@@ -91,6 +89,9 @@ class Command(gdb.Command):
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
             pwndbg.exception.handle()
+        except SystemExit:
+            # Raised when the usage is printed by an ArgparsedCommand
+            pass
         except Exception:
             pwndbg.exception.handle()
 
