@@ -43,8 +43,6 @@ def handle(name = 'Error'):
         with pwndbg.stdio.stdio:
             pdb.post_mortem()
 
-
-
 @functools.wraps(pdb.set_trace)
 def set_trace():
     """Enable sane debugging in Pwndbg by switching to the "real" stdio.

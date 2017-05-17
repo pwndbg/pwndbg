@@ -179,7 +179,7 @@ def OnlyWithFile(function):
         if pwndbg.proc.exe:
             return function(*a, **kw)
         else:
-            print("There is no file loaded.")
+            print("%s: There is no file loaded." % function.__name__)
 
     return _OnlyWithFile
 
@@ -190,7 +190,7 @@ def OnlyWhenRunning(function):
         if pwndbg.proc.alive:
             return function(*a, **kw)
         else:
-            print("The program is not being run.")
+            print("%s: The program is not being run." % function.__name__)
     return _OnlyWhenRunning
 
 
