@@ -40,7 +40,7 @@ class Command(gdb.Command):
         """Split a command-line string from the user into arguments.
 
         Returns:
-            A tuple / dict, in the form of ``*args, **args``.
+            A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
         return gdb.string_to_argv(argument), {}
