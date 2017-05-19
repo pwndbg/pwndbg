@@ -24,6 +24,7 @@ import pwndbg.commands.dt
 import pwndbg.commands.dumpargs
 import pwndbg.commands.elf
 import pwndbg.commands.gdbinit
+import pwndbg.commands.got
 import pwndbg.commands.heap
 import pwndbg.commands.hexdump
 import pwndbg.commands.ida
@@ -68,6 +69,7 @@ import pwndbg.stack
 import pwndbg.typeinfo
 import pwndbg.version
 import pwndbg.vmmap
+import pwndbg.wrappers
 
 __version__ = pwndbg.version.__version__
 version = __version__

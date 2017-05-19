@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import binascii
 import errno as _errno
 import os
+import subprocess
 import tempfile
 
 import gdb
@@ -134,3 +135,4 @@ def readlink(path):
     data = data[:-len(ending)]
 
     return data
+
