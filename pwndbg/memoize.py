@@ -151,6 +151,9 @@ class while_running(memoize):
 
     _reset = __reset_while_running
 
+def forever(*a, **kw):
+    import pwndb.storage # Circular imports woo!
+    return pwndbg.storage.NonVolatile(*a, **kw)
 
 def reset():
     reset_on_stop._reset()
