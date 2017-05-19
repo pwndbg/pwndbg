@@ -20,14 +20,14 @@ import pwndbg.symbol
 import pwndbg.ui
 
 
-class _Command(gdb.Command):
+class Command(gdb.Command):
     """Generic command wrapper"""
     count    = 0
     commands = []
     history  = {}
 
     def __init__(self, function, inc=True, prefix=False):
-        super(_Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if inc:
@@ -37,16 +37,28 @@ class _Command(gdb.Command):
         self.__doc__ = function.__doc__
 
     def split_args(self, argument):
-        return gdb.string_to_argv(argument)
+        """Split a command-line string from the user into arguments.
+
+        Returns:
+            A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
+            The contents of the tuple/dict are undefined.
+        """
+        return gdb.string_to_argv(argument), {}
 
     def invoke(self, argument, from_tty):
-        argv = self.split_args(argument)
+        """Invoke the command with an argument string"""
+        try:
+            args, kwargs = self.split_args(argument)
+        except SystemExit:
+            # Raised when the usage is printed by an ArgparsedCommand
+            return
+        except (TypeError, gdb.error):
+            pwndbg.exception.handle(self.function.__name__)
+            return
+
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            return self(*argv)
-        except TypeError:
-            pwndbg.exception.handle()
-            raise
+            return self(*args, **kwargs)
         finally:
             self.repeat = False
 
@@ -72,8 +84,8 @@ class _Command(gdb.Command):
         number = int(number)
 
         # A new command was entered by the user
-        if number not in _Command.history:
-            _Command.history[number] = command
+        if number not in Command.history:
+            Command.history[number] = command
             return False
 
         # Somehow the command is different than we got before?
@@ -88,12 +100,12 @@ class _Command(gdb.Command):
         except TypeError as te:
             print('%r: %s' % (self.function.__name__.strip(),
                               self.function.__doc__.strip()))
-            pwndbg.exception.handle()
+            pwndbg.exception.handle(self.function.__name__)
         except Exception:
-            pwndbg.exception.handle()
+            pwndbg.exception.handle(self.function.__name__)
 
 
-class _ParsedCommand(_Command):
+class ParsedCommand(Command):
     #: Whether to return the string 'arg' if parsing fails.
     sloppy = False
 
@@ -102,20 +114,33 @@ class _ParsedCommand(_Command):
 
     def split_args(self, argument):
         # sys.stdout.write(repr(argument) + '\n')
-        argv = super(_ParsedCommand,self).split_args(argument)
+        argv = super(ParsedCommand,self).split_args(argument)
         # sys.stdout.write(repr(argv) + '\n')
-        return list(filter(lambda x: x is not None, map(self.fix, argv)))
+        return list(filter(lambda x: x is not None, map(self.fix, argv))), {}
 
     def fix(self, arg):
         return fix(arg, self.sloppy, self.quiet)
 
 
-class _ParsedCommandPrefix(_ParsedCommand):
+class ParsedCommandPrefix(ParsedCommand):
     def __init__(self, function, inc=True, prefix=True):
-        super(_ParsedCommand, self).__init__(function, inc, prefix)
+        super(ParsedCommand, self).__init__(function, inc, prefix)
 
 
-def fix(arg, sloppy=False, quiet=True):
+
+def fix(arg, sloppy=False, quiet=True, reraise=False):
+    """Fix a single command-line argument coming from the GDB CLI.
+
+    Arguments:
+        arg(str): Original string representation (e.g. '0', '$rax', '$rax+44')
+        sloppy(bool): If ``arg`` cannot be evaluated, return ``arg``. (default: False)
+        quiet(bool): If an error occurs, suppress it. (default: True)
+        reraise(bool): If an error occurs, raise the exception. (default: False)
+
+    Returns:
+        Ideally ``gdb.Value`` object.  May return a ``str`` if ``sloppy==True``.
+        May return ``None`` if ``sloppy == False and reraise == False``.
+    """
     if isinstance(arg, gdb.Value):
         return arg
 
@@ -131,6 +156,8 @@ def fix(arg, sloppy=False, quiet=True):
     except Exception as e:
         if not quiet:
             print(e)
+        if reraise:
+            raise e
         pass
 
     if sloppy:
@@ -142,6 +169,9 @@ def fix(arg, sloppy=False, quiet=True):
 def fix_int(*a, **kw):
     return int(fix(*a,**kw))
 
+def fix_int_reraise(*a, **kw):
+    return fix(*a, reraise=True, **kw)
+
 
 def OnlyWithFile(function):
     @functools.wraps(function)
@@ -149,7 +179,7 @@ def OnlyWithFile(function):
         if pwndbg.proc.exe:
             return function(*a, **kw)
         else:
-            print("There is no file loaded.")
+            print("%s: There is no file loaded." % function.__name__)
 
     return _OnlyWithFile
 
@@ -160,29 +190,27 @@ def OnlyWhenRunning(function):
         if pwndbg.proc.alive:
             return function(*a, **kw)
         else:
-            print("The program is not being run.")
+            print("%s: The program is not being run." % function.__name__)
     return _OnlyWhenRunning
 
 
-def Command(func, *a, **kw):
-    class C(_Command):
-        __doc__ = func.__doc__
-        __name__ = func.__name__
-    return C(func, *a, **kw)
+class QuietSloppyParsedCommand(ParsedCommand):
+    def __init__(self, *a, **kw):
+        super(QuietSloppyParsedCommand, self).__init__(*a, **kw)
+        self.quiet = True
+        self.sloppy = True
 
 
-def ParsedCommand(func):
-    class C(_ParsedCommand):
-        __doc__ = func.__doc__
-        __name__ = func.__name__
-    return C(func)
+class _ArgparsedCommand(Command):
+    def __init__(self, parser, function, *a, **kw):
+        self.parser = parser
+        self.parser.prog = function.__name__
+        function.__doc__ = self.parser.description
+        super(_ArgparsedCommand, self).__init__(function, *a, **kw)
 
-
-def QuietSloppyParsedCommand(func):
-    c = ParsedCommand(func)
-    c.quiet = True
-    c.sloppy = True
-    return c
+    def split_args(self, argument):
+        argv = gdb.string_to_argv(argument)
+        return tuple(), vars(self.parser.parse_args(argv))
 
 
 class ArgparsedCommand(object):
@@ -196,20 +224,9 @@ class ArgparsedCommand(object):
             if action.dest == 'help':
                 continue
             if action.type in (int, None):
-                action.type = fix_int
+                action.type = fix_int_reraise
             if action.default is not None:
                 action.help += ' (default: %(default)s)'
 
     def __call__(self, function):
-        self.parser.prog = function.__name__
-
-        @functools.wraps(function)
-        def _ArgparsedCommand(*args):
-            try:
-                args = self.parser.parse_args(args)
-            except SystemExit:
-                # If passing '-h' or '--help', argparse attempts to kill the process.
-                return
-            return function(**vars(args))
-        _ArgparsedCommand.__doc__ = self.parser.description
-        return Command(_ArgparsedCommand)
+        return _ArgparsedCommand(self.parser, function)
