@@ -70,6 +70,9 @@ import pwndbg.typeinfo
 import pwndbg.version
 import pwndbg.vmmap
 import pwndbg.wrappers
+import pwndbg.wrappers.checksec
+import pwndbg.wrappers.file
+import pwndbg.wrappers.readelf
 
 __version__ = pwndbg.version.__version__
 version = __version__

@@ -10,7 +10,8 @@ import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
-import pwndbg.wrappers
+import pwndbg.wrappers.readelf
+import pwndbg.wrappers.checksec
 
 from pwndbg.color import green
 from pwndbg.color import light_yellow
@@ -24,29 +25,16 @@ def got():
     Show the state of the Global Offset Table
     '''
 
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cs_out = pwndbg.wrappers.checksec("--file", local_path)
+    relro_status = pwndbg.wrappers.checksec.relro_status()
+    pie_status = pwndbg.wrappers.checksec.pie_status()
+    jmpslots = pwndbg.wrappers.readelf.get_jmpslots()
 
-    file_out = pwndbg.wrappers.file(local_path)
-    if "statically" in file_out:
-        return "Binary is statically linked."
-
-    readelf_out = pwndbg.wrappers.readelf("-r", local_path)
-
-    jmpslots = '\n'.join(filter(lambda l: _extract_jumps(l),
-                         readelf_out.splitlines()))
-
+    if pwndbg.wrappers.file.is_statically_linked():
+        return "Binary is statically linked"
     if not len(jmpslots):
         return "NO JUMP_SLOT entries available in the GOT"
-
-    if "PIE enabled" in cs_out:
+    if "PIE enabled" in pie_status:
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
-
-    relro_status = "No RELRO"
-    if "Full RELRO" in cs_out:
-        relro_status = "Full RELRO"
-    elif "Partial RELRO" in cs_out:
-        relro_status = "Partial RELRO"
 
     print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
 
@@ -54,18 +42,8 @@ def got():
         address, info, rtype, value, name = line.split()[:5]
         address_val = int(address, 16)
 
-        if "PIE enabled" in cs_out: # if PIE, address is only the offset from the binary base address
+        if "PIE enabled" in pie_status: # if PIE, address is only the offset from the binary base address
             address_val = bin_text_base + address_val
 
         got_address = pwndbg.memory.pvoid(address_val)
-        print("[%s] %s -> %s" % (address, light_yellow(name), pwndbg.chain.format(got_address)))
-
-
-def _extract_jumps(l):
-    try:
-        if "JUMP" in l.split()[2]:
-            return l
-        else:
-            return False
-    except IndexError:
-        return False
+        print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
