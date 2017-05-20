@@ -25,13 +25,14 @@ def got():
     Show the state of the Global Offset Table
     '''
 
+    if pwndbg.wrappers.file.is_statically_linked():
+        print("Binary is statically linked")
+        return
+
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
     jmpslots = pwndbg.wrappers.readelf.get_jmpslots()
 
-    if pwndbg.wrappers.file.is_statically_linked():
-        print("Binary is statically linked")
-        return
     if not len(jmpslots):
         print("NO JUMP_SLOT entries available in the GOT")
         return
