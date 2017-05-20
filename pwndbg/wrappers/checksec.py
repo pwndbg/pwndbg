@@ -20,7 +20,7 @@ def get_raw_out():
 
 @pwndbg.wrappers.OnlyWithCommand
 def relro_status():
-
+    print("GETTING RELRO STATUS")
     relro = "No RELRO"
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
@@ -31,11 +31,14 @@ def relro_status():
         relro = "Full RELRO"
     elif "Partial RELRO" in out:
         relro = "Partial RELRO"
+    print("GETTING RELRO STATUS END")
+
     return relro
 
 
 @pwndbg.wrappers.OnlyWithCommand
 def pie_status():
+    print("GETTING PIE STATUS")
 
     pie = "No PIE"
 
@@ -45,4 +48,6 @@ def pie_status():
 
     if "PIE enabled" in out:
         pie = "PIE enabled"
+    print("GETTING PIE STATUS END")
+
     return pie

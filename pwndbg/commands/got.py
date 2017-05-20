@@ -30,9 +30,11 @@ def got():
     jmpslots = pwndbg.wrappers.readelf.get_jmpslots()
 
     if pwndbg.wrappers.file.is_statically_linked():
-        return "Binary is statically linked"
+        print("Binary is statically linked")
+        return
     if not len(jmpslots):
-        return "NO JUMP_SLOT entries available in the GOT"
+        print("NO JUMP_SLOT entries available in the GOT")
+        return
     if "PIE enabled" in pie_status:
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
 
