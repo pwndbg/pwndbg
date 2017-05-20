@@ -47,3 +47,4 @@ def got():
 
         got_address = pwndbg.memory.pvoid(address_val)
         print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
+

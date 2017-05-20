@@ -8,23 +8,21 @@ from __future__ import unicode_literals
 import subprocess
 import pwndbg.wrappers
 
-from pwndbg.wrappers import readelf_path
 
-cmd_opt = {
-           "relocs":"-r",
-           "header":"-h"
-          }
-
-@pwndbg.wrappers.OnlyWithFile(readelf_path)
+@pwndbg.wrappers.OnlyWithCommand
 def get_jmpslots():
-    readelf_out = subprocess.check_output([readelf_path,cmd_opt["relocs"],pwndbg.file.get_file(pwndbg.proc.exe)]).decode('utf-8')
-    return '\n'.join(filter(lambda l: _extract_jumps(l),readelf_out.splitlines()))
+
+    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    cmd = [get_jmpslots.command_path, "-r", local_path]
+    readelf_out = subprocess.check_output(cmd).decode('utf-8')
+
+    return '\n'.join(filter(lambda line: _extract_jumps(line), readelf_out.splitlines()))
 
 
-def _extract_jumps(l):
+def _extract_jumps(line):
     try:
-        if "JUMP" in l.split()[2]:
-            return l
+        if "JUMP" in line.split()[2]:
+            return line
         else:
             return False
     except IndexError:

@@ -8,11 +8,14 @@ from __future__ import unicode_literals
 import subprocess
 import pwndbg.wrappers
 
-from pwndbg.wrappers import file_path
-
-@pwndbg.wrappers.OnlyWithFile(file_path)
+@pwndbg.wrappers.OnlyWithCommand
 def is_statically_linked():
-        if "statically" in subprocess.check_output([file_path,pwndbg.file.get_file(pwndbg.proc.exe)]).decode('utf-8'):
-            return True
-        else:
-            return False
+
+    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    cmd = [is_statically_linked.command_path, local_path]
+    file_out = subprocess.check_output(cmd).decode('utf-8')
+
+    if "statically" in file_out:
+        return True
+    else:
+        return False
