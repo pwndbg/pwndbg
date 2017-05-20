@@ -54,12 +54,11 @@ update()
 
 class Cached(object):
     """Function decorator that persistently caches the results of the function it decorates."""
-    function = None
-    type = volatile
 
-    def __init__(self, function):
+    def __init__(self, function, type):
         self.function = function
         self.function_name = function.__module__ + '.' + function.__name__
+        self.type = Type
         functools.update_wrapper(self, function)
 
     @property
@@ -103,8 +102,14 @@ class Cached(object):
         if not self.initialized:
             self.__setup_shelf()
 
-        # Dict is not hashable, convert into a tuple so it can be a dict key
+        # Get the name/value for every argument passed to the function
         args = inspect.getcallargs(self.function, *a, **kw)
+
+        # Add the architecture to the arguments, so that we don't accidentally
+        # cache e.g. ARM results for an i386 binary.
+        args['pwndbg.arch.current'] = pwndbg.arch.current
+
+        # Dict is not hashable, convert into a tuple so it can be a dict key
         args = tuple(sorted(args.items()))
 
         # If we don't have this set of arguments so far...
@@ -124,10 +129,12 @@ class Cached(object):
         return "%s(%r)" % (self.__class__.__name__, self.function)
 
 class NonVolatile(Cached):
-    type = nonvolatile
+    def __init__(self, function):
+        super(NonVolatile, self).__init__(function, nonvolatile)
 
 class Volatile(Cached):
-    type = volatile
+    def __init__(self, function):
+        super(NonVolatile, self).__init__(function, volatile)
 
 # Example routines for testing
 @Volatile
@@ -135,6 +142,3 @@ def demo(foo=0, bar=1, baz=2):
     time.sleep(3)
     return foo, bar, baz
 
-# Make sure that nobody accidentally uses "Cached"
-# without needing to do weird Abstract Base Class stuff :P
-del Cached
