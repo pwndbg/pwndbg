@@ -24,70 +24,101 @@ import time
 import pwndbg.arch
 import pwndbg.config
 
-nonvolatile = pwndbg.config.Parameter('pwndbg-cache-nonvolatile', '~/.pwndbg', 'Non-volatile cache directory for Pwndbg storage')
+nonvolatile = pwndbg.config.Parameter('pwndbg-cache-nonvolatile', os.path.expanduser('~/.pwndbg'), 'Non-volatile cache directory for Pwndbg storage')
 volatile = pwndbg.config.Parameter('pwndbg-cache-volatile', tempfile.gettempdir(), 'Volatile cache directory for Pwndbg storage')
 
-def name(function):
-    mod_name = function.__module__
-    func_name = function.__name__
-    return mod_name + '.' + func_name
+# Ensure there is only one Shelf instance per database, so that
+# we don't get weird things with multiple instances / concurrent writes / etc.
+shelves = {
+    nonvolatile: None,
+    volatile: None
+}
 
-def path(function, directory=volatile):
-    return os.path.join(str(directory), name(function))
+@pwndbg.config.Trigger([volatile, nonvolatile])
+def update():
+    global shelves
+
+    for db in (volatile, nonvolatile):
+        database_path = os.path.join(str(db), 'storage')
+
+        # Ensure the path exists, then open the database
+        if not os.path.isdir(database_path):
+            os.makedirs(database_path)
+
+        shelves[db] = shelve.open(database_path,
+                                  writeback=True,
+                                  protocol=pickle.HIGHEST_PROTOCOL)
+
+# Perform manual update to initialize the values
+update()
 
 class Cached(object):
     """Function decorator that persistently caches the results of the function it decorates."""
     function = None
     type = volatile
-    shelf = None
 
     def __init__(self, function):
         self.function = function
+        self.function_name = function.__module__ + '.' + function.__name__
         functools.update_wrapper(self, function)
+
+    @property
+    def shelf(self):
+        return shelves[self.type]
+
+    @property
+    def calls(self):
+        return shelves[self.type][self.function_name]
+
+    @property
+    def initialized(self):
+        return self.function_name in self.shelf and 'create_time' in self.calls
+
 
     def __setup_shelf(self):
         """Deferred initialization allows customization of the paths by the user"""
-        self.shelf = shelve.open(path(self.function, self.type),
-                                 writeback=True,
-                                 protocol=pickle.HIGHEST_PROTOCOL)
 
-        # Set the creation time of the database, if it is not already set
-        self.shelf.setdefault('create_time', time.time())
+        # Create an empty dictionary for this function if nothing exists
+        self.shelf.setdefault(self.function_name, {})
 
         # Get the modification time of the function's Python file
-        function_mtime = os.path.getmtime(inspect.getfile(self.function))
+        try:
+            function_mtime = os.path.getmtime(inspect.getfile(self.function))
+        except Exception:
+            # If the function is from the repl, the path will be e.g. <stdin>
+            function_mtime = 999999999999999999999
 
-        # If the file that the function is declared in is newer than
-        # the database file, invalidate the cache.
-        if self.shelf['create_time'] < function_mtime:
-            self.shelf.clear()
-            self.shelf['create_time'] = time.time()
+        # Find out when the cache for this function was created
+        create_time = self.calls.get('create_time', 0)
+
+        # If the file is newer than the cache, nuke the cache
+        if create_time < function_mtime:
+            self.calls.clear()
+            create_time = time.time()
+
+        self.calls['create_time'] = create_time
 
     def __call__(self, *a, **kw):
-        if self.shelf is None:
+        # Initialize the database if needed
+        if not self.initialized:
             self.__setup_shelf()
 
-        # Cache per-architecture
-        #
-        # N.B.: This is important for a secondary reason:
-        #       Shelve objects can only have keys which are strings.
-        #       However, the inner objects can be ~= anything.
-        arch = pwndbg.arch.current
-        self.shelf.setdefault(arch, {})
-        calls = self.shelf[arch]
-
-        # Cache per-architecture x arguments
+        # Dict is not hashable, convert into a tuple so it can be a dict key
         args = inspect.getcallargs(self.function, *a, **kw)
-
-        # Dict is not hashable, convert into a tuple so it can be a dictk ey
-        args = tuple(sorted(args.iteritems()))
+        args = tuple(sorted(args.items()))
 
         # If we don't have this set of arguments so far...
-        if args not in calls:
-            calls[args] = self.function(*a, **kw)
-            self.shelf[arch] = calls
+        if args not in self.calls:
+            result = self.calls[args] = self.function(*a, **kw)
 
-        return self.shelf[arch][args]
+            # Save the new data
+            self.shelf.sync()
+
+        # Extract the return value from storage
+        retval = self.calls[args]
+
+
+        return retval
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.function)
@@ -103,3 +134,7 @@ class Volatile(Cached):
 def demo(foo=0, bar=1, baz=2):
     time.sleep(3)
     return foo, bar, baz
+
+# Make sure that nobody accidentally uses "Cached"
+# without needing to do weird Abstract Base Class stuff :P
+del Cached
