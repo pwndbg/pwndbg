@@ -45,6 +45,7 @@ def rop(grep, argument):
             io = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         except Exception:
             print("Could not run ROPgadget.  Please ensure it's installed and in $PATH.")
+            return
 
         (stdout, stderr) = io.communicate()
 
