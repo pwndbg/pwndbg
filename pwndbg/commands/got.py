@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
@@ -16,14 +18,14 @@ from pwndbg.color import green
 from pwndbg.color import light_yellow
 
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithFile
-def got():
-    '''
-    Show the state of the Global Offset Table
-    '''
+parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
+parser.add_argument('name_filter', help='Filter results by passed name.',
+                    type=str, nargs='?', default='')
 
+
+@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
+def got(name_filter=''):
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cs_out = pwndbg.wrappers.checksec("--file", local_path)
 
@@ -52,9 +54,13 @@ def got():
 
     for line in jmpslots.splitlines():
         address, info, rtype, value, name = line.split()[:5]
+
+        if name_filter not in name:
+            continue
+
         address_val = int(address, 16)
 
-        if "PIE enabled" in cs_out: # if PIE, address is only the offset from the binary base address
+        if "PIE enabled" in cs_out:  # if PIE, address is only the offset from the binary base address
             address_val = bin_text_base + address_val
 
         got_address = pwndbg.memory.pvoid(address_val)
