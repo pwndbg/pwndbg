@@ -114,7 +114,7 @@ class ParsedCommand(Command):
 
     def split_args(self, argument):
         # sys.stdout.write(repr(argument) + '\n')
-        argv = super(ParsedCommand,self).split_args(argument)
+        argv, _ = super(ParsedCommand, self).split_args(argument)
         # sys.stdout.write(repr(argv) + '\n')
         return list(filter(lambda x: x is not None, map(self.fix, argv))), {}
 
