@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Command to print the vitual memory map a la /proc/self/maps.
+Command to print the virtual memory map a la /proc/self/maps.
 """
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+
+import argparse
+import functools
 
 import gdb
 import six
@@ -17,27 +20,32 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-@pwndbg.commands.QuietSloppyParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = 'Print the virtual memory map, or the specific mapping for the provided address / module name.'
+parser.add_argument('map', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
+                    help='Address or module name.')
+
+
+def address_filter(addr, page):
+    return addr in page
+
+
+def module_filter(module_name, page):
+    return module_name in page.objfile
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(map=None):
-    """
-    Print the virtal memory map, or the specific mapping for the
-    provided address / module name.
-    """
-    int_map = None
-    str_map = None
+    pages_filter = None
 
     if isinstance(map, six.string_types):
-        str_map = map
+        pages_filter = functools.partial(module_filter, map)
     elif isinstance(map, six.integer_types + (gdb.Value,)):
-        int_map = int(map)
+        pages_filter = functools.partial(address_filter, map)
+
+    pages = list(filter(pages_filter, pwndbg.vmmap.get()))
 
     print(M.legend())
-
-    for page in pwndbg.vmmap.get():
-        if str_map and str_map not in page.objfile:
-            continue
-        if int_map and int_map not in page:
-            continue
-
+    for page in pages:
         print(M.get(page.vaddr, text=str(page)))

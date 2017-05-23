@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import functools
 
 import gdb
@@ -230,3 +231,19 @@ class ArgparsedCommand(object):
 
     def __call__(self, function):
         return _ArgparsedCommand(self.parser, function)
+
+
+def sloppy_gdb_parse(s):
+    """
+    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` argument.
+
+    This makes the type being parsed as gdb value and if that parsing fails,
+    a string is returned.
+
+    :param s: String.
+    :return: Whatever gdb.parse_and_eval returns or string.
+    """
+    try:
+        return gdb.parse_and_eval(s)
+    except:
+        return s
