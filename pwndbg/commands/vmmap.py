@@ -46,6 +46,10 @@ def vmmap(map=None):
 
     pages = list(filter(pages_filter, pwndbg.vmmap.get()))
 
+    if not pages:
+        print('There are no mappings for specified address or module.')
+        return
+
     print(M.legend())
     for page in pages:
         print(M.get(page.vaddr, text=str(page)))
