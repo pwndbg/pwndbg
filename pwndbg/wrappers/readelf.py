@@ -12,6 +12,7 @@ cmd_name = "readelf"
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.commands.OnlyWithFile
 def get_jmpslots():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)

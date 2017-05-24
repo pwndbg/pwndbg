@@ -7,12 +7,14 @@ from __future__ import unicode_literals
 
 
 import subprocess
+import pwndbg.commands
 import pwndbg.wrappers
 
 cmd_name = "checksec"
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.commands.OnlyWithFile
 def get_raw_out():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
@@ -21,6 +23,7 @@ def get_raw_out():
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.commands.OnlyWithFile
 def relro_status():
     relro = "No RELRO"
 
@@ -37,6 +40,7 @@ def relro_status():
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.commands.OnlyWithFile
 def pie_status():
     pie = "No PIE"
 

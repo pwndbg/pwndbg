@@ -12,6 +12,7 @@ cmd_name = "file"
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.commands.OnlyWithFile
 def is_statically_linked():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
