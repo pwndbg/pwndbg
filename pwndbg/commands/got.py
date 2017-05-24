@@ -10,8 +10,8 @@ import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
-import pwndbg.wrappers.readelf
 import pwndbg.wrappers.checksec
+import pwndbg.wrappers.readelf
 
 from pwndbg.color import green
 from pwndbg.color import light_yellow
