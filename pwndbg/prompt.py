@@ -9,10 +9,9 @@ import gdb
 
 import pwndbg.events
 import pwndbg.memoize
-import pwndbg.stdio
 
 
-hint_msg = 'Loaded %i commands. Type pwndbg [filter] for a list.' % len(pwndbg.commands._Command.commands)
+hint_msg = 'Loaded %i commands. Type pwndbg [filter] for a list.' % len(pwndbg.commands.Command.commands)
 print(pwndbg.color.red(hint_msg))
 cur = (gdb.selected_inferior(), gdb.selected_thread())
 
@@ -31,7 +30,6 @@ def prompt_hook(*a):
 
 @pwndbg.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
-    with pwndbg.stdio.stdio:
-        pwndbg.commands.context.context()
+    pwndbg.commands.context.context()
 
 gdb.prompt_hook = prompt_hook

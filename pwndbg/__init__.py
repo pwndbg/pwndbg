@@ -57,6 +57,7 @@ import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
+import pwndbg.exception
 import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
@@ -65,7 +66,6 @@ import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
-import pwndbg.stdio
 import pwndbg.typeinfo
 import pwndbg.version
 import pwndbg.vmmap
@@ -126,6 +126,7 @@ pre_commands = """
 set confirm off
 set verbose off
 set prompt %s
+set pagination off
 set height 0
 set history expansion on
 set history save on
