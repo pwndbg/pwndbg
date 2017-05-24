@@ -40,7 +40,6 @@ import sys
 import six
 
 import pwndbg.arch
-import pwndbg.ctypes
 import pwndbg.events
 
 Elf32_Addr = ctypes.c_uint32
@@ -263,54 +262,93 @@ class constants:
     AT_L2_CACHESHAPE        = 36
     AT_L3_CACHESHAPE        = 37
 
-class Elf32_Ehdr(pwndbg.ctypes.Structure):
-    _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
-                ("e_type", Elf32_Half),
-                ("e_machine", Elf32_Half),
-                ("e_version", Elf32_Word),
-                ("e_entry", Elf32_Addr),
-                ("e_phoff", Elf32_Off),
-                ("e_shoff", Elf32_Off),
-                ("e_flags", Elf32_Word),
-                ("e_ehsize", Elf32_Half),
-                ("e_phentsize", Elf32_Half),
-                ("e_phnum", Elf32_Half),
-                ("e_shentsize", Elf32_Half),
-                ("e_shnum", Elf32_Half),
-                ("e_shstrndx", Elf32_Half),]
+endian_ctypes_struct = {
+    'little': ctypes.LittleEndianStructure,
+    'big': ctypes.BigEndianStructure
+}
 
-class Elf64_Ehdr(pwndbg.ctypes.Structure):
-    _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
-                ("e_type", Elf64_Half),
-                ("e_machine", Elf64_Half),
-                ("e_version", Elf64_Word),
-                ("e_entry", Elf64_Addr),
-                ("e_phoff", Elf64_Off),
-                ("e_shoff", Elf64_Off),
-                ("e_flags", Elf64_Word),
-                ("e_ehsize", Elf64_Half),
-                ("e_phentsize", Elf64_Half),
-                ("e_phnum", Elf64_Half),
-                ("e_shentsize", Elf64_Half),
-                ("e_shnum", Elf64_Half),
-                ("e_shstrndx", Elf64_Half),]
+def _create_elf_ehdr_cls(bits, endian):
+    if bits == 32:
+        Half = Elf32_Half
+        Word = Elf32_Word
+        Addr = Elf32_Addr
+        Off = Elf32_Off
+    elif bits == 64:
+        Half = Elf64_Half
+        Word = Elf64_Word
+        Addr = Elf64_Addr
+        Off = Elf64_Off
+    else:
+        raise Exception('Unrecognized bits: {}'.format(bits))
 
-class Elf32_Phdr(pwndbg.ctypes.Structure):
-    _fields_ = [("p_type", Elf32_Word),
-                ("p_offset", Elf32_Off),
-                ("p_vaddr", Elf32_Addr),
-                ("p_paddr", Elf32_Addr),
-                ("p_filesz", Elf32_Word),
-                ("p_memsz", Elf32_Word),
-                ("p_flags", Elf32_Word),
-                ("p_align", Elf32_Word),]
+    base = endian_ctypes_struct[endian]
 
-class Elf64_Phdr(pwndbg.ctypes.Structure):
-    _fields_ = [("p_type", Elf64_Word),
-                ("p_flags", Elf64_Word),
-                ("p_offset", Elf64_Off),
-                ("p_vaddr", Elf64_Addr),
-                ("p_paddr", Elf64_Addr),
-                ("p_filesz", Elf64_Xword),
-                ("p_memsz", Elf64_Xword),
-                ("p_align", Elf64_Xword),]
+    class Elf_Ehdr(base):
+        _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
+                    ("e_type", Half),
+                    ("e_machine", Half),
+                    ("e_version", Word),
+                    ("e_entry", Addr),
+                    ("e_phoff", Off),
+                    ("e_shoff", Off),
+                    ("e_flags", Word),
+                    ("e_ehsize", Half),
+                    ("e_phentsize", Half),
+                    ("e_phnum", Half),
+                    ("e_shentsize", Half),
+                    ("e_shnum", Half),
+                    ("e_shstrndx", Half),]
+
+    Elf_Ehdr.__name__ = 'Elf{}_Ehdr_{}'.format(bits, endian.title())
+
+    return Elf_Ehdr
+
+Elf32_Ehdr_Big = _create_elf_ehdr_cls(32, 'big')
+Elf32_Ehdr_Little = _create_elf_ehdr_cls(32, 'little')
+
+Elf64_Ehdr_Big = _create_elf_ehdr_cls(64, 'big')
+Elf64_Ehdr_Little = _create_elf_ehdr_cls(64, 'little')
+
+
+def _create_elf_phdr_classes(endian):
+    base = endian_ctypes_struct[endian]
+
+    class Elf32_Phdr(base):
+        _fields_ = [("p_type", Elf32_Word),
+                    ("p_offset", Elf32_Off),
+                    ("p_vaddr", Elf32_Addr),
+                    ("p_paddr", Elf32_Addr),
+                    ("p_filesz", Elf32_Word),
+                    ("p_memsz", Elf32_Word),
+                    ("p_flags", Elf32_Word),
+                    ("p_align", Elf32_Word),]
+
+    Elf32_Phdr.__name__ = 'Elf32_Phdr_{}'.format(endian.title())
+
+    class Elf64_Phdr(base):
+        _fields_ = [("p_type", Elf64_Word),
+                    ("p_flags", Elf64_Word),
+                    ("p_offset", Elf64_Off),
+                    ("p_vaddr", Elf64_Addr),
+                    ("p_paddr", Elf64_Addr),
+                    ("p_filesz", Elf64_Xword),
+                    ("p_memsz", Elf64_Xword),
+                    ("p_align", Elf64_Xword),]
+
+    Elf64_Phdr.__name__ = 'Elf64_Phdr_{}'.format(endian.title())
+
+    return Elf32_Phdr, Elf64_Phdr
+
+Elf32_Phdr_Big, Elf64_Phdr_Big = _create_elf_phdr_classes('big')
+Elf32_Phdr_Little, Elf64_Phdr_Little = _create_elf_phdr_classes('little')
+
+
+def get_ehdr_phdr(ptrsize, endian):
+    bits = ptrsize*8
+    endian = endian.title()
+
+    Ehdr = 'Elf{}_Ehdr_{}'.format(bits, endian)
+    Phdr = 'Elf{}_Phdr_{}'.format(bits, endian)
+    g = globals()
+
+    return g[Ehdr], g[Phdr]
