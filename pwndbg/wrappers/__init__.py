@@ -7,10 +7,11 @@ from __future__ import unicode_literals
 
 import functools
 import subprocess
+from subprocess import STDOUT
 
 import pwndbg.which
 
-from subprocess import STDOUT
+
 
 class OnlyWithCommand(object):
     def __init__(self, command):
