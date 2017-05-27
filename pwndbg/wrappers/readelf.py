@@ -5,19 +5,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import subprocess
 import pwndbg.wrappers
 
 cmd_name = "readelf"
 
-
+@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 @pwndbg.commands.OnlyWithFile
 def get_jmpslots():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cmd = [get_jmpslots.cmd_path, "-r", local_path]
-    readelf_out = subprocess.check_output(cmd).decode('utf-8')
+    readelf_out = pwndbg.wrappers.call_cmd(cmd)
 
     return '\n'.join(filter(_extract_jumps, readelf_out.splitlines()))
 

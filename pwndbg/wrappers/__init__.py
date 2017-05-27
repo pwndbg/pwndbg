@@ -6,7 +6,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
+import subprocess
+
 import pwndbg.which
+
+from subprocess import STDOUT
 
 class OnlyWithCommand(object):
     def __init__(self, command):
@@ -24,3 +28,6 @@ class OnlyWithCommand(object):
                 raise OSError('Could not find command %s in $PATH' % self.cmd_name)
         return _OnlyWithCommand
 
+
+def call_cmd(cmd):
+    return subprocess.check_output(cmd, stderr=STDOUT).decode('utf-8')

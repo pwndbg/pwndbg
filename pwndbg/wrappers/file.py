@@ -5,19 +5,19 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import subprocess
 import pwndbg.wrappers
 
 cmd_name = "file"
 
-
+@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 @pwndbg.commands.OnlyWithFile
 def is_statically_linked():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cmd = [is_statically_linked.cmd_path, local_path]
-    file_out = subprocess.check_output(cmd).decode('utf-8')
+
+    file_out = pwndbg.wrappers.call_cmd(cmd)
 
     if "statically" in file_out:
         return True

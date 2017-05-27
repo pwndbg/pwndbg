@@ -6,22 +6,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 
-import subprocess
 import pwndbg.commands
 import pwndbg.wrappers
 
+
 cmd_name = "checksec"
 
-
+@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 @pwndbg.commands.OnlyWithFile
 def get_raw_out():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cmd = [get_raw_out.cmd_path, "--file", local_path]
-    return subprocess.check_output(cmd).decode('utf-8')
+    return pwndbg.wrappers.call_cmd(cmd)
 
-
+@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 @pwndbg.commands.OnlyWithFile
 def relro_status():
@@ -29,7 +29,7 @@ def relro_status():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cmd = [relro_status.cmd_path, "--file", local_path]
-    out = subprocess.check_output(cmd).decode('utf-8')
+    out = pwndbg.wrappers.call_cmd(cmd)
 
     if "Full RELRO" in out:
         relro = "Full RELRO"
@@ -38,7 +38,7 @@ def relro_status():
 
     return relro
 
-
+@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 @pwndbg.commands.OnlyWithFile
 def pie_status():
@@ -46,7 +46,7 @@ def pie_status():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
     cmd = [pie_status.cmd_path, "--file", local_path]
-    out = subprocess.check_output(cmd).decode('utf-8')
+    out = pwndbg.wrappers.call_cmd(cmd)
 
     if "PIE enabled" in out:
         pie = "PIE enabled"

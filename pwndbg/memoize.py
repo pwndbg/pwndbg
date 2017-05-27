@@ -33,6 +33,10 @@ class memoize(object):
     def __call__(self, *args, **kwargs):
         how = None
 
+        if self.func.__name__ == "call_cmd":
+            import pdb
+            pdb.set_trace()
+
         if not isinstance(args, collections.Hashable):
             print("Cannot memoize %r!", file=sys.stderr)
             how   = "Not memoizeable!"
