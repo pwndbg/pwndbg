@@ -85,7 +85,7 @@ def get_disassembler(pc):
     if pwndbg.arch.current in ('arm', 'aarch64'):
         extra = {0:CS_MODE_ARM,
                  0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
-
+    pwndbg.arch.mode={CS_MODE_ARM:" ARM MODE",CS_MODE_THUMB:" THUMB MODE",None:""}[extra]
     return get_disassembler_cached(pwndbg.arch.current,
                                    pwndbg.arch.ptrsize,
                                    pwndbg.arch.endian,

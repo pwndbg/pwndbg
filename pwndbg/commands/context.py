@@ -151,7 +151,7 @@ Unicorn emulation of code near the current instruction
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
 def context_disasm():
-    banner = [pwndbg.ui.banner("disasm")]
+    banner = [pwndbg.ui.banner("DISASM"+pwndbg.arch.mode)]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 

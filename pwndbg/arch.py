@@ -17,6 +17,7 @@ import pwndbg.regs
 import pwndbg.typeinfo
 
 current = 'i386'
+mode	= {CS_MODE_ARM:"ARM",CS_MODE_THUMB:"THUMB",None:""}[None]
 qemu    = current
 ptrmask = 0xfffffffff
 endian  = 'little'
