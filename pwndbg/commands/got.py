@@ -25,10 +25,7 @@ parser.add_argument('name_filter', help='Filter results by passed name.',
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def got(name_filter=''):
-    '''
-    Show the state of the Global Offset Table
-    '''
-    
+
     if pwndbg.wrappers.file.is_statically_linked():
         print("Binary is statically linked")
         return
@@ -57,4 +54,4 @@ def got(name_filter=''):
             address_val = bin_text_base + address_val
 
         got_address = pwndbg.memory.pvoid(address_val)
-        print("[%s] %s -> %s" % (hex(address_val), light_yellow(name), pwndbg.chain.format(got_address)))
+        print("[0x%x] %s -> %s" % (address_val, light_yellow(name), pwndbg.chain.format(got_address)))
