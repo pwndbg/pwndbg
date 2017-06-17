@@ -104,7 +104,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Print out each instruction
     for address_str, s, i in zip(addresses, symbols, instructions):
         asm    = D.instruction(i)
-        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value))
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value.decode('utf-8')))
         prefix = N.prefix(prefix)
         if pwndbg.config.highlight_pc:
             prefix = C.highlight(prefix)
