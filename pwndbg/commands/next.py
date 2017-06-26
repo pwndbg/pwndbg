@@ -31,7 +31,7 @@ def nextjump(*args):
 @pwndbg.commands.OnlyWhenRunning
 def nextcall(*args):
     """Breaks at the next call instruction"""
-    if pwndbg.next.break_next_call():
+    if pwndbg.next.break_next_call(*args):
         pwndbg.commands.context.context()
 
 @pwndbg.commands.Command
