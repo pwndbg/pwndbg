@@ -13,10 +13,8 @@ import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
 import pwndbg.wrappers
-
 from pwndbg.color import green
 from pwndbg.color import light_yellow
-
 
 parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
 parser.add_argument('name_filter', help='Filter results by passed name.',

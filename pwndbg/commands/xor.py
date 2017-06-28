@@ -11,6 +11,7 @@ import six
 import pwndbg.commands
 import pwndbg.memory
 
+
 def xor_memory(address, key, count):
     """
     Helper function for xorring memory in gdb

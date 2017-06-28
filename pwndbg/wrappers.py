@@ -31,5 +31,3 @@ def call_program(progname, *args):
 checksec = functools.partial(call_program,'checksec')
 readelf = functools.partial(call_program, 'readelf')
 file = functools.partial(call_program, 'file')
-
-
