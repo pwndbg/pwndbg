@@ -20,31 +20,33 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
+def map_type(s):
+    gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
+
+    # returns a module filter
+    if isinstance(gdbval_or_str, six.string_types):
+        module_name = gdbval_or_str
+        return lambda page: module_name in page.objfile
+
+    # returns an address filter
+    elif isinstance(gdbval_or_str, six.integer_types + (gdb.Value,)):
+        addr = gdbval_or_str
+        return lambda page: addr in page
+
+    else:
+        raise argparse.ArgumentTypeError('Unknown vmmap argument type.')
+
 parser = argparse.ArgumentParser()
 parser.description = 'Print the virtual memory map, or the specific mapping for the provided address / module name.'
-parser.add_argument('map', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
+parser.add_argument('map', type=map_type, nargs='?', default=None,
                     help='Address or module name.')
-
-
-def address_filter(addr, page):
-    return addr in page
-
-
-def module_filter(module_name, page):
-    return module_name in page.objfile
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(map=None):
-    pages_filter = None
-
-    if isinstance(map, six.string_types):
-        pages_filter = functools.partial(module_filter, map)
-    elif isinstance(map, six.integer_types + (gdb.Value,)):
-        pages_filter = functools.partial(address_filter, map)
-
-    pages = list(filter(pages_filter, pwndbg.vmmap.get()))
+    print(map)
+    pages = list(filter(map, pwndbg.vmmap.get()))
 
     if not pages:
         print('There are no mappings for specified address or module.')
