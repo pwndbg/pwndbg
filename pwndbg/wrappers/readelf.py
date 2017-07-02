@@ -9,9 +9,7 @@ import pwndbg.wrappers
 
 cmd_name = "readelf"
 
-@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
-@pwndbg.commands.OnlyWithFile
 def get_jmpslots():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)

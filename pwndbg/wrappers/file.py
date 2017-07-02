@@ -9,9 +9,7 @@ import pwndbg.wrappers
 
 cmd_name = "file"
 
-@pwndbg.memoize.reset_on_objfile
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
-@pwndbg.commands.OnlyWithFile
 def is_statically_linked():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)

@@ -6,11 +6,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
-import subprocess
-from subprocess import STDOUT
-
+import pwndbg.commands
 import pwndbg.which
+import subprocess
 
+from subprocess import STDOUT
 
 
 class OnlyWithCommand(object):
@@ -21,6 +21,8 @@ class OnlyWithCommand(object):
     def __call__(self, function):
         function.cmd_path = self.cmd_path
 
+        @pwndbg.memoize.reset_on_objfile
+        @pwndbg.commands.OnlyWithFile
         @functools.wraps(function)
         def _OnlyWithCommand(*a,**kw):
             if self.cmd_path:
@@ -32,3 +34,4 @@ class OnlyWithCommand(object):
 
 def call_cmd(cmd):
     return subprocess.check_output(cmd, stderr=STDOUT).decode('utf-8')
+
