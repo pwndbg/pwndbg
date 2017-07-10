@@ -13,8 +13,7 @@ import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
 import pwndbg.wrappers
-from pwndbg.color import green
-from pwndbg.color import light_yellow
+from pwndbg.color import red, green, light_yellow
 
 parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
 parser.add_argument('name_filter', help='Filter results by passed name.',
@@ -29,15 +28,17 @@ def got(name_filter=''):
 
     file_out = pwndbg.wrappers.file(local_path)
     if "statically" in file_out:
-        return "Binary is statically linked."
+        print(red("Binary is statically linked."))
+        return
 
-    readelf_out = pwndbg.wrappers.readelf("-r", local_path)
+    readelf_out = pwndbg.wrappers.readelf("--relocs", local_path)
 
     jmpslots = '\n'.join(filter(lambda l: _extract_jumps(l),
                          readelf_out.splitlines()))
 
     if not len(jmpslots):
-        return "NO JUMP_SLOT entries available in the GOT"
+        print(red("NO JUMP_SLOT entries available in the GOT"))
+        return
 
     if "PIE enabled" in cs_out:
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
