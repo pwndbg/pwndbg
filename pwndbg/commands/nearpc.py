@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import codecs
+
 import gdb
 from capstone import *
 
@@ -104,7 +106,12 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Print out each instruction
     for address_str, s, i in zip(addresses, symbols, instructions):
         asm    = D.instruction(i)
-        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(pwndbg.config.nearpc_prefix.value))
+        value  = pwndbg.config.nearpc_prefix.value
+
+        if isinstance(value, bytes):
+            value = codecs.decode(value, 'utf-8')
+
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(value))
         prefix = N.prefix(prefix)
         if pwndbg.config.highlight_pc:
             prefix = C.highlight(prefix)
