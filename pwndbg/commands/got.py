@@ -13,7 +13,9 @@ import pwndbg.enhance
 import pwndbg.file
 import pwndbg.which
 import pwndbg.wrappers
-from pwndbg.color import red, green, light_yellow
+from pwndbg.color import green
+from pwndbg.color import light_yellow
+from pwndbg.color import red
 
 parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
 parser.add_argument('name_filter', help='Filter results by passed name.',
@@ -68,7 +70,12 @@ def got(name_filter=''):
 
 def _extract_jumps(l):
     try:
-        if "JUMP" in l.split()[2]:
+        # Checks for records in `readelf --relocs <binary>` which has type e.g. `R_X86_64_JUMP_SLO`
+        # NOTE: Because of that we DO NOT display entries that are not writeable (due to FULL RELRO)
+        # as they have `R_X86_64_GLOB_DAT` type.
+        #
+        # Probably we should display them seperately.
+        if 'JUMP' in l.split()[2]:
             return l
         else:
             return False
