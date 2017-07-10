@@ -24,10 +24,10 @@ def call_program(progname, *args):
     cmd = [progname] + list(args)
 
     try:
-        return subprocess.check_output(cmd).decode('utf-8')
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
     except Exception as e:
         raise OSError('Error during execution of %s command: %s' % (progname, e))
 
-checksec = functools.partial(call_program,'checksec')
+checksec = functools.partial(call_program, 'checksec')
 readelf = functools.partial(call_program, 'readelf')
 file = functools.partial(call_program, 'file')
