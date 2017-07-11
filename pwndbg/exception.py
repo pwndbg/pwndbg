@@ -44,12 +44,6 @@ def handle(name = 'Error'):
               pwndbg.color.yellow('set exception-verbose on') +
               pwndbg.color.purple('` and rerun the command'))
 
-        print(pwndbg.color.purple(
-            'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
-            "(Please don't forget to search if it hasn't been reported before)\n"
-            "PS: Pull requests are welcome")
-        )
-
     # Break into the interactive debugger
     if debug:
         with pwndbg.stdio.stdio:
