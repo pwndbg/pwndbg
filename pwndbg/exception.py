@@ -35,6 +35,11 @@ def handle(name = 'Error'):
     # Display the error
     if debug or verbose:
         print(traceback.format_exc())
+        print(pwndbg.color.purple(
+            'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
+            "(Please don't forget to search if it hasn't been reported before)\n"
+            "PS: Pull requests are welcome")
+        )
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
