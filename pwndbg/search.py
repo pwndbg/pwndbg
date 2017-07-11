@@ -17,6 +17,7 @@ import pwndbg.memory
 import pwndbg.typeinfo
 import pwndbg.vmmap
 
+
 def search(searchfor, mappings=None, start=None, end=None, 
            executable=False, writable=False):
     """Search inferior memory for a byte sequence.
