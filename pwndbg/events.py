@@ -12,13 +12,10 @@ from __future__ import unicode_literals
 
 import functools
 import sys
-import traceback
 
 import gdb
 
-import pwndbg.color
 import pwndbg.config
-import pwndbg.exception
 
 debug = pwndbg.config.Parameter('debug-events', False, 'display internal event debugging info')
 pause = 0
@@ -121,6 +118,7 @@ def connect(func, event_handler, name=''):
         try:
             func()
         except Exception as e:
+            import pwndbg.exception
             pwndbg.exception.handle()
             raise e
 
