@@ -14,17 +14,32 @@ import gdb
 
 import pwndbg.color
 import pwndbg.config
+import pwndbg.memoize
 import pwndbg.stdio
 
 try:
-	import ipdb as pdb
+    import ipdb as pdb
 except ImportError:
-	pass
+    pass
 
 verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktracefor exceptions raised in Pwndbg commands')
 debug = pwndbg.config.Parameter('exception-debugger', False, 'whether to debug exceptions raised in Pwndbg commands')
 
-def handle(name = 'Error'):
+
+@pwndbg.memoize.forever
+def inform_report_issue(exception_msg):
+    """
+    Informs user that he can report an issue.
+    The use of `memoize` makes it reporting only once for a given exception message.
+    """
+    print(pwndbg.color.purple(
+        'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
+        "(Please don't forget to search if it hasn't been reported before)\n"
+        "PS: Pull requests are welcome")
+    )
+
+
+def handle(name='Error'):
     """Displays an exception to the user, optionally displaying a full traceback
     and spawning an interactive post-moretem debugger.
 
@@ -34,12 +49,10 @@ def handle(name = 'Error'):
     """
     # Display the error
     if debug or verbose:
-        print(traceback.format_exc())
-        print(pwndbg.color.purple(
-            'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
-            "(Please don't forget to search if it hasn't been reported before)\n"
-            "PS: Pull requests are welcome")
-        )
+        exception_msg = traceback.format_exc()
+        print(exception_msg)
+        inform_report_issue(exception_msg)
+
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
@@ -54,6 +67,7 @@ def handle(name = 'Error'):
         with pwndbg.stdio.stdio:
             pdb.post_mortem()
 
+
 @functools.wraps(pdb.set_trace)
 def set_trace():
     """Enable sane debugging in Pwndbg by switching to the "real" stdio.
@@ -64,6 +78,7 @@ def set_trace():
     debugger.set_trace()
 
 pdb.set_trace = set_trace
+
 
 @pwndbg.config.Trigger([verbose, debug])
 def update():
