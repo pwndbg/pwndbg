@@ -35,13 +35,13 @@ def search(searchfor, mappings=None, start=None, end=None,
     i = gdb.selected_inferior()
 
     maps = mappings or pwndbg.vmmap.get()
-
+    
     if end and start:
-        assert end > start, 'Last address to search must be greater then first address'
+        assert start < end, 'Last address to search must be greater then first address'
         maps = [m for m in maps if start in m or (end-1) in m]
     elif start:
         maps = [m for m in maps if start in m]
-    else:
+    elif end:
         maps = [m for m in maps if (end-1) in m]
 
     if executable:
@@ -50,11 +50,9 @@ def search(searchfor, mappings=None, start=None, end=None,
     if writable:
         maps = [m for m in maps if m.write]
 
-    search_start, search_end = start, end
-
     for vmmap in maps:
-        start = vmmap.start if search_start < vmmap.start else search_start
-        end   = vmmap.end if search_end > vmmap.end else search_end
+        start = vmmap.start
+        end   = vmmap.end
 
         while True:
             # No point in searching if we can't read the memory
