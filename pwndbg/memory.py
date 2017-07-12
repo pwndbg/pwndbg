@@ -434,8 +434,8 @@ class Page(object):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
 
-    def __contains__(self, a):
-        return self.vaddr <= a < (self.vaddr + self.memsz)
+    def __contains__(self, addr):
+        return self.start <= addr < self.end
 
     def __eq__(self, other):
         return self.vaddr == getattr(other, 'vaddr', other)
