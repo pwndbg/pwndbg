@@ -6,11 +6,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
+import subprocess
+from subprocess import STDOUT
+
 import pwndbg.commands
 import pwndbg.which
-import subprocess
 
-from subprocess import STDOUT
 
 
 class OnlyWithCommand(object):
