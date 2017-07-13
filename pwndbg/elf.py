@@ -13,13 +13,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import os
-import re
-import subprocess
 import sys
-import tempfile
 
 import gdb
+from six.moves import reload_module
 
 import pwndbg.auxv
 import pwndbg.elftypes
@@ -37,9 +34,12 @@ ET_EXEC, ET_DYN  = 2,3
 
 module = sys.modules[__name__]
 
+
 @pwndbg.events.start
 @pwndbg.events.new_objfile
 def update():
+    reload_module(pwndbg.elftypes)
+
     if pwndbg.arch.ptrsize == 4:
         Ehdr = pwndbg.elftypes.Elf32_Ehdr
         Phdr = pwndbg.elftypes.Elf32_Phdr

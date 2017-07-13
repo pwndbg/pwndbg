@@ -11,23 +11,24 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import collections
-import copy
 import functools
 import sys
-
-import gdb
 
 import pwndbg.events
 
 debug = False
 
+
 class memoize(object):
+    """
+    Base memoization class. Do not use directly. Instead use one of classes defined below.
+    """
     caching = True
 
     def __init__(self, func):
         self.func  = func
         self.cache = {}
-        self.caches.append(self)
+        self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
 
     def __call__(self, *args, **kwargs):
@@ -68,6 +69,17 @@ class memoize(object):
         self.cache.clear()
 
 
+class forever(memoize):
+    """
+    Memoizes forever - for a pwndbg session or until `_reset` is called explicitly.
+    """
+    caches = []
+
+    @staticmethod
+    def _reset():
+        for obj in forever.caches:
+            obj.cache.clear()
+
 
 class reset_on_stop(memoize):
     caches = []
@@ -83,6 +95,7 @@ class reset_on_stop(memoize):
 
     _reset = __reset_on_stop
 
+
 class reset_on_exit(memoize):
     caches = []
     kind   = 'exit'
@@ -95,6 +108,7 @@ class reset_on_exit(memoize):
 
     _reset = __reset_on_exit
 
+
 class reset_on_objfile(memoize):
     caches = []
     kind   = 'objfile'
@@ -106,6 +120,7 @@ class reset_on_objfile(memoize):
             obj.clear()
 
     _reset = __reset_on_objfile
+
 
 class reset_on_start(memoize):
     caches = []
@@ -120,6 +135,7 @@ class reset_on_start(memoize):
 
     _reset = __reset_on_start
 
+
 class reset_on_cont(memoize):
     caches = []
     kind   = 'cont'
@@ -131,6 +147,7 @@ class reset_on_cont(memoize):
             obj.clear()
 
     _reset = __reset_on_cont
+
 
 class while_running(memoize):
     caches = []
@@ -153,6 +170,7 @@ class while_running(memoize):
 
 
 def reset():
+    forever._reset()
     reset_on_stop._reset()
     reset_on_exit._reset()
     reset_on_objfile._reset()

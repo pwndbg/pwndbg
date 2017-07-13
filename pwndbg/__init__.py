@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import signal
+
 import gdb
 
 import pwndbg.android
@@ -67,6 +69,7 @@ import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
 import pwndbg.typeinfo
+import pwndbg.ui
 import pwndbg.version
 import pwndbg.vmmap
 import pwndbg.wrappers
@@ -134,13 +137,13 @@ set follow-fork-mode child
 set backtrace past-main on
 set step-mode on
 set print pretty on
-set width 0
+set width %i
 set print elements 15
 handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
-""".strip() % prompt
+""".strip() % (prompt, pwndbg.ui.get_window_size()[1])
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
@@ -150,3 +153,7 @@ try:
     gdb.execute("set disassembly-flavor intel")
 except gdb.error:
     pass
+
+
+# handle resize event to align width and completion
+signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]))

@@ -15,7 +15,6 @@ from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.constants import ptmalloc
 
-
 HEAP_MAX_SIZE     = 1024 * 1024
 
 def heap_for_ptr(ptr):

@@ -135,4 +135,3 @@ def readlink(path):
     data = data[:-len(ending)]
 
     return data
-
