@@ -386,10 +386,17 @@ class Page(object):
 
     @property
     def start(self):
+        """
+        Mapping start address.
+        """
         return self.vaddr
 
     @property
     def end(self):
+        """
+        Address beyond mapping. So the last effective address is self.end-1
+        It is the same as displayed in /proc/<pid>/maps
+        """
         return self.vaddr + self.memsz
 
     @property
