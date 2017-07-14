@@ -27,7 +27,6 @@ import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
 
-
 # ELF constants
 PF_X, PF_W, PF_R = 1,2,4
 ET_EXEC, ET_DYN  = 2,3
