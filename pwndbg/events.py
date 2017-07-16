@@ -20,7 +20,6 @@ import pwndbg.color
 import pwndbg.config
 import pwndbg.stdio
 
-
 debug = pwndbg.config.Parameter('debug-events', False, 'display internal event debugging info')
 pause = 0
 

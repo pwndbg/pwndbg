@@ -11,7 +11,6 @@ import pwndbg.events
 import pwndbg.memoize
 import pwndbg.stdio
 
-
 hint_msg = 'Loaded %i commands. Type pwndbg [filter] for a list.' % len(pwndbg.commands._Command.commands)
 print(pwndbg.color.red(hint_msg))
 cur = (gdb.selected_inferior(), gdb.selected_thread())

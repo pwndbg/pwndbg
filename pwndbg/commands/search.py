@@ -11,9 +11,8 @@ import codecs
 import os
 import struct
 
-import gdb
-
 import pwndbg.arch
+import pwndbg.color
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
@@ -22,6 +21,7 @@ import pwndbg.search
 import pwndbg.vmmap
 
 saved = set()
+
 
 def print_search_hit(address):
     """Prints out a single search hit.
@@ -43,7 +43,7 @@ def print_search_hit(address):
     region = M.get(address, region)
     addr = M.get(address)
     display = pwndbg.enhance.enhance(address)
-    print(region,addr,display)
+    print(region, addr, display)
 
 auto_save = pwndbg.config.Parameter('auto-save-search', False,
                         'automatically pass --save to "search" command')
@@ -81,6 +81,7 @@ parser.add_argument('--no-save', action='store_false', default=None, dest='save'
                     help='Invert --save')
 parser.add_argument('-n', '--next', action='store_true',
                     help='Search only locations returned by previous search with --save')
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
@@ -123,7 +124,6 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
             print('invalid input for type {}: {}'.format(type, e))
             return
 
-
     # Null-terminate strings
     elif type == 'string':
         value = value.encode()
@@ -136,7 +136,7 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(M.red("Could not find mapping %r" % mapping_name))
+        print(pwndbg.color.red("Could not find mapping %r" % mapping_name))
         return
 
     # Prep the saved set if necessary
