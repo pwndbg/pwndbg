@@ -8,8 +8,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import struct
-
 import gdb
 
 import pwndbg.arch
@@ -34,16 +32,17 @@ def search(searchfor, mappings=None, start=None, end=None,
     Yields:
         An iterator on the address matches
     """
-    value = searchfor
-    size  = None
-
     i = gdb.selected_inferior()
 
     maps = mappings or pwndbg.vmmap.get()
-    hits = []
-
+    
     if end and start:
-        maps = [m for m in maps if start <= m < end]
+        assert start < end, 'Last address to search must be greater then first address'
+        maps = [m for m in maps if start in m or (end-1) in m]
+    elif start:
+        maps = [m for m in maps if start in m]
+    elif end:
+        maps = [m for m in maps if (end-1) in m]
 
     if executable:
         maps = [m for m in maps if m.execute]
@@ -52,8 +51,8 @@ def search(searchfor, mappings=None, start=None, end=None,
         maps = [m for m in maps if m.write]
 
     for vmmap in maps:
-        start = vmmap.vaddr
-        end   = start + vmmap.memsz
+        start = vmmap.start
+        end   = vmmap.end
 
         while True:
             # No point in searching if we can't read the memory

@@ -9,7 +9,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import traceback
 
 import gdb
 
@@ -22,6 +21,7 @@ import pwndbg.typeinfo
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE-1)
 MMAP_MIN_ADDR = 0x8000
+
 
 def read(addr, count, partial=False):
     """read(addr, count, partial=False) -> bytearray
@@ -73,6 +73,7 @@ def read(addr, count, partial=False):
 
     return bytearray(result)
 
+
 def readtype(gdb_type, addr):
     """readtype(gdb_type, addr) -> int
 
@@ -88,6 +89,7 @@ def readtype(gdb_type, addr):
     """
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
+
 def write(addr, data):
     """write(addr, data)
 
@@ -98,6 +100,7 @@ def write(addr, data):
         data(str,bytes,bytearray): Data to write
     """
     gdb.selected_inferior().write_memory(addr, bytes(data))
+
 
 def peek(address):
     """peek(address) -> str
@@ -115,6 +118,7 @@ def peek(address):
     except: pass
     return None
 
+
 def poke(address):
     """poke(address)
 
@@ -131,6 +135,7 @@ def poke(address):
     try:    write(address, c)
     except: return False
     return True
+
 
 def string(addr, max=4096):
     """Reads a null-terminated string from memory.
@@ -150,12 +155,14 @@ def string(addr, max=4096):
 
     return bytearray()
 
+
 def byte(addr):
     """byte(addr) -> int
 
     Read one byte at the specified address
     """
     return readtype(pwndbg.typeinfo.uchar, addr)
+
 
 def uchar(addr):
     """uchar(addr) -> int
@@ -164,12 +171,14 @@ def uchar(addr):
     """
     return readtype(pwndbg.typeinfo.uchar, addr)
 
+
 def ushort(addr):
     """ushort(addr) -> int
 
     Read one ``unisgned short`` at the specified address.
     """
     return readtype(pwndbg.typeinfo.ushort, addr)
+
 
 def uint(addr):
     """uint(addr) -> int
@@ -178,12 +187,14 @@ def uint(addr):
     """
     return readtype(pwndbg.typeinfo.uint, addr)
 
+
 def pvoid(addr):
     """pvoid(addr) -> int
 
     Read one pointer from the specified address.
     """
     return readtype(pwndbg.typeinfo.pvoid, addr)
+
 
 def u8(addr):
     """u8(addr) -> int
@@ -192,12 +203,14 @@ def u8(addr):
     """
     return readtype(pwndbg.typeinfo.uint8, addr)
 
+
 def u16(addr):
     """u16(addr) -> int
 
     Read one ``uint16_t`` from the specified address.
     """
     return readtype(pwndbg.typeinfo.uint16, addr)
+
 
 def u32(addr):
     """u32(addr) -> int
@@ -206,12 +219,14 @@ def u32(addr):
     """
     return readtype(pwndbg.typeinfo.uint32, addr)
 
+
 def u64(addr):
     """u64(addr) -> int
 
     Read one ``uint64_t`` from the specified address.
     """
     return readtype(pwndbg.typeinfo.uint64, addr)
+
 
 def u(addr, size=None):
     """u(addr, size=None) -> int
@@ -229,12 +244,14 @@ def u(addr, size=None):
         64: u64
     }[size](addr)
 
+
 def s8(addr):
     """s8(addr) -> int
 
     Read one ``int8_t`` from the specified address
     """
     return readtype(pwndbg.typeinfo.int8, addr)
+
 
 def s16(addr):
     """s16(addr) -> int
@@ -243,18 +260,22 @@ def s16(addr):
     """
     return readtype(pwndbg.typeinfo.int16, addr)
 
+
 def s32(addr):
     """s32(addr) -> int
 
     Read one ``int32_t`` from the specified address.
     """
     return readtype(pwndbg.typeinfo.int32, addr)
+
+
 def s64(addr):
     """s64(addr) -> int
 
     Read one ``int64_t`` from the specified address.
     """
     return readtype(pwndbg.typeinfo.int64, addr)
+
 
 def poi(type, addr):
     """poi(addr) -> gdb.Value
@@ -263,12 +284,14 @@ def poi(type, addr):
     """
     return gdb.Value(addr).cast(type.pointer()).dereference()
 
+
 def round_down(address, align):
     """round_down(address, align) -> int
 
     Round down ``address`` to the nearest increment of ``align``.
     """
     return address & ~(align-1)
+
 
 def round_up(address, align):
     """round_up(address, align) -> int
@@ -280,6 +303,7 @@ def round_up(address, align):
 align_down = round_down
 align_up   = round_up
 
+
 def page_align(address):
     """page_align(address) -> int
 
@@ -287,11 +311,17 @@ def page_align(address):
     """
     return round_down(address, PAGE_SIZE)
 
-def page_size_align(address): return round_up(address, PAGE_SIZE)
-def page_offset(address): return (address & (PAGE_SIZE-1))
+
+def page_size_align(address):
+    return round_up(address, PAGE_SIZE)
+
+
+def page_offset(address):
+    return (address & (PAGE_SIZE-1))
 
 assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
+
 
 def find_upper_boundary(addr, max_pages=1024):
     """find_upper_boundary(addr, max_pages=1024) -> int
@@ -313,6 +343,7 @@ def find_upper_boundary(addr, max_pages=1024):
         pass
     return addr
 
+
 def find_lower_boundary(addr, max_pages=1024):
     """find_lower_boundary(addr, max_pages=1024) -> int
 
@@ -331,6 +362,7 @@ def find_lower_boundary(addr, max_pages=1024):
         pass
     return addr
 
+
 class Page(object):
     """
     Represents the address space and page permissions of at least
@@ -341,6 +373,7 @@ class Page(object):
     flags   = 0 #: Flags set by the ELF file, see PF_X, PF_R, PF_W
     offset  = 0 #: Offset into the original ELF file that the data is loaded from
     objfile = '' #: Path to the ELF on disk
+
     def __init__(self, start, size, flags, offset, objfile=''):
         self.vaddr  = start
         self.memsz  = size
@@ -350,21 +383,42 @@ class Page(object):
 
         # if self.rwx:
             # self.flags = self.flags ^ 1
+
+    @property
+    def start(self):
+        """
+        Mapping start address.
+        """
+        return self.vaddr
+
+    @property
+    def end(self):
+        """
+        Address beyond mapping. So the last effective address is self.end-1
+        It is the same as displayed in /proc/<pid>/maps
+        """
+        return self.vaddr + self.memsz
+
     @property
     def read(self):
         return bool(self.flags & 4)
+
     @property
     def write(self):
         return bool(self.flags & 2)
+
     @property
     def execute(self):
         return bool(self.flags & 1)
+
     @property
     def rw(self):
         return self.read and self.write
+
     @property
     def rwx(self):
         return self.read and self.write and self.execute
+
     @property
     def permstr(self):
         flags = self.flags
@@ -372,6 +426,7 @@ class Page(object):
                         'w' if flags & os.W_OK else '-',
                         'x' if flags & os.X_OK else '-',
                         'p'])
+
     def __str__(self):
         width = 2 + 2*pwndbg.typeinfo.ptrsize
         fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
@@ -382,19 +437,25 @@ class Page(object):
                              self.memsz,
                              self.offset,
                              self.objfile or '')
+
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
-    def __contains__(self, a):
-        return self.vaddr <= a < (self.vaddr + self.memsz)
+
+    def __contains__(self, addr):
+        return self.start <= addr < self.end
+
     def __eq__(self, other):
         return self.vaddr == getattr(other, 'vaddr', other)
+
     def __lt__(self, other):
         return self.vaddr < getattr(other, 'vaddr', other)
+
     def __hash__(self):
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
+
 
 @pwndbg.events.start
 def update_min_addr():
     global MMAP_MIN_ADDR
     if pwndbg.qemu.is_qemu_kernel():
-        MMAP_MIN_ADDR=0
+        MMAP_MIN_ADDR = 0
