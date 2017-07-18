@@ -16,6 +16,7 @@ import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 
 from pwndbg.color import green
+from pwndbg.color import red
 from pwndbg.color import light_yellow
 
 parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
@@ -26,23 +27,19 @@ parser.add_argument('name_filter', help='Filter results by passed name.',
 @pwndbg.commands.OnlyWhenRunning
 def got(name_filter=''):
 
-    if pwndbg.wrappers.file.is_statically_linked():
-        print("Binary is statically linked")
-        return
-
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
-    jmpslots = pwndbg.wrappers.readelf.get_jmpslots()
+    jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())
 
     if not len(jmpslots):
-        print("NO JUMP_SLOT entries available in the GOT")
+        print(red("NO JUMP_SLOT entries available in the GOT"))
         return
     if "PIE enabled" in pie_status:
         bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
 
-    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots.splitlines())))
+    print("\nGOT protection: %s | GOT functions: %d\n " % (green(relro_status), len(jmpslots)))
 
-    for line in jmpslots.splitlines():
+    for line in jmpslots:
         address, info, rtype, value, name = line.split()[:5]
 
         if name_filter not in name:

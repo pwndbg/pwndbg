@@ -13,7 +13,6 @@ import pwndbg.commands
 import pwndbg.which
 
 
-
 class OnlyWithCommand(object):
     def __init__(self, command):
         self.cmd_name = command
@@ -22,7 +21,6 @@ class OnlyWithCommand(object):
     def __call__(self, function):
         function.cmd_path = self.cmd_path
 
-        @pwndbg.memoize.reset_on_objfile
         @pwndbg.commands.OnlyWithFile
         @functools.wraps(function)
         def _OnlyWithCommand(*a,**kw):
