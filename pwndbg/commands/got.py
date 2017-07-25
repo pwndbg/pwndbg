@@ -14,7 +14,6 @@ import pwndbg.file
 import pwndbg.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
-
 from pwndbg.color import green
 from pwndbg.color import light_yellow
 from pwndbg.color import red
