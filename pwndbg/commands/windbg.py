@@ -289,7 +289,7 @@ def u(where=None, n=5):
     """
     if where is None:
         where = pwndbg.regs.pc
-    pwndbg.commands.nearpc(where, n)
+    pwndbg.commands.nearpc.nearpc(where, n)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
