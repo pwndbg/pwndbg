@@ -9,6 +9,7 @@ import pwndbg.commands
 import pwndbg.which
 import pwndbg.wrappers.checksec
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile
 def checksec(file=None):
@@ -17,4 +18,3 @@ def checksec(file=None):
     checksec first, and then falls back to checksec.sh.
     '''
     print(pwndbg.wrappers.checksec.get_raw_out())
-

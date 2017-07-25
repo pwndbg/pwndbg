@@ -33,4 +33,3 @@ class OnlyWithCommand(object):
 
 def call_cmd(cmd):
     return subprocess.check_output(cmd, stderr=STDOUT).decode('utf-8')
-
