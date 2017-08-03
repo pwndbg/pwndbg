@@ -20,7 +20,10 @@ idaapi.autoWait()
 dt = datetime.datetime.now().isoformat().replace(':', '-')
 
 # Save the database so nothing gets lost.
-idc.SaveBase(idc.GetIdbPath() + '.' + dt)
+if idaapi.IDA_SDK_VERSION >= 700:
+    idaapi.save_database(idc.GetIdbPath() + '.' + dt)
+else:
+    idc.SaveBase(idc.GetIdbPath() + '.' + dt)
 
 xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
