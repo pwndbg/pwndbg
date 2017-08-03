@@ -22,6 +22,15 @@ def value_from_type(type_name, addr):
     gdb_type = pwndbg.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
+def read_chunk(addr):
+    renames = {
+        "mchunk_size": "size",
+        "mchunk_prev_size": "prev_size",
+    }
+    val = value_from_type("struct malloc_chunk", addr)
+    return dict({ renames.get(key) or key: int(val[key]) for key in val.type.keys() }, value=val)
+
+
 def format_bin(bins, verbose=False):
     main_heap = pwndbg.heap.current
     fd_offset = main_heap.chunk_key_offset('fd')
@@ -127,7 +136,7 @@ def top_chunk(addr=None):
         last_addr = None
         addr = heap_start
         while addr < heap_end:
-            chunk = value_from_type('struct malloc_chunk', addr)
+            chunk = read_chunk(addr)
             size = int(chunk['size'])
 
             # Clear the bottom 3 bits
@@ -153,7 +162,7 @@ def malloc_chunk(addr):
     if not isinstance(addr, six.integer_types):
         addr = int(addr)
 
-    chunk = value_from_type('struct malloc_chunk', addr)
+    chunk = read_chunk(addr)
     size = int(chunk['size'])
     actual_size = size & ~7
     fastbins = main_heap.fastbins()
@@ -170,7 +179,7 @@ def malloc_chunk(addr):
         header += yellow(' IS_MMAPED')
     if non_main_arena:
         header += yellow(' NON_MAIN_ARENA')
-    print(header, chunk)
+    print(header, chunk["value"])
 
     return chunk
 
