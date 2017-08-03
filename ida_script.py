@@ -20,8 +20,8 @@ idaapi.autoWait()
 dt = datetime.datetime.now().isoformat().replace(':', '-')
 
 # Save the database so nothing gets lost.
-if idaapi.IDA_SDK_VERSION == 700:
-    idc.save_database(idc.GetIdbPath() + '.' + dt)
+if idaapi.IDA_SDK_VERSION >= 700:
+    idaapi.save_database(idc.GetIdbPath() + '.' + dt)
 else:
     idc.SaveBase(idc.GetIdbPath() + '.' + dt)
 
