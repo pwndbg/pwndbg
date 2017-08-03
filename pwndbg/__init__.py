@@ -18,6 +18,7 @@ import pwndbg.commands
 import pwndbg.commands.argv
 import pwndbg.commands.aslr
 import pwndbg.commands.auxv
+import pwndbg.commands.canary
 import pwndbg.commands.checksec
 import pwndbg.commands.config
 import pwndbg.commands.context
