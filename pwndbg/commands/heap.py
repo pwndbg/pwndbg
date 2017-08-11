@@ -12,23 +12,20 @@ import six
 
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.typeinfo
 from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.color import underline
 from pwndbg.color import yellow
 
 
-def value_from_type(type_name, addr):
-    gdb_type = pwndbg.typeinfo.load(type_name)
-    return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
-
 def read_chunk(addr):
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    val = value_from_type("struct malloc_chunk", addr)
-    return dict({ renames.get(key) or key: int(val[key]) for key in val.type.keys() }, value=val)
+    val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() }, value=val)
 
 
 def format_bin(bins, verbose=False):
