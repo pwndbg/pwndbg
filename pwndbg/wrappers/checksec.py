@@ -20,13 +20,9 @@ def get_raw_out():
     return pwndbg.wrappers.call_cmd(cmd)
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
-@pwndbg.memoize.reset_on_objfile
 def relro_status():
     relro = "No RELRO"
-
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cmd = [relro_status.cmd_path, "--file", local_path]
-    out = pwndbg.wrappers.call_cmd(cmd)
+    out = get_raw_out()
 
     if "Full RELRO" in out:
         relro = "Full RELRO"
@@ -36,13 +32,9 @@ def relro_status():
     return relro
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
-@pwndbg.memoize.reset_on_objfile
 def pie_status():
     pie = "No PIE"
-
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cmd = [pie_status.cmd_path, "--file", local_path]
-    out = pwndbg.wrappers.call_cmd(cmd)
+    out = get_raw_out()
 
     if "PIE enabled" in out:
         pie = "PIE enabled"
