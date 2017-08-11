@@ -20,6 +20,9 @@ from pwndbg.color import yellow
 
 
 def read_chunk(addr):
+    # in old versions of glibc, `mchunk_[prev_]size` was simply called `[prev_]size`
+    # to support both versions, we change the new names to the old ones here so that
+    # the rest of the code can deal with uniform names
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
