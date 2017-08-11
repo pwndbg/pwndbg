@@ -6,11 +6,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import pwndbg.commands
+import pwndbg.memoize
 import pwndbg.wrappers
 
 cmd_name = "checksec"
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
+@pwndbg.memoize.reset_on_objfile
 def get_raw_out():
 
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
@@ -20,10 +22,7 @@ def get_raw_out():
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 def relro_status():
     relro = "No RELRO"
-
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cmd = [relro_status.cmd_path, "--file", local_path]
-    out = pwndbg.wrappers.call_cmd(cmd)
+    out = get_raw_out()
 
     if "Full RELRO" in out:
         relro = "Full RELRO"
@@ -35,10 +34,7 @@ def relro_status():
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 def pie_status():
     pie = "No PIE"
-
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
-    cmd = [pie_status.cmd_path, "--file", local_path]
-    out = pwndbg.wrappers.call_cmd(cmd)
+    out = get_raw_out()
 
     if "PIE enabled" in out:
         pie = "PIE enabled"
