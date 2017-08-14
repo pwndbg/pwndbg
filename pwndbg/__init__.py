@@ -144,3 +144,10 @@ try:
     gdb.execute("set disassembly-flavor intel")
 except gdb.error:
     pass
+
+# Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
+# More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946
+# As stated on GDB's bugzilla that makes remote target search slower.
+# After GDB gets the fix, we should disable this only for bugged GDB versions.
+if 1:
+    gdb.execute('set remote search-memory-packet off')
