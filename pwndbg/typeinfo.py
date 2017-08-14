@@ -165,3 +165,8 @@ def add_symbol_file(filename=None, address=0):
 
     with pwndbg.events.Pause():
         gdb.execute('add-symbol-file %s %s' % (filename, address), from_tty=False, to_string=True)
+
+def read_gdbvalue(type_name, addr):
+    """ Read the memory contents at addr and interpret them as a GDB value with the given type """
+    gdb_type = pwndbg.typeinfo.load(type_name)
+    return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
