@@ -26,6 +26,7 @@ jumps = set((
 
 interrupts = set((capstone.CS_GRP_INT,))
 
+
 def next_int(address=None):
     """
     If there is a syscall in the current basic black,
@@ -49,6 +50,7 @@ def next_int(address=None):
 
     return None
 
+
 def next_branch(address=None):
     if address is None:
         ins = pwndbg.disasm.one(pwndbg.regs.pc)
@@ -64,6 +66,7 @@ def next_branch(address=None):
 
     return None
 
+
 def break_next_branch(address=None):
     ins = next_branch(address)
 
@@ -72,6 +75,7 @@ def break_next_branch(address=None):
         gdb.execute('continue', from_tty=False, to_string=True)
         return ins
 
+
 def break_next_interrupt(address=None):
     ins = next_int(address)
 
@@ -79,6 +83,7 @@ def break_next_interrupt(address=None):
         gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
         gdb.execute('continue', from_tty=False, to_string=True)
         return ins
+
 
 def break_next_call(symbol_regex=None):
     while pwndbg.proc.alive:
@@ -102,6 +107,18 @@ def break_next_call(symbol_regex=None):
         # return call if we match symbol name
         if ins.symbol and re.match('%s$' % symbol_regex, ins.symbol):
             return ins
+
+
+def break_next_ret(address=None):
+    while pwndbg.proc.alive:
+        ins = break_next_branch(address)
+
+        if not ins:
+            break
+
+        if capstone.CS_GRP_RET in ins.groups:
+            return ins
+
 
 def break_on_next(address=None):
     address = address or pwndbg.regs.pc
