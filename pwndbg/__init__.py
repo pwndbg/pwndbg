@@ -163,4 +163,3 @@ signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" 
 # After GDB gets the fix, we should disable this only for bugged GDB versions.
 if 1:
     gdb.execute('set remote search-memory-packet off')
-
