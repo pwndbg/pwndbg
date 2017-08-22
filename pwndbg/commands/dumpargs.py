@@ -11,6 +11,7 @@ import pwndbg.arguments
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.disasm
+import pwndbg.chain
 
 
 parser = argparse.ArgumentParser(
@@ -22,20 +23,23 @@ parser.add_argument('--force', action='store_true', help='Force displaying of al
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dumpargs(force=False):
-    if force:
-        all_args()
+    force_text = "Use `%s --force` to force the display." % dumpargs.__name__
+
+    if not pwndbg.disasm.is_call() and not force:
+        print("Cannot dump args as current instruction is not a call.\n" + force_text)
+        return
+
+    args = all_args() if force else call_args()
+
+    if args:
+        print('\n'.join(args))
     else:
-        args = call_args()
-        if args:
-            print('\n'.join(args))
-        else:
-            print("Couldn't resolve call arguments. Maybe the function doesn\'t take any?\n"
-                  "Use `%s --force` to force the display." % dumpargs.__name__)
+        print("Couldn't resolve call arguments. Maybe the function doesn\'t take any?\n" + force_text)
 
 
 def call_args():
     """
-    Yields resolved call argument strings for display.
+    Returns list of resolved call argument strings for display.
     Attempts to resolve the target and determine the number of arguments.
     Should be used only when being on a call instruction.
     """
@@ -51,8 +55,11 @@ def call_args():
 
 def all_args():
     """
-    Yields all argument strings for display.
+    Returns list of all argument strings for display.
     """
+    results = []
+
     for name, value in pwndbg.arguments.arguments():
-        print('%4s = ' % name, end='')
-        pwndbg.commands.telescope.telescope(address=value, count=1, print_offsets=False)
+        results.append('%4s = %s' % (name, pwndbg.chain.format(value)))
+
+    return results
