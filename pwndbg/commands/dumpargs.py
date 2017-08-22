@@ -25,7 +25,12 @@ def dumpargs(all=False):
     if all:
         all_args()
     else:
-        print('\n'.join(call_args()))
+        args = call_args()
+        if args:
+            print('\n'.join(args))
+        else:
+            print("Couldn't resolve call arguments. Maybe the function doesn\'t take any?\n"
+                  "Use `%s --all` to force the display." % dumpargs.__name__)
 
 
 def call_args():
@@ -34,10 +39,14 @@ def call_args():
     Attempts to resolve the target and determine the number of arguments.
     Should be used only when being on a call instruction.
     """
+    results = []
+
     for arg, value in pwndbg.arguments.get(pwndbg.disasm.one()):
         code   = False if arg.type == 'char' else True
         pretty = pwndbg.chain.format(value, code=code)
-        yield '        %-10s %s' % (arg.name+':', pretty)
+        results.append('        %-10s %s' % (arg.name+':', pretty))
+
+    return results
 
 
 def all_args():
