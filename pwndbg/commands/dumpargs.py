@@ -16,13 +16,13 @@ import pwndbg.disasm
 parser = argparse.ArgumentParser(
     description='Prints determined arguments for call instruction. Pass --all to see all possible arguments.'
 )
-parser.add_argument('--all', action='store_true', help='Force displaying of all arguments.')
+parser.add_argument('--force', action='store_true', help='Force displaying of all arguments.')
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def dumpargs(all=False):
-    if all:
+def dumpargs(force=False):
+    if force:
         all_args()
     else:
         args = call_args()
@@ -30,7 +30,7 @@ def dumpargs(all=False):
             print('\n'.join(args))
         else:
             print("Couldn't resolve call arguments. Maybe the function doesn\'t take any?\n"
-                  "Use `%s --all` to force the display." % dumpargs.__name__)
+                  "Use `%s --force` to force the display." % dumpargs.__name__)
 
 
 def call_args():
