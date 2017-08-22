@@ -9,7 +9,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import functools
 
 import gdb
 import six
@@ -20,7 +19,7 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-def map_type(s):
+def pages_filter(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
 
     # returns a module filter
@@ -36,17 +35,17 @@ def map_type(s):
     else:
         raise argparse.ArgumentTypeError('Unknown vmmap argument type.')
 
+
 parser = argparse.ArgumentParser()
-parser.description = 'Print the virtual memory map, or the specific mapping for the provided address / module name.'
-parser.add_argument('map', type=map_type, nargs='?', default=None,
+parser.description = 'Print virtual memory map pages. Results can be filtered by providing address/module name.'
+parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
                     help='Address or module name.')
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def vmmap(map=None):
-    print(map)
-    pages = list(filter(map, pwndbg.vmmap.get()))
+def vmmap(pages_filter=None):
+    pages = list(filter(pages_filter, pwndbg.vmmap.get()))
 
     if not pages:
         print('There are no mappings for specified address or module.')

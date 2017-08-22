@@ -235,8 +235,8 @@ class ArgparsedCommand(object):
 
 def sloppy_gdb_parse(s):
     """
-    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` argument.
-
+    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
+    
     This makes the type being parsed as gdb value and if that parsing fails,
     a string is returned.
 
@@ -245,5 +245,5 @@ def sloppy_gdb_parse(s):
     """
     try:
         return gdb.parse_and_eval(s)
-    except:
+    except (TypeError, gdb.error):
         return s
