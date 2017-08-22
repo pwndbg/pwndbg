@@ -45,4 +45,4 @@ def canary():
 
     print(pwndbg.color.green('Found valid canaries on the stacks:'))
     for stack_canary in stack_canaries:
-        pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
+        pwndbg.commands.telescope.telescope(address=stack_canary, count=1, print_offsets=False)

@@ -34,7 +34,7 @@ repeating_maker  = theme.Parameter('telescope-repeating-marker', '... ↓', 'rep
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False):
+def telescope(address=None, count=telescope_lines, to_string=False, print_offsets=True):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
@@ -101,9 +101,11 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         last = value
         skip = False
 
-        line = ' '.join((T.offset("%02x%s%04x%s" % (i, delimiter, addr-start, separator)),
-                         T.register(regs[addr].ljust(longest_regs)),
-                         pwndbg.chain.format(addr)))
+        line = ' '.join((T.register(regs[addr].ljust(longest_regs)), pwndbg.chain.format(addr)))
+
+        if print_offsets:
+            line = ' '.join((T.offset("%02x%s%04x%s" % (i, delimiter, addr-start, separator)), line))
+
         result.append(line)
 
     if not to_string:
