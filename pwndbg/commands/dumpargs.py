@@ -8,11 +8,10 @@ from __future__ import unicode_literals
 import argparse
 
 import pwndbg.arguments
+import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.disasm
-import pwndbg.chain
-
 
 parser = argparse.ArgumentParser(
     description='Prints determined arguments for call instruction. Pass --all to see all possible arguments.'
