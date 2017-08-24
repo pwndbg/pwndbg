@@ -206,8 +206,13 @@ def context_code():
 
     name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
     addr = pwndbg.ida.LocByName(name)
-    lines = pwndbg.ida.decompile(addr)
-    return lines.splitlines()
+    # May be None when decompilation failed or user loaded wrong binary in IDA
+    code = pwndbg.ida.decompile(addr)
+
+    if code:
+        return [pwndbg.ui.banner("Hexrays pseudocode")] + code.splitlines()
+    else:
+        return []
 
 
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')

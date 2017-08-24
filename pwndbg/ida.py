@@ -340,7 +340,8 @@ def decompile(addr):
         return _ida.decompile(addr)
     except xmlrpclib.Fault as f:
         if str(f) == '''<Fault 1: "<class 'idaapi.DecompilationFailure'>:Decompilation failed: ">''':
-            return ''
+            print('Returning an empty string')
+            return None
         raise
 
 
