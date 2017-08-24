@@ -56,6 +56,7 @@ def init_ida_rpc_client():
     addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
 
     _ida = xmlrpclib.ServerProxy(addr)
+    socket.setdefaulttimeout(3)
 
     exception = None # (type, value, traceback)
     try:
@@ -64,6 +65,9 @@ def init_ida_rpc_client():
     except socket.error as e:
         if e.errno != errno.ECONNREFUSED:
             exception = sys.exc_info()
+        _ida = None
+    except socket.timeout:
+        exception = sys.exc_info()
         _ida = None
     except xmlrpclib.ProtocolError:
         exception = sys.exc_info()
