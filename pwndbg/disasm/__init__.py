@@ -235,3 +235,10 @@ def near(address, instructions=1, emulate=False):
         del insns[-1]
 
     return insns
+
+
+def is_call(address=None):
+    """
+    Returns whether a given address contains call instruction.
+    """
+    return capstone.CS_GRP_CALL in one(address).groups
