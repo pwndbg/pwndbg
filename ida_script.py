@@ -6,6 +6,7 @@ import datetime
 import threading
 import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
+from xml.sax.saxutils import escape
 
 import idaapi
 import idautils
@@ -25,8 +26,28 @@ if idaapi.IDA_SDK_VERSION >= 700:
 else:
     idc.SaveBase(idc.GetIdbPath() + '.' + dt)
 
-xmlrpclib.Marshaller.dispatch[type(0L)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
-xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+
+DEBUG_MARSHALLING = False
+
+def create_marshaller(use_format=None, just_to_str=False):
+    assert use_format or just_to_str, 'Either pass format to use or make it converting the value to str.'
+
+    def wrapper(_marshaller, value, appender):
+        if use_format:
+            marshalled = use_format % value
+        elif just_to_str:
+            marshalled = '<value><string>%s</string></value>' % escape(str(value))
+
+        if DEBUG_MARSHALLING:
+            print("Marshalled: '%s'" % marshalled)
+
+        appender(marshalled)
+
+    return wrapper
+
+xmlrpclib.Marshaller.dispatch[type(0L)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlrpclib.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = '127.0.0.1'
 port = 8888
@@ -47,23 +68,30 @@ mutex = threading.Condition()
 
 def wrap(f):
     def wrapper(*a, **kw):
-        try:
-            rv = []
+        rv = []
+        error = []
 
-            def work():
-                rv.append(f(*a, **kw))
+        def work():
+            try:
+                result = f(*a, **kw)
+                rv.append(result)
+            except Exception as e:
+                error.append(e)
 
-            with mutex:
-                flags = idaapi.MFF_WRITE
-                if f == idc.SetColor:
-                    flags |= idaapi.MFF_NOWAIT
-                    rv.append(None)
-                idaapi.execute_sync(work, flags)
-            return rv[0]
-        except:
-            import traceback
-            traceback.print_exc()
-            raise
+        with mutex:
+            flags = idaapi.MFF_WRITE
+            if f == idc.SetColor:
+                flags |= idaapi.MFF_NOWAIT
+                rv.append(None)
+            idaapi.execute_sync(work, flags)
+
+        if error:
+            msg = 'Failed on calling {}.{} with args: {}, kwargs: {}\nException: {}' \
+                .format(f.__module__, f.__name__, a, kw, str(error[0]))
+            print('[!!!] ERROR:', msg)
+            raise error[0]
+
+        return rv[0]
 
     return wrapper
 
