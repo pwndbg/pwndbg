@@ -74,12 +74,16 @@ class withIDA(object):
             return self.fn(*args, **kwargs)
         return None
 
+
 def withHexrays(f):
     @withIDA
     @functools.wraps(f)
     def wrapper(*a, **kw):
         if _ida.init_hexrays_plugin():
             return f(*a, **kw)
+
+    return wrapper
+
 
 def takes_address(function):
     @functools.wraps(function)
@@ -332,7 +336,13 @@ def has_cached_cfunc(addr):
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
-    return _ida.decompile(addr)
+    try:
+        return _ida.decompile(addr)
+    except xmlrpclib.Fault as f:
+        if str(f) == '''<Fault 1: "<class 'idaapi.DecompilationFailure'>:Decompilation failed: ">''':
+            print('Returning an empty string')
+            return None
+        raise
 
 
 @withIDA
