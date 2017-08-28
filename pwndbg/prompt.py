@@ -24,12 +24,13 @@ def prompt_hook(*a):
         pwndbg.events.after_reload(start=False)
         cur = new
 
-    if pwndbg.proc.alive:
+    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
         prompt_hook_on_stop(*a)
 
 
 @pwndbg.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
     pwndbg.commands.context.context()
+
 
 gdb.prompt_hook = prompt_hook
