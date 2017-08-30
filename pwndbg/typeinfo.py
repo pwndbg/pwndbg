@@ -123,11 +123,11 @@ def load(name):
         for path in glob.glob(os.path.join(dirname, '*.h')):
             if any(b in path for b in blacklist):
               continue
-            print(path)
             source += '#include "%s"\n' % path
 
 
     source += '''
+
 {name} foo;
 '''.format(**locals())
 
