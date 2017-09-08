@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import pwndbg.commands
 import pwndbg.config
 from pwndbg.color import light_yellow
@@ -30,10 +32,11 @@ def extend_value_with_default(value, default):
     return value
 
 
-@pwndbg.commands.Command
-def config():
-    """Shows pwndbg-specific configuration points"""
+config_parser = argparse.ArgumentParser(description='Shows pwndbg-specific configuration points')
 
+
+@pwndbg.commands.ArgparsedCommand(config_parser)
+def config():
     values = [v for k, v in pwndbg.config.__dict__.items()
               if isinstance(v, pwndbg.config.Parameter) and v.scope == 'config']
     longest_optname = max(map(len, [v.optname for v in values]))
@@ -50,15 +53,23 @@ def config():
                        '- then put it in your .gdbinit after initializing pwndbg'))
 
 
-@pwndbg.commands.Command
+configfile_parser = argparse.ArgumentParser(description='Generates a configuration file for the current Pwndbg options')
+configfile_parser.add_argument('--show-all', action='store_true', help='Force displaying of all configs.')
+
+
+@pwndbg.commands.ArgparsedCommand(configfile_parser)
 def configfile(show_all=False):
-    """Generates a configuration file for the current Pwndbg options"""
     configfile_print_scope('config', show_all)
 
 
-@pwndbg.commands.Command
+themefile_parser = argparse.ArgumentParser(
+    description='Generates a configuration file for the current Pwndbg theme options'
+)
+themefile_parser.add_argument('--show-all', action='store_true', help='Force displaying of all theme options.')
+
+
+@pwndbg.commands.ArgparsedCommand(themefile_parser)
 def themefile(show_all=False):
-    """Generates a configuration file for the current Pwndbg theme options"""
     configfile_print_scope('theme', show_all)
 
 
