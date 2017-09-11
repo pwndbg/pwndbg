@@ -32,87 +32,89 @@ def j(*args):
         pass
 
 
-if pwndbg.ida.available():
-    @pwndbg.commands.Command
-    @pwndbg.commands.OnlyWhenRunning
-    def up(n=1):
-        """
-        Select and print stack frame that called this one.
-        An argument says how many frames up to go.
-        """
-        f = gdb.selected_frame()
 
-        for i in range(n):
-            o = f.older()
-            if o:
-                o.select()
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def up(n=1):
+    """
+    Select and print stack frame that called this one.
+    An argument says how many frames up to go.
+    """
+    f = gdb.selected_frame()
 
-        bt = pwndbg.commands.context.context_backtrace(with_banner=False)
-        print('\n'.join(bt))
+    for i in range(n):
+        o = f.older()
+        if o:
+            o.select()
 
-        j()
+    bt = pwndbg.commands.context.context_backtrace(with_banner=False)
+    print('\n'.join(bt))
 
-
-    @pwndbg.commands.Command
-    @pwndbg.commands.OnlyWhenRunning
-    def down(n=1):
-        """
-        Select and print stack frame called by this one.
-        An argument says how many frames down to go.
-        """
-        f = gdb.selected_frame()
-
-        for i in range(n):
-            o = f.newer()
-            if o:
-                o.select()
-
-        bt = pwndbg.commands.context.context_backtrace(with_banner=False)
-        print('\n'.join(bt))
-
-        j()
+    j()
 
 
-    @pwndbg.commands.Command
-    def save_ida():
-        if not pwndbg.ida.available():
-            return
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def down(n=1):
+    """
+    Select and print stack frame called by this one.
+    An argument says how many frames down to go.
+    """
+    f = gdb.selected_frame()
 
-        path = pwndbg.ida.GetIdbPath()
+    for i in range(n):
+        o = f.newer()
+        if o:
+            o.select()
 
-        # Need to handle emulated paths for Wine
-        if path.startswith('Z:'):
-            path = path[2:].replace('\\', '/')
-            pwndbg.ida.SaveBase(path)
+    bt = pwndbg.commands.context.context_backtrace(with_banner=False)
+    print('\n'.join(bt))
 
-        basename = os.path.basename(path)
-        dirname = os.path.dirname(path)
-        backups = os.path.join(dirname, 'ida-backup')
+    j()
 
-        if not os.path.isdir(backups):
-            os.mkdir(backups)
 
-        basename, ext = os.path.splitext(basename)
-        basename += '-%s' % datetime.datetime.now().isoformat()
-        basename += ext
+@pwndbg.commands.Command
+@pwndbg.ida.withIDA
+def save_ida():
+    """Save the IDA database"""
+    if not pwndbg.ida.available():
+        return
 
-        # Windows doesn't like colons in paths
-        basename = basename.replace(':', '_')
+    path = pwndbg.ida.GetIdbPath()
 
-        full_path = os.path.join(backups, basename)
+    # Need to handle emulated paths for Wine
+    if path.startswith('Z:'):
+        path = path[2:].replace('\\', '/')
+        pwndbg.ida.SaveBase(path)
 
-        pwndbg.ida.SaveBase(full_path)
+    basename = os.path.basename(path)
+    dirname = os.path.dirname(path)
+    backups = os.path.join(dirname, 'ida-backup')
 
-        data = open(full_path, 'rb').read()
+    if not os.path.isdir(backups):
+        os.mkdir(backups)
 
-        # Compress!
-        full_path_compressed = full_path + '.bz2'
-        bz2.BZ2File(full_path_compressed, 'w').write(data)
+    basename, ext = os.path.splitext(basename)
+    basename += '-%s' % datetime.datetime.now().isoformat()
+    basename += ext
 
-        # Remove old version
-        os.unlink(full_path)
+    # Windows doesn't like colons in paths
+    basename = basename.replace(':', '_')
 
-    save_ida()
+    full_path = os.path.join(backups, basename)
+
+    pwndbg.ida.SaveBase(full_path)
+
+    data = open(full_path, 'rb').read()
+
+    # Compress!
+    full_path_compressed = full_path + '.bz2'
+    bz2.BZ2File(full_path_compressed, 'w').write(data)
+
+    # Remove old version
+    os.unlink(full_path)
+
+save_ida()
 
 
 class ida(gdb.Function):
