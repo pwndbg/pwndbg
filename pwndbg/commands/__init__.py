@@ -206,7 +206,7 @@ class _ArgparsedCommand(Command):
     def __init__(self, parser, function, *a, **kw):
         self.parser = parser
         self.parser.prog = function.__name__
-        function.__doc__ = self.parser.description
+        self.__doc__ = function.__doc__ = self.parser.description
         super(_ArgparsedCommand, self).__init__(function, *a, **kw)
 
     def split_args(self, argument):
