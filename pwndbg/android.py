@@ -11,8 +11,10 @@ import pwndbg.color
 import pwndbg.events
 import pwndbg.file
 import pwndbg.remote
+import pwndbg.memoize
 
-
+@pwndbg.memoize.reset_on_start
+@pwndbg.memoize.reset_on_exit
 def is_android():
     try:
         if pwndbg.file.get('/system/etc/hosts'):
