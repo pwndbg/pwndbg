@@ -16,6 +16,7 @@ import gdb
 
 import pwndbg.disasm
 import pwndbg.regs
+from pwndbg.color import red
 
 jumps = set((
     capstone.CS_GRP_CALL,
@@ -118,6 +119,29 @@ def break_next_ret(address=None):
 
         if capstone.CS_GRP_RET in ins.groups:
             return ins
+
+
+def break_on_program_code():
+    """
+    Breaks on next instruction that belongs to process' objfile code.
+    :return: True for success, False when process ended.
+    """
+    mp = pwndbg.proc.mem_page
+    start = mp.start
+    end = mp.end
+
+    if start <= pwndbg.regs.pc < end:
+        print(red('The execution is already in the binary objfile code. Not stepping.'))
+        return False
+
+    while pwndbg.proc.alive:
+        gdb.execute('si', from_tty=False, to_string=False)
+
+        addr = pwndbg.regs.pc
+        if start <= addr < end:
+            return True
+
+    return False
 
 
 def break_on_next(address=None):
