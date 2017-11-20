@@ -124,7 +124,7 @@ def break_next_ret(address=None):
 def break_on_program_code():
     """
     Breaks on next instruction that belongs to process' objfile code.
-    :return: True for success, False when process ended.
+    :return: True for success, False when process ended or when pc is in the code.
     """
     mp = pwndbg.proc.mem_page
     start = mp.start
