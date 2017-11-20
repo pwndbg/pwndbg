@@ -131,7 +131,7 @@ def break_on_program_code():
     end = mp.end
 
     if start <= pwndbg.regs.pc < end:
-        print(red('The execution is already in the binary objfile code. Not stepping.'))
+        print(red('The pc is already at the binary objfile code. Not stepping.'))
         return False
 
     while pwndbg.proc.alive:
