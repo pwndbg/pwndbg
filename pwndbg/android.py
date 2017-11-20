@@ -10,8 +10,9 @@ import gdb
 import pwndbg.color
 import pwndbg.events
 import pwndbg.file
-import pwndbg.remote
 import pwndbg.memoize
+import pwndbg.remote
+
 
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_exit
