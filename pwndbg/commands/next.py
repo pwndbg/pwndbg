@@ -44,6 +44,14 @@ def nextret(*args):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
+def nextproginstr(*args):
+    """Breaks at the next instruction that belongs to the running program"""
+    if pwndbg.next.break_on_program_code():
+        pwndbg.commands.context.context()
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
 def stepover(*args):
     """Sets a breakpoint on the instruction after this one"""
     pwndbg.next.break_on_next(*args)
