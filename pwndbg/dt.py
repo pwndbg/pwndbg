@@ -72,7 +72,7 @@ def happy(typename):
     'double': 'double'
     }[typename]
 
-def dt(name='', addr=None, obj = None):
+def dt(name='', addr=None, obj=None):
     """
     Dump out a structure type Windbg style.
     """
@@ -100,21 +100,28 @@ def dt(name='', addr=None, obj = None):
     if addr is not None:
         obj = pwndbg.memory.poi(t, addr)
 
-    # Header, optionally include the name
-    header = name
-    if obj: header = "%s @ %s" % (header, hex(int(obj.address)))
-    rv.append(header)
-
     if t.strip_typedefs().code == gdb.TYPE_CODE_ARRAY:
         return "Arrays not supported yet"
     if t.strip_typedefs().code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
         t = {name: obj or gdb.Value(0).cast(t)}
 
+    # Header, optionally include the name
+    header = name
+    if obj: header = "%s @ %s" % (header, hex(int(obj.address)))
+    rv.append(header)
+
+    endpos = 0
     for name, field in t.items():
         # Offset into the parent structure
-        o     = getattr(field, 'bitpos', 0)/8
+        o     = getattr(field, 'bitpos', 0)//8
         extra = str(field.type)
         ftype = field.type.strip_typedefs()
+
+        hole = 0
+        if endpos < field.bitpos:
+            hole = field.bitpos - endpos
+        if hole:
+            rv.append("[!--- %d bits of padding ---!]" % hole)
 
         if obj and obj.type.strip_typedefs().code in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
             v  = obj[name]
@@ -137,7 +144,17 @@ def dt(name='', addr=None, obj = None):
             else:      extra_lines.append(35*' ' + line)
         extra = '\n'.join(extra_lines)
 
-        line  = "    +0x%04x %-20s : %s" % (o, name, extra)
+        if field.bitsize > 0:
+            fieldsize = field.bitsize
+        else:
+            if ftype.code == gdb.TYPE_CODE_STRUCT and len(ftype.fields()) == 0:
+                fieldsize = 0
+            else:
+                fieldsize = 8 * ftype.sizeof
+        endpos = field.bitpos + fieldsize
+
+        line  = "used bytes: %3d    +0x%04x %-20s : %s" % (fieldsize//8, o, name, extra)
         rv.append(line)
 
+    rv[0] ='type ' + rv[0] + ':\n'
     return ('\n'.join(rv))
