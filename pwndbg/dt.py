@@ -112,7 +112,8 @@ def dt(name='', addr=None, obj = None):
 
     for name, field in t.items():
         # Offset into the parent structure
-        o     = getattr(field, 'bitpos', 0)/8
+        o     = getattr(field, 'bitpos', 0) // 8
+        b     = getattr(field, 'bitpos', 0) % 8
         extra = str(field.type)
         ftype = field.type.strip_typedefs()
 
@@ -137,7 +138,9 @@ def dt(name='', addr=None, obj = None):
             else:      extra_lines.append(35*' ' + line)
         extra = '\n'.join(extra_lines)
 
-        line  = "    +0x%04x %-20s : %s" % (o, name, extra)
+        bitpos = '' if not b else ('.%i' % b)
+
+        line  = "    +0x%04x%s %-20s : %s" % (o, bitpos, name, extra)
         rv.append(line)
 
     return ('\n'.join(rv))
