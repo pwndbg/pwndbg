@@ -14,6 +14,7 @@ import pwndbg.typeinfo
 from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.constants import ptmalloc
+from pwndbg.heap import heap_chain_limit
 
 HEAP_MAX_SIZE     = 1024 * 1024
 
@@ -222,7 +223,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         result = OrderedDict()
         for i in range(num_fastbins):
             size += pwndbg.arch.ptrsize * 2
-            chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset)
+            chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset, limit=heap_chain_limit)
 
             result[size] = chain
 
@@ -256,7 +257,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset   = self.chunk_key_offset('fd')
 
-        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base)
+        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit)
         return chain
 
 
