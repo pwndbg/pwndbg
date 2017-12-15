@@ -18,6 +18,7 @@ import sys
 import gdb
 from six.moves import reload_module
 
+import pwndbg.abi
 import pwndbg.arch
 import pwndbg.auxv
 import pwndbg.elftypes
@@ -121,6 +122,7 @@ def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0
 
+@pwndbg.abi.LinuxOnly()
 def find_elf_magic(pointer, max_pages=1024, search_down=False):
     """Search the nearest page which contains the ELF headers
     by comparing the ELF magic with first 4 bytes.
@@ -165,6 +167,11 @@ def get_ehdr(pointer):
     # Align down to a page boundary, and scan until we find
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
+
+    # XXX: for non linux ABI, the ELF header may not be found in memory.
+    # This will hang the gdb when using the remote gdbserver to scan 1024 pages
+    if not pwndbg.abi.linux:
+        return None, None
 
     base = find_elf_magic(pointer, search_down=True)
     if base is None:
