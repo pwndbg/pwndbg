@@ -68,6 +68,7 @@ import pwndbg.net
 import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
+import pwndbg.server
 import pwndbg.stack
 import pwndbg.typeinfo
 import pwndbg.ui
