@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
@@ -41,15 +42,10 @@ def find(address):
 
 def find_upper_stack_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
-    try:
-        for i in range(max_pages):
-            data = pwndbg.memory.read(addr, 4)
-            if b'\x7fELF' == pwndbg.memory.read(addr, 4):
-                break
-            addr += pwndbg.memory.PAGE_SIZE
-    except gdb.MemoryError:
-        pass
-    return addr
+
+    base = pwndbg.elf.find_elf_magic(addr)
+
+    return base if base is not None else addr
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_stop
