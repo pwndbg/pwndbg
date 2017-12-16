@@ -221,12 +221,18 @@ class _ArgparsedCommand(Command):
 
 class ArgparsedCommand(object):
     """Adds documentation and offloads parsing for a Command via argparse"""
-    def __init__(self, parser):
-        self.parser = parser
+    def __init__(self, parser_or_desc):
+        """
+        :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
+        """
+        if isinstance(parser_or_desc, str):
+            self.parser = argparse.ArgumentParser(description=parser_or_desc)
+        else:
+            self.parser = parser_or_desc
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
-        for action in parser._actions:
+        for action in self.parser._actions:
             if action.dest == 'help':
                 continue
             if action.type in (int, None):
