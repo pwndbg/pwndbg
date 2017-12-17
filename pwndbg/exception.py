@@ -47,6 +47,12 @@ def handle(name='Error'):
         - ``set exception-verbose on`` enables stack traces.
         - ``set exception-debugger on`` enables the post-mortem debugger.
     """
+    if getattr(sys, '_pwndbg_unittest_run', False) is True:
+        E, V, T = sys.exc_info()
+        e = E(V)
+        e.__traceback__ = T
+        raise e
+
     # Display the error
     if debug or verbose:
         exception_msg = traceback.format_exc()
