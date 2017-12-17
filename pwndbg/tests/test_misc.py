@@ -10,10 +10,21 @@ def test_show_super_assert():
 
 def test_code_that_should_fail():
     with pytest.raises(ZeroDivisionError):
-        1/0
+        1 / 0
 
 
-def test_pwndbg_list_and_filter_commands():
+def test_pwndbg_list_and_filter_commands_filter():
+    assert pwndbg_list_and_filter_commands('stack') == [
+        ('canary', 'Print out the current stack canary'),
+        ('context', 'Print out the current register, instruction, and stack context.'),
+        ('down', 'Select and print stack frame called by this one.'),
+        ('retaddr', 'Print out the stack addresses that contain return addresses'),
+        ('stack', 'dereferences on stack data with specified count and offset'),
+        ('up', 'Select and print stack frame that called this one.')
+    ]
+
+
+def test_pwndbg_list_and_filter_commands_full_list():
     assert pwndbg_list_and_filter_commands('') == [
         ('address', "Windbg compatibility alias for 'vmmap' command."),
         ('arena', 'Prints out the main arena or the arena at the specified by address.'),
