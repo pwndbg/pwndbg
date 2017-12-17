@@ -62,6 +62,7 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
+import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
