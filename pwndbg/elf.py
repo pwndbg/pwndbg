@@ -18,6 +18,8 @@ import sys
 import gdb
 from six.moves import reload_module
 
+import pwndbg.abi
+import pwndbg.arch
 import pwndbg.auxv
 import pwndbg.elftypes
 import pwndbg.events
@@ -120,6 +122,45 @@ def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0
 
+@pwndbg.abi.LinuxOnly()
+def find_elf_magic(pointer, max_pages=1024, search_down=False):
+    """Search the nearest page which contains the ELF headers
+    by comparing the ELF magic with first 4 bytes.
+
+    Parameter:
+        search_down: change the search direction
+        to search over the lower address.
+        That is, decreasing the page pointer instead of increasing.
+            (default: False)
+    Returns:
+        An integer address of ELF page base
+        None if not found within the page limit
+    """
+    base = pwndbg.memory.page_align(pointer)
+    step = pwndbg.memory.PAGE_SIZE
+    if search_down:
+        step = -step
+
+    max_addr = pwndbg.arch.ptrmask
+
+    for i in range(max_pages):
+        # Make sure address within valid range or gdb will raise Overflow exception
+        if base < 0 or base > max_addr:
+            return None
+
+        try:
+            data = pwndbg.memory.read(base, 4)
+        except gdb.MemoryError:
+            return None
+
+        # Return the address if found ELF header
+        if data == b'\x7FELF':
+            return base
+
+        base += step
+
+    return None
+
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
     """
@@ -127,21 +168,14 @@ def get_ehdr(pointer):
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
 
-    try:
-        data = pwndbg.memory.read(base, 4)
+    # XXX: for non linux ABI, the ELF header may not be found in memory.
+    # This will hang the gdb when using the remote gdbserver to scan 1024 pages
+    if not pwndbg.abi.linux:
+        return None, None
 
-        # Do not search more than 4MB of memory
-        for i in range(1024):
-            if data == b'\x7FELF':
-                break
-
-            base -= pwndbg.memory.PAGE_SIZE
-            data = pwndbg.memory.read(base, 4)
-
-        else:
-            print("ERROR: Could not find ELF base!")
-            return None, None
-    except gdb.MemoryError:
+    base = find_elf_magic(pointer, search_down=True)
+    if base is None:
+        print("ERROR: Could not find ELF base!")
         return None, None
 
     # Determine whether it's 32- or 64-bit

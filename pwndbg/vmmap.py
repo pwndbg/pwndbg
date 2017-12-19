@@ -17,6 +17,7 @@ import sys
 
 import gdb
 
+import pwndbg.abi
 import pwndbg.compat
 import pwndbg.elf
 import pwndbg.events
@@ -66,6 +67,7 @@ def find(address):
 
     return explore(address)
 
+@pwndbg.abi.LinuxOnly()
 def explore(address_maybe):
     """
     Given a potential address, check to see what permissions it has.
