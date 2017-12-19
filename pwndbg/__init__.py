@@ -49,6 +49,7 @@ import pwndbg.commands.theme
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
+import pwndbg.commands.xinfo
 import pwndbg.commands.xor
 import pwndbg.constants
 import pwndbg.disasm

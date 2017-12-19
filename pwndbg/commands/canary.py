@@ -17,20 +17,28 @@ import pwndbg.search
 
 parser = argparse.ArgumentParser(description='Print out the current stack canary')
 
-
-@pwndbg.commands.ArgparsedCommand(parser)
-@pwndbg.commands.OnlyWhenRunning
-def canary():
+def canary_value():
     auxv = pwndbg.auxv.get()
     at_random = auxv.get('AT_RANDOM', None)
     if at_random is None:
-        print("Couldn't find AT_RANDOM - can't display canary.")
-        return
+        return None, None
 
     global_canary = pwndbg.memory.pvoid(at_random)
 
     # masking canary value as canaries on the stack has last byte = 0
     global_canary &= (pwndbg.arch.ptrmask ^ 0xFF)
+
+    return global_canary, at_random
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
+def canary():
+    global_canary, at_random = canary_value()
+
+    if global_canary is None or at_random is None:
+        print("Couldn't find AT_RANDOM - can't display canary.")
+        return
 
     print("AT_RANDOM = %#x # points to (not masked) global canary value" % at_random)
     print("Canary    = 0x%x" % global_canary)
