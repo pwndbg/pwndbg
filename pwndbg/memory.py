@@ -400,6 +400,14 @@ class Page(object):
         return self.vaddr + self.memsz
 
     @property
+    def is_stack(self):
+        return self.objfile == '[stack]'
+
+    @property
+    def is_memory_mapped_file(self):
+        return len(self.objfile) > 0 and self.objfile[0] != '['
+
+    @property
     def read(self):
         return bool(self.flags & 4)
 
