@@ -20,19 +20,25 @@ import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
 
+commands = []
+
 
 class Command(gdb.Command):
     """Generic command wrapper"""
-    count    = 0
-    commands = []
-    history  = {}
+    command_names = set()
+    history = {}
 
-    def __init__(self, function, inc=True, prefix=False):
-        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+    def __init__(self, function, prefix=False):
+        command_name = function.__name__
+
+        super(Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
-        if inc:
-            self.commands.append(self)
+        if command_name in self.command_names:
+            raise Exception('Cannot add command %s: already exists.' % command_name)
+
+        self.command_names.add(command_name)
+        commands.append(self)
 
         functools.update_wrapper(self, function)
         self.__doc__ = function.__doc__
@@ -124,9 +130,8 @@ class ParsedCommand(Command):
 
 
 class ParsedCommandPrefix(ParsedCommand):
-    def __init__(self, function, inc=True, prefix=True):
-        super(ParsedCommand, self).__init__(function, inc, prefix)
-
+    def __init__(self, function, prefix=True):
+        super(ParsedCommand, self).__init__(function, prefix)
 
 
 def fix(arg, sloppy=False, quiet=True, reraise=False):

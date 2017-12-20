@@ -50,7 +50,7 @@ parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='F
 
 @_pwndbg.commands.ArgparsedCommand(parser)
 def pwndbg(filter_pattern):
-    sorted_commands = list(_pwndbg.commands.Command.commands)
+    sorted_commands = list(_pwndbg.commands.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
     if filter_pattern:
