@@ -32,7 +32,8 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
     Returns:
         A list representing pointers of each ```address``` and reference
     """
-
+    limit = int(limit)+1
+    
     result = []
     for i in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
@@ -74,6 +75,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
     """
+    limit = int(limit)+1
 
     # Allow results from get function to be passed to format
     if type(value) == list:
