@@ -10,11 +10,7 @@ import pwndbg.which
 import pwndbg.wrappers.checksec
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints out the binary security settings using `checksec`.')
 @pwndbg.commands.OnlyWithFile
-def checksec(file=None):
-    '''
-    Prints out the binary security settings. Attempts to call the binjitsu
-    checksec first, and then falls back to checksec.sh.
-    '''
+def checksec():
     print(pwndbg.wrappers.checksec.get_raw_out())

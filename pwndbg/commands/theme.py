@@ -18,10 +18,8 @@ from pwndbg.color import light_yellow
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import print_row
 
-parser = argparse.ArgumentParser(description='Shows pwndbg-specific theme configuration points')
 
-
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand('Shows pwndbg-specific theme configuration points.')
 def theme():
     values = [v for k, v in pwndbg.config.__dict__.items()
               if isinstance(v, pwndbg.config.Parameter) and v.scope == 'theme']

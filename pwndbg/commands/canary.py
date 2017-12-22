@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
-
 import pwndbg.auxv
 import pwndbg.color
 import pwndbg.commands
@@ -15,7 +13,6 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.search
 
-parser = argparse.ArgumentParser(description='Print out the current stack canary')
 
 def canary_value():
     auxv = pwndbg.auxv.get()
@@ -31,7 +28,7 @@ def canary_value():
     return global_canary, at_random
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand('Print out the current stack canary.')
 @pwndbg.commands.OnlyWhenRunning
 def canary():
     global_canary, at_random = canary_value()

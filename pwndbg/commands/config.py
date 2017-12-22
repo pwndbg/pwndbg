@@ -32,10 +32,7 @@ def extend_value_with_default(value, default):
     return value
 
 
-config_parser = argparse.ArgumentParser(description='Shows pwndbg-specific configuration points')
-
-
-@pwndbg.commands.ArgparsedCommand(config_parser)
+@pwndbg.commands.ArgparsedCommand('Shows pwndbg-specific configuration points')
 def config():
     values = [v for k, v in pwndbg.config.__dict__.items()
               if isinstance(v, pwndbg.config.Parameter) and v.scope == 'config']

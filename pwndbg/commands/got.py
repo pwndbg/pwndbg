@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser(description='Show the state of the Global Offse
 parser.add_argument('name_filter', help='Filter results by passed name.',
                     type=str, nargs='?', default='')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def got(name_filter=''):
