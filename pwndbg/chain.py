@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.abi
 import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.theme as theme
@@ -45,7 +46,14 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
             break
 
         try:
-            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address + offset))
+            address = address + offset
+
+            # If in bare metal mode, check the vmmap pages for the address
+            # to avoid de-reference the unused address
+            if not pwndbg.abi.linux and not pwndbg.vmmap.find(address):
+                break
+
+            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
             address &= pwndbg.arch.ptrmask
             result.append(address)
         except gdb.MemoryError:
