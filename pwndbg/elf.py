@@ -67,6 +67,7 @@ def read(typ, address, blob=None):
     obj.type = typ
     return obj
 
+
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
 def exe():
@@ -77,6 +78,7 @@ def exe():
     e = entry()
     if e:
         return load(e)
+
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
@@ -117,10 +119,12 @@ def load(pointer):
 
 ehdr_type_loaded = 0
 
+
 @pwndbg.memoize.reset_on_start
 def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0
+
 
 @pwndbg.abi.LinuxOnly()
 def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
@@ -161,6 +165,7 @@ def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=F
 
     return addr if ret_addr_anyway else None
 
+
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
     """
@@ -185,6 +190,7 @@ def get_ehdr(pointer):
     Elfhdr   = read(Ehdr, base)
     return ei_class, Elfhdr
 
+
 def get_phdrs(pointer):
     """
     Returns a tuple containing (phnum, phentsize, gdb.Value),
@@ -203,6 +209,7 @@ def get_phdrs(pointer):
     x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
     return x
 
+
 def iter_phdrs(ehdr):
     if not ehdr:
         raise StopIteration
@@ -219,6 +226,7 @@ def iter_phdrs(ehdr):
         p_phdr = int(first_phdr + (i*phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
+
 
 def map(pointer, objfile=''):
     """
@@ -242,6 +250,7 @@ def map(pointer, objfile=''):
     """
     ei_class, ehdr         = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
+
 
 def map_inner(ei_class, ehdr, objfile):
     if not ehdr:
