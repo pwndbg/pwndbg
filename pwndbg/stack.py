@@ -43,9 +43,7 @@ def find(address):
 def find_upper_stack_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
 
-    base = pwndbg.elf.find_elf_magic(addr)
-
-    return base if base is not None else addr
+    return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_stop

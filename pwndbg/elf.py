@@ -123,7 +123,7 @@ def reset_ehdr_type_loaded():
     ehdr_type_loaded = 0
 
 @pwndbg.abi.LinuxOnly()
-def find_elf_magic(pointer, max_pages=1024, search_down=False):
+def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
     """Search the nearest page which contains the ELF headers
     by comparing the ELF magic with first 4 bytes.
 
@@ -136,7 +136,7 @@ def find_elf_magic(pointer, max_pages=1024, search_down=False):
         An integer address of ELF page base
         None if not found within the page limit
     """
-    base = pwndbg.memory.page_align(pointer)
+    addr = pwndbg.memory.page_align(pointer)
     step = pwndbg.memory.PAGE_SIZE
     if search_down:
         step = -step
@@ -145,21 +145,21 @@ def find_elf_magic(pointer, max_pages=1024, search_down=False):
 
     for i in range(max_pages):
         # Make sure address within valid range or gdb will raise Overflow exception
-        if base < 0 or base > max_addr:
+        if addr < 0 or addr > max_addr:
             return None
 
         try:
-            data = pwndbg.memory.read(base, 4)
+            data = pwndbg.memory.read(addr, 4)
         except gdb.MemoryError:
-            return None
+            return addr if ret_addr_anyway else None
 
         # Return the address if found ELF header
         if data == b'\x7FELF':
-            return base
+            return addr
 
-        base += step
+        addr += step
 
-    return None
+    return addr if ret_addr_anyway else None
 
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
