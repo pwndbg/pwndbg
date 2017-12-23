@@ -114,9 +114,10 @@ def peek(address):
         :class:`str`: A single byte of data, or ``None`` if the
         address cannot be read.
     """
-    try:    return read(address, 1)
-    except: pass
-    return None
+    try:
+        return read(address, 1)
+    except:
+        return None
 
 
 def poke(address):
@@ -131,9 +132,14 @@ def poke(address):
         :class:`bool`: Whether the address is writable.
     """
     c = peek(address)
-    if c is None: return False
-    try:    write(address, c)
-    except: return False
+    if c is None:
+        return False
+
+    try:
+        write(address, c)
+    except:
+        return False
+
     return True
 
 
@@ -317,7 +323,7 @@ def page_size_align(address):
 
 
 def page_offset(address):
-    return (address & (PAGE_SIZE-1))
+    return address & (PAGE_SIZE-1)
 
 assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
@@ -368,11 +374,11 @@ class Page(object):
     Represents the address space and page permissions of at least
     one page of memory.
     """
-    vaddr   = 0 #: Starting virtual address
-    memsz   = 0 #: Size of the address space, in bytes
-    flags   = 0 #: Flags set by the ELF file, see PF_X, PF_R, PF_W
-    offset  = 0 #: Offset into the original ELF file that the data is loaded from
-    objfile = '' #: Path to the ELF on disk
+    vaddr   = 0   #: Starting virtual address
+    memsz   = 0   #: Size of the address space, in bytes
+    flags   = 0   #: Flags set by the ELF file, see PF_X, PF_R, PF_W
+    offset  = 0   #: Offset into the original ELF file that the data is loaded from
+    objfile = ''  #: Path to the ELF on disk
 
     def __init__(self, start, size, flags, offset, objfile=''):
         self.vaddr  = start

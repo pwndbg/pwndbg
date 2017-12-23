@@ -8,11 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import glob
-import os
 import re
-import subprocess
-import tempfile
 
 import gdb
 
@@ -27,24 +23,25 @@ def get_type(v):
             t = t.target()
     return t.name
 
-def get_typename(t):
-    return(str(t))
 
 def get_arrsize(f):
     t = f.type
     if t.code != gdb.TYPE_CODE_ARRAY:
         return 0
     t2 = t.target()
-    s  = t2.sizeof
     return int(t.sizeof / t2.sizeof)
+
 
 def get_field_by_name(obj, field):
     # Dereference once
     if obj.type.code == gdb.TYPE_CODE_PTR:
         obj = obj.dereference()
+
     for f in re.split('(->|\.|\[\d+\])', field):
-        if not f: continue
-        if f   == '->':
+        if not f:
+            continue
+
+        if f == '->':
             obj = obj.dereference()
         elif f == '.':
             pass
@@ -57,34 +54,37 @@ def get_field_by_name(obj, field):
             obj = obj[f]
     return obj
 
+
 def happy(typename):
     prefix = ''
     if 'unsigned' in typename:
         prefix = 'u'
         typename = typename.replace('unsigned ', '')
     return prefix + {
-    'char': 'char',
-    'short int': 'short',
-    'long int': 'long',
-    'int': 'int',
-    'long long': 'longlong',
-    'float': 'float',
-    'double': 'double'
+        'char': 'char',
+        'short int': 'short',
+        'long int': 'long',
+        'int': 'int',
+        'long long': 'longlong',
+        'float': 'float',
+        'double': 'double'
     }[typename]
 
-def dt(name='', addr=None, obj = None):
+
+def dt(name='', addr=None, obj=None):
     """
     Dump out a structure type Windbg style.
     """
     # Return value is a list of strings.of
     # We concatenate at the end.
-    rv  = []
+    rv = []
 
     if obj and not name:
         t = obj.type
-        while t.code == (gdb.TYPE_CODE_PTR):
+        while t.code == gdb.TYPE_CODE_PTR:
             t   = t.target()
             obj = obj.dereference()
+
         name = str(t)
 
     # Lookup the type name specified by the user
@@ -118,7 +118,7 @@ def dt(name='', addr=None, obj = None):
         ftype = field.type.strip_typedefs()
 
         if obj and obj.type.strip_typedefs().code in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
-            v  = obj[name]
+            v = obj[name]
 
             if ftype.code == gdb.TYPE_CODE_INT:
                 v = hex(int(v))
@@ -143,4 +143,4 @@ def dt(name='', addr=None, obj = None):
         line  = "    +0x%04x%s %-20s : %s" % (o, bitpos, name, extra)
         rv.append(line)
 
-    return ('\n'.join(rv))
+    return '\n'.join(rv)

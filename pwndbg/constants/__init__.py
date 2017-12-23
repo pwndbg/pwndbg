@@ -22,6 +22,7 @@ arches = {
     'aarch64': aarch64
 }
 
+
 def syscall(value):
     """
     Given a value for a syscall number (e.g. execve == 11), return

@@ -166,6 +166,7 @@ def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=F
     return addr if ret_addr_anyway else None
 
 
+
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
     """
@@ -275,7 +276,7 @@ def map_inner(ei_class, ehdr, objfile):
         vaddr   = int(phdr.p_vaddr)
         offset  = int(phdr.p_offset)
         flags   = int(phdr.p_flags)
-        ptype   = int(phdr.p_type)
+        # jfyi: there is also phdr.p_type
 
         memsz += pwndbg.memory.page_offset(vaddr)
         memsz  = pwndbg.memory.page_size_align(memsz)

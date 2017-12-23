@@ -48,6 +48,7 @@ def find_upper_stack_boundary(addr, max_pages=1024):
     return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
 
 
+
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_stop
 def update():

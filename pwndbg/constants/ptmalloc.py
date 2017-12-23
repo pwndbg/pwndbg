@@ -5,12 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import platform
-
-import gdb
-
-import pwndbg.arch
-
 # Heap flags
 PREV_INUSE      = 1
 IS_MMAPPED      = 2

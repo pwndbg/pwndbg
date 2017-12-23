@@ -16,6 +16,7 @@ class Parameter(pwndbg.config.Parameter):
                                         docstring,
                                         'theme')
 
+
 class ColoredParameter(Parameter):
 
     def __init__(self, name, default, docstring):

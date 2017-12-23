@@ -6,9 +6,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import subprocess
-
-import gdb
 
 import pwndbg.arch
 import pwndbg.color.memory as M
@@ -24,11 +21,12 @@ parser = argparse.ArgumentParser(description='Shows offsets of the specified add
 parser.add_argument('address', nargs='?', default='$pc', 
                     help='Address to inspect')
 
-def print_line(name, addr, first, second, op, width = 20):
 
+def print_line(name, addr, first, second, op, width = 20):
     print("{} {} = {} {} {:#x}".format(name.rjust(width), M.get(addr),
         M.get(first) if type(first) is not str else first.ljust(len(hex(addr))),
         op, second,))
+
 
 def xinfo_stack(page, addr):
     # If it's a stack address, print offsets to top and bottom of stack, as
@@ -56,6 +54,7 @@ def xinfo_stack(page, addr):
             nxt = follow_canaries[0]
             print_line("Next Stack Canary", addr, nxt, nxt - addr, "-")
 
+
 def xinfo_mmap_file(page, addr):
     # If it's an address pointing into a memory mapped file, print offsets
     # to beginning of file in memory and on disk
@@ -70,6 +69,7 @@ def xinfo_mmap_file(page, addr):
     for segment in pwndbg.wrappers.readelf.get_load_segment_info():
         if rva >= segment["VirtAddr"] and rva <= segment["VirtAddr"] + segment["MemSiz"]:
             print_line("File (Disk)", addr, file_name, rva - (segment["VirtAddr"] - segment["Offset"]), "+")
+
 
 def xinfo_default(page, addr):
     # Just print the distance to the beginning of the mapping

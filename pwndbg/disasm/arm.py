@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
-
 from capstone import *
 from capstone.arm import *
 
@@ -18,8 +16,7 @@ import pwndbg.regs
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def memory_sz(self, instruction, op):
-        segment = ''
-        parts   = []
+        parts = []
 
         if op.mem.base != 0:
             parts.append(instruction.reg_name(op.mem.base))
@@ -48,10 +45,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         cpsr = pwndbg.regs.cpsr
 
-        N = cpsr & (1<<31)
-        Z = cpsr & (1<<30)
-        C = cpsr & (1<<29)
-        V = cpsr & (1<<28)
+        N = cpsr & (1 << 31)
+        Z = cpsr & (1 << 30)
+        C = cpsr & (1 << 29)
+        V = cpsr & (1 << 28)
 
         cc = {
             ARM_CC_EQ: Z,
@@ -66,7 +63,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LS: Z or not C,
             ARM_CC_GE: N == V,
             ARM_CC_LT: N != V,
-            ARM_CC_GT: not Z and (N==V),
+            ARM_CC_GT: not Z and (N == V),
             ARM_CC_LE: Z or (N != V),
         }.get(instruction.cc, None)
 

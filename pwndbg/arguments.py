@@ -114,10 +114,10 @@ def get(instruction):
     name = name or ''
 
     sym   = gdb.lookup_symbol(name)
-    name  = name.strip().lstrip('_')    # _malloc
-    name  = name.replace('isoc99_', '') # __isoc99_sscanf
-    name  = name.replace('@plt', '')    # getpwiod@plt
-    name  = name.replace('_chk', '')    # __printf_chk
+    name  = name.strip().lstrip('_')     # _malloc
+    name  = name.replace('isoc99_', '')  # __isoc99_sscanf
+    name  = name.replace('@plt', '')     # getpwiod@plt
+    name  = name.replace('_chk', '')     # __printf_chk
     func = pwndbg.functions.functions.get(name, None)
 
     # Try to extract the data from GDB.
@@ -142,7 +142,7 @@ def get(instruction):
             for k, v in ida_replacements.items():
                 typename = typename.replace(k, v)
 
-            func = pwndbg.funcparser.ExtractFuncDeclFromSource(typename + ';')
+            func = pwndbg.funcparser.extract_func_decl_from_source(typename + ';')
 
     if func:
         args = func.args

@@ -54,8 +54,10 @@ arch_to_CS = {
 
 DEBUG = False
 
+
 def debug(*a,**kw):
-    if DEBUG: print(*a, **kw)
+    if DEBUG:
+        print(*a, **kw)
 
 
 # Until Unicorn Engine provides full information about the specific instruction
@@ -97,6 +99,7 @@ blacklisted_regs = ['ip','cs','ds','es','fs','gs','ss','fsbase','gsbase']
 e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
 '''
+
 
 class Emulator(object):
     def __init__(self):
@@ -155,7 +158,6 @@ class Emulator(object):
         # Instruction tracing
         if DEBUG:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
-
 
     def __getattr__(self, name):
         reg = self.get_reg_enum(name)

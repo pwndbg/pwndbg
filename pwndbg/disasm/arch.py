@@ -5,21 +5,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
-
-import capstone
 from capstone import *
 
 import pwndbg.memoize
 import pwndbg.symbol
 
-CS_OP_IMM
-
 debug = False
 
-groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('CS_OP_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith('CS_GRP_')}
+ops    = {v: k for k, v in globals().items() if k.startswith('CS_OP_')}
+access = {v: k for k, v in globals().items() if k.startswith('CS_AC_')}
 
 for value1, name1 in dict(access).items():
     for value2, name2 in dict(access).items():
@@ -110,7 +105,6 @@ class DisassemblyAssistant(object):
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
 
-
         instruction.next = next_addr & pwndbg.arch.ptrmask
 
         if instruction.target is None:
@@ -118,7 +112,6 @@ class DisassemblyAssistant(object):
 
         if instruction.operands and instruction.operands[0].int:
             instruction.target_const = True
-
 
     def next(self, instruction, call=False):
         """
@@ -193,8 +186,6 @@ class DisassemblyAssistant(object):
         operand.symbol:
             Resolved symbol name for this operand.
         """
-        current = (instruction.address == pwndbg.regs.pc)
-
         for i, op in enumerate(instruction.operands):
             op.int    = None
             op.symbol = None
@@ -206,7 +197,6 @@ class DisassemblyAssistant(object):
 
             if op.int:
                 op.symbol = pwndbg.symbol.get(op.int)
-
 
     def immediate(self, instruction, operand):
         return operand.value.imm
@@ -244,8 +234,8 @@ class DisassemblyAssistant(object):
 
     def dump(self, instruction):
         ins = instruction
-        rv  = []
-        rv.append('%s %s' % (ins.mnemonic, ins.op_str))
+
+        rv = ['%s %s' % (ins.mnemonic, ins.op_str)]
 
         for i, group in enumerate(ins.groups):
             rv.append('   groups[%i]   = %s' % (i, groups.get(group, group)))

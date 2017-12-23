@@ -18,6 +18,7 @@ import pwndbg.config
 color_scheme = None
 printable = None
 
+
 def groupby(array, count, fill=None):
     array = copy.copy(array)
     while fill and len(array) % count:
@@ -27,6 +28,7 @@ def groupby(array, count, fill=None):
 
 config_colorize_ascii = theme.Parameter('hexdump-colorize-ascii', True, 'whether to colorize the hexdump command ascii section')
 config_separator      = theme.Parameter('hexdump-ascii-block-separator', '│', 'block separator char of the hexdump command')
+
 
 @pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii])
 def load_color_scheme():
@@ -52,6 +54,7 @@ def load_color_scheme():
 
     color_scheme[-1] = '  '
     printable[-1] = ' '
+
 
 def hexdump(data, address = 0, width = 16, skip = True):
     if not color_scheme or not printable:
@@ -89,8 +92,7 @@ def hexdump(data, address = 0, width = 16, skip = True):
                 hexline.append(printable[char])
             hexline.append(H.separator('%s' % config_separator))
 
-
-        yield(''.join(hexline))
+        yield ''.join(hexline)
 
     hexline = []
 

@@ -59,6 +59,7 @@ def rop(grep, argument):
             if re.search(grep, line):
                 print(line)
 
+
 @pwndbg.commands.Command
 def ropgadget(*a):
     return rop(*a)

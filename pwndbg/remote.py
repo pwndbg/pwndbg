@@ -18,4 +18,4 @@ def is_remote():
     #
     # return 'serial line' in gdb.execute('info program',to_string=True,)
 
-    return 'Remote serial target' in gdb.execute('info file',to_string=True,from_tty=False)
+    return 'Remote serial target' in gdb.execute('info file', to_string=True, from_tty=False)

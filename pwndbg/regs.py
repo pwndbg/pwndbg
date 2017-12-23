@@ -9,7 +9,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
 import ctypes
 import re
 import sys
@@ -65,16 +64,9 @@ class RegisterSet(object):
     #: All valid registers
     all = None
 
-    def __init__(self,
-                 pc='pc',
-                 stack='sp',
-                 frame=None,
-                 retaddr=tuple(),
-                 flags=dict(),
-                 gpr=tuple(),
-                 misc=tuple(),
-                 args=tuple(),
-                 retval=None):
+    def __init__(self, pc='pc', stack='sp', frame=None,
+                 retaddr=tuple(), flags=dict(), gpr=tuple(),
+                 misc=tuple(), args=tuple(), retval=None):
         self.pc    = pc
         self.stack = stack
         self.frame = frame
@@ -199,16 +191,16 @@ powerpc = RegisterSet(  retaddr = ('lr','r0'),
 # %i7 == %r31 == for return address   |
 # ____________________________________/
 
-sparc_gp = tuple(['g%i' % i for i in range(1,8)]
-                +['o%i' % i for i in range(0,6)]
-                +['l%i' % i for i in range(0,8)]
-                +['i%i' % i for i in range(0,6)])
+sparc_gp = tuple(['g%i' % i for i in range(1, 8)]
+                +['o%i' % i for i in range(0, 6)]
+                +['l%i' % i for i in range(0, 8)]
+                +['i%i' % i for i in range(0, 6)])
 sparc = RegisterSet(stack   = 'o6',
                     frame   = 'i6',
                     retaddr = ('o7',),
-                    flags   = {'psr':{}},
+                    flags   = {'psr': {}},
                     gpr     = sparc_gp,
-                    args    = ('i0','i1','i2','i3','i4','i5'),
+                    args    = ('i0', 'i1', 'i2', 'i3', 'i4', 'i5'),
                     retval  = 'o0')
 
 
@@ -227,10 +219,10 @@ sparc = RegisterSet(stack   = 'o6',
 # r31       => return address
 mips = RegisterSet( frame   = 'fp',
                     retaddr = ('ra',),
-                    gpr     = ('v0','v1','a0','a1','a2','a3') \
+                    gpr     = ('v0', 'v1', 'a0', 'a1', 'a2', 'a3') \
                               + tuple('t%i' % i for i in range(10)) \
                               + tuple('s%i' % i for i in range(9)),
-                    args    = ('a0','a1','a2','a3'),
+                    args    = ('a0', 'a1', 'a2', 'a3'),
                     retval  = 'v0')
 
 arch_to_regs = {
@@ -243,9 +235,11 @@ arch_to_regs = {
     'powerpc': powerpc,
 }
 
+
 @pwndbg.proc.OnlyWhenRunning
 def gdb77_get_register(name):
     return gdb.parse_and_eval('$' + name)
+
 
 @pwndbg.proc.OnlyWhenRunning
 def gdb79_get_register(name):
@@ -262,6 +256,7 @@ except AttributeError:
 PTRACE_ARCH_PRCTL = 30
 ARCH_GET_FS = 0x1003
 ARCH_GET_GS = 0x1004
+
 
 class module(ModuleType):
     last = {}
@@ -414,7 +409,7 @@ class module(ModuleType):
         return 0
 
     def __repr__(self):
-        return ('<module pwndbg.regs>')
+        return '<module pwndbg.regs>'
 
 # To prevent garbage collection
 tether = sys.modules[__name__]
@@ -424,6 +419,6 @@ sys.modules[__name__] = module(__name__, '')
 @pwndbg.events.cont
 def update_last():
     M = sys.modules[__name__]
-    M.last = {k:M[k] for k in M.common}
+    M.last = {k: M[k] for k in M.common}
     if pwndbg.config.show_retaddr_reg:
-        M.last.update({k:M[k] for k in M.retaddr})
+        M.last.update({k: M[k] for k in M.retaddr})

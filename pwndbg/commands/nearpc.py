@@ -158,7 +158,6 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         prev = i
 
-
     if not to_string:
         print('\n'.join(result))
 

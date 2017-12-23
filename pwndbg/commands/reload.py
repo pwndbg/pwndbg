@@ -5,12 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import imp
-import os
-import sys
 import types
-
-import gdb
 
 import pwndbg
 import pwndbg.commands
@@ -23,10 +18,8 @@ except:
     from imp import reload as _reload
 
 
-
 def rreload(module, mdict=None):
     """Recursively reload modules."""
-    name = module.__name__
 
     if mdict is None:
         mdict = []
@@ -48,6 +41,7 @@ def reload(*a):
     pwndbg.events.on_reload()
     rreload(pwndbg)
     pwndbg.events.after_reload()
+
 
 @pwndbg.commands.Command
 def reinit_pwndbg():

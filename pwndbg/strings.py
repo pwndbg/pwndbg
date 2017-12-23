@@ -19,6 +19,7 @@ import pwndbg.typeinfo
 
 length = 15
 
+
 @pwndbg.events.stop
 def update_length():
     r"""
@@ -36,7 +37,8 @@ def update_length():
     else:
         length = int(message)
 
-def get(address, maxlen = None):
+
+def get(address, maxlen=None):
     if maxlen is None:
         maxlen = length
 

@@ -54,10 +54,10 @@ def update():
         m.endian = 'big'
 
     m.fmt = {
-    (4, 'little'): '<I',
-    (4, 'big'):    '>I',
-    (8, 'little'): '<Q',
-    (8, 'big'):    '>Q',
+        (4, 'little'): '<I',
+        (4, 'big'):    '>I',
+        (8, 'little'): '<Q',
+        (8, 'big'):    '>Q',
     }.get((m.ptrsize, m.endian))
 
     # Work around Python 2.7.6 struct.pack / unicode incompatibility

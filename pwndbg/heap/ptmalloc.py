@@ -42,7 +42,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return self._main_arena
 
-
     @property
     def mp(self):
         mp_addr = pwndbg.symbol.address('mp_')
@@ -52,53 +51,44 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return self._mp
 
-
     @property
     def global_max_fast(self):
         return pwndbg.symbol.address('global_max_fast')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def heap_info(self):
         return pwndbg.typeinfo.load('heap_info')
 
-    
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
         return pwndbg.typeinfo.load('struct malloc_chunk')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_state(self):
         return pwndbg.typeinfo.load('struct malloc_state')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def mallinfo(self):
         return pwndbg.typeinfo.load('struct mallinfo')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_par(self):
         return pwndbg.typeinfo.load('struct malloc_par')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_alignment(self):
         return pwndbg.arch.ptrsize * 2
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def min_chunk_size(self):
         return pwndbg.arch.ptrsize * 4
-
 
     def _spaces_table(self):
         spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
@@ -110,7 +100,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                       + [ pow(2, 21) ]                   * 1
 
         # There is no index 0
-        spaces_table = [ None ] + spaces_table
+        spaces_table = [None] + spaces_table
 
         # Fix up the slop in bin spacing (part of libc - they made
         # the trade off of some slop for speed)
@@ -126,10 +116,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return spaces_table
 
     def chunk_flags(self, size):
-        return ( size & ptmalloc.PREV_INUSE ,
-                 size & ptmalloc.IS_MMAPPED,
-                 size & ptmalloc.NON_MAIN_ARENA )
-
+        return (size & ptmalloc.PREV_INUSE,
+                size & ptmalloc.IS_MMAPPED,
+                size & ptmalloc.NON_MAIN_ARENA)
 
     def chunk_key_offset(self, key):
         """
@@ -149,26 +138,24 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         except:
             return None
 
-    def get_heap(self,addr):
+    def get_heap(self, addr):
         return pwndbg.memory.poi(self.heap_info,heap_for_ptr(addr))
         
-
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
             return self.main_arena
 
         return pwndbg.memory.poi(self.malloc_state, arena_addr)
 
+    def get_arena_for_chunk(self, addr):
+        chunk = pwndbg.memory.poi(self.malloc_state, addr)
+        _, _, nm = self.chunk_flags(chunk['size'])
 
-    def get_arena_for_chunk(self,addr):
-        chunk = pwndbg.memory.poi(self.malloc_state,addr)
-        _,_,nm = self.chunk_flags(chunk['size'])
         if nm:
-            r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
+            return self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
         else:
-            r=self.main_arena
-        return r
-            
+            return self.main_arena
+
     def get_region(self,addr=None):
         """
         Finds the memory region used for heap by using mp_ structure's sbrk_base property
@@ -178,10 +165,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         """
 
         if addr:
-            heap  = self.get_heap(addr)
-            base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
-            page  = pwndbg.vmmap.find(base)
-            ## trim whole page to look exactly like heap
+            heap = self.get_heap(addr)
+            base = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
+            page = pwndbg.vmmap.find(base)
+
+            # trim whole page to look exactly like heap
             page.size = int(heap['size'])
             page.vaddr = base
             
@@ -196,13 +184,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         if page is not None:
             mp = self.mp
             if mp:
-                ## this can't fail right?
+                # this can't fail right?
                 page.vaddr = int(mp['sbrk_base'])
             return page
 
         return None
 
-    
     def fastbin_index(self, size):
         if pwndbg.arch.ptrsize == 8:
             return (size >> 4) - 2
@@ -229,8 +216,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    
-
     def bin_at(self, index, arena_addr=None):
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
@@ -251,7 +236,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         normal_bins = arena['bins']
         num_bins    = normal_bins.type.sizeof // normal_bins.type.target().sizeof
 
-        bins_base    = int(normal_bins.address) - (pwndbg.arch.ptrsize* 2)
+        bins_base    = int(normal_bins.address) - (pwndbg.arch.ptrsize * 2)
         current_base = bins_base + (index * pwndbg.arch.ptrsize * 2)
 
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
@@ -259,7 +244,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit)
         return chain
-
 
     def unsortedbin(self, arena_addr=None):
         chain  = self.bin_at(1, arena_addr=arena_addr)
@@ -271,7 +255,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         result['all'] = chain
 
         return result
-
 
     def smallbins(self, arena_addr=None):
         size         = self.min_chunk_size - self.malloc_alignment
@@ -288,7 +271,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             result[size] = chain
 
         return result
-
 
     def largebins(self, arena_addr=None):
         size         = (ptmalloc.NSMALLBINS * self.malloc_alignment) - self.malloc_alignment

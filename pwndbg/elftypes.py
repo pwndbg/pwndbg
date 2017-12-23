@@ -35,13 +35,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import sys
 
-import six
-
-import pwndbg.arch
 import pwndbg.ctypes
-import pwndbg.events
 
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16
@@ -94,6 +89,7 @@ AT_CONSTANTS = {
     36: 'AT_L2_CACHESHAPE',
     37: 'AT_L3_CACHESHAPE',
 }
+
 
 class constants:
     EI_MAG0                 = 0
@@ -263,6 +259,7 @@ class constants:
     AT_L2_CACHESHAPE        = 36
     AT_L3_CACHESHAPE        = 37
 
+
 class Elf32_Ehdr(pwndbg.ctypes.Structure):
     _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
                 ("e_type", Elf32_Half),
@@ -277,7 +274,8 @@ class Elf32_Ehdr(pwndbg.ctypes.Structure):
                 ("e_phnum", Elf32_Half),
                 ("e_shentsize", Elf32_Half),
                 ("e_shnum", Elf32_Half),
-                ("e_shstrndx", Elf32_Half),]
+                ("e_shstrndx", Elf32_Half)]
+
 
 class Elf64_Ehdr(pwndbg.ctypes.Structure):
     _fields_ = [("e_ident", (ctypes.c_ubyte * 16)),
@@ -293,7 +291,8 @@ class Elf64_Ehdr(pwndbg.ctypes.Structure):
                 ("e_phnum", Elf64_Half),
                 ("e_shentsize", Elf64_Half),
                 ("e_shnum", Elf64_Half),
-                ("e_shstrndx", Elf64_Half),]
+                ("e_shstrndx", Elf64_Half)]
+
 
 class Elf32_Phdr(pwndbg.ctypes.Structure):
     _fields_ = [("p_type", Elf32_Word),
@@ -303,7 +302,8 @@ class Elf32_Phdr(pwndbg.ctypes.Structure):
                 ("p_filesz", Elf32_Word),
                 ("p_memsz", Elf32_Word),
                 ("p_flags", Elf32_Word),
-                ("p_align", Elf32_Word),]
+                ("p_align", Elf32_Word)]
+
 
 class Elf64_Phdr(pwndbg.ctypes.Structure):
     _fields_ = [("p_type", Elf64_Word),
@@ -313,4 +313,4 @@ class Elf64_Phdr(pwndbg.ctypes.Structure):
                 ("p_paddr", Elf64_Addr),
                 ("p_filesz", Elf64_Xword),
                 ("p_memsz", Elf64_Xword),
-                ("p_align", Elf64_Xword),]
+                ("p_align", Elf64_Xword)]
