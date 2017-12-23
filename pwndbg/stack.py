@@ -28,6 +28,7 @@ stacks = {}
 # This is updated automatically by is_executable.
 nx     = False
 
+
 def find(address):
     """
     Returns a pwndbg.memory.Page object which corresponds to the
@@ -40,12 +41,12 @@ def find(address):
         if address in stack:
             return stack
 
+
 def find_upper_stack_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
 
-    base = pwndbg.elf.find_elf_magic(addr)
+    return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
 
-    return base if base is not None else addr
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_stop
@@ -100,6 +101,7 @@ def current():
     """
     return find(pwndbg.regs.sp)
 
+
 @pwndbg.events.exit
 def clear():
     """
@@ -110,6 +112,7 @@ def clear():
     stacks.clear()
     global nx
     nx = False
+
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_exit
