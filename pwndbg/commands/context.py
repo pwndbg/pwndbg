@@ -42,7 +42,6 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'which context sections are displayed by default (also controls order)')
 
 
-# @pwndbg.events.stop
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def context(*args):
@@ -79,7 +78,7 @@ def context_regs():
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def regs(*regs):
-    '''Print out all registers and enhance the information.'''
+    """Print out all registers and enhance the information."""
     print('\n'.join(get_regs(*regs)))
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
@@ -149,6 +148,7 @@ pwndbg.config.Parameter('emulate', True, '''
 Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
+
 
 def context_disasm():
     banner = [pwndbg.ui.banner("disasm")]

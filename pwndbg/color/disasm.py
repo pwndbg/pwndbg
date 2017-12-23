@@ -16,7 +16,6 @@ import pwndbg.disasm.jump
 from pwndbg.color import generateColorFunction
 from pwndbg.color import green
 from pwndbg.color import ljust_colored
-from pwndbg.color import red
 
 capstone_branch_groups = set((
     capstone.CS_GRP_CALL,
@@ -42,7 +41,6 @@ def instruction(ins):
         target = M.get(ins.target)
         const  = ins.target_const
         hextarget = hex(ins.target)
-        hexlen    = len(hextarget)
 
         # If it's a constant expression, color it directly in the asm.
         if const:

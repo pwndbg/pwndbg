@@ -20,6 +20,7 @@ import pwndbg.events
 
 module = sys.modules[__name__]
 
+
 @pwndbg.events.start
 @pwndbg.events.new_objfile
 def update():

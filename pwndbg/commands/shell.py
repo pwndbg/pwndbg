@@ -10,8 +10,6 @@ from __future__ import unicode_literals
 
 import os
 
-import gdb
-
 import pwndbg.commands
 import pwndbg.which
 
@@ -73,6 +71,7 @@ shellcmds = [
 ]
 
 shellcmds = filter(pwndbg.which.which, shellcmds)
+
 
 def register_shell_function(cmd):
     def handler(*a):

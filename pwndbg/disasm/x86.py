@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
-
 from capstone import *
 from capstone.x86 import *
 
@@ -15,12 +13,13 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
-groups = {v:k for k,v in globals().items() if k.startswith('X86_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}
-regs   = {v:k for k,v in globals().items() if k.startswith('X86_REG_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith('X86_GRP_')}
+ops    = {v: k for k, v in globals().items() if k.startswith('X86_OP_')}
+regs   = {v: k for k, v in globals().items() if k.startswith('X86_REG_')}
+access = {v: k for k, v in globals().items() if k.startswith('CS_AC_')}
 
 pc     = X86_REG_RSP
+
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def regs(self, instruction, reg):
@@ -33,8 +32,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
     def memory(self, instruction, op):
-        current = (instruction.address == pwndbg.regs.pc)
-
         # The only register we can reason about if it's *not* the current
         # instruction is $rip.  For example:
         # lea rdi, [rip - 0x1f6]
@@ -99,7 +96,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         sz = '[%s]' % sz
         return sz
 
-
     def register(self, instruction, operand):
         if operand.value.reg != X86_REG_RIP:
             return super(DisassemblyAssistant, self).register(instruction, operand)
@@ -125,8 +121,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if pwndbg.memory.peek(address):
             return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
 
-
-
     def condition(self, instruction):
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
@@ -138,12 +132,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         efl = pwndbg.regs.eflags
 
-        cf = efl & (1<<0)
-        pf = efl & (1<<2)
-        af = efl & (1<<4)
-        zf = efl & (1<<6)
-        sf = efl & (1<<7)
-        of = efl & (1<<11)
+        cf = efl & (1 << 0)
+        pf = efl & (1 << 2)
+        # af = efl & (1 << 4)  # Not used; leaving for info what is that flag
+        zf = efl & (1 << 6)
+        sf = efl & (1 << 7)
+        of = efl & (1 << 11)
 
         return {
             X86_INS_CMOVA:  not (cf or zf),

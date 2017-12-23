@@ -38,12 +38,15 @@ class StartEvent(object):
     def __init__(self):
         self.registered = list()
         self.running    = False
+
     def connect(self, function):
         if function not in self.registered:
             self.registered.append(function)
+
     def disconnect(self, function):
         if function in self.registered:
             self.registered.remove(function)
+
     def on_new_objfile(self):
         if self.running or not gdb.selected_thread():
             return
@@ -78,10 +81,12 @@ try:
 except (NameError, AttributeError):
     pass
 
+
 class Pause(object):
     def __enter__(self, *a, **kw):
         global pause
         pause += 1
+
     def __exit__(self, *a, **kw):
         global pause
         pause -= 1
@@ -91,6 +96,7 @@ class Pause(object):
 # In order to combat this, we keep track of which objfiles have been loaded
 # this session, and only emit objfile events for each *new* file.
 objfile_cache = set()
+
 
 def connect(func, event_handler, name=''):
     if debug:
@@ -126,21 +132,40 @@ def connect(func, event_handler, name=''):
     event_handler.connect(caller)
     return func
 
-def exit(func):        return connect(func, gdb.events.exited, 'exit')
-def cont(func):        return connect(func, gdb.events.cont, 'cont')
-def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
-def stop(func):        return connect(func, gdb.events.stop, 'stop')
-def start(func):       return connect(func, gdb.events.start, 'start')
+
+def exit(func):
+    return connect(func, gdb.events.exited, 'exit')
+
+
+def cont(func):
+    return connect(func, gdb.events.cont, 'cont')
+
+
+def new_objfile(func):
+    return connect(func, gdb.events.new_objfile, 'obj')
+
+
+def stop(func):
+    return connect(func, gdb.events.stop, 'stop')
+
+
+def start(func):
+    return connect(func, gdb.events.start, 'start')
+
+
 def reg_changed(func):
     try:
         return connect(func, gdb.events.register_changed, 'reg_changed')
     except Exception:
         return func
+
+
 def mem_changed(func):
     try:
         return connect(func, gdb.events.memory_changed, 'mem_changed')
     except Exception:
         return func
+
 
 def log_objfiles(ofile=None):
     if not (debug and ofile):
@@ -153,6 +178,7 @@ def log_objfiles(ofile=None):
 
 gdb.events.new_objfile.connect(log_objfiles)
 
+
 def after_reload(start=True):
     if gdb.selected_inferior().pid:
         for f in registered[gdb.events.stop]:
@@ -162,23 +188,28 @@ def after_reload(start=True):
         for f in registered[gdb.events.new_objfile]:
             f()
 
+
 def on_reload():
     for event, functions in registered.items():
         for function in functions:
             event.disconnect(function)
         registered[event] = []
 
+
 @new_objfile
 def _start_newobjfile():
     gdb.events.start.on_new_objfile()
+
 
 @exit
 def _start_exit():
     gdb.events.start.on_exited()
 
+
 @stop
 def _start_stop():
     gdb.events.start.on_stop()
+
 
 @exit
 def _reset_objfiles():

@@ -11,7 +11,6 @@ from __future__ import unicode_literals
 import argparse
 import codecs
 import math
-import sys
 
 import gdb
 
@@ -25,11 +24,12 @@ import pwndbg.typeinfo
 
 def get_type(size):
     return {
-    1: pwndbg.typeinfo.uint8,
-    2: pwndbg.typeinfo.uint16,
-    4: pwndbg.typeinfo.uint32,
-    8: pwndbg.typeinfo.uint64,
+        1: pwndbg.typeinfo.uint8,
+        2: pwndbg.typeinfo.uint16,
+        4: pwndbg.typeinfo.uint32,
+        8: pwndbg.typeinfo.uint64,
     }[size]
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -40,6 +40,7 @@ def db(address, count=64):
     """
     return dX(1, (address), (count))
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def dw(address, count=32):
@@ -48,6 +49,7 @@ def dw(address, count=32):
     (default 32).
     """
     return dX(2, (address), (count))
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -58,6 +60,7 @@ def dd(address, count=16):
     """
     return dX(4, (address), (count))
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def dq(address, count=8):
@@ -67,10 +70,12 @@ def dq(address, count=8):
     """
     return dX(8, (address), (count))
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def dc(address, count=8):
     return pwndbg.commands.hexdump.hexdump(address=address, count=count)
+
 
 def dX(size, address, count, to_string=False):
     """
@@ -93,8 +98,6 @@ def dX(size, address, count, to_string=False):
     rows   = [values[i*row_sz:(i+1)*row_sz] for i in range(n_rows)]
     lines  = []
 
-    # sys.stdout.write(repr(rows) + '\n')
-
     for i, row in enumerate(rows):
         if not row:
             continue
@@ -107,6 +110,7 @@ def dX(size, address, count, to_string=False):
         print('\n'.join(lines))
 
     return lines
+
 
 def enhex(size, value):
     value = value & pwndbg.arch.ptrmask
@@ -123,6 +127,7 @@ def eb(address, *data):
     """
     return eX(1, address, data)
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def ew(address, *data):
@@ -130,6 +135,7 @@ def ew(address, *data):
     Write hex words at the specified address.
     """
     return eX(2, address, data)
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -139,6 +145,7 @@ def ed(address, *data):
     """
     return eX(4, address, data)
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def eq(address, *data):
@@ -146,6 +153,7 @@ def eq(address, *data):
     Write hex qwords at the specified address.
     """
     return eX(8, address, data)
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -155,6 +163,7 @@ def ez(address, *data):
     """
     return eX(1, address, data[0], hex=False)
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def eza(address, *data):
@@ -162,6 +171,7 @@ def eza(address, *data):
     Write a string at the specified address.
     """
     return ez(address, data)
+
 
 def eX(size, address, data, hex=True):
     """
@@ -184,6 +194,7 @@ def eX(size, address, data, hex=True):
 
         pwndbg.memory.write(address + (i * size), data)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def dds(*a):
@@ -191,6 +202,7 @@ def dds(*a):
     Dump pointers and symbols at the specified address.
     """
     return pwndbg.commands.telescope.telescope(*a)
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -200,6 +212,7 @@ def kd(*a):
     """
     return pwndbg.commands.telescope.telescope(*a)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def dps(*a):
@@ -207,6 +220,7 @@ def dps(*a):
     Dump pointers and symbols at the specified address.
     """
     return pwndbg.commands.telescope.telescope(*a)
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -222,6 +236,8 @@ da_parser.description = 'Dump a string at the specified address.'
 da_parser.add_argument('address', help='Address to dump')
 da_parser.add_argument('max', type=int, nargs='?', default=256,
                        help='Maximum string length')
+
+
 @pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max):
@@ -234,12 +250,15 @@ ds_parser.description = 'Dump a string at the specified address.'
 ds_parser.add_argument('address', help='Address to dump')
 ds_parser.add_argument('max', type=int, nargs='?', default=256,
                        help='Maximum string length')
+
+
 @pwndbg.commands.ArgparsedCommand(ds_parser)
 @pwndbg.commands.OnlyWhenRunning
 def ds(address, max):
     address = int(address)
     address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
+
 
 @pwndbg.commands.ParsedCommand
 def bl():
@@ -248,8 +267,9 @@ def bl():
     """
     gdb.execute('info breakpoints')
 
+
 @pwndbg.commands.Command
-def bd(which = '*'):
+def bd(which='*'):
     """
     Disable the breapoint with the specified index.
     """
@@ -260,7 +280,7 @@ def bd(which = '*'):
 
 
 @pwndbg.commands.Command
-def be(which = '*'):
+def be(which='*'):
     """
     Enable the breapoint with the specified index.
     """
@@ -269,8 +289,9 @@ def be(which = '*'):
     else:
         gdb.execute('enable breakpoints %s' % which)
 
+
 @pwndbg.commands.Command
-def bc(which = '*'):
+def bc(which='*'):
     """
     Clear the breapoint with the specified index.
     """
@@ -289,6 +310,7 @@ def bp(where):
     if result is not None:
         gdb.execute('break *%#x' % int(result))
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def u(where=None, n=5):
@@ -300,6 +322,7 @@ def u(where=None, n=5):
         where = pwndbg.regs.pc
     pwndbg.commands.nearpc.nearpc(where, n)
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def k():
@@ -308,16 +331,19 @@ def k():
     """
     gdb.execute('bt')
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def ln(value=None):
     """
     List the symbols nearest to the provided value.
     """
-    if value is None: value = pwndbg.regs.pc
+    if value is None:
+        value = pwndbg.regs.pc
     x = pwndbg.symbol.get(value)
     if x:
         result = '(%#x)   %s' % (value, x)
+
 
 @pwndbg.commands.QuietSloppyParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -326,6 +352,7 @@ def lm(map):
     Windbg compatibility alias for 'vmmap' command.
     """
     return pwndbg.commands.vmmap.vmmap(map)
+
 
 @pwndbg.commands.QuietSloppyParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -344,23 +371,26 @@ def vprot(map):
     """
     return pwndbg.commands.vmmap.vmmap(map)
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def peb(*a):
     print("This isn't Windows!")
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def go():
-    '''
+    """
     Windbg compatibility alias for 'continue' command.
-    '''
+    """
     gdb.execute('continue')
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def pc():
-    '''
+    """
     Windbg compatibility alias for 'nextcall' command.
-    '''
+    """
     return pwndbg.commands.next.nextcall()

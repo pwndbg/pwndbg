@@ -35,6 +35,7 @@ import pwndbg.typeinfo
 # by analyzing the stack or register context.
 explored_pages = []
 
+
 @pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_stop
 def get():
@@ -44,14 +45,17 @@ def get():
     if not pages:
         pages.extend(info_auxv())
 
-        if pages: pages.extend(info_sharedlibrary())
-        else:     pages.extend(info_files())
+        if pages:
+            pages.extend(info_sharedlibrary())
+        else:
+            pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
 
     pages.extend(explored_pages)
     pages.sort()
     return tuple(pages)
+
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
@@ -66,6 +70,7 @@ def find(address):
             return page
 
     return explore(address)
+
 
 @pwndbg.abi.LinuxOnly()
 def explore(address_maybe):
@@ -102,6 +107,7 @@ def explore(address_maybe):
 
     return page
 
+
 # Automatically ensure that all registers are explored on each stop
 @pwndbg.events.stop
 def explore_registers():
@@ -113,6 +119,7 @@ def explore_registers():
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
+
 
 @pwndbg.memoize.reset_on_stop
 def proc_pid_maps():
@@ -126,27 +133,27 @@ def proc_pid_maps():
     if pwndbg.qemu.is_qemu_usermode():
         return tuple()
 
-    example_proc_pid_maps = """
-    7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526abb000-7f9526ac0000 rw-p 00000000 00:00 0
-    7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526cbe000-7f9526cc1000 rw-p 00000000 00:00 0
-    7f9526ce0000-7f9526ce2000 rw-p 00000000 00:00 0
-    7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526ce4000-7f9526ce5000 rw-p 00000000 00:00 0
-    7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466                     /bin/dash
-    7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466                     /bin/dash
-    7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466                     /bin/dash
-    7f9526f03000-7f9526f05000 rw-p 00000000 00:00 0
-    7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0                          [heap]
-    7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
-    7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
-    ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
-    """
+    # Example of /proc/$PID/maps output:
+    #
+    # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526abb000-7f9526ac0000 rw-p 00000000 00:00 0
+    # 7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526cbe000-7f9526cc1000 rw-p 00000000 00:00 0
+    # 7f9526ce0000-7f9526ce2000 rw-p 00000000 00:00 0
+    # 7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce4000-7f9526ce5000 rw-p 00000000 00:00 0
+    # 7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466                     /bin/dash
+    # 7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466                     /bin/dash
+    # 7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466                     /bin/dash
+    # 7f9526f03000-7f9526f05000 rw-p 00000000 00:00 0
+    # 7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0                          [heap]
+    # 7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
+    # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
+    # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
     locations = [
         '/proc/%s/maps' % pwndbg.proc.pid,
@@ -170,8 +177,10 @@ def proc_pid_maps():
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(None, 4)
 
-        try:    inode, objfile = inode_objfile.split()
-        except: objfile = ''
+        try:
+            inode, objfile = inode_objfile.split()
+        except:
+            objfile = ''
 
         start, stop = maps.split('-')
 
@@ -190,6 +199,7 @@ def proc_pid_maps():
 
     return tuple(pages)
 
+
 @pwndbg.memoize.reset_on_stop
 def info_sharedlibrary():
     """
@@ -205,23 +215,23 @@ def info_sharedlibrary():
         A list of pwndbg.memory.Page objects.
     """
 
-    exmaple_info_sharedlibrary_freebsd = """
-    From        To          Syms Read   Shared Object Library
-    0x280fbea0  0x2810e570  Yes (*)     /libexec/ld-elf.so.1
-    0x281260a0  0x281495c0  Yes (*)     /lib/libncurses.so.8
-    0x28158390  0x2815dcf0  Yes (*)     /usr/local/lib/libintl.so.9
-    0x28188b00  0x2828e060  Yes (*)     /lib/libc.so.7
-    (*): Shared library is missing debugging information.
-    """
+    # Example output of `info sharedlibrary` command on freebsd:
+    #
+    # From        To          Syms Read   Shared Object Library
+    # 0x280fbea0  0x2810e570  Yes (*)     /libexec/ld-elf.so.1
+    # 0x281260a0  0x281495c0  Yes (*)     /lib/libncurses.so.8
+    # 0x28158390  0x2815dcf0  Yes (*)     /usr/local/lib/libintl.so.9
+    # 0x28188b00  0x2828e060  Yes (*)     /lib/libc.so.7
+    # (*): Shared library is missing debugging information.
 
-    exmaple_info_sharedlibrary_linux = """
-    From                To                  Syms Read   Shared Object Library
-    0x00007ffff7ddaae0  0x00007ffff7df54e0  Yes         /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7bbd3d0  0x00007ffff7bc9028  Yes (*)     /lib/x86_64-linux-gnu/libtinfo.so.5
-    0x00007ffff79aded0  0x00007ffff79ae9ce  Yes         /lib/x86_64-linux-gnu/libdl.so.2
-    0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
-    (*): Shared library is missing debugging information.
-    """
+    # Example output of `info sharedlibrary` command on linux:
+    #
+    # From                To                  Syms Read   Shared Object Library
+    # 0x00007ffff7ddaae0  0x00007ffff7df54e0  Yes         /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7bbd3d0  0x00007ffff7bc9028  Yes (*)     /lib/x86_64-linux-gnu/libtinfo.so.5
+    # 0x00007ffff79aded0  0x00007ffff79ae9ce  Yes         /lib/x86_64-linux-gnu/libdl.so.2
+    # 0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
+    # (*): Shared library is missing debugging information.
     pages = []
 
     for line in gdb.execute('info sharedlibrary', to_string=True).splitlines():
@@ -236,26 +246,26 @@ def info_sharedlibrary():
 
     return tuple(sorted(pages))
 
+
 @pwndbg.memoize.reset_on_stop
 def info_files():
-
-    example_info_files_linues = """
-    Symbols from "/bin/bash".
-    Unix child process:
-    Using the running image of child process 5903.
-    While running this, GDB does not access memory from...
-    Local exec file:
-    `/bin/bash', file type elf64-x86-64.
-    Entry point: 0x42020b
-    0x0000000000400238 - 0x0000000000400254 is .interp
-    0x0000000000400254 - 0x0000000000400274 is .note.ABI-tag
-    ...
-    0x00000000006f06c0 - 0x00000000006f8ca8 is .data
-    0x00000000006f8cc0 - 0x00000000006fe898 is .bss
-    0x00007ffff7dda1c8 - 0x00007ffff7dda1ec is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
-    """
+    # Example `info files` on linux:
+    #
+    # Symbols from "/bin/bash".
+    # Unix child process:
+    # Using the running image of child process 5903.
+    # While running this, GDB does not access memory from...
+    # Local exec file:
+    # `/bin/bash', file type elf64-x86-64.
+    # Entry point: 0x42020b
+    # 0x0000000000400238 - 0x0000000000400254 is .interp
+    # 0x0000000000400254 - 0x0000000000400274 is .note.ABI-tag
+    # ...
+    # 0x00000000006f06c0 - 0x00000000006f8ca8 is .data
+    # 0x00000000006f8cc0 - 0x00000000006fe898 is .bss
+    # 0x00007ffff7dda1c8 - 0x00007ffff7dda1ec is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
     seen_files = set()
     pages      = list()
@@ -292,7 +302,6 @@ def info_files():
         pages.extend(pwndbg.elf.map(vaddr, objfile))
 
     return tuple(pages)
-
 
 
 @pwndbg.memoize.reset_on_exit
@@ -346,6 +355,7 @@ def find_boundaries(addr, name='', min=0):
 
 aslr = False
 
+
 @pwndbg.events.new_objfile
 @pwndbg.memoize.while_running
 def check_aslr():
@@ -392,6 +402,7 @@ def check_aslr():
         vmmap.aslr = True
 
     return vmmap.aslr
+
 
 @pwndbg.events.cont
 def mark_pc_as_executable():

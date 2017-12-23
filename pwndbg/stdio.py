@@ -9,14 +9,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import codecs
-import io
-import os
 import sys
-
-import gdb
-
-import pwndbg.compat
 
 
 class Stdio(object):

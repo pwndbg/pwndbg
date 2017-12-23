@@ -41,37 +41,38 @@ class ABI(object):
     @staticmethod
     def default():
         return {
-        (32, 'i386', 'linux'):  linux_i386,
-        (64, 'x86-64', 'linux'): linux_amd64,
-        (64, 'aarch64', 'linux'): linux_aarch64,
-        (32, 'arm', 'linux'):   linux_arm,
-        (32, 'thumb', 'linux'):   linux_arm,
-        (32, 'mips', 'linux'):   linux_mips,
-        (32, 'powerpc', 'linux'): linux_ppc,
-        (64, 'powerpc', 'linux'): linux_ppc64,
+            (32, 'i386', 'linux'):  linux_i386,
+            (64, 'x86-64', 'linux'): linux_amd64,
+            (64, 'aarch64', 'linux'): linux_aarch64,
+            (32, 'arm', 'linux'):   linux_arm,
+            (32, 'thumb', 'linux'):   linux_arm,
+            (32, 'mips', 'linux'):   linux_mips,
+            (32, 'powerpc', 'linux'): linux_ppc,
+            (64, 'powerpc', 'linux'): linux_ppc64,
         }[(8*pwndbg.arch.ptrsize, pwndbg.arch.current, 'linux')]
 
     @staticmethod
     def syscall():
         return {
-        (32, 'i386', 'linux'):  linux_i386_syscall,
-        (64, 'x86-64', 'linux'): linux_amd64_syscall,
-        (64, 'aarch64', 'linux'): linux_aarch64_syscall,
-        (32, 'arm', 'linux'):   linux_arm_syscall,
-        (32, 'thumb', 'linux'):   linux_arm_syscall,
-        (32, 'mips', 'linux'):   linux_mips_syscall,
-        (32, 'powerpc', 'linux'): linux_ppc_syscall,
-        (64, 'powerpc', 'linux'): linux_ppc64_syscall,
+            (32, 'i386', 'linux'):  linux_i386_syscall,
+            (64, 'x86-64', 'linux'): linux_amd64_syscall,
+            (64, 'aarch64', 'linux'): linux_aarch64_syscall,
+            (32, 'arm', 'linux'):   linux_arm_syscall,
+            (32, 'thumb', 'linux'):   linux_arm_syscall,
+            (32, 'mips', 'linux'):   linux_mips_syscall,
+            (32, 'powerpc', 'linux'): linux_ppc_syscall,
+            (64, 'powerpc', 'linux'): linux_ppc64_syscall,
         }[(8*pwndbg.arch.ptrsize, pwndbg.arch.current, 'linux')]
 
     @staticmethod
     def sigreturn():
         return {
-        (32, 'i386', 'linux'):  linux_i386_sigreturn,
-        (64, 'x86-64', 'linux'): linux_amd64_sigreturn,
-        (32, 'arm', 'linux'):   linux_arm_sigreturn,
-        (32, 'thumb', 'linux'):   linux_arm_sigreturn,
+            (32, 'i386', 'linux'):  linux_i386_sigreturn,
+            (64, 'x86-64', 'linux'): linux_amd64_sigreturn,
+            (32, 'arm', 'linux'):   linux_arm_sigreturn,
+            (32, 'thumb', 'linux'):   linux_arm_sigreturn,
         }[(8*pwndbg.arch.ptrsize, pwndbg.arch.current, 'linux')]
+
 
 class SyscallABI(ABI):
     """
@@ -135,6 +136,7 @@ def update():
         abi = match.group(1)
 
         linux = 'Linux' in abi
+
 
 def LinuxOnly(default=None):
     """Create a decorator that the function will be called when ABI is Linux.

@@ -86,16 +86,19 @@ if not os.path.exists(tempdir):
     os.mkdir(tempdir)
 
 # Trial and error until things work
-blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
-'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
-'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
-'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
-'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
-'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
-'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
-'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h','revm-objects.h',
-'libetrace.h', 'revm-io.h','libasm-mips.h','libstderesi.h','libasm.h','libaspect.h',
-'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h']
+blacklist = [
+    'regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
+    'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
+    'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
+    'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
+    'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
+    'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
+    'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
+    'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h','revm-objects.h',
+    'libetrace.h', 'revm-io.h','libasm-mips.h','libstderesi.h','libasm.h','libaspect.h',
+    'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h'
+]
+
 
 def load(name):
     """Load symbol by name from headers in standard system include directory"""
@@ -126,7 +129,6 @@ def load(name):
             print(path)
             source += '#include "%s"\n' % path
 
-
     source += '''
 {name} foo;
 '''.format(**locals())
@@ -141,6 +143,7 @@ def load(name):
     compile(filename)
 
     return gdb.lookup_type(name)
+
 
 def compile(filename=None, address=0):
     """Compile and extract symbols from specified file"""
@@ -157,6 +160,7 @@ def compile(filename=None, address=0):
 
     add_symbol_file(objectname, address)
 
+
 def add_symbol_file(filename=None, address=0):
     """Read additional symbol table information from the object file filename"""
     if filename is None:
@@ -165,6 +169,7 @@ def add_symbol_file(filename=None, address=0):
 
     with pwndbg.events.Pause():
         gdb.execute('add-symbol-file %s %s' % (filename, address), from_tty=False, to_string=True)
+
 
 def read_gdbvalue(type_name, addr):
     """ Read the memory contents at addr and interpret them as a GDB value with the given type """

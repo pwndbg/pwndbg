@@ -9,24 +9,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
 import glob
 import os
 import platform
-
-import gdb
 
 import pwndbg.arch
 
 
 def flags():
-
     if pwndbg.arch.current == 'i386':
         return ['-m32']
     if pwndbg.arch.current.endswith('x86-64'):
         return ['-m64']
 
     return []
+
 
 def which():
     gcc = which_binutils('g++')
@@ -52,7 +49,6 @@ def which_binutils(util, **kwargs):
     # Borrowed from pwntools' code
     ###############################
     arch = pwndbg.arch.current
-    bits = pwndbg.arch.ptrsize
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.
@@ -76,10 +72,12 @@ def which_binutils(util, **kwargs):
         # hack for homebrew-installed binutils on mac
         for gutil in ['g'+util, util]:
             # e.g. objdump
-            if arch is None: pattern = gutil
+            if arch is None:
+                pattern = gutil
 
             # e.g. aarch64-linux-gnu-objdump
-            else:       pattern = '%s*linux*-%s' % (arch,gutil)
+            else:
+                pattern = '%s*linux*-%s' % (arch, gutil)
 
             for dir in os.environ['PATH'].split(':'):
                 res = sorted(glob.glob(os.path.join(dir, pattern)))

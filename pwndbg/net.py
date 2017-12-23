@@ -30,8 +30,10 @@ TCP_STATUSES = {
     "0B": "closing",
 }
 
+
 class inode(object):
     inode = None
+
 
 class Connection(inode):
     rhost = None
@@ -46,25 +48,26 @@ class Connection(inode):
     family = None
 
     def __str__(self):
-      return "%s %s:%s => %s:%s (%s)" % (self.family,
-                                        self.lhost,
-                                        self.lport,
-                                        self.rhost,
-                                        self.rport,
-                                        self.status)
+        return "%s %s:%s => %s:%s (%s)" % (self.family,
+                                           self.lhost,
+                                           self.lport,
+                                           self.rhost,
+                                           self.rport,
+                                           self.status)
 
     def __repr__(self):
-      return "Connection(\"%s\")" % self
+        return "Connection(\"%s\")" % self
 
 
 class UnixSocket(inode):
-    path  = "(anonymous)"
+    path = "(anonymous)"
 
     def __str__(self):
         return "unix %r" % self.path
 
     def __repr__(self):
         return "UnixSocket(%s)" % self
+
 
 def tcp():
     # For reference, see:
@@ -142,6 +145,7 @@ def tcp():
 
     return result
 
+
 def unix():
     data = pwndbg.file.get("/proc/net/unix").decode()
     if not data:
@@ -164,28 +168,29 @@ def unix():
     return result
 
 NETLINK_TYPES = {
-0 : "NETLINK_ROUTE",          #      /* Routing/device hook                          */
-1 : "NETLINK_UNUSED",         #      /* Unused number                                */
-2 : "NETLINK_USERSOCK",       #      /* Reserved for user mode socket protocols      */
-3 : "NETLINK_FIREWALL",       #      /* Unused number", formerly ip_queue             */
-4 : "NETLINK_SOCK_DIAG",      #      /* socket monitoring                            */
-5 : "NETLINK_NFLOG",          #      /* netfilter/iptables ULOG */
-6 : "NETLINK_XFRM",           #      /* ipsec */
-7 : "NETLINK_SELINUX",        #      /* SELinux event notifications */
-8 : "NETLINK_ISCSI",          #      /* Open-iSCSI */
-9 : "NETLINK_AUDIT",          #      /* auditing */
-10: "NETLINK_FIB_LOOKUP",     #
-11: "NETLINK_CONNECTOR",      #
-12: "NETLINK_NETFILTER",      #      /* netfilter subsystem */
-13: "NETLINK_IP6_FW",         #
-14: "NETLINK_DNRTMSG",        #      /* DECnet routing messages */
-15: "NETLINK_KOBJECT_UEVENT", #      /* Kernel messages to userspace */
-16: "NETLINK_GENERIC",        #
-18: "NETLINK_SCSITRANSPORT",  #      /* SCSI Transports */
-19: "NETLINK_ECRYPTFS",       #
-20: "NETLINK_RDMA",           #
-21: "NETLINK_CRYPTO",         #      /* Crypto layer */
+    0 : "NETLINK_ROUTE",          #      /* Routing/device hook                          */
+    1 : "NETLINK_UNUSED",         #      /* Unused number                                */
+    2 : "NETLINK_USERSOCK",       #      /* Reserved for user mode socket protocols      */
+    3 : "NETLINK_FIREWALL",       #      /* Unused number", formerly ip_queue             */
+    4 : "NETLINK_SOCK_DIAG",      #      /* socket monitoring                            */
+    5 : "NETLINK_NFLOG",          #      /* netfilter/iptables ULOG */
+    6 : "NETLINK_XFRM",           #      /* ipsec */
+    7 : "NETLINK_SELINUX",        #      /* SELinux event notifications */
+    8 : "NETLINK_ISCSI",          #      /* Open-iSCSI */
+    9 : "NETLINK_AUDIT",          #      /* auditing */
+    10: "NETLINK_FIB_LOOKUP",     #
+    11: "NETLINK_CONNECTOR",      #
+    12: "NETLINK_NETFILTER",      #      /* netfilter subsystem */
+    13: "NETLINK_IP6_FW",         #
+    14: "NETLINK_DNRTMSG",        #      /* DECnet routing messages */
+    15: "NETLINK_KOBJECT_UEVENT", #      /* Kernel messages to userspace */
+    16: "NETLINK_GENERIC",        #
+    18: "NETLINK_SCSITRANSPORT",  #      /* SCSI Transports */
+    19: "NETLINK_ECRYPTFS",       #
+    20: "NETLINK_RDMA",           #
+    21: "NETLINK_CRYPTO",         #      /* Crypto layer */
 }
+
 
 class Netlink(inode):
     eth = 0
@@ -195,6 +200,7 @@ class Netlink(inode):
 
     def __repr__(self):
         return "Netlink(%s)" % self
+
 
 def netlink():
     data = pwndbg.file.get("/proc/net/netlink").decode()

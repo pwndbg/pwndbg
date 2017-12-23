@@ -83,13 +83,13 @@ AT_CONSTANTS = {
 sys.modules[__name__].__dict__.update({v:k for k,v in AT_CONSTANTS.items()})
 
 
-
 class AUXV(dict):
     def __init__(self):
         for field in AT_CONSTANTS.values():
             self[field] = None
+
     def set(self, const, value):
-        name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
+        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ['AT_EXECFN', 'AT_PLATFORM']:
             try:
@@ -100,14 +100,18 @@ class AUXV(dict):
                 value = 'couldnt read AUXV!'
 
         self[name] = value
+
     def __getattr__(self, attr):
         return self[attr]
+
     def __str__(self):
-        return str({k:v for k,v in self.items() if v is not None})
+        return str({k: v for k, v in self.items() if v is not None})
+
 
 @pwndbg.memoize.reset_on_objfile
 def get():
     return use_info_auxv() or walk_stack() or AUXV()
+
 
 def use_info_auxv():
     lines = pwndbg.info.auxv().splitlines()
@@ -150,6 +154,7 @@ def find_stack_boundary(addr):
         pass
     return addr
 
+
 def walk_stack():
     if not pwndbg.abi.linux:
         return None
@@ -170,6 +175,7 @@ def walk_stack():
             pass
 
     return auxv
+
 
 def walk_stack2(offset=0):
     sp  = pwndbg.regs.sp
@@ -244,6 +250,7 @@ def walk_stack2(offset=0):
         p += 2
 
     return auxv
+
 
 def get_execfn():
     # If the stack is not sane, this won't work

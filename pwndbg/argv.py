@@ -25,6 +25,7 @@ envp = None
 #: Total number of environment variables
 envc = None
 
+
 @pwndbg.events.start
 @pwndbg.abi.LinuxOnly()
 def update():

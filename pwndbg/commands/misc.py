@@ -69,7 +69,7 @@ def pwndbg(filter_pattern):
 
 @_pwndbg.commands.ParsedCommand
 def distance(a, b):
-    '''Print the distance between the two arguments'''
+    """Print the distance between the two arguments"""
     a = int(a) & _arch.ptrmask
     b = int(b) & _arch.ptrmask
 

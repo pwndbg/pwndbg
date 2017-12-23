@@ -27,10 +27,10 @@ def xor_memory(address, key, count):
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def xor(address, key, count):
-    '''xor(address, key, count)
+    """xor(address, key, count)
 
     XOR ``count`` bytes at ``address`` with the key ``key``.
-    '''
+    """
     if not isinstance(address, six.integer_types):
         try:
             address = int(address, 0)
@@ -47,10 +47,10 @@ def xor(address, key, count):
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def memfrob(address, count):
-    '''memfrob(address, count)
+    """memfrob(address, count)
 
     Run the memfrob command on a region of memory
-    '''
+    """
     if not isinstance(address, six.integer_types):
         try:
             address = int(address, 0)

@@ -53,7 +53,8 @@ class memoize(object):
 
         if debug:
             print("%s: %s(%r)" % (how, self, args))
-            print(".... %r" % (value,))
+            print(".... %r" % value)
+
         return value
 
     def __repr__(self):

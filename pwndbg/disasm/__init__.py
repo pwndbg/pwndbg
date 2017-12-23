@@ -12,13 +12,11 @@ from __future__ import unicode_literals
 import collections
 
 import capstone
-import gdb
 from capstone import *
 
 import pwndbg.arch
 import pwndbg.disasm.arch
 import pwndbg.ida
-import pwndbg.jump
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.symbol
@@ -144,10 +142,10 @@ DO_NOT_EMULATE = {
     capstone.CS_GRP_INVALID,
     capstone.CS_GRP_IRET,
 
-# Note that we explicitly do not include the PRIVILEGE category, since
-# we may be in kernel code, and privileged instructions are just fine
-# in that case.
-#    capstone.CS_GRP_PRIVILEGE,
+    # Note that we explicitly do not include the PRIVILEGE category, since
+    # we may be in kernel code, and privileged instructions are just fine
+    # in that case.
+    # capstone.CS_GRP_PRIVILEGE,
 }
 
 def near(address, instructions=1, emulate=False):
@@ -161,7 +159,6 @@ def near(address, instructions=1, emulate=False):
 
     # Try to go backward by seeing which instructions we've returned
     # before, which were followed by this one.
-    needle = address
     insns  = []
     cached = backward_cache[current.address]
     insn   = one(cached) if cached else None
@@ -214,15 +211,14 @@ def near(address, instructions=1, emulate=False):
 
             if None not in (target_candidate, size_candidate):
                 target = target_candidate
-                size   = size_candidate
 
         # Continue disassembling at the *next* instruction unless we have emulated
         # the path of execution.
         elif target != pc:
             target = insn.next
 
-
         insn = one(target)
+
         if insn:
             insns.append(insn)
 

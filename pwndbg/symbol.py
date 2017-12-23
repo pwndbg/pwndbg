@@ -53,8 +53,10 @@ def get_directory():
         return match.group(1)
     return ''
 
+
 def set_directory(d):
     gdb.execute('set debug-file-directory %s' % d, to_string=True, from_tty=False)
+
 
 def add_directory(d):
     current = get_directory()
@@ -66,12 +68,14 @@ def add_directory(d):
 remote_files = {}
 remote_files_dir = None
 
+
 @pwndbg.events.exit
 def reset_remote_files():
     global remote_files
     global remote_files_dir
     remote_files = {}
     remote_files_dir = tempfile.mkdtemp()
+
 
 @pwndbg.events.new_objfile
 def autofetch():
@@ -152,6 +156,7 @@ def autofetch():
         print(' '.join(gdb_command))
         # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
 
+
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
     """
@@ -184,13 +189,13 @@ def get(address, gdb_only=False):
     # No symbol matches system-1.
     a, b, c, _ = result.split(None, 3)
 
-
     if b == '+':
         return "%s+%s" % (a, c)
     if b == 'in':
         return a
 
     return ''
+
 
 @pwndbg.memoize.reset_on_objfile
 def address(symbol):
@@ -216,12 +221,14 @@ def address(symbol):
     except gdb.error:
         return None
 
+    # TODO / FIXME : unreachable!
     try:
         address = pwndbg.ida.LocByName(symbol)
         if address:
             return address
     except Exception:
         pass
+
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_start

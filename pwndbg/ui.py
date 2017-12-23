@@ -21,15 +21,18 @@ import pwndbg.config as config
 
 theme.Parameter('banner-separator', '─', 'repeated banner separator character')
 
+
 def banner(title):
     title = title.upper()
     _height, width = get_window_size()
     width -= 2
     return C.banner(("[{:%s^%ss}]" % (config.banner_separator, width)).format(title))
 
+
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask
     return "%{}x".format(2*pwndbg.arch.ptrsize) % address
+
 
 def get_window_size():
     fallback = (int(os.environ.get('LINES', 20)), int(os.environ.get('COLUMNS', 80)))

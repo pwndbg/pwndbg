@@ -19,7 +19,15 @@ import pwndbg.compat
 import pwndbg.vmmap
 
 
-def pages_filter(s):
+def _pages_filter(s):
+    """
+    Parse string as a GDB expression and returns a filtering function.
+
+    If the parsed GDB expression is:
+    * an address (int or gdb.Value) we return a filter-by-address (it must belong to the page)
+    * a string - we return a filter-by-module-name
+    * on everything else - we raise an exception.
+    """
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
 
     # returns a module filter
@@ -38,7 +46,7 @@ def pages_filter(s):
 
 parser = argparse.ArgumentParser()
 parser.description = 'Print virtual memory map pages. Results can be filtered by providing address/module name.'
-parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
+parser.add_argument('pages_filter', type=_pages_filter, nargs='?', default=None,
                     help='Address or module name.')
 
 

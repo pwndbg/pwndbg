@@ -15,8 +15,6 @@ from __future__ import unicode_literals
 
 import string
 
-import gdb
-
 import pwndbg.arch
 import pwndbg.color as color
 import pwndbg.color.enhance as E
@@ -28,16 +26,18 @@ import pwndbg.symbol
 import pwndbg.typeinfo
 
 bad_instrs = [
-'.byte',
-'.long',
-'rex.R',
-'rex.XB',
-'.inst',
-'(bad)'
+    '.byte',
+    '.long',
+    'rex.R',
+    'rex.XB',
+    '.inst',
+    '(bad)'
 ]
+
 
 def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
+
 
 def int_str(value):
     retval = '%#x' % int(value & pwndbg.arch.ptrmask)
@@ -75,7 +75,7 @@ def enhance(value, code = True):
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not page or None == pwndbg.memory.peek(value):
+    if not page or pwndbg.memory.peek(value) is None:
         can_read = False
 
     if not can_read:
@@ -122,8 +122,6 @@ def enhance(value, code = True):
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:
         retval = [intval, szval]
-
-
 
     # If it's RWX but a small value, don't display it as code in a chain.
     elif instr and rwx and intval0 < 0x1000:

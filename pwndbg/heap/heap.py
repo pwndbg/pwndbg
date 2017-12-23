@@ -5,9 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import pwndbg.events
-import pwndbg.symbol
-
 
 class BaseHeap(object):
     """Heap abstraction layer."""
