@@ -50,7 +50,7 @@ parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='F
 
 @_pwndbg.commands.ArgparsedCommand(parser)
 def pwndbg(filter_pattern):
-    sorted_commands = list(_pwndbg.commands.Command.commands)
+    sorted_commands = list(_pwndbg.commands.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
     if filter_pattern:
@@ -76,15 +76,3 @@ def distance(a, b):
     distance = (b-a)
 
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
-
-
-@_pwndbg.commands.Command
-@_pwndbg.commands.OnlyWhenRunning
-def canary():
-    """Print out the current stack canary"""
-    auxv = _pwndbg.auxv.get()
-    at_random = auxv.get('AT_RANDOM', None)
-    if at_random is not None:
-        print("AT_RANDOM=%#x" % at_random)
-    else:
-        print("Couldn't find AT_RANDOM")

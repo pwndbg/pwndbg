@@ -18,6 +18,7 @@ import pwndbg.commands
 import pwndbg.commands.argv
 import pwndbg.commands.aslr
 import pwndbg.commands.auxv
+import pwndbg.commands.canary
 import pwndbg.commands.checksec
 import pwndbg.commands.config
 import pwndbg.commands.context
@@ -48,6 +49,7 @@ import pwndbg.commands.theme
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
+import pwndbg.commands.xinfo
 import pwndbg.commands.xor
 import pwndbg.constants
 import pwndbg.disasm
@@ -60,6 +62,7 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
+import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
@@ -73,6 +76,8 @@ import pwndbg.ui
 import pwndbg.version
 import pwndbg.vmmap
 import pwndbg.wrappers
+import pwndbg.wrappers.checksec
+import pwndbg.wrappers.readelf
 
 __version__ = pwndbg.version.__version__
 version = __version__
@@ -151,6 +156,12 @@ try:
 except gdb.error:
     pass
 
-
 # handle resize event to align width and completion
 signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]))
+
+# Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
+# More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946
+# As stated on GDB's bugzilla that makes remote target search slower.
+# After GDB gets the fix, we should disable this only for bugged GDB versions.
+if 1:
+    gdb.execute('set remote search-memory-packet off')

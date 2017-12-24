@@ -26,13 +26,32 @@ def _py_version():
     return sys.version.replace('\n', ' ')
 
 
+def capstone_version():
+    try:
+        import capstone
+        return '.'.join(map(str, capstone.cs_version()))
+    except ImportError:
+        return 'not found'
+
+
+def unicorn_version():
+    try:
+        import unicorn
+        return unicorn.__version__
+    except ImportError:
+        return 'not found'
+
+
 @pwndbg.commands.Command
 def version():
     """
     Displays gdb, python and pwndbg versions.
     """
-    gdb_str = 'Gdb: %s' % _gdb_version()
-    py_str = 'Python: %s' % _py_version()
-    pwndbg_str = 'Pwndbg: %s' % pwndbg.__version__
+    gdb_str      = 'Gdb:      %s' % _gdb_version()
+    py_str       = 'Python:   %s' % _py_version()
+    pwndbg_str   = 'Pwndbg:   %s' % pwndbg.__version__
 
-    print('\n'.join(map(pwndbg.color.light_red, (gdb_str, py_str, pwndbg_str))))
+    capstone_str = 'Capstone: %s' % capstone_version()
+    unicorn_str  = 'Unicorn:  %s' % unicorn_version()
+
+    print('\n'.join(map(pwndbg.color.light_red, (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str))))

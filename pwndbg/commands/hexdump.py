@@ -29,6 +29,7 @@ parser.add_argument('address', nargs='?', default='$sp',
 parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
                     help='Number of bytes to dump')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address=None, count=pwndbg.config.hexdump_bytes):

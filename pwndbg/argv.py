@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.abi
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.memory
@@ -25,6 +26,7 @@ envp = None
 envc = None
 
 @pwndbg.events.start
+@pwndbg.abi.LinuxOnly()
 def update():
     global argc
     global argv

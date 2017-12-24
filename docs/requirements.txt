@@ -20,4 +20,3 @@ python-ptrace>=0.8
 six
 future
 unicorn>=1.0.0
-capstone

@@ -7,12 +7,21 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.color as C
 import pwndbg.events
+import pwndbg.gdbutils
 import pwndbg.memoize
 
-hint_msg = 'Loaded %i commands. Type pwndbg [filter] for a list.' % len(pwndbg.commands.Command.commands)
+funcs_list_str = ', '.join(C.purple('$' + f.name) for f in pwndbg.gdbutils.functions.functions)
 
-print(pwndbg.color.red(hint_msg))
+hint_lines = (
+    'loaded %i commands. Type %s for a list.' % (len(pwndbg.commands.commands), C.purple('pwndbg [filter]')),
+    'created %s gdb functions (can be used with print/break)' % funcs_list_str
+)
+
+for line in hint_lines:
+    print(C.light_red(pwndbg.color.bold('pwndbg: ') + line))
+
 cur = (gdb.selected_inferior(), gdb.selected_thread())
 
 
@@ -24,12 +33,16 @@ def prompt_hook(*a):
         pwndbg.events.after_reload(start=False)
         cur = new
 
-    if pwndbg.proc.alive:
+    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
         prompt_hook_on_stop(*a)
 
 
 @pwndbg.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
     pwndbg.commands.context.context()
+
+
+
+
 
 gdb.prompt_hook = prompt_hook

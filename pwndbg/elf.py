@@ -18,6 +18,8 @@ import sys
 import gdb
 from six.moves import reload_module
 
+import pwndbg.abi
+import pwndbg.arch
 import pwndbg.auxv
 import pwndbg.elftypes
 import pwndbg.events
@@ -65,6 +67,7 @@ def read(typ, address, blob=None):
     obj.type = typ
     return obj
 
+
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
 def exe():
@@ -75,6 +78,7 @@ def exe():
     e = entry()
     if e:
         return load(e)
+
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
@@ -115,10 +119,52 @@ def load(pointer):
 
 ehdr_type_loaded = 0
 
+
 @pwndbg.memoize.reset_on_start
 def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0
+
+
+@pwndbg.abi.LinuxOnly()
+def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
+    """Search the nearest page which contains the ELF headers
+    by comparing the ELF magic with first 4 bytes.
+
+    Parameter:
+        search_down: change the search direction
+        to search over the lower address.
+        That is, decreasing the page pointer instead of increasing.
+            (default: False)
+    Returns:
+        An integer address of ELF page base
+        None if not found within the page limit
+    """
+    addr = pwndbg.memory.page_align(pointer)
+    step = pwndbg.memory.PAGE_SIZE
+    if search_down:
+        step = -step
+
+    max_addr = pwndbg.arch.ptrmask
+
+    for i in range(max_pages):
+        # Make sure address within valid range or gdb will raise Overflow exception
+        if addr < 0 or addr > max_addr:
+            return None
+
+        try:
+            data = pwndbg.memory.read(addr, 4)
+        except gdb.MemoryError:
+            return addr if ret_addr_anyway else None
+
+        # Return the address if found ELF header
+        if data == b'\x7FELF':
+            return addr
+
+        addr += step
+
+    return addr if ret_addr_anyway else None
+
 
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
@@ -127,21 +173,14 @@ def get_ehdr(pointer):
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
 
-    try:
-        data = pwndbg.memory.read(base, 4)
+    # XXX: for non linux ABI, the ELF header may not be found in memory.
+    # This will hang the gdb when using the remote gdbserver to scan 1024 pages
+    if not pwndbg.abi.linux:
+        return None, None
 
-        # Do not search more than 4MB of memory
-        for i in range(1024):
-            if data == b'\x7FELF':
-                break
-
-            base -= pwndbg.memory.PAGE_SIZE
-            data = pwndbg.memory.read(base, 4)
-
-        else:
-            print("ERROR: Could not find ELF base!")
-            return None, None
-    except gdb.MemoryError:
+    base = find_elf_magic(pointer, search_down=True)
+    if base is None:
+        print("ERROR: Could not find ELF base!")
         return None, None
 
     # Determine whether it's 32- or 64-bit
@@ -150,6 +189,7 @@ def get_ehdr(pointer):
     # Find out where the section headers start
     Elfhdr   = read(Ehdr, base)
     return ei_class, Elfhdr
+
 
 def get_phdrs(pointer):
     """
@@ -169,6 +209,7 @@ def get_phdrs(pointer):
     x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
     return x
 
+
 def iter_phdrs(ehdr):
     if not ehdr:
         raise StopIteration
@@ -185,6 +226,7 @@ def iter_phdrs(ehdr):
         p_phdr = int(first_phdr + (i*phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
+
 
 def map(pointer, objfile=''):
     """
@@ -208,6 +250,7 @@ def map(pointer, objfile=''):
     """
     ei_class, ehdr         = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
+
 
 def map_inner(ei_class, ehdr, objfile):
     if not ehdr:

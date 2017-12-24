@@ -9,6 +9,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import shlex
+
 import gdb
 
 import pwndbg.commands
@@ -66,5 +68,5 @@ def entry(*a):
     """
     global break_on_first_instruction
     break_on_first_instruction = True
-    run = 'run ' + ' '.join(a)
+    run = 'run ' + ' '.join(map(shlex.quote, a))
     gdb.execute(run, from_tty=False)

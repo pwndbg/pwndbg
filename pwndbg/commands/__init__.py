@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import functools
 
 import gdb
@@ -19,19 +20,25 @@ import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
 
+commands = []
+
 
 class Command(gdb.Command):
     """Generic command wrapper"""
-    count    = 0
-    commands = []
-    history  = {}
+    command_names = set()
+    history = {}
 
-    def __init__(self, function, inc=True, prefix=False):
-        super(Command, self).__init__(function.__name__, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+    def __init__(self, function, prefix=False):
+        command_name = function.__name__
+
+        super(Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
-        if inc:
-            self.commands.append(self)
+        if command_name in self.command_names:
+            raise Exception('Cannot add command %s: already exists.' % command_name)
+
+        self.command_names.add(command_name)
+        commands.append(self)
 
         functools.update_wrapper(self, function)
         self.__doc__ = function.__doc__
@@ -123,9 +130,8 @@ class ParsedCommand(Command):
 
 
 class ParsedCommandPrefix(ParsedCommand):
-    def __init__(self, function, inc=True, prefix=True):
-        super(ParsedCommand, self).__init__(function, inc, prefix)
-
+    def __init__(self, function, prefix=True):
+        super(ParsedCommand, self).__init__(function, prefix)
 
 
 def fix(arg, sloppy=False, quiet=True, reraise=False):
@@ -205,7 +211,7 @@ class _ArgparsedCommand(Command):
     def __init__(self, parser, function, *a, **kw):
         self.parser = parser
         self.parser.prog = function.__name__
-        function.__doc__ = self.parser.description
+        self.__doc__ = function.__doc__ = self.parser.description
         super(_ArgparsedCommand, self).__init__(function, *a, **kw)
 
     def split_args(self, argument):
@@ -215,12 +221,18 @@ class _ArgparsedCommand(Command):
 
 class ArgparsedCommand(object):
     """Adds documentation and offloads parsing for a Command via argparse"""
-    def __init__(self, parser):
-        self.parser = parser
+    def __init__(self, parser_or_desc):
+        """
+        :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
+        """
+        if isinstance(parser_or_desc, str):
+            self.parser = argparse.ArgumentParser(description=parser_or_desc)
+        else:
+            self.parser = parser_or_desc
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
-        for action in parser._actions:
+        for action in self.parser._actions:
             if action.dest == 'help':
                 continue
             if action.type in (int, None):
@@ -230,3 +242,19 @@ class ArgparsedCommand(object):
 
     def __call__(self, function):
         return _ArgparsedCommand(self.parser, function)
+
+
+def sloppy_gdb_parse(s):
+    """
+    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
+    
+    This makes the type being parsed as gdb value and if that parsing fails,
+    a string is returned.
+
+    :param s: String.
+    :return: Whatever gdb.parse_and_eval returns or string.
+    """
+    try:
+        return gdb.parse_and_eval(s)
+    except (TypeError, gdb.error):
+        return s
