@@ -10,6 +10,8 @@ import pwndbg.symbol
 
 current = None
 
+heap_chain_limit = pwndbg.config.Parameter('heap-dereference-limit', 8, 'number of bins to dereference')
+
 @pwndbg.events.new_objfile
 def update():
     import pwndbg.heap.dlmalloc

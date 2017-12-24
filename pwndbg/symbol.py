@@ -229,6 +229,9 @@ def add_main_exe_to_symbols():
     if not pwndbg.remote.is_remote():
         return
 
+    if pwndbg.android.is_android():
+        return
+
     exe  = pwndbg.elf.exe()
 
     if not exe:

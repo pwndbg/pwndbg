@@ -11,15 +11,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import sys
 
 import gdb
 import six
 from future.utils import with_metaclass
 
+import pwndbg.compat
 import pwndbg.typeinfo
 
-if sys.version_info < (3, 0):
+if pwndbg.compat.python2:
     import __builtin__ as builtins
 else:
     import builtins
@@ -57,6 +57,6 @@ if os.environ.get('SPHINX', None) is None:
     builtins.int = xint
     globals()['int'] = xint
 
-    if sys.version_info >= (3, 0):
+    if pwndbg.compat.python3:
         builtins.long = xint
         globals()['long'] = xint

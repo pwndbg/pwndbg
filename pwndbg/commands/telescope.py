@@ -24,12 +24,14 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
-telescope_lines = pwndbg.config.Parameter('telescope-lines',
-                                         8,
-                                         'number of lines to printed by the telescope command')
+telescope_lines = pwndbg.config.Parameter('telescope-lines', 8, 'number of lines to printed by the telescope command')
+skip_repeating_values = pwndbg.config.Parameter('telescope-skip-repeating-val', True,
+                                                'whether to skip repeating values of the telescope command')
+
 offset_separator = theme.Parameter('telescope-offset-separator', '│', 'offset separator of the telescope command')
 offset_delimiter = theme.Parameter('telescope-offset-delimiter', ':', 'offset delimiter of the telescope command')
-repeating_maker  = theme.Parameter('telescope-repeating-marker', '... ↓', 'repeating values marker of the telescope command')
+repeating_marker = theme.Parameter('telescope-repeating-marker', '... ↓',
+                                   'repeating values marker of the telescope command')
 
 
 @pwndbg.commands.ParsedCommand
@@ -93,9 +95,9 @@ def telescope(address=None, count=telescope_lines, to_string=False):
 
         # Collapse repeating values.
         value = pwndbg.memory.pvoid(addr)
-        if last == value:
+        if skip_repeating_values and last == value:
             if not skip:
-                result.append(T.repeating_marker('%s' % repeating_maker))
+                result.append(T.repeating_marker('%s' % repeating_marker))
                 skip = True
             continue
         last = value
@@ -117,11 +119,10 @@ parser.add_argument('count', nargs='?', default=8, type=int,
                     help='number of element to dump')
 parser.add_argument('offset', nargs='?', default=0, type=int,
                     help='Element offset from $sp (support negative offset)')
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset):
-    """
-    Recursively dereferences pointers on the stack
-    """
     ptrsize = pwndbg.typeinfo.ptrsize
     telescope(address=pwndbg.regs.sp + offset * ptrsize, count=count)
