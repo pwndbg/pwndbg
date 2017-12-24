@@ -14,6 +14,13 @@ import pwndbg.typeinfo
 from pwndbg.color import bold
 from pwndbg.color import red
 from pwndbg.constants import ptmalloc
+from pwndbg.heap import heap_chain_limit
+
+HEAP_MAX_SIZE     = 1024 * 1024
+
+def heap_for_ptr(ptr):
+    "find the heap and corresponding arena for a given ptr"
+    return (ptr & ~(HEAP_MAX_SIZE-1))
 
 
 class Heap(pwndbg.heap.heap.BaseHeap):
@@ -51,6 +58,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return pwndbg.symbol.address('global_max_fast')
 
 
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def heap_info(self):
+        return pwndbg.typeinfo.load('heap_info')
+
+    
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
@@ -136,6 +149,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         except:
             return None
 
+    def get_heap(self,addr):
+        return pwndbg.memory.poi(self.heap_info,heap_for_ptr(addr))
+        
 
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
@@ -144,18 +160,32 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return pwndbg.memory.poi(self.malloc_state, arena_addr)
 
 
-    def get_bounds(self):
+    def get_arena_for_chunk(self,addr):
+        chunk = pwndbg.memory.poi(self.malloc_state,addr)
+        _,_,nm = self.chunk_flags(chunk['size'])
+        if nm:
+            r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
+        else:
+            r=self.main_arena
+        return r
+            
+    def get_region(self,addr=None):
         """
-        Finds the heap bounds by using mp_ structure's sbrk_base property
+        Finds the memory region used for heap by using mp_ structure's sbrk_base property
         and falls back to using /proc/self/maps (vmmap) which can be wrong
         when .bss is very large
+        For non main-arena heaps use heap_info struct provieded at the beging of the page.
         """
-        lower, upper = None, None
 
-        try:
-            lower = int(self.mp['sbrk_base'])
-        except:
-            lower = None
+        if addr:
+            heap  = self.get_heap(addr)
+            base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
+            page  = pwndbg.vmmap.find(base)
+            ## trim whole page to look exactly like heap
+            page.size = int(heap['size'])
+            page.vaddr = base
+            
+            return page
 
         page = None
         for m in pwndbg.vmmap.get():
@@ -164,10 +194,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 break
 
         if page is not None:
-            lower = lower or page.vaddr
-            return (lower, page.vaddr + page.memsz)
+            mp = self.mp
+            if mp:
+                ## this can't fail right?
+                page.vaddr = int(mp['sbrk_base'])
+            return page
 
-        return (None, None)
+        return None
 
     
     def fastbin_index(self, size):
@@ -190,12 +223,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         result = OrderedDict()
         for i in range(num_fastbins):
             size += pwndbg.arch.ptrsize * 2
-            chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset)
+            chain = pwndbg.chain.get(int(fastbinsY[i]), offset=fd_offset, limit=heap_chain_limit)
 
             result[size] = chain
 
         return result
 
+    
 
     def bin_at(self, index, arena_addr=None):
         """
@@ -223,7 +257,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset   = self.chunk_key_offset('fd')
 
-        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base)
+        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit)
         return chain
 
 

@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import codecs
 import math
 import sys
@@ -216,20 +217,28 @@ def dqs(*a):
     return pwndbg.commands.telescope.telescope(*a)
 
 
-@pwndbg.commands.ParsedCommand
+da_parser = argparse.ArgumentParser()
+da_parser.description = 'Dump a string at the specified address.'
+da_parser.add_argument('address', help='Address to dump')
+da_parser.add_argument('max', type=int, nargs='?', default=256,
+                       help='Maximum string length')
+@pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
-def da(address, max=256):
-    """
-    Dump a string at the specified address.
-    """
+def da(address, max):
+    address = int(address)
+    address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
-@pwndbg.commands.ParsedCommand
+ds_parser = argparse.ArgumentParser()
+ds_parser.description = 'Dump a string at the specified address.'
+ds_parser.add_argument('address', help='Address to dump')
+ds_parser.add_argument('max', type=int, nargs='?', default=256,
+                       help='Maximum string length')
+@pwndbg.commands.ArgparsedCommand(ds_parser)
 @pwndbg.commands.OnlyWhenRunning
-def ds(address, max=256):
-    """
-    Dump a string at the specified address.
-    """
+def ds(address, max):
+    address = int(address)
+    address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
 @pwndbg.commands.ParsedCommand

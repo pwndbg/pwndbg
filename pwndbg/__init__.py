@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import signal
+
 import gdb
 
 import pwndbg.android
@@ -16,6 +18,7 @@ import pwndbg.commands
 import pwndbg.commands.argv
 import pwndbg.commands.aslr
 import pwndbg.commands.auxv
+import pwndbg.commands.canary
 import pwndbg.commands.checksec
 import pwndbg.commands.config
 import pwndbg.commands.context
@@ -24,6 +27,7 @@ import pwndbg.commands.dt
 import pwndbg.commands.dumpargs
 import pwndbg.commands.elf
 import pwndbg.commands.gdbinit
+import pwndbg.commands.got
 import pwndbg.commands.heap
 import pwndbg.commands.hexdump
 import pwndbg.commands.ida
@@ -45,6 +49,7 @@ import pwndbg.commands.theme
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
+import pwndbg.commands.xinfo
 import pwndbg.commands.xor
 import pwndbg.constants
 import pwndbg.disasm
@@ -56,6 +61,8 @@ import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
+import pwndbg.exception
+import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
@@ -64,10 +71,13 @@ import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
-import pwndbg.stdio
 import pwndbg.typeinfo
+import pwndbg.ui
 import pwndbg.version
 import pwndbg.vmmap
+import pwndbg.wrappers
+import pwndbg.wrappers.checksec
+import pwndbg.wrappers.readelf
 
 __version__ = pwndbg.version.__version__
 version = __version__
@@ -121,6 +131,7 @@ pre_commands = """
 set confirm off
 set verbose off
 set prompt %s
+set pagination off
 set height 0
 set history expansion on
 set history save on
@@ -128,13 +139,13 @@ set follow-fork-mode child
 set backtrace past-main on
 set step-mode on
 set print pretty on
-set width 0
+set width %i
 set print elements 15
 handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
-""".strip() % prompt
+""".strip() % (prompt, pwndbg.ui.get_window_size()[1])
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
@@ -144,6 +155,9 @@ try:
     gdb.execute("set disassembly-flavor intel")
 except gdb.error:
     pass
+
+# handle resize event to align width and completion
+signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]))
 
 # Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
 # More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946

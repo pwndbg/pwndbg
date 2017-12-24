@@ -118,6 +118,10 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
             'qword': 'Q'
         }[type]
 
+        # Work around Python 2.7.6 struct.pack / unicode incompatibility
+        # See https://github.com/pwndbg/pwndbg/pull/336 for more information.
+        fmt = str(fmt)
+
         try:
             value = struct.pack(fmt, value)
         except struct.error as e:

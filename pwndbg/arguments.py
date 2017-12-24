@@ -52,8 +52,9 @@ ida_replacements = {
     '__userpurge': '',
 }
 
+
 def get_syscall_name(instruction):
-    if not CS_GRP_INT in instruction.groups:
+    if CS_GRP_INT not in instruction.groups:
         return None
 
     try:
@@ -64,6 +65,7 @@ def get_syscall_name(instruction):
         return 'SYS_' + name
     except:
         return None
+
 
 def get(instruction):
     """
@@ -109,7 +111,6 @@ def get(instruction):
         return []
 
     result = []
-    args = []
     name = name or ''
 
     sym   = gdb.lookup_symbol(name)
@@ -128,7 +129,6 @@ def get(instruction):
         except TypeError:
             pass
 
-
     # Try to grab the data out of IDA
     if not func and target:
         typename = pwndbg.ida.GetType(target)
@@ -139,17 +139,17 @@ def get(instruction):
             # GetType() does not include the name.
             typename = typename.replace('(', ' function_name(', 1)
 
-            for k,v in ida_replacements.items():
-                typename = typename.replace(k,v)
+            for k, v in ida_replacements.items():
+                typename = typename.replace(k, v)
 
-            func     = pwndbg.funcparser.ExtractFuncDeclFromSource(typename + ';')
+            func = pwndbg.funcparser.ExtractFuncDeclFromSource(typename + ';')
 
     if func:
         args = func.args
     else:
-        args = [pwndbg.functions.Argument('int',0,argname(i, abi)) for i in range(n_args_default)]
+        args = [pwndbg.functions.Argument('int', 0, argname(i, abi)) for i in range(n_args_default)]
 
-    for i,arg in enumerate(args):
+    for i, arg in enumerate(args):
         result.append((arg, argument(i, abi)))
 
     return result
@@ -163,6 +163,7 @@ def argname(n, abi=None):
         return regs[n]
 
     return 'arg[%i]' % n
+
 
 def argument(n, abi=None):
     """
@@ -180,3 +181,14 @@ def argument(n, abi=None):
     sp = pwndbg.regs.sp + (n * pwndbg.arch.ptrsize)
 
     return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, sp))
+
+
+def arguments(abi=None):
+    """
+    Yields (arg_name, arg_value) tuples for arguments from a given ABI.
+    """
+    abi  = abi or pwndbg.abi.ABI.default()
+    regs = abi.register_arguments
+
+    for i in range(len(regs)):
+        yield argname(i, abi), argument(i, abi)

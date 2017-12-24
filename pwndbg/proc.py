@@ -70,6 +70,10 @@ class module(ModuleType):
             auxv = pwndbg.auxv.get()
             return auxv['AT_EXECFN']
 
+    @property
+    def mem_page(self):
+        return next(p for p in pwndbg.vmmap.get() if p.objfile == self.exe)
+
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)
         def wrapper(*a, **kw):
