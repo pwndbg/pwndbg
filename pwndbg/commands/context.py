@@ -71,11 +71,10 @@ def context(*args):
         sys.stdout.write(line + '\n')
     sys.stdout.flush()
 
+
 def context_regs():
-    result = []
-    result.append(pwndbg.ui.banner("registers"))
-    result.extend(get_regs())
-    return result
+    return [pwndbg.ui.banner("registers")] + get_regs()
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -85,6 +84,7 @@ def regs(*regs):
 
 pwndbg.config.Parameter('show-flags', False, 'whether to show flags registers')
 pwndbg.config.Parameter('show-retaddr-reg', False, 'whether to show return address register')
+
 
 def get_regs(*regs):
     result = []
@@ -164,6 +164,7 @@ def context_disasm():
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 
+
 def context_code():
     try:
         symtab = gdb.selected_frame().find_sal().symtab
@@ -172,7 +173,7 @@ def context_code():
         closest_pc = -1
         closest_line = -1
         for line in linetable:
-            if line.pc <= pwndbg.regs.pc and line.pc > closest_pc:
+            if closest_pc < line.pc <= pwndbg.regs.pc:
                 closest_line = line.line
                 closest_pc   = line.pc
 
@@ -203,27 +204,29 @@ def context_code():
     if not pwndbg.ida.available():
         return []
 
-    try:
-        name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
-        addr = pwndbg.ida.LocByName(name)
-        lines = pwndbg.ida.decompile(addr)
-        return lines.splitlines()
-    except:
-        pass
+    name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
+    addr = pwndbg.ida.LocByName(name)
+    # May be None when decompilation failed or user loaded wrong binary in IDA
+    code = pwndbg.ida.decompile(addr)
 
-    return []
+    if code:
+        return [pwndbg.ui.banner("Hexrays pseudocode")] + code.splitlines()
+    else:
+        return []
+
 
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
+
 def context_stack():
-    result = []
-    result.append(pwndbg.ui.banner("stack"))
+    result = [pwndbg.ui.banner("stack")]
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
     return result
 
 backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
+
 
 def context_backtrace(frame_count=10, with_banner=True):
     result = []
@@ -273,6 +276,7 @@ def context_backtrace(frame_count=10, with_banner=True):
         i    += 1
     return result
 
+
 def context_args():
     result = []
 
@@ -291,6 +295,7 @@ def context_args():
     return result
 
 last_signal = []
+
 
 def save_signal(signal):
     global last_signal
@@ -320,6 +325,7 @@ def save_signal(signal):
 gdb.events.cont.connect(save_signal)
 gdb.events.stop.connect(save_signal)
 gdb.events.exited.connect(save_signal)
+
 
 def context_signal():
     return last_signal

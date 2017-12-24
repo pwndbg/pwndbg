@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import pwndbg.color.theme
 import pwndbg.commands
 import pwndbg.config
@@ -17,9 +19,8 @@ from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import print_row
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Shows pwndbg-specific theme configuration points.')
 def theme():
-    """Shows pwndbg-specific theme configuration points"""
     values = [v for k, v in pwndbg.config.__dict__.items()
               if isinstance(v, pwndbg.config.Parameter) and v.scope == 'theme']
     longest_optname = max(map(len, [v.optname for v in values]))
