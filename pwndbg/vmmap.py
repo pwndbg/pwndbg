@@ -34,6 +34,7 @@ import pwndbg.typeinfo
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
 explored_pages = []
+custom_pages = []
 
 @pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_stop
@@ -50,6 +51,7 @@ def get():
         pages.extend(pwndbg.stack.stacks.values())
 
     pages.extend(explored_pages)
+    pages.extend(custom_pages)
     pages.sort()
     return tuple(pages)
 
@@ -113,6 +115,16 @@ def explore_registers():
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
+
+
+def add_custom_page(page):
+    custom_pages.append(page)
+    custom_pages.sort()
+
+def clear_custom_page():
+    while custom_pages:
+        custom_pages.pop()
+
 
 @pwndbg.memoize.reset_on_stop
 def proc_pid_maps():
