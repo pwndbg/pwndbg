@@ -94,9 +94,11 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
             symbol = '%#x (%s)' % (link, symbol)
         rest.append(M.get(link, symbol))
 
-    # If the dereference limit is zero, skip enhancement and return the chain
+    # If the dereference limit is zero, skip any enhancements.
     if limit == 0:
-        return arrow_right.join(rest)
+        return rest[0]
+    # Otherwise replace last element with the enhanced information.
+    rest = rest[:-1]
 
     # Enhance the last entry
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
