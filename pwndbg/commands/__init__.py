@@ -9,6 +9,7 @@ import argparse
 import functools
 
 import gdb
+import six
 
 import pwndbg.chain
 import pwndbg.color
@@ -225,7 +226,7 @@ class ArgparsedCommand(object):
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
-        if isinstance(parser_or_desc, str):
+        if isinstance(parser_or_desc, six.string_types):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
             self.parser = parser_or_desc
