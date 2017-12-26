@@ -126,7 +126,6 @@ def reset_ehdr_type_loaded():
     ehdr_type_loaded = 0
 
 
-@pwndbg.abi.LinuxOnly()
 def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
     """Search the nearest page which contains the ELF headers
     by comparing the ELF magic with first 4 bytes.
