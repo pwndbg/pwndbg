@@ -48,7 +48,7 @@ def update():
     m.ptrsize = pwndbg.typeinfo.ptrsize
     m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 
-    if 'little' in gdb.execute('show endian', to_string=True):
+    if 'little' in gdb.execute('show endian', to_string=True).lower():
         m.endian = 'little'
     else:
         m.endian = 'big'
