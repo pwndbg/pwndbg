@@ -9,14 +9,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import shlex
-
 import gdb
 
 import pwndbg.commands
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.symbol
+
+# Py 2 vs Py 3
+try:
+    from shlex import quote
+except ImportError:
+    from pipes import quote
+
+
+
 
 break_on_first_instruction = False
 
@@ -68,5 +75,5 @@ def entry(*a):
     """
     global break_on_first_instruction
     break_on_first_instruction = True
-    run = 'run ' + ' '.join(map(shlex.quote, a))
+    run = 'run ' + ' '.join(map(quote, a))
     gdb.execute(run, from_tty=False)
