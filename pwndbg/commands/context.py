@@ -15,6 +15,7 @@ import pwndbg.color
 import pwndbg.color.backtrace as B
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
+import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
@@ -164,6 +165,21 @@ def context_disasm():
     return banner + result
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
+source_code_lines = pwndbg.config.Parameter('context-source-code-lines',
+                                             10,
+                                             'number of source code lines to print by the context command')
+@pwndbg.memoize.reset_on_start
+def get_highlight_source(filename):
+    # Notice that the code is cached
+    with open(filename) as f:
+        source = f.read()
+
+    if pwndbg.config.syntax_highlight:
+        source = H.syntax_highlight(source, filename)
+
+    source_lines = source.splitlines()
+    source_lines = tuple(line.rstrip() for line in source_lines)
+    return source_lines
 
 
 def context_code():
