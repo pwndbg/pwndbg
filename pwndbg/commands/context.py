@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import codecs
 import sys
 
 import gdb
@@ -184,6 +185,7 @@ def get_highlight_source(filename):
 
 def context_code():
     try:
+        # Compute the closest pc and line number
         symtab = gdb.selected_frame().find_sal().symtab
         linetable = symtab.linetable()
 
@@ -197,23 +199,57 @@ def context_code():
         if closest_line < 0:
             return []
 
-        source = gdb.execute('list %i' % closest_line, from_tty=False, to_string=True)
+        # Get the full source code
+        filename = symtab.fullname()
+        source = get_highlight_source(filename)
 
         # If it starts on line 1, it's not really using the
         # correct source code.
         if not source or closest_line <= 1:
             return []
 
-        # highlight the current code line
-        source_lines = source.splitlines()
-        if pwndbg.config.highlight_source:
-            for i in range(len(source_lines)):
-                if source_lines[i].startswith('%s\t' % closest_line):
-                    source_lines[i] = C.highlight(source_lines[i])
-                    break
+        n = int(source_code_lines)
 
-        banner = [pwndbg.ui.banner("source")]
-        banner.extend(source_lines)
+        # Compute the line range
+        start = max(closest_line - 1 - n//2, 0)
+        end = min(closest_line - 1 + n//2 + 1, len(source))
+        num_width = len(str(end))
+
+        # split the code
+        source = source[start:end]
+
+        # Compute the prefix_sign length
+        # XXX: use nearpc-prefix here, provide customize?
+        # XXX: copy from color/disasm
+        # This is needed because the config value may be utf8 byte string.
+        # It is better to convert to unicode at setter of config and then we will not need this.
+        prefix_sign = pwndbg.config.nearpc_prefix
+        value = prefix_sign.value
+        if isinstance(value, bytes):
+            value = codecs.decode(value, 'utf-8')
+        prefix_width = len(value)
+
+        # Covert config class to str to make format() work
+        prefix_sign = str(prefix_sign)
+
+        # Format the output
+        formatted_source = []
+        for line_number, code in enumerate(source, start=start + 1):
+            fmt = ' {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}'
+            if pwndbg.config.highlight_source and line_number == closest_line:
+                fmt = C.highlight(fmt)
+
+            line = fmt.format(
+                prefix_sign=prefix_sign if line_number == closest_line else '',
+                prefix_width=prefix_width,
+                line_number=line_number,
+                num_width=num_width,
+                code=code
+            )
+            formatted_source.append(line)
+
+        banner = [pwndbg.ui.banner("Source (code)")]
+        banner.extend(formatted_source)
         return banner
     except:
         pass
