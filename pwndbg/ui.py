@@ -18,6 +18,9 @@ import pwndbg.arch
 import pwndbg.color.context as C
 import pwndbg.color.theme as theme
 import pwndbg.config as config
+from pwndbg.color import ljust_colored
+from pwndbg.color import rjust_colored
+from pwndbg.color import strip
 
 theme.Parameter('banner-separator', '─', 'repeated banner separator character')
 

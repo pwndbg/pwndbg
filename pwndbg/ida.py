@@ -19,7 +19,6 @@ import traceback
 import gdb
 
 import pwndbg.arch
-import pwndbg.color
 import pwndbg.compat
 import pwndbg.config
 import pwndbg.elf
@@ -27,6 +26,7 @@ import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.regs
+from pwndbg.color import message
 
 try:
     import xmlrpc.client as xmlrpclib
@@ -61,7 +61,7 @@ def init_ida_rpc_client():
     exception = None # (type, value, traceback)
     try:
         _ida.here()
-        print(pwndbg.color.green("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
+        print(message.success("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
     except socket.error as e:
         if e.errno != errno.ECONNREFUSED:
             exception = sys.exc_info()
@@ -75,7 +75,7 @@ def init_ida_rpc_client():
 
     if exception:
         if not isinstance(_ida_last_exception, exception[0]) or _ida_last_exception.args != exception[1].args:
-            print(pwndbg.color.yellow("[!] Ida Pro xmlrpc error"))
+            print(message.error("[!] Ida Pro xmlrpc error"))
             traceback.print_exception(*exception)
 
     _ida_last_exception = exception and exception[1]

@@ -15,7 +15,6 @@ import pwndbg.color
 import pwndbg.color.backtrace as B
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
-import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
@@ -27,6 +26,8 @@ import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
+from pwndbg.color import message
+from pwndbg.color import theme
 
 
 def clear_screen():
@@ -104,7 +105,7 @@ def get_regs(*regs):
             continue
 
         if reg not in pwndbg.regs:
-            print("Unknown register: %r" % reg)
+            message.warn("Unknown register: %r" % reg)
             continue
 
         value = pwndbg.regs[reg]
@@ -135,7 +136,7 @@ def get_regs(*regs):
                     name = C.flag_unset(name)
 
                 if value & bit != last & bit:
-                    name = pwndbg.color.underline(name)
+                    name = C.flag_changed(name)
                 names.append(name)
 
             if names:
@@ -304,7 +305,7 @@ def save_signal(signal):
     if isinstance(signal, gdb.ExitedEvent):
         # Booooo old gdb
         if hasattr(signal, 'exit_code'):
-            result.append(pwndbg.color.red('Exited: %r' % signal.exit_code))
+            result.append(message.exit('Exited: %r' % signal.exit_code))
 
     elif isinstance(signal, gdb.SignalEvent):
         msg = 'Program received signal %s' % signal.stop_signal
@@ -314,13 +315,11 @@ def save_signal(signal):
                 msg += ' (fault address %#x)' % int(si_addr or 0)
             except gdb.error:
                 pass
-        msg = pwndbg.color.red(msg)
-        msg = pwndbg.color.bold(msg)
-        result.append(msg)
+        result.append(message.signal(msg))
 
     elif isinstance(signal, gdb.BreakpointEvent):
         for bkpt in signal.breakpoints:
-            result.append(pwndbg.color.yellow('Breakpoint %s' % (bkpt.location)))
+            result.append(message.breakpoint('Breakpoint %s' % (bkpt.location)))
 
 gdb.events.cont.connect(save_signal)
 gdb.events.stop.connect(save_signal)

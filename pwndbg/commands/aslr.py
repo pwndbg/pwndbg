@@ -9,10 +9,10 @@ import argparse
 
 import gdb
 
-import pwndbg.color
 import pwndbg.commands
 import pwndbg.proc
 import pwndbg.vmmap
+from pwndbg.color import message
 
 options = {'on':'off', 'off':'on'}
 
@@ -35,9 +35,9 @@ def aslr(state=None):
             print("Change will take effect when the process restarts")
 
     aslr = pwndbg.vmmap.check_aslr()
-    status = pwndbg.color.red('OFF')
+    status = message.off('OFF')
 
     if aslr:
-        status = pwndbg.color.green('ON')
+        status = message.on('ON')
 
     print("ASLR is %s" % status)

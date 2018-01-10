@@ -10,13 +10,11 @@ import struct
 import gdb
 import six
 
+import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.typeinfo
-from pwndbg.color import bold
-from pwndbg.color import red
-from pwndbg.color import underline
-from pwndbg.color import yellow
+from pwndbg.color import message
 
 
 def read_chunk(addr):
@@ -47,10 +45,10 @@ def format_bin(bins, verbose=False):
         if isinstance(size, int):
             size = hex(size)
 
-        result.append((bold(size) + ': ').ljust(13) + formatted_chain)
+        result.append((message.hint(size) + ': ').ljust(13) + formatted_chain)
 
     if not result:
-        result.append(bold('empty'))
+        result.append(message.hint('empty'))
 
     return result
 
@@ -70,14 +68,14 @@ def heap(addr=None):
     heap_region = main_heap.get_region(addr)
 
     if heap_region is None:
-        print(red('Could not find the heap'))
+        print(message.error('Could not find the heap'))
         return
 
     top = main_arena['top']
     last_remainder = main_arena['last_remainder']
 
-    print(bold('Top Chunk: ') + M.get(top))
-    print(bold('Last Remainder: ') + M.get(last_remainder))
+    print(message.hint('Top Chunk: ') + M.get(top))
+    print(message.hint('Last Remainder: ') + M.get(last_remainder))
     print()
 
     # Print out all chunks on the heap
@@ -124,10 +122,10 @@ def arenas():
         
         h = heap.get_region(addr)
         if not h:
-            print(red('Could not find the heap'))
+            print(message.error('Could not find the heap'))
             return
 
-        hdr = bold(fmt%(hex(addr) if addr else 'main'))
+        hdr = message.hint(fmt % (hex(addr) if addr else 'main'))
         print(hdr, M.heap(str(h)))
         addr = int(arena['next'])        
         arena = heap.get_arena(addr)
@@ -157,7 +155,7 @@ def top_chunk(addr=None):
     if main_arena is None:
         heap_region = main_heap.get_region()
         if not heap_region:
-            print(red('Could not find the heap'))
+            print(message.error('Could not find the heap'))
             return
 
         heap_start = heap_region.vaddr
@@ -206,13 +204,13 @@ def malloc_chunk(addr):
     header = M.get(addr)
     if prev_inuse:
         if actual_size in fastbins:
-            header += yellow(' FASTBIN')
+            header += message.hint(' FASTBIN')
         else:
-            header += yellow(' PREV_INUSE')
+            header += message.hint(' PREV_INUSE')
     if is_mmapped:
-        header += yellow(' IS_MMAPED')
+        header += message.hint(' IS_MMAPED')
     if non_main_arena:
-        header += yellow(' NON_MAIN_ARENA')
+        header += message.hint(' NON_MAIN_ARENA')
     print(header, chunk["value"])
 
     return chunk
@@ -244,7 +242,7 @@ def fastbins(addr=None, verbose=True):
 
     formatted_bins = format_bin(fastbins, verbose)
 
-    print(underline(yellow('fastbins')))
+    print(C.banner('fastbins'))
     for node in formatted_bins:
         print(node)
 
@@ -263,7 +261,7 @@ def unsortedbin(addr=None, verbose=True):
 
     formatted_bins = format_bin(unsortedbin, verbose)
 
-    print(underline(yellow('unsortedbin')))
+    print(C.banner('unsortedbin'))
     for node in formatted_bins:
         print(node)
 
@@ -282,7 +280,7 @@ def smallbins(addr=None, verbose=False):
 
     formatted_bins = format_bin(smallbins, verbose)
 
-    print(underline(yellow('smallbins')))
+    print(C.banner('smallbins'))
     for node in formatted_bins:
         print(node)
 
@@ -301,7 +299,7 @@ def largebins(addr=None, verbose=False):
 
     formatted_bins = format_bin(largebins, verbose)
 
-    print(underline(yellow('largebins')))
+    print(C.banner('largebins'))
     for node in formatted_bins:
         print(node)
 
@@ -327,7 +325,7 @@ def find_fake_fast(addr, size):
         8: 'Q'
     }[pwndbg.arch.ptrsize]
 
-    print(red("FAKE CHUNKS"))
+    print(C.banner("FAKE CHUNKS"))
     for offset in range(max_fast - pwndbg.arch.ptrsize):
         candidate = mem[offset:offset + pwndbg.arch.ptrsize]
         if len(candidate) == pwndbg.arch.ptrsize:

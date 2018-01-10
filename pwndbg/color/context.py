@@ -15,6 +15,7 @@ config_flag_value_color         = theme.ColoredParameter('context-flag-value-col
 config_flag_bracket_color       = theme.ColoredParameter('context-flag-bracket-color', 'none', 'color for flags register (bracket)')
 config_flag_set_color           = theme.ColoredParameter('context-flag-set-color', 'green,bold', 'color for flags register (flag set)')
 config_flag_unset_color         = theme.ColoredParameter('context-flag-unset-color', 'red', 'color for flags register (flag unset)')
+config_flag_changed_color       = theme.ColoredParameter('context-flag-changed-color', 'underline', 'color for flags register (flag changed)')
 config_banner_color             = theme.ColoredParameter('banner-color', 'blue', 'color for banner line')
 config_register_changed_color   = theme.ColoredParameter('context-register-changed-color', 'normal', 'color for registers label (change marker)')
 config_register_changed_marker  = theme.Parameter('context-register-changed-marker', '*', 'change marker for registers label')
@@ -39,6 +40,9 @@ def flag_set(x):
 
 def flag_unset(x):
     return generateColorFunction(config.context_flag_unset_color)(x)
+
+def flag_changed(x):
+    return generateColorFunction(config.context_flag_changed_color)(x)
 
 def banner(x):
     return generateColorFunction(config.banner_color)(x)
