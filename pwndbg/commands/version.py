@@ -14,8 +14,8 @@ import sys
 import gdb
 
 import pwndbg
-import pwndbg.color
 import pwndbg.commands
+from pwndbg.color import message
 
 
 def _gdb_version():
@@ -54,4 +54,4 @@ def version():
     capstone_str = 'Capstone: %s' % capstone_version()
     unicorn_str  = 'Unicorn:  %s' % unicorn_version()
 
-    print('\n'.join(map(pwndbg.color.light_red, (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str))))
+    print('\n'.join(map(message.system, (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str))))

@@ -11,10 +11,7 @@ import pwndbg.commands
 import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.vmmap
-from pwndbg.color import blue
-from pwndbg.color import bold
-from pwndbg.color import green
-from pwndbg.color import red
+from pwndbg.color import message
 
 
 @pwndbg.commands.Command
@@ -38,7 +35,7 @@ def defcon_heap(addr=0x2aaaaaad5000):
 
 
 def heap_freebins(addr=0x0602558):
-    print(bold('Linked List'))
+    print(message.notice('Linked List'))
 
     # addr = 0x0602558
     # addr = 0x060E360
@@ -81,12 +78,12 @@ def heap_allocations(addr, free):
         size   &= ~3
 
         if size > 0x1000:
-            print(red(bold("FOUND CORRUPTION OR END OF DATA")))
+            print(message.error("FOUND CORRUPTION OR END OF DATA"))
 
         data = ''
 
         if not in_use or addr in free:
-            print(blue(bold("%#016x - usersize=%#x - [FREE %i]" % (addr, size, flags))))
+            print(message.hint("%#016x - usersize=%#x - [FREE %i]" % (addr, size, flags)))
 
             linkedlist = (addr + 8 + size - 0x10) & pwndbg.arch.ptrmask
 
@@ -100,7 +97,7 @@ def heap_allocations(addr, free):
             print("    bk: %#x" % bk)
             print("    fd: %#x" % fd)
         else:
-            print(green(bold("%#016x - usersize=%#x" % (addr, size))))
+            print(message.notice("%#016x - usersize=%#x" % (addr, size)))
             pwndbg.commands.hexdump.hexdump(addr+8, size)
 
         addr += size + 8

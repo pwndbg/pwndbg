@@ -15,6 +15,7 @@ import pwndbg.config
 from pwndbg.color import light_yellow
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
+from pwndbg.color.message import hint
 
 
 def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty_space=6):
@@ -45,9 +46,9 @@ def config():
     for v in sorted(values):
         print_row(v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value)
 
-    print(light_yellow('You can set config variable with `set <config-var> <value>`'))
-    print(light_yellow('You can generate configuration file using `configfile` '
-                       '- then put it in your .gdbinit after initializing pwndbg'))
+    print(hint('You can set config variable with `set <config-var> <value>`'))
+    print(hint('You can generate configuration file using `configfile` '
+               '- then put it in your .gdbinit after initializing pwndbg'))
 
 
 configfile_parser = argparse.ArgumentParser(description='Generates a configuration file for the current Pwndbg options')
@@ -78,11 +79,11 @@ def configfile_print_scope(scope, show_all=False):
 
     if params:
         if not show_all:
-            print(light_yellow('Showing only changed values:'))
+            print(hint('Showing only changed values:'))
         for p in params:
             print('# %s: %s' % (p.optname, p.docstring))
             print('# default: %s' % p.native_default)
             print('set %s %s' % (p.optname, p.native_value))
             print()
     else:
-        print(light_yellow('No changed values. To see current values use `%s`.' % scope))
+        print(hint('No changed values. To see current values use `%s`.' % scope))

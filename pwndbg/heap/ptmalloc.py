@@ -11,8 +11,7 @@ import gdb
 
 import pwndbg.events
 import pwndbg.typeinfo
-from pwndbg.color import bold
-from pwndbg.color import red
+from pwndbg.color.message import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
@@ -37,8 +36,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         if main_arena_addr is not None:
             self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
         else:
-            print(bold(red('Symbol \'main arena\' not found. Try installing libc '
-                           'debugging symbols and try again.')))
+            print(message.error('Symbol \'main arena\' not found. Try installing libc '
+                                'debugging symbols and try again.'))
 
         return self._main_arena
 

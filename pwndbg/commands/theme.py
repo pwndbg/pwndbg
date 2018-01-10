@@ -14,7 +14,7 @@ import pwndbg.color.theme
 import pwndbg.commands
 import pwndbg.config
 from pwndbg.color import generateColorFunction
-from pwndbg.color import light_yellow
+from pwndbg.color.message import hint
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import print_row
 
@@ -40,6 +40,6 @@ def theme():
             default = repr(v.default)
         print_row(v.optname, value, default, v.docstring, longest_optname, longest_value)
 
-    print(light_yellow('You can set theme variable with `set <theme-var> <value>`'))
-    print(light_yellow('You can generate theme config file using `themefile` '
-                       '- then put it in your .gdbinit after initializing pwndbg'))
+    print(hint('You can set theme variable with `set <theme-var> <value>`'))
+    print(hint('You can generate theme config file using `themefile` '
+               '- then put it in your .gdbinit after initializing pwndbg'))

@@ -16,7 +16,7 @@ import gdb
 
 import pwndbg.disasm
 import pwndbg.regs
-from pwndbg.color import red
+from pwndbg.color import message
 
 jumps = set((
     capstone.CS_GRP_CALL,
@@ -131,7 +131,7 @@ def break_on_program_code():
     end = mp.end
 
     if start <= pwndbg.regs.pc < end:
-        print(red('The pc is already at the binary objfile code. Not stepping.'))
+        print(message.error('The pc is already at the binary objfile code. Not stepping.'))
         return False
 
     while pwndbg.proc.alive:

@@ -16,16 +16,41 @@ import termios
 
 import pwndbg.arch
 import pwndbg.color.context as C
-import pwndbg.color.theme as theme
-import pwndbg.config as config
+from pwndbg import config
+from pwndbg.color import ljust_colored
+from pwndbg.color import message
+from pwndbg.color import rjust_colored
+from pwndbg.color import strip
+from pwndbg.color import theme
 
 theme.Parameter('banner-separator', '─', 'repeated banner separator character')
+theme.Parameter('banner-title-surrounding-left', '[ ', 'banner title surrounding char (left side)')
+theme.Parameter('banner-title-surrounding-right', ' ]', 'banner title surrounding char (right side)')
+title_position = theme.Parameter('banner-title-position', 'center', 'banner title position')
+
+
+@pwndbg.config.Trigger([title_position])
+def check_title_position():
+    valid_values = ['center', 'left', 'right']
+    if str(title_position) not in valid_values:
+        print(message.warn('Invalid title position: %s, must be one of: %s' %
+              (title_position.value, ', '.join(valid_values))))
+        title_position.value = title_position.default
+
 
 def banner(title):
     title = title.upper()
     _height, width = get_window_size()
-    width -= 2
-    return C.banner(("[{:%s^%ss}]" % (config.banner_separator, width)).format(title))
+    title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
+    position = str(title_position)
+    if 'left' == position:
+        banner = ljust_colored(title, width, str(config.banner_separator))
+    elif 'right' == position:
+        banner = rjust_colored(title, width, str(config.banner_separator))
+    else:
+        banner = rjust_colored(title, (width + len(strip(title))) // 2, str(config.banner_separator))
+        banner = ljust_colored(banner, width, str(config.banner_separator))
+    return C.banner(banner)
 
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask
