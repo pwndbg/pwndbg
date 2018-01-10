@@ -73,3 +73,6 @@ def terminateWith(x, color):
 
 def ljust_colored(x, length, char=' '):
     return x + (length - len(strip(x))) * char
+
+def rjust_colored(x, length, char=' '):
+    return ((length - len(strip(x))) * char) + x
