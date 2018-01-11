@@ -91,7 +91,7 @@ def hexdump(data, address = 0, width = 16, skip = True, offset = 0):
 
         yield(''.join(hexline))
 
-    # skip empty fooder if we printed something
+    # skip empty footer if we printed something
     if last_line:
         return
 
