@@ -45,6 +45,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     """
     Disassemble near a specified address.
     """
+
+    if nearpc.repeat:
+        pc = nearpc.last_pc
+
     result = []
 
     # Fix the case where we only have one argument, and
@@ -93,6 +97,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Gather all addresses and symbols for each instruction
     symbols = [pwndbg.symbol.get(i.address) for i in instructions]
     addresses = ['%#x' % i.address for i in instructions]
+
+    nearpc.last_pc = instructions[-1].address if instructions else 0
 
     # Format the symbol name for each instruction
     symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
@@ -171,6 +177,7 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
     """
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
+    nearpc.repeat = emulate.repeat
     return nearpc(pc, lines, to_string, emulate)
 
 @pwndbg.commands.ParsedCommand
@@ -179,4 +186,8 @@ def pdisass(pc=None, lines=None):
     """
     Compatibility layer for PEDA's pdisass command
     """
+    nearpc.repeat = pdisass.repeat
     return nearpc(pc, lines, False, False)
+
+
+nearpc.last_pc = 0
