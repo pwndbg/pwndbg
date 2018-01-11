@@ -123,6 +123,9 @@ class Parameter(gdb.Parameter):
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)
 
+    def split(self):
+        return str(self).replace(',', ' ').split()
+
     def __int__(self):
         return int(self.value)
 
