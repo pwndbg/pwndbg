@@ -15,6 +15,8 @@ from capstone import CS_GRP_INT
 
 import pwndbg.abi
 import pwndbg.arch
+import pwndbg.chain
+import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.funcparser
@@ -192,3 +194,12 @@ def arguments(abi=None):
 
     for i in range(len(regs)):
         yield argname(i, abi), argument(i, abi)
+
+
+def format_args(instruction):
+    result = []
+    for arg, value in get(instruction):
+        code   = arg.type != 'char'
+        pretty = pwndbg.chain.format(value, code=code)
+        result.append('%-10s %s' % (N.argument(arg.name) + ':', pretty))
+    return result
