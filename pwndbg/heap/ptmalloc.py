@@ -11,7 +11,7 @@ import gdb
 
 import pwndbg.events
 import pwndbg.typeinfo
-from pwndbg.color.message import message
+from pwndbg.color import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
