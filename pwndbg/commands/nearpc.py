@@ -38,6 +38,7 @@ pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the cur
 pwndbg.color.theme.Parameter('nearpc-prefix', '►', 'prefix marker for nearpc command')
 pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
 nearpc_lines = pwndbg.config.Parameter('nearpc-lines', 10, 'number of additional lines to print for the nearpc command')
+show_args = pwndbg.config.Parameter('nearpc-show-args', True, 'show call arguments below instruction')
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -152,10 +153,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        for arg, value in pwndbg.arguments.get(i):
-            code   = False if arg.type == 'char' else True
-            pretty = pwndbg.chain.format(value, code=code)
-            result.append('%8s%-10s %s' % ('', N.argument(arg.name) + ':', pretty))
+        if show_args.value:
+            result.extend(['%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=i)])
 
         prev = i
 

@@ -331,22 +331,17 @@ def context_backtrace(frame_count=10, with_banner=True):
     return result
 
 
-def context_args():
-    result = []
+def context_args(with_banner=True):
+    args = pwndbg.arguments.format_args(pwndbg.disasm.one())
 
-    ##################################################
-    # DISABLED FOR NOW, I LIKE INLINE DISPLAY BETTER
-    ##################################################
-    # # For call instructions, attempt to resolve the target and
-    # # determine the number of arguments.
-    # for arg, value in pwndbg.arguments.arguments(pwndbg.disasm.one()):
-    #     code   = False if arg.type == 'char' else True
-    #     pretty = pwndbg.chain.format(value, code=code)
-    #     result.append('%-10s %s' % (arg.name+':', pretty))
-    # if not result:
-    #         return []
-    # result.insert(0, pwndbg.ui.banner("arguments"))
-    return result
+    # early exit to skip section if no arg found
+    if not args:
+        return []
+
+    if with_banner:
+        args.insert(0, pwndbg.ui.banner("arguments"))
+
+    return args
 
 last_signal = []
 
@@ -386,6 +381,7 @@ def context_signal():
 context_sections = {
     'r': context_regs,
     'd': context_disasm,
+    'a': context_args,
     'c': context_code,
     's': context_stack,
     'b': context_backtrace
