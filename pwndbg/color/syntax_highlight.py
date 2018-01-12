@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 import os.path
 import re
 
+import pwndbg.config
 from pwndbg.color import message
 from pwndbg.color import theme
-import pwndbg.config
 
 try:
     import pygments
