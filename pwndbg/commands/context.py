@@ -219,8 +219,7 @@ def context_code():
         source = source[start:end]
 
         # Compute the prefix_sign length
-        # XXX: use nearpc-prefix here, provide customize?
-        # XXX: copy from color/disasm
+        # TODO: remove this if the config setter can make sure everything is unicode.
         # This is needed because the config value may be utf8 byte string.
         # It is better to convert to unicode at setter of config and then we will not need this.
         prefix_sign = pwndbg.config.nearpc_prefix
@@ -229,7 +228,7 @@ def context_code():
             value = codecs.decode(value, 'utf-8')
         prefix_width = len(value)
 
-        # Covert config class to str to make format() work
+        # Convert config class to str to make format() work
         prefix_sign = str(prefix_sign)
 
         # Format the output

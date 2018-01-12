@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,8 +7,8 @@ from __future__ import unicode_literals
 import os.path
 import re
 
-import pwndbg.color.message as message
-import pwndbg.color.theme as theme
+from pwndbg.color import message
+from pwndbg.color import theme
 import pwndbg.config
 
 try:
