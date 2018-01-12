@@ -8,4 +8,5 @@ python-ptrace>=0.8
 ROPgadget
 six
 unicorn>=1.0.0
+pygments
 https://github.com/aquynh/capstone/archive/next.zip#subdirectory=bindings/python
