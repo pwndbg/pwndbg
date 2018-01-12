@@ -42,7 +42,21 @@ def clear_screen():
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
 config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'regs disasm code stack backtrace',
-                                                  'which context sections are displayed by default (also controls order)')
+                                                  'which context sections are displayed (controls order)')
+
+
+@pwndbg.config.Trigger([config_context_sections])
+def validate_context_sections():
+    # if trying to set an empty string, we assume default is wanted
+    if not config_context_sections.value:
+        config_context_sections.value = config_context_sections.default
+
+    valid_values = [context.__name__.replace('context_', '') for context in context_sections.values()]
+    for section in config_context_sections.split():
+        if section not in valid_values:
+            print(message.warn("Invalid section: %s, valid values: %s" % (section, ', '.join(valid_values))))
+            config_context_sections.value = config_context_sections.default
+            return
 
 
 # @pwndbg.events.stop
@@ -55,7 +69,7 @@ def context(*args):
     Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
     """
     if len(args) == 0:
-        args = str(config_context_sections).split()
+        args = config_context_sections.split()
 
     args = [a[0] for a in args]
 
