@@ -169,6 +169,8 @@ theme.Parameter('highlight-source', True, 'whether to highlight the closest sour
 source_code_lines = pwndbg.config.Parameter('context-source-code-lines',
                                              10,
                                              'number of source code lines to print by the context command')
+theme.Parameter('code-prefix', '►', "prefix marker for 'context code' command")
+
 @pwndbg.memoize.reset_on_start
 def get_highlight_source(filename):
     # Notice that the code is cached
@@ -222,7 +224,7 @@ def context_code():
         # TODO: remove this if the config setter can make sure everything is unicode.
         # This is needed because the config value may be utf8 byte string.
         # It is better to convert to unicode at setter of config and then we will not need this.
-        prefix_sign = pwndbg.config.nearpc_prefix
+        prefix_sign = pwndbg.config.code_prefix
         value = prefix_sign.value
         if isinstance(value, bytes):
             value = codecs.decode(value, 'utf-8')
@@ -239,7 +241,7 @@ def context_code():
                 fmt = C.highlight(fmt)
 
             line = fmt.format(
-                prefix_sign=prefix_sign if line_number == closest_line else '',
+                prefix_sign=C.prefix(prefix_sign) if line_number == closest_line else '',
                 prefix_width=prefix_width,
                 line_number=line_number,
                 num_width=num_width,

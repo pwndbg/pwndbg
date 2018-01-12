@@ -9,6 +9,7 @@ import pwndbg.color.theme as theme
 import pwndbg.config as config
 from pwndbg.color import generateColorFunction
 
+config_prefix_color             = theme.ColoredParameter('code-prefix-color', 'none', "color for 'context code' command (prefix marker)")
 config_highlight_color          = theme.ColoredParameter('highlight-color', 'green,bold', 'color added to highlights like source/pc')
 config_register_color           = theme.ColoredParameter('context-register-color', 'bold', 'color for registers label')
 config_flag_value_color         = theme.ColoredParameter('context-flag-value-color', 'none', 'color for flags register (register value)')
@@ -20,6 +21,9 @@ config_banner_color             = theme.ColoredParameter('banner-color', 'blue',
 config_banner_title             = theme.ColoredParameter('banner-title-color', 'none', 'color for banner title')
 config_register_changed_color   = theme.ColoredParameter('context-register-changed-color', 'normal', 'color for registers label (change marker)')
 config_register_changed_marker  = theme.Parameter('context-register-changed-marker', '*', 'change marker for registers label')
+
+def prefix(x):
+    return generateColorFunction(config.code_prefix_color)(x)
 
 def highlight(x):
     return generateColorFunction(config.highlight_color)(x)
