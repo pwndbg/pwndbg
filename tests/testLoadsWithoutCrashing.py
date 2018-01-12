@@ -17,5 +17,5 @@ def escape_ansi(line):
 def test_loads_wivout_crashing_bruv():
     output = escape_ansi(common.run_gdb_with_script())
 
-    assert ('pwndbg: loaded 156 commands. Type pwndbg [filter] for a list.\n'
+    assert ('pwndbg: loaded 159 commands. Type pwndbg [filter] for a list.\n'
             'pwndbg: created $rebase, $ida gdb functions (can be used with print/break)') in output, output

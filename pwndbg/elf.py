@@ -173,14 +173,12 @@ def get_ehdr(pointer):
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
 
-    # XXX: for non linux ABI, the ELF header may not be found in memory.
+    # For non linux ABI, the ELF header may not be found in memory.
     # This will hang the gdb when using the remote gdbserver to scan 1024 pages
-    if not pwndbg.abi.linux:
-        return None, None
-
     base = find_elf_magic(pointer, search_down=True)
     if base is None:
-        print("ERROR: Could not find ELF base!")
+        if pwndbg.abi.linux:
+            print("ERROR: Could not find ELF base!")
         return None, None
 
     # Determine whether it's 32- or 64-bit

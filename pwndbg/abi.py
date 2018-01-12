@@ -10,6 +10,7 @@ import re
 import gdb
 
 import pwndbg.arch
+import pwndbg.color.message as M
 
 
 class ABI(object):
@@ -136,6 +137,17 @@ def update():
 
         linux = 'Linux' in abi
 
+    if not linux:
+        msg = M.warn(
+            "The bare metal debugging is enabled since the gdb's osabi is '%s' which is not 'GNU/Linux'.\n"
+            "Ex. the page resolving and memory de-referencing ONLY works on known pages.\n"
+            "This option is based ib gdb client compile arguments (by default) and will be corrected if you load an ELF which has the '.note.ABI-tag' section.\n"
+            "If you are debuging a program that runs on Linux ABI, please select the correct gdb client."
+            % abi
+        )
+        print(msg)
+
+
 def LinuxOnly(default=None):
     """Create a decorator that the function will be called when ABI is Linux.
     Otherwise, return `default`.
@@ -150,3 +162,7 @@ def LinuxOnly(default=None):
         return caller
 
     return decorator
+
+
+# Update when starting the gdb to show warning message for non-Linux ABI user.
+update()

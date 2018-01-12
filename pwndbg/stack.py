@@ -45,6 +45,11 @@ def find(address):
 def find_upper_stack_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
 
+    # We can't get the stack size from stack layout and page fault on bare metal mode,
+    # so we return current page as a walkaround.
+    if not pwndbg.abi.linux:
+        return addr + pwndbg.memory.PAGE_SIZE
+
     return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
 
 
