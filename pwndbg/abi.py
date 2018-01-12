@@ -164,5 +164,5 @@ def LinuxOnly(default=None):
     return decorator
 
 
-# XXX: Update when starting the gdb to show warning message for non-Linux ABI user.
+# Update when starting the gdb to show warning message for non-Linux ABI user.
 update()
