@@ -139,10 +139,10 @@ def update():
 
     if not linux:
         msg = M.warn(
-            "The bare metal debugging will enable since the gdb's osabi is '%s' which is not 'GNU/Linux'.\n"
+            "The bare metal debugging is enabled since the gdb's osabi is '%s' which is not 'GNU/Linux'.\n"
             "Ex. the page resolving and memory de-referencing ONLY works on known pages.\n"
-            "This option is seleted from compile arguments of gdb client and will be corrected if you load an ELF that contains ABI information.\n"
-            "If you are debuging some program that running on Linux ABI, please select the correct gdb client."
+            "This option is based ib gdb client compile arguments (by default) and will be corrected if you load an ELF which has the '.note.ABI-tag' section.\n"
+            "If you are debuging a program that runs on Linux ABI, please select the correct gdb client."
             % abi
         )
         print(msg)

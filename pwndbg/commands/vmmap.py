@@ -94,7 +94,7 @@ def vmmap_clear():
 
 parser = argparse.ArgumentParser()
 parser.description = 'Load virtual memory map pages from ELF file.'
-parser.add_argument('filename', nargs='?', type=str, help='Filename of ELF, default use the value of pwndbg.proc.exe')
+parser.add_argument('filename', nargs='?', type=str, help='ELF filename, by default uses current loaded filename.')
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):
@@ -103,11 +103,13 @@ def vmmap_load(filename):
 
     print('Load "%s" ...' % filename)
 
-    # Use sections information to recover the segments information.
-    # The entry point of bare metal enviroment is often at the first segments.
-    # This may cause a value < 0x8000 will be considered as a valid pointer.
-    # Ex. entry point is at 0x8000 and its segment starts with 0x0.
-    # TODO: make an argument to choose loading the page information from section or segments
+    # TODO: Add an argument to let use to choose loading the page information from sections or segments
+
+    # Use section information to recover the segment information.
+    # The entry point of bare metal enviroment is often at the first segment.
+    # For example, assume the entry point is at 0x8000.
+    # In most of case, link will create a segment and starts from 0x0.
+    # This cause all values less than 0x8000 be considered as a valid pointer.
     pages = []
     with open(filename, 'rb') as f:
         elffile = ELFFile(f)
