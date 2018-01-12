@@ -44,6 +44,8 @@ class Command(gdb.Command):
         functools.update_wrapper(self, function)
         self.__doc__ = function.__doc__
 
+        self.repeat = False
+
     def split_args(self, argument):
         """Split a command-line string from the user into arguments.
 
