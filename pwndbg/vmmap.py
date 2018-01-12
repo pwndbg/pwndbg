@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import bisect
 import os
 import sys
 
@@ -34,6 +35,8 @@ import pwndbg.typeinfo
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
 explored_pages = []
+
+# List of custom pages that can be managed manually by vmmap_* commands family
 custom_pages = []
 
 @pwndbg.events.new_objfile
@@ -118,12 +121,22 @@ def clear_explored_pages():
 
 
 def add_custom_page(page):
-    custom_pages.append(page)
-    custom_pages.sort()
+    bisect.insort(custom_pages, page)
+
+    # Reset all the cache
+    # We can not reset get() only, since the result may be used by others.
+    # TODO: avoid flush all caches
+    pwndbg.memoize.reset()
+
 
 def clear_custom_page():
     while custom_pages:
         custom_pages.pop()
+
+    # Reset all the cache
+    # We can not reset get() only, since the result may be used by others.
+    # TODO: avoid flush all caches
+    pwndbg.memoize.reset()
 
 
 @pwndbg.memoize.reset_on_stop
