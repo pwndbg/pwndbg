@@ -47,6 +47,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     Disassemble near a specified address.
     """
 
+    # Repeating nearpc (pressing enter) makes it show next addresses
+    # (writing nearpc explicitly again will reset its state)
     if nearpc.repeat:
         pc = nearpc.last_pc
 
@@ -119,10 +121,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if isinstance(value, bytes):
             value = codecs.decode(value, 'utf-8')
 
-        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(value))
+        # Show prefix only on the specified address and don't show it while in repeat-mode
+        show_prefix = i.address == pc and not nearpc.repeat
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if show_prefix else ' ' * len(value))
         prefix = N.prefix(prefix)
-        if pwndbg.config.highlight_pc:
-            prefix = C.highlight(prefix)
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
@@ -132,7 +134,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if i.address != pc or not pwndbg.config.highlight_pc:
             address_str = N.address(address_str)
             s = N.symbol(s)
-        elif pwndbg.config.highlight_pc:
+        elif pwndbg.config.highlight_pc and not nearpc.repeat:
+            prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
             s = C.highlight(s)
 
