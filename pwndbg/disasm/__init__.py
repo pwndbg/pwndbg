@@ -150,7 +150,13 @@ DO_NOT_EMULATE = {
 #    capstone.CS_GRP_PRIVILEGE,
 }
 
-def near(address, instructions=1, emulate=False):
+def near(address, instructions=1, emulate=False, show_prev_insns=True):
+    """
+    Disasms instructions near given `address`. Passing `emulate` makes use of
+    unicorn engine to emulate instructions to predict branches that will be taken.
+    `show_prev_insns` makes this show previously cached instructions
+    (this is mostly used by context's disasm display, so user see what was previously)
+    """
 
     current = one(address)
 
@@ -159,17 +165,18 @@ def near(address, instructions=1, emulate=False):
     if current is None or not pwndbg.memory.peek(address):
         return []
 
+    insns  = []
+
     # Try to go backward by seeing which instructions we've returned
     # before, which were followed by this one.
-    needle = address
-    insns  = []
-    cached = backward_cache[current.address]
-    insn   = one(cached) if cached else None
-    while insn is not None and len(insns) < instructions:
-        insns.append(insn)
-        cached = backward_cache[insn.address]
-        insn = one(cached) if cached else None
-    insns.reverse()
+    if show_prev_insns:
+        cached = backward_cache[current.address]
+        insn   = one(cached) if cached else None
+        while insn is not None and len(insns) < instructions:
+            insns.append(insn)
+            cached = backward_cache[insn.address]
+            insn = one(cached) if cached else None
+        insns.reverse()
 
     insns.append(current)
 

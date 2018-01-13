@@ -47,8 +47,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     Disassemble near a specified address.
     """
 
+    # Repeating nearpc (pressing enter) makes it show next addresses
+    # (writing nearpc explicitly again will reset its state)
     if nearpc.repeat:
-        pc = nearpc.last_pc
+        pc = nearpc.next_pc
 
     result = []
 
@@ -86,7 +88,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-    instructions = pwndbg.disasm.near(pc, lines, emulate=emulate)
+    instructions = pwndbg.disasm.near(pc, lines, emulate=emulate, show_prev_insns=not nearpc.repeat)
 
     if pwndbg.memory.peek(pc) and not instructions:
         result.append(message.error('Invalid instructions at %#x' % pc))
@@ -99,13 +101,13 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     symbols = [pwndbg.symbol.get(i.address) for i in instructions]
     addresses = ['%#x' % i.address for i in instructions]
 
-    nearpc.last_pc = instructions[-1].address if instructions else 0
+    nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 
     # Format the symbol name for each instruction
     symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
 
     # Pad out all of the symbols and addresses
-    if pwndbg.config.left_pad_disasm:
+    if pwndbg.config.left_pad_disasm and not nearpc.repeat:
         symbols   = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
@@ -119,20 +121,21 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if isinstance(value, bytes):
             value = codecs.decode(value, 'utf-8')
 
-        prefix = ' %s' % (pwndbg.config.nearpc_prefix if i.address == pc else ' ' * len(value))
+        # Show prefix only on the specified address and don't show it while in repeat-mode
+        show_prefix = i.address == pc and not nearpc.repeat
+        prefix = ' %s' % (pwndbg.config.nearpc_prefix if show_prefix else ' ' * len(value))
         prefix = N.prefix(prefix)
-        if pwndbg.config.highlight_pc:
-            prefix = C.highlight(prefix)
 
         pre = pwndbg.ida.Anterior(i.address)
         if pre:
             result.append(N.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
-        if i.address != pc or not pwndbg.config.highlight_pc:
+        if i.address != pc or not pwndbg.config.highlight_pc or nearpc.repeat:
             address_str = N.address(address_str)
             s = N.symbol(s)
         elif pwndbg.config.highlight_pc:
+            prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
             s = C.highlight(s)
 
@@ -189,4 +192,4 @@ def pdisass(pc=None, lines=None):
     return nearpc(pc, lines, False, False)
 
 
-nearpc.last_pc = 0
+nearpc.next_pc = 0
