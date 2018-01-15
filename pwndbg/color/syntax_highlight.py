@@ -33,7 +33,7 @@ def check_style():
         style.value = style.default
 
 
-def syntax_highlight(code, filename):
+def syntax_highlight(code, filename='.asm'):
     # No syntax highlight if pygment is not installed
     if not pygments:
         return code
