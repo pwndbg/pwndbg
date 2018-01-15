@@ -72,7 +72,9 @@ def terminateWith(x, color):
     return re.sub('\x1b\\[0m', NORMAL + color, x)
 
 def ljust_colored(x, length, char=' '):
-    return x + (length - len(strip(x))) * char
+    remaining = length - len(strip(x))
+    return x + ((remaining // len(char) + 1) * char)[:remaining]
 
 def rjust_colored(x, length, char=' '):
-    return ((length - len(strip(x))) * char) + x
+    remaining = length - len(strip(x))
+    return ((remaining // len(char) + 1) * char)[:remaining] + x
