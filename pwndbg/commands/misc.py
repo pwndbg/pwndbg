@@ -51,7 +51,7 @@ parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='F
 
 @_pwndbg.commands.ArgparsedCommand(parser)
 def pwndbg(filter_pattern):
-    for name, docs in _pwndbg.services.misc.pwndbg_list_and_filter_commands(filter_pattern):
+    for name, docs in list_and_filter_commands(filter_pattern):
         print("%-20s %s" % (name, docs))
 
 
@@ -64,3 +64,25 @@ def distance(a, b):
     distance = (b-a)
 
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
+
+
+def list_and_filter_commands(filter_str):
+    sorted_commands = list(_pwndbg.commands.commands)
+    sorted_commands.sort(key=lambda x: x.__name__)
+
+    if filter_str:
+        filter_str = filter_str.lower()
+
+    results = []
+
+    for c in sorted_commands:
+        name = c.__name__
+        docs = c.__doc__
+
+        if docs: docs = docs.strip()
+        if docs: docs = docs.splitlines()[0]
+
+        if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
+            results.append((name, docs))
+
+    return results

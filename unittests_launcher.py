@@ -8,6 +8,10 @@ import sys
 
 sys._pwndbg_unittest_run = True
 
-return_code = pytest.main(['./pwndbg/tests', '-vvv', '-s'])
+args = ['./pwndbg/tests', '-vvv', '-s', '--showlocals', '--color=yes']
+
+print('Launching pytest with args: %s' % args)
+
+return_code = pytest.main(args)
 
 sys.exit(return_code)
