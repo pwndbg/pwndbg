@@ -37,15 +37,15 @@ TYPES[bool] = gdb.PARAM_BOOLEAN
 
 # The value is an integer.
 # This is like PARAM_INTEGER, except 0 is interpreted as itself.
-for type in six.integer_types:
-    TYPES[type] = gdb.PARAM_ZINTEGER
+for typ in six.integer_types:
+    TYPES[typ] = gdb.PARAM_ZINTEGER
 
 # The value is a string.
 # When the user modifies the string, any escape sequences,
 # such as ‘\t’, ‘\f’, and octal escapes, are translated into
 # corresponding characters and encoded into the current host charset.
-for type in six.string_types:
-    TYPES[type] = gdb.PARAM_STRING
+for typ in six.string_types:
+    TYPES[typ] = gdb.PARAM_STRING
 
 triggers = collections.defaultdict(lambda: [])
 
