@@ -163,8 +163,15 @@ class Parameter(gdb.Parameter):
     def get_show_string(self, svalue):
         return 'Sets %s (currently: %r)' % (self.docstring, self.value)
 
-    def split(self):
-        return str(self).replace(',', ' ').split()
+    def revert_default(self):
+        self.value = self.default
+
+    # TODO: use __getattribute__ to remapping all member function to self.value's member?
+    # Then, we can use param.member() just like param.value.member()
+
+    # The str type member function, used in color/__init__.py
+    def split(self, *args, **kargs):
+        return str(self).split(*args, **kargs)
 
     def __int__(self):
         return int(self.value)
