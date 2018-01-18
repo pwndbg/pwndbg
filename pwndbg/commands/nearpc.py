@@ -116,14 +116,11 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
         asm    = D.instruction(instr)
-        value  = pwndbg.config.nearpc_prefix.value
-
-        if isinstance(value, bytes):
-            value = codecs.decode(value, 'utf-8')
+        prefix_sign  = pwndbg.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
         show_prefix = instr.address == pc and not nearpc.repeat
-        prefix = ' %s' % (pwndbg.config.nearpc_prefix if show_prefix else ' ' * len(value))
+        prefix = ' %s' % (prefix_sign if show_prefix else ' ' * len(prefix_sign))
         prefix = N.prefix(prefix)
 
         pre = pwndbg.ida.Anterior(instr.address)
@@ -163,7 +160,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        if show_args.value:
+        if show_args:
             result.extend(['%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=instr)])
 
         prev = instr

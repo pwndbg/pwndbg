@@ -34,9 +34,8 @@ def check_style():
             style=str(style)
         )
     except pygments.util.ClassNotFound:
-        msg = message.warn("The pygment formatter style '%s' is not found, restore to default" % style)
-        print(msg)
-        style.value = style.default
+        print(message.warn("The pygment formatter style '%s' is not found, restore to default" % style))
+        style.revert_default()
 
 
 def syntax_highlight(code, filename='.asm'):
