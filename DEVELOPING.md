@@ -16,13 +16,13 @@ Feel free to update the list below!
 
 * We have a wrapper for GDB's events in `pwndbg/events.py` - thx to that we can e.g. invoke something based upon some event
 
-* We have a caching mechanism which we call "memoization" which we use through Python's decorators - those are defined in `pwndbg/memoize.py` - just check its usages
+* We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/memoize.py` - just check its usages
 
 * Memory accesses should be done through `pwndbg/memory.py` functions
 
 * Process properties can be retrieved thx to `pwndbg/proc.py` - e.g. using `pwndbg.proc.pid` will give us current process pid
 
-* We have an inthook to make it easier to work with Python 2 - see the docstring in `pwndbg/inthook.py`
+* We have an inthook to make it easier to work with Python 2 and gdb.Value objects - see the docstring in `pwndbg/inthook.py` . Specifically, it makes it so that you can call `int()` on a `gdb.Value` instance and get what you want. 
 
 * We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
 
