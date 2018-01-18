@@ -26,6 +26,7 @@ import codecs
 import collections
 import sys
 import types
+from functools import total_ordering
 
 import gdb
 import six
@@ -91,6 +92,7 @@ member_remap = {
     'value': '_value',
     'raw_value': 'value'
 }
+@total_ordering
 class Parameter(gdb.Parameter):
     """
     For python2, we can not store unicode type in self.value since the implementation limitation of gdb python.
@@ -173,6 +175,7 @@ class Parameter(gdb.Parameter):
     def split(self, *args, **kargs):
         return str(self).split(*args, **kargs)
 
+    # Casting
     def __int__(self):
         return int(self.value)
 
@@ -182,8 +185,40 @@ class Parameter(gdb.Parameter):
     def __bool__(self):
         return bool(self.value)
 
+    # Compare operators
+    # Ref: http://portingguide.readthedocs.io/en/latest/comparisons.html
+    # If other is Parameter, comparing by optname. Used in `sorted` in `config` command.
+    # Otherwise, compare `self.value` with `other`
+    def __eq__(self, other):
+        if isinstance(other, gdb.Parameter):
+            return self.optname == other.optname
+        else:
+            return self.value == other
+
     def __lt__(self, other):
-        return self.optname <= other.optname
+        if isinstance(other, gdb.Parameter):
+            return self.optname < other.optname
+        else:
+            return self.value < other
+
+    # Operators
+    def __add__(self, other):
+        return self.value + other
+
+    def __radd__(self, other):
+        return other + self.value
+
+    def __sub__(self, other):
+        return self.value - other
+
+    def __rsub__(self, other):
+        return other - self.value
+
+    def __mul__(self, other):
+        return self.value * other
+
+    def __rmul__(self, other):
+        return other * self.value
 
     def __div__(self, other):
         return self.value / other
@@ -191,20 +226,14 @@ class Parameter(gdb.Parameter):
     def __floordiv__(self, other):
         return self.value // other
 
-    def __mul__(self, other):
-        return self.value * other
-
-    def __sub__(self, other):
-        return self.value - other
-
-    def __add__(self, other):
-        return self.value + other
-
     def __pow__(self, other):
         return self.value ** other
 
     def __mod__(self, other):
         return self.value % other
+
+    def __len__(self):
+        return len(self.value)
 
     # Python2 compatibility
     __nonzero__ = __bool__
