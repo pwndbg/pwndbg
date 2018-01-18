@@ -22,6 +22,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import codecs
 import collections
 import sys
 import types
@@ -86,7 +87,24 @@ def value_to_gdb_native(value):
     return value
 
 
+member_remap = {
+    'value': '_value',
+    'raw_value': 'value'
+}
 class Parameter(gdb.Parameter):
+    """
+    For python2, we can not store unicode type in self.value since the implementation limitation of gdb python.
+    We use self._value as the converted cache and set __getattribute__() and __setattr__() to remap variables.
+
+    Since GDB will set gdb.Parameter.value to user input and call get_set_string(),
+    we use self.raw_value to map back to gdb.Parameter.value
+
+    That is, we remap
+    * Parameter.value -> gdb.Parameter._value (if it is string type, always keep unicode)
+        All getter return this
+    * Parameter.raw_value -> gdb.Parameter.value
+        Only used in get_set_string()
+    """
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
         self.optname = name
@@ -113,11 +131,33 @@ class Parameter(gdb.Parameter):
     def is_changed(self):
         return self.value != self.default
 
+    def __setattr__(self, name, value):
+        new_name = member_remap.get(name, name)
+        new_name = str(new_name) # Python2 only accept str type as key
+        return super(Parameter, self).__setattr__(new_name, value)
+
+    def __getattribute__(self, name):
+        new_name = member_remap.get(name, name)
+        new_name = str(new_name) # Python2 only accept str type as key
+        return super(Parameter, self).__getattribute__(new_name)
+
     def get_set_string(self):
+        value = self.raw_value
+
+        # For string value, convert utf8 byte string to unicode.
+        if isinstance(value, six.binary_type):
+            value = codecs.decode(value, 'utf-8')
+
+        # Remove surrounded ' and " characters
+        if isinstance(value, six.string_types):
+            value = value.strip("\"\'")
+
+        # Write back to self.value
+        self.value = value
+
         for trigger in triggers[self.name]:
             trigger()
-        if isinstance(self.value, str):
-            self.value = self.value.replace("'", '').replace('"', '')
+
         return 'Set %s to %r' % (self.docstring, self.value)
 
     def get_show_string(self, svalue):
