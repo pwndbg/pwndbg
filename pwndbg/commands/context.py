@@ -47,14 +47,19 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
 
 @pwndbg.config.Trigger([config_context_sections])
 def validate_context_sections():
-    # if trying to set an empty string, we assume default is wanted
-    if not config_context_sections.value:
-        config_context_sections.value = config_context_sections.default
-
     valid_values = [context.__name__.replace('context_', '') for context in context_sections.values()]
+
+    # If someone tries to set an empty string, we let to do that informing about possible values
+    # (so that it is possible to have no context at all)
+    if not config_context_sections.value or config_context_sections.value.lower() in ('""', "''", 'none', 'empty'):
+        config_context_sections.value = ''
+        print(message.warn("Sections set to be empty. FYI valid values are: %s" % ', '.join(valid_values)))
+        return
+
     for section in config_context_sections.split():
         if section not in valid_values:
             print(message.warn("Invalid section: %s, valid values: %s" % (section, ', '.join(valid_values))))
+            print(message.warn("(setting none of them like '' will make sections not appear)"))
             config_context_sections.value = config_context_sections.default
             return
 
