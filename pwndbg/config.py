@@ -24,6 +24,7 @@ from __future__ import unicode_literals
 
 import codecs
 import collections
+import re
 import sys
 import types
 from functools import total_ordering
@@ -152,7 +153,11 @@ class Parameter(gdb.Parameter):
 
         # Remove surrounded ' and " characters
         if isinstance(value, six.string_types):
-            value = value.strip("\"\'")
+            # The first character must be ' or " and ends with the same character.
+            # See PR #404 for more information
+            pattern = r"^(?P<quote>[\"'])(?P<content>.*?)(?P=quote)$"
+
+            value = re.sub(pattern, r"\g<content>", value)
 
         # Write back to self.value
         self.value = value
