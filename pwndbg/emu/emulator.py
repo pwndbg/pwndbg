@@ -10,6 +10,7 @@ from __future__ import unicode_literals
 
 import binascii
 import inspect
+import re
 
 import capstone as C
 import gdb
@@ -20,6 +21,19 @@ import pwndbg.disasm
 import pwndbg.emu.emulator
 import pwndbg.memory
 import pwndbg.regs
+
+
+def parse_consts(u_consts):
+    """
+    Unicorn "consts" is a python module consisting of a variable definition
+    for each known entity. We repack it here as a dict for performance.
+    """
+    consts = {}
+    for name in dir(u_consts):
+        if name.startswith('UC_'):
+            consts[name] = getattr(u_consts, name)
+    return consts
+
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {
@@ -33,12 +47,12 @@ arch_to_UC = {
 }
 
 arch_to_UC_consts = {
-    'i386':    U.x86_const,
-    'x86-64':  U.x86_const,
-    'mips':    U.mips_const,
-    'sparc':   U.sparc_const,
-    'arm':     U.arm_const,
-    'aarch64': U.arm64_const,
+    'i386':    parse_consts(U.x86_const),
+    'x86-64':  parse_consts(U.x86_const),
+    'mips':    parse_consts(U.mips_const),
+    'sparc':   parse_consts(U.sparc_const),
+    'arm':     parse_consts(U.arm_const),
+    'aarch64': parse_consts(U.arm64_const),
 }
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
@@ -98,6 +112,7 @@ e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
 '''
 
+
 class Emulator(object):
     def __init__(self):
         self.arch = pwndbg.arch.current
@@ -106,6 +121,14 @@ class Emulator(object):
             raise NotImplementedError("Cannot emulate code for %s" % self.arch)
 
         self.consts = arch_to_UC_consts[self.arch]
+
+        # Just registers, for faster lookup
+        self.const_regs = {}
+        r = re.compile(r'^UC_.*_REG_(.*)$')
+        for k,v in self.consts.items():
+            m = r.match(k)
+            if m:
+                self.const_regs[m.group(1)] = v
 
         self.uc_mode = self.get_uc_mode()
         debug("# Instantiating Unicorn for %s" % self.arch)
@@ -261,8 +284,9 @@ class Emulator(object):
         #  'eax' ==> enum
         #
         if reg in self.regs.all:
-            for reg_enum in (c for c in dir(self.consts) if c.endswith('_' + reg.upper())):
-                return getattr(self.consts, reg_enum)
+            e = self.const_regs.get(reg.upper(), None)
+            if e is not None:
+                return e
 
         # If we're looking for an abstract register which *is* accounted for,
         # we can also do an indirect lookup.

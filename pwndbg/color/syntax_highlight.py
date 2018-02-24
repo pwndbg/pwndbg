@@ -21,8 +21,14 @@ except ImportError:
 
 pwndbg.config.Parameter('syntax-highlight', True, 'Source code / assembly syntax highlight')
 style = theme.Parameter('syntax-highlight-style', 'monokai', 'Source code / assembly syntax highlight stylename of pygments module')
+
+formatter = pygments.formatters.Terminal256Formatter(style=str(style))
+pwntools_lexer = PwntoolsLexer()
+lexer_cache = {}
+
 @pwndbg.config.Trigger([style])
 def check_style():
+    global formatter
     try:
         formatter = pygments.formatters.Terminal256Formatter(
             style=str(style)
@@ -40,20 +46,17 @@ def syntax_highlight(code, filename='.asm'):
 
     filename = os.path.basename(filename)
 
-    formatter = pygments.formatters.Terminal256Formatter(
-        style=str(style)
-    )
-
-    lexer = None
+    lexer = lexer_cache.get(filename, None)
 
     # If source code is asm, use our customized lexer.
     # Note: We can not register our Lexer to pygments and use their APIs,
     # since the pygment only search the lexers installed via setuptools.
-    for glob_pat in PwntoolsLexer.filenames:
-        pat = '^' + glob_pat.replace('.', r'\.').replace('*', r'.*') + '$'
-        if re.match(pat, filename):
-            lexer = PwntoolsLexer()
-            break
+    if not lexer:
+        for glob_pat in PwntoolsLexer.filenames:
+            pat = '^' + glob_pat.replace('.', r'\.').replace('*', r'.*') + '$'
+            if re.match(pat, filename):
+                lexer = pwntools_lexer
+                break
 
     if not lexer:
         try:
@@ -63,6 +66,7 @@ def syntax_highlight(code, filename='.asm'):
             pass
 
     if lexer:
+        lexer_cache[filename] = lexer
         code = pygments.highlight(code, lexer, formatter).rstrip()
 
     return code
