@@ -120,6 +120,7 @@ def returns_address(function):
     return wrapper
 
 
+@pwndbg.memoize.reset_on_objfile
 @withIDA
 def available():
     return True
