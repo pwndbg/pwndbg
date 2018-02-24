@@ -114,36 +114,37 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     prev = None
 
     # Print out each instruction
-    for address_str, s, i in zip(addresses, symbols, instructions):
-        asm    = D.instruction(i)
+    for address_str, symbol, instr in zip(addresses, symbols, instructions):
+        asm    = D.instruction(instr)
         value  = pwndbg.config.nearpc_prefix.value
 
         if isinstance(value, bytes):
             value = codecs.decode(value, 'utf-8')
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
-        show_prefix = i.address == pc and not nearpc.repeat
+        show_prefix = instr.address == pc and not nearpc.repeat
         prefix = ' %s' % (pwndbg.config.nearpc_prefix if show_prefix else ' ' * len(value))
         prefix = N.prefix(prefix)
 
-        pre = pwndbg.ida.Anterior(i.address)
+        pre = pwndbg.ida.Anterior(instr.address)
         if pre:
             result.append(N.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
-        if i.address != pc or not pwndbg.config.highlight_pc or nearpc.repeat:
+        # symbol is fetched from gdb and it can be e.g. '<main+8>'
+        if instr.address != pc or not pwndbg.config.highlight_pc or nearpc.repeat:
             address_str = N.address(address_str)
-            s = N.symbol(s)
+            symbol = N.symbol(symbol)
         elif pwndbg.config.highlight_pc:
             prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
-            s = C.highlight(s)
+            symbol = C.highlight(symbol)
 
-        line   = ' '.join((prefix, address_str, s, asm))
+        line   = ' '.join((prefix, address_str, symbol, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
-        if prev and prev.address + prev.size != i.address:
+        if prev and prev.address + prev.size != instr.address:
             result.append(N.branch_marker('%s' % nearpc_branch_marker))
 
         # Otherwise if it's a branch and it *is* contiguous, just put
@@ -153,8 +154,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
                 result.append('%s' % nearpc_branch_marker_contiguous)
 
         # For syscall instructions, put the name on the side
-        if i.address == pc:
-            syscall_name = pwndbg.arguments.get_syscall_name(i)
+        if instr.address == pc:
+            syscall_name = pwndbg.arguments.get_syscall_name(instr)
             if syscall_name:
                 line += ' <%s>' % N.syscall_name(syscall_name)
 
@@ -163,9 +164,9 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
         if show_args.value:
-            result.extend(['%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=i)])
+            result.extend(['%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=instr)])
 
-        prev = i
+        prev = instr
 
 
     if not to_string:
