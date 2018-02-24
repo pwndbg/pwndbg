@@ -4,6 +4,7 @@ make test > /dev/null
 git log --abbrev-commit --pretty=oneline HEAD^..HEAD
 # To profile first run, remove -ex "context".
 gdb ./test \
+  -ex "source ../gdbinit.py" \
   -ex "b main" -ex "r" \
   -ex "context" \
   -ex "python import cProfile; cProfile.run('pwndbg.commands.context.context()', 'stats')" \
