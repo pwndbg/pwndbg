@@ -21,8 +21,12 @@ except ImportError:
 
 pwndbg.config.Parameter('syntax-highlight', True, 'Source code / assembly syntax highlight')
 style = theme.Parameter('syntax-highlight-style', 'monokai', 'Source code / assembly syntax highlight stylename of pygments module')
+
+formatter = pygments.formatters.Terminal256Formatter(style=str(style))
+
 @pwndbg.config.Trigger([style])
 def check_style():
+    global formatter
     try:
         formatter = pygments.formatters.Terminal256Formatter(
             style=str(style)
@@ -39,10 +43,6 @@ def syntax_highlight(code, filename='.asm'):
         return code
 
     filename = os.path.basename(filename)
-
-    formatter = pygments.formatters.Terminal256Formatter(
-        style=str(style)
-    )
 
     lexer = None
 
