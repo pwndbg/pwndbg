@@ -36,6 +36,7 @@ except:
 
 ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
 ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 8888, 'ida xmlrpc server port')
+ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
 
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -120,9 +121,15 @@ def returns_address(function):
     return wrapper
 
 
-@pwndbg.memoize.reset_on_objfile
-@withIDA
+@pwndbg.memoize.reset_on_stop
 def available():
+    if not ida_enabled:
+        return False
+    return can_connect()
+
+
+@withIDA
+def can_connect():
     return True
 
 
