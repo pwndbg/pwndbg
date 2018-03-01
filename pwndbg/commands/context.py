@@ -51,7 +51,7 @@ def validate_context_sections():
 
     # If someone tries to set an empty string, we let to do that informing about possible values
     # (so that it is possible to have no context at all)
-    if not config_context_sections.value or config_context_sections.value.lower() in ('""', "''", 'none', 'empty'):
+    if not config_context_sections.value or config_context_sections.value.lower() in ('none', 'empty'):
         config_context_sections.value = ''
         print(message.warn("Sections set to be empty. FYI valid values are: %s" % ', '.join(valid_values)))
         return
@@ -60,7 +60,7 @@ def validate_context_sections():
         if section not in valid_values:
             print(message.warn("Invalid section: %s, valid values: %s" % (section, ', '.join(valid_values))))
             print(message.warn("(setting none of them like '' will make sections not appear)"))
-            config_context_sections.value = config_context_sections.default
+            config_context_sections.revert_default()
             return
 
 
@@ -240,17 +240,8 @@ def context_code():
         source = source[start:end]
 
         # Compute the prefix_sign length
-        # TODO: remove this if the config setter can make sure everything is unicode.
-        # This is needed because the config value may be utf8 byte string.
-        # It is better to convert to unicode at setter of config and then we will not need this.
         prefix_sign = pwndbg.config.code_prefix
-        value = prefix_sign.value
-        if isinstance(value, bytes):
-            value = codecs.decode(value, 'utf-8')
-        prefix_width = len(value)
-
-        # Convert config class to str to make format() work
-        prefix_sign = str(prefix_sign)
+        prefix_width = len(prefix_sign)
 
         # Format the output
         formatted_source = []

@@ -32,24 +32,23 @@ title_position = theme.Parameter('banner-title-position', 'center', 'banner titl
 @pwndbg.config.Trigger([title_position])
 def check_title_position():
     valid_values = ['center', 'left', 'right']
-    if str(title_position) not in valid_values:
+    if title_position not in valid_values:
         print(message.warn('Invalid title position: %s, must be one of: %s' %
-              (title_position.value, ', '.join(valid_values))))
-        title_position.value = title_position.default
+              (title_position, ', '.join(valid_values))))
+        title_position.revert_default()
 
 
 def banner(title):
     title = title.upper()
     _height, width = get_window_size()
     title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
-    position = str(title_position)
-    if 'left' == position:
-        banner = ljust_colored(title, width, str(config.banner_separator))
-    elif 'right' == position:
-        banner = rjust_colored(title, width, str(config.banner_separator))
+    if 'left' == title_position:
+        banner = ljust_colored(title, width, config.banner_separator)
+    elif 'right' == title_position:
+        banner = rjust_colored(title, width, config.banner_separator)
     else:
-        banner = rjust_colored(title, (width + len(strip(title))) // 2, str(config.banner_separator))
-        banner = ljust_colored(banner, width, str(config.banner_separator))
+        banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
+        banner = ljust_colored(banner, width, config.banner_separator)
     return C.banner(banner)
 
 def addrsz(address):

@@ -7,8 +7,6 @@ from __future__ import unicode_literals
 
 import re
 
-import six
-
 import pwndbg.memoize
 
 NORMAL         = "\x1b[0m"
@@ -63,7 +61,7 @@ def generateColorFunctionInner(old, new):
 
 def generateColorFunction(config):
     function = lambda x: x
-    for color in str(config).split(','):
+    for color in config.split(','):
         function = generateColorFunctionInner(function, globals()[color.lower().replace('-', '_')])
     return function
 
@@ -74,17 +72,9 @@ def terminateWith(x, color):
     return re.sub('\x1b\\[0m', NORMAL + color, x)
 
 def ljust_colored(x, length, char=' '):
-    # TODO: workaround until issue #404
-    if six.PY2:
-        x = x if isinstance(x, six.text_type) else x.decode('utf8')
-        char = char if isinstance(char, six.text_type) else char.decode('utf8')
     remaining = length - len(strip(x))
     return x + ((remaining // len(char) + 1) * char)[:remaining]
 
 def rjust_colored(x, length, char=' '):
-    # TODO: workaround until issue #404
-    if six.PY2:
-        x = x if isinstance(x, six.text_type) else x.decode('utf8')
-        char = char if isinstance(char, six.text_type) else char.decode('utf8')
     remaining = length - len(strip(x))
     return ((remaining // len(char) + 1) * char)[:remaining] + x
