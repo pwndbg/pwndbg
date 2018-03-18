@@ -38,10 +38,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         if main_arena_addr is not None:
             self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
         else:
-            print(message.error('Symbol \'main arena\' not found. Try installing libc '
+            print(message.error('Symbol \'main_arena\' not found. Try installing libc '
                                 'debugging symbols and try again.'))
 
         return self._main_arena
+
+    def has_tcache(self):
+        return (self.mp and self.mp['tcache_bins'])
 
 
     @property
@@ -55,8 +58,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             except Exception as e:
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
-                self._thread_cache = None
         else:
+            if not has_tcache():
+                print(message.warning('Your libc does not use thread cache'))
+                return None
+
             print(message.error('Symbol \'tcache\' not found. Try installing libc '
                                 'debugging symbols and try again.'))
 
@@ -137,6 +143,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    def malloc_align_mask(self):
+        """Corresponds to MALLOC_ALIGN_MASK in glibc malloc.c"""
+        return self.malloc_alignment - 1
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
     def minsize(self):
         """Corresponds to MINSIZE in glibc malloc.c"""
         return self.min_chunk_size
@@ -147,6 +159,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def min_chunk_size(self):
         """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.arch.ptrsize * 4
+
+    def _request2size(self, req):
+        """Corresponds to request2size in glibc malloc.c"""
+        if req + self.size_sz + self.malloc_align_mask < self.minsize:
+            return self.minsize
+        return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
 
     def _spaces_table(self):
@@ -312,7 +330,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         result = OrderedDict()
         for i in range(num_tcachebins):
-            size = tidx2usize(i)
+            size = self._request2size(tidx2usize(i))
             count = int(counts[i])
             chain = pwndbg.chain.get(int(entries[i]), offset=self.tcache_next_offset, limit=heap_chain_limit)
 

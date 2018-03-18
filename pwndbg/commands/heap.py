@@ -252,7 +252,8 @@ def bins(addr=None, tcache_addr=None):
     Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
     main_arena or the specified address.
     """
-    tcachebins(tcache_addr)
+    if pwndbg.heap.current.has_tcache():
+        tcachebins(tcache_addr)
     fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
