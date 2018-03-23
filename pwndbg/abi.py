@@ -125,17 +125,23 @@ def update():
     global linux
 
     # Detect current ABI of client side by 'show osabi'
-    osabi_string = gdb.execute('show osabi', to_string=True)
+    #
+    # Examples of strings returned by `show osabi`:
+    # 'The current OS ABI is "auto" (currently "GNU/Linux").\nThe default OS ABI is "GNU/Linux".\n'
+    # 'The current OS ABI is "GNU/Linux".\nThe default OS ABI is "GNU/Linux".\n'
+    # 'El actual SO ABI es «auto» (actualmente «GNU/Linux»).\nEl SO ABI predeterminado es «GNU/Linux».\n'
+    # 'The current OS ABI is "auto" (currently "none")'
+    #
+    # As you can see, there might be GDBs with different language versions
+    # and so we have to support it there too.
+    # Lets assume and hope that `current osabi` is returned in first line in all languages...
+    current_osabi = gdb.execute('show osabi', to_string=True).split('\n')[0]
 
-    # The return string will be:
-    # The current OS ABI is "auto" (currently "GNU/Linux").
-    match = re.search('currently "([^"]+)"', osabi_string)
-    if match:
-        # 'GNU/Linux': linux
-        # 'none': bare metal
-        abi = match.group(1)
+    # Currently we support those osabis:
+    # 'GNU/Linux': linux
+    # 'none': bare metal
 
-        linux = 'Linux' in abi
+    linux = 'GNU/Linux' in current_osabi
 
     if not linux:
         msg = M.warn(
