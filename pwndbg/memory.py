@@ -9,6 +9,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+from builtins import bytes
 
 import gdb
 
@@ -99,7 +100,7 @@ def write(addr, data):
         addr(int): Address to write
         data(str,bytes,bytearray): Data to write
     """
-    gdb.selected_inferior().write_memory(addr, bytes(data))
+    gdb.selected_inferior().write_memory(addr, bytes(data, 'utf8'))
 
 
 def peek(address):
