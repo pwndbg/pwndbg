@@ -52,9 +52,15 @@ def get_load_segment_info():
     #                FileSiz            MemSiz             Flags  Align
     # LOAD           0x0000000000000000 0x0000000000000000 0x0000000000000000
     #                0x0000000000000830 0x0000000000000830  R E    0x200000
+    #
+    ############################################################################
+    #
+    # NOTE: On some readelf versions the Align column might not be prefixed with 0x
+    # See https://github.com/pwndbg/pwndbg/issues/427
+    #
     # Account for this using two regular expressions
     re_first = re.compile(r"\s+LOAD\s+(0x[0-9A-Fa-f]+) (0x[0-9A-Fa-f]+) (0x[0-9A-Fa-f]+)")
-    re_secnd = re.compile(r"\s+(0x[0-9A-Fa-f]+) (0x[0-9A-Fa-f]+)  (.)(.)(.)\s+(0x[0-9A-Fa-f]+)")
+    re_secnd = re.compile(r"\s+(0x[0-9A-Fa-f]+) (0x[0-9A-Fa-f]+)  (.)(.)(.)\s+(0x)?([0-9A-Fa-f]+)")
     hex2int = lambda x: int(x, 16)
 
     for line in readelf_out.splitlines():
@@ -62,8 +68,8 @@ def get_load_segment_info():
             load_found = True
             offset, vaddr, paddr = map(hex2int, re_first.match(line).groups())
         elif load_found:
-            fsize, msize, read, write, execute, align = re_secnd.match(line).groups()
-            fsize, msize, align = map(hex2int, (fsize, msize, align))
+            fsize, msize, read, write, execute, _optional_prefix, align = re_secnd.match(line).groups()
+            fsize, msize, align = map(hex2int, (fsize, msize, '0x' + align))
             read = read == "R"
             write = write == "W"
             execute = execute == "E"
