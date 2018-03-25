@@ -183,7 +183,7 @@ def top_chunk(addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def malloc_chunk(addr):
+def malloc_chunk(addr,fake=False):
     """
     Prints out the malloc_chunk at the specified address.
     """
@@ -197,11 +197,13 @@ def malloc_chunk(addr):
     actual_size = size & ~7
     prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
     arena = None
-    if non_main_arena:
+    if not fake and non_main_arena:
         arena = main_heap.get_heap(addr)['ar_ptr']
-        
-    fastbins = main_heap.fastbins(arena)
+
+    fastbins = [] if fake else main_heap.fastbins(arena)
     header = M.get(addr)
+    if fake:
+        header += message.prompt(' FAKE')
     if prev_inuse:
         if actual_size in fastbins:
             header += message.hint(' FASTBIN')
@@ -332,4 +334,4 @@ def find_fake_fast(addr, size):
             value = struct.unpack(fmt, candidate)[0]
 
             if main_heap.fastbin_index(value) == fastbin:
-                malloc_chunk(start+offset-pwndbg.arch.ptrsize)
+                malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)

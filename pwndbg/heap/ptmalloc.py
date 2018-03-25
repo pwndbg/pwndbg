@@ -54,7 +54,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     def global_max_fast(self):
-        return pwndbg.symbol.address('global_max_fast')
+        addr = pwndbg.symbol.address('global_max_fast')
+        return pwndbg.memory.u(addr)
 
 
     @property
