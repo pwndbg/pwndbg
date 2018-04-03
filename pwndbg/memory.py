@@ -100,7 +100,10 @@ def write(addr, data):
         addr(int): Address to write
         data(str,bytes,bytearray): Data to write
     """
-    gdb.selected_inferior().write_memory(addr, bytes(data, 'utf8'))
+    if isinstance(data, str):
+        data = bytes(data, 'utf8')
+
+    gdb.selected_inferior().write_memory(addr, data)
 
 
 def peek(address):
