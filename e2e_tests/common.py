@@ -6,39 +6,37 @@ import codecs
 import subprocess
 import tempfile
 
-import os
 import re
 
-import logging
 
-
-def run_gdb_with_script(binary='', core='', pybefore='', pyafter=''):
+def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
     """
-    Runs GDB with given commands (scripts) launched before and after loading of gdbinit.py
+    Runs GDB with given commands launched before and after loading of gdbinit.py
     Returns GDB output.
     """
-    command = ['gdb', '--silent', '--nx', '--nh']
+    pybefore = ([pybefore] if isinstance(pybefore, str) else pybefore) or []
+    pyafter = ([pyafter] if isinstance(pyafter, str) else pyafter) or []
 
+    command = ['gdb', '--silent', '--nx', '--nh']
+    
     if binary:
         command += [binary]
 
     if core:
         command += ['--core', core]
 
-    if pybefore:
-        command += ['--command', pywrite(pybefore).name]
+    for cmd in pybefore:
+        command += ['--eval-command', cmd]
 
     command += ['--command', 'gdbinit.py']
 
-    if pyafter:
-        command += ['--command', pywrite(pyafter).name]
+    for cmd in pyafter:
+        command += ['--eval-command', cmd]
 
     command += ['--eval-command', 'quit']
 
-    logging.info("Launching command: %s", command)
-    envs = os.environ.copy()
-    envs['PWNDBG_E2E_TESTS_DISABLE_COLORS'] = 'yes'
-    output = subprocess.check_output(command, stderr=subprocess.STDOUT, env=envs)
+    print("Launching command: %s" % command)
+    output = subprocess.check_output(command, stderr=subprocess.STDOUT)
 
     # Python 3 returns bytes-like object so lets have it consistent
     output = codecs.decode(output, 'utf8')
@@ -50,7 +48,7 @@ def run_gdb_with_script(binary='', core='', pybefore='', pyafter=''):
         'pwndbg: loaded ### commands. Type pwndbg [filter] for a list.\n'
         'pwndbg: created $rebase, $ida gdb functions (can be used with print/break)\n'
     )
-    assert hello in output, "missing hello msg"
+    assert hello in output, "missing hello msg; output: %r" % output
 
     output = output[output.index(hello)+len(hello):]
 

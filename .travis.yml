@@ -17,7 +17,7 @@ script:
   - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
   - git diff-index --quiet HEAD -- pwndbg
   - isort --check-only --diff --recursive pwndbg
-  - PWNDBG_E2E_TESTS_DISABLE_COLORS=yes nosetests ./e2e_tests/
+  - PWNDBG_E2E_TESTS_DISABLE_COLORS=yes nosetests -v -s ./e2e_tests/
   - gdb --silent --nx --nh --command gdbinit.py --command unittests_launcher.py
   - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
   - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
