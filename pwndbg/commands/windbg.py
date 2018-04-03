@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from builtins import str
+
 import argparse
 import codecs
 import math
@@ -172,9 +174,9 @@ def eX(size, address, data, hex=True):
     if address is None:
         return
 
-    for i,bytestr in enumerate(data):
+    for i, bytestr in enumerate(data):
         if hex:
-            bytestr = bytestr.rjust(size*2, '0')
+            bytestr = str(bytestr).rjust(size*2, '0')
             data    = codecs.decode(bytestr, 'hex')
         else:
             data    = bytestr
