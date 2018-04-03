@@ -3,10 +3,9 @@
 from __future__ import unicode_literals
 
 import codecs
+import re
 import subprocess
 import tempfile
-
-import re
 
 
 def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
@@ -63,4 +62,3 @@ def write(data, suffix=''):
     t = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     t.write(data.encode('utf-8'))
     return t
-

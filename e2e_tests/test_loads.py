@@ -3,10 +3,9 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from . import common
-
 import re
 
+from . import common
 
 BASH_BIN = './e2e_tests/corefiles/bash/binary'
 BASH_CORE = './e2e_tests/corefiles/bash/core'
@@ -35,4 +34,3 @@ def test_entry_no_file_loaded():
     # This test is just to demonstrate that if gdb fails, all we have left is its stdout/err
     output = common.run_gdb_with_script(binary='not_existing_binary', pyafter='entry')
     assert output == 'entry: There is no file loaded.\n', "The output was: %r" % output
-

@@ -16,7 +16,7 @@ install:
 script:
   - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
   - git diff-index --quiet HEAD -- pwndbg
-  - isort --check-only --diff --recursive pwndbg
+  - isort --check-only --diff --recursive pwndbg e2e_tests unit_tests
   - PWNDBG_E2E_TESTS_DISABLE_COLORS=yes nosetests -v -s ./e2e_tests/
   - cd unit_tests/binaries && make && cd ../..
   - gdb --silent --nx --nh ./unit_tests/binaries/reference-binary.out --command gdbinit.py --command unittests_launcher.py

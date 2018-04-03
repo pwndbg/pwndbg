@@ -4,8 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
-
 import pytest
+
 import pwndbg.memory
 import pwndbg.stack
 
@@ -35,4 +35,3 @@ def test_memory_read_write(stack_addr):
     val = bytes('Z' * 8, 'utf8')
     pwndbg.memory.write(stack_addr, val)
     assert pwndbg.memory.read(stack_addr, len(val)+4) == bytearray('Z'*8 + 'YYXX', 'utf8')
-
