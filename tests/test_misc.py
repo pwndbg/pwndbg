@@ -17,7 +17,8 @@ STACK_COMMANDS = [
 
 
 def test_list_and_filter_commands_filter():
-    assert list_and_filter_commands('stack') == STACK_COMMANDS
+    for cmd in STACK_COMMANDS:
+        assert cmd in list_and_filter_commands('stack')
 
 
 def test_list_and_filter_commands_full_list():
