@@ -18,6 +18,7 @@ script:
   - git diff-index --quiet HEAD -- pwndbg
   - isort --check-only --diff --recursive pwndbg
   - PWNDBG_E2E_TESTS_DISABLE_COLORS=yes nosetests -v -s ./e2e_tests/
-  - gdb --silent --nx --nh --command gdbinit.py --command unittests_launcher.py
+  - cd unit_tests/binaries && make && cd ../..
+  - gdb --silent --nx --nh ./unit_tests/binaries/reference-binary.out --command gdbinit.py --command unittests_launcher.py
   - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
   - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
