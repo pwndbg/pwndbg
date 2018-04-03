@@ -22,7 +22,6 @@ def test_list_and_filter_commands_filter():
 
 def test_list_and_filter_commands_full_list():
     all_commands = list_and_filter_commands('')
-    assert len(all_commands) == 161
 
     def get_doc(c):
         return c.__doc__.strip().splitlines()[0] if c.__doc__ else None
