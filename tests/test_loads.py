@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import codecs
 import re
@@ -47,18 +50,37 @@ def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
         'pwndbg: loaded ### commands. Type pwndbg [filter] for a list.\n'
         'pwndbg: created $rebase, $ida gdb functions (can be used with print/break)\n'
     )
-    assert hello in output, "missing hello msg; output: %r" % output
+    assert hello in output
 
     output = output[output.index(hello)+len(hello):]
 
     return output
 
 
-def pywrite(data):
-    return write(data, suffix='.py')
+BASH_BIN = './tests/corefiles/bash/binary'
+BASH_CORE = './tests/corefiles/bash/core'
 
 
-def write(data, suffix=''):
-    t = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    t.write(data.encode('utf-8'))
-    return t
+def test_loads_pure_gdb_without_crashing():
+    output = run_gdb_with_script()
+    assert output == ''
+
+def test_loads_binary_without_crashing():
+    output = run_gdb_with_script(binary=BASH_BIN)
+    assert output == ''
+
+
+def test_loads_binary_with_core_without_crashing():
+    output = run_gdb_with_script(binary=BASH_BIN, core=BASH_CORE)
+    assert output == ''
+
+
+def test_loads_core_without_crashing():
+    output = run_gdb_with_script(core=BASH_CORE)
+    assert output == ''
+
+
+def test_entry_no_file_loaded():
+    # This test is just to demonstrate that if gdb fails, all we have left is its stdout/err
+    output = run_gdb_with_script(binary='not_existing_binary', pyafter='entry')
+    assert output == 'entry: There is no file loaded.\n'

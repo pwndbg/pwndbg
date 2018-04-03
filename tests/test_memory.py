@@ -10,17 +10,13 @@ import pwndbg.memory
 import pwndbg.stack
 
 
-@pytest.fixture
-def program_entry():
-    gdb.execute('entry')
-
-
-@pytest.fixture
-def stack_addr(program_entry):
-    return next(iter(pwndbg.stack.stacks.values())).vaddr
-
-
 def test_memory_read_write(stack_addr):
+    """
+    Tests simple pwndbg's memory read/write operations with different argument types
+    """
+    entry_binary('reference-binary.out')
+    stack_addr = next(iter(pwndbg.stack.stacks.values())).vaddr
+
     # Testing write(addr, str)
     val = 'X' * 50
     pwndbg.memory.write(stack_addr, val)
@@ -35,3 +31,4 @@ def test_memory_read_write(stack_addr):
     val = bytes('Z' * 8, 'utf8')
     pwndbg.memory.write(stack_addr, val)
     assert pwndbg.memory.read(stack_addr, len(val)+4) == bytearray('Z'*8 + 'YYXX', 'utf8')
+

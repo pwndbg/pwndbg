@@ -9,7 +9,7 @@ import sys
 sys._pwndbg_unittest_run = True
 
 # If you want to debug tests locally, add '--pdb' here
-args = ['./unit_tests/', '-vvv', '-s', '--showlocals', '--color=yes']
+args = ['./tests/', '--pdb', '-vvv', '-s', '--showlocals', '--color=yes']
 
 print('Launching pytest with args: %s' % args)
 
