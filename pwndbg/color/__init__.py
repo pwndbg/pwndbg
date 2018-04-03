@@ -57,7 +57,7 @@ def colorize(x, color): return color + terminateWith(str(x), color) + NORMAL
 @pwndbg.memoize.reset_on_stop
 def generateColorFunctionInner(old, new):
     # End to end tests check for whole output, we might not want to deal with colors there
-    if os.environ.get('PWNDBG_E2E_TESTS_DISABLE_COLORS') != 'yes':
+    if os.environ.get('PWNDBG_TESTS_DISABLE_COLORS') != 'yes':
         def wrapper(text):
             return new(old(text))
     else:

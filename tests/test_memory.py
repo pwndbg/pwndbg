@@ -10,7 +10,7 @@ import pwndbg.memory
 import pwndbg.stack
 
 
-def test_memory_read_write(stack_addr):
+def test_memory_read_write(entry_binary):
     """
     Tests simple pwndbg's memory read/write operations with different argument types
     """
