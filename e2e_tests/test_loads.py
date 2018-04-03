@@ -8,12 +8,25 @@ from . import common
 import re
 
 
-def test_loads_without_crashing():
+BASH_BIN = './e2e_tests/corefiles/bash/binary'
+BASH_CORE = './e2e_tests/corefiles/bash/core'
+
+
+def test_loads_pure_gdb_without_crashing():
     output = common.run_gdb_with_script()
+    assert output == '', "The output was: %r" % output
 
-    output = re.sub(r'loaded [0-9]+ commands', r'loaded ### commands', output)
+def test_loads_binary_without_crashing():
+    output = common.run_gdb_with_script(binary=BASH_BIN)
+    assert output == '', "The output was: %r" % output
 
-    assert (
-        'pwndbg: loaded ### commands. Type pwndbg [filter] for a list.\n'
-        'pwndbg: created $rebase, $ida gdb functions (can be used with print/break)\n'
-    ) in output, "The output was: %r" % output
+
+def test_loads_binary_with_core_without_crashing():
+    output = common.run_gdb_with_script(binary=BASH_BIN, core=BASH_CORE)
+    assert output == '', "The output was: %r" % output
+
+
+def test_loads_core_without_crashing():
+    output = common.run_gdb_with_script(core=BASH_CORE)
+    assert output == '', "The output was: %r" % output
+

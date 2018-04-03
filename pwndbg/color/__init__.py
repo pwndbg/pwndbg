@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import re
 
 import pwndbg.memoize
@@ -55,8 +56,14 @@ def colorize(x, color): return color + terminateWith(str(x), color) + NORMAL
 
 @pwndbg.memoize.reset_on_stop
 def generateColorFunctionInner(old, new):
-    def wrapper(text):
-        return new(old(text))
+    # End to end tests check for whole output, we might not want to deal with colors there
+    if os.environ.get('PWNDBG_E2E_TESTS_DISABLE_COLORS') != 'yes':
+        def wrapper(text):
+            return new(old(text))
+    else:
+        def wrapper(text):
+            return text
+
     return wrapper
 
 def generateColorFunction(config):
