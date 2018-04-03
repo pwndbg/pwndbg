@@ -13,7 +13,6 @@ import pwndbg.arch as _arch
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.regs
-import pwndbg.services
 import pwndbg.symbol
 
 _errno.errorcode[0] = 'OK'

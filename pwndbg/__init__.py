@@ -70,7 +70,6 @@ import pwndbg.net
 import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
-import pwndbg.services.misc
 import pwndbg.stack
 import pwndbg.typeinfo
 import pwndbg.ui

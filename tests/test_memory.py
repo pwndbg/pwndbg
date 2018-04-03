@@ -31,4 +31,3 @@ def test_memory_read_write(entry_binary):
     val = bytes('Z' * 8, 'utf8')
     pwndbg.memory.write(stack_addr, val)
     assert pwndbg.memory.read(stack_addr, len(val)+4) == bytearray('Z'*8 + 'YYXX', 'utf8')
-

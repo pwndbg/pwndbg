@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import division
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import codecs
 import re
 import subprocess
 import tempfile
+
+import tests
 
 
 def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
@@ -57,8 +59,8 @@ def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
     return output
 
 
-BASH_BIN = './tests/corefiles/bash/binary'
-BASH_CORE = './tests/corefiles/bash/core'
+BASH_BIN = tests.binaries.old_bash.get('binary')
+BASH_CORE = tests.binaries.old_bash.get('core')
 
 
 def test_loads_pure_gdb_without_crashing():
