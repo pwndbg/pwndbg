@@ -6,9 +6,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import codecs
+import os
 import re
 import subprocess
 import tempfile
+
+import pytest
 
 import tests
 
@@ -60,12 +63,15 @@ HELLO = (
 BASH_BIN = tests.binaries.old_bash.get('binary')
 BASH_CORE = tests.binaries.old_bash.get('core')
 
+launched_locally = not(os.environ.get('PWNDBG_TRAVIS_TEST_RUN'))
+
 
 def test_loads_pure_gdb_without_crashing():
     output = run_gdb_with_script()
     assert output == HELLO
 
 
+@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_binary_without_crashing():
     output = run_gdb_with_script(binary=BASH_BIN)
 
@@ -75,6 +81,7 @@ def test_loads_binary_without_crashing():
     assert output == expected
 
 
+@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_binary_with_core_without_crashing():
     output = run_gdb_with_script(binary=BASH_BIN, core=BASH_CORE)
 
@@ -85,6 +92,7 @@ def test_loads_binary_with_core_without_crashing():
     assert output == expected
 
 
+@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_core_without_crashing():
     output = run_gdb_with_script(core=BASH_CORE)
     # TODO / FIXME: it should fail and should be fixed according to travis output
