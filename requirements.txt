@@ -11,3 +11,4 @@ unicorn>=1.0.0
 pygments
 https://github.com/aquynh/capstone/archive/next.zip#subdirectory=bindings/python
 enum34
+pytest

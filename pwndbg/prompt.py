@@ -10,6 +10,7 @@ import gdb
 import pwndbg.events
 import pwndbg.gdbutils
 import pwndbg.memoize
+from pwndbg.color import disable_colors
 from pwndbg.color import message
 
 funcs_list_str = ', '.join(message.notice('$' + f.name) for f in pwndbg.gdbutils.functions.functions)
@@ -42,12 +43,15 @@ def prompt_hook_on_stop(*a):
     pwndbg.commands.context.context()
 
 
-@pwndbg.config.Trigger([message.config_prompt_color])
+@pwndbg.config.Trigger([message.config_prompt_color, disable_colors])
 def set_prompt():
     prompt = "pwndbg> "
-    prompt = "\x02" + prompt + "\x01"  # STX + prompt + SOH
-    prompt = message.prompt(prompt)
-    prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
+
+    if not disable_colors:
+        prompt = "\x02" + prompt + "\x01"  # STX + prompt + SOH
+        prompt = message.prompt(prompt)
+        prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
+
     gdb.execute('set prompt %s' % prompt)
 
 

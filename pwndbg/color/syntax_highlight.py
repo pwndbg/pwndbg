@@ -8,6 +8,7 @@ import os.path
 import re
 
 import pwndbg.config
+from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
 
@@ -40,7 +41,7 @@ def check_style():
 
 def syntax_highlight(code, filename='.asm'):
     # No syntax highlight if pygment is not installed
-    if not pygments:
+    if not pygments or disable_colors:
         return code
 
     filename = os.path.basename(filename)

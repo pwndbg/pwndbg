@@ -5,9 +5,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import re
 
 import pwndbg.memoize
+
+from . import theme as theme
 
 NORMAL         = "\x1b[0m"
 BLACK          = "\x1b[30m"
@@ -53,14 +56,23 @@ def bold(x): return colorize(x, BOLD)
 def underline(x): return colorize(x, UNDERLINE)
 def colorize(x, color): return color + terminateWith(str(x), color) + NORMAL
 
+
+disable_colors = theme.Parameter('disable-colors', bool(os.environ.get('PWNDBG_DISABLE_COLORS')), 'whether to color the output or not')
+
+
 @pwndbg.memoize.reset_on_stop
 def generateColorFunctionInner(old, new):
     def wrapper(text):
         return new(old(text))
+
     return wrapper
 
 def generateColorFunction(config):
     function = lambda x: x
+    
+    if disable_colors:
+        return function
+
     for color in config.split(','):
         function = generateColorFunctionInner(function, globals()[color.lower().replace('-', '_')])
     return function

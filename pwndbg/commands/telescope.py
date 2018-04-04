@@ -123,7 +123,7 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     return result
 
 
-parser = argparse.ArgumentParser(description='dereferences on stack data with specified count and offset')
+parser = argparse.ArgumentParser(description='dereferences on stack data with specified count and offset.')
 parser.add_argument('count', nargs='?', default=8, type=int,
                     help='number of element to dump')
 parser.add_argument('offset', nargs='?', default=0, type=int,

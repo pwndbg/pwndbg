@@ -30,3 +30,9 @@ Feel free to update the list below!
 
 * We would like to add proper tests for pwndbg - see tests framework PR if you want to help on that.
 
+# Testing
+
+Our tests are written using [pytest](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions.
+
+The fixtures should be defined in [tests/conftest.py](tests/conftest.py). If you need help with writing tests, feel free to reach out on gitub issues/pr or on our irc channel on freenode.
+
