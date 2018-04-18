@@ -14,8 +14,8 @@ import errno
 import functools
 import socket
 import sys
-import traceback
 import time
+import traceback
 
 import gdb
 
