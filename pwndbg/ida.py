@@ -57,7 +57,7 @@ _ida_last_connection_check = 0
 _IDA_MIN_CONNECTION_DELAY_CHECK = 5
 
 
-@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port])
+@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_timeout])
 def init_ida_rpc_client():
     global _ida, _ida_last_exception, _ida_last_connection_check
 
@@ -94,7 +94,7 @@ def init_ida_rpc_client():
                 exc_type, exc_value, _ = exception
                 print(message.error('Failed to connect to IDA Pro ({}: {})'.format(exc_type.__qualname__, exc_value)))
                 if exc_type is socket.timeout:
-                    print(message.notice('To increase the time to wait for IDA Pro use `') + message.hint('set ida-timeout <new-timeout>') + message.notice('`'))
+                    print(message.notice('To increase the time to wait for IDA Pro use `') + message.hint('set ida-timeout <new-timeout-in-seconds>') + message.notice('`'))
                 else:
                     print(message.notice('For more info invoke `') + message.hint('set exception-verbose on') + message.notice('`'))
                 print(message.notice('To disable IDA Pro integration invoke `') + message.hint('set ida-enabled off') + message.notice('`'))
