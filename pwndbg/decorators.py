@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import functools
 
-
 first_prompt = False
 
 
