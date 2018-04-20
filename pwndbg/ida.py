@@ -22,6 +22,7 @@ import gdb
 import pwndbg.arch
 import pwndbg.compat
 import pwndbg.config
+import pwndbg.decorators
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
@@ -38,7 +39,7 @@ except:
 ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
 ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 8888, 'ida xmlrpc server port')
 ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
-ida_timeout = pwndbg.config.Parameter('ida-timeout', 1, 'time to wait for ida xmlrpc in seconds')
+ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
 
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -52,17 +53,20 @@ _ida = None
 # to avoid printing the same exception multiple times, we store the last exception here
 _ida_last_exception = None
 
-# to avoid checking the connection multiple times with now delay, we store the last time we checked it
+# to avoid checking the connection multiple times with no delay, we store the last time we checked it
 _ida_last_connection_check = 0
-_IDA_MIN_CONNECTION_DELAY_CHECK = 5
 
 
+@pwndbg.decorators.only_after_first_prompt()
 @pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_timeout])
 def init_ida_rpc_client():
     global _ida, _ida_last_exception, _ida_last_connection_check
 
+    if not ida_enabled:
+        return
+
     now = time.time()
-    if _ida is None and (now - _ida_last_connection_check) < _IDA_MIN_CONNECTION_DELAY_CHECK:
+    if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
         return
 
     addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
@@ -109,8 +113,6 @@ class withIDA(object):
         functools.update_wrapper(self, fn)
 
     def __call__(self, *args, **kwargs):
-        if not ida_enabled:
-            return None
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.decorators
 import pwndbg.events
 import pwndbg.gdbutils
 import pwndbg.memoize
@@ -28,6 +29,8 @@ cur = (gdb.selected_inferior(), gdb.selected_thread())
 
 def prompt_hook(*a):
     global cur
+    pwndbg.decorators.first_prompt = True
+
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
     if cur != new:

@@ -18,6 +18,8 @@ Feel free to update the list below!
 
 * We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/memoize.py` - just check its usages
 
+* To block a function before the first prompt was displayed use the `pwndbg.decorators.only_after_first_prompt` decorator.
+
 * Memory accesses should be done through `pwndbg/memory.py` functions
 
 * Process properties can be retrieved thx to `pwndbg/proc.py` - e.g. using `pwndbg.proc.pid` will give us current process pid
@@ -35,4 +37,3 @@ Feel free to update the list below!
 Our tests are written using [pytest](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions.
 
 The fixtures should be defined in [tests/conftest.py](tests/conftest.py). If you need help with writing tests, feel free to reach out on gitub issues/pr or on our irc channel on freenode.
-
