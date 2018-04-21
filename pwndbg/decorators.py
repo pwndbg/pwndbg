@@ -11,6 +11,11 @@ first_prompt = False
 
 
 def only_after_first_prompt(value_before=None):
+    """
+    Blocks a function from executing until the first prompt was displayed.
+    The value_before parameter can be used to specify the value that is
+    returned if the function is called before the first prompt was displayed.
+    """
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
