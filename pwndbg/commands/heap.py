@@ -29,23 +29,34 @@ def read_chunk(addr):
     return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() }, value=val)
 
 
-def format_bin(bins, verbose=False):
+def format_bin(bins, verbose=False, offset=None):
     main_heap = pwndbg.heap.current
-    fd_offset = main_heap.chunk_key_offset('fd')
+    if offset is None:
+        offset = main_heap.chunk_key_offset('fd')
 
     result = []
     for size in bins:
-        chain = bins[size]
+        b = bins[size]
+        if isinstance(b, tuple):
+            chain, count = b
+        else:
+            chain = b
+            count = None
 
-        if not verbose and chain == [0]:
+        if not verbose and (chain == [0] and not count):
             continue
 
-        formatted_chain = pwndbg.chain.format(chain, offset=fd_offset)
+        formatted_chain = pwndbg.chain.format(chain[0], offset=offset)
 
         if isinstance(size, int):
             size = hex(size)
 
-        result.append((message.hint(size) + ': ').ljust(13) + formatted_chain)
+        if count is not None:
+            line = (message.hint(size) + message.hint(' [%3d]' % count) + ': ').ljust(13)
+        else:
+            line = (message.hint(size) + ': ').ljust(13)
+        line += formatted_chain
+        result.append(line)
 
     if not result:
         result.append(message.hint('empty'))
@@ -110,7 +121,7 @@ def arena(addr=None):
 @pwndbg.commands.OnlyWhenRunning
 def arenas():
     """
-    Prints out allocated arenas 
+    Prints out allocated arenas
     """
 
     heap  = pwndbg.heap.current
@@ -119,7 +130,7 @@ def arenas():
     main_arena_addr = int(arena.address)
     fmt = '[%%%ds]' % (pwndbg.arch.ptrsize *2)
     while addr != main_arena_addr:
-        
+
         h = heap.get_region(addr)
         if not h:
             print(message.error('Could not find the heap'))
@@ -127,11 +138,28 @@ def arenas():
 
         hdr = message.hint(fmt % (hex(addr) if addr else 'main'))
         print(hdr, M.heap(str(h)))
-        addr = int(arena['next'])        
+        addr = int(arena['next'])
         arena = heap.get_arena(addr)
 
 
-    
+@pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
+@pwndbg.commands.OnlyWhenRunning
+def tcache(addr=None):
+    """
+    Prints out the thread cache.
+
+    Glibc 2.26 malloc introduced per-thread chunk cache. This command prints
+    out per-thread control structure of the cache.
+    """
+    main_heap = pwndbg.heap.current
+    tcache = main_heap.get_tcache(addr)
+
+    if tcache is None:
+        return
+
+    print(tcache)
+
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def mp():
@@ -219,11 +247,13 @@ def malloc_chunk(addr,fake=False):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def bins(addr=None):
+def bins(addr=None, tcache_addr=None):
     """
-    Prints out the contents of the fastbins, unsortedbin, smallbins, and largebins from the
+    Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
     main_arena or the specified address.
     """
+    if pwndbg.heap.current.has_tcache():
+        tcachebins(tcache_addr)
     fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
@@ -302,6 +332,25 @@ def largebins(addr=None, verbose=False):
     formatted_bins = format_bin(largebins, verbose)
 
     print(C.banner('largebins'))
+    for node in formatted_bins:
+        print(node)
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+def tcachebins(addr=None, verbose=False):
+    """
+    Prints out the contents of the bins in current thread tcache or in tcache
+    at the specified address.
+    """
+    main_heap = pwndbg.heap.current
+    tcachebins = main_heap.tcachebins(addr)
+
+    if tcachebins is None:
+        return
+
+    formatted_bins = format_bin(tcachebins, verbose, offset = main_heap.tcache_next_offset)
+
+    print(C.banner('tcachebins'))
     for node in formatted_bins:
         print(node)
 

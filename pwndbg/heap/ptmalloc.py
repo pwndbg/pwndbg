@@ -27,6 +27,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         # Global ptmalloc objects
         self._main_arena    = None
         self._mp            = None
+        # ptmalloc cache for current thread
+        self._thread_cache  = None
 
 
     @property
@@ -36,10 +38,35 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         if main_arena_addr is not None:
             self._main_arena = pwndbg.memory.poi(self.malloc_state, main_arena_addr)
         else:
-            print(message.error('Symbol \'main arena\' not found. Try installing libc '
+            print(message.error('Symbol \'main_arena\' not found. Try installing libc '
                                 'debugging symbols and try again.'))
 
         return self._main_arena
+
+    def has_tcache(self):
+        return (self.mp and self.mp['tcache_bins'])
+
+
+    @property
+    def thread_cache(self):
+        tcache_addr = pwndbg.symbol.address('tcache')
+
+        if tcache_addr is not None:
+            try:
+                self._thread_cache = pwndbg.memory.poi(self.tcache_perthread_struct, tcache_addr)
+                _ = self._thread_cache['entries'].fetch_lazy()
+            except Exception as e:
+                print(message.error('Error fetching tcache. GDB cannot access '
+                                    'thread-local variables unless you compile with -lpthread.'))
+        else:
+            if not has_tcache():
+                print(message.warning('Your libc does not use thread cache'))
+                return None
+
+            print(message.error('Symbol \'tcache\' not found. Try installing libc '
+                                'debugging symbols and try again.'))
+
+        return self._thread_cache
 
 
     @property
@@ -63,7 +90,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def heap_info(self):
         return pwndbg.typeinfo.load('heap_info')
 
-    
+
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
@@ -74,6 +101,18 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     @pwndbg.memoize.reset_on_objfile
     def malloc_state(self):
         return pwndbg.typeinfo.load('struct malloc_state')
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def tcache_perthread_struct(self):
+        return pwndbg.typeinfo.load('struct tcache_perthread_struct')
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def tcache_entry(self):
+        return pwndbg.typeinfo.load('struct tcache_entry')
 
 
     @property
@@ -91,13 +130,41 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_alignment(self):
+        """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
         return pwndbg.arch.ptrsize * 2
 
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    def size_sz(self):
+        """Corresponds to SIZE_SZ in glibc malloc.c"""
+        return pwndbg.arch.ptrsize
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def malloc_align_mask(self):
+        """Corresponds to MALLOC_ALIGN_MASK in glibc malloc.c"""
+        return self.malloc_alignment - 1
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def minsize(self):
+        """Corresponds to MINSIZE in glibc malloc.c"""
+        return self.min_chunk_size
+
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
     def min_chunk_size(self):
+        """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.arch.ptrsize * 4
+
+    def _request2size(self, req):
+        """Corresponds to request2size in glibc malloc.c"""
+        if req + self.size_sz + self.malloc_align_mask < self.minsize:
+            return self.minsize
+        return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
 
     def _spaces_table(self):
@@ -149,9 +216,16 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         except:
             return None
 
+
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def tcache_next_offset(self):
+        return  self.tcache_entry.keys().index('next') * pwndbg.arch.ptrsize
+
+
     def get_heap(self,addr):
         return pwndbg.memory.poi(self.heap_info,heap_for_ptr(addr))
-        
+
 
     def get_arena(self, arena_addr=None):
         if arena_addr is None:
@@ -168,7 +242,15 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         else:
             r=self.main_arena
         return r
-            
+
+
+    def get_tcache(self, tcache_addr=None):
+        if tcache_addr is None:
+            return self.thread_cache
+
+        return pwndbg.memory.poi(self.tcache_perthread_struct, tcache_addr)
+
+
     def get_region(self,addr=None):
         """
         Finds the memory region used for heap by using mp_ structure's sbrk_base property
@@ -184,7 +266,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             ## trim whole page to look exactly like heap
             page.size = int(heap['size'])
             page.vaddr = base
-            
+
             return page
 
         page = None
@@ -202,12 +284,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return None
 
-    
+
     def fastbin_index(self, size):
         if pwndbg.arch.ptrsize == 8:
             return (size >> 4) - 2
         else:
             return (size >> 3) - 2
+
 
     def fastbins(self, arena_addr=None):
         arena = self.get_arena(arena_addr)
@@ -229,7 +312,32 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    
+
+    def tcachebins(self, tcache_addr=None):
+        tcache = self.get_tcache(tcache_addr)
+
+        if tcache is None:
+            return
+
+        counts = tcache['counts']
+        entries = tcache['entries']
+
+        num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
+
+        def tidx2usize(idx):
+            """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
+            return idx * self.malloc_alignment + self.minsize - self.size_sz
+
+        result = OrderedDict()
+        for i in range(num_tcachebins):
+            size = self._request2size(tidx2usize(i))
+            count = int(counts[i])
+            chain = pwndbg.chain.get(int(entries[i]), offset=self.tcache_next_offset, limit=heap_chain_limit)
+
+            result[size] = (chain, count)
+
+        return result
+
 
     def bin_at(self, index, arena_addr=None):
         """
