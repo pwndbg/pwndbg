@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gdb
+
 import pwndbg.commands
 import pwndbg.next
 
@@ -81,19 +83,43 @@ def so(*args):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def next_syscall(*args):
+def nextsyscall(*args):
     """
-    Breaks at the next syscall.
+    Breaks at the next syscall not taking branches.
     """
     while pwndbg.proc.alive and not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
         continue
-    pwndbg.commands.context.context()
+
+    if pwndbg.proc.alive:
+        pwndbg.commands.context.context()
 
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def nextsc(*args):
     """
-    Breaks at the next syscall.
+    Breaks at the next syscall not taking branches.
     """
-    next_syscall(*args)
+    nextsyscall(*args)
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def stepsyscall(*args):
+    """
+    Breaks at the next syscall by taking branches.
+    """
+    while pwndbg.proc.alive and not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
+        # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
+        # We need to step so that we take this branch instead of ignoring it
+        gdb.execute('si')
+        continue
+
+    if pwndbg.proc.alive:
+        pwndbg.commands.context.context()
+
+
+@pwndbg.commands.Command
+@pwndbg.commands.OnlyWhenRunning
+def stepsc(*args):
+    stepsyscall(*args)
