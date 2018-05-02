@@ -74,7 +74,9 @@ def nextsyscall(*args):
     """
     while pwndbg.proc.alive and not pwndbg.next.break_next_interrupt() and pwndbg.next.break_next_branch():
         continue
-    pwndbg.commands.context.context()
+
+    if pwndbg.proc.alive:
+        pwndbg.commands.context.context()
 
 
 @pwndbg.commands.Command
@@ -97,7 +99,9 @@ def stepsyscall(*args):
         # We need to step so that we take this branch instead of ignoring it
         gdb.execute('si')
         continue
-    pwndbg.commands.context.context()
+
+    if pwndbg.proc.alive:
+        pwndbg.commands.context.context()
 
 
 @pwndbg.commands.Command
