@@ -68,7 +68,7 @@ def so(*args):
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
-def next_syscall(*args):
+def nextsyscall(*args):
     """
     Breaks at the next syscall not taking branches.
     """
@@ -83,7 +83,7 @@ def nextsc(*args):
     """
     Breaks at the next syscall not taking branches.
     """
-    next_syscall(*args)
+    nextsyscall(*args)
 
 
 @pwndbg.commands.Command
