@@ -44,7 +44,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return self._main_arena
 
     def has_tcache(self):
-        return (self.mp and self.mp['tcache_bins'])
+        return (self.mp and 'tcache_bins' in self.mp.type.keys() and self.mp['tcache_bins'])
 
 
     @property
