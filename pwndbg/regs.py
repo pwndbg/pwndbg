@@ -19,7 +19,6 @@ import gdb
 import six
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.proc

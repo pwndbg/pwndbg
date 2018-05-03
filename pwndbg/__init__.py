@@ -93,7 +93,6 @@ __all__ = [
 'auxv',
 'chain',
 'color',
-'compat',
 'disasm',
 'dt',
 'elf',

@@ -16,8 +16,6 @@ import sys
 
 import gdb
 
-import pwndbg.compat
-
 
 class Stdio(object):
     queue = []

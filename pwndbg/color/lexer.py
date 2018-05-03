@@ -18,8 +18,6 @@ from pygments.token import Punctuation
 from pygments.token import String
 from pygments.token import Text
 
-import pwndbg.compat
-
 __all__ = ['PwntoolsLexer']
 
 class PwntoolsLexer(RegexLexer):
@@ -122,7 +120,7 @@ class PwntoolsLexer(RegexLexer):
 # Note: convert all unicode() to str() if in Python2.7 since unicode_literals is enabled
 # The pygments<=2.2.0 (latest stable when commit) in Python2.7 use 'str' type in rules matching
 # We must convert all unicode back to str()
-if pwndbg.compat.python2:
+if six.PY2:
     def _to_str(obj):
         type_ = type(obj)
         if type_ in (tuple, list):
