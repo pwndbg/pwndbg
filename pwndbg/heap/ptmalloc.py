@@ -365,7 +365,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset   = self.chunk_key_offset('fd')
 
-        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit)
+        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=False)
         return chain
 
 

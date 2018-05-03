@@ -19,7 +19,7 @@ import pwndbg.vmmap
 
 LIMIT = pwndbg.config.Parameter('dereference-limit', 5, 'max number of pointers to dereference in a chain')
 
-def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
+def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_start=True):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -29,13 +29,14 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0):
         offset(int): offset into the address to get the next pointer
         hard_stop(int): address to stop at
         hard_end: value to append when hard_stop is reached
+        include_start(bool): whether to include starting address or not
 
     Returns:
         A list representing pointers of each ```address``` and reference
     """
     limit = int(limit)
 
-    result = [address]
+    result = [address] if include_start else []
     for i in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
         if result.count(address) >= 2:
