@@ -14,7 +14,6 @@ from builtins import bytes
 import gdb
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.events
 import pwndbg.qemu
 import pwndbg.typeinfo
@@ -68,9 +67,6 @@ def read(addr, count, partial=False):
 
             # Move down by another page
             stop_addr -= PAGE_SIZE
-
-    # if pwndbg.compat.python3:
-        # result = bytes(result)
 
     return bytearray(result)
 

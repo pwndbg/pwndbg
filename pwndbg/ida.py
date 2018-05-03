@@ -18,9 +18,9 @@ import time
 import traceback
 
 import gdb
+import six
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.config
 import pwndbg.decorators
 import pwndbg.elf
@@ -43,7 +43,7 @@ ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xm
 
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-if pwndbg.compat.python2:
+if six.PY2:
     xmlrpclib.Marshaller.dispatch[long] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
