@@ -17,7 +17,6 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.compat
 import pwndbg.elf
 import pwndbg.vmmap
 
