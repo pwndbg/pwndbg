@@ -388,13 +388,7 @@ def has_cached_cfunc(addr):
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
-    try:
-        return _ida.decompile(addr)
-    except xmlrpclib.Fault as f:
-        if str(f) == '''<Fault 1: "<class 'idaapi.DecompilationFailure'>:Decompilation failed: ">''':
-            print('Returning an empty string')
-            return None
-        raise
+    return _ida.decompile(addr)
 
 
 @withIDA
