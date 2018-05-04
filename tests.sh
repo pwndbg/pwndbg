@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd tests/binaries && make && cd ../..
+
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
 TESTS_LIST=$(gdb --silent --nx --nh --command gdbinit.py --command pytests_collect.py | grep -o "tests/.*::.*")
