@@ -392,6 +392,12 @@ def decompile(addr):
 
 
 @withIDA
+@pwndbg.memoize.forever
+def get_ida_versions():
+    return _ida.versions()
+
+
+@withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucQty():
     return _ida.GetStrucQty()
