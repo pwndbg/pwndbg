@@ -115,12 +115,23 @@ def decompile(addr):
         return None
 
 
+def versions():
+    """Returns IDA & Python versions"""
+    import sys
+    return {
+        'python': sys.version,
+        'ida': idaapi.get_kernel_version(),
+        'hexrays': idaapi.get_hexrays_version() if 'get_hexrays_version' in dir(idaapi) else None
+    }
+
+
 server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
 register_module(idc)
 register_module(idautils)
 register_module(idaapi)
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
 server.register_function(decompile)  # overwrites idaapi/ida_hexrays.decompie
+server.register_function(versions)
 server.register_introspection_functions()
 
 print('IDA Pro xmlrpc hosted on http://%s:%s' % (host, port))
