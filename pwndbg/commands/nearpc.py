@@ -186,12 +186,12 @@ emulate_command = emulate
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def pdisass(pc=None, lines=None):
+def pdisass(pc=None, lines=None, to_string=False):
     """
     Compatibility layer for PEDA's pdisass command
     """
     nearpc.repeat = pdisass.repeat
-    return nearpc(pc, lines, False, False)
+    return nearpc(pc, lines, to_string, False)
 
 
 nearpc.next_pc = 0

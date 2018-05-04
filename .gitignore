@@ -61,3 +61,6 @@ npm-debug.log
 
 # PyCharm project files
 .idea/
+
+# Pwndbg test binries
+tests/binaries/*.out
