@@ -121,7 +121,7 @@ def versions():
     return {
         'python': sys.version,
         'ida': idaapi.get_kernel_version(),
-        'hexrays': idaapi.get_hexrays_version() if 'get_hexrays_version' in dir(idaapi) else None
+        'hexrays': idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None
     }
 
 
