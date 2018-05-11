@@ -10,8 +10,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from functools import partial, wraps
 import sys
+from functools import partial
+from functools import wraps
 
 import gdb
 
