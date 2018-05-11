@@ -20,3 +20,6 @@ def start_binary():
         gdb.execute('start')
 
     yield _start_binary
+
+    # Unspecify binary, unload its symbols
+    gdb.execute('file')

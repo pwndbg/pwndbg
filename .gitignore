@@ -63,4 +63,4 @@ npm-debug.log
 .idea/
 
 # Pwndbg test binries
-tests/binaries/*.out
+tests/binaries/emulation/*.out

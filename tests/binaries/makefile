@@ -7,7 +7,7 @@ LINKED          =	   $(SOURCES:.c=.out)
 
 NASM            =	   nasm -f elf64
 LD              =	   ld
-SOURCES_ASM     =	   $(wildcard *.asm)
+SOURCES_ASM     =	   $(wildcard *.asm) $(wildcard emulation/*.asm)
 COMPILED_ASM    =	   $(SOURCES_ASM:.asm=.o)
 LINKED_ASM      =	   $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
