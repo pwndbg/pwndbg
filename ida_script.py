@@ -50,7 +50,7 @@ xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></
 xmlrpclib.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = '127.0.0.1'
-port = 8888
+port = 31337
 orig_LineA = idc.LineA
 
 

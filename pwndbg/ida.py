@@ -37,7 +37,7 @@ except:
 
 
 ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
-ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 8888, 'ida xmlrpc server port')
+ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 31337, 'ida xmlrpc server port')
 ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
 ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
 
