@@ -10,8 +10,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import functools
 import sys
+from functools import partial
+from functools import wraps
 
 import gdb
 
@@ -65,11 +66,14 @@ gdb.events.start = StartEvent()
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered = {gdb.events.exited: [],
-              gdb.events.cont: [],
-              gdb.events.new_objfile: [],
-              gdb.events.stop: [],
-              gdb.events.start: []}
+registered = {
+    gdb.events.exited: [],
+    gdb.events.cont: [],
+    gdb.events.new_objfile: [],
+    gdb.events.stop: [],
+    gdb.events.start: [],
+    gdb.events.before_prompt: []
+}
 
 # GDB 7.9 and above only
 try:
@@ -96,7 +100,7 @@ def connect(func, event_handler, name=''):
     if debug:
         print("Connecting", func.__name__, event_handler)
 
-    @functools.wraps(func)
+    @wraps(func)
     def caller(*a):
         if debug:
             sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
@@ -131,6 +135,9 @@ def cont(func):        return connect(func, gdb.events.cont, 'cont')
 def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
 def stop(func):        return connect(func, gdb.events.stop, 'stop')
 def start(func):       return connect(func, gdb.events.start, 'start')
+
+before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name='before_prompt')
+
 def reg_changed(func):
     try:
         return connect(func, gdb.events.register_changed, 'reg_changed')
