@@ -165,7 +165,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     if current is None or not pwndbg.memory.peek(address):
         return []
 
-    insns  = []
+    insns = []
 
     # Try to go backward by seeing which instructions we've returned
     # before, which were followed by this one.
@@ -238,7 +238,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # but any repeats after that are removed.
     #
     # This helps with infinite loops and RET sleds.
-    while insns and len(insns) > 2 and len(set(insns[-3:])) == 1:
+    while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
 
     return insns
