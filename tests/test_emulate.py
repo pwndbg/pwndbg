@@ -185,9 +185,9 @@ def test_disasm_commands_call_instruction(assert_binary_emulations):
 
 def test_disasm_commands_infinite_loop(assert_binary_emulations):
     dis = [
-        ' ► 0x400080    jmp    0x400080',
+        ' ► 0x400080 <_start>    jmp    _start                        <0x400080>',
         '    ↓',
-        ' ► 0x400080    jmp    0x400080'
+        ' ► 0x400080 <_start>    jmp    _start                        <0x400080>'
     ]
 
     assert_binary_emulations(BIN_INFINITE_LOOP, expected_emu=dis, expected_dis=dis)
