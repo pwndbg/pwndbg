@@ -100,6 +100,7 @@ class EventWrapper(object):
             f()
 
 
+# Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
 before_prompt_event = EventWrapper('before_prompt')
 gdb.events.before_prompt = before_prompt_event
 
