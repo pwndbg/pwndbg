@@ -20,7 +20,10 @@ from pwndbg.color import message
 
 
 def _gdb_version():
-    return gdb.execute('show version', to_string=True).split('\n')[0]
+    try:
+        return gdb.VERSION  # GDB >= 8.1 (or earlier?)
+    except AttributeError:
+        return gdb.execute('show version', to_string=True).split('\n')[0]
 
 
 def _py_version():
