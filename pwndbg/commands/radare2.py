@@ -10,7 +10,7 @@ import subprocess
 
 import pwndbg.commands
 
-parser = argparse.ArgumentParser(description=".",
+parser = argparse.ArgumentParser(description='Launches radare2',
                                  epilog="Example: r2 -- -S -AA")
 parser.add_argument('--no-seek', action='store_true',
                     help='Do not seek to current pc')
@@ -32,4 +32,4 @@ def r2(arguments, no_seek=False):
     try:
         subprocess.call(cmd)
     except Exception:
-        print("Could not run radare2.  Please ensure it's installed and in $PATH.")
+        print("Could not run radare2. Please ensure it's installed and in $PATH.")
