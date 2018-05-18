@@ -135,13 +135,13 @@ def update():
     # As you can see, there might be GDBs with different language versions
     # and so we have to support it there too.
     # Lets assume and hope that `current osabi` is returned in first line in all languages...
-    current_osabi = gdb.execute('show osabi', to_string=True).split('\n')[0]
+    abi = gdb.execute('show osabi', to_string=True).split('\n')[0]
 
     # Currently we support those osabis:
     # 'GNU/Linux': linux
     # 'none': bare metal
 
-    linux = 'GNU/Linux' in current_osabi
+    linux = 'GNU/Linux' in abi
 
     if not linux:
         msg = M.warn(
