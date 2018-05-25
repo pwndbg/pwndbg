@@ -154,7 +154,7 @@ def compile(filename=None, address=0):
         gcc     = pwndbg.gcc.which()
         gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
         try:
-            subprocess.check_output(' '.join(gcc), shell=True)
+            subprocess.check_output(gcc)
         except subprocess.CalledProcessError as e:
             return
 
