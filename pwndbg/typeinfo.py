@@ -153,7 +153,10 @@ def compile(filename=None, address=0):
     if not os.path.exists(objectname):
         gcc     = pwndbg.gcc.which()
         gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
-        subprocess.check_output(' '.join(gcc), shell=True)
+        try:
+            subprocess.check_output(gcc)
+        except subprocess.CalledProcessError as e:
+            return
 
     add_symbol_file(objectname, address)
 
