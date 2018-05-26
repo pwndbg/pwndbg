@@ -16,7 +16,7 @@ import pwndbg.disasm
 parser = argparse.ArgumentParser(
     description='Prints determined arguments for call instruction. Pass --all to see all possible arguments.'
 )
-parser.add_argument('--force', action='store_true', help='Force displaying of all arguments.')
+parser.add_argument('-f', '--force', action='store_true', help='Force displaying of all arguments.')
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -32,6 +32,9 @@ def dumpargs(force=False):
 
     if args:
         print('\n'.join(args))
+    elif force:
+        print("Couldn't resolve call arguments from registers.")
+        print("Detected ABI: {} ({} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?".format(pwndbg.arch.current, pwndbg.arch.ptrsize*8))
     else:
         print("Couldn't resolve call arguments. Maybe the function doesn\'t take any?\n" + force_text)
 
