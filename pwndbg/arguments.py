@@ -103,9 +103,6 @@ def get(instruction):
         # Get the syscall number and name
         abi = pwndbg.abi.ABI.syscall()
 
-        # print(abi)
-        # print(abi.register_arguments)
-
         target  = None
         syscall = getattr(pwndbg.regs, abi.syscall_register)
         name    = pwndbg.constants.syscall(syscall)
@@ -171,6 +168,7 @@ def argument(n, abi=None):
     """
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
+    Works only for ABIs that use registers for arguments.
     """
     abi  = abi or pwndbg.abi.ABI.default()
     regs = abi.register_arguments
@@ -188,6 +186,7 @@ def argument(n, abi=None):
 def arguments(abi=None):
     """
     Yields (arg_name, arg_value) tuples for arguments from a given ABI.
+    Works only for ABIs that use registers for arguments.
     """
     abi  = abi or pwndbg.abi.ABI.default()
     regs = abi.register_arguments
