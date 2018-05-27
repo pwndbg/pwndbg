@@ -43,10 +43,10 @@ def up(n=1):
     """
     f = gdb.selected_frame()
 
-    for i in range(n):
-        o = f.older()
-        if o:
-            o.select()
+    for i in range(int(n)):
+        if f.older():
+            f = f.older()
+    f.select()
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print('\n'.join(bt))
@@ -63,10 +63,10 @@ def down(n=1):
     """
     f = gdb.selected_frame()
 
-    for i in range(n):
-        o = f.newer()
-        if o:
-            o.select()
+    for i in range(int(n)):
+        if f.newer():
+            f = f.newer()
+    f.select()
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print('\n'.join(bt))
