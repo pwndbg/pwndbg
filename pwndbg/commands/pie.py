@@ -16,7 +16,6 @@ from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.commands
-import pwndbg.compat
 import pwndbg.elf
 import pwndbg.vmmap
 import pwndbg.auxv
