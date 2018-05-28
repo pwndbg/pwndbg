@@ -20,11 +20,7 @@ def translate_addr(offset, module):
         print('There are no mappings for specified address or module.')
         return
 
-    for page in pages:
-        if page.execute:
-            return page.vaddr + offset
-    print("No executeable segments found")
-    return
+    return min(map(lambda page: page.vaddr, pages)) + offset
 
 def get_exe_name():
     return pwndbg.auxv.get().get('AT_EXECFN', pwndbg.proc.exe)
