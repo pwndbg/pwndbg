@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import argparse
 import gdb
-import os
 
 import pwndbg.commands
 import pwndbg.vmmap
@@ -28,13 +27,7 @@ def translate_addr(offset, module):
     return
 
 def get_exe_name():
-    module = ''
-    auxv = pwndbg.auxv.get()
-    if 'AT_EXECFN' in auxv:
-        module = auxv['AT_EXECFN']
-    if not module:
-        module = os.readlink("/proc/%d/exe" % (gdb.selected_inferior().pid,))
-    return module
+    return pwndbg.auxv.get().get('AT_EXECFN', pwndbg.proc.exe)
 
 parser = argparse.ArgumentParser()
 parser.description = 'Calculate VA of RVA from PIE base.'
