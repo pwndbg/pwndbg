@@ -50,7 +50,7 @@ xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></
 xmlrpclib.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = '127.0.0.1'
-port = 8888
+port = 31337
 orig_LineA = idc.LineA
 
 
@@ -102,11 +102,36 @@ def register_module(module):
             server.register_function(wrap(function), name)
 
 
+def decompile(addr):
+    """
+    Function that overwrites `idaapi.decompile` for xmlrpc so that instead
+    of throwing an exception on `idaapi.DecompilationFailure` it just returns `None`.
+    (so that we don't have to parse xmlrpc Fault's exception string on pwndbg side
+    as it differs between IDA versions).
+    """
+    try:
+        return idaapi.decompile(addr)
+    except idaapi.DecompilationFailure:
+        return None
+
+
+def versions():
+    """Returns IDA & Python versions"""
+    import sys
+    return {
+        'python': sys.version,
+        'ida': idaapi.get_kernel_version(),
+        'hexrays': idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None
+    }
+
+
 server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
 register_module(idc)
 register_module(idautils)
 register_module(idaapi)
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
+server.register_function(decompile)  # overwrites idaapi/ida_hexrays.decompie
+server.register_function(versions)
 server.register_introspection_functions()
 
 print('IDA Pro xmlrpc hosted on http://%s:%s' % (host, port))

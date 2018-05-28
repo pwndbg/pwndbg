@@ -17,10 +17,9 @@ import gdb
 import six
 from future.utils import with_metaclass
 
-import pwndbg.compat
 import pwndbg.typeinfo
 
-if pwndbg.compat.python2:
+if six.PY2:
     import __builtin__ as builtins
 else:
     import builtins
@@ -60,6 +59,6 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
 if os.environ.get('SPHINX', None) is None:
     builtins.int = xint
     globals()['int'] = xint
-    if pwndbg.compat.python3:
+    if six.PY3:
         builtins.long = xint
         globals()['long'] = xint

@@ -17,9 +17,9 @@ import os
 import sys
 
 import gdb
+import six
 
 import pwndbg.abi
-import pwndbg.compat
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.file
@@ -188,7 +188,7 @@ def proc_pid_maps():
     else:
         return tuple()
 
-    if pwndbg.compat.python3:
+    if six.PY3:
         data = data.decode()
 
     pages = []

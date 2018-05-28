@@ -33,10 +33,30 @@ def extend_value_with_default(value, default):
     return value
 
 
-@pwndbg.commands.ArgparsedCommand('Shows pwndbg-specific configuration points')
-def config():
+def get_config_parameters(scope, filter_pattern):
     values = [v for k, v in pwndbg.config.__dict__.items()
-              if isinstance(v, pwndbg.config.Parameter) and v.scope == 'config']
+              if isinstance(v, pwndbg.config.Parameter) and v.scope == scope]
+
+    if filter_pattern:
+        filter_pattern = filter_pattern.lower()
+        values = [v for v in values if filter_pattern in v.optname.lower() or filter_pattern in v.docstring.lower()]
+
+    return values
+
+
+parser = argparse.ArgumentParser(description='Shows pwndbg-specific config. The list can be filtered.')
+parser.add_argument('filter_pattern', type=str, nargs='?', default=None,
+                    help='Filter to apply to config parameters names/descriptions')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+def config(filter_pattern):
+    values = get_config_parameters('config', filter_pattern)
+
+    if not values:
+        print(hint('No config parameter found with filter "{}"'.format(filter_pattern)))
+        return
+
     longest_optname = max(map(len, [v.optname for v in values]))
     longest_value = max(map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values]))
 

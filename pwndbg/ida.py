@@ -14,13 +14,15 @@ import errno
 import functools
 import socket
 import sys
+import time
 import traceback
 
 import gdb
+import six
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.config
+import pwndbg.decorators
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
@@ -35,12 +37,13 @@ except:
 
 
 ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
-ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 8888, 'ida xmlrpc server port')
+ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 31337, 'ida xmlrpc server port')
 ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
+ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
 
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-if pwndbg.compat.python2:
+if six.PY2:
     xmlrpclib.Marshaller.dispatch[long] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
@@ -50,14 +53,26 @@ _ida = None
 # to avoid printing the same exception multiple times, we store the last exception here
 _ida_last_exception = None
 
+# to avoid checking the connection multiple times with no delay, we store the last time we checked it
+_ida_last_connection_check = 0
 
-@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port])
+
+@pwndbg.decorators.only_after_first_prompt()
+@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_timeout])
 def init_ida_rpc_client():
-    global _ida, _ida_last_exception
+    global _ida, _ida_last_exception, _ida_last_connection_check
+
+    if not ida_enabled:
+        return
+
+    now = time.time()
+    if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
+        return
+
     addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
 
     _ida = xmlrpclib.ServerProxy(addr)
-    socket.setdefaulttimeout(3)
+    socket.setdefaulttimeout(int(ida_timeout))
 
     exception = None # (type, value, traceback)
     try:
@@ -76,10 +91,20 @@ def init_ida_rpc_client():
 
     if exception:
         if not isinstance(_ida_last_exception, exception[0]) or _ida_last_exception.args != exception[1].args:
-            print(message.error("[!] Ida Pro xmlrpc error"))
-            traceback.print_exception(*exception)
+            if hasattr(pwndbg.config, "exception_verbose") and pwndbg.config.exception_verbose:
+                print(message.error("[!] Ida Pro xmlrpc error"))
+                traceback.print_exception(*exception)
+            else:
+                exc_type, exc_value, _ = exception
+                print(message.error('Failed to connect to IDA Pro ({}: {})'.format(exc_type.__qualname__, exc_value)))
+                if exc_type is socket.timeout:
+                    print(message.notice('To increase the time to wait for IDA Pro use `') + message.hint('set ida-timeout <new-timeout-in-seconds>') + message.notice('`'))
+                else:
+                    print(message.notice('For more info invoke `') + message.hint('set exception-verbose on') + message.notice('`'))
+                print(message.notice('To disable IDA Pro integration invoke `') + message.hint('set ida-enabled off') + message.notice('`'))
 
     _ida_last_exception = exception and exception[1]
+    _ida_last_connection_check = now
 
 
 class withIDA(object):
@@ -88,8 +113,6 @@ class withIDA(object):
         functools.update_wrapper(self, fn)
 
     def __call__(self, *args, **kwargs):
-        if not ida_enabled:
-            return None
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:
@@ -365,13 +388,13 @@ def has_cached_cfunc(addr):
 @takes_address
 @pwndbg.memoize.reset_on_stop
 def decompile(addr):
-    try:
-        return _ida.decompile(addr)
-    except xmlrpclib.Fault as f:
-        if str(f) == '''<Fault 1: "<class 'idaapi.DecompilationFailure'>:Decompilation failed: ">''':
-            print('Returning an empty string')
-            return None
-        raise
+    return _ida.decompile(addr)
+
+
+@withIDA
+@pwndbg.memoize.forever
+def get_ida_versions():
+    return _ida.versions()
 
 
 @withIDA

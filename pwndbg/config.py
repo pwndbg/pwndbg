@@ -32,6 +32,8 @@ from functools import total_ordering
 import gdb
 import six
 
+import pwndbg.decorators
+
 TYPES = collections.OrderedDict()
 
 # The value is a plain boolean.
@@ -165,6 +167,9 @@ class Parameter(gdb.Parameter):
         for trigger in triggers[self.name]:
             trigger()
 
+        if not pwndbg.decorators.first_prompt:
+            # Remove the newline that gdb adds automatically
+            return '\b'
         return 'Set %s to %r' % (self.docstring, self.value)
 
     def get_show_string(self, svalue):

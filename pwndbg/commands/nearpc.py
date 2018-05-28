@@ -165,11 +165,11 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         prev = instr
 
-
     if not to_string:
         print('\n'.join(result))
 
     return result
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -177,8 +177,12 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
     """
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
-    nearpc.repeat = emulate.repeat
+    nearpc.repeat = emulate_command.repeat
     return nearpc(pc, lines, to_string, emulate)
+
+
+emulate_command = emulate
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning

@@ -15,11 +15,15 @@ import gdb
 
 import pwndbg
 import pwndbg.commands
+import pwndbg.ida
 from pwndbg.color import message
 
 
 def _gdb_version():
-    return gdb.execute('show version', to_string=True).split('\n')[0]
+    try:
+        return gdb.VERSION  # GDB >= 8.1 (or earlier?)
+    except AttributeError:
+        return gdb.execute('show version', to_string=True).split('\n')[0]
 
 
 def _py_version():
@@ -54,4 +58,14 @@ def version():
     capstone_str = 'Capstone: %s' % capstone_version()
     unicorn_str  = 'Unicorn:  %s' % unicorn_version()
 
-    print('\n'.join(map(message.system, (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str))))
+    all_versions = (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str)
+
+    ida_versions = pwndbg.ida.get_ida_versions()
+
+    if ida_versions is not None:
+        ida_version = 'IDA PRO:  %s' % ida_versions['ida']
+        ida_py_ver  = 'IDA Py:   %s' % ida_versions['python']
+        ida_hr_ver  = 'Hexrays:  %s' % ida_versions['hexrays']
+        all_versions += (ida_version, ida_py_ver, ida_hr_ver)
+
+    print('\n'.join(map(message.system, all_versions)))

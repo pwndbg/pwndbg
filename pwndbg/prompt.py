@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.decorators
 import pwndbg.events
 import pwndbg.gdbutils
 import pwndbg.memoize
@@ -28,6 +29,8 @@ cur = (gdb.selected_inferior(), gdb.selected_thread())
 
 def prompt_hook(*a):
     global cur
+    pwndbg.decorators.first_prompt = True
+
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
     if cur != new:
@@ -55,4 +58,13 @@ def set_prompt():
     gdb.execute('set prompt %s' % prompt)
 
 
-gdb.prompt_hook = prompt_hook
+if pwndbg.events.before_prompt_event.is_real_event:
+    gdb.prompt_hook = prompt_hook
+
+else:
+    # Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
+    def extended_prompt_hook(*a):
+        pwndbg.events.before_prompt_event.invoke_callbacks()
+        return prompt_hook(*a)
+
+    gdb.prompt_hook = extended_prompt_hook

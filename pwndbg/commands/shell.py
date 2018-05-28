@@ -76,11 +76,13 @@ shellcmds = filter(pwndbg.which.which, shellcmds)
 
 def register_shell_function(cmd):
     def handler(*a):
-        """Invokes %s""" % cmd
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()
+
     handler.__name__ = str(cmd)
+    handler.__doc__ = 'Invokes {}'.format(cmd)
+
     pwndbg.commands.Command(handler, False)
 
 for cmd in shellcmds:
