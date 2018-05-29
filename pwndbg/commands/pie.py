@@ -6,11 +6,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+
 import gdb
 
+import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.vmmap
-import pwndbg.auxv
+
 
 def translate_addr(offset, module):
     mod_filter = lambda page: module in page.objfile
