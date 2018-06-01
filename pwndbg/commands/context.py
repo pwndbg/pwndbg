@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import ast
 import codecs
 import sys
 
@@ -367,12 +368,20 @@ def save_signal(signal):
 
     elif isinstance(signal, gdb.SignalEvent):
         msg = 'Program received signal %s' % signal.stop_signal
+
         if signal.stop_signal == 'SIGSEGV':
-            try:
-                si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
-                msg += ' (fault address %#x)' % int(si_addr or 0)
-            except gdb.error:
-                pass
+
+            # When users use rr (https://rr-project.org or https://github.com/mozilla/rr)
+            # we can't access $_siginfo, so lets just show current pc
+            # see also issue 476
+            if _is_rr_present():
+                msg += ' (current pc: %#x)' % pwndbg.regs.pc
+            else:
+                try:
+                    si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
+                    msg += ' (fault address %#x)' % int(si_addr or 0)
+                except gdb.error:
+                    pass
         result.append(message.signal(msg))
 
     elif isinstance(signal, gdb.BreakpointEvent):
@@ -396,3 +405,17 @@ context_sections = {
     's': context_stack,
     'b': context_backtrace
 }
+
+
+@pwndbg.memoize.forever
+def _is_rr_present():
+    """
+    Checks whether rr project is present (so someone launched e.g. `rr replay <some-recording>`)
+    """
+
+    # this is ugly but I couldn't find a better way to do it
+    # feel free to refactor it
+    globals_list_literal_str = gdb.execute('python print(list(globals().keys()))', to_string=True)
+    interpreter_globals = ast.literal_eval(globals_list_literal_str)
+
+    return 'RRCmd' in interpreter_globals and 'RRWhere' in interpreter_globals
