@@ -17,6 +17,7 @@ import sys
 
 import gdb
 from six.moves import reload_module
+from elftools.elf.elffile import ELFFile
 
 import pwndbg.abi
 import pwndbg.arch
@@ -66,6 +67,28 @@ def read(typ, address, blob=None):
     obj.address = address
     obj.type = typ
     return obj
+
+
+@pwndbg.proc.OnlyWhenRunning
+def get_load_segment_info():
+    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+    segments = []
+    with open(local_path, 'rb') as f:
+        elffile = ELFFile(f)
+        for seg in elffile.iter_segments():
+            if seg['p_type'] == 'PT_LOAD':
+                segments.append({
+                    "Offset":   seg['p_offset'],
+                    "VirtAddr": seg['p_vaddr'],
+                    "PhysAddr": seg['p_paddr'],
+                    "FileSiz":  seg['p_filesz'],
+                    "MemSiz":   seg['p_memsz'],
+                    "FlagsRead": seg['p_flags'] & PF_R != 0,
+                    "FlagsWrite": seg['p_flags'] & PF_W != 0,
+                    "FlagsExecute": seg['p_flags'] & PF_X != 0
+                })
+
+    return segments
 
 
 @pwndbg.proc.OnlyWhenRunning
