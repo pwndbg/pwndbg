@@ -67,32 +67,20 @@ def format_bin(bins, verbose=False, offset=None):
 @pwndbg.commands.OnlyWhenRunning
 def heap(addr=None):
     """
-    Prints out all chunks in the main_arena, or the arena specified by `addr`.
+    Prints out chunks starting from the address specified by `addr`.
     """
-
-    main_heap   = pwndbg.heap.current
-    main_arena  = main_heap.get_arena(addr)
-
+    main_heap  = pwndbg.heap.current
+    main_arena = main_heap.main_arena
     if main_arena is None:
         return
 
-    heap_region = main_heap.get_region(addr)
-
-    if heap_region is None:
-        print(message.error('Could not find the heap'))
-        return
-
-    top = main_arena['top']
-    last_remainder = main_arena['last_remainder']
-
-    print(message.hint('Top Chunk: ') + M.get(top))
-    print(message.hint('Last Remainder: ') + M.get(last_remainder))
-    print()
+    page = main_heap.get_heap_boundaries(addr)
+    if addr is None:
+        addr = page.vaddr
 
     # Print out all chunks on the heap
     # TODO: Add an option to print out only free or allocated chunks
-    addr = heap_region.vaddr
-    while addr <= top:
+    while addr < page.vaddr + page.memsz:
         chunk = malloc_chunk(addr)
         size = int(chunk['size'])
 
@@ -121,25 +109,26 @@ def arena(addr=None):
 @pwndbg.commands.OnlyWhenRunning
 def arenas():
     """
-    Prints out allocated arenas
+    Prints out allocated arenas.
     """
+    def format_heap(h):
+        fmt = '[%%%ds]' % (pwndbg.arch.ptrsize * 2)
+        return message.hint(fmt % (hex(h.first_chunk))) + M.heap(str(pwndbg.vmmap.find(h.addr)))
 
-    heap  = pwndbg.heap.current
-    addr  = None
-    arena = heap.get_arena(addr)
-    main_arena_addr = int(arena.address)
-    fmt = '[%%%ds]' % (pwndbg.arch.ptrsize *2)
-    while addr != main_arena_addr:
+    def format_arena(ar):
+        res = []
+        prefix = '[%%%ds]    ' % (pwndbg.arch.ptrsize * 2)
+        prefix_len = len(prefix % (''))
+        arena_name = hex(ar.addr) if ar.addr != heap.main_arena.address else 'main'
+        res.append(message.hint(prefix % (arena_name)) + format_heap(ar.heaps[0]))
+        for h in ar.heaps[1:]:
+            res.append(' '*prefix_len + format_heap(h))
 
-        h = heap.get_region(addr)
-        if not h:
-            print(message.error('Could not find the heap'))
-            return
+        return '\n'.join(res)
 
-        hdr = message.hint(fmt % (hex(addr) if addr else 'main'))
-        print(hdr, M.heap(str(h)))
-        addr = int(arena['next'])
-        arena = heap.get_arena(addr)
+    heap = pwndbg.heap.current
+    for ar in heap.arenas:
+        print(format_arena(ar))
 
 
 @pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
