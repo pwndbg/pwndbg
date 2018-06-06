@@ -70,11 +70,14 @@ def read(typ, address, blob=None):
 
 
 @pwndbg.proc.OnlyWhenRunning
-def get_load_segment_info():
-    local_path = pwndbg.file.get_file(pwndbg.proc.exe)
+def get_load_segment_info(filename):
+    '''
+    '''
+    local_path = pwndbg.file.get_file(filename)
     segments = []
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
+        is_pic = elffile.header['e_type'] != 'ET_EXEC'
         for seg in elffile.iter_segments():
             if seg['p_type'] == 'PT_LOAD':
                 segments.append({
@@ -85,7 +88,9 @@ def get_load_segment_info():
                     "MemSiz":   seg['p_memsz'],
                     "FlagsRead": seg['p_flags'] & PF_R != 0,
                     "FlagsWrite": seg['p_flags'] & PF_W != 0,
-                    "FlagsExecute": seg['p_flags'] & PF_X != 0
+                    "FlagsExecute": seg['p_flags'] & PF_X != 0,
+                    # if true, this segment's VirtAddr is relative to the ELF's load base
+                    "PIC": is_pic
                 })
 
     return segments

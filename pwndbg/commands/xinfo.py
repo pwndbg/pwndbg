@@ -21,7 +21,7 @@ import pwndbg.vmmap
 import pwndbg.wrappers
 
 parser = argparse.ArgumentParser(description='Shows offsets of the specified address to useful other locations')
-parser.add_argument('address', nargs='?', default='$pc', 
+parser.add_argument('address', nargs='?', default='$pc',
                     help='Address to inspect')
 
 def print_line(name, addr, first, second, op, width = 20):
@@ -67,9 +67,13 @@ def xinfo_mmap_file(page, addr):
 
     print_line("File (Memory)", addr, first.vaddr, rva, "+")
 
-    for segment in pwndbg.elf.get_load_segment_info():
-        if rva >= segment["VirtAddr"] and rva <= segment["VirtAddr"] + segment["MemSiz"]:
-            print_line("File (Disk)", addr, file_name, rva - (segment["VirtAddr"] - segment["Offset"]), "+")
+    for segment in pwndbg.elf.get_load_segment_info(file_name):
+        seg_start = segment['VirtAddr'] + (first.vaddr if segment['PIC'] else 0)
+        seg_filebacking_end = seg_start + segment['FileSiz']
+        if addr >= seg_start and addr < seg_filebacking_end:
+            file_offset = segment['Offset'] + (addr - seg_start)
+            print_line("File (Disk)", addr, file_name, file_offset, "+")
+
 
 def xinfo_default(page, addr):
     # Just print the distance to the beginning of the mapping
@@ -100,6 +104,6 @@ def xinfo(address=None):
         xinfo_stack(page, addr)
     else:
         xinfo_default(page, addr)
-    
+
     if page.is_memory_mapped_file:
         xinfo_mmap_file(page, addr)
