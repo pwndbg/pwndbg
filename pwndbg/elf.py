@@ -16,8 +16,9 @@ import ctypes
 import sys
 
 import gdb
-from six.moves import reload_module
+from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
+from six.moves import reload_module
 
 import pwndbg.abi
 import pwndbg.arch
@@ -70,30 +71,56 @@ def read(typ, address, blob=None):
 
 
 @pwndbg.proc.OnlyWhenRunning
-def get_load_segment_info(filename):
-    '''
-    '''
-    local_path = pwndbg.file.get_file(filename)
+def get_containing_segments(elf_filename, vaddr, loadaddr):
+    local_path = pwndbg.file.get_file(elf_filename)
     segments = []
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
-        is_pic = elffile.header['e_type'] != 'ET_EXEC'
+        is_pic = elffile.header['e_type'] == 'ET_DYN'
+        load = loadaddr if is_pic else 0
         for seg in elffile.iter_segments():
-            if seg['p_type'] == 'PT_LOAD':
-                segments.append({
-                    "Offset":   seg['p_offset'],
-                    "VirtAddr": seg['p_vaddr'],
-                    "PhysAddr": seg['p_paddr'],
-                    "FileSiz":  seg['p_filesz'],
-                    "MemSiz":   seg['p_memsz'],
-                    "FlagsRead": seg['p_flags'] & PF_R != 0,
-                    "FlagsWrite": seg['p_flags'] & PF_W != 0,
-                    "FlagsExecute": seg['p_flags'] & PF_X != 0,
-                    # if true, this segment's VirtAddr is relative to the ELF's load base
-                    "PIC": is_pic
-                })
+            if 'GNU_STACK' in seg['p_type']:
+                continue
 
+            if vaddr < load + seg['p_vaddr'] or vaddr >= load + seg['p_vaddr'] + seg['p_memsz']:
+                continue
+
+            x = dict(seg.header)
+            # add enriched attributes
+            flags = seg['p_flags']
+            x['x_perm_read'] = flags & PF_R != 0
+            x['x_perm_write'] = flags & PF_W != 0
+            x['x_perm_execute'] = flags & PF_X != 0
+            x['x_real_vaddr_start'] = load + x['p_vaddr']
+            x['x_real_vaddr_end'] = load + x['p_vaddr'] + x['p_memsz']
+            x['x_file_backing_end'] = x['x_real_vaddr_start'] + x['p_filesz']
+            x['x_is_file_backed'] = vaddr <= x['x_file_backing_end']
+            segments.append(x)
     return segments
+
+
+@pwndbg.proc.OnlyWhenRunning
+def get_containing_sections(elf_filename, vaddr, loadaddr):
+    local_path = pwndbg.file.get_file(elf_filename)
+    sections = []
+    with open(local_path, 'rb') as f:
+        elffile = ELFFile(f)
+        is_pic = elffile.header['e_type'] == 'ET_DYN'
+        load = loadaddr if is_pic else 0
+        for sec in elffile.iter_sections():
+            # disregard sections not occupying memory
+            if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
+                continue
+            # disregard sections that do not contain vaddr
+            if vaddr < load + sec['sh_addr'] or vaddr >= load + sec['sh_addr'] + sec['sh_size']:
+                continue
+
+            x = dict(sec.header)
+            x['x_real_vaddr_start'] = load + sec['sh_addr']
+            x['x_real_vaddr_end'] = load + sec['sh_addr'] + sec['sh_size']
+            x['x_name'] = sec.name
+            sections.append(x)
+    return sections
 
 
 @pwndbg.proc.OnlyWhenRunning

@@ -67,12 +67,26 @@ def xinfo_mmap_file(page, addr):
 
     print_line("File (Memory)", addr, first.vaddr, rva, "+")
 
-    for segment in pwndbg.elf.get_load_segment_info(file_name):
-        seg_start = segment['VirtAddr'] + (first.vaddr if segment['PIC'] else 0)
-        seg_filebacking_end = seg_start + segment['FileSiz']
-        if addr >= seg_start and addr < seg_filebacking_end:
-            file_offset = segment['Offset'] + (addr - seg_start)
+    file_offset = None
+    for segment in pwndbg.elf.get_containing_segments(file_name, addr, first.vaddr):
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_file_backing_end']:
+            file_offset = segment['p_offset'] + (addr - segment['x_real_vaddr_start'])
             print_line("File (Disk)", addr, file_name, file_offset, "+")
+            break
+
+    if file_offset is None:
+        print('{} {} = [not file-backed]'.format('File (Disk)'.rjust(20), M.get(addr)))
+
+    else:
+        print('\n Containing ELF sections:')
+        for sec in pwndbg.elf.get_containing_sections(file_name, addr, first.vaddr):
+            print('{} {} = {} + {:#x}'.format(
+                sec['x_name'].rjust(20),
+                M.get(addr),
+                M.get(sec['x_real_vaddr_start']),
+                addr - sec['sh_addr']
+            ))
+
 
 
 def xinfo_default(page, addr):
