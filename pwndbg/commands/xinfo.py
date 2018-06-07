@@ -85,7 +85,7 @@ def xinfo_mmap_file(page, addr):
                 sec['x_name'].rjust(20),
                 M.get(addr),
                 M.get(sec['x_real_vaddr_start']),
-                addr - sec['sh_addr']
+                addr - sec['x_real_vaddr_start']
             ))
 
 
