@@ -4,16 +4,19 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
+import subprocess
+
 import pytest
 import sys
-print(sys.argv)
 
-sys._pwndbg_unittest_run = True
+print(sys.argv)
 
 TESTS_PATH = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     'tests'
 )
+
+tests_invoker = subprocess.Popen(['python', 'tests/testserver.py'])
 
 # If you want to debug tests locally, add '--pdb' here
 args = [TESTS_PATH, '-vvv', '-s', '--showlocals', '--color=yes']
