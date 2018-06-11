@@ -9,6 +9,7 @@ from collections import OrderedDict, namedtuple
 
 import gdb
 
+import pwndbg.color.memory as M
 import pwndbg.events
 import pwndbg.typeinfo
 from pwndbg.color import message
@@ -19,13 +20,37 @@ from pwndbg.heap import heap_chain_limit
 # and https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f8e7250f70f6f26b0acb5901bcc4f6e39a8a52b2;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l869
 HEAP_MAX_SIZE = 1024 * 1024 if pwndbg.arch.ptrsize == 4 else 2 * 4 * 1024 * 1024 * 8
 
-Arena = namedtuple('Arena', ['addr', 'heaps'])
-HeapInfo = namedtuple('HeapInfo', ['addr', 'first_chunk'])
-
 
 def heap_for_ptr(ptr):
     "find the heap and corresponding arena for a given ptr"
     return (ptr & ~(HEAP_MAX_SIZE-1))
+
+
+class Arena(object):
+    def __init__(self, addr, heaps):
+        self.addr  = addr
+        self.heaps = heaps
+
+    def __str__(self):
+        res = []
+        prefix = '[%%%ds]    ' % (pwndbg.arch.ptrsize * 2)
+        prefix_len = len(prefix % (''))
+        arena_name = hex(self.addr) if self.addr != pwndbg.heap.current.main_arena.address else 'main'
+        res.append(message.hint(prefix % (arena_name)) + str(self.heaps[0]))
+        for h in self.heaps[1:]:
+            res.append(' ' * prefix_len + str(h))
+
+        return '\n'.join(res)
+
+
+class HeapInfo(object):
+    def __init__(self, addr, first_chunk):
+        self.addr        = addr
+        self.first_chunk = first_chunk
+
+    def __str__(self):
+        fmt = '[%%%ds]' % (pwndbg.arch.ptrsize * 2)
+        return message.hint(fmt % (hex(self.first_chunk))) + M.heap(str(pwndbg.vmmap.find(self.addr)))
 
 
 class Heap(pwndbg.heap.heap.BaseHeap):

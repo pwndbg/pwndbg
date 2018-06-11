@@ -111,24 +111,9 @@ def arenas():
     """
     Prints out allocated arenas.
     """
-    def format_heap(h):
-        fmt = '[%%%ds]' % (pwndbg.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(h.first_chunk))) + M.heap(str(pwndbg.vmmap.find(h.addr)))
-
-    def format_arena(ar):
-        res = []
-        prefix = '[%%%ds]    ' % (pwndbg.arch.ptrsize * 2)
-        prefix_len = len(prefix % (''))
-        arena_name = hex(ar.addr) if ar.addr != heap.main_arena.address else 'main'
-        res.append(message.hint(prefix % (arena_name)) + format_heap(ar.heaps[0]))
-        for h in ar.heaps[1:]:
-            res.append(' '*prefix_len + format_heap(h))
-
-        return '\n'.join(res)
-
     heap = pwndbg.heap.current
     for ar in heap.arenas:
-        print(format_arena(ar))
+        print(ar)
 
 
 @pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
