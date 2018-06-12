@@ -73,7 +73,7 @@ def xinfo_mmap_file(page, addr):
                         if seg['p_type'] == 'PT_LOAD']
 
     for segment in containing_loads:
-        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_file_end']:
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_mem_end']:
             offset = addr - segment['p_vaddr']
             print_line('File (Segment)', addr, segment['p_vaddr'], offset, '+')
             break
