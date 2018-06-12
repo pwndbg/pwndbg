@@ -63,35 +63,38 @@ def xinfo_mmap_file(page, addr):
     file_name = page.objfile
     objpages = filter(lambda p: p.objfile == file_name, pwndbg.vmmap.get())
     first = sorted(objpages, key = lambda p: p.vaddr)[0]
+
+    # print offset from ELF base load address
     rva = addr - first.vaddr
+    print_line("File (Base)", addr, first.vaddr, rva, "+")
 
-    print_line("File (Memory)", addr, first.vaddr, rva, "+")
+    # find possible LOAD segments that designate memory and file backings
+    containing_loads = [seg for seg in pwndbg.elf.get_containing_segments(file_name, first.vaddr, addr)
+                        if seg['p_type'] == 'PT_LOAD']
 
-    file_offset = None
-    for segment in pwndbg.elf.get_containing_segments(file_name, addr, first.vaddr):
-        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_file_backing_end']:
-            file_offset = segment['p_offset'] + (addr - segment['x_real_vaddr_start'])
-            print_line("File (Disk)", addr, file_name, file_offset, "+")
+    for segment in containing_loads:
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_file_end']:
+            offset = addr - segment['p_vaddr']
+            print_line('File (Segment)', addr, segment['p_vaddr'], offset, '+')
             break
 
-    if file_offset is None:
-        print('{} {} = [not file-backed]'.format('File (Disk)'.rjust(20), M.get(addr)))
+    for segment in containing_loads:
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_file_end']:
+            file_offset = segment['p_offset'] + (addr - segment['p_vaddr'])
+            print_line("File (Disk)", addr, file_name, file_offset, "+")
+            break
+    else:
+        print('{} {} = [not file backed]'.format('File (Disk)'.rjust(20), M.get(addr)))
 
-    containing_sections = pwndbg.elf.get_containing_sections(file_name, addr, first.vaddr)
+    containing_sections = pwndbg.elf.get_containing_sections(file_name, first.vaddr, addr)
     if len(containing_sections) > 0:
         print('\n Containing ELF sections:')
         for sec in containing_sections:
-            print('{} {} = {} + {:#x}'.format(
-                sec['x_name'].rjust(20),
-                M.get(addr),
-                M.get(sec['x_real_vaddr_start']),
-                addr - sec['x_real_vaddr_start']
-            ))
+            print_line(sec['x_name'], addr, sec['sh_addr'], addr - sec['sh_addr'], '+')
 
 
 def xinfo_default(page, addr):
     # Just print the distance to the beginning of the mapping
-
     print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
 
 

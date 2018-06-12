@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import ctypes
 import sys
+from collections import namedtuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -37,6 +38,19 @@ ET_EXEC, ET_DYN  = 2,3
 
 
 module = sys.modules[__name__]
+
+
+class ELFInfo(namedtuple('ELFInfo', 'header sections segments')):
+    """
+    ELF metadata and structures.
+    """
+    @property
+    def is_pic(self):
+        return self.header['e_type'] == 'ET_DYN'
+
+    @property
+    def is_pie(self):
+        return self.is_pic
 
 
 @pwndbg.events.start
@@ -70,56 +84,92 @@ def read(typ, address, blob=None):
     return obj
 
 
-@pwndbg.proc.OnlyWhenRunning
-def get_containing_segments(elf_filename, vaddr, loadaddr):
-    local_path = pwndbg.file.get_file(elf_filename)
-    segments = []
+@pwndbg.memoize.forever
+def get_elf_info(filepath):
+    """
+    Parse and return ELFInfo.
+
+    Adds various calculated properties to the ELF header, segments and sections.
+    Such added properties are those with prefix 'x_' in the returned dicts.
+    """
+    local_path = pwndbg.file.get_file(filepath)
     with open(local_path, 'rb') as f:
         elffile = ELFFile(f)
-        is_pic = elffile.header['e_type'] == 'ET_DYN'
-        load = loadaddr if is_pic else 0
+        header = dict(elffile.header)
+        segments = []
         for seg in elffile.iter_segments():
-            if 'GNU_STACK' in seg['p_type']:
-                continue
+            s = dict(seg.header)
+            s['x_perms'] = [
+                mnemonic for mask, mnemonic in [(PF_R, 'read'), (PF_W, 'write'), (PF_X, 'execute')]
+                if s['p_flags'] & mask != 0
+            ]
+            # end of memory backing
+            s['x_vaddr_mem_end'] = s['p_vaddr'] + s['p_memsz']
+            # end of file backing
+            s['x_vaddr_file_end'] = s['p_vaddr'] + s['p_filesz']
+            segments.append(s)
+        sections = []
+        for sec in elffile.iter_sections():
+            s = dict(sec.header)
+            s['x_name'] = sec.name
+            s['x_addr_mem_end'] = s['x_addr_file_end'] = s['sh_addr'] + s['sh_size']
+            sections.append(s)
+        return ELFInfo(header, sections, segments)
 
-            if vaddr < load + seg['p_vaddr'] or vaddr >= load + seg['p_vaddr'] + seg['p_memsz']:
-                continue
 
-            x = dict(seg.header)
-            # add enriched attributes
-            flags = seg['p_flags']
-            x['x_perm_read'] = flags & PF_R != 0
-            x['x_perm_write'] = flags & PF_W != 0
-            x['x_perm_execute'] = flags & PF_X != 0
-            x['x_real_vaddr_start'] = load + x['p_vaddr']
-            x['x_real_vaddr_end'] = load + x['p_vaddr'] + x['p_memsz']
-            x['x_file_backing_end'] = x['x_real_vaddr_start'] + x['p_filesz']
-            x['x_is_file_backed'] = vaddr <= x['x_file_backing_end']
-            segments.append(x)
+@pwndbg.memoize.forever
+def get_elf_info_rebased(filepath, vaddr):
+    """
+    Parse and return ELFInfo with all virtual addresses rebased to vaddr
+    """
+    raw_info = get_elf_info(filepath)
+    # silently ignores "wrong" vaddr supplied for non-PIE ELF
+    load = vaddr if raw_info.is_pic else 0
+    _headers = dict(raw_info.header)
+    _headers['e_entry'] += load
+
+    _segments = []
+    for seg in raw_info.segments:
+        _seg = dict(seg)
+        for vaddr_attr in ['p_vaddr', 'x_vaddr_mem_end', 'x_vaddr_file_end']:
+            _seg[vaddr_attr] += load
+        _segments.append(_seg)
+
+    _sections = []
+    for seg in raw_info.sections:
+        _sec = dict(seg)
+        for vaddr_attr in ['sh_addr', 'x_addr_mem_end', 'x_addr_file_end']:
+            _sec[vaddr_attr] += load
+        _sections.append(_sec)
+
+    return ELFInfo(_headers, _sections, _segments)
+
+
+def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
+    segments = []
+    for seg in elf.segments:
+        # disregard non-LOAD segments that are not file-backed (typically STACK)
+        if 'LOAD' not in seg['p_type'] and seg['p_filesz'] == 0:
+            continue
+        # disregard segments not containing vaddr
+        if vaddr < seg['p_vaddr'] or vaddr >= seg['x_vaddr_mem_end']:
+            continue
+        segments.append(dict(seg))
     return segments
 
 
-@pwndbg.proc.OnlyWhenRunning
-def get_containing_sections(elf_filename, vaddr, loadaddr):
-    local_path = pwndbg.file.get_file(elf_filename)
+def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
     sections = []
-    with open(local_path, 'rb') as f:
-        elffile = ELFFile(f)
-        is_pic = elffile.header['e_type'] == 'ET_DYN'
-        load = loadaddr if is_pic else 0
-        for sec in elffile.iter_sections():
-            # disregard sections not occupying memory
-            if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
-                continue
-            # disregard sections that do not contain vaddr
-            if vaddr < load + sec['sh_addr'] or vaddr >= load + sec['sh_addr'] + sec['sh_size']:
-                continue
-
-            x = dict(sec.header)
-            x['x_real_vaddr_start'] = load + sec['sh_addr']
-            x['x_real_vaddr_end'] = load + sec['sh_addr'] + sec['sh_size']
-            x['x_name'] = sec.name
-            sections.append(x)
+    for sec in elf.sections:
+        # disregard sections not occupying memory
+        if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
+            continue
+        # disregard sections that do not contain vaddr
+        if vaddr < sec['sh_addr'] or vaddr >= sec['x_addr_mem_end']:
+            continue
+        sections.append(dict(sec))
     return sections
 
 
