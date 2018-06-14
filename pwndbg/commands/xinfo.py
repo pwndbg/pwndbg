@@ -27,7 +27,7 @@ parser.add_argument('address', nargs='?', default='$pc',
 def print_line(name, addr, first, second, op, width = 20):
 
     print("{} {} = {} {} {:#x}".format(name.rjust(width), M.get(addr),
-        M.get(first) if type(first) is not str else first.ljust(len(hex(addr))),
+        M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L'))),
         op, second,))
 
 def xinfo_stack(page, addr):
