@@ -59,8 +59,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
         else:
-            if not has_tcache():
-                print(message.warning('Your libc does not use thread cache'))
+            if not self.has_tcache():
+                print(message.warn('Your libc does not use thread cache'))
                 return None
 
             print(message.error('Symbol \'tcache\' not found. Try installing libc '
