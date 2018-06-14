@@ -84,7 +84,7 @@ def read(typ, address, blob=None):
     return obj
 
 
-@pwndbg.memoize.forever
+@pwndbg.memoize.reset_on_objfile
 def get_elf_info(filepath):
     """
     Parse and return ELFInfo.
@@ -117,7 +117,7 @@ def get_elf_info(filepath):
         return ELFInfo(header, sections, segments)
 
 
-@pwndbg.memoize.forever
+@pwndbg.memoize.reset_on_objfile
 def get_elf_info_rebased(filepath, vaddr):
     """
     Parse and return ELFInfo with all virtual addresses rebased to vaddr
@@ -125,24 +125,24 @@ def get_elf_info_rebased(filepath, vaddr):
     raw_info = get_elf_info(filepath)
     # silently ignores "wrong" vaddr supplied for non-PIE ELF
     load = vaddr if raw_info.is_pic else 0
-    _headers = dict(raw_info.header)
-    _headers['e_entry'] += load
+    headers = dict(raw_info.header)
+    headers['e_entry'] += load
 
-    _segments = []
+    segments = []
     for seg in raw_info.segments:
-        _seg = dict(seg)
+        s = dict(seg)
         for vaddr_attr in ['p_vaddr', 'x_vaddr_mem_end', 'x_vaddr_file_end']:
-            _seg[vaddr_attr] += load
-        _segments.append(_seg)
+            s[vaddr_attr] += load
+        segments.append(s)
 
-    _sections = []
-    for seg in raw_info.sections:
-        _sec = dict(seg)
+    sections = []
+    for sec in raw_info.sections:
+        s = dict(sec)
         for vaddr_attr in ['sh_addr', 'x_addr_mem_end', 'x_addr_file_end']:
-            _sec[vaddr_attr] += load
-        _sections.append(_sec)
+            s[vaddr_attr] += load
+        sections.append(s)
 
-    return ELFInfo(_headers, _sections, _segments)
+    return ELFInfo(headers, sections, segments)
 
 
 def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
