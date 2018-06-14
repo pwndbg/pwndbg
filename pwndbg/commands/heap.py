@@ -363,8 +363,12 @@ def find_fake_fast(addr, size):
     """
     main_heap = pwndbg.heap.current
 
-    fastbin  = main_heap.fastbin_index(int(size))
     max_fast = main_heap.global_max_fast
+    if max_fast == 0:
+        print(message.warn("glibc allocator (probably ptmalloc) not yet initialized"))
+        return
+    
+    fastbin  = main_heap.fastbin_index(int(size))
     start    = int(addr) - int(max_fast)
     mem      = pwndbg.memory.read(start, max_fast, partial=True)
 
