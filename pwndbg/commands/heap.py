@@ -337,8 +337,19 @@ def find_fake_fast(addr, size):
     """
     main_heap = pwndbg.heap.current
 
-    fastbin  = main_heap.fastbin_index(int(size))
     max_fast = main_heap.global_max_fast
+    """
+    malloc state is initialized when a new arena is created. 
+       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1807
+    By default main_arena is partially initialized, and during the first usage of a glibc allocator function some other field are populated.
+    global_max_fast is one of them thus the call of set_max_fast() when initializing the main_arena, 
+    making it one of the ways to check if the allocator is initialized or not.
+    """
+    if max_fast == 0:
+        print(message.warn("glibc allocator (probably ptmalloc) not yet initialized"))
+        return
+    
+    fastbin  = main_heap.fastbin_index(int(size))
     start    = int(addr) - int(max_fast)
     mem      = pwndbg.memory.read(start, max_fast, partial=True)
 
