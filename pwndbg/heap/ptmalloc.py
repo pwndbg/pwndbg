@@ -5,17 +5,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import gdb
 
+import pwndbg.color.memory as M
 import pwndbg.events
 import pwndbg.typeinfo
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
-HEAP_MAX_SIZE     = 1024 * 1024
+# See https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=37183cfb6ab5d0735cc82759626670aff3832cd0;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l30
+# and https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f8e7250f70f6f26b0acb5901bcc4f6e39a8a52b2;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l869
+# 1 Mb (x86) or 64 Mb (x64)
+HEAP_MAX_SIZE = 1024 * 1024 if pwndbg.arch.ptrsize == 4 else 2 * 4 * 1024 * 1024 * 8
 
 
 def heap_for_ptr(ptr):
@@ -23,11 +27,40 @@ def heap_for_ptr(ptr):
     return (ptr & ~(HEAP_MAX_SIZE-1))
 
 
+class Arena(object):
+    def __init__(self, addr, heaps):
+        self.addr  = addr
+        self.heaps = heaps
+
+    def __str__(self):
+        res = []
+        prefix = '[%%%ds]    ' % (pwndbg.arch.ptrsize * 2)
+        prefix_len = len(prefix % (''))
+        arena_name = hex(self.addr) if self.addr != pwndbg.heap.current.main_arena.address else 'main'
+        res.append(message.hint(prefix % (arena_name)) + str(self.heaps[0]))
+        for h in self.heaps[1:]:
+            res.append(' ' * prefix_len + str(h))
+
+        return '\n'.join(res)
+
+
+class HeapInfo(object):
+    def __init__(self, addr, first_chunk):
+        self.addr        = addr
+        self.first_chunk = first_chunk
+
+    def __str__(self):
+        fmt = '[%%%ds]' % (pwndbg.arch.ptrsize * 2)
+        return message.hint(fmt % (hex(self.first_chunk))) + M.heap(str(pwndbg.vmmap.find(self.addr)))
+
+
 class Heap(pwndbg.heap.heap.BaseHeap):
     def __init__(self):
         # Global ptmalloc objects
         self._main_arena    = None
         self._mp            = None
+        # List of arenas/heaps
+        self._arenas        = None
         # ptmalloc cache for current thread
         self._thread_cache  = None
 
@@ -42,6 +75,61 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                                 'debugging symbols and try again.'))
 
         return self._main_arena
+
+    @property
+    @pwndbg.memoize.reset_on_stop
+    def arenas(self):
+        arena           = self.main_arena
+        arenas          = []
+        arena_cnt       = 0
+        main_arena_addr = int(arena.address)
+        sbrk_page       = self.get_region().vaddr
+
+        # Create the main_arena with a fake HeapInfo
+        main_arena      = Arena(main_arena_addr, [HeapInfo(sbrk_page, sbrk_page)])
+        arenas.append(main_arena)
+
+        # Iterate over all the non-main arenas
+        addr = int(arena['next'])
+        while addr != main_arena_addr:
+            heaps = []
+            arena = self.get_arena(addr)
+            arena_cnt += 1
+
+            # Get the first and last element on the heap linked list of the arena
+            last_heap_addr  = heap_for_ptr(int(arena['top']))
+            first_heap_addr = heap_for_ptr(addr)
+
+            heap = self.get_heap(last_heap_addr)
+            if not heap:
+                print(message.error('Could not find the heap for arena %s' % hex(addr)))
+                return
+
+            # Iterate over the heaps of the arena
+            haddr = last_heap_addr
+            while haddr != 0:
+                if haddr == first_heap_addr:
+                    # The first heap has a heap_info and a malloc_state before the actual chunks
+                    chunks_offset = self.heap_info.sizeof + self.malloc_state.sizeof
+                else:
+                    # The others just
+                    chunks_offset = self.heap_info.sizeof
+                heaps.append(HeapInfo(haddr, haddr + chunks_offset))
+
+                # Name the heap mapping, so that it can be colored properly. Note that due to the way malloc is
+                # optimized, a vm mapping may contain two heaps, so the numbering will not be exact.
+                page = self.get_region(haddr)
+                page.objfile = '[heap %d:%d]' % (arena_cnt, len(heaps))
+                heap = self.get_heap(haddr)
+                haddr = int(heap['prev'])
+
+            # Add to the list of arenas and move on to the next one
+            arenas.append(Arena(addr, tuple(reversed(heaps))))
+            addr = int(arena['next'])
+
+        arenas = tuple(arenas)
+        self._arenas = arenas
+        return arenas
 
     def has_tcache(self):
         return (self.mp and 'tcache_bins' in self.mp.type.keys() and self.mp['tcache_bins'])
@@ -230,23 +318,30 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return pwndbg.memory.poi(self.tcache_perthread_struct, tcache_addr)
 
+    def get_heap_boundaries(self, addr=None):
+        """
+        Get the boundaries of the heap containing `addr`. Returns the brk region for
+        adresses inside it or a fake Page for the containing heap for non-main arenas.
+        """
+        brk = self.get_region()
+        if addr is None or brk.vaddr < addr < brk.vaddr + brk.memsz:
+            return brk
+        else:
+            page = pwndbg.memory.Page(0, 0, 0, 0)
+            page.vaddr = heap_for_ptr(addr)
+            heap = self.get_heap(page.vaddr)
+            page.memsz = int(heap['size'])
+            return page
+
     def get_region(self, addr=None):
         """
-        Finds the memory region used for heap by using mp_ structure's sbrk_base property
+        Finds the memory map used for heap by using mp_ structure's sbrk_base property
         and falls back to using /proc/self/maps (vmmap) which can be wrong
         when .bss is very large
         For non main-arena heaps use heap_info struct provieded at the beging of the page.
         """
-
         if addr:
-            heap  = self.get_heap(addr)
-            base  = int(heap.address) + self.heap_info.sizeof + self.malloc_state.sizeof
-            page  = pwndbg.vmmap.find(base)
-            ## trim whole page to look exactly like heap
-            page.size = int(heap['size'])
-            page.vaddr = base
-
-            return page
+            return pwndbg.vmmap.find(addr)
 
         page = None
         for m in pwndbg.vmmap.get():
