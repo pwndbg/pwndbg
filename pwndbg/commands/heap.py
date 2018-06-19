@@ -26,7 +26,7 @@ def read_chunk(addr):
         "mchunk_prev_size": "prev_size",
     }
     val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
-    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() }, value=val)
+    return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()}, value=val)
 
 
 def format_bin(bins, verbose=False, offset=None):
@@ -62,6 +62,7 @@ def format_bin(bins, verbose=False, offset=None):
         result.append(message.hint('empty'))
 
     return result
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -102,6 +103,7 @@ def heap(addr=None):
             break
         addr += size
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def arena(addr=None):
@@ -128,7 +130,7 @@ def arenas():
     addr  = None
     arena = heap.get_arena(addr)
     main_arena_addr = int(arena.address)
-    fmt = '[%%%ds]' % (pwndbg.arch.ptrsize *2)
+    fmt = '[%%%ds]' % (pwndbg.arch.ptrsize * 2)
     while addr != main_arena_addr:
 
         h = heap.get_region(addr)
@@ -170,6 +172,7 @@ def mp():
 
     print(main_heap.mp)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def top_chunk(addr=None):
@@ -209,9 +212,10 @@ def top_chunk(addr=None):
 
     return malloc_chunk(address)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def malloc_chunk(addr,fake=False):
+def malloc_chunk(addr, fake=False):
     """
     Prints out the malloc_chunk at the specified address.
     """
@@ -245,6 +249,7 @@ def malloc_chunk(addr,fake=False):
 
     return chunk
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def bins(addr=None, tcache_addr=None):
@@ -258,6 +263,7 @@ def bins(addr=None, tcache_addr=None):
     unsortedbin(addr)
     smallbins(addr)
     largebins(addr)
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -278,6 +284,7 @@ def fastbins(addr=None, verbose=True):
     for node in formatted_bins:
         print(node)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def unsortedbin(addr=None, verbose=True):
@@ -296,6 +303,7 @@ def unsortedbin(addr=None, verbose=True):
     print(C.banner('unsortedbin'))
     for node in formatted_bins:
         print(node)
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -316,6 +324,7 @@ def smallbins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def largebins(addr=None, verbose=False):
@@ -334,6 +343,7 @@ def largebins(addr=None, verbose=False):
     print(C.banner('largebins'))
     for node in formatted_bins:
         print(node)
+
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
@@ -354,6 +364,7 @@ def tcachebins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
+
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
 def find_fake_fast(addr, size):
@@ -364,10 +375,18 @@ def find_fake_fast(addr, size):
     main_heap = pwndbg.heap.current
 
     max_fast = main_heap.global_max_fast
+
+    """
+    malloc state is initialized when a new arena is created. 
+       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1807
+    By default main_arena is partially initialized, and during the first usage of a glibc allocator function some other field are populated.
+    global_max_fast is one of them thus the call of set_max_fast() when initializing the main_arena, 
+    making it one of the ways to check if the allocator is initialized or not.
+    """
     if max_fast == 0:
         print(message.warn("glibc allocator (probably ptmalloc) not yet initialized"))
         return
-    
+
     fastbin  = main_heap.fastbin_index(int(size))
     start    = int(addr) - int(max_fast)
     mem      = pwndbg.memory.read(start, max_fast, partial=True)
@@ -387,4 +406,4 @@ def find_fake_fast(addr, size):
             value = struct.unpack(fmt, candidate)[0]
 
             if main_heap.fastbin_index(value) == fastbin:
-                malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
+                malloc_chunk(start+offset-pwndbg.arch.ptrsize, fake=True)
