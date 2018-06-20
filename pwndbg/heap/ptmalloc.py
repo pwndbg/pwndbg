@@ -172,9 +172,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     def global_max_fast(self):
-        # global_max_fast definition:
-        #       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1630
-        return pwndbg.symbol.address('global_max_fast')
+        addr = pwndbg.symbol.address('global_max_fast')
+        return pwndbg.memory.u(addr)
 
 
     @property
