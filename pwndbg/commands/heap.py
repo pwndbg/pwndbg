@@ -65,6 +65,7 @@ def format_bin(bins, verbose=False, offset=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def heap(addr=None):
     """
     Prints out chunks starting from the address specified by `addr`.
@@ -92,6 +93,7 @@ def heap(addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
     """
     Prints out the main arena or the arena at the specified by address.
@@ -107,6 +109,7 @@ def arena(addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
     """
     Prints out allocated arenas.
@@ -118,6 +121,7 @@ def arenas():
 
 @pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcache(addr=None):
     """
     Prints out the thread cache.
@@ -136,6 +140,7 @@ def tcache(addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
     """
     Prints out the mp_ structure from glibc
@@ -146,6 +151,7 @@ def mp():
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
     """
     Prints out the address of the top chunk of the main arena, or of the arena
@@ -185,6 +191,7 @@ def top_chunk(addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr,fake=False):
     """
     Prints out the malloc_chunk at the specified address.
@@ -221,6 +228,7 @@ def malloc_chunk(addr,fake=False):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
     """
     Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
@@ -235,6 +243,7 @@ def bins(addr=None, tcache_addr=None):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
     """
     Prints out the contents of the fastbins of the main arena or the arena
@@ -254,6 +263,7 @@ def fastbins(addr=None, verbose=True):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
     """
     Prints out the contents of the unsorted bin of the main arena or the
@@ -273,6 +283,7 @@ def unsortedbin(addr=None, verbose=True):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
     """
     Prints out the contents of the small bin of the main arena or the arena
@@ -292,6 +303,7 @@ def smallbins(addr=None, verbose=False):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
     """
     Prints out the contents of the large bin of the main arena or the arena
@@ -311,6 +323,7 @@ def largebins(addr=None, verbose=False):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcachebins(addr=None, verbose=False):
     """
     Prints out the contents of the bins in current thread tcache or in tcache
@@ -330,25 +343,14 @@ def tcachebins(addr=None, verbose=False):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size):
     """
     Finds candidate fake fast chunks that will overlap with the specified
     address. Used for fastbin dups and house of spirit
     """
     main_heap = pwndbg.heap.current
-
     max_fast = main_heap.global_max_fast
-    """
-    malloc state is initialized when a new arena is created. 
-       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1807
-    By default main_arena is partially initialized, and during the first usage of a glibc allocator function some other field are populated.
-    global_max_fast is one of them thus the call of set_max_fast() when initializing the main_arena, 
-    making it one of the ways to check if the allocator is initialized or not.
-    """
-    if max_fast == 0:
-        print(message.warn("glibc allocator (probably ptmalloc) not yet initialized"))
-        return
-    
     fastbin  = main_heap.fastbin_index(int(size))
     start    = int(addr) - int(max_fast)
     mem      = pwndbg.memory.read(start, max_fast, partial=True)
