@@ -42,6 +42,8 @@ custom_pages = []
 @pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_stop
 def get():
+    if not pwndbg.proc.alive:
+        return tuple()
     pages = []
     pages.extend(proc_pid_maps())
 
