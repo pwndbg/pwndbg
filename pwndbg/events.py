@@ -251,4 +251,4 @@ def _start_stop():
 @exit
 def _reset_objfiles():
     global objfile_cache
-    objfile_cache = set()
+    objfile_cache = dict()
