@@ -47,7 +47,7 @@ class BaseHeap(object):
 
 
     def is_initialized(self):
-        """Returns whenether the allocator is initialized or not
+        """Returns whether the allocator is initialized or not.
 
         Returns:
             A boolean.
