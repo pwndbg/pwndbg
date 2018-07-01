@@ -28,7 +28,7 @@ def find_module(addr):
     return pages[0]
 
 parser = argparse.ArgumentParser()
-parser.description = 'Calculate VA of RVA from PIE base.'
+parser.description = 'Pointer scan for possible offset leaks.'
 parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
 parser.add_argument('count', nargs='?', default=0x40,
