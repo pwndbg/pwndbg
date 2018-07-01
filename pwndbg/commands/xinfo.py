@@ -21,13 +21,13 @@ import pwndbg.vmmap
 import pwndbg.wrappers
 
 parser = argparse.ArgumentParser(description='Shows offsets of the specified address to useful other locations')
-parser.add_argument('address', nargs='?', default='$pc', 
+parser.add_argument('address', nargs='?', default='$pc',
                     help='Address to inspect')
 
 def print_line(name, addr, first, second, op, width = 20):
 
     print("{} {} = {} {} {:#x}".format(name.rjust(width), M.get(addr),
-        M.get(first) if type(first) is not str else first.ljust(len(hex(addr))),
+        M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L'))),
         op, second,))
 
 def xinfo_stack(page, addr):
@@ -63,17 +63,38 @@ def xinfo_mmap_file(page, addr):
     file_name = page.objfile
     objpages = filter(lambda p: p.objfile == file_name, pwndbg.vmmap.get())
     first = sorted(objpages, key = lambda p: p.vaddr)[0]
+
+    # print offset from ELF base load address
     rva = addr - first.vaddr
+    print_line("File (Base)", addr, first.vaddr, rva, "+")
 
-    print_line("File (Memory)", addr, first.vaddr, rva, "+")
+    # find possible LOAD segments that designate memory and file backings
+    containing_loads = [seg for seg in pwndbg.elf.get_containing_segments(file_name, first.vaddr, addr)
+                        if seg['p_type'] == 'PT_LOAD']
 
-    for segment in pwndbg.wrappers.readelf.get_load_segment_info():
-        if rva >= segment["VirtAddr"] and rva <= segment["VirtAddr"] + segment["MemSiz"]:
-            print_line("File (Disk)", addr, file_name, rva - (segment["VirtAddr"] - segment["Offset"]), "+")
+    for segment in containing_loads:
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_mem_end']:
+            offset = addr - segment['p_vaddr']
+            print_line('File (Segment)', addr, segment['p_vaddr'], offset, '+')
+            break
+
+    for segment in containing_loads:
+        if segment['p_type'] == 'PT_LOAD' and addr < segment['x_vaddr_file_end']:
+            file_offset = segment['p_offset'] + (addr - segment['p_vaddr'])
+            print_line("File (Disk)", addr, file_name, file_offset, "+")
+            break
+    else:
+        print('{} {} = [not file backed]'.format('File (Disk)'.rjust(20), M.get(addr)))
+
+    containing_sections = pwndbg.elf.get_containing_sections(file_name, first.vaddr, addr)
+    if len(containing_sections) > 0:
+        print('\n Containing ELF sections:')
+        for sec in containing_sections:
+            print_line(sec['x_name'], addr, sec['sh_addr'], addr - sec['sh_addr'], '+')
+
 
 def xinfo_default(page, addr):
     # Just print the distance to the beginning of the mapping
-
     print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
 
 
@@ -100,6 +121,6 @@ def xinfo(address=None):
         xinfo_stack(page, addr)
     else:
         xinfo_default(page, addr)
-    
+
     if page.is_memory_mapped_file:
         xinfo_mmap_file(page, addr)

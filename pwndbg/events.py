@@ -138,7 +138,7 @@ class Pause(object):
 # objects are loaded.  This greatly slows down the debugging session.
 # In order to combat this, we keep track of which objfiles have been loaded
 # this session, and only emit objfile events for each *new* file.
-objfile_cache = set()
+objfile_cache = dict()
 
 
 def connect(func, event_handler, name=''):
@@ -152,14 +152,15 @@ def connect(func, event_handler, name=''):
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile
+            handler = '%s.%s' % (func.__module__, func.__name__)
             path = objfile.filename
+            dispatched = objfile_cache.get(path, set())
 
-            if path in objfile_cache:
+            if handler in dispatched:
                 return
 
-            # print(path, objfile.is_valid())
-
-            objfile_cache.add(path)
+            dispatched.add(handler)
+            objfile_cache[path] = dispatched
 
         if pause:
             return
@@ -250,4 +251,4 @@ def _start_stop():
 @exit
 def _reset_objfiles():
     global objfile_cache
-    objfile_cache = set()
+    objfile_cache = dict()

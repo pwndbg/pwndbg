@@ -14,8 +14,11 @@ from __future__ import unicode_literals
 
 import ctypes
 import sys
+from collections import namedtuple
 
 import gdb
+from elftools.elf.constants import SH_FLAGS
+from elftools.elf.elffile import ELFFile
 from six.moves import reload_module
 
 import pwndbg.abi
@@ -35,6 +38,19 @@ ET_EXEC, ET_DYN  = 2,3
 
 
 module = sys.modules[__name__]
+
+
+class ELFInfo(namedtuple('ELFInfo', 'header sections segments')):
+    """
+    ELF metadata and structures.
+    """
+    @property
+    def is_pic(self):
+        return self.header['e_type'] == 'ET_DYN'
+
+    @property
+    def is_pie(self):
+        return self.is_pic
 
 
 @pwndbg.events.start
@@ -66,6 +82,95 @@ def read(typ, address, blob=None):
     obj.address = address
     obj.type = typ
     return obj
+
+
+@pwndbg.memoize.reset_on_objfile
+def get_elf_info(filepath):
+    """
+    Parse and return ELFInfo.
+
+    Adds various calculated properties to the ELF header, segments and sections.
+    Such added properties are those with prefix 'x_' in the returned dicts.
+    """
+    local_path = pwndbg.file.get_file(filepath)
+    with open(local_path, 'rb') as f:
+        elffile = ELFFile(f)
+        header = dict(elffile.header)
+        segments = []
+        for seg in elffile.iter_segments():
+            s = dict(seg.header)
+            s['x_perms'] = [
+                mnemonic for mask, mnemonic in [(PF_R, 'read'), (PF_W, 'write'), (PF_X, 'execute')]
+                if s['p_flags'] & mask != 0
+            ]
+            # end of memory backing
+            s['x_vaddr_mem_end'] = s['p_vaddr'] + s['p_memsz']
+            # end of file backing
+            s['x_vaddr_file_end'] = s['p_vaddr'] + s['p_filesz']
+            segments.append(s)
+        sections = []
+        for sec in elffile.iter_sections():
+            s = dict(sec.header)
+            s['x_name'] = sec.name
+            s['x_addr_mem_end'] = s['x_addr_file_end'] = s['sh_addr'] + s['sh_size']
+            sections.append(s)
+        return ELFInfo(header, sections, segments)
+
+
+@pwndbg.memoize.reset_on_objfile
+def get_elf_info_rebased(filepath, vaddr):
+    """
+    Parse and return ELFInfo with all virtual addresses rebased to vaddr
+    """
+    raw_info = get_elf_info(filepath)
+    # silently ignores "wrong" vaddr supplied for non-PIE ELF
+    load = vaddr if raw_info.is_pic else 0
+    headers = dict(raw_info.header)
+    headers['e_entry'] += load
+
+    segments = []
+    for seg in raw_info.segments:
+        s = dict(seg)
+        for vaddr_attr in ['p_vaddr', 'x_vaddr_mem_end', 'x_vaddr_file_end']:
+            s[vaddr_attr] += load
+        segments.append(s)
+
+    sections = []
+    for sec in raw_info.sections:
+        s = dict(sec)
+        for vaddr_attr in ['sh_addr', 'x_addr_mem_end', 'x_addr_file_end']:
+            s[vaddr_attr] += load
+        sections.append(s)
+
+    return ELFInfo(headers, sections, segments)
+
+
+def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
+    segments = []
+    for seg in elf.segments:
+        # disregard non-LOAD segments that are not file-backed (typically STACK)
+        if 'LOAD' not in seg['p_type'] and seg['p_filesz'] == 0:
+            continue
+        # disregard segments not containing vaddr
+        if vaddr < seg['p_vaddr'] or vaddr >= seg['x_vaddr_mem_end']:
+            continue
+        segments.append(dict(seg))
+    return segments
+
+
+def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
+    sections = []
+    for sec in elf.sections:
+        # disregard sections not occupying memory
+        if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
+            continue
+        # disregard sections that do not contain vaddr
+        if vaddr < sec['sh_addr'] or vaddr >= sec['x_addr_mem_end']:
+            continue
+        sections.append(dict(sec))
+    return sections
 
 
 @pwndbg.proc.OnlyWhenRunning
