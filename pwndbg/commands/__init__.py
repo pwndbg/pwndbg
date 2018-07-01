@@ -202,6 +202,15 @@ def OnlyWhenRunning(function):
             print("%s: The program is not being run." % function.__name__)
     return _OnlyWhenRunning
 
+def OnlyWhenHeapIsInitialized(function):
+    @functools.wraps(function)
+    def _OnlyWhenHeapIsInitialized(*a, **kw):
+        if pwndbg.heap.current.is_initialized():
+            return function(*a, **kw)
+        else:
+            print("%s: Heap is not initialized yet." % function.__name__)
+    return _OnlyWhenHeapIsInitialized
+
 
 class QuietSloppyParsedCommand(ParsedCommand):
     def __init__(self, *a, **kw):

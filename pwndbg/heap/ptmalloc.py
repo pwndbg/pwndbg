@@ -513,3 +513,14 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             result[size] = chain
 
         return result
+
+
+    def is_initialized(self):
+        """
+        malloc state is initialized when a new arena is created. 
+            https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1807
+        By default main_arena is partially initialized, and during the first usage of a glibc allocator function some other field are populated.
+        global_max_fast is one of them thus the call of set_max_fast() when initializing the main_arena, 
+        making it one of the ways to check if the allocator is initialized or not.
+        """
+        return self.global_max_fast != 0

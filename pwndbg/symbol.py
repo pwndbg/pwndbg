@@ -205,7 +205,7 @@ def address(symbol):
     try:
         symbol_obj = gdb.lookup_symbol(symbol)[0]
         if symbol_obj:
-            return int(symbol_obj)
+            return int(symbol_obj.value().address)
     except Exception:
         pass
 
