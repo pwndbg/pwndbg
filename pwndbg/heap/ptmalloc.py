@@ -86,7 +86,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         arenas          = []
         arena_cnt       = 0
         main_arena_addr = int(arena.address)
-        sbrk_page       = self.get_region().vaddr
+        sbrk_page       = self.get_heap_boundaries().vaddr
 
         # Create the main_arena with a fake HeapInfo
         main_arena      = Arena(main_arena_addr, [HeapInfo(sbrk_page, sbrk_page)])
@@ -348,42 +348,42 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         Get the boundaries of the heap containing `addr`. Returns the brk region for
         adresses inside it or a fake Page for the containing heap for non-main arenas.
         """
+        page = pwndbg.memory.Page(0, 0, 0, 0)
         brk = self.get_region()
         if addr is None or brk.vaddr < addr < brk.vaddr + brk.memsz:
-            return brk
+            # Occasionally, the [heap] vm region and the actual start of the heap are
+            # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
+            # Return an adjusted Page object if this is the case.
+            sbrk_base = int(self.mp['sbrk_base'])
+            if sbrk_base != brk.vaddr:
+                page.vaddr = sbrk_base
+                page.memsz = brk.memsz - (sbrk_base - brk.vaddr)
+                return page
+            else:
+                return brk
         else:
-            page = pwndbg.memory.Page(0, 0, 0, 0)
             page.vaddr = heap_for_ptr(addr)
             heap = self.get_heap(page.vaddr)
             page.memsz = int(heap['size'])
             return page
 
 
-    def get_region(self,addr=None):
+    def get_region(self, addr=None):
         """
-        Finds the memory map used for heap by using mp_ structure's sbrk_base property
-        and falls back to using /proc/self/maps (vmmap) which can be wrong
-        when .bss is very large
-        For non main-arena heaps use heap_info struct provieded at the beging of the page.
+        Finds the memory map used for the heap at addr or the main heap by looking for a
+        mapping named [heap].
         """
         if addr:
             return pwndbg.vmmap.find(addr)
 
-        page = None
+        # No address provided, find the vm region of the main heap.
+        brk = None
         for m in pwndbg.vmmap.get():
             if m.objfile == '[heap]':
-                page = m
+                brk = m
                 break
 
-        if page is not None:
-            mp = self.mp
-            if mp:
-                ## this can't fail right?
-                page.vaddr = int(mp['sbrk_base'])
-            return page
-
-        return None
-
+        return brk
 
     def fastbin_index(self, size):
         if pwndbg.arch.ptrsize == 8:

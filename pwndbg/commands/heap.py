@@ -161,7 +161,7 @@ def top_chunk(addr=None):
     main_arena  = main_heap.get_arena(addr)
 
     if main_arena is None:
-        heap_region = main_heap.get_region()
+        heap_region = main_heap.get_heap_boundaries()
         if not heap_region:
             print(message.error('Could not find the heap'))
             return
