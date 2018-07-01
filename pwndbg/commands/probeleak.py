@@ -23,7 +23,7 @@ def find_module(addr):
         return None
 
     if len(pages) > 1:
-        print('Warning: There is more than one page containing address %x (wtf?)', addr)
+        print('Warning: There is more than one page containing address 0x%x (wtf?)', addr)
 
     return pages[0]
 
