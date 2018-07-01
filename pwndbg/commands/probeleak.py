@@ -6,14 +6,16 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import gdb
 import math
+
+import gdb
 
 import pwndbg.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.elf
 import pwndbg.vmmap
+
 
 def find_module(addr):
     mod_filter = lambda page: page.vaddr <= addr < page.vaddr + page.memsz
@@ -78,4 +80,3 @@ def probeleak(address=None, count=0x40):
             print((off_fmt % (i,)) + ': ' + (ptr_fmt % (p,)) + ' = ' + M.get(p, text=right_text))
     if not found:
         print('No leaks found :(')
-
