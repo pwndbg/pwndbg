@@ -12,6 +12,7 @@ import gdb
 
 import pwndbg.arch
 import pwndbg.color.memory as M
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.elf
 import pwndbg.vmmap
@@ -25,7 +26,7 @@ def find_module(addr):
         return None
 
     if len(pages) > 1:
-        print('Warning: There is more than one page containing address %x (wtf?)', addr)
+        print(message.warn('Warning: There is more than one page containing address 0x%x (wtf?)', addr))
 
     return pages[0]
 
@@ -44,24 +45,24 @@ def probeleak(address=None, count=0x40):
     address &= pwndbg.arch.ptrmask
     count   = max(int(count), 0)
     ptrsize = pwndbg.arch.ptrsize
-    ptr_fmt = '0x%%0%dx' % (ptrsize*2,)
-    off_fmt = '+0x%%0%dx' % (int(math.ceil(math.log(count,2)/4)),)
+    off_zeros = int(math.ceil(math.log(count,2)/4))
 
     if count > address > 0x10000: # in case someone puts in an end address and not a count (smh)
         count -= address
 
     if count % ptrsize > 0:
-        print("Warning: count %x is not a multiple of %x" % (count, ptrsize))
-        count = count - (count % ptrsize)
+        newcount = count - (count % ptrsize)
+        print(message.warning("Warning: count 0x%x is not a multiple of 0x%x; truncating to 0x%x." % (count, ptrsize, newcount)))
+        count = newcount
 
     try:
         data = pwndbg.memory.read(address, count, partial=True)
     except gdb.error as e:
-        print(e)
+        print(message.error(str(e)))
         return
 
     if not data:
-        print("Couldn't read memory at 0x%x" % (address,))
+        print(message.error("Couldn't read memory at 0x%x" % (address,)))
         return
 
     found = False
@@ -76,7 +77,8 @@ def probeleak(address=None, count=0x40):
             mod_name = page.objfile
             if not mod_name:
                 mod_name = '[anon]'
+            fmt = '+0x{offset:0{n1}x}: 0x{ptr:0{n2}x} = {page}'
             right_text = ('(%s) %s + 0x%x') % (page.permstr, mod_name, p - page.vaddr + page.offset)
-            print((off_fmt % (i,)) + ': ' + (ptr_fmt % (p,)) + ' = ' + M.get(p, text=right_text))
+            print(fmt.format(n1=off_zeros, n2=ptrsize*2, offset=i, ptr=p, page=M.get(p, text=right_text)))
     if not found:
-        print('No leaks found :(')
+        print(message.hint('No leaks found at 0x{:x}-0x{:x} :('.format(address, address+count)))
