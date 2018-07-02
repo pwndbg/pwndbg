@@ -4,10 +4,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gdb
-import pytest
 
 import pwndbg.memory
 import pwndbg.stack
+import pytest
 
 
 def test_memory_read_write(entry_binary):
