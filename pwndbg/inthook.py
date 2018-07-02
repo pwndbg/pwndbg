@@ -15,9 +15,9 @@ import os
 
 import gdb
 import six
+from future.utils import with_metaclass
 
 import pwndbg.typeinfo
-from future.utils import with_metaclass
 
 if six.PY2:
     import __builtin__ as builtins

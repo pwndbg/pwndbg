@@ -53,4 +53,3 @@ class BaseHeap(object):
             A boolean.
         """
         raise NotImplementedError()
-
