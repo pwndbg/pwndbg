@@ -453,6 +453,7 @@ def vis_heap_chunks(addr, final_count=2):
 
         printed += 1
 
-    out += "\t <-- Top chunk"
+    if top_chunk in addrs:
+        out += "\t <-- Top chunk"
 
     print(out)
