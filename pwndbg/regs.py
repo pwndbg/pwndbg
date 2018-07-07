@@ -423,6 +423,7 @@ sys.modules[__name__] = module(__name__, '')
 
 
 @pwndbg.events.cont
+@pwndbg.events.stop
 def update_last():
     M = sys.modules[__name__]
     M.last = {k:M[k] for k in M.common}
