@@ -14,7 +14,7 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.typeinfo
-from pwndbg.color import message
+from pwndbg.color import message, generateColorFunction
 
 
 def read_chunk(addr):
@@ -371,3 +371,88 @@ def find_fake_fast(addr, size):
 
             if main_heap.fastbin_index(value) == fastbin:
                 malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
+
+
+@pwndbg.commands.ParsedCommand
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def vis_heap_chunks(addr, final_count=2):
+    """
+    Visualize heap chunks at the specified address
+    """
+    addr = int(addr)
+    main_heap = pwndbg.heap.current
+    main_arena = main_heap.get_arena()
+    top_chunk = int(main_arena['top'])
+
+    fmt = {
+        'little': '<',
+        'big': '>'
+    }[pwndbg.arch.endian] + {
+        4: 'I',
+        8: 'Q'
+    }[pwndbg.arch.ptrsize]
+
+    def unpack(x): return struct.unpack(fmt, x)[0]
+
+    cells_map = {}
+    chunk_id = 0
+    ptr_size = pwndbg.arch.ptrsize
+    while chunk_id < final_count:
+        prev_size = unpack(pwndbg.memory.read(addr, ptr_size))
+        current_size = unpack(pwndbg.memory.read(addr+ptr_size, ptr_size))
+        real_size = current_size & ~main_heap.malloc_align_mask
+        prev_inuse = current_size & 1
+        stop_addr = addr + real_size
+
+        while addr < stop_addr:
+            assert addr not in cells_map
+            cells_map[addr] = chunk_id
+            addr += ptr_size
+
+        if prev_inuse:
+            cells_map[addr - real_size] -= 1
+
+        chunk_id += 1
+
+        # we reached top chunk, add it's metadata and break
+        if addr == top_chunk:
+            cells_map[addr] = chunk_id
+            cells_map[addr+ptr_size] = chunk_id
+            break
+
+    # TODO: maybe print free chunks in bold or underlined
+    color_funcs = [
+        generateColorFunction("yellow"),
+        generateColorFunction("cyan"),
+        generateColorFunction("purple"),
+        generateColorFunction("green"),
+        generateColorFunction("blue"),
+    ]
+
+    addrs = sorted(cells_map.keys())
+    item_fmt = "\t0x%.16x"
+    if ptr_size == 4:
+        item_fmt = "\t0x%.8x"
+
+    printed = 0
+    out = ''
+
+    for addr in addrs:
+        if printed % 2 == 0:
+            out += "\n0x%x:" % addr
+
+        cell = unpack(pwndbg.memory.read(addr, ptr_size))
+        cell_hex = item_fmt % cell
+
+        chunk_idx = cells_map[addr]
+        color_func_idx = chunk_idx % len(color_funcs)
+        color_func = color_funcs[color_func_idx]
+
+        out += color_func(cell_hex)
+
+        printed += 1
+
+    out += "\t <-- Top chunk"
+
+    print(out)
