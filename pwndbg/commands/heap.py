@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import struct
+import argparse
 
 import gdb
 import six
@@ -373,52 +374,53 @@ def find_fake_fast(addr, size):
                 malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
 
 
-@pwndbg.commands.ParsedCommand
+
+
+vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
+vis_heap_chunks_parser.add_argument('address', help='Start address')
+vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
+                    help='Number of chunks to visualize')
+
+@pwndbg.commands.ArgparsedCommand(vis_heap_chunks_parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr, final_count=2):
+def vis_heap_chunks(address, count):
     """
-    Visualize heap chunks at the specified address
+    
     """
-    addr = int(addr)
+    address = int(address)
     main_heap = pwndbg.heap.current
     main_arena = main_heap.get_arena()
     top_chunk = int(main_arena['top'])
 
-    fmt = {
-        'little': '<',
-        'big': '>'
-    }[pwndbg.arch.endian] + {
-        4: 'I',
-        8: 'Q'
-    }[pwndbg.arch.ptrsize]
+    
 
-    def unpack(x): return struct.unpack(fmt, x)[0]
+    unpack = pwndbg.arch.unpack
 
     cells_map = {}
     chunk_id = 0
     ptr_size = pwndbg.arch.ptrsize
-    while chunk_id < final_count:
-        prev_size = unpack(pwndbg.memory.read(addr, ptr_size))
-        current_size = unpack(pwndbg.memory.read(addr+ptr_size, ptr_size))
+    while chunk_id < count:
+        prev_size = unpack(pwndbg.memory.read(address, ptr_size))
+        current_size = unpack(pwndbg.memory.read(address+ptr_size, ptr_size))
         real_size = current_size & ~main_heap.malloc_align_mask
         prev_inuse = current_size & 1
-        stop_addr = addr + real_size
+        stop_addr = address + real_size
 
-        while addr < stop_addr:
-            assert addr not in cells_map
-            cells_map[addr] = chunk_id
-            addr += ptr_size
+        while address < stop_addr:
+            assert address not in cells_map
+            cells_map[address] = chunk_id
+            address += ptr_size
 
         if prev_inuse:
-            cells_map[addr - real_size] -= 1
+            cells_map[address - real_size] -= 1
 
         chunk_id += 1
 
         # we reached top chunk, add it's metadata and break
-        if addr == top_chunk:
-            cells_map[addr] = chunk_id
-            cells_map[addr+ptr_size] = chunk_id
+        if address >= top_chunk:
+            cells_map[address] = chunk_id
+            cells_map[address+ptr_size] = chunk_id
             break
 
     # TODO: maybe print free chunks in bold or underlined
@@ -431,9 +433,6 @@ def vis_heap_chunks(addr, final_count=2):
     ]
 
     addrs = sorted(cells_map.keys())
-    item_fmt = "\t0x%.16x"
-    if ptr_size == 4:
-        item_fmt = "\t0x%.8x"
 
     printed = 0
     out = ''
@@ -443,7 +442,7 @@ def vis_heap_chunks(addr, final_count=2):
             out += "\n0x%x:" % addr
 
         cell = unpack(pwndbg.memory.read(addr, ptr_size))
-        cell_hex = item_fmt % cell
+        cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
 
         chunk_idx = cells_map[addr]
         color_func_idx = chunk_idx % len(color_funcs)
