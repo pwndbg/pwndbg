@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 import gdb
 import pytest
 
-
 _start_binary_called = False
 
 

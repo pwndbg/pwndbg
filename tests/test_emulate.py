@@ -4,7 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import tests
-from pwndbg.commands.nearpc import emulate, nearpc, pdisass
+from pwndbg.commands.nearpc import emulate
+from pwndbg.commands.nearpc import nearpc
+from pwndbg.commands.nearpc import pdisass
 from pwndbg.commands.windbg import u
 
 EMULATE_DISASM_BINARY = tests.binaries.get('emulate_disasm.out')
