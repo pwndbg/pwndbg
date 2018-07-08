@@ -22,7 +22,7 @@ fi
 
 if linux; then
     sudo apt-get update || true
-    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+    sudo apt-get -y install gdb libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo apt-get install libc6-dbg:i386 || true
@@ -41,6 +41,18 @@ git submodule update --init --recursive
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
 PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 PYTHON+="${PYVER}"
+
+# Install Python-related prerequisites
+if linux; then
+    case $PYVER in
+        2.*)
+            sudo apt-get install python-dev python-pip
+            ;;
+        3.*)
+            sudo apt-get install python3-dev python3-pip
+            ;;
+    esac
+fi
 
 # Find the Python site-packages that we need to use so that
 # GDB can find the files once we've installed them.

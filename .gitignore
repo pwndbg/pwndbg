@@ -61,3 +61,9 @@ npm-debug.log
 
 # PyCharm project files
 .idea/
+
+# Archives
+*.tar
+*.gz
+*.bz2
+*.xz
