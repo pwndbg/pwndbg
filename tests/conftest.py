@@ -10,6 +10,9 @@ import gdb
 import pytest
 
 
+_start_binary_called = False
+
+
 @pytest.fixture
 def start_binary():
     """
@@ -18,5 +21,11 @@ def start_binary():
     def _start_binary(path):
         gdb.execute('file ' + path)
         gdb.execute('start')
+
+        global _start_binary_called
+        if _start_binary_called:
+            raise Exception('Starting more than one binary is not supported in pwndbg tests.')
+
+        _start_binary_called = True
 
     yield _start_binary
