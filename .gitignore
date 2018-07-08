@@ -65,3 +65,6 @@ npm-debug.log
 # PyTest files
 .pytest_cache/
 tests/.pytest_cache/
+
+# Pwndbg test binaries
+tests/binaries/*.out

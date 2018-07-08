@@ -11,12 +11,12 @@ import pytest
 
 
 @pytest.fixture
-def entry_binary():
+def start_binary():
     """
-    Returns function that launches given binary with 'entry' command
+    Returns function that launches given binary with 'start' command
     """
-    def _entry_binary(name):
-        gdb.execute('file ./tests/binaries/' + name)
-        gdb.execute('entry')
+    def _start_binary(path):
+        gdb.execute('file ' + path)
+        gdb.execute('start')
 
-    return _entry_binary
+    yield _start_binary
