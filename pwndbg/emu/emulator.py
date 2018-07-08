@@ -9,7 +9,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import binascii
-import inspect
 import re
 
 import capstone as C
@@ -67,6 +66,7 @@ arch_to_CS = {
 }
 
 DEBUG = False
+
 
 def debug(*a,**kw):
     if DEBUG: print(*a, **kw)
@@ -138,7 +138,7 @@ class Emulator(object):
 
         # Jump tracking state
         self._prev = None
-        self._prevsize = None
+        self._prev_size = None
         self._curr = None
 
         # Initialize the register state
@@ -178,7 +178,6 @@ class Emulator(object):
         # Instruction tracing
         if DEBUG:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
-
 
     def __getattr__(self, name):
         reg = self.get_reg_enum(name)
@@ -270,11 +269,6 @@ class Emulator(object):
 
         Also supports general registers like 'sp' and 'pc'.
         """
-        if 'fsbase' in reg:
-            # import pdb
-            # pdb.set_trace()
-            pass
-
         if not self.regs:
             return None
 
@@ -332,9 +326,9 @@ class Emulator(object):
 
     def mem_read(self, *a, **kw):
         debug("uc.mem_read(*%r, **%r)" % (a, kw))
-        return self.uc.mem_read(*a,**kw)
+        return self.uc.mem_read(*a, **kw)
 
-    jump_types = set([C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET])
+    jump_types = {C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET}
 
     def until_jump(self, pc=None):
         """
@@ -364,7 +358,7 @@ class Emulator(object):
         # Set up the state.  Resetting this each time means that we will not ever
         # stop on the *current* instruction.
         self._prev = None
-        self._prevsize = None
+        self._prev_size = None
         self._curr = None
 
         # Add the single-step hook, start emulating, and remove the hook.
@@ -373,26 +367,26 @@ class Emulator(object):
         # We're done emulating
         return self._prev, self._curr
 
-    def until_jump_hook_code(self, uc, address, size, user_data):
+    def until_jump_hook_code(self, _uc, address, instruction_size, _user_data):
         # We have not emulated any instructions yet.
         if self._prev is None:
             pass
 
         # We have moved forward one linear instruction, no branch or the
         # branch target was the next instruction.
-        elif self._prev + self._prevsize == address:
+        elif self._prev + self._prev_size == address:
             pass
 
         # We have branched!
         # The previous instruction does not immediately precede this one.
         else:
             self._curr = address
-            debug(hex(self._prev), hex(self._prevsize), '-->', hex(self._curr))
+            debug(hex(self._prev), hex(self._prev_size), '-->', hex(self._curr))
             self.emu_stop()
             return
 
         self._prev = address
-        self._prevsize = size
+        self._prev_size = instruction_size
 
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
@@ -425,7 +419,7 @@ class Emulator(object):
             A StopIteration is raised if a fault or syscall or call instruction
             is encountered.
         """
-        self._singlestep = (None, None)
+        self._single_step = (None, None)
 
         pc = pc or self.pc
         insn = pwndbg.disasm.one(pc)
@@ -433,16 +427,16 @@ class Emulator(object):
         # If we don't know how to disassemble, bail.
         if insn is None:
             debug("Can't disassemble instruction at %#x" % pc)
-            return self._singlestep
+            return self._single_step
 
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
 
         try:
             self.emulate_with_hook(self.single_step_hook_code, count=1)
-        except U.unicorn.UcError:
-            self._singlestep = (None, None)
+        except U.unicorn.UcError as e:
+            self._single_step = (None, None)
 
-        return self._singlestep
+        return self._single_step
 
     def single_step_iter(self, pc=None):
         a = self.single_step(pc)
@@ -451,9 +445,9 @@ class Emulator(object):
             yield a
             a = self.single_step(pc)
 
-    def single_step_hook_code(self, uc, address, size, user_data):
+    def single_step_hook_code(self, _uc, address, instruction_size, _user_data):
         debug("# single_step: %#-8x" % address)
-        self._singlestep = (address, size)
+        self._single_step = (address, instruction_size)
 
     def dumpregs(self):
         for reg in list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
@@ -467,6 +461,6 @@ class Emulator(object):
             value = self.uc.reg_read(enum)
             debug("uc.reg_read(%(name)s) ==> %(value)x" % locals())
 
-    def trace_hook(self, uc, address, size, user_data):
-        data = binascii.hexlify(self.mem_read(address, size))
+    def trace_hook(self, _uc, address, instruction_size, _user_data):
+        data = binascii.hexlify(self.mem_read(address, instruction_size))
         debug("# trace_hook: %#-8x %r" % (address, data))

@@ -144,11 +144,12 @@ DO_NOT_EMULATE = {
     capstone.CS_GRP_INVALID,
     capstone.CS_GRP_IRET,
 
-# Note that we explicitly do not include the PRIVILEGE category, since
-# we may be in kernel code, and privileged instructions are just fine
-# in that case.
-#    capstone.CS_GRP_PRIVILEGE,
+    # Note that we explicitly do not include the PRIVILEGE category, since
+    # we may be in kernel code, and privileged instructions are just fine
+    # in that case.
+    #capstone.CS_GRP_PRIVILEGE,
 }
+
 
 def near(address, instructions=1, emulate=False, show_prev_insns=True):
     """
@@ -199,8 +200,8 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     #
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
-    insn  = current
-    total_instructions = 1+(2*instructions)
+    insn = current
+    total_instructions = 1 + (2*instructions)
 
     while insn and len(insns) < total_instructions:
         target = insn.target
