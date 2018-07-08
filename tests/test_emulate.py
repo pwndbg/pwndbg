@@ -33,18 +33,18 @@ def test_emulate_disasm(start_binary):
     ]
 
     disasm_without_emu = [
-        ' ► 0x400080 <_start>    jmp    label                         <0x400083>',
-        '    ↓',
-        '   0x400083 <label>     nop    ',
-        '   0x400084             add    byte ptr [rax], al',
-        '   0x400086             add    byte ptr [rax], al',
-        '   0x400088             add    byte ptr [rax], al',
-        '   0x40008a             add    byte ptr [rax], al',
-        '   0x40008c             add    byte ptr [rax], al',
-        '   0x40008e             add    byte ptr [rax], al',
-        '   0x400090             add    byte ptr [rax], al',
-        '   0x400092             add    byte ptr [rax], al',
-        '   0x400094             add    byte ptr [rax], al'
+        ' ► 0x400080 <_start>      jmp    label                         <0x400083>',
+        ' ',
+        '   0x400082 <_start+2>    nop    ',
+        '   0x400083 <label>       nop    ',
+        '   0x400084               add    byte ptr [rax], al',
+        '   0x400086               add    byte ptr [rax], al',
+        '   0x400088               add    byte ptr [rax], al',
+        '   0x40008a               add    byte ptr [rax], al',
+        '   0x40008c               add    byte ptr [rax], al',
+        '   0x40008e               add    byte ptr [rax], al',
+        '   0x400090               add    byte ptr [rax], al',
+        '   0x400092               add    byte ptr [rax], al'
     ]
 
     assert nearpc(to_string=True) == disasm_without_emu
