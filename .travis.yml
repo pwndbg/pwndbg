@@ -9,7 +9,7 @@ cache:
         - capstone
         - unicorn
 install:
-  - sudo apt-get -y install gdb
+  - sudo apt-get -y install gdb nasm
   - lsb_release -a
   - pip install -r requirements.txt
   - sudo ./setup.sh

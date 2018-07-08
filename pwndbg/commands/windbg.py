@@ -298,14 +298,14 @@ def bp(where):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def u(where=None, n=5):
+def u(where=None, n=5, to_string=False):
     """
     Starting at the specified address, disassemble
     N instructions (default 5).
     """
     if where is None:
         where = pwndbg.regs.pc
-    pwndbg.commands.nearpc.nearpc(where, n)
+    return pwndbg.commands.nearpc.nearpc(where, n, to_string)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
