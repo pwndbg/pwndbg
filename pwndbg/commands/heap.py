@@ -5,8 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import struct
 import argparse
+import struct
 
 import gdb
 import six
@@ -15,7 +15,8 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.typeinfo
-from pwndbg.color import message, generateColorFunction
+from pwndbg.color import generateColorFunction
+from pwndbg.color import message
 
 
 def read_chunk(addr):
@@ -374,8 +375,6 @@ def find_fake_fast(addr, size):
                 malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
 
 
-
-
 vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
 vis_heap_chunks_parser.add_argument('address', help='Start address')
 vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
@@ -385,15 +384,10 @@ vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def vis_heap_chunks(address, count):
-    """
-    
-    """
     address = int(address)
     main_heap = pwndbg.heap.current
     main_arena = main_heap.get_arena()
     top_chunk = int(main_arena['top'])
-
-    
 
     unpack = pwndbg.arch.unpack
 
