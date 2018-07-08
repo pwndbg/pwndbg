@@ -9,7 +9,6 @@ import codecs
 import os
 import re
 import subprocess
-import tempfile
 
 import pytest
 
@@ -37,7 +36,6 @@ def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
     if core:
         command += ['--core', core]
 
-
     for cmd in pyafter:
         command += ['--eval-command', cmd]
 
@@ -54,6 +52,7 @@ def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
     output = re.sub(r'loaded [0-9]+ commands', r'loaded ### commands', output)
 
     return output
+
 
 HELLO = (
     'pwndbg: loaded ### commands. Type pwndbg [filter] for a list.\n'

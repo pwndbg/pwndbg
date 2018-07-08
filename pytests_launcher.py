@@ -10,13 +10,14 @@ print(sys.argv)
 
 sys._pwndbg_unittest_run = True
 
-TESTS_PATH = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)),
-    'tests'
-)
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+test = os.environ['PWNDBG_LAUNCH_TEST']
+
+test = os.path.join(CURRENT_DIR, test)
 
 # If you want to debug tests locally, add '--pdb' here
-args = [TESTS_PATH, '-vvv', '-s', '--showlocals', '--color=yes']
+args = [test, '-vvv', '-s', '--showlocals', '--color=yes']
 
 print('Launching pytest with args: %s' % args)
 
