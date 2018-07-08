@@ -5,8 +5,6 @@ from __future__ import unicode_literals
 
 import os
 
-from . import old_bash, emulation
-
 path = os.path.dirname(__file__)
 
 

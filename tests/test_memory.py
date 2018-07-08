@@ -3,18 +3,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import gdb
-import pytest
-
 import pwndbg.memory
 import pwndbg.stack
+import tests
+
+REFERENCE_BINARY = tests.binaries.get('reference-binary.out')
 
 
-def test_memory_read_write(entry_binary):
+def test_memory_read_write(start_binary):
     """
     Tests simple pwndbg's memory read/write operations with different argument types
     """
-    entry_binary('reference-binary.out')
+    start_binary(REFERENCE_BINARY)
     stack_addr = next(iter(pwndbg.stack.stacks.values())).vaddr
 
     # Testing write(addr, str)

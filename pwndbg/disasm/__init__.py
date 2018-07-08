@@ -144,11 +144,12 @@ DO_NOT_EMULATE = {
     capstone.CS_GRP_INVALID,
     capstone.CS_GRP_IRET,
 
-# Note that we explicitly do not include the PRIVILEGE category, since
-# we may be in kernel code, and privileged instructions are just fine
-# in that case.
-#    capstone.CS_GRP_PRIVILEGE,
+    # Note that we explicitly do not include the PRIVILEGE category, since
+    # we may be in kernel code, and privileged instructions are just fine
+    # in that case.
+    #capstone.CS_GRP_PRIVILEGE,
 }
+
 
 def near(address, instructions=1, emulate=False, show_prev_insns=True):
     """
@@ -199,8 +200,8 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     #
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
-    insn  = current
-    total_instructions = 1+(2*instructions)
+    insn = current
+    total_instructions = 1 + (2*instructions)
 
     while insn and len(insns) < total_instructions:
         target = insn.target
@@ -208,26 +209,20 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         # Disable emulation if necessary
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
             emulate = False
-            emu     = None
-
-        # Continue disassembling after a RET or JUMP, but don't follow through CALL.
-        if capstone.CS_GRP_CALL in insn.groups:
-            target = insn.next
+            emu = None
 
         # If we initialized the emulator and emulation is still enabled, we can use it
         # to figure out the next instruction.
-        elif emu:
+        if emu:
             target_candidate, size_candidate = emu.single_step()
 
             if None not in (target_candidate, size_candidate):
                 target = target_candidate
-                size   = size_candidate
 
         # Continue disassembling at the *next* instruction unless we have emulated
         # the path of execution.
         elif target != pc:
-            target = insn.next
-
+            target = insn.address + insn.size
 
         insn = one(target)
         if insn:
