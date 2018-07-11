@@ -68,7 +68,9 @@ def handle(name='Error'):
 
         print(message.notice('For more info invoke `') +
               message.hint('set exception-verbose on') +
-              message.notice('` and rerun the command'))
+              message.notice('` and rerun the command\nor debug it by yourself with `') +
+              message.hint('set exception-debugger on') +
+              message.notice('`'))
 
     # Break into the interactive debugger
     if debug:
