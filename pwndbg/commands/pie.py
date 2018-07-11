@@ -19,13 +19,23 @@ def translate_addr(offset, module):
     pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
     if not pages:
-        print('There are no mappings for specified address or module.')
+        print('There are no memory pages in `vmmap` '
+              'for specified address=0x%x and module=%s' % (offset, module))
         return
 
-    return min(map(lambda page: page.vaddr, pages)) + offset
+    first_page = min(pages, key=lambda page: page.vaddr)
 
-def get_exe_name():
-    return pwndbg.auxv.get().get('AT_EXECFN', pwndbg.proc.exe)
+    addr = first_page.vaddr + offset
+
+    if not any(addr in p for p in pages):
+        print('Offset 0x%x rebased to module %s as 0x%x is beyond module\'s '
+              'memory pages:' % (offset, module, addr))
+        for p in pages:
+            print(p)
+        return
+
+    return addr
+
 
 parser = argparse.ArgumentParser()
 parser.description = 'Calculate VA of RVA from PIE base.'
@@ -39,9 +49,12 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def piebase(offset=None, module=None):
     offset = int(offset)
     if not module:
-        module = get_exe_name()
+        module = pwndbg.proc.exe
+
     addr = translate_addr(offset, module)
-    print(hex(addr))
+
+    if addr is not None:
+        print('Calculated VA from %s = 0x%x' % (module, addr))
 
 
 parser = argparse.ArgumentParser()
@@ -56,10 +69,12 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def breakrva(offset=None, module=None):
     offset = int(offset)
     if not module:
-        module = get_exe_name()
+        module = pwndbg.proc.exe
     addr = translate_addr(offset, module)
-    spec = "*%#x" % (addr)
-    gdb.Breakpoint(spec)
+
+    if addr is not None:
+        spec = "*%#x" % (addr)
+        gdb.Breakpoint(spec)
 
 
 @pwndbg.commands.QuietSloppyParsedCommand
