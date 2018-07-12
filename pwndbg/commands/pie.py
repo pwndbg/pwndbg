@@ -6,12 +6,34 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import os
 
 import gdb
 
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.vmmap
+
+
+def get_exe_name():
+    """
+    Returns exe name, tries AUXV first which should work fine on both
+    local and remote (gdbserver, qemu gdbserver) targets.
+
+    If the value is somehow not present in AUXV, we just fallback to
+    local exe filepath.
+
+    NOTE: This might be wrong for remote targets.
+    """
+    path = pwndbg.auxv.get().get('AT_EXECFN')
+
+    if path is not None:
+        # We normalize the path as `AT_EXECFN` might contain e.g. './a.out'
+        # so matching it against Page.objfile later on will be wrong;
+        # We want just 'a.out'
+        return os.path.normpath(path)
+
+    return pwndbg.proc.exe
 
 
 def translate_addr(offset, module):
@@ -49,7 +71,7 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def piebase(offset=None, module=None):
     offset = int(offset)
     if not module:
-        module = pwndbg.proc.exe
+        module = get_exe_name()
 
     addr = translate_addr(offset, module)
 
@@ -69,7 +91,7 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def breakrva(offset=None, module=None):
     offset = int(offset)
     if not module:
-        module = pwndbg.proc.exe
+        module = get_exe_name()
     addr = translate_addr(offset, module)
 
     if addr is not None:
