@@ -143,8 +143,11 @@ class DisassemblyAssistant(object):
             addr &= pwndbg.arch.ptrmask
         if op.type == CS_OP_MEM:
             if addr is None:
-                addr = self.memory_sz(instruction, op)
-            addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
+                addr = self.memory(instruction, op)
+
+            # self.memory may return none, so we need to check it here again
+            if addr is not None:
+                addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
         if op.type == CS_OP_REG:
             addr = self.register(instruction, op)
 

@@ -29,12 +29,16 @@ parser.add_argument('address', nargs='?', default='$sp',
 parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
                     help='Number of bytes to dump')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
 
     if hexdump.repeat:
         address = hexdump.last_address
+        hexdump.offset += 1
+    else:
+        hexdump.offset = 0
 
     address = int(address)
     address &= pwndbg.arch.ptrmask
@@ -51,7 +55,9 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
         print(e)
         return
 
-    for line in pwndbg.hexdump.hexdump(data, address=address, width=width):
+    for i, line in enumerate(pwndbg.hexdump.hexdump(data, address=address, width=width, offset=hexdump.offset)):
         print(line)
+    hexdump.offset += i
 
 hexdump.last_address = 0
+hexdump.offset = 0

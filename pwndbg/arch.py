@@ -48,7 +48,7 @@ def update():
     m.ptrsize = pwndbg.typeinfo.ptrsize
     m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 
-    if 'little' in gdb.execute('show endian', to_string=True):
+    if 'little' in gdb.execute('show endian', to_string=True).lower():
         m.endian = 'little'
     else:
         m.endian = 'big'
@@ -59,6 +59,10 @@ def update():
     (8, 'little'): '<Q',
     (8, 'big'):    '>Q',
     }.get((m.ptrsize, m.endian))
+
+    # Work around Python 2.7.6 struct.pack / unicode incompatibility
+    # See https://github.com/pwndbg/pwndbg/pull/336 for more information.
+    m.fmt = str(m.fmt)
 
     # Attempt to detect the qemu-user binary name
     if m.current == 'arm' and m.endian == 'big':

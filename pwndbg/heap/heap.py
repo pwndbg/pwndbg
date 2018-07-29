@@ -44,3 +44,12 @@ class BaseHeap(object):
             An integer.
         """
         raise NotImplementedError()
+
+
+    def is_initialized(self):
+        """Returns whether the allocator is initialized or not.
+
+        Returns:
+            A boolean.
+        """
+        raise NotImplementedError()

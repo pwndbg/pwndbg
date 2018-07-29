@@ -9,7 +9,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import binascii
-import inspect
+import re
 
 import capstone as C
 import gdb
@@ -20,6 +20,19 @@ import pwndbg.disasm
 import pwndbg.emu.emulator
 import pwndbg.memory
 import pwndbg.regs
+
+
+def parse_consts(u_consts):
+    """
+    Unicorn "consts" is a python module consisting of a variable definition
+    for each known entity. We repack it here as a dict for performance.
+    """
+    consts = {}
+    for name in dir(u_consts):
+        if name.startswith('UC_'):
+            consts[name] = getattr(u_consts, name)
+    return consts
+
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {
@@ -33,12 +46,12 @@ arch_to_UC = {
 }
 
 arch_to_UC_consts = {
-    'i386':    U.x86_const,
-    'x86-64':  U.x86_const,
-    'mips':    U.mips_const,
-    'sparc':   U.sparc_const,
-    'arm':     U.arm_const,
-    'aarch64': U.arm64_const,
+    'i386':    parse_consts(U.x86_const),
+    'x86-64':  parse_consts(U.x86_const),
+    'mips':    parse_consts(U.mips_const),
+    'sparc':   parse_consts(U.sparc_const),
+    'arm':     parse_consts(U.arm_const),
+    'aarch64': parse_consts(U.arm64_const),
 }
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
@@ -53,6 +66,7 @@ arch_to_CS = {
 }
 
 DEBUG = False
+
 
 def debug(*a,**kw):
     if DEBUG: print(*a, **kw)
@@ -98,6 +112,7 @@ e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
 '''
 
+
 class Emulator(object):
     def __init__(self):
         self.arch = pwndbg.arch.current
@@ -107,6 +122,14 @@ class Emulator(object):
 
         self.consts = arch_to_UC_consts[self.arch]
 
+        # Just registers, for faster lookup
+        self.const_regs = {}
+        r = re.compile(r'^UC_.*_REG_(.*)$')
+        for k,v in self.consts.items():
+            m = r.match(k)
+            if m:
+                self.const_regs[m.group(1)] = v
+
         self.uc_mode = self.get_uc_mode()
         debug("# Instantiating Unicorn for %s" % self.arch)
         debug("uc = U.Uc(%r, %r)" % (arch_to_UC[self.arch], self.uc_mode))
@@ -115,7 +138,7 @@ class Emulator(object):
 
         # Jump tracking state
         self._prev = None
-        self._prevsize = None
+        self._prev_size = None
         self._curr = None
 
         # Initialize the register state
@@ -155,7 +178,6 @@ class Emulator(object):
         # Instruction tracing
         if DEBUG:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
-
 
     def __getattr__(self, name):
         reg = self.get_reg_enum(name)
@@ -247,11 +269,6 @@ class Emulator(object):
 
         Also supports general registers like 'sp' and 'pc'.
         """
-        if 'fsbase' in reg:
-            # import pdb
-            # pdb.set_trace()
-            pass
-
         if not self.regs:
             return None
 
@@ -261,8 +278,9 @@ class Emulator(object):
         #  'eax' ==> enum
         #
         if reg in self.regs.all:
-            for reg_enum in (c for c in dir(self.consts) if c.endswith('_' + reg.upper())):
-                return getattr(self.consts, reg_enum)
+            e = self.const_regs.get(reg.upper(), None)
+            if e is not None:
+                return e
 
         # If we're looking for an abstract register which *is* accounted for,
         # we can also do an indirect lookup.
@@ -308,9 +326,9 @@ class Emulator(object):
 
     def mem_read(self, *a, **kw):
         debug("uc.mem_read(*%r, **%r)" % (a, kw))
-        return self.uc.mem_read(*a,**kw)
+        return self.uc.mem_read(*a, **kw)
 
-    jump_types = set([C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET])
+    jump_types = {C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET}
 
     def until_jump(self, pc=None):
         """
@@ -340,7 +358,7 @@ class Emulator(object):
         # Set up the state.  Resetting this each time means that we will not ever
         # stop on the *current* instruction.
         self._prev = None
-        self._prevsize = None
+        self._prev_size = None
         self._curr = None
 
         # Add the single-step hook, start emulating, and remove the hook.
@@ -349,26 +367,26 @@ class Emulator(object):
         # We're done emulating
         return self._prev, self._curr
 
-    def until_jump_hook_code(self, uc, address, size, user_data):
+    def until_jump_hook_code(self, _uc, address, instruction_size, _user_data):
         # We have not emulated any instructions yet.
         if self._prev is None:
             pass
 
         # We have moved forward one linear instruction, no branch or the
         # branch target was the next instruction.
-        elif self._prev + self._prevsize == address:
+        elif self._prev + self._prev_size == address:
             pass
 
         # We have branched!
         # The previous instruction does not immediately precede this one.
         else:
             self._curr = address
-            debug(hex(self._prev), hex(self._prevsize), '-->', hex(self._curr))
+            debug(hex(self._prev), hex(self._prev_size), '-->', hex(self._curr))
             self.emu_stop()
             return
 
         self._prev = address
-        self._prevsize = size
+        self._prev_size = instruction_size
 
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
@@ -401,7 +419,7 @@ class Emulator(object):
             A StopIteration is raised if a fault or syscall or call instruction
             is encountered.
         """
-        self._singlestep = (None, None)
+        self._single_step = (None, None)
 
         pc = pc or self.pc
         insn = pwndbg.disasm.one(pc)
@@ -409,16 +427,16 @@ class Emulator(object):
         # If we don't know how to disassemble, bail.
         if insn is None:
             debug("Can't disassemble instruction at %#x" % pc)
-            return self._singlestep
+            return self._single_step
 
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
 
         try:
             self.emulate_with_hook(self.single_step_hook_code, count=1)
-        except U.unicorn.UcError:
-            self._singlestep = (None, None)
+        except U.unicorn.UcError as e:
+            self._single_step = (None, None)
 
-        return self._singlestep
+        return self._single_step
 
     def single_step_iter(self, pc=None):
         a = self.single_step(pc)
@@ -427,9 +445,9 @@ class Emulator(object):
             yield a
             a = self.single_step(pc)
 
-    def single_step_hook_code(self, uc, address, size, user_data):
+    def single_step_hook_code(self, _uc, address, instruction_size, _user_data):
         debug("# single_step: %#-8x" % address)
-        self._singlestep = (address, size)
+        self._single_step = (address, instruction_size)
 
     def dumpregs(self):
         for reg in list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
@@ -443,6 +461,6 @@ class Emulator(object):
             value = self.uc.reg_read(enum)
             debug("uc.reg_read(%(name)s) ==> %(value)x" % locals())
 
-    def trace_hook(self, uc, address, size, user_data):
-        data = binascii.hexlify(self.mem_read(address, size))
+    def trace_hook(self, _uc, address, instruction_size, _user_data):
+        data = binascii.hexlify(self.mem_read(address, instruction_size))
         debug("# trace_hook: %#-8x %r" % (address, data))

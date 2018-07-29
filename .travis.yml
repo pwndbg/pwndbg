@@ -9,14 +9,14 @@ cache:
         - capstone
         - unicorn
 install:
-  - sudo apt-get -y install gdb
+  - sudo apt-get -y install gdb nasm
   - lsb_release -a
   - pip install -r requirements.txt
   - sudo ./setup.sh
 script:
-  - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg
-  - git diff-index --quiet HEAD -- pwndbg
-  - isort --check-only --diff --recursive pwndbg
-  - nosetests ./tests/
+  - futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg tests
+  - git diff-index --quiet HEAD -- pwndbg tests
+  - isort --check-only --diff --recursive pwndbg tests
+  - PWNDBG_TRAVIS_TEST_RUN=1 ./tests.sh
   - python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
   - python3   -m py_compile               $(git ls-files 'pwndbg/*.py')

@@ -8,7 +8,7 @@ git fetch --all
 
 TAG=$($DATE '+%Y.%m.%d')
 
-if git tag -a $TAG -m "Add release $TAG" origin/master; then
+if git tag -a $TAG -m "Add release $TAG" origin/stable; then
     git push origin $TAG
 fi
 

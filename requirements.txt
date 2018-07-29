@@ -1,5 +1,5 @@
 future
-isort
+isort!=4.3.0
 pip
 psutil>=3.1.0
 pycparser
@@ -8,4 +8,7 @@ python-ptrace>=0.8
 ROPgadget
 six
 unicorn>=1.0.0
+pygments
 https://github.com/aquynh/capstone/archive/next.zip#subdirectory=bindings/python
+enum34
+pytest

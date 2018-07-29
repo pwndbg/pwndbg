@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.elf
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.memory
@@ -27,6 +28,7 @@ stacks = {}
 # This is updated automatically by is_executable.
 nx     = False
 
+
 def find(address):
     """
     Returns a pwndbg.memory.Page object which corresponds to the
@@ -39,17 +41,17 @@ def find(address):
         if address in stack:
             return stack
 
+
 def find_upper_stack_boundary(addr, max_pages=1024):
     addr = pwndbg.memory.page_align(int(addr))
-    try:
-        for i in range(max_pages):
-            data = pwndbg.memory.read(addr, 4)
-            if b'\x7fELF' == pwndbg.memory.read(addr, 4):
-                break
-            addr += pwndbg.memory.PAGE_SIZE
-    except gdb.MemoryError:
-        pass
-    return addr
+
+    # We can't get the stack size from stack layout and page fault on bare metal mode,
+    # so we return current page as a walkaround.
+    if not pwndbg.abi.linux:
+        return addr + pwndbg.memory.PAGE_SIZE
+
+    return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
+
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_stop
@@ -104,6 +106,7 @@ def current():
     """
     return find(pwndbg.regs.sp)
 
+
 @pwndbg.events.exit
 def clear():
     """
@@ -114,6 +117,7 @@ def clear():
     stacks.clear()
     global nx
     nx = False
+
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_exit

@@ -205,7 +205,7 @@ def address(symbol):
     try:
         symbol_obj = gdb.lookup_symbol(symbol)[0]
         if symbol_obj:
-            return int(symbol_obj)
+            return int(symbol_obj.value().address)
     except Exception:
         pass
 
@@ -227,6 +227,9 @@ def address(symbol):
 @pwndbg.memoize.reset_on_start
 def add_main_exe_to_symbols():
     if not pwndbg.remote.is_remote():
+        return
+
+    if pwndbg.android.is_android():
         return
 
     exe  = pwndbg.elf.exe()
