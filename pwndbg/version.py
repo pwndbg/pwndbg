@@ -26,7 +26,7 @@ def build_id():
         # CalledProcessError -> git return code != 0
         return ''
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 b_id = build_id()
 
