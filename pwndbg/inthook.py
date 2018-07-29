@@ -10,8 +10,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import enum
 import os
-import sys
 
 import gdb
 import six
@@ -19,7 +19,7 @@ from future.utils import with_metaclass
 
 import pwndbg.typeinfo
 
-if sys.version_info < (3, 0):
+if six.PY2:
     import __builtin__ as builtins
 else:
     import builtins
@@ -47,7 +47,10 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
             if symbol.is_function:
                 value = value.cast(pwndbg.typeinfo.ulong)
 
-        elif not isinstance(value, six.string_types) and not isinstance(value, six.integer_types):
+        elif not isinstance(value, (six.string_types, six.integer_types)) \
+                or isinstance(cls, enum.EnumMeta):
+            # without check for EnumMeta math operations with enums were failing e.g.:
+            #     pwndbg> py import re; flags = 1 | re.MULTILINE
             return _int.__new__(cls, value, *a, **kw)
 
         return _int(_int(value, *a, **kw))
@@ -56,7 +59,6 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
 if os.environ.get('SPHINX', None) is None:
     builtins.int = xint
     globals()['int'] = xint
-
-    if sys.version_info >= (3, 0):
+    if six.PY3:
         builtins.long = xint
         globals()['long'] = xint

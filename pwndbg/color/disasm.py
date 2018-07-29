@@ -10,13 +10,13 @@ import capstone
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
+import pwndbg.color.syntax_highlight as H
 import pwndbg.color.theme as theme
 import pwndbg.config as config
 import pwndbg.disasm.jump
 from pwndbg.color import generateColorFunction
-from pwndbg.color import green
 from pwndbg.color import ljust_colored
-from pwndbg.color import red
+from pwndbg.color.message import on
 
 capstone_branch_groups = set((
     capstone.CS_GRP_CALL,
@@ -28,8 +28,15 @@ config_branch = theme.ColoredParameter('disasm-branch-color', 'bold', 'color for
 def branch(x):
     return generateColorFunction(config.disasm_branch_color)(x)
 
+
+def syntax_highlight(ins):
+    return H.syntax_highlight(ins, filename='.asm')
+
+
 def instruction(ins):
     asm = '%-06s %s' % (ins.mnemonic, ins.op_str)
+    if pwndbg.config.syntax_highlight:
+        asm = syntax_highlight(asm)
     is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
@@ -76,11 +83,11 @@ def instruction(ins):
     if is_branch:
         asm = asm.replace(ins.mnemonic, branch(ins.mnemonic), 1)
 
-    # If we know the conditional is taken, mark it as green.
+    # If we know the conditional is taken, mark it as taken.
     if ins.condition is None:
         asm = '  ' + asm
     elif ins.condition:
-        asm = green('✔ ') + asm
+        asm = on('✔ ') + asm
     else:
         asm = '  ' + asm
 

@@ -96,6 +96,19 @@ class reset_on_stop(memoize):
     _reset = __reset_on_stop
 
 
+class reset_on_prompt(memoize):
+    caches = []
+    kind   = 'prompt'
+
+    @staticmethod
+    @pwndbg.events.before_prompt
+    def __reset_on_prompt():
+        for obj in reset_on_prompt.caches:
+            obj.cache.clear()
+
+    _reset = __reset_on_prompt
+
+
 class reset_on_exit(memoize):
     caches = []
     kind   = 'exit'

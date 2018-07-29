@@ -12,13 +12,13 @@ import os
 import struct
 
 import pwndbg.arch
-import pwndbg.color
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.enhance
 import pwndbg.search
 import pwndbg.vmmap
+from pwndbg.color import message
 
 saved = set()
 
@@ -118,6 +118,10 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
             'qword': 'Q'
         }[type]
 
+        # Work around Python 2.7.6 struct.pack / unicode incompatibility
+        # See https://github.com/pwndbg/pwndbg/pull/336 for more information.
+        fmt = str(fmt)
+
         try:
             value = struct.pack(fmt, value)
         except struct.error as e:
@@ -136,7 +140,7 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(pwndbg.color.red("Could not find mapping %r" % mapping_name))
+        print(message.error("Could not find mapping %r" % mapping_name))
         return
 
     # Prep the saved set if necessary

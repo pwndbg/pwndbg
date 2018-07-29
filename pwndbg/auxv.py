@@ -11,6 +11,7 @@ import sys
 
 import gdb
 
+import pwndbg.abi
 import pwndbg.arch
 import pwndbg.events
 import pwndbg.info
@@ -150,6 +151,8 @@ def find_stack_boundary(addr):
     return addr
 
 def walk_stack():
+    if not pwndbg.abi.linux:
+        return None
     if pwndbg.qemu.is_qemu_kernel():
         return None
 

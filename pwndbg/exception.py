@@ -12,7 +12,7 @@ import traceback
 
 import gdb
 
-import pwndbg.color
+import pwndbg.color.message as message
 import pwndbg.config
 import pwndbg.memoize
 import pwndbg.stdio
@@ -32,7 +32,7 @@ def inform_report_issue(exception_msg):
     Informs user that he can report an issue.
     The use of `memoize` makes it reporting only once for a given exception message.
     """
-    print(pwndbg.color.purple(
+    print(message.notice(
         'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
         "(Please don't forget to search if it hasn't been reported before)\n"
         "PS: Pull requests are welcome")
@@ -47,6 +47,14 @@ def handle(name='Error'):
         - ``set exception-verbose on`` enables stack traces.
         - ``set exception-debugger on`` enables the post-mortem debugger.
     """
+
+    # This is for unit tests so they fail on exceptions instead of displaying them.
+    if getattr(sys, '_pwndbg_unittest_run', False) is True:
+        E, V, T = sys.exc_info()
+        e = E(V)
+        e.__traceback__ = T
+        raise e
+
     # Display the error
     if debug or verbose:
         exception_msg = traceback.format_exc()
@@ -56,11 +64,13 @@ def handle(name='Error'):
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        print(pwndbg.color.red('Exception occured: {}: {} ({})'.format(name, exc_value, exc_type)))
+        print(message.error('Exception occured: {}: {} ({})'.format(name, exc_value, exc_type)))
 
-        print(pwndbg.color.purple('For more info invoke `') +
-              pwndbg.color.yellow('set exception-verbose on') +
-              pwndbg.color.purple('` and rerun the command'))
+        print(message.notice('For more info invoke `') +
+              message.hint('set exception-verbose on') +
+              message.notice('` and rerun the command\nor debug it by yourself with `') +
+              message.hint('set exception-debugger on') +
+              message.notice('`'))
 
     # Break into the interactive debugger
     if debug:

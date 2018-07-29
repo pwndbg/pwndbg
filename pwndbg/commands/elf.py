@@ -8,14 +8,12 @@ from __future__ import unicode_literals
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.commands
+from pwndbg.color import message
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints the section mappings contained in the ELF header.')
 @pwndbg.commands.OnlyWithFile
 def elfheader():
-    """
-    Prints the section mappings contained in the ELF header.
-    """
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
 
     with open(local_path, 'rb') as f:
@@ -32,25 +30,20 @@ def elfheader():
             sections.append((start, start + size, section.name))
 
         sections.sort()
+
         for start, end, name in sections:
             print('%#x - %#x ' % (start, end), name)
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints any symbols found in the .got.plt section if it exists.')
 @pwndbg.commands.OnlyWithFile
 def gotplt():
-    """
-    Prints any symbols found in the .got.plt section if it exists.
-    """
     print_symbols_in_section('.got.plt', '@got.plt')
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand('Prints any symbols found in the .plt section if it exists.')
 @pwndbg.commands.OnlyWithFile
 def plt():
-    """
-    Prints any symbols found in the .plt section if it exists.
-    """
     print_symbols_in_section('.plt', '@plt')
 
 
@@ -74,10 +67,14 @@ def print_symbols_in_section(section_name, filter_text=''):
     start, end = get_section_bounds(section_name)
 
     if start is None:
-        print(pwndbg.color.red('Could not find section'))
+        print(message.error('Could not find section'))
         return
 
     symbols = get_symbols_in_region(start, end, filter_text)
+
+    if not symbols:
+        print(message.error('No symbols found in section %s' % section_name))
+
     for symbol, addr in symbols:
         print(hex(int(addr)) + ': ' + symbol)
 

@@ -18,6 +18,7 @@ import pwndbg.commands
 import pwndbg.commands.argv
 import pwndbg.commands.aslr
 import pwndbg.commands.auxv
+import pwndbg.commands.canary
 import pwndbg.commands.checksec
 import pwndbg.commands.config
 import pwndbg.commands.context
@@ -33,6 +34,8 @@ import pwndbg.commands.ida
 import pwndbg.commands.misc
 import pwndbg.commands.next
 import pwndbg.commands.peda
+import pwndbg.commands.pie
+import pwndbg.commands.probeleak
 import pwndbg.commands.procinfo
 import pwndbg.commands.radare2
 import pwndbg.commands.reload
@@ -48,6 +51,7 @@ import pwndbg.commands.theme
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
+import pwndbg.commands.xinfo
 import pwndbg.commands.xor
 import pwndbg.constants
 import pwndbg.disasm
@@ -60,6 +64,7 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
+import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.inthook
 import pwndbg.memory
@@ -73,6 +78,8 @@ import pwndbg.ui
 import pwndbg.version
 import pwndbg.vmmap
 import pwndbg.wrappers
+import pwndbg.wrappers.checksec
+import pwndbg.wrappers.readelf
 
 __version__ = pwndbg.version.__version__
 version = __version__
@@ -88,7 +95,6 @@ __all__ = [
 'auxv',
 'chain',
 'color',
-'compat',
 'disasm',
 'dt',
 'elf',
@@ -116,16 +122,11 @@ __all__ = [
 'vmmap'
 ]
 
-prompt = "pwndbg> "
-prompt = "\x02" + prompt + "\x01" # STX + prompt + SOH
-prompt = pwndbg.color.red(prompt)
-prompt = pwndbg.color.bold(prompt)
-prompt = "\x01" + prompt + "\x02" # SOH + prompt + STX
+pwndbg.prompt.set_prompt()
 
 pre_commands = """
 set confirm off
 set verbose off
-set prompt %s
 set pagination off
 set height 0
 set history expansion on
@@ -140,7 +141,7 @@ handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
-""".strip() % (prompt, pwndbg.ui.get_window_size()[1])
+""".strip() % (pwndbg.ui.get_window_size()[1])
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
@@ -151,6 +152,12 @@ try:
 except gdb.error:
     pass
 
-
 # handle resize event to align width and completion
 signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]))
+
+# Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
+# More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946
+# As stated on GDB's bugzilla that makes remote target search slower.
+# After GDB gets the fix, we should disable this only for bugged GDB versions.
+if 1:
+    gdb.execute('set remote search-memory-packet off')
