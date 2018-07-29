@@ -12,12 +12,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import bisect
 import os
 import sys
 
 import gdb
+import six
 
-import pwndbg.compat
+import pwndbg.abi
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.file
@@ -34,9 +36,14 @@ import pwndbg.typeinfo
 # by analyzing the stack or register context.
 explored_pages = []
 
+# List of custom pages that can be managed manually by vmmap_* commands family
+custom_pages = []
+
 @pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_stop
 def get():
+    if not pwndbg.proc.alive:
+        return tuple()
     pages = []
     pages.extend(proc_pid_maps())
 
@@ -49,6 +56,7 @@ def get():
         pages.extend(pwndbg.stack.stacks.values())
 
     pages.extend(explored_pages)
+    pages.extend(custom_pages)
     pages.sort()
     return tuple(pages)
 
@@ -66,6 +74,7 @@ def find(address):
 
     return explore(address)
 
+@pwndbg.abi.LinuxOnly()
 def explore(address_maybe):
     """
     Given a potential address, check to see what permissions it has.
@@ -111,6 +120,26 @@ def explore_registers():
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
+
+
+def add_custom_page(page):
+    bisect.insort(custom_pages, page)
+
+    # Reset all the cache
+    # We can not reset get() only, since the result may be used by others.
+    # TODO: avoid flush all caches
+    pwndbg.memoize.reset()
+
+
+def clear_custom_page():
+    while custom_pages:
+        custom_pages.pop()
+
+    # Reset all the cache
+    # We can not reset get() only, since the result may be used by others.
+    # TODO: avoid flush all caches
+    pwndbg.memoize.reset()
+
 
 @pwndbg.memoize.reset_on_stop
 def proc_pid_maps():
@@ -161,7 +190,7 @@ def proc_pid_maps():
     else:
         return tuple()
 
-    if pwndbg.compat.python3:
+    if six.PY3:
         data = data.decode()
 
     pages = []

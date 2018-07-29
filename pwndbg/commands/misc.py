@@ -50,21 +50,8 @@ parser.add_argument('filter_pattern', type=str, nargs='?', default=None, help='F
 
 @_pwndbg.commands.ArgparsedCommand(parser)
 def pwndbg(filter_pattern):
-    sorted_commands = list(_pwndbg.commands._Command.commands)
-    sorted_commands.sort(key=lambda x: x.__name__)
-
-    if filter_pattern:
-        filter_pattern = filter_pattern.lower()
-
-    for c in sorted_commands:
-        name = c.__name__
-        docs = c.__doc__
-
-        if docs: docs = docs.strip()
-        if docs: docs = docs.splitlines()[0]
-
-        if not filter_pattern or filter_pattern in name.lower() or (docs and filter_pattern in docs.lower()):
-            print("%-20s %s" % (name, docs))
+    for name, docs in list_and_filter_commands(filter_pattern):
+        print("%-20s %s" % (name, docs))
 
 
 @_pwndbg.commands.ParsedCommand
@@ -78,13 +65,23 @@ def distance(a, b):
     print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
 
 
-@_pwndbg.commands.Command
-@_pwndbg.commands.OnlyWhenRunning
-def canary():
-    """Print out the current stack canary"""
-    auxv = _pwndbg.auxv.get()
-    at_random = auxv.get('AT_RANDOM', None)
-    if at_random is not None:
-        print("AT_RANDOM=%#x" % at_random)
-    else:
-        print("Couldn't find AT_RANDOM")
+def list_and_filter_commands(filter_str):
+    sorted_commands = list(_pwndbg.commands.commands)
+    sorted_commands.sort(key=lambda x: x.__name__)
+
+    if filter_str:
+        filter_str = filter_str.lower()
+
+    results = []
+
+    for c in sorted_commands:
+        name = c.__name__
+        docs = c.__doc__
+
+        if docs: docs = docs.strip()
+        if docs: docs = docs.splitlines()[0]
+
+        if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
+            results.append((name, docs))
+
+    return results

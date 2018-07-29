@@ -53,7 +53,7 @@ def load_color_scheme():
     color_scheme[-1] = '  '
     printable[-1] = ' '
 
-def hexdump(data, address = 0, width = 16, skip = True):
+def hexdump(data, address = 0, width = 16, skip = True, offset = 0):
     if not color_scheme or not printable:
         load_color_scheme()
     data = list(bytearray(data))
@@ -73,9 +73,9 @@ def hexdump(data, address = 0, width = 16, skip = True):
         hexline = []
 
         if address:
-            hexline.append(H.offset("+%04x " % (i*width)))
+            hexline.append(H.offset("+%04x " % ((i + offset) * width)))
 
-        hexline.append(H.address("%#08x  " % (base + (i*width))))
+        hexline.append(H.address("%#08x  " % (base + (i * width))))
 
         for group in groupby(line, 4):
             for char in group:
@@ -89,8 +89,11 @@ def hexdump(data, address = 0, width = 16, skip = True):
                 hexline.append(printable[char])
             hexline.append(H.separator('%s' % config_separator))
 
-
         yield(''.join(hexline))
+
+    # skip empty footer if we printed something
+    if last_line:
+        return
 
     hexline = []
 

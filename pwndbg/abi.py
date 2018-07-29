@@ -4,7 +4,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import functools
+import re
+
+import gdb
+
 import pwndbg.arch
+import pwndbg.color.message as M
 
 
 class ABI(object):
@@ -111,3 +117,58 @@ linux_arm_sigreturn = SigreturnABI(['r7'], 4, 0)
 linux_i386_srop = ABI(['eax'], 4, 0)
 linux_amd64_srop = ABI(['rax'], 4, 0)
 linux_arm_srop = ABI(['r7'], 4, 0)
+
+
+@pwndbg.events.start
+def update():
+    global abi
+    global linux
+
+    # Detect current ABI of client side by 'show osabi'
+    #
+    # Examples of strings returned by `show osabi`:
+    # 'The current OS ABI is "auto" (currently "GNU/Linux").\nThe default OS ABI is "GNU/Linux".\n'
+    # 'The current OS ABI is "GNU/Linux".\nThe default OS ABI is "GNU/Linux".\n'
+    # 'El actual SO ABI es «auto» (actualmente «GNU/Linux»).\nEl SO ABI predeterminado es «GNU/Linux».\n'
+    # 'The current OS ABI is "auto" (currently "none")'
+    #
+    # As you can see, there might be GDBs with different language versions
+    # and so we have to support it there too.
+    # Lets assume and hope that `current osabi` is returned in first line in all languages...
+    abi = gdb.execute('show osabi', to_string=True).split('\n')[0]
+
+    # Currently we support those osabis:
+    # 'GNU/Linux': linux
+    # 'none': bare metal
+
+    linux = 'GNU/Linux' in abi
+
+    if not linux:
+        msg = M.warn(
+            "The bare metal debugging is enabled since the gdb's osabi is '%s' which is not 'GNU/Linux'.\n"
+            "Ex. the page resolving and memory de-referencing ONLY works on known pages.\n"
+            "This option is based ib gdb client compile arguments (by default) and will be corrected if you load an ELF which has the '.note.ABI-tag' section.\n"
+            "If you are debuging a program that runs on Linux ABI, please select the correct gdb client."
+            % abi
+        )
+        print(msg)
+
+
+def LinuxOnly(default=None):
+    """Create a decorator that the function will be called when ABI is Linux.
+    Otherwise, return `default`.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def caller(*args, **kwargs):
+            if linux:
+                return func(*args, **kwargs)
+            else:
+                return default
+        return caller
+
+    return decorator
+
+
+# Update when starting the gdb to show warning message for non-Linux ABI user.
+update()

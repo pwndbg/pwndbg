@@ -19,7 +19,6 @@ import gdb
 import six
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.events
 import pwndbg.memoize
 import pwndbg.proc
@@ -106,6 +105,7 @@ arm = RegisterSet(  retaddr = ('lr',),
 
 aarch64 = RegisterSet(  retaddr = ('lr',),
                         flags   = {'cpsr':{}},
+                        frame   = 'x29',
                         gpr     = tuple('x%i' % i for i in range(29)),
                         misc    = tuple('w%i' % i for i in range(29)),
                         args    = ('x0','x1','x2','x3'),
@@ -267,6 +267,7 @@ class module(ModuleType):
     last = {}
 
     @pwndbg.memoize.reset_on_stop
+    @pwndbg.memoize.reset_on_prompt
     def __getattr__(self, attr):
         attr = attr.lstrip('$')
         try:
@@ -422,6 +423,7 @@ sys.modules[__name__] = module(__name__, '')
 
 
 @pwndbg.events.cont
+@pwndbg.events.stop
 def update_last():
     M = sys.modules[__name__]
     M.last = {k:M[k] for k in M.common}

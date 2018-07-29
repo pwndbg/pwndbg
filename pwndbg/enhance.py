@@ -20,12 +20,14 @@ import gdb
 import pwndbg.arch
 import pwndbg.color as color
 import pwndbg.color.enhance as E
+import pwndbg.config
 import pwndbg.disasm
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.typeinfo
+from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [
 '.byte',
@@ -100,6 +102,8 @@ def enhance(value, code = True):
         instr = pwndbg.disasm.one(value)
         if instr:
             instr = "%-6s %s" % (instr.mnemonic, instr.op_str)
+            if pwndbg.config.syntax_highlight:
+                instr = syntax_highlight(instr)
 
     szval = pwndbg.strings.get(value) or None
     szval0 = szval

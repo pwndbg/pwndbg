@@ -8,9 +8,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import codecs
 import math
 import sys
+from builtins import str
 
 import gdb
 
@@ -171,9 +173,15 @@ def eX(size, address, data, hex=True):
     if address is None:
         return
 
-    for i,bytestr in enumerate(data):
+    for i, bytestr in enumerate(data):
         if hex:
+            bytestr = str(bytestr)
+
+            if bytestr.startswith('0x'):
+                bytestr = bytestr[2:]
+
             bytestr = bytestr.rjust(size*2, '0')
+
             data    = codecs.decode(bytestr, 'hex')
         else:
             data    = bytestr
@@ -216,20 +224,28 @@ def dqs(*a):
     return pwndbg.commands.telescope.telescope(*a)
 
 
-@pwndbg.commands.ParsedCommand
+da_parser = argparse.ArgumentParser()
+da_parser.description = 'Dump a string at the specified address.'
+da_parser.add_argument('address', help='Address to dump')
+da_parser.add_argument('max', type=int, nargs='?', default=256,
+                       help='Maximum string length')
+@pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
-def da(address, max=256):
-    """
-    Dump a string at the specified address.
-    """
+def da(address, max):
+    address = int(address)
+    address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
-@pwndbg.commands.ParsedCommand
+ds_parser = argparse.ArgumentParser()
+ds_parser.description = 'Dump a string at the specified address.'
+ds_parser.add_argument('address', help='Address to dump')
+ds_parser.add_argument('max', type=int, nargs='?', default=256,
+                       help='Maximum string length')
+@pwndbg.commands.ArgparsedCommand(ds_parser)
 @pwndbg.commands.OnlyWhenRunning
-def ds(address, max=256):
-    """
-    Dump a string at the specified address.
-    """
+def ds(address, max):
+    address = int(address)
+    address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
 @pwndbg.commands.ParsedCommand
@@ -282,14 +298,14 @@ def bp(where):
 
 @pwndbg.commands.ParsedCommand
 @pwndbg.commands.OnlyWhenRunning
-def u(where=None, n=5):
+def u(where=None, n=5, to_string=False):
     """
     Starting at the specified address, disassemble
     N instructions (default 5).
     """
     if where is None:
         where = pwndbg.regs.pc
-    pwndbg.commands.nearpc.nearpc(where, n)
+    return pwndbg.commands.nearpc.nearpc(where, n, to_string)
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning

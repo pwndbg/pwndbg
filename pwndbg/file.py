@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import binascii
 import errno as _errno
 import os
+import subprocess
 import tempfile
 
 import gdb
@@ -37,7 +38,7 @@ def get_file(path, recurse=1):
         local_path = tempfile.mktemp()
         error      = None
         try:
-            error = gdb.execute('remote get %s %s' % (path, local_path),
+            error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
                                  to_string=True)
         except gdb.error as e:
             error = e

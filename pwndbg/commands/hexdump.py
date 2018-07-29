@@ -24,14 +24,22 @@ pwndbg.config.Parameter('hexdump-bytes',
                          'number of bytes printed by hexdump command')
 
 parser = argparse.ArgumentParser(description='Hexdumps data at the specified address (or at $sp)')
-parser.add_argument('address', nargs='?', default='$sp', 
+parser.add_argument('address', nargs='?', default='$sp',
                     help='Address to dump')
-parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes, 
+parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
                     help='Number of bytes to dump')
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
+
+    if hexdump.repeat:
+        address = hexdump.last_address
+        hexdump.offset += 1
+    else:
+        hexdump.offset = 0
+
     address = int(address)
     address &= pwndbg.arch.ptrmask
     count   = max(int(count), 0)
@@ -42,9 +50,14 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
 
     try:
         data = pwndbg.memory.read(address, count, partial=True)
+        hexdump.last_address = (address + count)
     except gdb.error as e:
         print(e)
         return
 
-    for line in pwndbg.hexdump.hexdump(data, address=address, width=width):
+    for i, line in enumerate(pwndbg.hexdump.hexdump(data, address=address, width=width, offset=hexdump.offset)):
         print(line)
+    hexdump.offset += i
+
+hexdump.last_address = 0
+hexdump.offset = 0

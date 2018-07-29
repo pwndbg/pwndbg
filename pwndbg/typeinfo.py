@@ -48,21 +48,21 @@ def lookup_types(*types):
 def update():
 
     module.char   = gdb.lookup_type('char')
-    module.ulong  = lookup_types('unsigned long', 'uint')
+    module.ulong  = lookup_types('unsigned long', 'uint', 'u32')
     module.long   = lookup_types('long', 'int')
     module.uchar  = lookup_types('unsigned char', 'ubyte')
-    module.ushort = lookup_types('unsigned short', 'ushort')
+    module.ushort = lookup_types('unsigned short', 'ushort', 'u16')
     module.uint   = lookup_types('unsigned int', 'uint')
-    module.void   = gdb.lookup_type('void')
+    module.void   = lookup_types('void', '()')
     module.uint8  = module.uchar
     module.uint16 = module.ushort
     module.uint32 = module.uint
-    module.uint64 = lookup_types('unsigned long long', 'ulong')
+    module.uint64 = lookup_types('unsigned long long', 'ulong', 'u64')
 
     module.int8   = gdb.lookup_type('char')
-    module.int16  = gdb.lookup_type('short')
+    module.int16  = lookup_types('short', 'i16')
     module.int32  = gdb.lookup_type('int')
-    module.int64  = lookup_types('long long', 'long')
+    module.int64  = lookup_types('long long', 'long', 'i64')
 
     module.ssize_t = module.long
     module.size_t = module.ulong
@@ -153,7 +153,10 @@ def compile(filename=None, address=0):
     if not os.path.exists(objectname):
         gcc     = pwndbg.gcc.which()
         gcc    += ['-w', '-c', '-g', filename, '-o', objectname]
-        subprocess.check_output(' '.join(gcc), shell=True)
+        try:
+            subprocess.check_output(gcc)
+        except subprocess.CalledProcessError as e:
+            return
 
     add_symbol_file(objectname, address)
 

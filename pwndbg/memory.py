@@ -9,11 +9,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+from builtins import bytes
 
 import gdb
 
 import pwndbg.arch
-import pwndbg.compat
 import pwndbg.events
 import pwndbg.qemu
 import pwndbg.typeinfo
@@ -68,9 +68,6 @@ def read(addr, count, partial=False):
             # Move down by another page
             stop_addr -= PAGE_SIZE
 
-    # if pwndbg.compat.python3:
-        # result = bytes(result)
-
     return bytearray(result)
 
 
@@ -99,7 +96,10 @@ def write(addr, data):
         addr(int): Address to write
         data(str,bytes,bytearray): Data to write
     """
-    gdb.selected_inferior().write_memory(addr, bytes(data))
+    if isinstance(data, str):
+        data = bytes(data, 'utf8')
+
+    gdb.selected_inferior().write_memory(addr, data)
 
 
 def peek(address):
@@ -398,6 +398,14 @@ class Page(object):
         It is the same as displayed in /proc/<pid>/maps
         """
         return self.vaddr + self.memsz
+
+    @property
+    def is_stack(self):
+        return self.objfile == '[stack]'
+
+    @property
+    def is_memory_mapped_file(self):
+        return len(self.objfile) > 0 and self.objfile[0] != '['
 
     @property
     def read(self):

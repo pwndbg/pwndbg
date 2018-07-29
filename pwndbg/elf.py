@@ -14,10 +14,15 @@ from __future__ import unicode_literals
 
 import ctypes
 import sys
+from collections import namedtuple
 
 import gdb
+from elftools.elf.constants import SH_FLAGS
+from elftools.elf.elffile import ELFFile
 from six.moves import reload_module
 
+import pwndbg.abi
+import pwndbg.arch
 import pwndbg.auxv
 import pwndbg.elftypes
 import pwndbg.events
@@ -33,6 +38,19 @@ ET_EXEC, ET_DYN  = 2,3
 
 
 module = sys.modules[__name__]
+
+
+class ELFInfo(namedtuple('ELFInfo', 'header sections segments')):
+    """
+    ELF metadata and structures.
+    """
+    @property
+    def is_pic(self):
+        return self.header['e_type'] == 'ET_DYN'
+
+    @property
+    def is_pie(self):
+        return self.is_pic
 
 
 @pwndbg.events.start
@@ -65,6 +83,96 @@ def read(typ, address, blob=None):
     obj.type = typ
     return obj
 
+
+@pwndbg.memoize.reset_on_objfile
+def get_elf_info(filepath):
+    """
+    Parse and return ELFInfo.
+
+    Adds various calculated properties to the ELF header, segments and sections.
+    Such added properties are those with prefix 'x_' in the returned dicts.
+    """
+    local_path = pwndbg.file.get_file(filepath)
+    with open(local_path, 'rb') as f:
+        elffile = ELFFile(f)
+        header = dict(elffile.header)
+        segments = []
+        for seg in elffile.iter_segments():
+            s = dict(seg.header)
+            s['x_perms'] = [
+                mnemonic for mask, mnemonic in [(PF_R, 'read'), (PF_W, 'write'), (PF_X, 'execute')]
+                if s['p_flags'] & mask != 0
+            ]
+            # end of memory backing
+            s['x_vaddr_mem_end'] = s['p_vaddr'] + s['p_memsz']
+            # end of file backing
+            s['x_vaddr_file_end'] = s['p_vaddr'] + s['p_filesz']
+            segments.append(s)
+        sections = []
+        for sec in elffile.iter_sections():
+            s = dict(sec.header)
+            s['x_name'] = sec.name
+            s['x_addr_mem_end'] = s['x_addr_file_end'] = s['sh_addr'] + s['sh_size']
+            sections.append(s)
+        return ELFInfo(header, sections, segments)
+
+
+@pwndbg.memoize.reset_on_objfile
+def get_elf_info_rebased(filepath, vaddr):
+    """
+    Parse and return ELFInfo with all virtual addresses rebased to vaddr
+    """
+    raw_info = get_elf_info(filepath)
+    # silently ignores "wrong" vaddr supplied for non-PIE ELF
+    load = vaddr if raw_info.is_pic else 0
+    headers = dict(raw_info.header)
+    headers['e_entry'] += load
+
+    segments = []
+    for seg in raw_info.segments:
+        s = dict(seg)
+        for vaddr_attr in ['p_vaddr', 'x_vaddr_mem_end', 'x_vaddr_file_end']:
+            s[vaddr_attr] += load
+        segments.append(s)
+
+    sections = []
+    for sec in raw_info.sections:
+        s = dict(sec)
+        for vaddr_attr in ['sh_addr', 'x_addr_mem_end', 'x_addr_file_end']:
+            s[vaddr_attr] += load
+        sections.append(s)
+
+    return ELFInfo(headers, sections, segments)
+
+
+def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
+    segments = []
+    for seg in elf.segments:
+        # disregard non-LOAD segments that are not file-backed (typically STACK)
+        if 'LOAD' not in seg['p_type'] and seg['p_filesz'] == 0:
+            continue
+        # disregard segments not containing vaddr
+        if vaddr < seg['p_vaddr'] or vaddr >= seg['x_vaddr_mem_end']:
+            continue
+        segments.append(dict(seg))
+    return segments
+
+
+def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
+    elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
+    sections = []
+    for sec in elf.sections:
+        # disregard sections not occupying memory
+        if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
+            continue
+        # disregard sections that do not contain vaddr
+        if vaddr < sec['sh_addr'] or vaddr >= sec['x_addr_mem_end']:
+            continue
+        sections.append(dict(sec))
+    return sections
+
+
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
 def exe():
@@ -75,6 +183,7 @@ def exe():
     e = entry()
     if e:
         return load(e)
+
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_start
@@ -115,10 +224,52 @@ def load(pointer):
 
 ehdr_type_loaded = 0
 
+
 @pwndbg.memoize.reset_on_start
 def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0
+
+
+@pwndbg.abi.LinuxOnly()
+def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
+    """Search the nearest page which contains the ELF headers
+    by comparing the ELF magic with first 4 bytes.
+
+    Parameter:
+        search_down: change the search direction
+        to search over the lower address.
+        That is, decreasing the page pointer instead of increasing.
+            (default: False)
+    Returns:
+        An integer address of ELF page base
+        None if not found within the page limit
+    """
+    addr = pwndbg.memory.page_align(pointer)
+    step = pwndbg.memory.PAGE_SIZE
+    if search_down:
+        step = -step
+
+    max_addr = pwndbg.arch.ptrmask
+
+    for i in range(max_pages):
+        # Make sure address within valid range or gdb will raise Overflow exception
+        if addr < 0 or addr > max_addr:
+            return None
+
+        try:
+            data = pwndbg.memory.read(addr, 4)
+        except gdb.MemoryError:
+            return addr if ret_addr_anyway else None
+
+        # Return the address if found ELF header
+        if data == b'\x7FELF':
+            return addr
+
+        addr += step
+
+    return addr if ret_addr_anyway else None
+
 
 def get_ehdr(pointer):
     """Returns an ehdr object for the ELF pointer points into.
@@ -127,21 +278,12 @@ def get_ehdr(pointer):
     # the ELF header.
     base = pwndbg.memory.page_align(pointer)
 
-    try:
-        data = pwndbg.memory.read(base, 4)
-
-        # Do not search more than 4MB of memory
-        for i in range(1024):
-            if data == b'\x7FELF':
-                break
-
-            base -= pwndbg.memory.PAGE_SIZE
-            data = pwndbg.memory.read(base, 4)
-
-        else:
+    # For non linux ABI, the ELF header may not be found in memory.
+    # This will hang the gdb when using the remote gdbserver to scan 1024 pages
+    base = find_elf_magic(pointer, search_down=True)
+    if base is None:
+        if pwndbg.abi.linux:
             print("ERROR: Could not find ELF base!")
-            return None, None
-    except gdb.MemoryError:
         return None, None
 
     # Determine whether it's 32- or 64-bit
@@ -150,6 +292,7 @@ def get_ehdr(pointer):
     # Find out where the section headers start
     Elfhdr   = read(Ehdr, base)
     return ei_class, Elfhdr
+
 
 def get_phdrs(pointer):
     """
@@ -169,6 +312,7 @@ def get_phdrs(pointer):
     x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
     return x
 
+
 def iter_phdrs(ehdr):
     if not ehdr:
         raise StopIteration
@@ -185,6 +329,7 @@ def iter_phdrs(ehdr):
         p_phdr = int(first_phdr + (i*phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
+
 
 def map(pointer, objfile=''):
     """
@@ -208,6 +353,7 @@ def map(pointer, objfile=''):
     """
     ei_class, ehdr         = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
+
 
 def map_inner(ei_class, ehdr, objfile):
     if not ehdr:
