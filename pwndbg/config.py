@@ -124,6 +124,9 @@ class Parameter(gdb.Parameter):
         self.scope = scope
         setattr(module, self.name, self)
 
+    def __repr__(self):
+        return "pwndbg.config.Parameter(%r)" % self.name
+
     @property
     def native_value(self):
         return value_to_gdb_native(self.value)
