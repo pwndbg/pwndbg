@@ -35,3 +35,30 @@ def files():
         return gdb.execute('info files', to_string=True)
     except gdb.error:
         return ''
+
+@pwndbg.memoize.reset_on_stop
+def line():
+    try:
+        return gdb.execute('info line', to_string=True)
+    except gdb.error:
+        return ''
+
+@pwndbg.memoize.reset_on_stop
+def rel_filepath():
+    """
+    Returns relative filepath of currently debugged file.
+
+    For example if `info line` returns:
+    > Line 5 of "./main.c" is at address 0x555555554641 <main> but contains no code.
+
+    This will return just './main.c'
+    """
+    l = line()
+
+    if not l:
+        return ''
+
+    start = l.index('"') + 1
+    end = start + l[start+1:].index('"') + 1
+
+    return l[start:end]
