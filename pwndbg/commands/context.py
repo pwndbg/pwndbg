@@ -25,6 +25,7 @@ import pwndbg.config
 import pwndbg.disasm
 import pwndbg.events
 import pwndbg.ida
+import pwndbg.info
 import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
@@ -261,6 +262,19 @@ def context_code():
             formatted_source.append(line)
 
         banner = [pwndbg.ui.banner("Source (code)")]
+
+        # the `filename` we had before may have full path
+        # this will give us just a relative path to the place we are in
+        # which is probably the thing users wants most of the time
+        filename = pwndbg.info.rel_filepath()
+
+        if filename:
+            banner.append(pwndbg.ui.banner(
+                'In file: %s' % filename,
+                make_upper=False,
+                trunc_after_idx=9
+            ))
+
         banner.extend(formatted_source)
         return banner
     except:

@@ -38,9 +38,29 @@ def check_title_position():
         title_position.revert_default()
 
 
-def banner(title):
-    title = title.upper()
+def banner(title, make_upper=True, trunc_after_idx=-1):
+    """
+    Renders a banner.
+
+    Arguments:
+        title(str): banner title string
+        make_upper(bool): whether the title be uppercase
+        trunc_after_idx(int): if the value is bigger than 0,
+            and the title is too long, it will be truncated
+            on the left side but after the provided index
+    """
+    if make_upper:
+        title = title.upper()
+
     _height, width = get_window_size()
+
+    if trunc_after_idx > 0:
+        banner_len = len(config.banner_title_surrounding_left) + len(config.banner_title_surrounding_right)
+        size_to_trunc = len(title) - (width - banner_len - 3)
+
+        if size_to_trunc > 0:
+            title = title[:trunc_after_idx] + '~' + title[trunc_after_idx+size_to_trunc:]
+
     title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
     if 'left' == title_position:
         banner = ljust_colored(title, width, config.banner_separator)
@@ -49,6 +69,7 @@ def banner(title):
     else:
         banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
         banner = ljust_colored(banner, width, config.banner_separator)
+
     return C.banner(banner)
 
 def addrsz(address):
