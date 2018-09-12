@@ -55,7 +55,8 @@ def banner(title, make_upper=True, trunc_after_idx=-1):
     _height, width = get_window_size()
 
     if trunc_after_idx > 0:
-        size_to_trunc = len(title) - (width - len('-[  ]-'))
+        banner_len = len(config.banner_title_surrounding_left) + len(config.banner_title_surrounding_right)
+        size_to_trunc = len(title) - (width - banner_len - 3)
 
         if size_to_trunc > 0:
             title = title[:trunc_after_idx] + '~' + title[trunc_after_idx+size_to_trunc:]

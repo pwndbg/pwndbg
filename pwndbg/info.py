@@ -59,6 +59,6 @@ def rel_filepath():
         return ''
 
     start = l.index('"') + 1
-    end = start + l[start+1:].index('"') + 1
+    end = l.rindex('"')
 
     return l[start:end]
