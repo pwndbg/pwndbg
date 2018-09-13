@@ -19,16 +19,13 @@ import pwndbg.vmmap
 
 
 def find_module(addr):
-    mod_filter = lambda page: page.vaddr <= addr < page.vaddr + page.memsz
+    mod_filter = lambda page: page.vaddr <= addr <= page.vaddr + page.memsz
     pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
     if not pages:
         return None
 
-    if len(pages) > 1:
-        print(message.warn('Warning: There is more than one page containing address 0x%x (wtf?)', addr))
-
-    return pages[0]
+    return pages[-1]
 
 parser = argparse.ArgumentParser()
 parser.description = 'Pointer scan for possible offset leaks.'
@@ -43,16 +40,16 @@ def probeleak(address=None, count=0x40):
 
     address = int(address)
     address &= pwndbg.arch.ptrmask
-    count   = max(int(count), 0)
     ptrsize = pwndbg.arch.ptrsize
+    count   = max(int(count), ptrsize)
     off_zeros = int(math.ceil(math.log(count,2)/4))
 
     if count > address > 0x10000: # in case someone puts in an end address and not a count (smh)
         count -= address
 
     if count % ptrsize > 0:
-        newcount = count - (count % ptrsize)
-        print(message.warning("Warning: count 0x%x is not a multiple of 0x%x; truncating to 0x%x." % (count, ptrsize, newcount)))
+        newcount = count + (ptrsize - (count % ptrsize))
+        print(message.warn("Warning: count 0x%x is not a multiple of 0x%x; extending to 0x%x." % (count, ptrsize, newcount)))
         count = newcount
 
     try:
@@ -66,7 +63,7 @@ def probeleak(address=None, count=0x40):
         return
 
     found = False
-    for i in range(0, count, ptrsize):
+    for i in range(0, count - ptrsize + 1):
         p = pwndbg.arch.unpack(data[i:i+ptrsize])
         page = find_module(p)
         if page:
