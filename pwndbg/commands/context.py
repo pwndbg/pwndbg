@@ -260,7 +260,7 @@ def context_code():
             )
             formatted_source.append(line)
 
-        banner = [pwndbg.ui.banner("Source (code)")]
+        banner = [pwndbg.ui.banner("Source (code)"), 'In file: %s' % filename]
         banner.extend(formatted_source)
         return banner
     except:
