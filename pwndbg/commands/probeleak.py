@@ -18,12 +18,17 @@ import pwndbg.elf
 import pwndbg.vmmap
 
 
-def find_module(addr):
-    mod_filter = lambda page: page.vaddr <= addr <= page.vaddr + page.memsz
+def find_module(addr, max_distance):
+    mod_filter = lambda page: page.start <= addr < page.end
     pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
     if not pages:
-        return None
+        if max_distance != 0:
+            mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
+            pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+
+        if not pages:
+            return None
 
     return pages[-1]
 
@@ -33,10 +38,12 @@ parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
 parser.add_argument('count', nargs='?', default=0x40,
                     help='Leak size in bytes')
+parser.add_argument('max_distance', nargs='?', default=0x0,
+                    help='Max acceptable distance between memory page boundry and leaked pointer')
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def probeleak(address=None, count=0x40):
+def probeleak(address=None, count=0x40, max_distance=0x0):
 
     address = int(address)
     address &= pwndbg.arch.ptrmask
@@ -47,11 +54,6 @@ def probeleak(address=None, count=0x40):
     if count > address > 0x10000: # in case someone puts in an end address and not a count (smh)
         print(message.warn("Warning: you gave an end address, not a count. Substracting 0x%x from the count." % (address)))
         count -= address
-
-    if count % ptrsize > 0:
-        newcount = count + (ptrsize - (count % ptrsize))
-        print(message.warn("Warning: count 0x%x is not a multiple of 0x%x; extending to 0x%x." % (count, ptrsize, newcount)))
-        count = newcount
 
     try:
         data = pwndbg.memory.read(address, count, partial=True)
@@ -66,7 +68,7 @@ def probeleak(address=None, count=0x40):
     found = False
     for i in range(0, len(data) - ptrsize + 1):
         p = pwndbg.arch.unpack(data[i:i+ptrsize])
-        page = find_module(p)
+        page = find_module(p, max_distance)
         if page:
             if not found:
                 print(M.legend())
@@ -75,8 +77,15 @@ def probeleak(address=None, count=0x40):
             mod_name = page.objfile
             if not mod_name:
                 mod_name = '[anon]'
+
+            if p >= page.end:
+                right_text = '(%s) %s + 0x%x + 0x%x (outside of the page)' % (page.permstr, mod_name, page.memsz, p - page.end)
+            elif p < page.start:
+                right_text = '(%s) %s - 0x%x (outside of the page)' % (page.permstr, mod_name, page.start - p)
+            else:
+                right_text = '(%s) %s + 0x%x' % (page.permstr, mod_name, p - page.start)
+
             fmt = '+0x{offset:0{n1}x}: 0x{ptr:0{n2}x} = {page}'
-            right_text = ('(%s) %s + 0x%x') % (page.permstr, mod_name, p - page.vaddr + page.offset)
             print(fmt.format(n1=off_zeros, n2=ptrsize*2, offset=i, ptr=p, page=M.get(p, text=right_text)))
     if not found:
         print(message.hint('No leaks found at 0x%x-0x%x :(' % (address, address+count)))
