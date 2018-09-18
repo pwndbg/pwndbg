@@ -45,6 +45,7 @@ def probeleak(address=None, count=0x40):
     off_zeros = int(math.ceil(math.log(count,2)/4))
 
     if count > address > 0x10000: # in case someone puts in an end address and not a count (smh)
+        print(message.warn("Warning: you gave an end address, not a count. Substracting 0x%x from the count." % (address)))
         count -= address
 
     if count % ptrsize > 0:
@@ -78,4 +79,4 @@ def probeleak(address=None, count=0x40):
             right_text = ('(%s) %s + 0x%x') % (page.permstr, mod_name, p - page.vaddr + page.offset)
             print(fmt.format(n1=off_zeros, n2=ptrsize*2, offset=i, ptr=p, page=M.get(p, text=right_text)))
     if not found:
-        print(message.hint('No leaks found at 0x{:x}-0x{:x} :('.format(address, address+count)))
+        print(message.hint('No leaks found at 0x%x-0x%x :(' % (address, address+count)))
