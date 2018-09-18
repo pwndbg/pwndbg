@@ -64,7 +64,7 @@ def probeleak(address=None, count=0x40):
         return
 
     found = False
-    for i in range(0, count - ptrsize + 1):
+    for i in range(0, len(data) - ptrsize + 1):
         p = pwndbg.arch.unpack(data[i:i+ptrsize])
         page = find_module(p)
         if page:
