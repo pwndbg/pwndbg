@@ -32,8 +32,12 @@ def find_module(addr, max_distance):
 
     return pages[-1]
 
-parser = argparse.ArgumentParser()
-parser.description = 'Pointer scan for possible offset leaks.'
+parser = argparse.ArgumentParser(description='''
+Pointer scan for possible offset leaks.
+Examples:
+    probeleak $rsp 0x64 - leaks 0x64 bytes starting at stack pointer and search for valid pointers
+    probeleak $rsp 0x64 0x10 - as above, but pointers may point 0x10 bytes outside of memory page
+''')
 parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
 parser.add_argument('count', nargs='?', default=0x40,
@@ -62,7 +66,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0):
         return
 
     if not data:
-        print(message.error("Couldn't read memory at 0x%x" % (address,)))
+        print(message.error("Couldn't read memory at 0x%x. See 'probeleak -h' for the usage." % (address,)))
         return
 
     found = False
@@ -85,7 +89,8 @@ def probeleak(address=None, count=0x40, max_distance=0x0):
             else:
                 right_text = '(%s) %s + 0x%x' % (page.permstr, mod_name, p - page.start)
 
-            fmt = '+0x{offset:0{n1}x}: 0x{ptr:0{n2}x} = {page}'
-            print(fmt.format(n1=off_zeros, n2=ptrsize*2, offset=i, ptr=p, page=M.get(p, text=right_text)))
+            offset_text = '0x%0*x' % (off_zeros, i)
+            p_text = '0x%0*x' % (int(ptrsize*2), p)
+            print('%s: %s = %s' % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text)))
     if not found:
         print(message.hint('No leaks found at 0x%x-0x%x :(' % (address, address+count)))
