@@ -359,7 +359,7 @@ def find_lower_boundary(addr, max_pages=1024):
             if addr < 0:
                 break
     except gdb.MemoryError:
-        pass
+        addr += pwndbg.memory.PAGE_SIZE
     return addr
 
 
