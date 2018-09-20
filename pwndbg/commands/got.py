@@ -33,7 +33,7 @@ def got(name_filter=''):
         return
 
     if "PIE enabled" in pie_status:
-        bin_text_base = pwndbg.memory.page_align(pwndbg.elf.entry())
+        bin_text_base = pwndbg.vmmap.find(pwndbg.elf.entry()).start
 
     relro_color = message.off
     if 'Partial' in relro_status:
