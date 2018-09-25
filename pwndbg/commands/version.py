@@ -9,11 +9,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
-import os
-from subprocess import check_output
-from platform import platform
 import argparse
+import os
+import sys
+from platform import platform
+from subprocess import check_output
 
 import gdb
 
