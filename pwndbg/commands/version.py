@@ -133,16 +133,16 @@ If it is somehow unavailable, use:
 
 {setup}'''
 
-    gdb_config = gdb.execute('show configuration', to_string=True).split('\n')[:-3]
+    gdb_config = gdb.execute('show configuration', to_string=True).split('\n')
     all_info = all_versions()
 
     current_setup = 'Platform: %s\n' % platform()
     current_setup += '\n'.join(all_info)
-    current_setup += '\n'.join(gdb_config)
+    current_setup += '\n' + '\n'.join(gdb_config)
 
     # get saved history size (not including current gdb session)
     gdb_history_file = gdb.execute('show history filename', to_string=True)
-    gdb_history_file = gdb_history_file[len('The filename in which to record the command history is "'):-3]
+    gdb_history_file = gdb_history_file[gdb_history_file.index('"')+1:gdb_history_file.rindex('"')]
     gdb_history_len = 0
     try:
         with open(gdb_history_file, 'r') as f:
@@ -150,7 +150,7 @@ If it is somehow unavailable, use:
     except FileNotFoundError:
         pass
 
-    max_command_no = int(gdb.execute('show commands', to_string=True).split('\n')[-2].split('  ')[1]) - 1
+    max_command_no = int(gdb.execute('show commands', to_string=True).split('\n')[-2].split()[0]) - 1
     show_command_size = 10  # 'show command' returns 10 commands
     gdb_current_session_history = {}
     current_command_no = gdb_history_len + 1
@@ -158,25 +158,26 @@ If it is somehow unavailable, use:
     while current_command_no <= max_command_no:
         cmds = gdb.execute('show commands ' + str(current_command_no + (show_command_size//2)+1), to_string=True).split('\n')[:-1]
         for cmd in cmds:
-            cmd_no = int(cmd.split('  ')[1])
+            cmd_no, cmd = cmd.split(maxsplit=1)
+            cmd_no = int(cmd_no)
             if cmd_no <= gdb_history_len:
                 continue
             if current_command_no > max_command_no:
                 break
-            cmd = '  '.join(cmd.split('  ')[2:])
             gdb_current_session_history[cmd_no] = cmd
             current_command_no += 1
 
-    gdb_current_session_history = [v for (k, v) in sorted(gdb_current_session_history.items())]
+    gdb_current_session_history = (v for (k, v) in sorted(gdb_current_session_history.items()))
     gdb_current_session_history = '\n'.join(gdb_current_session_history)
     
     print(ISSUE_TEMPLATE.format(gdb_history=gdb_current_session_history, setup=current_setup))
 
+    please_please_submit = 'Please submit the bugreport generated above at '
     github_issue_url = 'https://github.com/pwndbg/pwndbg/issues/new'
     if browse:
         try:
             check_output(['xdg-open', github_issue_url])
         except:
-            print('Please submit at ' + github_issue_url)    
+            print(please_please_submit + github_issue_url)    
     else:
-        print('Please submit at ' + github_issue_url)
+        print(please_please_submit + github_issue_url)
