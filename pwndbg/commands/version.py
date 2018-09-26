@@ -14,6 +14,10 @@ import os
 import sys
 from platform import platform
 from subprocess import check_output
+try:
+    from urllib import quote
+except:
+    from urllib.parse import quote
 
 import gdb
 
@@ -170,13 +174,16 @@ If it is somehow unavailable, use:
     gdb_current_session_history = (v for (k, v) in sorted(gdb_current_session_history.items()))
     gdb_current_session_history = '\n'.join(gdb_current_session_history)
     
-    print(ISSUE_TEMPLATE.format(gdb_history=gdb_current_session_history, setup=current_setup))
+    issue_bugreport = ISSUE_TEMPLATE.format(gdb_history=gdb_current_session_history, setup=current_setup)
+    print(issue_bugreport)
 
     please_please_submit = 'Please submit the bugreport generated above at '
     github_issue_url = 'https://github.com/pwndbg/pwndbg/issues/new'
+    github_issue_body = '?body=' + quote(issue_bugreport)
+
     if browse:
         try:
-            check_output(['xdg-open', github_issue_url])
+            check_output(['xdg-open', github_issue_url + github_issue_body])
         except:
             print(please_please_submit + github_issue_url)    
     else:
