@@ -14,10 +14,6 @@ import os
 import sys
 from platform import platform
 from subprocess import check_output
-try:
-    from urllib import quote
-except:
-    from urllib.parse import quote
 
 import gdb
 
@@ -25,6 +21,11 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.ida
 from pwndbg.color import message
+
+try:
+    from urllib import quote
+except:
+    from urllib.parse import quote
 
 
 def _gdb_version():
