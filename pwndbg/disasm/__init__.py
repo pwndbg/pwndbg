@@ -104,7 +104,6 @@ def get_one_instruction(address):
     md   = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.arch.current, 4)
     data = pwndbg.memory.read(address, size, partial=True)
-    print("data:", data)
     for ins in md.disasm(bytes(data), address, 1):
         pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
