@@ -16,6 +16,7 @@ from . import thumb
 
 arches = {
     'arm': arm,
+    'armcm': arm,
     'i386': i386,
     'mips': mips,
     'x86-64': amd64,

@@ -97,12 +97,25 @@ class RegisterSet(object):
         for r in self.all:
             yield r
 
+arm_cpsr_flags = collections.OrderedDict([
+    ('N', 31), ('Z', 30), ('C', 29), ('V', 28), ('Q', 27), ('J', 24), ('T', 5), ('E', 9), ('A', 8), ('I', 7), ('F', 6)])
+arm_xpsr_flags = collections.OrderedDict([
+    ('N', 31), ('Z', 30), ('C', 29), ('V', 28), ('Q', 27), ('T', 24)])
+
 arm = RegisterSet(  retaddr = ('lr',),
-                    flags   = {'cpsr':{}},
+                    flags   = {'cpsr': arm_cpsr_flags},
                     gpr     = tuple('r%i' % i for i in range(13)),
                     args    = ('r0','r1','r2','r3'),
                     retval  = 'r0')
 
+# ARM Cortex-M
+armcm = RegisterSet(  retaddr = ('lr',),
+                    flags   = {'xpsr': arm_xpsr_flags},
+                    gpr     = tuple('r%i' % i for i in range(13)),
+                    args    = ('r0','r1','r2','r3'),
+                    retval  = 'r0')
+
+# FIXME AArch64 does not have a CPSR register
 aarch64 = RegisterSet(  retaddr = ('lr',),
                         flags   = {'cpsr':{}},
                         frame   = 'x29',
@@ -111,16 +124,16 @@ aarch64 = RegisterSet(  retaddr = ('lr',),
                         args    = ('x0','x1','x2','x3'),
                         retval  = 'x0')
 
-x86flags = {'eflags': {
-    'CF':  0,
-    'PF':  2,
-    'AF':  4,
-    'ZF':  6,
-    'SF':  7,
-    'IF':  9,
-    'DF': 10,
-    'OF': 11,
-}}
+x86flags = {'eflags': collections.OrderedDict([
+    ('CF',  0),
+    ('PF',  2),
+    ('AF',  4),
+    ('ZF',  6),
+    ('SF',  7),
+    ('IF',  9),
+    ('DF', 10),
+    ('OF', 11),
+])}
 
 amd64 = RegisterSet(pc      = 'rip',
                     stack   = 'rsp',
@@ -239,6 +252,7 @@ arch_to_regs = {
     'mips': mips,
     'sparc': sparc,
     'arm': arm,
+    'armcm': armcm,
     'aarch64': aarch64,
     'powerpc': powerpc,
 }
@@ -276,6 +290,8 @@ class module(ModuleType):
                 value = gdb77_get_register(attr)
                 value = value.cast(pwndbg.typeinfo.uint32)
             else:
+                if attr.lower() == 'xpsr':
+                    attr = 'xPSR'
                 value = get_register(attr)
                 value = value.cast(pwndbg.typeinfo.ptrdiff)
 

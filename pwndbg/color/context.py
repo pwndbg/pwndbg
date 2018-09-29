@@ -54,3 +54,25 @@ def banner(x):
 
 def banner_title(x):
     return generateColorFunction(config.banner_title_color)(x)
+
+def format_flags(value, flags, last=None):
+    desc = flag_value('%#x' % value)
+    if not flags:
+        return desc
+
+    names = []
+    for name, bit in flags.items():
+        bit = 1<<bit
+        if value & bit:
+            name = name.upper()
+            name = flag_set(name)
+        else:
+            name = name.lower()
+            name = flag_unset(name)
+
+        if last is not None and value & bit != last & bit:
+            name = flag_changed(name)
+        names.append(name)
+
+    return '%s %s %s %s' % (desc, flag_bracket('['), ' '.join(names), flag_bracket(']'))
+

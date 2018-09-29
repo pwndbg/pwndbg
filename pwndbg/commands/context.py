@@ -167,30 +167,11 @@ def get_regs(*regs):
         change_marker = "%s" % C.config_register_changed_marker
         m = ' ' * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
-        if reg not in pwndbg.regs.flags:
-            desc = pwndbg.chain.format(value)
+        if reg in pwndbg.regs.flags:
+            desc = C.format_flags(value, pwndbg.regs.flags[reg], pwndbg.regs.last.get(reg, 0))
 
         else:
-            names = []
-            desc  = C.flag_value('%#x' % value)
-            last  = pwndbg.regs.last.get(reg, 0) or 0
-            flags = pwndbg.regs.flags[reg]
-
-            for name, bit in sorted(flags.items()):
-                bit = 1<<bit
-                if value & bit:
-                    name = name.upper()
-                    name = C.flag_set(name)
-                else:
-                    name = name.lower()
-                    name = C.flag_unset(name)
-
-                if value & bit != last & bit:
-                    name = C.flag_changed(name)
-                names.append(name)
-
-            if names:
-                desc = '%s %s %s %s' % (desc, C.flag_bracket('['), ' '.join(names), C.flag_bracket(']'))
+            desc = pwndbg.chain.format(value)
 
         result.append("%s%s %s" % (m, regname, desc))
 

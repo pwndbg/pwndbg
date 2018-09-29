@@ -57,7 +57,7 @@ def which_binutils(util, **kwargs):
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.
     arches = [arch] + {
-        'thumb':  ['arm',    'aarch64'],
+        'thumb':  ['arm', 'armcm', 'aarch64'],
         'i386':   ['x86_64', 'amd64'],
         'i686':   ['x86_64', 'amd64'],
         'i386:x86-64': ['x86_64', 'amd64'],
