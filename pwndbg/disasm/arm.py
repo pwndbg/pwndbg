@@ -46,7 +46,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.address != pwndbg.regs.pc:
             return False
 
-        cpsr = pwndbg.regs.cpsr
+        cpsr = pwndbg.regs.cpsr or pwndbg.regs.xpsr
 
         N = cpsr & (1<<31)
         Z = cpsr & (1<<30)

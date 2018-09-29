@@ -131,6 +131,8 @@ def get_regs(*regs):
             continue
 
         value = pwndbg.regs[reg]
+        if not value and reg.lower() == "cpsr":
+            value = pwndbg.regs["xpsr"]
 
         # Make the register stand out
         regname = C.register(reg.ljust(4).upper())

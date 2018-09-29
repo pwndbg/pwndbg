@@ -83,8 +83,16 @@ def get_disassembler(pc):
     extra = None
 
     if pwndbg.arch.current in ('arm', 'aarch64'):
-        extra = {0:CS_MODE_ARM,
-                 0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
+        if pwndbg.regs.xpsr:
+            extra = {
+                0: CS_MODE_MCLASS,
+                0x1000000: CS_MODE_MCLASS | CS_MODE_THUMB,
+            }[pwndbg.regs.xpsr & 1 << 24]
+        else:
+            extra = {
+                0: CS_MODE_ARM,
+                0x20: CS_MODE_THUMB,
+            }[pwndbg.regs.cpsr & 1 << 5]
 
     return get_disassembler_cached(pwndbg.arch.current,
                                    pwndbg.arch.ptrsize,
@@ -96,6 +104,7 @@ def get_one_instruction(address):
     md   = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.arch.current, 4)
     data = pwndbg.memory.read(address, size, partial=True)
+    print("data:", data)
     for ins in md.disasm(bytes(data), address, 1):
         pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
