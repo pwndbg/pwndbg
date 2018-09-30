@@ -86,10 +86,10 @@ def version():
 bugreport_parser = argparse.ArgumentParser(description='''
     Generate bugreport
     ''')
-bugreport_parser.add_argument('--browse', '-b', action='store_true', help='Open browser on github/issues/new')
+bugreport_parser.add_argument('--run-browser', '-b', action='store_true', help='Open browser on github/issues/new')
 
 @pwndbg.commands.ArgparsedCommand(bugreport_parser)
-def bugreport(browse=False):
+def bugreport(run_browser=False):
     ISSUE_TEMPLATE = '''
 <!--
 Before reporting a new issue, make sure that we do not have any duplicates already open.
@@ -182,10 +182,12 @@ If it is somehow unavailable, use:
     github_issue_url = 'https://github.com/pwndbg/pwndbg/issues/new'
     github_issue_body = '?body=' + quote(issue_bugreport)
 
-    if browse:
+    if run_browser:
         try:
             check_output(['xdg-open', github_issue_url + github_issue_body])
         except:
             print(please_please_submit + github_issue_url)    
     else:
         print(please_please_submit + github_issue_url)
+
+
