@@ -33,9 +33,11 @@ def inform_report_issue(exception_msg):
     The use of `memoize` makes it reporting only once for a given exception message.
     """
     print(message.notice(
-        'If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n'
+        "If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n"
         "(Please don't forget to search if it hasn't been reported before)\n"
-        "PS: Pull requests are welcome")
+        "To generate the report and open a browser, you may run ") +
+        message.hint("`bugreport --run-browser`") +
+        message.notice("\nPS: Pull requests are welcome")
     )
 
 
