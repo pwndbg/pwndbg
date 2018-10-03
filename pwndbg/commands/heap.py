@@ -39,25 +39,34 @@ def format_bin(bins, verbose=False, offset=None):
     result = []
     for size in bins:
         b = bins[size]
-        if isinstance(b, tuple):
-            chain, count = b
-        else:
-            chain = b
-            count = None
 
-        if not verbose and (chain == [0] and not count):
+        count, is_chain_corrupted = None, False
+        if len(b) == 1:  # fastbin:
+            chain_fd = b
+        elif len(b) == 2:  # tcachebin:
+            chain_fd, count = b
+        else:  # normal bin
+            chain_fd, chain_bk, is_chain_corrupted = b
+
+        if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
 
-        formatted_chain = pwndbg.chain.format(chain[0], offset=offset)
+        formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset)
 
         if isinstance(size, int):
             size = hex(size)
 
-        if count is not None:
-            line = (message.hint(size) + message.hint(' [%3d]' % count) + ': ').ljust(13)
+        if is_chain_corrupted:
+            line = message.hint(size) + message.error(' [corrupted]') + '\n'
+            line += message.hint('FD: ') + formatted_chain + '\n'
+            line += message.hint('BK: ') + pwndbg.chain.format(chain_bk[0], offset=main_heap.chunk_key_offset('bk'))
         else:
-            line = (message.hint(size) + ': ').ljust(13)
-        line += formatted_chain
+            if count is not None:
+                line = (message.hint(size) + message.hint(' [%3d]' % count) + ': ').ljust(13)
+            else:
+                line = (message.hint(size) + ': ').ljust(13)
+            line += formatted_chain
+
         result.append(line)
 
     if not result:

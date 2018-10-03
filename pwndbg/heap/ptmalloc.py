@@ -393,6 +393,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def fastbins(self, arena_addr=None):
+        """Returns: chain or None"""
         arena = self.get_arena(arena_addr)
 
         if arena is None:
@@ -414,6 +415,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def tcachebins(self, tcache_addr=None):
+        """Returns: tuple(chain, count) or None"""
         tcache = self.get_tcache(tcache_addr)
 
         if tcache is None:
@@ -449,6 +451,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         Bin 1          - Unsorted BiN
         Bin 2 to 63    - Smallbins
         Bin 64 to 126  - Largebins
+
+        Returns: tuple(chain_from_bin_fd, chain_from_bin_bk, is_chain_corrupted) or None
         """
         index = index - 1
         arena = self.get_arena(arena_addr)
@@ -464,9 +468,20 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset   = self.chunk_key_offset('fd')
+        bk_offset   = self.chunk_key_offset('bk')
 
-        chain = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=False)
-        return chain
+        is_chain_corrupted = False
+        chain_fd = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
+        chain_bk = pwndbg.chain.get(int(back), offset=bk_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
+
+        # check if bin[index] points to itself (is empty)
+        if len(chain_fd) == 2 and len(chain_bk) == 2 and chain_fd[0] == chain_bk[0]:
+            chain_fd = [0]
+            chain_bk = [0]
+        elif chain_fd[:-1] != chain_bk[:-2][::-1] + [chain_bk[-2]]:
+            is_chain_corrupted = True
+
+        return (chain_fd, chain_bk, is_chain_corrupted)
 
 
     def unsortedbin(self, arena_addr=None):
