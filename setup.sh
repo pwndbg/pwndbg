@@ -34,7 +34,7 @@ if linux; then
             ;;
         "fedora")
             sudo dnf update || true
-            sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel
+            sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
             sudo dnf -y debuginfo-install glibc
             ;;
         *) # we can add more install command for each distros.
