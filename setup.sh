@@ -21,12 +21,27 @@ else
 fi
 
 if linux; then
-    sudo apt-get update || true
-    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+    distro=$(cat /etc/os-release | grep "^ID=" | cut -d\= -f2 | sed -e 's/"//g')
+    
+    case $distro in
+        "ubuntu")
+            sudo apt-get update || true
+            sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
 
-    if uname -m | grep x86_64 > /dev/null; then
-        sudo apt-get install libc6-dbg:i386 || true
-    fi
+            if uname -m | grep x86_64 > /dev/null; then
+                sudo apt-get install libc6-dbg:i386 || true
+            fi
+            ;;
+        "fedora")
+            sudo dnf update || true
+            sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
+            sudo dnf -y debuginfo-install glibc
+            ;;
+        *) # we can add more install command for each distros.
+            echo "\"$distro\" is not supported distro."
+            exit
+            ;;
+    esac
 fi
 
 if ! hash gdb; then
