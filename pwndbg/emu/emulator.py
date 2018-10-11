@@ -200,7 +200,16 @@ class Emulator(object):
         mode = 0
 
         if arch in ('arm', 'aarch64'):
-            mode |= {0:U.UC_MODE_ARM,0x20:U.UC_MODE_THUMB}[(pwndbg.regs.cpsr or pwndbg.regs.xpsr) & 0x20]
+            if pwndbg.regs.xpsr:
+                mode |= {
+                    0: U.UC_MODE_MCLASS,
+                    0x1000000: U.UC_MODE_MCLASS | U.UC_MODE_THUMB,
+                }[pwndbg.regs.xpsr & 1 << 24]
+            else:
+                mode |= {
+                    0: U.UC_MODE_ARM,
+                    0x20: U.UC_MODE_THUMB,
+                }[pwndbg.regs.cpsr & 1 << 5]
         else:
             mode |= {4:U.UC_MODE_32, 8:U.UC_MODE_64}[pwndbg.arch.ptrsize]
 
