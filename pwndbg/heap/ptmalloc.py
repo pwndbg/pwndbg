@@ -471,13 +471,17 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         bk_offset   = self.chunk_key_offset('bk')
 
         is_chain_corrupted = False
-        chain_fd = pwndbg.chain.get(int(front), offset=fd_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
-        chain_bk = pwndbg.chain.get(int(back), offset=bk_offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
+
+        get_chain = lambda bin, offset: pwndbg.chain.get(int(bin), offset=offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
+        chain_fd = get_chain(front, fd_offset)
+        chain_bk = get_chain(back, bk_offset)
 
         # check if bin[index] points to itself (is empty)
-        if len(chain_fd) == 2 and len(chain_bk) == 2 and chain_fd[0] == chain_bk[0]:
+        if len(chain_fd) == len(chain_bk) == 2 and chain_fd[0] == chain_bk[0]:
             chain_fd = [0]
             chain_bk = [0]
+
+        # check if corrupted
         elif chain_fd[:-1] != chain_bk[:-2][::-1] + [chain_bk[-2]]:
             is_chain_corrupted = True
 
