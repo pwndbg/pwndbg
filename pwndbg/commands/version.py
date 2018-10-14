@@ -189,5 +189,3 @@ If it is somehow unavailable, use:
             print(please_please_submit + github_issue_url)    
     else:
         print(please_please_submit + github_issue_url)
-
-
