@@ -42,6 +42,7 @@ class Command(gdb.Command):
     """Generic command wrapper"""
     command_names = set()
     builtin_commands = builtin_commands
+    builtin_override_whitelist = ['up', 'down', 'search', 'pwd', 'start']
     history = {}
 
     def __init__(self, function, prefix=False):
@@ -52,8 +53,8 @@ class Command(gdb.Command):
 
         if command_name in self.command_names:
             raise Exception('Cannot add command %s: already exists.' % command_name)
-        if command_name in self.builtin_commands:
-            print(pwndbg.color.message.warn('Pwndbg overrides builtin command "%s"' % command_name))
+        if command_name in self.builtin_commands and command_name not in self.builtin_override_whitelist:
+            raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
         self.command_names.add(command_name)
         commands.append(self)
