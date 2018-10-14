@@ -23,10 +23,25 @@ import pwndbg.ui
 
 commands = []
 
+def list_current_commands():
+    gdb.execute('set pagination off')
+    command_list = gdb.execute('help all', False, True).strip().split('\n')
+    existing_commands = set()
+    for line in command_list:
+        line = line.strip()
+        # Skip non-command entries
+        if len(line) == 0 or line.startswith('Command class:') or line.startswith('Unclassified commands'):
+            continue
+        command = line.split(' ')[0]
+        existing_commands.add(command)
+    return list(existing_commands)
+
+builtin_commands = list_current_commands()
 
 class Command(gdb.Command):
     """Generic command wrapper"""
     command_names = set()
+    builtin_commands = builtin_commands
     history = {}
 
     def __init__(self, function, prefix=False):
@@ -37,6 +52,8 @@ class Command(gdb.Command):
 
         if command_name in self.command_names:
             raise Exception('Cannot add command %s: already exists.' % command_name)
+        if command_name in self.builtin_commands:
+            print(pwndbg.color.message.warn('Pwndbg overrides builtin command "%s"' % command_name))
 
         self.command_names.add(command_name)
         commands.append(self)
