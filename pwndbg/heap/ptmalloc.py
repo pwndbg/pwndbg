@@ -150,6 +150,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             except Exception as e:
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
+                return None
         else:
             if not self.has_tcache():
                 print(message.warn('Your libc does not use thread cache'))
