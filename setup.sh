@@ -37,6 +37,10 @@ if linux; then
             sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
             sudo dnf -y debuginfo-install glibc
             ;;
+        "arch")
+            sudo pacman -Syu || true
+            sudo pacman -Sy gdb python2 python3 python2-pip python-pip glib2 glibc
+            ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro."
             exit
