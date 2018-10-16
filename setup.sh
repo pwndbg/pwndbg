@@ -52,8 +52,14 @@ if linux; then
         "fedora")
             install_dnf
             ;;
+        "arch")
+            echo "Install Arch linux using a community package. See:"
+            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
+            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
+            exit 1
+            ;;
         *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will try apt or dnf."
+            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
             if hash apt; then
                 install_apt
             elif hash dnf; then
