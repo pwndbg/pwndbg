@@ -18,6 +18,20 @@ osx() {
     uname | grep -i Darwin &>/dev/null
 }
 
+install_apt() {
+    sudo apt-get update || true
+    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+
+    if uname -m | grep x86_64 > /dev/null; then
+        sudo apt-get install libc6-dbg:i386 || true
+    fi
+}
+
+install_dnf() {
+    sudo dnf update || true
+    sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y debuginfo-install glibc
+}
 
 PYTHON=''
 INSTALLFLAGS=''
@@ -33,20 +47,20 @@ if linux; then
     
     case $distro in
         "ubuntu")
-            sudo apt-get update || true
-            sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
-
-            if uname -m | grep x86_64 > /dev/null; then
-                sudo apt-get install libc6-dbg:i386 || true
-            fi
+            install_apt
             ;;
         "fedora")
-            sudo dnf update || true
-            sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
-            sudo dnf -y debuginfo-install glibc
+            install_dnf
             ;;
         *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro."
+            echo "\"$distro\" is not supported distro. Will try apt or dnf."
+            if hash apt; then
+                install_apt
+            elif hash dnf; then
+                install_dnf
+            else
+                echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
+            fi
             exit
             ;;
     esac
