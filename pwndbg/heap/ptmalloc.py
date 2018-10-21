@@ -138,10 +138,82 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def has_tcache(self):
         return (self.mp and 'tcache_bins' in self.mp.type.keys() and self.mp['tcache_bins'])
 
+    def _fetch_tcache_symbol_addr(self):
+        """
+        Fetches the address of tcache symbol.
+        NOTE: This may not work on glibcs other than 2.27 and Ubuntu 18.04.
+
+        This has been added based on the observation, that there is a data page
+        that contains a pointer to main_arena and pointer to tcache.
+
+        pwndbg> search -p &main_arena
+                        0x7ffff0000890 0x7ffff7bb0c40
+                        0x7ffff7fd7700 0x7ffff7bb0c40 <--- weird data page
+        [stack]         0x7fffffffdc48 0x7ffff7bb0c40
+        [stack]         0x7fffffffde80 0x7ffff7bb0c40
+
+        pwndbg> x/4xg 0x7ffff7fd7700-0x10
+        0x7ffff7fd76f0:	0x0000555555756010	0x0000000000000000   <---- tcache ptr!
+        0x7ffff7fd7700:	0x00007ffff7bb0c40	0x0000000000000000
+
+        pwndbg> p &tcache
+        $9 = (tcache_perthread_struct **) 0x7ffff7fd76f0
+
+        The memory page it belongs to isn't named at all:
+        0x7ffff7fd7000     0x7ffff7fdc000 rw-p     5000 0
+
+        Pages around it:
+        0x7ffff7dd5000     0x7ffff7dfc000 r-xp    27000 0      /lib/x86_64-linux-gnu/ld-2.27.so
+        0x7ffff7fd7000     0x7ffff7fdc000 rw-p     5000 0
+        0x7ffff7ff7000     0x7ffff7ffa000 r--p     3000 0      [vvar]
+        0x7ffff7ffa000     0x7ffff7ffc000 r-xp     2000 0      [vdso]
+        0x7ffff7ffc000     0x7ffff7ffd000 r--p     1000 27000  /lib/x86_64-linux-gnu/ld-2.27.so
+        0x7ffff7ffd000     0x7ffff7ffe000 rw-p     1000 28000  /lib/x86_64-linux-gnu/ld-2.27.so
+        0x7ffff7ffe000     0x7ffff7fff000 rw-p     1000 0
+        0x7ffffffde000     0x7ffffffff000 rw-p    21000 0      [stack]
+        0xffffffffff600000 0xffffffffff601000 r-xp     1000 0      [vsyscall]
+        """
+        main_arena = pwndbg.symbol.address('main_arena')
+
+        # pages that may contain main_arena and tcache
+        pages = tuple(
+            page for page in pwndbg.vmmap.get() if page.rw and page.objfile == ''
+        )
+
+        # For the tests I made it returned:
+        # - two memory pages for a program compiled with -lpthread -pthread
+        # - one memory page for a program compiled without ^
+        main_arena_ptrs = list(pwndbg.search.search(
+            pwndbg.arch.pack(main_arena),
+            mappings=pages
+        ))
+
+        # It seems that tcache pointer lies 0x10 bytes before main_arena ptr
+        # that is on the higher address that was returned from search
+        #
+        # This was tested on Ubuntu 18.04 / glibc 2.27
+        # AND MIGHT NOT ALWAYS BE TRUE!
+
+        # TODO / FIXME: Can this info be fetched from glibc.so or other .so somehow?
+        # (e.g. distance between the two!)
+        # Also: can we be 100% sure about memory page it belongs to? how?
+        tcache_ptr = max(main_arena_ptrs)
+
+        if pwndbg.vmmap.find(pwndbg.memory.pvoid(tcache_ptr)):
+            return tcache_ptr
 
     @property
     def thread_cache(self):
         tcache_addr = pwndbg.symbol.address('tcache')
+
+        if tcache_addr is None:
+            tcache_addr = self._fetch_tcache_symbol_addr()
+
+        # well in fact, both calls above returns a ptr to ptr to tcache struct, as in:
+        # pwndbg> p &tcache
+        # $1 = (tcache_perthread_struct **) 0x7ffff7fd76f0
+        # so we need to dereference it
+        tcache_addr = pwndbg.memory.pvoid(tcache_addr)
 
         if tcache_addr is not None:
             try:
