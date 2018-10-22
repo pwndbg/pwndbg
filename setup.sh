@@ -66,8 +66,8 @@ if linux; then
                 install_dnf
             else
                 echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
+                exit
             fi
-            exit
             ;;
     esac
 fi
