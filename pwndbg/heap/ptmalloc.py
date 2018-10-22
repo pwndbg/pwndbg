@@ -141,7 +141,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     def thread_cache(self):
-        tcache_addr = pwndbg.symbol.address('tcache')
+        tcache_addr = pwndbg.memory.u64(pwndbg.symbol.address('tcache'))
 
         if tcache_addr is not None:
             try:
