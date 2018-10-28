@@ -38,15 +38,18 @@ def format_bin(bins, verbose=False, offset=None):
 
     result = []
     for size in bins:
+        if size == 'type':
+            continue
+
         b = bins[size]
 
         count, is_chain_corrupted = None, False
 
         # fastbins consists of only single linked list
-        if len(b) == 1:  # fastbin:
+        if bins['type'] == 'fastbins':
             chain_fd = b
         # tcachebins consists of single linked list and entries count
-        elif len(b) == 2:  # tcachebin:
+        elif bins['type'] == 'tcachebins':
             chain_fd, count = b
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin

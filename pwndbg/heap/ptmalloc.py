@@ -434,6 +434,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
             result[size] = chain
 
+        result['type'] = 'fastbins'
         return result
 
 
@@ -461,6 +462,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
             result[size] = (chain, count)
 
+        result['type'] = 'tcachebins'
         return result
 
 
@@ -520,6 +522,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         result['all'] = chain
 
+        result['type'] = 'unsortedbin'
         return result
 
 
@@ -537,6 +540,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
             result[size] = chain
 
+        result['type'] = 'smallbins'
         return result
 
 
@@ -554,6 +558,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
             result[size] = chain
 
+        result['type'] = 'largebins'
         return result
 
 
