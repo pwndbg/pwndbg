@@ -138,10 +138,32 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def has_tcache(self):
         return (self.mp and 'tcache_bins' in self.mp.type.keys() and self.mp['tcache_bins'])
 
+    def _fetch_tcache_addr(self):
+        """
+        As of Ubuntu 18.04 and glibc 2.27 the tcache_perthread_struct* tcache
+        is located 0x10 bytes after the heap page, so we just return it here.
+
+        pwndbg> p tcache
+        $1 = (tcache_perthread_struct *) 0x555555756010
+        pwndbg> vmmap 0x555555756010
+        LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+            0x555555756000     0x555555777000 rw-p    21000 0      [heap]
+        """
+        return self.get_heap_boundaries().vaddr + 0x10
 
     @property
     def thread_cache(self):
         tcache_addr = pwndbg.symbol.address('tcache')
+
+        # The symbol.address returns ptr to ptr to tcache struct, as in:
+        # pwndbg> p &tcache
+        # $1 = (tcache_perthread_struct **) 0x7ffff7fd76f0
+        # so we need to dereference it
+        if tcache_addr is not None:
+            tcache_addr = pwndbg.memory.pvoid(tcache_addr)
+
+        if tcache_addr is None:
+            tcache_addr = self._fetch_tcache_addr()
 
         if tcache_addr is not None:
             try:
@@ -150,6 +172,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             except Exception as e:
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
+                return None
         else:
             if not self.has_tcache():
                 print(message.warn('Your libc does not use thread cache'))

@@ -23,10 +23,29 @@ import pwndbg.ui
 
 commands = []
 
+def list_current_commands():
+    current_pagination = gdb.execute('show pagination', to_string=True)
+    current_pagination = current_pagination.split()[-1].rstrip('.')  # Take last word and skip period
+
+    gdb.execute('set pagination off')
+    command_list = gdb.execute('help all', to_string=True).strip().split('\n')
+    existing_commands = set()
+    for line in command_list:
+        line = line.strip()
+        # Skip non-command entries
+        if len(line) == 0 or line.startswith('Command class:') or line.startswith('Unclassified commands'):
+            continue
+        command = line.split()[0]
+        existing_commands.add(command)
+    gdb.execute('set pagination %s' % current_pagination) # Restore original setting
+    return existing_commands
+
+GDB_BUILTIN_COMMANDS = list_current_commands()
 
 class Command(gdb.Command):
     """Generic command wrapper"""
     command_names = set()
+    builtin_override_whitelist = {'up', 'down', 'search', 'pwd', 'start'}
     history = {}
 
     def __init__(self, function, prefix=False):
@@ -37,6 +56,8 @@ class Command(gdb.Command):
 
         if command_name in self.command_names:
             raise Exception('Cannot add command %s: already exists.' % command_name)
+        if command_name in GDB_BUILTIN_COMMANDS and command_name not in self.builtin_override_whitelist:
+            raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
         self.command_names.add(command_name)
         commands.append(self)

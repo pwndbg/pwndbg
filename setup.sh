@@ -1,6 +1,14 @@
 #!/bin/bash
 set -ex
 
+# If we are a root in a Docker container and `sudo` doesn't exist
+# lets overwrite it with a function that just executes things passed to sudo
+# (yeah it won't work for sudo executed with flags)
+if [ -f /.dockerenv ]  && ! hash sudo 2>/dev/null && whoami | grep root; then
+    sudo() {
+        $*
+    }
+fi
 
 # Helper functions
 linux() {
@@ -10,6 +18,20 @@ osx() {
     uname | grep -i Darwin &>/dev/null
 }
 
+install_apt() {
+    sudo apt-get update || true
+    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
+
+    if uname -m | grep x86_64 > /dev/null; then
+        sudo apt-get install libc6-dbg:i386 || true
+    fi
+}
+
+install_dnf() {
+    sudo dnf update || true
+    sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y debuginfo-install glibc
+}
 
 PYTHON=''
 INSTALLFLAGS=''
@@ -21,12 +43,33 @@ else
 fi
 
 if linux; then
-    sudo apt-get update || true
-    sudo apt-get -y install gdb python-dev python3-dev python-pip python3-pip libglib2.0-dev libc6-dbg
-
-    if uname -m | grep x86_64 > /dev/null; then
-        sudo apt-get install libc6-dbg:i386 || true
-    fi
+    distro=$(cat /etc/os-release | grep "^ID=" | cut -d\= -f2 | sed -e 's/"//g')
+    
+    case $distro in
+        "ubuntu")
+            install_apt
+            ;;
+        "fedora")
+            install_dnf
+            ;;
+        "arch")
+            echo "Install Arch linux using a community package. See:"
+            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
+            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
+            exit 1
+            ;;
+        *) # we can add more install command for each distros.
+            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
+            if hash apt; then
+                install_apt
+            elif hash dnf; then
+                install_dnf
+            else
+                echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
+                exit
+            fi
+            ;;
+    esac
 fi
 
 if ! hash gdb; then
