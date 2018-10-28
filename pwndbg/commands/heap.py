@@ -37,19 +37,17 @@ def format_bin(bins, verbose=False, offset=None):
         offset = main_heap.chunk_key_offset('fd')
 
     result = []
+    bins_type = bins.pop('type')
+
     for size in bins:
-        if size == 'type':
-            continue
-
         b = bins[size]
-
         count, is_chain_corrupted = None, False
 
         # fastbins consists of only single linked list
-        if bins['type'] == 'fastbins':
+        if bins_type == 'fastbins':
             chain_fd = b
         # tcachebins consists of single linked list and entries count
-        elif bins['type'] == 'tcachebins':
+        elif bins_type == 'tcachebins':
             chain_fd, count = b
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
