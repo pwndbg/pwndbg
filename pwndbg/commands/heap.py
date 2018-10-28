@@ -38,6 +38,9 @@ def format_bin(bins, verbose=False, offset=None):
 
     result = []
     for size in bins:
+        if size == 'type':
+            continue
+            
         b = bins[size]
 
         count, is_chain_corrupted = None, False
