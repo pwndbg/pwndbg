@@ -26,7 +26,7 @@ def r2(arguments, no_seek=False):
     # Build up the command line to run
     cmd = ['radare2', filename]
     addr = pwndbg.regs.pc
-    if pwndbg.wrappers.checksec.pie_status() == "PIE enabled":
+    if pwndbg.elf.get_elf_info(filename).is_pie:
         addr -= pwndbg.elf.exe().address
     if not no_seek and pwndbg.proc.alive:
         cmd.extend(['-s', hex(addr)])
