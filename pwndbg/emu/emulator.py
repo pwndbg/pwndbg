@@ -142,7 +142,7 @@ class Emulator(object):
         self._curr = None
 
         # Initialize the register state
-        for reg in list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
+        for reg in list(self.regs.retaddr) + list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
             enum = self.get_reg_enum(reg)
 
             if not reg:
@@ -450,7 +450,7 @@ class Emulator(object):
         self._single_step = (address, instruction_size)
 
     def dumpregs(self):
-        for reg in list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
+        for reg in list(self.regs.retaddr) + list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
