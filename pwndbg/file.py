@@ -33,7 +33,7 @@ def get_file(path, recurse=1):
     local_path = path
 
     if pwndbg.qemu.root() and recurse:
-        return get(os.path.join(pwndbg.qemu.root, path), 0)
+        return get(os.path.join(pwndbg.qemu.binfmt_root, path), 0)
     elif pwndbg.remote.is_remote() and not pwndbg.qemu.is_qemu():
         local_path = tempfile.mktemp()
         error      = None
