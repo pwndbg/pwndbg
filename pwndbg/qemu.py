@@ -61,7 +61,7 @@ def is_qemu_kernel():
 @pwndbg.events.start
 @pwndbg.memoize.reset_on_stop
 def root():
-  global root
+  global binfmt_root
 
   if not is_qemu_usermode():
     return
