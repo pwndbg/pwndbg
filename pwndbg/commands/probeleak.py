@@ -91,6 +91,13 @@ def probeleak(address=None, count=0x40, max_distance=0x0):
 
             offset_text = '0x%0*x' % (off_zeros, i)
             p_text = '0x%0*x' % (int(ptrsize*2), p)
-            print('%s: %s = %s' % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text)))
+            text = '%s: %s = %s' % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text))
+
+            symbol = pwndbg.symbol.get(p)
+            if symbol:
+                text += ' (%s)' % symbol
+
+            print(text)
+
     if not found:
         print(message.hint('No leaks found at 0x%x-0x%x :(' % (address, address+count)))
