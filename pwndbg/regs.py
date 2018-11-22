@@ -187,7 +187,7 @@ powerpc = RegisterSet(  retaddr = ('lr','r0'),
 # %o0 == %r8                          \
 # ...                                 | o stands for output (note: not 0)
 # %o6 == %r14 == %sp (stack ptr)      |
-# %o7 == %r15 == for return aaddress   |
+# %o7 == %r15 == for return address   |
 # ____________________________________/
 # %l0 == %r16                         \
 # ...                                 | l stands for local (note: not 1)
@@ -200,12 +200,12 @@ powerpc = RegisterSet(  retaddr = ('lr','r0'),
 # ____________________________________/
 
 sparc_gp = tuple(['g%i' % i for i in range(1,8)]
-                +['o%i' % i for i in range(0,6)]
+                +['o%i' % i for i in range(0,6)]+['o7']
                 +['l%i' % i for i in range(0,8)]
                 +['i%i' % i for i in range(0,6)])
-sparc = RegisterSet(stack   = 'o6',
-                    frame   = 'i6',
-                    retaddr = ('o7',),
+sparc = RegisterSet(stack   = 'sp',
+                    frame   = 'fp',
+                    retaddr = ('i7',),
                     flags   = {'psr':{}},
                     gpr     = sparc_gp,
                     args    = ('i0','i1','i2','i3','i4','i5'),
