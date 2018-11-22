@@ -86,6 +86,13 @@ def get_disassembler(pc):
         extra = {0:CS_MODE_ARM,
                  0x20:CS_MODE_THUMB}[pwndbg.regs.cpsr & 0x20]
 
+    if pwndbg.arch.current == 'sparc':
+        if 'v9' in gdb.newest_frame().architecture().name():
+            extra = CS_MODE_V9
+        else:
+            # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
+            extra = 0 
+
     return get_disassembler_cached(pwndbg.arch.current,
                                    pwndbg.arch.ptrsize,
                                    pwndbg.arch.endian,
