@@ -112,7 +112,12 @@ class Command(gdb.Command):
 
         last_line = lines[-1]
         number, command = last_line.split(None, 1)
-        number = int(number)
+        try:
+            number = int(number)
+        except ValueError:
+            # Workaround for a GDB 8.2 bug when show commands return error value
+            # See issue #523
+            return False
 
         # A new command was entered by the user
         if number not in Command.history:
