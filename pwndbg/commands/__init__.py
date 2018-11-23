@@ -115,7 +115,8 @@ class Command(gdb.Command):
         try:
             number = int(number)
         except ValueError:
-            # Fixes a bug when gdb show commands return error value
+            # Workaround for a GDB 8.2 bug when show commands return error value
+            # See issue #523
             return False
 
         # A new command was entered by the user
