@@ -6,7 +6,7 @@ It has a boatload of features, see [FEATURES.md](FEATURES.md).
 
 ## Why?
 
-Vanilla GDB is terrible to use for reverse engineering and exploit development. Typing `x/g30x $esp` is not fun, and does not  confer much information.  The year is 2018 and GDB still lacks a hexdump command.  GDB's syntax is arcane and difficult to approach.  Windbg users are completely lost when they occasionally need to bump into GDB.
+Vanilla GDB is terrible to use for reverse engineering and exploit development. Typing `x/g30x $esp` is not fun, and does not  confer much information.  The year is 2019 and GDB still lacks a hexdump command!  GDB's syntax is arcane and difficult to approach.  Windbg users are completely lost when they occasionally need to bump into GDB.
 
 ## What?
 
@@ -43,11 +43,11 @@ For further info about features/functionalities, see [FEATURES](FEATURES.md).
 
 ## Who?
 
-Most of Pwndbg was written by [Zach Riggle](https://twitter.com/ebeip90), with [many other contributors](https://github.com/pwndbg/pwndbg/graphs/contributors) offering up patches via Pull Requests.
+Pwndbg is an open-source project, written and maintained by [many contributors](https://github.com/pwndbg/pwndbg/graphs/contributors)!
 
 Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md).
 
 ## Contact
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
-[`ebeip90` at #pwndbg on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
+[`ebeip90` or `disconnect3d` at #pwndbg on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
 Click [here](https://kiwiirc.com/client/irc.freenode.net/pwndbg) to connect.
