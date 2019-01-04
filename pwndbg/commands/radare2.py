@@ -25,11 +25,12 @@ def r2(arguments, no_seek=False):
 
     # Build up the command line to run
     cmd = ['radare2', filename]
-    addr = pwndbg.regs.pc
-    if pwndbg.elf.get_elf_info(filename).is_pie:
-        addr -= pwndbg.elf.exe().address
-    if not no_seek and pwndbg.proc.alive:
-        cmd.extend(['-s', hex(addr)])
+    if pwndbg.proc.alive:
+        addr = pwndbg.regs.pc
+        if pwndbg.elf.get_elf_info(filename).is_pie:
+            addr -= pwndbg.elf.exe().address
+        if not no_seek:
+            cmd.extend(['-s', hex(addr)])
     cmd += arguments
 
     try:
