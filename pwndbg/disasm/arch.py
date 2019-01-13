@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import collections
 
 import capstone
+import gdb
 from capstone import *
 
 import pwndbg.memoize
@@ -147,7 +148,12 @@ class DisassemblyAssistant(object):
 
             # self.memory may return none, so we need to check it here again
             if addr is not None:
-                addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
+                try:
+                    # fails with gdb.MemoryError if the dereferenced address
+                    # doesn't belong to any of process memory maps
+                    addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
+                except gdb.MemoryError:
+                    return None
         if op.type == CS_OP_REG:
             addr = self.register(instruction, op)
 
@@ -243,6 +249,9 @@ class DisassemblyAssistant(object):
         return None # raise NotImplementedError
 
     def dump(self, instruction):
+        """
+        Debug-only method.
+        """
         ins = instruction
         rv  = []
         rv.append('%s %s' % (ins.mnemonic, ins.op_str))
