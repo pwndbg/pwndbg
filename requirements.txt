@@ -9,6 +9,6 @@ ROPgadget
 six
 unicorn>=1.0.0
 pygments
-https://github.com/aquynh/capstone/archive/next.zip#subdirectory=bindings/python
+capstone==4.0.0
 enum34
 pytest
