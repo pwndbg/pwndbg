@@ -136,7 +136,6 @@ set backtrace past-main on
 set step-mode on
 set print pretty on
 set width %i
-set print elements 15
 handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
