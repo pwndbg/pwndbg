@@ -9,6 +9,6 @@ ROPgadget
 six
 unicorn>=1.0.0
 pygments
-capstone==4.0.0
+capstone==4.0.1
 enum34
 pytest
