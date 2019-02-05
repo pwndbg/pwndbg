@@ -1,6 +1,6 @@
 ### Contributing
 
-Contributions to Pwndbg are always welcome! If you want to get more familiar with project idea/structure/whatever - [here are some developer notes](./DEVELOPING.md). If something is not clear, feel free to ask in a github issue!
+Contributions to Pwndbg are always welcome! If you want to get more familiar with project idea/structure/whatever - [here are some developer notes](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md). If something is not clear, feel free to ask in a github issue!
 
 If you want to help, fork the project, hack your changes and create a pull request.
 
