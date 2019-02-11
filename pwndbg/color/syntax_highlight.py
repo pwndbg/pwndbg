@@ -34,6 +34,10 @@ def check_style():
         formatter = pygments.formatters.Terminal256Formatter(
             style=str(style)
         )
+
+        # Reset the highlighted source cache
+        from pwndbg.commands.context import get_highlight_source
+        get_highlight_source._reset()
     except pygments.util.ClassNotFound:
         print(message.warn("The pygment formatter style '%s' is not found, restore to default" % style))
         style.revert_default()
