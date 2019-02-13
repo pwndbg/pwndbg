@@ -389,8 +389,48 @@ def find_fake_fast(addr, size):
                 malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
 
 
+def __addrs_at_bins():
+    addrs = {}
+    main_heap = pwndbg.heap.current
+    allbins = {
+        "smallbins": main_heap.smallbins(),
+        "largebins": main_heap.largebins(),
+    }
+    for bins_label, bins in allbins.items():
+        del bins['type']
+        for size, (fwds, bcks, b) in bins.items():
+            for i, fwd_addr in enumerate(fwds):
+                if fwd_addr == 0:
+                    continue
+                addrs[fwd_addr] = "%s[%s](%d)" % (bins_label, hex(size), i+1)
+            for i, bck_addr in enumerate(bcks):
+                if bck_addr == 0:
+                    continue
+                if bck_addr not in addrs:
+                    addrs[bck_addr] = "%s[%s](-%d)" % (bins_label, hex(size), i+1)
+    for size, fwds in main_heap.fastbins().items():
+        if size == 'type':
+            continue
+        for i, fwd_addr in enumerate(fwds):
+            if fwd_addr == 0:
+                continue
+            addrs[fwd_addr] = "%s[%s](%d)" % ("fastbins", hex(size), i+1)
+    if True:
+        fwds, bcks, b = main_heap.unsortedbin()['all']
+        for i, fwd_addr in enumerate(fwds):
+            if fwd_addr == 0:
+                continue
+            addrs[fwd_addr] = "%s(%d)" % ("unsortedbin", i+1)
+        for i, bck_addr in enumerate(bcks):
+            if bck_addr == 0:
+                continue
+            if bck_addr not in addrs:
+                addrs[bck_addr] = "%s(-%d)" % ("unsortedbin", i+1)
+    return addrs
+
+
 vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
-vis_heap_chunks_parser.add_argument('address', help='Start address')
+vis_heap_chunks_parser.add_argument('address', nargs='?', default=0, help='Start address')
 vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
                     help='Number of chunks to visualize')
 
@@ -398,8 +438,10 @@ vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def vis_heap_chunks(address, count):
-    address = int(address)
     main_heap = pwndbg.heap.current
+    if address == 0:
+        address = main_heap.get_heap_boundaries().vaddr
+    address = int(address)
     main_arena = main_heap.get_arena()
     top_chunk = int(main_arena['top'])
 
@@ -445,9 +487,13 @@ def vis_heap_chunks(address, count):
     printed = 0
     out = ''
 
+    addrs_at_bins = __addrs_at_bins()
+
+    tail = ""
     for addr in addrs:
         if printed % 2 == 0:
-            out += "\n0x%x:" % addr
+            out += "%s\n0x%x:" % (tail, addr)
+            tail = ""
 
         cell = unpack(pwndbg.memory.read(addr, ptr_size))
         cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
@@ -459,6 +505,8 @@ def vis_heap_chunks(address, count):
         out += color_func(cell_hex)
 
         printed += 1
+        if addr in addrs_at_bins:
+            tail = "\t <-- " + addrs_at_bins[addr]
 
     if top_chunk in addrs:
         out += "\t <-- Top chunk"
