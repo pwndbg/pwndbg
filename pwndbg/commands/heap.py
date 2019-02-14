@@ -512,3 +512,53 @@ def vis_heap_chunks(address, count):
         out += "\t <-- Top chunk"
 
     print(out)
+
+
+dump_heap_chunks_parser = argparse.ArgumentParser(description='dump heap chunks to file')
+
+@pwndbg.commands.ArgparsedCommand(dump_heap_chunks_parser)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def dump_heap_chunks(addr=None):
+    main_heap = pwndbg.heap.current
+    main_arena = main_heap.get_arena()
+    if main_arena is None:
+        return
+    top_chunk = int(main_arena['top'])
+    addrs_at_bins = __addrs_at_bins()
+
+    page = main_heap.get_heap_boundaries(addr)
+    if addr is None:
+        addr = page.vaddr
+
+    print("Address              Size Prev_size  Label")
+    # Print out all chunks on the heap
+    while addr < page.vaddr + page.memsz:
+        chunk = read_chunk(addr)
+        del chunk['value']
+        size = int(chunk['size'])
+        actual_size = size & ~7
+        prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
+
+        #print(hex(addr), chunk)
+        bins_label = ""
+        addrs_label = ""
+        if addr in addrs_at_bins:
+            bins_label = addrs_at_bins[addr] + '\n'
+            if bins_label.startswith('largebin'):
+                addrs_label = 36*' ' + "[fwd:%x bck:%x]\n" % (chunk['fd'], chunk['bk'])
+                addrs_label += 37*' ' + "[fd_nextsize:%x bk_nextsize:%x]" % (chunk['fd_nextsize'], chunk['bk_nextsize'])
+            else:
+                addrs_label = 36*' ' + "[fwd:%x bck:%x]" % (chunk['fd'], chunk['bk'])
+        if top_chunk == addr:
+            bins_label = "Topchunk"
+        hex_prev_size = 10*' '
+        if not prev_inuse:
+            prev_size = chunk['prev_size']
+            hex_prev_size = "%10s" % ("0x%x" % prev_size)
+        hex_actual_size = "%10s" % ("0x%x" % actual_size)
+        print(hex(addr), hex_actual_size, hex_prev_size, bins_label, addrs_label)
+
+        if actual_size == 0:
+            break
+        addr += actual_size
