@@ -58,7 +58,7 @@ _ida_last_connection_check = 0
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_timeout])
+@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout])
 def init_ida_rpc_client():
     global _ida, _ida_last_exception, _ida_last_connection_check
 
