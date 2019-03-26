@@ -62,7 +62,7 @@ def get():
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
-    if address is None: # or address < pwndbg.memory.MMAP_MIN_ADDR:
+    if address is None:
         return None
 
     address = int(address)
