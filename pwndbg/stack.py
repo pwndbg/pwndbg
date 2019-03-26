@@ -66,7 +66,9 @@ def update():
             thread.switch()
             sp = pwndbg.regs.sp
 
-            if sp is None:
+            # Skip if sp is None or 0
+            # (it might be 0 if we debug a qemu kernel)
+            if not sp:
                 continue
 
             sp_low = sp & ~(0xfff)

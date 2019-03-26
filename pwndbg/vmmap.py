@@ -62,11 +62,10 @@ def get():
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
-    if address is None or address < pwndbg.memory.MMAP_MIN_ADDR:
+    if address is None: # or address < pwndbg.memory.MMAP_MIN_ADDR:
         return None
 
-    if address:
-        address = int(address)
+    address = int(address)
 
     for page in get():
         if address in page:
@@ -103,6 +102,7 @@ def explore(address_maybe):
     flags |= 1 if not pwndbg.stack.nx               else 0
 
     page = find_boundaries(address_maybe)
+    page.objfile = '<explored>'
     page.flags = flags
 
     explored_pages.append(page)
@@ -150,7 +150,9 @@ def proc_pid_maps():
         A list of pwndbg.memory.Page objects.
     """
 
-    if pwndbg.qemu.is_qemu_usermode():
+    # If we debug remotely a qemu-user or qemu-system target,
+    # there is no point of hitting things further
+    if pwndbg.qemu.is_qemu():
         return tuple()
 
     example_proc_pid_maps = """

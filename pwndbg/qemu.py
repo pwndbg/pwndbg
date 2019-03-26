@@ -22,6 +22,10 @@ def is_qemu():
     if not pwndbg.remote.is_remote():
         return False
 
+    # Example:
+    # pwndbg> maintenance packet Qqemu.sstepbits
+    # sending: "Qqemu.sstepbits"
+    # received: "ENABLE=1,NOIRQ=2,NOTIMER=4"
     response = gdb.execute('maintenance packet Qqemu.sstepbits',
                            to_string=True,
                            from_tty=False)
