@@ -39,7 +39,12 @@ def pages_filter(s):
 
 
 parser = argparse.ArgumentParser()
-parser.description = 'Print virtual memory map pages. Results can be filtered by providing address/module name.'
+parser.description = '''Print virtual memory map pages. Results can be filtered by providing address/module name.
+
+Please note that memory pages on QEMU targets are detected through AUXV (sometimes with finding AUXV on the stack first)
+or by exploring values e.g. from registers.
+
+Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
 parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
                     help='Address or module name.')
 
@@ -56,6 +61,9 @@ def vmmap(pages_filter=None):
     print(M.legend())
     for page in pages:
         print(M.get(page.vaddr, text=str(page)))
+
+    if pwndbg.qemu.is_qemu():
+        print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
 
 
 parser = argparse.ArgumentParser()
