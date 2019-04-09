@@ -25,7 +25,7 @@ from pwndbg.chain import config_arrow_right
 #addr is a pointer. It is taken to be a child pointer.
 #visitedMap is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr,visitedMap):
-    page = getPage(addr)
+    page = pwndbg.vmmap.find(addr)
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
     if not page is None:
@@ -45,9 +45,6 @@ def get_rec_addr_string(addr,visitedMap):
     else:
         return ""
 
-#Utility function to get a page from an address.
-def getPage(address):
-    return pwndbg.vmmap.find(address)
 
 #Useful for debugging. Prints a map of child -> (parent, parent_start)
 def dbg_print_map(maps):
@@ -74,7 +71,7 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
         print("No starting address provided. Please run leakfind -h for more information.")
         return
 
-    foundPages = getPage(address)
+    foundPages = pwndbg.vmmap.find(address)
 
     if not foundPages:
         print("Starting address is not mapped. Please run leakfind -h for more information.")
@@ -135,7 +132,7 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
     for child in visitedMap:
-        childPage = getPage(child)
+        childPage = pwndbg.vmmap.find(child)
         if childPage is not None:
             if page_name is not None:
                 if not page_name in childPage.objfile:
