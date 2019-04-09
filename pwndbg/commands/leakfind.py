@@ -23,25 +23,25 @@ from pwndbg.chain import config_arrow_right
 
 #Used to recursively print the pointer chain. 
 #addr is a pointer. It is taken to be a child pointer.
-#visitedMap is a map of children -> (parent,parent_start)
-def get_rec_addr_string(addr,visitedMap):
+#visited_map is a map of children -> (parent,parent_start)
+def get_rec_addr_string(addr,visited_map):
     page = pwndbg.vmmap.find(addr)
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
     if not page is None:
-        if not addr in visitedMap:
+        if not addr in visited_map:
             return ""
         
-        parentInfo = visitedMap[addr]
-        parent = parentInfo[0]
-        parent_base_addr = parentInfo[1]
-        if parent-parent_base_addr < 0:
-            curText = hex(parent_base_addr) + hex(parent-parent_base_addr)
+        parent_info = visited_map[addr]
+        parent = parent_info[0]
+        parent_base_addr = parent_info[1]
+        if parent - parent_base_addr < 0:
+            curText = hex(parent_base_addr) + hex(parent - parent_base_addr)
         else:
-            curText = hex(parent_base_addr) + "+"+ hex(parent-parent_base_addr)
+            curText = hex(parent_base_addr) + "+"+ hex(parent - parent_base_addr)
         if parent_base_addr == addr:
             return ""
-        return get_rec_addr_string(parent_base_addr,visitedMap) + M.get(parent_base_addr,text=curText)+arrow_right
+        return get_rec_addr_string(parent_base_addr,visited_map) + M.get(parent_base_addr,text=curText)+arrow_right
     else:
         return ""
 
@@ -105,44 +105,44 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
     while address_queue.qsize() > 0 and depth < max_depth:
         if time_to_depth_increase == 0:
             depth=depth+1
-            time_to_depth_increase=address_queue.qsize()
+            time_to_depth_increase = address_queue.qsize()
         cur_start_addr = address_queue.get()
-        time_to_depth_increase-=1
-        for cur_addr in range(cur_start_addr-negative_offset,cur_start_addr+max_offset,stride):
+        time_to_depth_increase -= 1
+        for cur_addr in range(cur_start_addr - negative_offset, cur_start_addr + max_offset, stride):
             try:
                 result = int(pwndbg.memory.pvoid(cur_addr))
                 if result in visited_map:
                     continue
                 if result in visited_set:
                     continue
-                visited_map[result]=(cur_addr,cur_start_addr) #map is of form child->(parent,parent_start)
+                visited_map[result] = (cur_addr,cur_start_addr) #map is of form child->(parent,parent_start)
                 address_queue.put(result)
                 visited_set.add(result)
             except gdb.error:
-                #That means the memory was unreadable. Just skip it if we can't read it. 
+                #That means the memory was unmapped. Just skip it if we can't read it. 
                 break
 
     #A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    outputMap = {}
+    output_map = {}
 
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
     for child in visited_map:
         child_page = pwndbg.vmmap.find(child)
         if child_page is not None:
-            if page_name is not None or page_name not in child_page.objfile:
+            if page_name is not None and page_name not in child_page.objfile:
                     continue
             line = get_rec_addr_string(child,visited_map) + M.get(child) + " " + M.get(child,text=child_page.objfile)
             chain_length = line.count(arrow_right)
-            if chain_length in outputMap:
-                outputMap[chain_length].append(line)
+            if chain_length in output_map:
+                output_map[chain_length].append(line)
             else:
-                outputMap[chain_length]=[line]
+                output_map[chain_length] = [line]
 
 
     #Output sorted by length of chain
-    for chain_length in outputMap:
-        for line in outputMap[chain_length]:
+    for chain_length in output_map:
+        for line in output_map[chain_length]:
             print(line)
 
     if pwndbg.qemu.is_qemu():
