@@ -18,15 +18,16 @@ import pwndbg.color.memory as M
 import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.vmmap
+from pwndbg.chain import config_arrow_right
 
-config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow of chain formatting')
-arrow_right = C.arrow(' %s ' % config_arrow_right)
 
 #Used to recursively print the pointer chain. 
 #addr is a pointer. It is taken to be a child pointer.
 #visitedMap is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr,visitedMap):
     page = getPage(addr)
+    arrow_right = C.arrow(' %s ' % config_arrow_right)
+
     if not page is None:
         if not addr in visitedMap:
             return ""
@@ -57,7 +58,7 @@ parser = argparse.ArgumentParser()
 parser.description = """
 Attempt to find a leak chain given a starting address. Scans memory near the given address, looks for pointers, 
 and continues that process to attempt to find leaks.\n
-Example: leakfind $rsp --page_name=filename --offset=0x48 --max_depth=6. This would look for any chains of leaks that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, 
+Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, 
 and are a maximum length of 6\n
 """
 parser.add_argument("address",help="Starting address to find a leak chain from")
@@ -131,7 +132,8 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
     #A map of length->list of lines. Used to let us print in a somewhat nice manner.
     outputMap = {}
 
- 
+    arrow_right = C.arrow(' %s ' % config_arrow_right)
+
     for child in visitedMap:
         childPage = getPage(child)
         if childPage is not None:
