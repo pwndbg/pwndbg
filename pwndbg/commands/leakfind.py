@@ -48,8 +48,8 @@ def get_rec_addr_string(addr,visitedMap):
 
 #Useful for debugging. Prints a map of child -> (parent, parent_start)
 def dbg_print_map(maps):
-    for child, parentInfo in maps.items():
-        print(hex(child) + "("+hex(parentInfo[0])+","+hex(parentInfo[1])+")")
+    for child, parent_info in maps.items():
+        print("0x%x + (0x%x, 0x%x)" % ((child, parent_info[0],parent_info[1])))
 
 parser = argparse.ArgumentParser()
 parser.description = """
@@ -68,18 +68,15 @@ parser.add_argument('--negative_offset',nargs="?",default=0x0,help="Max negative
 @pwndbg.commands.OnlyWhenRunning
 def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,negative_offset=0x0):
     if address == -1:
-        print("No starting address provided. Please run leakfind -h for more information.")
-        return
+        raise argparse.ArgumentTypeError('No starting address provided.')
 
     foundPages = pwndbg.vmmap.find(address)
 
     if not foundPages:
-        print("Starting address is not mapped. Please run leakfind -h for more information.")
-        return
+        raise argparse.ArgumentTypeError('Starting address is not mapped.')
 
     if not pwndbg.memory.peek(address):
-        print("Unable to read from starting address. Please run leakfind -h for more information.")
-        return
+        raise argparse.ArgumentTypeError('Unable to read from starting address.')
 
     max_depth=int(max_depth)
     #Just warn the user that a large depth might be slow. Probably worth checking offset^depth < threshold. Do this when more benchmarking is established.
@@ -95,33 +92,32 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
     #In the above tuple, parent_address is the exact address with a pointer to the child adddress.
     #parent_start_address is an address that a previous address pointed to.
     #We need to store both so that we can nicely create our leak chain.
-    visitedMap = {}
-    visitedSet = set()
-    visitedSet.add(int(address))
-    addressQueue = Queue()
-    addressQueue.put(int(address))
+    visited_map = {}
+    visited_set = {int(address)}
+    address_queue = Queue()
+    address_queue.put(int(address))
     depth = 0
-    timeToDepthIncrease=0
+    time_to_depth_increase = 0
 
     #Run a bfs
     #TODO look into performance gain from checking if an address is mapped before calling pwndbg.memory.pvoid()
     #TODO also check using pwndbg.memory.read for possible performance boosts.
-    while addressQueue.qsize() > 0 and depth < max_depth:
-        if timeToDepthIncrease == 0:
+    while address_queue.qsize() > 0 and depth < max_depth:
+        if time_to_depth_increase == 0:
             depth=depth+1
-            timeToDepthIncrease=addressQueue.qsize()
-        cur_start_addr = addressQueue.get()
-        timeToDepthIncrease-=1
+            time_to_depth_increase=address_queue.qsize()
+        cur_start_addr = address_queue.get()
+        time_to_depth_increase-=1
         for cur_addr in range(cur_start_addr-negative_offset,cur_start_addr+max_offset,stride):
             try:
                 result = int(pwndbg.memory.pvoid(cur_addr))
-                if result in visitedMap:
+                if result in visited_map:
                     continue
-                if result in visitedSet:
+                if result in visited_set:
                     continue
-                visitedMap[result]=(cur_addr,cur_start_addr) #map is of form child->(parent,parent_start)
-                addressQueue.put(result)
-                visitedSet.add(result)
+                visited_map[result]=(cur_addr,cur_start_addr) #map is of form child->(parent,parent_start)
+                address_queue.put(result)
+                visited_set.add(result)
             except gdb.error:
                 #That means the memory was unreadable. Just skip it if we can't read it. 
                 break
@@ -131,13 +127,12 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
 
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
-    for child in visitedMap:
-        childPage = pwndbg.vmmap.find(child)
-        if childPage is not None:
-            if page_name is not None:
-                if not page_name in childPage.objfile:
+    for child in visited_map:
+        child_page = pwndbg.vmmap.find(child)
+        if child_page is not None:
+            if page_name is not None or page_name not in child_page.objfile:
                     continue
-            line = get_rec_addr_string(child,visitedMap) + M.get(child) + " " + M.get(child,text=childPage.objfile)
+            line = get_rec_addr_string(child,visited_map) + M.get(child) + " " + M.get(child,text=child_page.objfile)
             chain_length = line.count(arrow_right)
             if chain_length in outputMap:
                 outputMap[chain_length].append(line)
