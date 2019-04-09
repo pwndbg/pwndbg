@@ -38,7 +38,7 @@ def get_rec_addr_string(addr,visited_map):
         if parent - parent_base_addr < 0:
             curText = hex(parent_base_addr) + hex(parent - parent_base_addr)
         else:
-            curText = hex(parent_base_addr) + "+"+ hex(parent - parent_base_addr)
+            curText = hex(parent_base_addr) + "+" + hex(parent - parent_base_addr)
         if parent_base_addr == addr:
             return ""
         return get_rec_addr_string(parent_base_addr,visited_map) + M.get(parent_base_addr,text=curText)+arrow_right
@@ -124,7 +124,6 @@ def leakfind(address=-1,page_name=None,max_offset=0x40,max_depth=0x4,stride=0x1,
 
     #A map of length->list of lines. Used to let us print in a somewhat nice manner.
     output_map = {}
-
     arrow_right = C.arrow(' %s ' % config_arrow_right)
 
     for child in visited_map:
