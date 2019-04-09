@@ -9,6 +9,9 @@ import sys
 
 import gdb
 
+import argparse
+
+import pwndbg.color.message as message
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.context
@@ -25,6 +28,26 @@ def getfile():
 @pwndbg.commands.OnlyWhenRunning
 def getpid():
     print(pwndbg.proc.pid)
+
+
+parser = argparse.ArgumentParser(description='Continue execution until an address or function.')
+parser.add_argument('target', help='Address or function to stop execution at')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+def xuntil(target):
+    addr = int(target)
+
+    if not pwndbg.memory.peek(addr):
+        print(message.error('Invalid address %#x' % addr))
+        return
+
+    spec = "*%#x" % (addr)
+    b = gdb.Breakpoint(spec, temporary=True)
+    if pwndbg.proc.alive:
+        gdb.execute("continue", from_tty=False)
+    else:
+        gdb.execute("run", from_tty=False)
 
 xinfo = pwndbg.commands.context.context
 xprint = pwndbg.commands.telescope.telescope
