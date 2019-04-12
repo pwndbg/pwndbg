@@ -35,14 +35,15 @@ from pwndbg.color import message
 from pwndbg.color import theme
 
 
-def clear_screen():
+def clear_screen(out=sys.stdout):
     """
     Clear the screen by moving the cursor to top-left corner and
     clear the content
     """
-    sys.stdout.write('\x1b[H\x1b[J')
+    out.write('\x1b[H\x1b[J')
 
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
+config_output = pwndbg.config.Parameter('context-output', 'stdout', 'where pwndbg should output ("stdout" or file/tty).')
 config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'regs disasm code stack backtrace',
                                                   'which context sections are displayed (controls order)')
@@ -66,6 +67,19 @@ def validate_context_sections():
             config_context_sections.revert_default()
             return
 
+class StdOutput(object):
+    """A context manager wrapper to give stdout"""
+    def __enter__(*args,**kwargs):
+        return sys.stdout
+    def __exit__(*args, **kwargs):
+        pass
+
+def output():
+    """Creates a context manager corresponding to configured context ouput"""
+    if not config_output or config_output == "stdout":
+        return StdOutput()
+    else:
+        return open(str( config_output ), "w")
 
 # @pwndbg.events.stop
 @pwndbg.commands.Command
@@ -89,12 +103,13 @@ def context(*args):
             result.extend(func())
     result.extend(context_signal())
 
-    if config_clear_screen:
-        clear_screen()
+    with output() as out:
+        if config_clear_screen:
+            clear_screen(out)
 
-    for line in result:
-        sys.stdout.write(line + '\n')
-    sys.stdout.flush()
+        for line in result:
+            out.write(line + '\n')
+        out.flush()
 
 
 def context_regs():
