@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 
 import ast
 import codecs
-import sys
 import ctypes
+import sys
 from io import open
 
 import gdb

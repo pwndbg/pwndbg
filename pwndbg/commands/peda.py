@@ -5,14 +5,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import sys
 
 import gdb
 
-import argparse
-
-import pwndbg.color.message as message
 import pwndbg.auxv
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
