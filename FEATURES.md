@@ -17,6 +17,8 @@ All function call sites are annotated with the arguments to those functions.  Th
 
 A useful summary of the current execution context is printed every time GDB stops (e.g. breakpoint or single-step), displaying all registers, the stack, call frames, disassembly, and additionally recursively dereferencing all pointers.  All memory addresses are color-coded to the type of memory they represent.
 
+The output of the context may be redirected to a file (including other tty) by using `set context-output /path/to/file` while leaving other output in place.
+
 ![](caps/context.png)  
 
 ## Disassembly
