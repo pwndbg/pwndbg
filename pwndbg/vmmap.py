@@ -48,6 +48,11 @@ def get():
     pages.extend(proc_pid_maps())
 
     if not pages:
+        # If debugee is launched from a symlink the debugee memory maps will be
+        # labeled with symlink path while in normal scenario the /proc/pid/maps
+        # labels debugee memory maps with real path (after symlinks).
+        # This is because the exe path in AUXV (and so `info auxv`) is before
+        # following links.
         pages.extend(info_auxv())
 
         if pages: pages.extend(info_sharedlibrary())
@@ -328,7 +333,8 @@ def info_files():
 def info_auxv(skip_exe=False):
     """
     Extracts the name of the executable from the output of the command
-    "info auxv".
+    "info auxv". Note that if the executable path is a symlink,
+    it is not dereferenced by `info auxv` and we also don't dereference it.
 
     Arguments:
         skip_exe(bool): Do not return any mappings that belong to the exe.
