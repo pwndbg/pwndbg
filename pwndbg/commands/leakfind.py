@@ -67,7 +67,7 @@ parser.add_argument('--negative_offset',nargs="?", default=0x0, help="Max negati
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def leakfind(address=-1, page_name=None, max_offset=0x40, max_depth=0x4, stride=0x1, negative_offset=0x0):
-    if address == -1:
+    if address is None:
         raise argparse.ArgumentTypeError('No starting address provided.')
 
     foundPages = pwndbg.vmmap.find(address)
