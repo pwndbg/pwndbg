@@ -62,7 +62,7 @@ parser.add_argument("address",help="Starting address to find a leak chain from")
 parser.add_argument("-p", "--page_name", type=str, nargs="?", default=None, help="Substring required to be part of the name of any found pages")
 parser.add_argument("-o", "--max_offset", default=0x48, nargs="?", help="Max offset to add to addresses when looking for leak")
 parser.add_argument("-d", "--max_depth", default=0x4, nargs="?", help="Maximum depth to follow pointers to")
-parser.add_argument("-s", "--stride", nargs="?", default=0x1, help="Stride to add to add between pointers considered. For example, if this is 4 it would only consider pointers at an offset divisible by 4 from the starting pointer")
+parser.add_argument("-s", "--step", nargs="?", default=0x1, help="Step to add between pointers so they are considered. For example, if this is 4 it would only consider pointers at an offset divisible by 4 from the starting pointer")
 parser.add_argument('--negative_offset',nargs="?", default=0x0, help="Max negative offset to search before an address when looking for a leak")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
