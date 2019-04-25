@@ -43,6 +43,7 @@ def lookup_types(*types):
     raise exc
 
 
+@pwndbg.events.new_objfile
 @pwndbg.events.start
 @pwndbg.events.stop
 def update():
