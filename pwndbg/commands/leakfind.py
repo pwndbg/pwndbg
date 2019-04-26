@@ -86,7 +86,6 @@ def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=
     
     stride = int(step)
     address = int(address)
-
     max_offset = int(max_offset)
     negative_offset = int(negative_offset)
     
