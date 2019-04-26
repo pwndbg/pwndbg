@@ -112,6 +112,7 @@ def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=
         time_to_depth_increase -= 1
         for cur_addr in range(cur_start_addr - negative_offset, cur_start_addr + max_offset, stride):
             try:
+                cur_addr &= pwndbg.arch.ptrmask
                 result = int(pwndbg.memory.pvoid(cur_addr))
                 if result in visited_map or result in visited_set:
                     continue
