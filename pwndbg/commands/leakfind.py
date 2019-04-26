@@ -15,6 +15,7 @@ import gdb
 
 import pwndbg.color.chain as C
 import pwndbg.color.memory as M
+import pwndbg.color.message as message
 import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.vmmap
@@ -66,10 +67,9 @@ parser.add_argument("-s", "--step", nargs="?", default=0x1, help="Step to add be
 parser.add_argument('--negative_offset',nargs="?", default=0x0, help="Max negative offset to search before an address when looking for a leak")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, stride=0x1, negative_offset=0x0):
+def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=0x1, negative_offset=0x0):
     if address is None:
         raise argparse.ArgumentTypeError('No starting address provided.')
-
     foundPages = pwndbg.vmmap.find(address)
 
     if not foundPages:
@@ -82,10 +82,11 @@ def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, strid
     # Just warn the user that a large depth might be slow.
     # Probably worth checking offset^depth < threshold. Do this when more benchmarking is established.
     if max_depth > 8:
-        print("leakfind may take a while to run on larger depths.")
+        print(message.warn("leakfind may take a while to run on larger depths."))
     
-    stride = int(stride)
+    stride = int(step)
     address = int(address)
+
     max_offset = int(max_offset)
     negative_offset = int(negative_offset)
     
