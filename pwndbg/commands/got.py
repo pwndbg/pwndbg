@@ -33,7 +33,7 @@ def got(name_filter=''):
         return
 
     if "PIE enabled" in pie_status:
-        bin_text_base = pwndbg.vmmap.find(pwndbg.elf.entry()).start
+        bin_base = pwndbg.elf.exe().address
 
     relro_color = message.off
     if 'Partial' in relro_status:
@@ -51,7 +51,7 @@ def got(name_filter=''):
         address_val = int(address, 16)
 
         if "PIE enabled" in pie_status:  # if PIE, address is only the offset from the binary base address
-            address_val = bin_text_base + address_val
+            address_val = bin_base + address_val
 
         got_address = pwndbg.memory.pvoid(address_val)
         print("[0x%x] %s -> %s" % (address_val, message.hint(name), pwndbg.chain.format(got_address)))
