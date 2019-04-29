@@ -11,6 +11,7 @@ import ctypes
 import sys
 from io import open
 
+import argparse
 import gdb
 
 import pwndbg.arguments
@@ -82,14 +83,22 @@ def output():
         return open(str( config_output ), "w")
 
 # @pwndbg.events.stop
-@pwndbg.commands.Command
+
+parser = argparse.ArgumentParser()
+parser.description = "Print out the current register, instruction, and stack context."
+parser.add_argument("subcontext", nargs="*", type=str, default=None, help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', and/or 'args'")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def context(*args):
+def context(subcontext=None):
     """
     Print out the current register, instruction, and stack context.
 
     Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
     """
+    if subcontext is None:
+        subcontext = []
+    args = subcontext
+    
     if len(args) == 0:
         args = config_context_sections.split()
 
@@ -115,10 +124,12 @@ def context(*args):
 def context_regs():
     return [pwndbg.ui.banner("registers")] + get_regs()
 
-
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser()
+parser.description = '''Print out all registers and enhance the information.'''
+parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def regs(*regs):
+def regs(regs=None):
     '''Print out all registers and enhance the information.'''
     print('\n'.join(get_regs(*regs)))
 
