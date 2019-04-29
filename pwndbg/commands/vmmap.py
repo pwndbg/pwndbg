@@ -94,7 +94,7 @@ def vmmap_add(start, size, flags, offset):
     print('%r added' % page)
 
 
-@pwndbg.commands.ParsedCommand
+@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.") #TODO is this accurate?
 def vmmap_clear():
     pwndbg.vmmap.clear_custom_page()
 
