@@ -34,9 +34,15 @@ repeating_marker = theme.Parameter('telescope-repeating-marker', '... ↓',
                                    'repeating values marker of the telescope command')
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description="""
+    Recursively dereferences pointers starting at the specified address
+    ($sp by default)
+    """)
+parser.add_argument("address", nargs="?", default=None, type=int, help="The address to telescope at.")
+parser.add_argument("count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False):
+def telescope(address=None, count=None, to_string=False):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
