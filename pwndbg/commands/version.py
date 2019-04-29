@@ -75,7 +75,7 @@ def all_versions():
     return all_versions
     
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand("Displays gdb, python and pwndbg versions.")
 def version():
     """
     Displays gdb, python and pwndbg versions.
