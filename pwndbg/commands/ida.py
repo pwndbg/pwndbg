@@ -5,11 +5,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import bz2
 import datetime
 import os
 
-import argparse
 import gdb
 
 import pwndbg.commands
