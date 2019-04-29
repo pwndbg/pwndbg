@@ -348,7 +348,7 @@ def k():
 
 
 parser = argparse.ArgumentParser(description="List the symbols nearest to the provided value.")
-parser.add_argument("n", type=int, nargs="?", default=None, help="The address you want the name of.")
+parser.add_argument("value", type=int, nargs="?", default=None, help="The address you want the name of.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def ln(value=None):
