@@ -53,7 +53,7 @@ def pwndbg(filter_pattern):
     for name, docs in list_and_filter_commands(filter_pattern):
         print("%-20s %s" % (name, docs))
 
-parser = argparse.ArgumentParser(description='''Print the distance between the two arguments''')
+parser = argparse.ArgumentParser(description='''Print the distance between the two arguments.''')
 parser.add_argument('a', type=int, help="The first address.")
 parser.add_argument('b', type=int, help="The second address.")
 @_pwndbg.commands.ArgparsedCommand(parser)
