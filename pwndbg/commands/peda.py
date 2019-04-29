@@ -18,12 +18,12 @@ import pwndbg.commands.telescope
 import pwndbg.proc
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand("Gets the current file.")
 @pwndbg.commands.OnlyWhenRunning
 def getfile():
     print(repr(pwndbg.auxv.get().AT_EXECFN))
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand("Get the pid.")
 @pwndbg.commands.OnlyWhenRunning
 def getpid():
     print(pwndbg.proc.pid)
