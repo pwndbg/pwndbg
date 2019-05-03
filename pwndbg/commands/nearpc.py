@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import codecs
 
 import gdb
@@ -40,7 +41,12 @@ pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembl
 nearpc_lines = pwndbg.config.Parameter('nearpc-lines', 10, 'number of additional lines to print for the nearpc command')
 show_args = pwndbg.config.Parameter('nearpc-show-args', True, 'show call arguments below instruction')
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description='''Disassemble near a specified address.''')
+parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to dissassemble near.")
+parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+#parser.add_argument("to_string", type=bool, nargs="?", default=False, help="Whether to print it or not.") #TODO make sure this should not be exposed
+parser.add_argument("emulate", type=bool, nargs="?", default=False, help="Whether to emulate instructions to find the next ones or just linearly disassemble.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     """
@@ -171,7 +177,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     return result
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description='''Like nearpc, but will emulate instructions from the current $PC forward.''')
+parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to emulate near.")
+parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def emulate(pc=None, lines=None, to_string=False, emulate=True):
     """
@@ -184,7 +193,10 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
 emulate_command = emulate
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser(description='''Compatibility layer for PEDA's pdisass command.''')
+parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
+parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def pdisass(pc=None, lines=None, to_string=False):
     """

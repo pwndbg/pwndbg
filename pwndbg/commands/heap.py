@@ -79,7 +79,11 @@ def format_bin(bins, verbose=False, offset=None):
 
     return result
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out chunks starting from the address specified by `addr`."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the heap.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def heap(addr=None):
@@ -114,7 +118,10 @@ def heap(addr=None):
             break
         addr += size
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the main arena or the arena at the specified by address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
@@ -130,7 +137,9 @@ def arena(addr=None):
     print(main_arena)
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out allocated arenas."
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
@@ -142,7 +151,10 @@ def arenas():
         print(ar)
 
 
-@pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
+parser = argparse.ArgumentParser()
+parser.description = "Print malloc thread cache info."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcache(addr=None):
@@ -161,7 +173,9 @@ def tcache(addr=None):
     print(tcache)
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the mp_ structure from glibc."
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
@@ -172,7 +186,11 @@ def mp():
 
     print(main_heap.mp)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the address of the top chunk of the main arena, or of the arena at the specified address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
@@ -212,7 +230,12 @@ def top_chunk(addr=None):
 
     return malloc_chunk(address)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the malloc_chunk at the specified address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the chunk.")
+parser.add_argument("fake", nargs="?", type=bool, default=False, help="If the chunk is a fake chunk.")#TODO describe this better
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr,fake=False):
@@ -249,7 +272,15 @@ def malloc_chunk(addr,fake=False):
 
     return chunk
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
+    main_arena or the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the bins.") #TODO describe this better if necessary
+parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
@@ -264,7 +295,15 @@ def bins(addr=None, tcache_addr=None):
     smallbins(addr)
     largebins(addr)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the fastbins of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the fastbins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
@@ -284,7 +323,15 @@ def fastbins(addr=None, verbose=True):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the unsorted bin of the main arena or the
+    arena at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the unsorted bin.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
@@ -304,7 +351,15 @@ def unsortedbin(addr=None, verbose=True):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the small bin of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the smallbins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
@@ -324,7 +379,15 @@ def smallbins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the large bin of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the largebins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
@@ -344,7 +407,15 @@ def largebins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the bins in current thread tcache or in tcache
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache bins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcachebins(addr=None, verbose=False):
@@ -364,7 +435,15 @@ def tcachebins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Finds candidate fake fast chunks that will overlap with the specified
+    address. Used for fastbin dups and house of spirit
+    """
+parser.add_argument("addr", type=int, help="The start address.") #TODO describe these better
+parser.add_argument("size", type=int, help="The size.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size):

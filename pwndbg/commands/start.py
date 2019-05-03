@@ -9,6 +9,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import shlex
 
 import gdb
@@ -39,13 +40,19 @@ def on_start():
         break_on_first_instruction = False
 
 
-@pwndbg.commands.Command
-def start(*a):
+parser = argparse.ArgumentParser(description="""
+    Set a breakpoint at a convenient location in the binary,
+    generally 'main', 'init', or the entry point.""")
+parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+@pwndbg.commands.ArgparsedCommand(parser)
+def start(args=None):
+    if args is None:
+        args = []
     """
     Set a breakpoint at a convenient location in the binary,
     generally 'main', 'init', or the entry point.
     """
-    run = 'run ' + ' '.join(a)
+    run = 'run ' + ' '.join(args)
 
     symbols = ["main",
                 "_main",
@@ -65,17 +72,24 @@ def start(*a):
         return
 
     # Try a breakpoint at the binary entry
-    entry(*a)
+    entry(args)
 
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser(description="""
+    Set a breakpoint at the first instruction executed in
+    the target binary.
+    """)
+parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWithFile
-def entry(*a):
+def entry(args=None):
+    if args is None:
+        arg = []
     """
     Set a breakpoint at the first instruction executed in
     the target binary.
     """
     global break_on_first_instruction
     break_on_first_instruction = True
-    run = 'run ' + ' '.join(map(quote, a))
+    run = 'run ' + ' '.join(map(quote, args))
     gdb.execute(run, from_tty=False)
