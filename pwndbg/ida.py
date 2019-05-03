@@ -391,6 +391,13 @@ def decompile(addr):
     return _ida.decompile(addr)
 
 
+@withHexrays
+@takes_address
+@pwndbg.memoize.reset_on_stop
+def decompile_context(pc, context_lines):
+    return _ida.decompile_context(pc, context_lines)
+
+
 @withIDA
 @pwndbg.memoize.forever
 def get_ida_versions():
