@@ -299,11 +299,10 @@ def context_code():
     if not pwndbg.ida.available():
         return []
 
-    name = pwndbg.ida.GetFunctionName(pwndbg.regs.pc)
-    addr = pwndbg.ida.LocByName(name)
     # May be None when decompilation failed or user loaded wrong binary in IDA
-    code = pwndbg.ida.decompile(addr)
-
+    n = int(int(int(source_code_lines) / 2)) # int twice to make it a real int instead of inthook
+    code = pwndbg.ida.decompile_context(pwndbg.regs.pc, n)
+    
     if code:
         return [pwndbg.ui.banner("Hexrays pseudocode")] + code.splitlines()
     else:
