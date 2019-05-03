@@ -476,15 +476,16 @@ def find_fake_fast(addr, size):
 
 
 vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
-vis_heap_chunks_parser.add_argument('address', help='Start address')
-vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
+vis_heap_chunks_parser.add_argument('count', nargs='?', default=10,
                     help='Number of chunks to visualize')
+vis_heap_chunks_parser.add_argument('address', help='Start address', nargs='?', default=None)
+vis_heap_chunks_parser.add_argument('--naive', '-n', help='Don\'t use end-of-heap heuristics', action='store_true', default=False)
 
 @pwndbg.commands.ArgparsedCommand(vis_heap_chunks_parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(address, count):
-    address = int(address)
+def vis_heap_chunks(address=None, count=None, naive=None):
+    address = int(address) if address else pwndbg.heap.current.get_heap_boundaries().vaddr
     main_heap = pwndbg.heap.current
     main_arena = main_heap.get_arena()
     top_chunk = int(main_arena['top'])
@@ -501,12 +502,12 @@ def vis_heap_chunks(address, count):
         prev_inuse = current_size & 1
         stop_addr = address + real_size
 
-        while address < stop_addr:
+        while address < stop_addr and (naive or address < top_chunk):
             assert address not in cells_map
             cells_map[address] = chunk_id
             address += ptr_size
 
-        if prev_inuse:
+        if prev_inuse and (naive or address != top_chunk):
             cells_map[address - real_size] -= 1
 
         chunk_id += 1
@@ -527,13 +528,23 @@ def vis_heap_chunks(address, count):
     ]
 
     addrs = sorted(cells_map.keys())
+    bin_collections = [
+        pwndbg.heap.current.fastbins(None),
+        pwndbg.heap.current.unsortedbin(None),
+        pwndbg.heap.current.smallbins(None),
+        pwndbg.heap.current.largebins(None),
+        ]
+    if pwndbg.heap.current.has_tcache():
+        bin_collections.insert(0, pwndbg.heap.current.tcachebins(None))
 
     printed = 0
     out = ''
+    asc = ''
+    labels = []
 
     for addr in addrs:
         if printed % 2 == 0:
-            out += "\n0x%x:" % addr
+            out += "\n0x%x" % addr
 
         cell = unpack(pwndbg.memory.read(addr, ptr_size))
         cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
@@ -543,10 +554,52 @@ def vis_heap_chunks(address, count):
         color_func = color_funcs[color_func_idx]
 
         out += color_func(cell_hex)
-
         printed += 1
 
-    if top_chunk in addrs:
-        out += "\t <-- Top chunk"
+        labels.extend(bin_labels(addr, bin_collections))
+        if addr == top_chunk:
+            labels.append('Top chunk')
+
+        asc += bin_ascii(pwndbg.memory.read(addr, ptr_size))
+        if printed % 2 == 0:
+            out += '\t' + color_func(asc) + ('\t <-- ' + ', '.join(labels) if len(labels) else '')
+            asc = ''
+            labels = []
 
     print(out)
+
+def bin_ascii(bs):
+    from string import printable
+    valid_chars = list(map(ord, set(printable) - set('\t\r\n')))
+    return ''.join(chr(c) if c in valid_chars else '.'for c in bs)
+
+def bin_labels(addr, collections):
+    labels = []
+    for bins in collections:
+        bins_type = bins.get('type', None)
+        if not bins_type:
+            continue
+
+        for size in filter(lambda x: x != 'type', bins.keys()):
+            b = bins[size]
+            if isinstance(size, int):
+                size = hex(size)
+            count = '/{:d}'.format(b[1]) if bins_type == 'tcachebins' else None
+            chunks = bin_addrs(b, bins_type)
+            for chunk_addr in chunks:
+                if addr == chunk_addr:
+                    labels.append('{:s}[{:s}][{:d}{}]'.format(bins_type, size, chunks.index(addr), count or ''))
+
+    return labels
+
+def bin_addrs(b, bins_type):
+    addrs = []
+    if bins_type == 'fastbins':
+        return b
+    # tcachebins consists of single linked list and entries count
+    elif bins_type == 'tcachebins':
+        addrs, _ = b
+    # normal bins consists of double linked list and may be corrupted (we can detect corruption)
+    else:  # normal bin
+        addrs, _, _ = b
+    return addrs
