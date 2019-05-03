@@ -125,8 +125,8 @@ def decompile_context(addr, context_lines):
         return cfunc
     y = y_holder.value()
     lines = cfunc.get_pseudocode()
-    retlines = [idaapi.tag_remove(lines[lnnum].line) for lnnum
-                    in range(max(0, y - context_lines),min(len(lines), y + context_lines))]
+    retlines = (idaapi.tag_remove(lines[lnnum].line) for lnnum
+                    in range(max(0, y - context_lines),min(len(lines), y + context_lines)))
     return '\n'.join(retlines)
 
 
