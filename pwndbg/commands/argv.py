@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
+
 import gdb
 
 import pwndbg.arch
@@ -13,20 +15,18 @@ import pwndbg.commands
 import pwndbg.typeinfo
 
 
-@pwndbg.commands.Command
+@pwndbg.commands.ArgparsedCommand("Prints out the number of arguments.")
 @pwndbg.commands.OnlyWhenRunning
 def argc():
-    """
-    Prints out the number of arguments.
-    """
     print(pwndbg.argv.argc)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the contents of argv."
+parser.add_argument("i", nargs='?', type=int, default=None, help="Index of the argument to print out.")
+@pwndbg.commands.ArgparsedCommand(parser,aliases=["args"])
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None):
-    """
-    Prints out the contents of argv.
-    """
     start = pwndbg.argv.argv
     n     = pwndbg.argv.argc+1
 
@@ -36,17 +36,16 @@ def argv(i=None):
 
     pwndbg.commands.telescope.telescope(start, n)
 
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def args():
-    """
-    Prints out the contents of argv.
-    """
-    argv()
 
-@pwndbg.commands.Command
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the contents of the environment."
+parser.add_argument("name", nargs='?', type=str, default=None, help="Name of the environment variable to see.")
+@pwndbg.commands.ArgparsedCommand(parser,aliases=["env","environ"])
 @pwndbg.commands.OnlyWhenRunning
 def envp(name=None):
+    if name is not None:
+        gdb.execute('p $environ("%s")' % name)
+        return
     """
     Prints out the contents of the environment.
     """
@@ -55,28 +54,6 @@ def envp(name=None):
 
     return pwndbg.commands.telescope.telescope(start, n)
 
-
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def env(name=None):
-    """
-    Prints out the contents of the environment.
-    """
-    if name is None:
-        return envp()
-
-    gdb.execute('p $environ("%s")' % name)
-
-@pwndbg.commands.Command
-@pwndbg.commands.OnlyWhenRunning
-def environ(name=None):
-    """
-    Prints out the contents of the environment.
-    """
-    if name is None:
-        return envp()
-
-    gdb.execute('p $environ("%s")' % name)
 
 class argv_function(gdb.Function):
     """

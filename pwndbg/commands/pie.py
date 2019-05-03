@@ -109,7 +109,7 @@ def breakrva(offset=None, module=None):
         gdb.Breakpoint(spec)
 
 
-@pwndbg.commands.QuietSloppyParsedCommand
+@pwndbg.commands.QuietSloppyParsedCommand #TODO should this just be an alias or does the QuietSloppy have an effect?
 @pwndbg.commands.OnlyWhenRunning
 def brva(map):
     """Alias for breakrva."""

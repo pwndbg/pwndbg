@@ -79,7 +79,11 @@ def format_bin(bins, verbose=False, offset=None):
 
     return result
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out chunks starting from the address specified by `addr`."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the heap.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def heap(addr=None):
@@ -114,7 +118,10 @@ def heap(addr=None):
             break
         addr += size
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the main arena or the arena at the specified by address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
@@ -130,7 +137,9 @@ def arena(addr=None):
     print(main_arena)
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out allocated arenas."
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
@@ -142,7 +151,10 @@ def arenas():
         print(ar)
 
 
-@pwndbg.commands.ArgparsedCommand('Print malloc thread cache info.')
+parser = argparse.ArgumentParser()
+parser.description = "Print malloc thread cache info."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcache(addr=None):
@@ -161,7 +173,9 @@ def tcache(addr=None):
     print(tcache)
 
 
-@pwndbg.commands.ParsedCommand
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the mp_ structure from glibc."
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
@@ -172,7 +186,11 @@ def mp():
 
     print(main_heap.mp)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the address of the top chunk of the main arena, or of the arena at the specified address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
@@ -212,7 +230,12 @@ def top_chunk(addr=None):
 
     return malloc_chunk(address)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the malloc_chunk at the specified address."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the chunk.")
+parser.add_argument("fake", nargs="?", type=bool, default=False, help="If the chunk is a fake chunk.")#TODO describe this better
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr,fake=False):
@@ -249,7 +272,15 @@ def malloc_chunk(addr,fake=False):
 
     return chunk
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
+    main_arena or the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the bins.") #TODO describe this better if necessary
+parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
@@ -264,7 +295,15 @@ def bins(addr=None, tcache_addr=None):
     smallbins(addr)
     largebins(addr)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the fastbins of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the fastbins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
@@ -284,7 +323,15 @@ def fastbins(addr=None, verbose=True):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the unsorted bin of the main arena or the
+    arena at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the unsorted bin.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
@@ -304,7 +351,15 @@ def unsortedbin(addr=None, verbose=True):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the small bin of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the smallbins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
@@ -324,7 +379,15 @@ def smallbins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the large bin of the main arena or the arena
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the largebins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
@@ -344,7 +407,15 @@ def largebins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Prints out the contents of the bins in current thread tcache or in tcache
+    at the specified address.
+    """
+parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache bins.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcachebins(addr=None, verbose=False):
@@ -364,7 +435,15 @@ def tcachebins(addr=None, verbose=False):
     for node in formatted_bins:
         print(node)
 
-@pwndbg.commands.ParsedCommand
+
+parser = argparse.ArgumentParser()
+parser.description = """
+    Finds candidate fake fast chunks that will overlap with the specified
+    address. Used for fastbin dups and house of spirit
+    """
+parser.add_argument("addr", type=int, help="The start address.") #TODO describe these better
+parser.add_argument("size", type=int, help="The size.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size):
@@ -397,15 +476,16 @@ def find_fake_fast(addr, size):
 
 
 vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
-vis_heap_chunks_parser.add_argument('address', help='Start address')
-vis_heap_chunks_parser.add_argument('count', nargs='?', default=2,
+vis_heap_chunks_parser.add_argument('count', nargs='?', default=10,
                     help='Number of chunks to visualize')
+vis_heap_chunks_parser.add_argument('address', help='Start address', nargs='?', default=None)
+vis_heap_chunks_parser.add_argument('--naive', '-n', help='Don\'t use end-of-heap heuristics', action='store_true', default=False)
 
 @pwndbg.commands.ArgparsedCommand(vis_heap_chunks_parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(address, count):
-    address = int(address)
+def vis_heap_chunks(address=None, count=None, naive=None):
+    address = int(address) if address else pwndbg.heap.current.get_heap_boundaries().vaddr
     main_heap = pwndbg.heap.current
     main_arena = main_heap.get_arena()
     top_chunk = int(main_arena['top'])
@@ -422,12 +502,12 @@ def vis_heap_chunks(address, count):
         prev_inuse = current_size & 1
         stop_addr = address + real_size
 
-        while address < stop_addr:
+        while address < stop_addr and (naive or address < top_chunk):
             assert address not in cells_map
             cells_map[address] = chunk_id
             address += ptr_size
 
-        if prev_inuse:
+        if prev_inuse and (naive or address != top_chunk):
             cells_map[address - real_size] -= 1
 
         chunk_id += 1
@@ -448,13 +528,23 @@ def vis_heap_chunks(address, count):
     ]
 
     addrs = sorted(cells_map.keys())
+    bin_collections = [
+        pwndbg.heap.current.fastbins(None),
+        pwndbg.heap.current.unsortedbin(None),
+        pwndbg.heap.current.smallbins(None),
+        pwndbg.heap.current.largebins(None),
+        ]
+    if pwndbg.heap.current.has_tcache():
+        bin_collections.insert(0, pwndbg.heap.current.tcachebins(None))
 
     printed = 0
     out = ''
+    asc = ''
+    labels = []
 
     for addr in addrs:
         if printed % 2 == 0:
-            out += "\n0x%x:" % addr
+            out += "\n0x%x" % addr
 
         cell = unpack(pwndbg.memory.read(addr, ptr_size))
         cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
@@ -464,10 +554,52 @@ def vis_heap_chunks(address, count):
         color_func = color_funcs[color_func_idx]
 
         out += color_func(cell_hex)
-
         printed += 1
 
-    if top_chunk in addrs:
-        out += "\t <-- Top chunk"
+        labels.extend(bin_labels(addr, bin_collections))
+        if addr == top_chunk:
+            labels.append('Top chunk')
+
+        asc += bin_ascii(pwndbg.memory.read(addr, ptr_size))
+        if printed % 2 == 0:
+            out += '\t' + color_func(asc) + ('\t <-- ' + ', '.join(labels) if len(labels) else '')
+            asc = ''
+            labels = []
 
     print(out)
+
+def bin_ascii(bs):
+    from string import printable
+    valid_chars = list(map(ord, set(printable) - set('\t\r\n')))
+    return ''.join(chr(c) if c in valid_chars else '.'for c in bs)
+
+def bin_labels(addr, collections):
+    labels = []
+    for bins in collections:
+        bins_type = bins.get('type', None)
+        if not bins_type:
+            continue
+
+        for size in filter(lambda x: x != 'type', bins.keys()):
+            b = bins[size]
+            if isinstance(size, int):
+                size = hex(size)
+            count = '/{:d}'.format(b[1]) if bins_type == 'tcachebins' else None
+            chunks = bin_addrs(b, bins_type)
+            for chunk_addr in chunks:
+                if addr == chunk_addr:
+                    labels.append('{:s}[{:s}][{:d}{}]'.format(bins_type, size, chunks.index(addr), count or ''))
+
+    return labels
+
+def bin_addrs(b, bins_type):
+    addrs = []
+    if bins_type == 'fastbins':
+        return b
+    # tcachebins consists of single linked list and entries count
+    elif bins_type == 'tcachebins':
+        addrs, _ = b
+    # normal bins consists of double linked list and may be corrupted (we can detect corruption)
+    else:  # normal bin
+        addrs, _, _ = b
+    return addrs

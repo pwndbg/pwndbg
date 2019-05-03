@@ -145,7 +145,7 @@ register_module(idc)
 register_module(idautils)
 register_module(idaapi)
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
-server.register_function(decompile)  # overwrites idaapi/ida_hexrays.decompie
+server.register_function(wrap(decompile)) # overwrites idaapi/ida_hexrays.decompile
 server.register_function(wrap(decompile_context), 'decompile_context')  # support context decompile
 server.register_function(versions)
 server.register_introspection_functions()

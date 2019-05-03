@@ -24,7 +24,7 @@ class segment(gdb.Function):
 segment('fsbase')
 segment('gsbase')
 
-@pwndbg.commands.ParsedCommand
+@pwndbg.commands.ArgparsedCommand("Prints out the FS base address.  See also $fsbase.")
 @pwndbg.commands.OnlyWhenRunning
 def fsbase():
     """
@@ -33,7 +33,7 @@ def fsbase():
     print(hex(int(pwndbg.regs.fsbase)))
 
 
-@pwndbg.commands.ParsedCommand
+@pwndbg.commands.ArgparsedCommand("Prints out the GS base address.  See also $gsbase.")
 @pwndbg.commands.OnlyWhenRunning
 def gsbase():
     """
