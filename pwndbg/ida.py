@@ -227,7 +227,8 @@ def here():
 @withIDA
 @takes_address
 def Jump(addr):
-    return _ida.Jump(addr)
+    # uses C++ api instead of idc one to avoid activating the IDA window
+    return _ida.jumpto(addr, -1, 0)
 
 
 @withIDA
