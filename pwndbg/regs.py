@@ -249,7 +249,7 @@ def gdb77_get_register(name):
 
 @pwndbg.proc.OnlyWhenRunning
 def gdb79_get_register(name):
-    return gdb.newest_frame().read_register(name)
+    return gdb.selected_frame().read_register(name)
 
 try:
     gdb.Frame.read_register
@@ -285,6 +285,7 @@ class module(ModuleType):
             return None
 
     @pwndbg.memoize.reset_on_stop
+    @pwndbg.memoize.reset_on_prompt
     def __getitem__(self, item):
         if isinstance(item, six.integer_types):
             return arch_to_regs[pwndbg.arch.current][item]
