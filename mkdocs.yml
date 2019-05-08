@@ -1,0 +1,8 @@
+site_name: pwndbg docs
+repo_url: https://github.com/pwndbg/pwndbg
+theme: readthedocs
+
+nav: 
+  - Home: index.md
+  - Commands:
+    - pwndbg: commands/pwndbg.md
