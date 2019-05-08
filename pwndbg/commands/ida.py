@@ -54,6 +54,9 @@ def up(n=1):
             f = f.older()
     f.select()
 
+    # workaround for #632
+    gdb.execute('frame', to_string=True)
+
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print('\n'.join(bt))
 
@@ -78,6 +81,9 @@ def down(n=1):
         if f.newer():
             f = f.newer()
     f.select()
+
+    # workaround for #632
+    gdb.execute('frame', to_string=True)
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print('\n'.join(bt))
