@@ -85,6 +85,7 @@ parser.description = "Prints out chunks starting from the address specified by `
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the heap.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def heap(addr=None):
     """
@@ -123,6 +124,7 @@ parser.description = "Prints out the main arena or the arena at the specified by
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
     """
@@ -141,6 +143,7 @@ parser = argparse.ArgumentParser()
 parser.description = "Prints out allocated arenas."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
     """
@@ -156,6 +159,7 @@ parser.description = "Print malloc thread cache info."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcache(addr=None):
     """
@@ -177,6 +181,7 @@ parser = argparse.ArgumentParser()
 parser.description = "Prints out the mp_ structure from glibc."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
     """
@@ -192,6 +197,7 @@ parser.description = "Prints out the address of the top chunk of the main arena,
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
     """
@@ -237,6 +243,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("fake", nargs="?", type=bool, default=False, help="If the chunk is a fake chunk.")#TODO describe this better
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr,fake=False):
     """
@@ -282,6 +289,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="The address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
     """
@@ -305,6 +313,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
     """
@@ -333,6 +342,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
     """
@@ -361,6 +371,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
     """
@@ -389,6 +400,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
     """
@@ -417,6 +429,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def tcachebins(addr=None, verbose=False):
     """
@@ -445,6 +458,7 @@ parser.add_argument("addr", type=int, help="The start address.") #TODO describe 
 parser.add_argument("size", type=int, help="The size.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size):
     """
@@ -483,6 +497,7 @@ vis_heap_chunks_parser.add_argument('--naive', '-n', help='Don\'t use end-of-hea
 
 @pwndbg.commands.ArgparsedCommand(vis_heap_chunks_parser)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def vis_heap_chunks(address=None, count=None, naive=None):
     address = int(address) if address else pwndbg.heap.current.get_heap_boundaries().vaddr
