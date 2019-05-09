@@ -11,7 +11,7 @@ Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 | Optional Argument | Info |
 |---------------------|------|
 | --help | show this help message and exit |
-| --grep | GREP  String to grep the output for |
+| --grep | String to grep the output for |
 
 
 Example: rop --grep 'pop rdi' -- --nojop

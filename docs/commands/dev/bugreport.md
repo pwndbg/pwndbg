@@ -7,6 +7,6 @@ Generate bugreport
 | Optional Argument | Info |
 |---------------------|------|
 | --help | show this help message and exit |
-| -b | Open browser on github/issues/new (default: False) |
+| --run-browser | Open browser on github/issues/new (default: False) |
 
 
