@@ -14,6 +14,7 @@ Search memory for byte sequences, strings, pointers, and integer values
 | --help | show this help message and exit |
 | --type {byte,short,word,dword,qword,pointer,string,bytes} | Size of search target (default: bytes) |
 | --byte | Search for a 1-byte integer |
+| --word,short |  Search for a 2-byte integer |
 | --dword | Search for a 4-byte integer |
 | --qword | Search for an 8-byte integer |
 | --pointer | Search for a pointer-width integer |
