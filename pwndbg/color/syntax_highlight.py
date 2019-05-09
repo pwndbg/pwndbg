@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import itertools
 import os.path
 import re
 
@@ -71,6 +72,11 @@ def syntax_highlight(code, filename='.asm'):
 
     if lexer:
         lexer_cache[filename] = lexer
+
+        # Count the number of newlines at start of the code
+        # As for some reason pygments.highlight remove them, we need to bring them back
+        # So that if we use this later for displaying code+code lines, they match
+        newlines_at_start = sum(1 for _ in itertools.takewhile(lambda c: c == '\n', code))
         code = pygments.highlight(code, lexer, formatter).rstrip()
 
-    return code
+    return '\n' * newlines_at_start + code
