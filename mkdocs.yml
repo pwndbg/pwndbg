@@ -158,4 +158,3 @@ nav:
       - version: commands/dev/version.md
       - reload: commands/dev/reload.md
       - reinit_pwndbg: commands/dev/reinit_pwndbg.md
-      
