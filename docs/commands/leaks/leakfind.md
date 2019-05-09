@@ -11,15 +11,10 @@ Attempt to find a leak chain given a starting address. Scans memory near the giv
 | Optional Argument | Info |
 |---------------------|------|
 | --help | show this help message and exit |
-| --page_name | [PAGE_NAME] |
-| Substring | required to be part of the name of any found pages |
-| --max_offset | [MAX_OFFSET] |
-| Max | offset to add to addresses when looking for leak (default: 72) |
-| --max_depth | [MAX_DEPTH] |
-| Maximum | depth to follow pointers to (default: 4) |
-| --step | [STEP] |
-| if | this is 4 it would only consider pointers at an offset divisible by 4 from the starting pointer (default: 1) |
-| --negative_offset | [NEGATIVE_OFFSET] |
-| Max | negative offset to search before an address when looking for a leak (default: 0) |
+| --page_name | Substring required to be part of the name of any found pages |
+| --max_offset | Max offset to add to addresses when looking for leak (default: 72) |
+| --max_depth | Maximum depth to follow pointers to (default: 4) |
+| --step | Step to add between pointers so they are considered. For example, if this is 4 it would only consider pointers at an offset divisible by 4 from the starting pointer (default: 1) |
+| --negative_offset | Max negative offset to search before an address when looking for a leak (default: 0) |
 
 
