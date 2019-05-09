@@ -108,10 +108,10 @@ nav:
       - stack: commands/procinfo/stack.md
       - search: commands/procinfo/search.md
       - retaddr: commands/procinfo/retaddr.md
-      - hexdump: commnads/procinfo/hexdump.md
-      - piebase: commnads/procinfo/piebase.md
-      - dumpargs: commnads/procinfo/dumpargs.md
-      - dt: commnads/procinfo/dt.md
+      - hexdump: commands/procinfo/hexdump.md
+      - piebase: commands/procinfo/piebase.md
+      - dumpargs: commands/procinfo/dumpargs.md
+      - dt: commands/procinfo/dt.md
       - Memory Map:
         - vmmap: commands/procinfo/vmmap/vmmap.md
         - vmmap_add: commands/procinfo/vmmap/vmmap_add.md
