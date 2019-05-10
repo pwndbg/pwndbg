@@ -30,6 +30,7 @@ import pwndbg.commands.gdbinit
 import pwndbg.commands.got
 import pwndbg.commands.heap
 import pwndbg.commands.hexdump
+import pwndbg.commands.history
 import pwndbg.commands.ida
 import pwndbg.commands.misc
 import pwndbg.commands.next
