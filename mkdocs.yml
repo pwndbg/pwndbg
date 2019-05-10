@@ -1,0 +1,160 @@
+site_name: pwndbg docs
+repo_url: https://github.com/pwndbg/pwndbg
+theme: readthedocs
+
+nav: 
+  - Home: index.md
+  - Commands:
+    - Heap Commands:
+      - arena: commands/heap/arena.md
+      - arenas:  commands/heap/arenas.md
+      - bins: commands/heap/bins.md
+      - heap: commands/heap/heap.md
+      - fastbins: commands/heap/fastbins.md
+      - find_fake_fast: commands/heap/find_fake_fast.md
+      - largebins: commands/heap/largebins.md
+      - malloc_chunk: commands/heap/malloc_chunk.md
+      - mp: commands/heap/mp.md
+      - smallbins: commands/heap/smallbins.md
+      - tcache: commands/heap/tcache.md
+      - tcachebins: commands/heap/tcachebins.md
+      - top_chunk: commands/heap/top_chunk.md
+      - unsortedbin: commands/heap/unsortedbin.md
+      - vis_heap_chunks: commands/heap/vis_heap_chunks.md
+
+    - Windbg Aliases:
+      - db: commands/windbg/db.md
+      - dw: commands/windbg/dw.md
+      - dd: commands/windbg/dd.md
+      - dq: commands/windbg/dq.md
+      - dc: commands/windbg/dc.md
+
+      - eb: commands/windbg/eb.md
+      - ew: commands/windbg/ew.md
+      - ed: commands/windbg/ed.md
+      - eq: commands/windbg/eq.md
+      - ez: commands/windbg/ez.md
+      - eza: commands/windbg/eza.md
+
+      - da: commands/windbg/da.md
+      - dds: commands/windbg/dds.md
+      - ds: commands/windbg/ds.md
+
+      - bl: commands/windbg/bl.md
+      - bd: commands/windbg/bd.md
+      - be: commands/windbg/be.md
+      - bp: commands/windbg/bp.md
+      - bc: commands/windbg/bc.md
+
+      - u: commands/windbg/u.md
+      - k: commands/windbg/k.md
+      - ln: commands/windbg/ln.md
+
+      - peb: commands/windbg/peb.md
+      - go: commands/windbg/go.md
+      - pc: commands/windbg/pc.md
+
+    - Navigation:
+      - nextjmp: commands/navigation/nextjmp.md
+      - nextcall: commands/navigation/nextcall.md
+      - nextret: commands/navigation/nextret.md
+      - nextsyscall: commands/navigation/nextsyscall.md 
+      - nextproginstr: commands/navigation/nextproginstr.md
+      
+      - stepover: commands/navigation/stepover.md
+      - stepsyscall: commands/navigation/stepsyscall.md
+      - stepret: commands/navigation/stepret.md
+
+      - entry: commands/navigation/entry.md
+      - start: commands/navigation/start.md
+
+    - Ida:
+      - save_ida: commands/ida/save_ida.md
+      - j: commands/ida/j.md
+
+    - Gdbinit Aliases:
+      - main: commands/gdbinit/main.md
+      - init: commands/gdbinit/init.md
+      - sstart: commands/gdbinit/sstart.md
+      - libs: commands/gdbinit/libs.md
+      - entry_point: commands/gdbinit/entry_point.md
+
+    - Elf Inspection:
+      - elfheader: commands/elfinspection/elfheader.md
+      - got: commands/elfinspection/got.md
+      - plt: commands/elfinspection/plt.md
+      - gotplt: commands/elfinspection/gotplt.md
+      - rop: commands/elfinspection/rop.md
+      - ropper: commands/elfinspection/ropper.md
+      - auxv: commands/elfinspection/auxv.md
+      - checksec: commands/elfinspection/checksec.md
+
+    - Peda Aliases:
+      - getfile: commands/peda/getfile.md
+      - getpid: commands/peda/getpid.md
+      - xinfo: commands/peda/xinfo.md
+      - xuntil: commands/peda/xuntil.md
+
+    - Process/State Inspection:
+      - aslr: commands/procinfo/aslr.md
+      - procinfo: commands/procinfo/procinfo.md
+      - pid: commands/procinfo/pid.md
+      - gsbase: commands/procinfo/gsbase.md
+      - fsbase: commands/procinfo/fsbase.md
+      - canary: commands/procinfo/canary.md
+      - context: commands/procinfo/context.md
+      - regs: commands/procinfo/regs.md
+      - telescope: commands/procinfo/telescope.md
+      - stack: commands/procinfo/stack.md
+      - search: commands/procinfo/search.md
+      - retaddr: commands/procinfo/retaddr.md
+      - hexdump: commands/procinfo/hexdump.md
+      - piebase: commands/procinfo/piebase.md
+      - dumpargs: commands/procinfo/dumpargs.md
+      - dt: commands/procinfo/dt.md
+      - Memory Map:
+        - vmmap: commands/procinfo/vmmap/vmmap.md
+        - vmmap_add: commands/procinfo/vmmap/vmmap_add.md
+        - vmmap_load: commands/procinfo/vmmap/vmmap_load.md
+        - vmmap_clear: commands/procinfo/vmmap/vmmap_clear.md
+      - Initial Arguments:
+        - argc: commands/procinfo/args/argc.md
+        - argv: commands/procinfo/args/argv.md
+        - envp: commands/procinfo/args/envp.md
+
+    - State Modification: 
+      - xor: commands/statemod/xor.md
+      - memfrob: commands/statemod/memfrob.md
+      - breakrva: commands/statemod/breakrva.md
+
+    - Disassembly:
+      - nearpc: commands/disas/nearpc.md
+      - pdisass: commands/disas/pdisass.md
+      - emulate: commands/disas/emulate.md
+
+    - Config:
+      - config: commands/config/config.md
+      - configfile: commands/config/configfile.md
+      - theme: commands/config/theme.md
+      - themefile: commands/config/themefile.md
+
+    - Finding Leaks:
+      - probeleak: commands/leaks/probeleak.md
+      - leakfind: commands/leaks/leakfind.md
+
+    - Misc:
+      - distance: commands/misc/distance.md
+      - pwndbg: commands/misc/pwndbg.md
+      - errno: commands/misc/errno.md
+      - up: commands/misc/up.md
+      - down: commands/misc/down.md
+      - r2: commands/misc/r2.md
+
+    - Arm:
+      - cpsr: commands/arm/cpsr.md
+
+    - Development:
+      - bugreport: commands/dev/bugreport.md
+      - version: commands/dev/version.md
+      - reload: commands/dev/reload.md
+      - reinit_pwndbg: commands/dev/reinit_pwndbg.md
