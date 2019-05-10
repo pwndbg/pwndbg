@@ -65,7 +65,7 @@ def syntax_highlight(code, filename='.asm'):
 
     if not lexer:
         try:
-            lexer = pygments.lexers.guess_lexer_for_filename(filename, code)
+            lexer = pygments.lexers.guess_lexer_for_filename(filename, code, stripnl=False)
         except pygments.util.ClassNotFound:
             # no lexer for this file or invalid style
             pass
@@ -73,10 +73,6 @@ def syntax_highlight(code, filename='.asm'):
     if lexer:
         lexer_cache[filename] = lexer
 
-        # Count the number of newlines at start of the code
-        # As for some reason pygments.highlight remove them, we need to bring them back
-        # So that if we use this later for displaying code+code lines, they match
-        newlines_at_start = sum(1 for _ in itertools.takewhile(lambda c: c == '\n', code))
         code = pygments.highlight(code, lexer, formatter).rstrip()
 
-    return '\n' * newlines_at_start + code
+    return code
