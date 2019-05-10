@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import itertools
 import os.path
 import re
 
@@ -64,13 +65,14 @@ def syntax_highlight(code, filename='.asm'):
 
     if not lexer:
         try:
-            lexer = pygments.lexers.guess_lexer_for_filename(filename, code)
+            lexer = pygments.lexers.guess_lexer_for_filename(filename, code, stripnl=False)
         except pygments.util.ClassNotFound:
             # no lexer for this file or invalid style
             pass
 
     if lexer:
         lexer_cache[filename] = lexer
+
         code = pygments.highlight(code, lexer, formatter).rstrip()
 
     return code
