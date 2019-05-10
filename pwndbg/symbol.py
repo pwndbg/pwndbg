@@ -233,37 +233,5 @@ def address(symbol):
     except Exception:
         pass
 
-@pwndbg.events.stop
-@pwndbg.memoize.reset_on_start
-def add_main_exe_to_symbols():
-    if not pwndbg.remote.is_remote():
-        return
-
-    if pwndbg.android.is_android():
-        return
-
-    exe  = pwndbg.elf.exe()
-
-    if not exe:
-        return
-
-    addr = exe.address
-
-    if not addr:
-        return
-
-    addr = int(addr)
-
-    mmap = pwndbg.vmmap.find(addr)
-    if not mmap:
-        return
-
-    path = mmap.objfile
-    if path and (pwndbg.arch.endian == pwndbg.arch.native_endian):
-        try:
-            gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)
-        except gdb.error:
-            pass
-
 if '/usr/lib/debug' not in get_directory():
     set_directory(get_directory() + ':/usr/lib/debug')
