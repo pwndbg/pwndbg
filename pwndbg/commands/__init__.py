@@ -238,6 +238,16 @@ def OnlyWhenHeapIsInitialized(function):
             print("%s: Heap is not initialized yet." % function.__name__)
     return _OnlyWhenHeapIsInitialized
 
+def OnlyWithLibcDebugSyms(function):
+    @functools.wraps(function)
+    def _OnlyWithLibcDebugSyms(*a, **kw):
+        if pwndbg.heap.current.libc_has_debug_syms():
+            return function(*a, **kw)
+        else:
+            print('''%s: This command only works with libc debug symbols.
+They can probably be installed via the package manager of your choice.
+See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html''' % function.__name__)
+    return _OnlyWithLibcDebugSyms
 
 class QuietSloppyParsedCommand(ParsedCommand):
     def __init__(self, *a, **kw):

@@ -571,3 +571,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         making it one of the ways to check if the allocator is initialized or not.
         """
         return self.global_max_fast != 0
+
+    def libc_has_debug_syms(self):
+        return pwndbg.symbol.address('global_max_fast') is not None
