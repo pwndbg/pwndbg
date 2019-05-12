@@ -27,6 +27,14 @@ jumps = set((
 
 interrupts = set((capstone.CS_GRP_INT,))
 
+@pwndbg.events.exit
+def clear_temp_breaks():
+    if not pwndbg.proc.alive:
+        breakpoints = gdb.breakpoints()
+        if breakpoints:
+            for bp in breakpoints:
+                if bp.temporary and not bp.visible: #visible is used instead of internal because older gdb's don't support internal 
+                    bp.delete()
 
 def next_int(address=None):
     """
