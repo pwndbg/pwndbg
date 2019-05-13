@@ -249,7 +249,7 @@ def get_filename_and_formatted_source():
 
     try:
         source = get_highlight_source(filename)
-    except FileNotFoundError:
+    except IOError:
         return '', []
 
     if not source:
