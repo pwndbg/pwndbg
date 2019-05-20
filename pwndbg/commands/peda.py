@@ -30,18 +30,27 @@ def getpid():
 
 
 parser = argparse.ArgumentParser(description='Continue execution until an address or function.')
-parser.add_argument('target', help='Address or function to stop execution at')
-
+parser.add_argument('target', type=str, help='Address or function to stop execution at')
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def xuntil(target):
-    addr = int(target)
+    try:
+        addr = int(target,0)
+        
+        if not pwndbg.memory.peek(addr):
+            print(message.error('Invalid address %#x' % addr))
+            return
 
-    if not pwndbg.memory.peek(addr):
-        print(message.error('Invalid address %#x' % addr))
-        return
+        spec = "*%#x" % (addr)
+    except (TypeError, ValueError):
+        #The following gdb command will throw an error if the symbol is not defined.
+        try:
+            result = gdb.execute('info address %s' % target, to_string=True, from_tty=False)
+        except gdb.error:
+            print(message.error("Unable to resolve %s" % target))
+            return    
+        spec = target
 
-    spec = "*%#x" % (addr)
     b = gdb.Breakpoint(spec, temporary=True)
     if pwndbg.proc.alive:
         gdb.execute("continue", from_tty=False)
