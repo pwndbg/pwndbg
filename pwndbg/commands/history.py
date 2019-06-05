@@ -9,10 +9,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import readline
 
 import gdb
+
 import pwndbg.commands
-import readline
 
 parser = argparse.ArgumentParser()
 parser.description = __doc__
