@@ -26,9 +26,15 @@ native_endian = str(sys.byteorder)
 
 
 def fix_arch(arch):
-    arches = ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'arm', 'aarch64', arch]
-    return next(a for a in arches if a in arch)
+    for match in ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'aarch64']:
+        if match in arch:
+            return match
 
+    # Distinguish between Cortex-M and other ARM
+    if 'arm' in arch:
+        return 'armcm' if '-m' in arch else 'arm'
+
+    return arch
 
 @pwndbg.events.start
 @pwndbg.events.new_objfile

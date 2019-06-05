@@ -12,28 +12,21 @@ from pwndbg.color import context
 from pwndbg.color import message
 
 
-@pwndbg.commands.ArgparsedCommand('Print out ARM CPSR register')
+@pwndbg.commands.ArgparsedCommand('Print out ARM CPSR or xPSR register')
 @pwndbg.commands.OnlyWhenRunning
 def cpsr():
-    if pwndbg.arch.current != 'arm':
+    arm_print_psr()
+
+@pwndbg.commands.ArgparsedCommand('Print out ARM xPSR or CPSR register')
+@pwndbg.commands.OnlyWhenRunning
+def xpsr():
+    arm_print_psr()
+
+def arm_print_psr():
+    if pwndbg.arch.current not in ('arm', 'armcm'):
         print(message.warn("This is only available on ARM"))
         return
 
-    cpsr = pwndbg.regs.cpsr
+    reg = 'cpsr' if pwndbg.arch.current == 'arm' else 'xpsr'
+    print('%s %s' % (reg, context.format_flags(getattr(pwndbg.regs, reg), pwndbg.regs.flags[reg])))
 
-    N = cpsr & (1 << 31)
-    Z = cpsr & (1 << 30)
-    C = cpsr & (1 << 29)
-    V = cpsr & (1 << 28)
-    T = cpsr & (1 << 5)
-
-    result = [
-        context.flag_set('N') if N else context.flag_unset('n'),
-        context.flag_set('Z') if Z else context.flag_unset('z'),
-        context.flag_set('C') if C else context.flag_unset('c'),
-        context.flag_set('V') if V else context.flag_unset('v'),
-        context.flag_set('T') if T else context.flag_unset('t')
-    ]
-
-    print('CPSR %s %s %s %s' % (context.flag_value('%#x' % cpsr),
-          context.flag_bracket('['), ' '.join(result), context.flag_bracket(']')))

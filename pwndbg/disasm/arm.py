@@ -46,12 +46,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.address != pwndbg.regs.pc:
             return False
 
-        cpsr = pwndbg.regs.cpsr
+        value = pwndbg.regs.cpsr if pwndbg.arch.current == 'arm' else pwndbg.regs.xpsr
 
-        N = cpsr & (1<<31)
-        Z = cpsr & (1<<30)
-        C = cpsr & (1<<29)
-        V = cpsr & (1<<28)
+        N = value & (1<<31)
+        Z = value & (1<<30)
+        C = value & (1<<29)
+        V = value & (1<<28)
 
         cc = {
             ARM_CC_EQ: Z,
