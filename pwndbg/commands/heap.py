@@ -55,8 +55,15 @@ def format_bin(bins, verbose=False, offset=None):
 
         if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
+        
+        if bins_type == 'tcachebins':
+            limit = 8
+            if count <= 7:
+                limit = count + 1
+            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, limit=limit)
+        else:
+            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset)
 
-        formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset)
 
         if isinstance(size, int):
             size = hex(size)
