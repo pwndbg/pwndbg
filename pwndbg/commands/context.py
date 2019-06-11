@@ -87,7 +87,7 @@ def output():
 parser = argparse.ArgumentParser()
 parser.description = "Print out the current register, instruction, and stack context."
 parser.add_argument("subcontext", nargs="*", type=str, default=None, help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', and/or 'args'")
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx'])
 @pwndbg.commands.OnlyWhenRunning
 def context(subcontext=None):
     """
