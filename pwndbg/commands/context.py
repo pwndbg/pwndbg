@@ -110,6 +110,8 @@ def context(subcontext=None):
         func = context_sections.get(arg, None)
         if func:
             result.extend(func())
+    if len(result) > 0:
+        result.append(pwndbg.ui.banner(""))
     result.extend(context_signal())
 
     with output() as out:
