@@ -81,8 +81,6 @@ class Command(gdb.Command):
         """Invoke the command with an argument string"""
         try:
             args, kwargs = self.split_args(argument)
-            # skip all None kwargs so we don't have to pass default values twice in argparse and function
-            kwargs = {k: v for k, v in kwargs.items() if v is not None}
         except SystemExit:
             # Raised when the usage is printed by an ArgparsedCommand
             return
