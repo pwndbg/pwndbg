@@ -41,7 +41,8 @@ def check_title_position():
 def banner(title):
     title = title.upper()
     _height, width = get_window_size()
-    title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
+    if title:
+        title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
     if 'left' == title_position:
         banner = ljust_colored(title, width, config.banner_separator)
     elif 'right' == title_position:
