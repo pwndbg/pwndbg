@@ -114,16 +114,38 @@ def decompile(addr):
     except idaapi.DecompilationFailure:
         return None
 
+def get_decompile_coord_by_ea(cfunc, addr):
+    if idaapi.IDA_SDK_VERSION >= 720:
+        item = cfunc.body.find_closest_addr(addr)
+        y_holder = idaapi.int_pointer()
+        if not cfunc.find_item_coords(item, None, y_holder):
+            return cfunc
+        y = y_holder.value()
+    else:
+        lnmap = {}
+        for i, line in enumerate(cfunc.pseudocode):
+            phead = idaapi.ctree_item_t()
+            pitem = idaapi.ctree_item_t()
+            ptail = idaapi.ctree_item_t()
+            ret = cfunc.get_line_item(line.line, 0, True, phead, pitem, ptail)
+            if ret and pitem.it:
+                lnmap[pitem.it.ea] = i
+        y = -1
+        closest_ea = BADADDR
+        for ea,line in lnmap.items():
+            if closest_ea == BADADDR or abs(closest_ea - addr) > abs(ea - addr):
+                closest_ea = ea
+                y = lnmap[ea]
+    
+    return y
+
 
 def decompile_context(addr, context_lines):
     cfunc = decompile(addr)
     if cfunc is None:
         return None
-    item = cfunc.body.find_closest_addr(addr)
-    y_holder = idaapi.int_pointer()
-    if not cfunc.find_item_coords(item, None, y_holder):
-        return cfunc
-    y = y_holder.value()
+    
+    y = get_decompile_coord_by_ea(cfunc, addr)
     lines = cfunc.get_pseudocode()
     retlines = (idaapi.tag_remove(lines[lnnum].line) for lnnum
                     in range(max(0, y - context_lines),min(len(lines), y + context_lines)))
