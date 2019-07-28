@@ -16,4 +16,10 @@ import pwndbg.memoize
 
 @pwndbg.memoize.reset_on_exit
 def is_remote():
+    # Example:
+    # pwndbg> maintenance print target-stack
+    # The current target stack is:
+    #   - remote (Remote serial target in gdb-specific protocol)
+    #   - exec (Local exec file)
+    #   - None (None)
     return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
