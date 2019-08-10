@@ -11,23 +11,15 @@ from __future__ import unicode_literals
 
 import gdb
 
+import pwndbg.memoize
 
+
+@pwndbg.memoize.reset_on_exit
 def is_remote():
-    # N.B.: We cannot use "info program" because of:
-    # https://sourceware.org/bugzilla/show_bug.cgi?id=18335
-    #
-    # return 'serial line' in gdb.execute('info program',to_string=True,)
-    info_file = gdb.execute('info file',to_string=True,from_tty=False)
-
-    # target remote
-    if 'Remote serial target' in info_file:
-        return True
-
-    # target extended-remote
-    if 'Extended remote serial target' in info_file:
-        return True
-
-    if 'Debugging a target over a serial line.' in info_file:
-        return True
-
-    return False
+    # Example:
+    # pwndbg> maintenance print target-stack
+    # The current target stack is:
+    #   - remote (Remote serial target in gdb-specific protocol)
+    #   - exec (Local exec file)
+    #   - None (None)
+    return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
