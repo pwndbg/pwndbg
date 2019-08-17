@@ -37,15 +37,15 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
     def __new__(cls, value, *a, **kw):
         if isinstance(value, gdb.Value):
             if pwndbg.typeinfo.is_pointer(value):
-                value = value.cast(pwndbg.typeinfo.ulong)
+                value = value.cast(pwndbg.typeinfo.size_t)
             else:
-                value = value.cast(pwndbg.typeinfo.long)
+                value = value.cast(pwndbg.typeinfo.ssize_t)
 
         elif isinstance(value, gdb.Symbol):
             symbol = value
             value = symbol.value()
             if symbol.is_function:
-                value = value.cast(pwndbg.typeinfo.ulong)
+                value = value.cast(pwndbg.typeinfo.size_t)
 
         elif not isinstance(value, (six.string_types, six.integer_types)) \
                 or isinstance(cls, enum.EnumMeta):
