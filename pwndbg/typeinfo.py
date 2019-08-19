@@ -65,18 +65,22 @@ def update():
     module.int32  = lookup_types('int', 'i32', 'int32')
     module.int64  = lookup_types('long long', 'long', 'i64', 'int64')
 
-    module.ssize_t = module.long
-    module.size_t = module.ulong
-
     module.pvoid  = void.pointer()
     module.ppvoid = pvoid.pointer()
     module.pchar  = char.pointer()
 
     module.ptrsize = pvoid.sizeof
 
-    if pvoid.sizeof == 4: module.ptrdiff = uint32
-    if pvoid.sizeof == 8: module.ptrdiff = uint64
-
+    if pvoid.sizeof == 4: 
+        module.ptrdiff = module.uint32
+        module.size_t = module.uint32
+        module.ssize_t = module.int32
+    elif pvoid.sizeof == 8: 
+        module.ptrdiff = module.uint64
+        module.size_t = module.uint64
+        module.ssize_t = module.int64
+    else:
+        raise Exception('Pointer size not supported')
     module.null = gdb.Value(0).cast(void)
 
 # Call it once so we load all of the types
