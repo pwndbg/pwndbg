@@ -75,11 +75,12 @@ def update():
         module.ptrdiff = module.uint32
         module.size_t = module.uint32
         module.ssize_t = module.int32
-    if pvoid.sizeof == 8: 
+    elif pvoid.sizeof == 8: 
         module.ptrdiff = module.uint64
         module.size_t = module.uint64
         module.ssize_t = module.int64
-
+    else:
+        raise Exception('Pointer size not supported')
     module.null = gdb.Value(0).cast(void)
 
 # Call it once so we load all of the types
