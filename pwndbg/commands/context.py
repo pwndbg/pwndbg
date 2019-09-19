@@ -10,6 +10,7 @@ import ast
 import codecs
 import ctypes
 import sys
+from collections import defaultdict
 from io import open
 
 import gdb
@@ -49,6 +50,10 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
                                                   'regs disasm code stack backtrace',
                                                   'which context sections are displayed (controls order)')
 
+# Storing output configuration per section
+outputs = {}
+clearings = {}
+
 
 @pwndbg.config.Trigger([config_context_sections])
 def validate_context_sections():
@@ -70,17 +75,48 @@ def validate_context_sections():
 
 class StdOutput(object):
     """A context manager wrapper to give stdout"""
-    def __enter__(*args,**kwargs):
+    def __enter__(self):
         return sys.stdout
-    def __exit__(*args, **kwargs):
+    def __exit__(self, *args, **kwargs):
         pass
+    def __hash__(self):
+        return hash(sys.stdout)
+    def __eq__(self, other):
+        return type(other) == StdOutput
 
-def output():
+class FileOutput(object):
+    """A context manager wrapper to reopen files on enter"""
+    def __init__(self, *args):
+        self.args = args
+        self.handle = None
+    def __enter__(self):
+        self.handle = open(*self.args)
+        return self.handle
+    def __exit__(self, *args, **kwargs):
+        self.handle.close()
+    def __hash__(self):
+        return hash(self.args)
+    def __eq__(self, other):
+        return self.args == other.args
+
+
+def output(section):
     """Creates a context manager corresponding to configured context ouput"""
-    if not config_output or config_output == "stdout":
+    file = outputs.get(section, str(config_output))
+    if not file or file == "stdout":
         return StdOutput()
     else:
-        return open(str( config_output ), "w")
+        return FileOutput(file, "w")
+
+parser = argparse.ArgumentParser()
+parser.description = "Sets the output of a context section."
+parser.add_argument("section", type=str, help="The section which is to be configured")
+parser.add_argument("path", type=str, help="The path to which the output is written")
+parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
+def contextoutput(section, path, clearing):
+    outputs[section] = path
+    clearings[section] = clearing
 
 # @pwndbg.events.stop
 
@@ -98,29 +134,29 @@ def context(subcontext=None):
     if subcontext is None:
         subcontext = []
     args = subcontext
-    
+
     if len(args) == 0:
         args = config_context_sections.split()
 
-    args = [a[0] for a in args]
+    sections = [("legend", lambda : [M.legend()])] if args else []
+    sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
-    result = [M.legend()] if args else []
-
-    for arg in args:
-        func = context_sections.get(arg, None)
+    result = defaultdict(lambda : [])
+    for section, func in sections:
         if func:
-            result.extend(func())
-    if len(result) > 0:
-        result.append(pwndbg.ui.banner(""))
-    result.extend(context_signal())
+            result[output(section)].extend(func())
 
-    with output() as out:
-        if config_clear_screen:
-            clear_screen(out)
+    for res in result.values():
+        if len(res) > 0:
+            res.append(pwndbg.ui.banner(""))
 
-        for line in result:
-            out.write(line + '\n')
-        out.flush()
+    for target, lines in result.items():
+        with target as out:
+            if config_clear_screen and lines:
+                clear_screen(out)
+            for line in lines:
+                out.write(line + '\n')
+            out.flush()
 
 
 def context_regs():
