@@ -37,10 +37,17 @@ def check_title_position():
               (title_position, ', '.join(valid_values))))
         title_position.revert_default()
 
+def ttyprint(obj):
+    with open("/dev/pts/18","w") as out:
+        out.write(str(obj))
+        out.write("\n")
+        out.flush()
 
-def banner(title):
+def banner(title, target=sys.stdin):
     title = title.upper()
-    _height, width = get_window_size()
+    _height, width = get_window_size(target=target)
+    ttyprint(target)
+    ttyprint(width)
     if title:
         title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
     if 'left' == title_position:
@@ -56,13 +63,13 @@ def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask
     return "%{}x".format(2*pwndbg.arch.ptrsize) % address
 
-def get_window_size():
+def get_window_size(target=sys.stdin):
     fallback = (int(os.environ.get('LINES', 20)), int(os.environ.get('COLUMNS', 80)))
-    if not sys.stdin.isatty:
+    if not target.isatty():
         return fallback
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg
-        rows, cols = struct.unpack('hh', fcntl.ioctl(sys.stdin.fileno(), termios.TIOCGWINSZ, '1234'))
+        rows, cols = struct.unpack('hh', fcntl.ioctl(target.fileno(), termios.TIOCGWINSZ, '1234'))
     except:
         rows, cols = fallback
     return rows, cols

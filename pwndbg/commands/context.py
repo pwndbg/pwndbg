@@ -138,17 +138,20 @@ def context(subcontext=None):
     if len(args) == 0:
         args = config_context_sections.split()
 
-    sections = [("legend", lambda : [M.legend()])] if args else []
+    sections = [("legend", lambda target=None: [M.legend()])] if args else []
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(lambda : [])
     for section, func in sections:
         if func:
-            result[output(section)].extend(func())
+            target = output(section)
+            with target as out:
+                result[target].extend(func(target=out))
 
-    for res in result.values():
+    for target, res in result.items():
         if len(res) > 0:
-            res.append(pwndbg.ui.banner(""))
+            with target as out:
+                res.append(pwndbg.ui.banner("", target=out))
 
     for target, lines in result.items():
         with target as out:
@@ -159,8 +162,8 @@ def context(subcontext=None):
             out.flush()
 
 
-def context_regs():
-    return [pwndbg.ui.banner("registers")] + get_regs()
+def context_regs(target=sys.stdout):
+    return [pwndbg.ui.banner("registers", target=target)] + get_regs()
 
 parser = argparse.ArgumentParser()
 parser.description = '''Print out all registers and enhance the information.'''
@@ -220,8 +223,8 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
-def context_disasm():
-    banner = [pwndbg.ui.banner("disasm")]
+def context_disasm(target=sys.stdout):
+    banner = [pwndbg.ui.banner("disasm", target=target)]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
@@ -307,12 +310,13 @@ def get_filename_and_formatted_source():
     return filename, formatted_source
 
 
-def context_code():
+def context_code(target=sys.stdout):
     filename, formatted_source = get_filename_and_formatted_source()
 
     # Try getting source from files
     if formatted_source:
-        return [pwndbg.ui.banner("Source (code)"), 'In file: %s' % filename] + formatted_source
+        return [pwndbg.ui.banner("Source (code)", target=target),
+                'In file: %s' % filename] + formatted_source
 
     # Try getting source from IDA Pro Hex-Rays Decompiler
     if not pwndbg.ida.available():
@@ -323,7 +327,7 @@ def context_code():
     code = pwndbg.ida.decompile_context(pwndbg.regs.pc, n)
     
     if code:
-        return [pwndbg.ui.banner("Hexrays pseudocode")] + code.splitlines()
+        return [pwndbg.ui.banner("Hexrays pseudocode", target=target)] + code.splitlines()
     else:
         return []
 
@@ -331,8 +335,8 @@ def context_code():
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
 
-def context_stack():
-    result = [pwndbg.ui.banner("stack")]
+def context_stack(target=sys.stdout):
+    result = [pwndbg.ui.banner("stack", target=target)]
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
@@ -341,11 +345,11 @@ def context_stack():
 backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
 
 
-def context_backtrace(frame_count=10, with_banner=True):
+def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout):
     result = []
 
     if with_banner:
-        result.append(pwndbg.ui.banner("backtrace"))
+        result.append(pwndbg.ui.banner("backtrace", target=target))
 
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
@@ -390,7 +394,7 @@ def context_backtrace(frame_count=10, with_banner=True):
     return result
 
 
-def context_args(with_banner=True):
+def context_args(with_banner=True, target=sys.stdout):
     args = pwndbg.arguments.format_args(pwndbg.disasm.one())
 
     # early exit to skip section if no arg found
@@ -398,7 +402,7 @@ def context_args(with_banner=True):
         return []
 
     if with_banner:
-        args.insert(0, pwndbg.ui.banner("arguments"))
+        args.insert(0, pwndbg.ui.banner("arguments", target=target))
 
     return args
 
