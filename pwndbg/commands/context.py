@@ -110,7 +110,7 @@ def output(section):
 
 parser = argparse.ArgumentParser()
 parser.description = "Sets the output of a context section."
-parser.add_argument("section", type=str, help="The section which is to be configured")
+parser.add_argument("section", type=str, help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', and/or 'args')")
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
