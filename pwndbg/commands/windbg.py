@@ -135,7 +135,7 @@ def enhex(size, value):
 
 parser = argparse.ArgumentParser(description="Write hex bytes at the specified address.")
 parser.add_argument("address", type=int, help="The address to write to.")
-parser.add_argument("data", type=int, nargs="*", help="The bytes to write.")
+parser.add_argument("data", type=str, nargs="*", help="The bytes to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def eb(address, data):
@@ -147,7 +147,7 @@ def eb(address, data):
 
 parser = argparse.ArgumentParser(description="Write hex words at the specified address.")
 parser.add_argument("address", type=int, help="The address to write to.")
-parser.add_argument("data", type=int, nargs="*", help="The words to write.")
+parser.add_argument("data", type=str, nargs="*", help="The words to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def ew(address, data):
@@ -159,7 +159,7 @@ def ew(address, data):
 
 parser = argparse.ArgumentParser(description="Write hex dwords at the specified address.")
 parser.add_argument("address", type=int, help="The address to write to.")
-parser.add_argument("data", type=int, nargs="*", help="The dwords to write.")
+parser.add_argument("data", type=str, nargs="*", help="The dwords to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def ed(address, data):
@@ -171,7 +171,7 @@ def ed(address, data):
 
 parser = argparse.ArgumentParser(description="Write hex qwords at the specified address.")
 parser.add_argument("address", type=int, help="The address to write to.")
-parser.add_argument("data", type=int, nargs="*", help="The qwords to write.")
+parser.add_argument("data", type=str, nargs="*", help="The qwords to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def eq(address, data):
