@@ -37,17 +37,10 @@ def check_title_position():
               (title_position, ', '.join(valid_values))))
         title_position.revert_default()
 
-def ttyprint(obj):
-    with open("/dev/pts/18","w") as out:
-        out.write(str(obj))
-        out.write("\n")
-        out.flush()
-
-def banner(title, target=sys.stdin):
+def banner(title, target=sys.stdin, width=None):
     title = title.upper()
-    _height, width = get_window_size(target=target)
-    ttyprint(target)
-    ttyprint(width)
+    if width is None:
+        _height, width = get_window_size(target=target)
     if title:
         title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
     if 'left' == title_position:
