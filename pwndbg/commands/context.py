@@ -99,14 +99,41 @@ class FileOutput(object):
     def __eq__(self, other):
         return self.args == other.args
 
+class CallOutput(object):
+    """A context manager which calls a function on write"""
+    def __init__(self, func):
+        self.func = func
+    def __enter__(self):
+        return self
+    def __exit__(self, *args, **kwargs):
+        pass
+    def __hash__(self):
+        return hash(self.func)
+    def __eq__(self, other):
+        return self.func == other.func
+    def write(self, data):
+        self.func(data)
+    def flush(self):
+        try:
+            return self.func.flush()
+        except AttributeError:
+            pass
+    def isatty(self):
+        try:
+            return self.func.isatty()
+        except AttributeError:
+            return False
+
 
 def output(section):
     """Creates a context manager corresponding to configured context ouput"""
-    file = outputs.get(section, str(config_output))
-    if not file or file == "stdout":
+    target = outputs.get(section, str(config_output))
+    if not target or target == "stdout":
         return StdOutput()
+    elif callable(target):
+        return CallOutput(target)
     else:
-        return FileOutput(file, "w")
+        return FileOutput(target, "w")
 
 parser = argparse.ArgumentParser()
 parser.description = "Sets the output of a context section."
