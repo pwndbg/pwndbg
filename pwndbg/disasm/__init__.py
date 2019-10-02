@@ -28,9 +28,6 @@ try:
 except:
     pwndbg.emu = None
 
-disassembler = None
-last_arch    = None
-
 CapstoneArch = {
     'arm': CS_ARCH_ARM,
     'armcm': CS_ARCH_ARM,
