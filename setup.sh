@@ -29,7 +29,7 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make
     sudo dnf -y debuginfo-install glibc
 }
 
@@ -44,7 +44,7 @@ fi
 
 if linux; then
     distro=$(cat /etc/os-release | grep "^ID=" | cut -d\= -f2 | sed -e 's/"//g')
-    
+
     case $distro in
         "ubuntu")
             install_apt
