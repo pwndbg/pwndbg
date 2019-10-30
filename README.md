@@ -51,3 +51,4 @@ Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md).
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
 [`ebeip90` or `disconnect3d` at #pwndbg on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
 Click [here](https://kiwiirc.com/client/irc.freenode.net/pwndbg) to connect.
+i study in iit mandi
