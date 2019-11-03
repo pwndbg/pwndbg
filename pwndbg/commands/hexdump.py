@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import argparse
 
 import gdb
+import six
 
 import pwndbg.arch
 import pwndbg.commands
@@ -23,17 +24,32 @@ pwndbg.config.Parameter('hexdump-bytes',
                          64,
                          'number of bytes printed by hexdump command')
 
-parser = argparse.ArgumentParser(description='Hexdumps data at the specified address (or at $sp)')
-parser.add_argument('address', nargs='?', default='$sp',
-                    help='Address to dump')
+def address_or_module_name(s):
+    gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
+    if isinstance(gdbval_or_str, six.string_types):
+        module_name = gdbval_or_str
+        pages = list(filter(lambda page: module_name in page.objfile, pwndbg.vmmap.get()))
+        if pages:
+            return pages[0].vaddr
+        else:
+            raise argparse.ArgumentError('Could not find pages for module %s' % module_name)
+    elif isinstance(gdbval_or_str, six.integer_types + (gdb.Value,)):
+        addr = gdbval_or_str
+        return addr
+    else:
+        raise argparse.ArgumentTypeError('Unknown hexdump argument type.')
+
+parser = argparse.ArgumentParser(description='Hexdumps data at the specified address or module name (or at $sp)')
+parser.add_argument('address_or_module', type=address_or_module_name, nargs='?', default='$sp',
+                    help='Address or module name to dump')
 parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
                     help='Number of bytes to dump')
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
-
+def hexdump(address_or_module=None, count=pwndbg.config.hexdump_bytes):
+    address = address_or_module
     if hexdump.repeat:
         address = hexdump.last_address
         hexdump.offset += 1
