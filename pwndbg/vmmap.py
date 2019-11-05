@@ -47,6 +47,9 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
+    if not pages and pwndbg.qemu.is_qemu():
+        pages.extend(monitor_info_mem())
+
     if not pages:
         # If debugee is launched from a symlink the debugee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
@@ -223,6 +226,43 @@ def proc_pid_maps():
         pages.append(page)
 
     return tuple(pages)
+
+@pwndbg.memoize.reset_on_stop
+def monitor_info_mem():
+    # pwndbg> monitor info mem
+    # ffff903580000000-ffff903580099000 0000000000099000 -rw
+    # ffff903580099000-ffff90358009b000 0000000000002000 -r-
+    # ffff90358009b000-ffff903582200000 0000000002165000 -rw
+    # ffff903582200000-ffff903582803000 0000000000603000 -r-
+    try:
+        lines = gdb.execute('monitor info mem', to_string=True).splitlines()
+    except gdb.error:
+        # Likely a `gdb.error: "monitor" command not supported by this target.`
+        # TODO: add debug logging
+        return tuple()
+
+    pages = []
+    for line in lines:
+        dash_idx = line.index('-')
+        space_idx = line.index(' ')
+        rspace_idx = line.rindex(' ')
+
+        start = int(line[:dash_idx], 16)
+        end = int(line[dash_idx+1:space_idx], 16)
+        size = int(line[space_idx+1:rspace_idx], 16)
+        assert end-start == size, "monitor info mem output didn't pass a sanity check"
+        perm = line[rspace_idx+1:]
+
+        flags = 0
+        if 'r' in perm: flags |= 4
+        if 'w' in perm: flags |= 2
+        #if 'x' in perm: flags |= 1  # TODO: there is no 'x', is it QEMU's bug?
+        flags |= 1
+
+        pages.append(pwndbg.memory.Page(start, size, flags, 0, '<qemu>'))
+
+    return pages
+
 
 @pwndbg.memoize.reset_on_stop
 def info_sharedlibrary():
