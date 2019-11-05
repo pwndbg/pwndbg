@@ -47,7 +47,7 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
-    if not pages and pwndbg.qemu.is_qemu():
+    if not pages and pwndbg.arch.current == 'i386' and pwndbg.qemu.is_qemu():
         pages.extend(monitor_info_mem())
 
     if not pages:
@@ -229,6 +229,10 @@ def proc_pid_maps():
 
 @pwndbg.memoize.reset_on_stop
 def monitor_info_mem():
+    # NOTE: This works only on X86/X64/RISC-V
+    # See: https://github.com/pwndbg/pwndbg/pull/685
+    # (TODO: revisit with future QEMU versions)
+    #
     # pwndbg> monitor info mem
     # ffff903580000000-ffff903580099000 0000000000099000 -rw
     # ffff903580099000-ffff90358009b000 0000000000002000 -r-
