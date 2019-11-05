@@ -260,7 +260,8 @@ def monitor_info_mem():
         flags = 0
         if 'r' in perm: flags |= 4
         if 'w' in perm: flags |= 2
-        #if 'x' in perm: flags |= 1  # TODO: there is no 'x', is it QEMU's bug?
+        # QEMU does not expose X/NX bit, see #685
+        #if 'x' in perm: flags |= 1
         flags |= 1
 
         pages.append(pwndbg.memory.Page(start, size, flags, 0, '<qemu>'))
