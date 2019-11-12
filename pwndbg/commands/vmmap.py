@@ -41,8 +41,10 @@ def pages_filter(s):
 parser = argparse.ArgumentParser()
 parser.description = '''Print virtual memory map pages. Results can be filtered by providing address/module name.
 
-Please note that memory pages on QEMU targets are detected through AUXV (sometimes with finding AUXV on the stack first)
-or by exploring values e.g. from registers.
+Memory pages on QEMU targets may be inaccurate. This is because:
+- for QEMU kernel on X86/X64 we fetch memory pages via `monitor info mem` and it doesn't inform if memory page is executable
+- for QEMU user emulation we detected memory pages through AUXV (sometimes by finding AUXV on the stack first)
+- for others, we create mempages by exploring current register values (this is least correct)
 
 Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
 parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
