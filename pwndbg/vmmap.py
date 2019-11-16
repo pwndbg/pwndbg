@@ -47,7 +47,7 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
-    if not pages and pwndbg.arch.current == 'i386' and pwndbg.qemu.is_qemu():
+    if not pages and pwndbg.arch.current in ('i386', 'x86-64') and pwndbg.qemu.is_qemu():
         pages.extend(monitor_info_mem())
 
     if not pages:
@@ -266,7 +266,7 @@ def monitor_info_mem():
 
         pages.append(pwndbg.memory.Page(start, size, flags, 0, '<qemu>'))
 
-    return pages
+    return tuple(pages)
 
 
 @pwndbg.memoize.reset_on_stop
