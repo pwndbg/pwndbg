@@ -115,17 +115,14 @@ def heap(addr=None):
     first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(addr + size_t, size_t))
     if first_chunk_size == 0:
         addr += size_t * 2  # Skip the alignment
-
     while addr < page.vaddr + page.memsz:
         chunk = malloc_chunk(addr)  # Prints the chunk
         size = int(chunk['size'])
-
         # Clear the bottom 3 bits
         size &= ~7
         if size == 0:
             break
         addr += size
-
 parser = argparse.ArgumentParser()
 parser.description = "Prints out the main arena or the arena at the specified by address."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
@@ -214,33 +211,30 @@ def top_chunk(addr=None):
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
 
-    if main_arena is None:
-        heap_region = main_heap.get_heap_boundaries()
-        if not heap_region:
-            print(message.error('Could not find the heap'))
-            return
+    heap_region = main_heap.get_heap_boundaries()
+	
+    if not heap_region:
+        print(message.error('Could not find the heap'))
+        return
 
-        heap_start = heap_region.vaddr
-        heap_end   = heap_start + heap_region.size
+    heap_start = heap_region.vaddr
+    heap_end   = heap_start + heap_region.memsz
 
-        # If we don't know where the main_arena struct is, just iterate
-        # through all the heap objects until we hit the last one
-        last_addr = None
-        addr = heap_start
-        while addr < heap_end:
-            chunk = read_chunk(addr)
-            size = int(chunk['size'])
+    # If we don't know where the main_arena struct is, just iterate
+    # through all the heap objects until we hit the last one
+    last_addr = None
+    addr = heap_start
+    while addr < heap_end:
+        chunk = read_chunk(addr)
+        size = int(chunk['size'])
 
-            # Clear the bottom 3 bits
-            size &= ~7
-
-            last_addr = addr
-            addr += size
-            addr += size
-        address = last_addr
-    else:
-        address = main_arena['top']
-
+        # Clear the bottom 3 bits
+        size &= ~7
+        if size == 0:
+            break
+        last_addr = addr
+        addr += size
+    address = last_addr
     return malloc_chunk(address)
 
 
@@ -510,7 +504,30 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     address = int(address) if address else pwndbg.heap.current.get_heap_boundaries().vaddr
     main_heap = pwndbg.heap.current
     main_arena = main_heap.get_arena()
-    top_chunk = int(main_arena['top'])
+    #top_chunk = int(main_arena['top'])
+    heap_region = main_heap.get_heap_boundaries()
+		
+    if not heap_region:
+        print(message.error('Could not find the heap'))
+        return
+
+    heap_start = heap_region.vaddr
+    heap_end   = heap_start + heap_region.memsz
+
+    # If we don't know where the main_arena struct is, just iterate
+    # through all the heap objects until we hit the last one
+    addr = heap_start
+    while addr < heap_region.vaddr+heap_region.memsz:
+        chunk = read_chunk(addr)
+        size = int(chunk['size'])
+
+        # Clear the bottom 3 bits
+        size &= ~7
+        if size == 0:
+            break
+        last_addr = addr
+        addr += size
+    top_chunk = last_addr
 
     unpack = pwndbg.arch.unpack
 
