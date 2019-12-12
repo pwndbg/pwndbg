@@ -33,6 +33,11 @@ install_dnf() {
     sudo dnf -y debuginfo-install glibc
 }
 
+install_swupd() {
+    sudo swupd update || true
+    sudo swupd bundle-add gdb python3-basic make c-basic
+}
+
 PYTHON=''
 INSTALLFLAGS=''
 
@@ -52,6 +57,9 @@ if linux; then
         "fedora")
             install_dnf
             ;;
+	"clear-linux-os")
+	    install_swupd
+	    ;;
         "arch")
             echo "Install Arch linux using a community package. See:"
             echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
