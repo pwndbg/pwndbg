@@ -168,7 +168,7 @@ def context(subcontext=None):
     sections = [("legend", lambda target=None: [M.legend()])] if args else []
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
-    result = defaultdict(lambda : [])
+    result = defaultdict(list)
     for section, func in sections:
         if func:
             target = output(section)
