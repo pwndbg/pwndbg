@@ -82,7 +82,7 @@ class StdOutput(object):
     def __hash__(self):
         return hash(sys.stdout)
     def __eq__(self, other):
-        return type(other) == StdOutput
+        return type(other) is StdOutput
 
 class FileOutput(object):
     """A context manager wrapper to reopen files on enter"""
