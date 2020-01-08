@@ -78,7 +78,8 @@ class StdOutput(object):
     def __enter__(self):
         return sys.stdout
     def __exit__(self, *args, **kwargs):
-        pass
+        sys.stdout.write('\n')
+        sys.stdout.flush()
     def __hash__(self):
         return hash(sys.stdout)
     def __eq__(self, other):
@@ -184,8 +185,7 @@ def context(subcontext=None):
         with target as out:
             if config_clear_screen and lines:
                 clear_screen(out)
-            for line in lines:
-                out.write(line + '\n')
+            out.write("\n".join(lines))
             out.flush()
 
 
