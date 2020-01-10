@@ -142,10 +142,12 @@ parser.add_argument("section", type=str, help="The section which is to be config
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
 parser.add_argument("banner", type=str, default="both", help="Where a banner should be placed: both, top , bottom, none")
+parser.add_argument("width", type=int, default=None, help="Sets a fixed width (used for banner). Set to None for auto")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
-def contextoutput(section, path, clearing, banner="both"):
+def contextoutput(section, path, clearing, banner="both", width=None):
     outputs[section] = path
-    output_settings[section] = dict(clearing=clearing, 
+    output_settings[section] = dict(clearing=clearing,
+                                    width=width,
                                     banner_top= banner in ["both", "top"],
                                     banner_bottom= banner in ["both", "bottom"])
 
@@ -181,13 +183,16 @@ def context(subcontext=None):
             settings = output_settings.get(section, {})
             result_settings[target].update(settings)
             with target as out:
-                result[target].extend(func(target=out, 
+                result[target].extend(func(target=out,
+                                           width=settings.get("width", None),
                                            with_banner=settings.get("banner_top", True)))
 
     for target, res in result.items():
-        if len(res) > 0 and result_settings[target].get("banner_bottom", True):
+        settings = result_settings[target] 
+        if len(res) > 0 and settings.get("banner_bottom", True):
             with target as out:
-                res.append(pwndbg.ui.banner("", target=out))
+                res.append(pwndbg.ui.banner("", target=out, 
+                                            width=settings.get("width", None)))
 
     for target, lines in result.items():
         with target as out:
@@ -197,8 +202,9 @@ def context(subcontext=None):
             out.flush()
 
 
-def context_regs(target=sys.stdout, with_banner=True):
-    return [pwndbg.ui.banner("registers", target=target)] + get_regs() if with_banner else get_regs()
+def context_regs(target=sys.stdout, with_banner=True, width=None):
+    banner = [pwndbg.ui.banner("registers", target=target, width=width)]
+    return banner + get_regs() if with_banner else get_regs()
 
 parser = argparse.ArgumentParser()
 parser.description = '''Print out all registers and enhance the information.'''
@@ -258,8 +264,8 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
-def context_disasm(target=sys.stdout, with_banner=True):
-    banner = [pwndbg.ui.banner("disasm", target=target)]
+def context_disasm(target=sys.stdout, with_banner=True, width=None):
+    banner = [pwndbg.ui.banner("disasm", target=target, width=width)]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
@@ -345,12 +351,12 @@ def get_filename_and_formatted_source():
     return filename, formatted_source
 
 
-def context_code(target=sys.stdout, with_banner=True):
+def context_code(target=sys.stdout, with_banner=True, width=None):
     filename, formatted_source = get_filename_and_formatted_source()
 
     # Try getting source from files
     if formatted_source:
-        bannerline = [pwndbg.ui.banner("Source (code)", target=target)] if with_banner else []
+        bannerline = [pwndbg.ui.banner("Source (code)", target=target, width=width)] if with_banner else []
         return bannerline + ['In file: %s' % filename] + formatted_source
 
     # Try getting source from IDA Pro Hex-Rays Decompiler
@@ -362,7 +368,7 @@ def context_code(target=sys.stdout, with_banner=True):
     code = pwndbg.ida.decompile_context(pwndbg.regs.pc, n)
 
     if code:
-        bannerline = [pwndbg.ui.banner("Hexrays pseudocode", target=target)] if with_banner else []
+        bannerline = [pwndbg.ui.banner("Hexrays pseudocode", target=target, width=width)] if with_banner else []
         return bannerline + code.splitlines()
     else:
         return []
@@ -371,8 +377,8 @@ def context_code(target=sys.stdout, with_banner=True):
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
 
-def context_stack(target=sys.stdout, with_banner=True):
-    result = [pwndbg.ui.banner("stack", target=target)] if with_banner else []
+def context_stack(target=sys.stdout, with_banner=True, width=None):
+    result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
@@ -381,11 +387,11 @@ def context_stack(target=sys.stdout, with_banner=True):
 backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
 
 
-def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout):
+def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width=None):
     result = []
 
     if with_banner:
-        result.append(pwndbg.ui.banner("backtrace", target=target))
+        result.append(pwndbg.ui.banner("backtrace", target=target, width=width))
 
     this_frame    = gdb.selected_frame()
     newest_frame  = this_frame
@@ -430,7 +436,7 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout):
     return result
 
 
-def context_args(with_banner=True, target=sys.stdout):
+def context_args(with_banner=True, target=sys.stdout, width=None):
     args = pwndbg.arguments.format_args(pwndbg.disasm.one())
 
     # early exit to skip section if no arg found
@@ -438,7 +444,7 @@ def context_args(with_banner=True, target=sys.stdout):
         return []
 
     if with_banner:
-        args.insert(0, pwndbg.ui.banner("arguments", target=target))
+        args.insert(0, pwndbg.ui.banner("arguments", target=target, width=width))
 
     return args
 
