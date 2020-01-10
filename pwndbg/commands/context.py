@@ -52,7 +52,7 @@ config_context_sections = pwndbg.config.Parameter('context-sections',
 
 # Storing output configuration per section
 outputs = {}
-clearings = {}
+output_settings = {}
 
 
 @pwndbg.config.Trigger([config_context_sections])
@@ -141,10 +141,13 @@ parser.description = "Sets the output of a context section."
 parser.add_argument("section", type=str, help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', and/or 'args')")
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
+parser.add_argument("banner", type=str, default="both", help="Where a banner should be placed: both, top , bottom, none")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
-def contextoutput(section, path, clearing):
+def contextoutput(section, path, clearing, banner="both"):
     outputs[section] = path
-    clearings[section] = clearing
+    output_settings[section] = dict(clearing=clearing, 
+                                    banner_top= banner in ["both", "top"],
+                                    banner_bottom= banner in ["both", "bottom"])
 
 # @pwndbg.events.stop
 
@@ -166,31 +169,36 @@ def context(subcontext=None):
     if len(args) == 0:
         args = config_context_sections.split()
 
-    sections = [("legend", lambda target=None: [M.legend()])] if args else []
+    sections = [("legend", lambda target=None, **kwargs: [M.legend()])] if args else []
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
+    result_settings = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
+            # Last section of an output decides about output settings
+            settings = output_settings.get(section, {})
+            result_settings[target].update(settings)
             with target as out:
-                result[target].extend(func(target=out))
+                result[target].extend(func(target=out, 
+                                           with_banner=settings.get("banner_top", True)))
 
     for target, res in result.items():
-        if len(res) > 0:
+        if len(res) > 0 and result_settings[target].get("banner_bottom", True):
             with target as out:
                 res.append(pwndbg.ui.banner("", target=out))
 
     for target, lines in result.items():
         with target as out:
-            if config_clear_screen and lines:
+            if result_settings[target].get("clearing", config_clear_screen) and lines:
                 clear_screen(out)
             out.write("\n".join(lines))
             out.flush()
 
 
-def context_regs(target=sys.stdout):
-    return [pwndbg.ui.banner("registers", target=target)] + get_regs()
+def context_regs(target=sys.stdout, with_banner=True):
+    return [pwndbg.ui.banner("registers", target=target)] + get_regs() if with_banner else get_regs()
 
 parser = argparse.ArgumentParser()
 parser.description = '''Print out all registers and enhance the information.'''
@@ -250,7 +258,7 @@ Unicorn emulation of code near the current instruction
 ''')
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
-def context_disasm(target=sys.stdout):
+def context_disasm(target=sys.stdout, with_banner=True):
     banner = [pwndbg.ui.banner("disasm", target=target)]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
@@ -260,7 +268,7 @@ def context_disasm(target=sys.stdout):
     while len(result) < code_lines + 1:
         result.append('')
 
-    return banner + result
+    return banner + result if with_banner else result
 
 theme.Parameter('highlight-source', True, 'whether to highlight the closest source line')
 source_code_lines = pwndbg.config.Parameter('context-source-code-lines',
@@ -337,13 +345,13 @@ def get_filename_and_formatted_source():
     return filename, formatted_source
 
 
-def context_code(target=sys.stdout):
+def context_code(target=sys.stdout, with_banner=True):
     filename, formatted_source = get_filename_and_formatted_source()
 
     # Try getting source from files
     if formatted_source:
-        return [pwndbg.ui.banner("Source (code)", target=target),
-                'In file: %s' % filename] + formatted_source
+        bannerline = [pwndbg.ui.banner("Source (code)", target=target)] if with_banner else []
+        return bannerline + ['In file: %s' % filename] + formatted_source
 
     # Try getting source from IDA Pro Hex-Rays Decompiler
     if not pwndbg.ida.available():
@@ -352,9 +360,10 @@ def context_code(target=sys.stdout):
     n = int(int(int(source_code_lines) / 2)) # int twice to make it a real int instead of inthook
     # May be None when decompilation failed or user loaded wrong binary in IDA
     code = pwndbg.ida.decompile_context(pwndbg.regs.pc, n)
-    
+
     if code:
-        return [pwndbg.ui.banner("Hexrays pseudocode", target=target)] + code.splitlines()
+        bannerline = [pwndbg.ui.banner("Hexrays pseudocode", target=target)] if with_banner else []
+        return bannerline + code.splitlines()
     else:
         return []
 
@@ -362,8 +371,8 @@ def context_code(target=sys.stdout):
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
 
-def context_stack(target=sys.stdout):
-    result = [pwndbg.ui.banner("stack", target=target)]
+def context_stack(target=sys.stdout, with_banner=True):
+    result = [pwndbg.ui.banner("stack", target=target)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
     if telescope:
         result.extend(telescope)
