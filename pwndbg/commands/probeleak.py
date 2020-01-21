@@ -29,7 +29,7 @@ def find_module(addr, max_distance):
 
         if not pages:
             return None
-            
+
     return pages[-1]
 
 parser = argparse.ArgumentParser(description='''
@@ -46,7 +46,7 @@ parser.add_argument('max_distance', nargs='?', default=0x0,
                     help='Max acceptable distance between memory page boundry and leaked pointer')
 parser.add_argument('mapping_name', type=str, nargs='?', default=None,
                     help='Mapping to search [e.g. libc]')
-parser.add_argument('stop_cnt', nargs='?', default=1,
+parser.add_argument('stop_cnt', nargs='?', default=0,
                     help='stop search after get n required pointers, default 1')
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -99,7 +99,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, mapping_name=None, sto
             offset_text = '0x%0*x' % (off_zeros, i)
             p_text = '0x%0*x' % (int(ptrsize*2), p)
             text = '%s: %s = %s' % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text))
-            
+
             symbol = pwndbg.symbol.get(p)
             if symbol:
                 text += ' (%s)' % symbol
