@@ -37,6 +37,8 @@ Pointer scan for possible offset leaks.
 Examples:
     probeleak $rsp 0x64 - leaks 0x64 bytes starting at stack pointer and search for valid pointers
     probeleak $rsp 0x64 0x10 - as above, but pointers may point 0x10 bytes outside of memory page
+    probeleak $rsp 0x64 0 libc 1 - leaks 0x64 bytes starting at stack pointer and search for one valid pointer 
+        which points to libc
 ''')
 parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
@@ -45,9 +47,9 @@ parser.add_argument('count', nargs='?', default=0x40,
 parser.add_argument('max_distance', nargs='?', default=0x0,
                     help='Max acceptable distance between memory page boundry and leaked pointer')
 parser.add_argument('mapping_name', type=str, nargs='?', default=None,
-                    help='Mapping to search [e.g. libc]')
+                    help='Mapping you want the pointers point to')
 parser.add_argument('stop_cnt', nargs='?', default=0,
-                    help='stop search after get n required pointers, default 1')
+                    help='Stop search after get n required pointers, default 0')
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
