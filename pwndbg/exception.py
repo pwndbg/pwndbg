@@ -66,7 +66,7 @@ def handle(name='Error'):
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        print(message.error('Exception occured: {}: {} ({})'.format(name, exc_value, exc_type)))
+        print(message.error('Exception occurred: {}: {} ({})'.format(name, exc_value, exc_type)))
 
         print(message.notice('For more info invoke `') +
               message.hint('set exception-verbose on') +
