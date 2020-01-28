@@ -10,7 +10,7 @@ Feel free to update the list below!
 
 * The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's prompt hook (which we defined in `pwndbg/prompt.py` as `prompt_hook_on_stop`).
 
-* All commands should be defined in `pwndbg/commands` - most of them lie in seperate files but some files contains many of them (e.g. commands corresponding to windbg debugger - in `windbg.py` or some misc commands in `misc.py`). We would also want to make all of them to use `ArgparsedCommand` (instead of `Command` or `ParsedCommand` decorators).
+* All commands should be defined in `pwndbg/commands` - most of them lie in separate files but some files contains many of them (e.g. commands corresponding to windbg debugger - in `windbg.py` or some misc commands in `misc.py`). We would also want to make all of them to use `ArgparsedCommand` (instead of `Command` or `ParsedCommand` decorators).
 
 * We change a bit GDB settings - this can be seen in `pwndbg/__init__.py` - there are also imports for all pwndbg submodules
 
