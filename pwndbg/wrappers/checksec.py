@@ -24,7 +24,11 @@ def get_raw_out():
         return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file=" + local_path])
     except CalledProcessError:
         pass
-    return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file", local_path])
+    try:
+        return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file", local_path])
+    except CalledProcessError:
+        pass
+    return pwndbg.wrappers.call_cmd(get_raw_out.cmd + [local_path])
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 def relro_status():
