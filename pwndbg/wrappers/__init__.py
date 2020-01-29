@@ -14,20 +14,24 @@ import pwndbg.which
 
 
 class OnlyWithCommand(object):
-    def __init__(self, command):
-        self.cmd_name = command
-        self.cmd_path = pwndbg.which.which(command)
+    def __init__(self, *commands):
+        self.all_cmds = list(map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands))
+        for command in commands:
+            self.cmd = command if isinstance(command, list) else [command]
+            self.cmd_path = pwndbg.which.which(self.cmd[0])
+            if self.cmd_path:
+                break
 
     def __call__(self, function):
-        function.cmd_path = self.cmd_path
+        function.cmd = self.cmd
 
         @pwndbg.commands.OnlyWithFile
         @functools.wraps(function)
-        def _OnlyWithCommand(*a,**kw):
+        def _OnlyWithCommand(*a, **kw):
             if self.cmd_path:
                 return function(*a, **kw)
             else:
-                raise OSError('Could not find command %s in $PATH' % self.cmd_name)
+                raise OSError('Could not find command(s) %s in $PATH' % ', '.join(self.all_cmds))
         return _OnlyWithCommand
 
 
