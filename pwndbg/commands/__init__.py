@@ -246,7 +246,13 @@ def OnlyWithLibcDebugSyms(function):
         else:
             print('''%s: This command only works with libc debug symbols.
 They can probably be installed via the package manager of your choice.
-See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html''' % function.__name__)
+See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
+
+E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 32-bit binaries):
+sudo apt-get install libc6-dbg
+sudo dpkg --add-architecture i386
+sudo apt-get install libc-dbg:i386
+''' % function.__name__)
     return _OnlyWithLibcDebugSyms
 
 class QuietSloppyParsedCommand(ParsedCommand):
