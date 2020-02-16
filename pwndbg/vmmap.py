@@ -148,6 +148,8 @@ def clear_custom_page():
     # TODO: avoid flush all caches
     pwndbg.memoize.reset()
 
+def is_remote_debug():
+    return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 @pwndbg.memoize.reset_on_stop
 def proc_pid_maps():
@@ -191,14 +193,28 @@ def proc_pid_maps():
         '/usr/compat/linux/proc/%s/maps'  % pwndbg.proc.pid,
     ]
 
+    tmp_file = None
+    if is_remote_debug():
+        import tempfile
+        tmp_file = tempfile.TemporaryFile(mode="w+")
+        tmp_file_path = '/proc/self/fd/{}'.format(tmp_file.name)
+        target_file_path = '/proc/{}/maps'.format(pwndbg.proc.pid)
+        gdb.execute("remote get {0:s} {1:s}".format(target_file_path, tmp_file_path))
+        locations.append(tmp_file_path)
+
     for location in locations:
         try:
             data = pwndbg.file.get(location)
+            if len(data) == 0:
+                continue
             break
         except (OSError, gdb.error):
             continue
     else:
         return tuple()
+
+    if tmp_file is not None:
+        tmp_file.close()
 
     if six.PY3:
         data = data.decode()
