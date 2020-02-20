@@ -55,7 +55,7 @@ def format_bin(bins, verbose=False, offset=None):
 
         if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
-        
+
         if bins_type == 'tcachebins':
             limit = 8
             if count <= 7:
@@ -89,7 +89,7 @@ def format_bin(bins, verbose=False, offset=None):
 def get_top_chunk_addr():
     main_heap  = pwndbg.heap.current
     heap_region = main_heap.get_heap_boundaries()
-	
+
     if not heap_region:
         print(message.error('Could not find the heap'))
         return
@@ -238,7 +238,7 @@ def top_chunk(addr=None):
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
     address = get_top_chunk_addr()
-    
+
     return malloc_chunk(address)
 
 
@@ -505,27 +505,35 @@ vis_heap_chunks_parser.add_argument('--naive', '-n', help='Attempt to keep print
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def vis_heap_chunks(address=None, count=None, naive=None):
     main_heap = pwndbg.heap.current
-    heap_region = main_heap.get_heap_boundaries()
+    heap_region = main_heap.get_heap_boundaries(address)
     top_chunk = get_top_chunk_addr()
 
-    unpack = pwndbg.arch.unpack
     ptr_size = pwndbg.arch.ptrsize
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
-    cursor = int(address) if address else heap_region.vaddr
+    cursor = int(address) if address else heap_region.start
 
     for _ in range(count + 1):
-        size_field = unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+        # Don't read beyond the heap mapping if --naive or corrupted heap.
+        if cursor not in heap_region:
+            chunk_delims.append(heap_region.end)
+            break
+
+        size_field = pwndbg.memory.u(cursor + ptr_size)
         real_size = size_field & ~main_heap.malloc_align_mask
         prev_inuse = size_field & pwndbg.constants.ptmalloc.PREV_INUSE
+
+        # Don't repeatedly operate on the same address (e.g. chunk size of 0).
+        if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
+            break
 
         if prev_inuse:
             chunk_delims.append(cursor + ptr_size)
         else:
             chunk_delims.append(cursor)
 
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.vaddr + heap_region.memsz - 0x10):
+        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - 0x10):
             chunk_delims.append(cursor + ptr_size*2)
             break
 
@@ -554,7 +562,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     out = ''
     asc = ''
     labels = []
-    cursor = int(address) if address else heap_region.vaddr
+    cursor = int(address) if address else heap_region.start
 
     for c, stop in enumerate(chunk_delims):
         color_func_idx = c % len(color_funcs)
@@ -564,7 +572,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = unpack(pwndbg.memory.read(cursor, ptr_size))
+            cell = pwndbg.memory.u(cursor)
             cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
 
             out += color_func(cell_hex)
