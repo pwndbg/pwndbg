@@ -245,6 +245,11 @@ def monitor_info_mem():
         # TODO: add debug logging
         return tuple()
 
+    # Handle disabled PG
+    # This will prevent a crash on abstract architectures
+    if len(lines) == 1 and lines[0] == 'PG disabled':
+        return tuple()
+
     pages = []
     for line in lines:
         dash_idx = line.index('-')
