@@ -47,7 +47,7 @@ def clear_screen(out=sys.stdout):
 config_clear_screen = pwndbg.config.Parameter('context-clear-screen', False, 'whether to clear the screen before printing the context')
 config_output = pwndbg.config.Parameter('context-output', 'stdout', 'where pwndbg should output ("stdout" or file/tty).')
 config_context_sections = pwndbg.config.Parameter('context-sections',
-                                                  'regs disasm code stack backtrace',
+                                                  'regs disasm code stack backtrace expressions',
                                                   'which context sections are displayed (controls order)')
 
 # Storing output configuration per section
@@ -149,6 +149,61 @@ def contextoutput(section, path, clearing, banner="both", width=None):
                                     width=width,
                                     banner_top= banner in ["both", "top"],
                                     banner_bottom= banner in ["both", "bottom"])
+
+# Watches
+expressions = set()
+expression_commands = {
+    "eval": gdb.parse_and_eval,
+    "execute": lambda exp: gdb.execute(exp, False, True)
+}
+
+parser = argparse.ArgumentParser()
+parser.description = """
+Adds an expression to be shown on context.
+
+'cmd' controls what command is used to interpret the expression.
+eval: the expression is parsed and evaluated as in the debugged language
+execute: the expression is executed as an gdb command
+"""
+parser.add_argument("cmd", type=str, default="eval", nargs="?",
+                    help="Command to be used with the expression. Values are: eval execute")
+parser.add_argument("expression", type=str, help="The expression to be evaluated and shown in context")
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-watch', 'cwatch'])
+def contextwatch(expression, cmd=None):
+    expressions.add((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
+
+parser = argparse.ArgumentParser()
+parser.description = """Removes an expression previously added to be watched."""
+parser.add_argument("expression", type=str, help="The expression to be removed from context")
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-unwatch', 'cunwatch'])
+def contextunwatch(expression):
+    global expressions
+    expressions = set((exp,cmd) for exp,cmd in expressions if exp != expression)
+
+def context_expressions(target=sys.stdout, with_banner=True, width=None):
+    if not expressions: return []
+    banner = [pwndbg.ui.banner("expressions", target=target, width=width)]
+    output = []
+    if width is None:
+        _height, width = pwndbg.ui.get_window_size(target=target)
+    for exp,cmd in sorted(expressions):
+        try:
+            # value = gdb.parse_and_eval(exp)
+            value = str(cmd(exp))
+        except gdb.error as err:
+            value = str(err)
+        value = value.split("\n")
+        lines = []
+        for line in value:
+            if width and len(line)+len(exp)+3 > width:
+                n = width - (len(exp)+3) - 1 # 1 Padding...
+                lines.extend(line[i:i+n] for i in range(0, len(line), n))
+            else:
+                lines.append(line)
+
+        fmt = C.highlight(exp)
+        output.extend("{} = {}".format(fmt, ("\n"+" "*(len(exp)+3)).join(lines)).split("\n"))
+    return banner + output if with_banner else output
 
 # @pwndbg.events.stop
 
@@ -498,7 +553,8 @@ context_sections = {
     'a': context_args,
     'c': context_code,
     's': context_stack,
-    'b': context_backtrace
+    'b': context_backtrace,
+    'e': context_expressions,
 }
 
 
