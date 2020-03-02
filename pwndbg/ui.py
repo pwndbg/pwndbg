@@ -39,8 +39,8 @@ def check_title_position():
 
 def banner(title, target=sys.stdin, width=None):
     title = title.upper()
-    if width is None:
-        _height, width = get_window_size(target=target)
+    if width is None: # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
+        _height, width = get_window_size(target=target if target != sys.stdout else sys.stdin)
     if title:
         title = '%s%s%s' % (config.banner_title_surrounding_left, C.banner_title(title), config.banner_title_surrounding_right)
     if 'left' == title_position:
