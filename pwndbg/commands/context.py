@@ -78,8 +78,7 @@ class StdOutput(object):
     def __enter__(self):
         return sys.stdout
     def __exit__(self, *args, **kwargs):
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        pass
     def __hash__(self):
         return hash(sys.stdout)
     def __eq__(self, other):
@@ -199,6 +198,8 @@ def context(subcontext=None):
             if result_settings[target].get("clearing", config_clear_screen) and lines:
                 clear_screen(out)
             out.write("\n".join(lines))
+            if out is sys.stdout:
+                out.write('\n')
             out.flush()
 
 
