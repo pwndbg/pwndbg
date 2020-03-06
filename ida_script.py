@@ -147,8 +147,11 @@ def decompile_context(addr, context_lines):
     
     y = get_decompile_coord_by_ea(cfunc, addr)
     lines = cfunc.get_pseudocode()
-    retlines = (idaapi.tag_remove(lines[lnnum].line) for lnnum
-                    in range(max(0, y - context_lines),min(len(lines), y + context_lines)))
+    retlines = []
+    for lnnum in range(max(0, y - context_lines), min(len(lines), y + context_lines)):
+        retlines.append(idaapi.tag_remove(lines[lnnum].line))
+        if lnnum == y:
+            retlines[-1] = '>' + retlines[-1][1:]
     return '\n'.join(retlines)
 
 
