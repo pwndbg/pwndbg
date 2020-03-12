@@ -11,18 +11,17 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import binascii
-import errno as _errno
 import os
-import subprocess
 import tempfile
 
 import gdb
 
 import pwndbg.qemu
 import pwndbg.remote
+import pwndbg.symbol
 
 
-def get_file(path, recurse=1):
+def get_file(path):
     """
     Downloads the specified file from the system where the current process is
     being debugged.
@@ -32,10 +31,10 @@ def get_file(path, recurse=1):
     """
     local_path = path
 
-    if pwndbg.qemu.root() and recurse:
+    if pwndbg.qemu.root():
         return os.path.join(pwndbg.qemu.binfmt_root, path)
     elif pwndbg.remote.is_remote() and not pwndbg.qemu.is_qemu():
-        local_path = tempfile.mktemp()
+        local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
         error      = None
         try:
             error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
@@ -49,7 +48,7 @@ def get_file(path, recurse=1):
 
     return local_path
 
-def get(path, recurse=1):
+def get(path):
     """
     Retrieves the contents of the specified file on the system
     where the current process is being debugged.
@@ -57,7 +56,7 @@ def get(path, recurse=1):
     Returns:
         A byte array, or None.
     """
-    local_path = get_file(path, recurse)
+    local_path = get_file(path)
 
     try:
         with open(local_path,'rb') as f:

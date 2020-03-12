@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import os
 import re
+import shutil
 import tempfile
 
 import elftools.common.exceptions
@@ -71,7 +72,9 @@ def reset_remote_files():
     global remote_files
     global remote_files_dir
     remote_files = {}
-    remote_files_dir = tempfile.mkdtemp()
+    if remote_files_dir is not None:
+        shutil.rmtree(remote_files_dir)
+        remote_files_dir = None
 
 @pwndbg.events.new_objfile
 def autofetch():
