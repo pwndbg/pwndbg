@@ -350,7 +350,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def get_arena_for_chunk(self,addr):
-        chunk = pwndbg.memory.poi(self.malloc_state,addr)
+        chunk = pwndbg.commands.heap.read_chunk(addr)
         _,_,nm = self.chunk_flags(chunk['size'])
         if nm:
             r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
