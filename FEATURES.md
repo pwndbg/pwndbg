@@ -107,7 +107,7 @@ Be warned, the first call to radare2/r2ghidra-dec is rather slow! Subsequent req
 source will be faster. And it does take up some resources as the radare2 instance is kept by r2pipe
 to enable faster subsequent analysis.
 
-With those performance penalties it is resonable to not have if launch always. Therefore it includes
+With those performance penalties it is resonable to not have it launch always. Therefore it includes
 an option to only start it when required with `set context-ghidra`:
 * `set context-ghidra always`: always trigger the ghidra context
 * `set context-ghidra never`: never trigger the ghidra context except when called manually
