@@ -432,21 +432,24 @@ parser.description = """
     address. Used for fastbin dups and house of spirit
     """
 parser.add_argument("addr", type=int, help="The start address.") #TODO describe these better
-parser.add_argument("size", type=int, help="The size.")
+parser.add_argument("size", nargs="?", type=int, default=None, help="The size.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def find_fake_fast(addr, size):
+def find_fake_fast(addr, size=None):
     """
     Finds candidate fake fast chunks that will overlap with the specified
     address. Used for fastbin dups and house of spirit
     """
+    psize = pwndbg.arch.ptrsize
     main_heap = pwndbg.heap.current
+    align = main_heap.malloc_alignment
+    min_fast = main_heap.min_chunk_size
     max_fast = main_heap.global_max_fast
-    fastbin  = main_heap.fastbin_index(int(size))
-    start    = int(addr) - int(max_fast)
-    mem      = pwndbg.memory.read(start, max_fast, partial=True)
+    max_fastbin  = main_heap.fastbin_index(max_fast)
+    start    = int(addr) - max_fast + psize
+    mem      = pwndbg.memory.read(start, max_fast - psize, partial=True)
 
     fmt = {
         'little': '<',
@@ -454,16 +457,22 @@ def find_fake_fast(addr, size):
     }[pwndbg.arch.endian] + {
         4: 'I',
         8: 'Q'
-    }[pwndbg.arch.ptrsize]
+    }[psize]
+
+    if size is None:
+        sizes = range(min_fast, max_fast + 1, align)
+    else:
+        sizes = [size]
 
     print(C.banner("FAKE CHUNKS"))
-    for offset in range(max_fast - pwndbg.arch.ptrsize):
-        candidate = mem[offset:offset + pwndbg.arch.ptrsize]
-        if len(candidate) == pwndbg.arch.ptrsize:
-            value = struct.unpack(fmt, candidate)[0]
-
-            if main_heap.fastbin_index(value) == fastbin:
-                malloc_chunk(start+offset-pwndbg.arch.ptrsize,fake=True)
+    for size in sizes:
+        fastbin  = main_heap.fastbin_index(size)
+        for offset in range((max_fastbin - fastbin) * align, max_fast - align + 1):
+            candidate = mem[offset : offset + psize]
+            if len(candidate) == psize:
+                value = struct.unpack(fmt, candidate)[0]
+                if main_heap.fastbin_index(value) == fastbin:
+                    malloc_chunk(start+offset-psize, fake=True)
 
 
 vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
