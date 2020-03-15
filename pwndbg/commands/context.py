@@ -175,13 +175,14 @@ def contextwatch(expression, cmd=None):
 parser = argparse.ArgumentParser()
 parser.description = """Removes an expression previously added to be watched."""
 parser.add_argument("expression", type=str, help="The expression to be removed from context")
-@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-unwatch', 'cunwatch'])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-watch', 'cunwatch'])
 def contextunwatch(expression):
     global expressions
     expressions = set((exp,cmd) for exp,cmd in expressions if exp != expression)
 
 def context_expressions(target=sys.stdout, with_banner=True, width=None):
-    if not expressions: return []
+    if not expressions:
+        return []
     banner = [pwndbg.ui.banner("expressions", target=target, width=width)]
     output = []
     if width is None:
@@ -202,7 +203,9 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
                 lines.append(line)
 
         fmt = C.highlight(exp)
-        output.extend("{} = {}".format(fmt, ("\n"+" "*(len(exp)+3)).join(lines)).split("\n"))
+        lines[0] = "{} = {}".format(fmt, lines[0])
+        lines[1:] = [" "*(len(exp)+3) + line for line in lines[1:]]
+        output.extend(lines)
     return banner + output if with_banner else output
 
 # @pwndbg.events.stop
