@@ -522,7 +522,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
 
         size_field = pwndbg.memory.u(cursor + ptr_size)
         real_size = size_field & ~main_heap.malloc_align_mask
-        prev_inuse = size_field & pwndbg.constants.ptmalloc.PREV_INUSE
+        prev_inuse = main_heap.chunk_flags(size_field)[0]
 
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
         if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
