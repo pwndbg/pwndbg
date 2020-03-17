@@ -533,7 +533,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
         else:
             chunk_delims.append(cursor)
 
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - 0x10):
+        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - ptr_size*2):
             chunk_delims.append(cursor + ptr_size*2)
             break
 
