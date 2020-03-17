@@ -119,7 +119,7 @@ def get_decompile_coord_by_ea(cfunc, addr):
         item = cfunc.body.find_closest_addr(addr)
         y_holder = idaapi.int_pointer()
         if not cfunc.find_item_coords(item, None, y_holder):
-            return cfunc
+            return None
         y = y_holder.value()
     else:
         lnmap = {}
@@ -130,13 +130,13 @@ def get_decompile_coord_by_ea(cfunc, addr):
             ret = cfunc.get_line_item(line.line, 0, True, phead, pitem, ptail)
             if ret and pitem.it:
                 lnmap[pitem.it.ea] = i
-        y = -1
+        y = None
         closest_ea = BADADDR
         for ea,line in lnmap.items():
             if closest_ea == BADADDR or abs(closest_ea - addr) > abs(ea - addr):
                 closest_ea = ea
                 y = lnmap[ea]
-    
+
     return y
 
 
@@ -144,11 +144,15 @@ def decompile_context(addr, context_lines):
     cfunc = decompile(addr)
     if cfunc is None:
         return None
-    
     y = get_decompile_coord_by_ea(cfunc, addr)
+    if y is None:
+        return cfunc
     lines = cfunc.get_pseudocode()
-    retlines = (idaapi.tag_remove(lines[lnnum].line) for lnnum
-                    in range(max(0, y - context_lines),min(len(lines), y + context_lines)))
+    retlines = []
+    for lnnum in range(max(0, y - context_lines), min(len(lines), y + context_lines)):
+        retlines.append(idaapi.tag_remove(lines[lnnum].line))
+        if lnnum == y:
+            retlines[-1] = '>' + retlines[-1][1:]
     return '\n'.join(retlines)
 
 

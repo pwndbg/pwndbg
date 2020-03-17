@@ -350,7 +350,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def get_arena_for_chunk(self,addr):
-        chunk = pwndbg.memory.poi(self.malloc_state,addr)
+        chunk = pwndbg.commands.heap.read_chunk(addr)
         _,_,nm = self.chunk_flags(chunk['size'])
         if nm:
             r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
@@ -563,14 +563,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
     def is_initialized(self):
-        """
-        malloc state is initialized when a new arena is created. 
-            https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=96149549758dd424f5c08bed3b7ed1259d5d5664;hb=HEAD#l1807
-        By default main_arena is partially initialized, and during the first usage of a glibc allocator function some other field are populated.
-        global_max_fast is one of them thus the call of set_max_fast() when initializing the main_arena, 
-        making it one of the ways to check if the allocator is initialized or not.
-        """
-        return self.global_max_fast != 0
+        addr = pwndbg.symbol.address('__libc_malloc_initialized')
+        return pwndbg.memory.s32(addr) > 0
 
     def libc_has_debug_syms(self):
         return pwndbg.symbol.address('global_max_fast') is not None

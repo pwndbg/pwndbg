@@ -86,33 +86,6 @@ def format_bin(bins, verbose=False, offset=None):
 
     return result
 
-def get_top_chunk_addr():
-    main_heap  = pwndbg.heap.current
-    heap_region = main_heap.get_heap_boundaries()
-
-    if not heap_region:
-        print(message.error('Could not find the heap'))
-        return
-
-    heap_start = heap_region.vaddr
-    heap_end   = heap_start + heap_region.memsz
-
-    # If we don't know where the main_arena struct is, just iterate
-    # through all the heap objects until we hit the last one
-    last_addr = None
-    addr = heap_start
-    while addr < heap_end:
-        chunk = read_chunk(addr)
-        size = int(chunk['size'])
-
-        # Clear the bottom 3 bits
-        size &= ~7
-        if size == 0:
-            break
-        last_addr = addr
-        addr += size
-    address = last_addr
-    return address
 
 parser = argparse.ArgumentParser()
 parser.description = "Prints out chunks starting from the address specified by `addr`."
@@ -237,7 +210,7 @@ def top_chunk(addr=None):
     """
     main_heap   = pwndbg.heap.current
     main_arena  = main_heap.get_arena(addr)
-    address = get_top_chunk_addr()
+    address = main_arena['top']
 
     return malloc_chunk(address)
 
@@ -506,8 +479,9 @@ vis_heap_chunks_parser.add_argument('--naive', '-n', help='Attempt to keep print
 def vis_heap_chunks(address=None, count=None, naive=None):
     main_heap = pwndbg.heap.current
     heap_region = main_heap.get_heap_boundaries(address)
-    top_chunk = get_top_chunk_addr()
-
+    main_arena = main_heap.get_arena_for_chunk(address) if address else main_heap.main_arena
+    
+    top_chunk = main_arena['top']
     ptr_size = main_heap.size_sz
 
     # Build a list of addresses that delimit each chunk.

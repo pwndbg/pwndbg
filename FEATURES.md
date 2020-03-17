@@ -21,6 +21,75 @@ The output of the context may be redirected to a file (including other tty) by u
 
 ![](caps/context.png)  
 
+### Splitting / Layouting Context
+
+The context sections can be distibuted among different tty by using the `contextoutput` command.
+Example: `contextoutput stack /path/to/tty true`
+
+Python can be used to create a tmux layout when starting pwndbg and distributing the context among
+the splits.
+```python
+python
+import atexit
+import os
+from pwndbg.commands.context import contextoutput, output, clear_screen
+bt = os.popen('tmux split-window -P -F "#{pane_id}:#{pane_tty}" -d "cat -"').read().strip().split(":")
+st = os.popen(F'tmux split-window -h -t {bt[0]} -P -F '+'"#{pane_id}:#{pane_tty}" -d "cat -"').read().strip().split(":")
+re = os.popen(F'tmux split-window -h -t {st[0]} -P -F '+'"#{pane_id}:#{pane_tty}" -d "cat -"').read().strip().split(":")
+di = os.popen('tmux split-window -h -P -F "#{pane_id}:#{pane_tty}" -d "cat -"').read().strip().split(":")
+panes = dict(backtrace=bt, stack=st, regs=re, disasm=di)
+for sec, p in panes.items():
+  contextoutput(sec, p[1], True)
+contextoutput("legend", di[1], True)
+atexit.register(lambda: [os.popen(F"tmux kill-pane -t {p[0]}").read() for p in panes.values()])
+end
+```
+If you like it simple, try configuration with [splitmind](https://github.com/jerdna-regeiz/splitmind)
+
+![](caps/context_splitting.png)
+
+Note above example uses splitmind and following configuration:
+
+```python
+python
+import splitmind
+(splitmind.Mind()
+  .tell_splitter(show_titles=True)
+  .tell_splitter(set_title="Main")
+  .right(display="backtrace", size="25%")
+  .above(of="main", display="disasm", size="80%", banner="top")
+  .show("code", on="disasm", banner="none")
+  .right(cmd='tty; tail -f /dev/null', size="65%", clearing=False)
+  .tell_splitter(set_title='Input / Output')
+  .above(display="stack", size="75%")
+  .above(display="legend", size="25")
+  .show("regs", on="legend")
+  .below(of="backtrace", cmd="ipython", size="30%")
+).build(nobanner=True)
+end
+```
+
+### Watch Expressions
+
+You can add expressions to be watched by the context.
+Those expressions are evaluated and shown on every context refresh.
+
+An expression can be added via the `contextwatch` command (aliased `ctx-watch` and `cwatch`).
+
+Per default an expression is parsed and evaluated in the debugged language and can be added with:
+```
+contextwatch BUF
+ctx-watch ITEMS[0]
+```
+
+Alternatively one can provide an arbitrary gdb command to be executed and the result printed in the
+context by using the optional `cmd` parameter with the value `execute`:
+```
+contextwatch exectue "ds BUF"
+cwatch execute "x/20x $rsp"
+```
+
+
 ## Disassembly
 
 Pwndbg uses Capstone Engine to display disassembled instructions, but also leverages its introspection into the instruction to extract memory targets and condition codes.
