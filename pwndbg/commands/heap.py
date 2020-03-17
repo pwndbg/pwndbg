@@ -508,7 +508,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     heap_region = main_heap.get_heap_boundaries(address)
     top_chunk = get_top_chunk_addr()
 
-    ptr_size = pwndbg.arch.ptrsize
+    ptr_size = main_heap.size_sz
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
