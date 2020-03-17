@@ -372,8 +372,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         adresses inside it or a fake Page for the containing heap for non-main arenas.
         """
         page = pwndbg.memory.Page(0, 0, 0, 0)
-        brk = self.get_region()
-        if addr is None or brk.vaddr < addr < brk.vaddr + brk.memsz:
+        brk = self.get_region(addr)
+        if brk == self.get_region():
             # Occasionally, the [heap] vm region and the actual start of the heap are
             # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
             # Return an adjusted Page object if this is the case.
@@ -382,13 +382,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 page.vaddr = sbrk_base
                 page.memsz = brk.memsz - (sbrk_base - brk.vaddr)
                 return page
-            else:
-                return brk
-        else:
-            page.vaddr = heap_for_ptr(addr)
-            heap = self.get_heap(page.vaddr)
-            page.memsz = int(heap['size'])
-            return page
+
+        return brk
 
 
     def get_region(self, addr=None):

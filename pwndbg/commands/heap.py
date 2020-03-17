@@ -480,7 +480,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     main_heap = pwndbg.heap.current
     heap_region = main_heap.get_heap_boundaries(address)
     main_arena = main_heap.get_arena_for_chunk(address) if address else main_heap.main_arena
-    
+
     top_chunk = main_arena['top']
     ptr_size = main_heap.size_sz
 
