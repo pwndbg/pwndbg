@@ -431,8 +431,8 @@ parser.description = """
     Finds candidate fake fast chunks that will overlap with the specified
     address. Used for fastbin dups and house of spirit
     """
-parser.add_argument("addr", type=int, help="The start address.") #TODO describe these better
-parser.add_argument("size", nargs="?", type=int, default=None, help="The size.")
+parser.add_argument("addr", type=int, help="The start address of a word size value you want to overlap.")
+parser.add_argument("size", nargs="?", type=int, default=None, help="The size of fastbin you want to use.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
