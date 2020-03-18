@@ -286,7 +286,7 @@ class module(ModuleType):
         attr = attr.lstrip('$')
         try:
             # Seriously, gdb? Only accepts uint32.
-            if 'eflags' in attr:
+            if 'eflags' in attr or 'cpsr' in attr:
                 value = gdb77_get_register(attr)
                 value = value.cast(pwndbg.typeinfo.uint32)
             else:
