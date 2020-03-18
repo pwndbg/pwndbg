@@ -175,7 +175,7 @@ def contextwatch(expression, cmd=None):
 parser = argparse.ArgumentParser()
 parser.description = """Removes an expression previously added to be watched."""
 parser.add_argument("expression", type=str, help="The expression to be removed from context")
-@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-watch', 'cunwatch'])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-unwatch', 'cunwatch'])
 def contextunwatch(expression):
     global expressions
     expressions = set((exp,cmd) for exp,cmd in expressions if exp != expression)
