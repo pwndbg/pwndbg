@@ -1,6 +1,3 @@
-#ifndef CONTEXT_PY
-#define CONTEXT_PY
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
@@ -672,5 +669,3 @@ def _is_rr_present():
     interpreter_globals = ast.literal_eval(globals_list_literal_str)
 
     return 'RRCmd' in interpreter_globals and 'RRWhere' in interpreter_globals
-
-#endif /* CONTEXT_PY */
