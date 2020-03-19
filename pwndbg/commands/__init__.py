@@ -22,6 +22,7 @@ import pwndbg.symbol
 import pwndbg.ui
 
 commands = []
+command_names = set()
 
 def list_current_commands():
     current_pagination = gdb.execute('show pagination', to_string=True)
@@ -44,27 +45,26 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 
 class Command(gdb.Command):
     """Generic command wrapper"""
-    command_names = set()
     builtin_override_whitelist = {'up', 'down', 'search', 'pwd', 'start'}
     history = {}
 
     def __init__(self, function, prefix=False, command_name=None):
         if command_name is None:
             command_name = function.__name__
-        
+
         super(Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
-        if command_name in self.command_names:
+        if command_name in command_names:
             raise Exception('Cannot add command %s: already exists.' % command_name)
         if command_name in GDB_BUILTIN_COMMANDS and command_name not in self.builtin_override_whitelist:
             raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
-        self.command_names.add(command_name)
+        command_names.add(command_name)
         commands.append(self)
 
         functools.update_wrapper(self, function)
-        self.__doc__ = function.__doc__
+        self.__name__ = command_name
 
         self.repeat = False
 
@@ -269,7 +269,7 @@ class _ArgparsedCommand(Command):
             self.parser.prog = function.__name__
         else:
             self.parser.prog = command_name
-        self.__doc__ = function.__doc__ = self.parser.description
+        self.__doc__ = function.__doc__ = self.parser.description.strip()
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
     def split_args(self, argument):

@@ -47,6 +47,7 @@ Memory pages on QEMU targets may be inaccurate. This is because:
 - for others, we create mempages by exploring current register values (this is least correct)
 
 Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
+parser.formatter_class=argparse.RawDescriptionHelpFormatter
 parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
                     help='Address or module name.')
 
