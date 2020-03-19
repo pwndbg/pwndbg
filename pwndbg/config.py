@@ -168,8 +168,7 @@ class Parameter(gdb.Parameter):
             trigger()
 
         if not pwndbg.decorators.first_prompt:
-            # Remove the newline that gdb adds automatically
-            return '\b'
+            return ''
         return 'Set %s to %r' % (self.docstring, self.value)
 
     def get_show_string(self, svalue):

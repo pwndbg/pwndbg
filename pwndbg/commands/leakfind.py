@@ -54,11 +54,14 @@ def dbg_print_map(maps):
 
 parser = argparse.ArgumentParser()
 parser.description = """
-Attempt to find a leak chain given a starting address. Scans memory near the given address, looks for pointers, 
-and continues that process to attempt to find leaks.\n
-Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, 
-and are a maximum length of 6\n
+Attempt to find a leak chain given a starting address.
+Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
+
+Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks \
+that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, \
+and are a maximum length of 6.
 """
+parser.formatter_class=argparse.RawDescriptionHelpFormatter
 parser.add_argument("address",help="Starting address to find a leak chain from")
 parser.add_argument("-p", "--page_name", type=str, nargs="?", default=None, help="Substring required to be part of the name of any found pages")
 parser.add_argument("-o", "--max_offset", default=0x48, nargs="?", help="Max offset to add to addresses when looking for leak")

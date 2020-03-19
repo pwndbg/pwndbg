@@ -51,9 +51,10 @@ Pointer scan for possible offset leaks.
 Examples:
     probeleak $rsp 0x64 - leaks 0x64 bytes starting at stack pointer and search for valid pointers
     probeleak $rsp 0x64 --max-dist 0x10 - as above, but pointers may point 0x10 bytes outside of memory page
-    probeleak $rsp 0x64 --point-to libc --max-ptrs 1 --flags rwx - leaks 0x64 bytes starting at stack pointer and 
-        search for one valid pointer which points to a libc rwx page
+    probeleak $rsp 0x64 --point-to libc --max-ptrs 1 --flags rwx - leaks 0x64 bytes starting at stack pointer and \
+search for one valid pointer which points to a libc rwx page
 ''')
+parser.formatter_class=argparse.RawDescriptionHelpFormatter
 parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
 parser.add_argument('count', nargs='?', default=0x40,
