@@ -23,7 +23,7 @@ The output of the context may be redirected to a file (including other tty) by u
 
 ### Splitting / Layouting Context
 
-The context sections can be distibuted among different tty by using the `contextoutput` command.
+The context sections can be distributed among different tty by using the `contextoutput` command.
 Example: `contextoutput stack /path/to/tty true`
 
 Python can be used to create a tmux layout when starting pwndbg and distributing the context among
