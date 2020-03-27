@@ -141,11 +141,14 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     def thread_cache(self):
-        """Locate a thread's tcache struct."""
+        """Locate a thread's tcache struct. If it doesn't have one, use the main
+        thread's tcache.
+        """
+        tcache = self.mp['sbrk_base'] + 0x10
         if self.multithreaded:
-            tcache = pwndbg.memory.pvoid(pwndbg.symbol.address('tcache'))
-        else:
-            tcache = self.mp['sbrk_base'] + 0x10
+            tcache_addr = pwndbg.memory.pvoid(pwndbg.symbol.address('tcache'))
+            if tcache_addr != 0:
+                tcache = tcache_addr
 
         if tcache is not None:
             try:
@@ -320,13 +323,16 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def get_arena(self, arena_addr=None):
         """Read a malloc_state struct from the specified address, default to
-        reading the current thread's arena.
+        reading the current thread's arena. Return the main arena if the
+        current thread is not attached to an arena.
         """
         if arena_addr is None:
             if self.multithreaded:
-                return pwndbg.memory.poi(self.malloc_state, pwndbg.memory.u(pwndbg.symbol.address('thread_arena')))
-            else:
-                return self.main_arena
+                arena_addr = pwndbg.memory.u(pwndbg.symbol.address('thread_arena'))
+                if arena_addr != 0:
+                    return pwndbg.memory.poi(self.malloc_state, arena_addr)
+
+            return self.main_arena
 
         return pwndbg.memory.poi(self.malloc_state, arena_addr)
 
