@@ -38,6 +38,15 @@ install_swupd() {
     sudo swupd bundle-add gdb python3-basic make c-basic
 }
 
+install_zypper() {
+    sudo zypper refresh || true
+    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
+
+    if uname -m | grep x86_64 > /dev/null; then
+        sudo zypper install -y glibc-32bit-debuginfo || true
+    fi
+}
+
 PYTHON=''
 INSTALLFLAGS=''
 
@@ -57,9 +66,12 @@ if linux; then
         "fedora")
             install_dnf
             ;;
-	"clear-linux-os")
-	    install_swupd
-	    ;;
+        "clear-linux-os")
+            install_swupd
+            ;;
+        "opensuse-leap")
+            install_zypper
+            ;;
         "arch")
             echo "Install Arch linux using a community package. See:"
             echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
