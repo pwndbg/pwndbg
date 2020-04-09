@@ -571,7 +571,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = pwndbg.memory.u(cursor)
+            cell = pwndbg.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
             cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
 
             out += color_func(cell_hex)
