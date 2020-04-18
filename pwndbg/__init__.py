@@ -33,6 +33,7 @@ import pwndbg.commands.hexdump
 import pwndbg.commands.ida
 import pwndbg.commands.leakfind
 import pwndbg.commands.misc
+import pwndbg.commands.mprotect
 import pwndbg.commands.next
 import pwndbg.commands.peda
 import pwndbg.commands.pie
