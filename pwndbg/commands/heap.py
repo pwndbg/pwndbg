@@ -91,11 +91,12 @@ def format_bin(bins, verbose=False, offset=None):
 parser = argparse.ArgumentParser()
 parser.description = "Iteratively print chunks on a heap, default to the current thread's active heap."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the first chunk.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def heap(addr=None):
+def heap(addr=None, verbose=False):
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
@@ -144,26 +145,37 @@ def heap(addr=None):
 
         if real_size in fastbins.keys() and cursor in fastbins[real_size]:
             out = message.on("Free chunk (fastbins)\n") + out
-            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
         elif real_size in smallbins.keys() and cursor in bin_addrs(smallbins[real_size], "smallbins"):
             out = message.on("Free chunk (smallbins)\n") + out
-            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-            out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
         elif real_size >= list(largebins.items())[0][0] and cursor in bin_addrs(largebins[(list(largebins.items())[allocator.largebin_index(real_size) - 64][0])], "largebins"):
             out = message.on("Free chunk (largebins)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+                out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
+                out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
+        elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
+            out = message.on("Free chunk (unsortedbin)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+        elif allocator.has_tcache() and real_size in tcachebins.keys() and cursor + ptr_size*2 in bin_addrs(tcachebins[real_size], "tcachebins"):
+            out = message.on("Free chunk (tcache)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+        else:
+            out = message.hint("Allocated chunk\n") + out
+
+        if verbose:
             out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
             out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
             out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
             out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
-        elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
-            out = message.on("Free chunk (unsortedbin)\n") + out
-            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-            out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
-        elif allocator.has_tcache() and real_size in tcachebins.keys() and cursor + ptr_size*2 in bin_addrs(tcachebins[real_size], "tcachebins"):
-            out = message.on("Free chunk (tcache)\n") + out
-            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-        else:
-            out = message.hint("Allocated chunk\n") + out
 
         print(out)
         cursor += real_size
