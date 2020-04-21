@@ -551,7 +551,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     out = ''
     asc = ''
     labels = []
-    cursor = int(address) if address else heap_region.start
+    cursor = int(address) if address else first_chunk
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
