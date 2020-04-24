@@ -521,6 +521,12 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
             # in GLIBC versions >= 2.27.
             cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
 
+    # Check if there is an alignment at the start of the heap, adjust if necessary.
+    if not addr:
+        first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+        if first_chunk_size == 0:
+            cursor += ptr_size * 2
+
     cursor_backup = cursor
 
     for _ in range(count + 1):
@@ -574,6 +580,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
     out = ''
     asc = ''
     labels = []
+
     cursor = cursor_backup
 
     for c, stop in enumerate(chunk_delims):
