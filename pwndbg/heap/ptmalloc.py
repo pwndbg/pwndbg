@@ -144,13 +144,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
         """
-        tcache = self.mp['sbrk_base'] + 0x10
-        if self.multithreaded:
-            tcache_addr = pwndbg.memory.pvoid(pwndbg.symbol.address('tcache'))
-            if tcache_addr != 0:
-                tcache = tcache_addr
+        if self.has_tcache():
+            tcache = self.mp['sbrk_base'] + 0x10
+            if self.multithreaded:
+                tcache_addr = pwndbg.memory.pvoid(pwndbg.symbol.address('tcache'))
+                if tcache_addr != 0:
+                    tcache = tcache_addr
 
-        if tcache is not None:
             try:
                 self._thread_cache = pwndbg.memory.poi(self.tcache_perthread_struct, tcache)
                 _ = self._thread_cache['entries'].fetch_lazy()
@@ -158,15 +158,12 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
                 return None
+
+            return self._thread_cache
+
         else:
-            if not self.has_tcache():
-                print(message.warn('Your libc does not use thread cache'))
-                return None
-
-            print(message.error('Symbol \'tcache\' not found. Try installing libc '
-                                'debugging symbols and try again.'))
-
-        return self._thread_cache
+            print(message.warn('This version of GLIBC was not compiled with tcache support.'))
+            return None
 
     @property
     def mp(self):
