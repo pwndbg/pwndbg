@@ -615,3 +615,268 @@ def bin_addrs(b, bins_type):
     else:  # normal bin
         addrs, _, _ = b
     return addrs
+
+
+try_free_parser = argparse.ArgumentParser(description='''
+Check what will happen if free will be called with given address
+''')
+try_free_parser.add_argument('addr', nargs='?',
+                    help='Address passed to free')
+
+@pwndbg.commands.ArgparsedCommand(try_free_parser)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def try_free(addr):
+    addr = int(addr)
+
+    # check hook
+    free_hook = pwndbg.symbol.address('__free_hook')
+    if free_hook is not None:
+        if pwndbg.memory.pvoid(free_hook) != 0:
+            message.success('__libc_free: will execute __free_hook')
+
+    # free(0) has no effect
+    if addr == 0:
+        message.success('__libc_free: addr is 0, nothing to do')
+        return
+
+    # constants
+    current_heap = pwndbg.heap.current
+    arena = current_heap.get_arena()
+    arena_addr = int(arena.address)
+
+    aligned_lsb = current_heap.malloc_align_mask.bit_length()
+    size_sz = current_heap.size_sz
+    malloc_alignment = current_heap.malloc_alignment
+    malloc_align_mask = current_heap.malloc_align_mask
+    chunk_minsize = current_heap.minsize
+
+    ptr_size = pwndbg.arch.ptrsize
+
+    def unsigned_size(size):
+        # read_chunk()['size'] is signed in pwndbg ;/
+        # there may be better way to handle that
+        if ptr_size < 8:
+            return ctypes.c_uint32(size).value
+        x = ctypes.c_uint64(size).value
+        return x
+
+    def chunksize(chunk_size):
+        # maybe move this to ptmalloc.py
+        return chunk_size & (~7)
+
+    # mem2chunk
+    addr -= 2 * size_sz
+
+    # try to get the chunk
+    try:
+        chunk = read_chunk(addr)
+    except gdb.MemoryError as e:
+        print(message.error('Can\'t read chunk at address 0x{:x}, memory error'.format(addr)))
+        return
+
+    chunk_size = unsigned_size(chunk['size'])
+    chunk_size_unmasked = chunksize(chunk_size)
+    _, is_mmapped, _ = current_heap.chunk_flags(chunk_size)
+
+    if is_mmapped:
+        print(message.notice('__libc_free: Doing munmap_chunk'))
+        return
+
+    # chunk doesn't overlap memory
+    print(message.notice('General checks'))
+    if addr + chunk_size >= (1<<ptr_size*8)-1:
+        err = 'free(): invalid pointer -> &chunk + chunk->size > max memory\n'
+        err += '    0x{:x} + 0x{:x} > 0x{:x}'
+        err = err.format(addr, chunk_size, (1<<ptr_size*8)-1)
+        print(message.error(err))
+
+    # chunk address is aligned
+    addr_tmp = addr
+    if malloc_alignment != 2 * size_sz:
+        addr_tmp = addr + 2 * size_sz
+
+    if addr_tmp & malloc_align_mask != 0:
+        err = 'free(): invalid pointer -> misaligned chunk\n'
+        err += '    LSB of 0x{:x} are 0b{}, should be 0b{}'
+        if addr_tmp != addr:
+            err += ' (0x{:x} was added to the address)'.format(2*size_sz)
+        err = err.format(addr_tmp, bin(addr_tmp)[-aligned_lsb:], '0'*aligned_lsb)
+        print(message.error(err))
+
+    # chunk's size is big enough
+    if chunk_size_unmasked < chunk_minsize:
+        err = 'free(): invalid size -> chunk\'s size smaller than MINSIZE\n'
+        err += '    size is 0x{:x}, MINSIZE is 0x{:x}'
+        err = err.format(chunk_size_unmasked, chunk_minsize)
+        print(message.error(err))
+        return
+
+    # chunk's size is aligned
+    if chunk_size_unmasked & malloc_align_mask != 0:
+        err = 'free(): invalid size -> chunk\'s size is not aligned\n'
+        err += '    LSB of size 0x{:x} are 0b{}, should be 0b{}'
+        err = err.format(chunk_size_unmasked, bin(chunk_size_unmasked)[-aligned_lsb:], '0'*aligned_lsb)
+        print(message.error(err))
+
+    # tcache
+    if current_heap.has_tcache():
+        tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
+        if tc_idx < current_heap.mp['tcache_bins']:
+            print(message.notice('Tcache checks'))
+            e = addr + 2*size_sz
+            e += current_heap.tcache_entry.keys().index('key') * ptr_size
+            e = pwndbg.memory.pvoid(e)
+            tcache_addr = int(current_heap.thread_cache.address)
+            if e == tcache_addr:
+                # todo, actually do checks
+                print(message.error('Will do checks for tcache double-free (memory_tcache_double_free)'))
+
+            if int(current_heap.get_tcache()['counts'][tc_idx]) < int(current_heap.mp['tcache_count']):
+                print(message.success('Using tcache_put'))
+
+    # is fastbin
+    if chunk_size_unmasked <= current_heap.global_max_fast:
+        print(message.notice('Fastbin checks'))
+        chunk_fastbin_idx = current_heap.fastbin_index(chunk_size_unmasked)
+        fastbin_list = current_heap.fastbins(arena_addr)[(chunk_fastbin_idx+2)*(ptr_size*2)]
+
+        try :
+            next_chunk = read_chunk(addr + chunk_size_unmasked)
+        except gdb.MemoryError as e:
+            print(message.error('Can\'t read next chunk at address 0x{:x}, memory error'.format(chunk + chunk_size_unmasked)))
+            return
+
+        # next chunk's size is big enough and small enough
+        next_chunk_size = unsigned_size(next_chunk['size'])
+        if next_chunk_size <= 2*size_sz or chunksize(next_chunk_size) >= int(arena['system_mem']):
+            err = 'free(): invalid next size (fast) -> next chunk\'s size not in [2*size_sz; av->system_mem]\n'
+            err += '    next chunk\'s size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}'
+            err = err.format(next_chunk_size, 2*size_sz, int(arena['system_mem']))
+            print(message.error(err))
+
+        # chunk is not the same as the one on top of fastbin[idx]
+        if int(fastbin_list[0]) == addr:
+            err = 'double free or corruption (fasttop) -> chunk already is on top of fastbin list\n'
+            err += '    fastbin idx == {}'
+            err = err.format(chunk_fastbin_idx)
+            print(message.error(err))
+
+        # chunk's size is ~same as top chunk's size
+        fastbin_top_chunk = int(fastbin_list[0])
+        if fastbin_top_chunk != 0:
+            try:
+                fastbin_top_chunk = read_chunk(fastbin_top_chunk)
+            except gdb.MemoryError as e:
+                print(message.error('Can\'t read top fastbin chunk at address 0x{:x}, memory error'.format(fastbin_top_chunk)))
+                return
+
+            if chunk_fastbin_idx != current_heap.fastbin_index(chunksize(fastbin_top_chunk['size'])):
+                err = 'invalid fastbin entry (free) -> chunk\'s size is not near top chunk\'s size\n'
+                err += '    chunk\'s size == {}, idx == {}\n'
+                err += '    top chunk\'s size == {}, idx == {}'
+                err += '    if `have_lock` is false then the error is invalid'
+                err = err.format(chunk['size'], chunk_fastbin_idx,
+                    chunksize(fastbin_top_chunk['size']), current_heap.fastbin_index(chunksize(fastbin_top_chunk['size'])))
+                print(message.error(err))
+
+    # is not mapped
+    elif is_mmapped == 0:
+        print(message.notice('Not mapped checks'))
+
+        # chunks is not top chunk
+        if addr == int(arena['top']):
+            err = 'double free or corruption (top) -> chunk is top chunk'
+            print(message.error(err))
+
+        # next chunk is not beyond the boundaries of the arena
+        NONCONTIGUOUS_BIT = 2
+        top_chunk_addr = (int(arena['top']))
+        top_chunk = read_chunk(top_chunk_addr)
+        try :
+            next_chunk_addr = addr + chunk_size_unmasked
+            next_chunk = read_chunk(next_chunk_addr)
+        except gdb.MemoryError as e:
+            print(message.error('Can\'t read next chunk at address {:x}, memory error'.format(next_chunk_addr)))
+            return
+
+        # todo: in libc, addition may overflow
+        if (arena['flags'] & NONCONTIGUOUS_BIT == 0) and next_chunk_addr >= top_chunk_addr + chunksize(top_chunk['size']):
+            err = 'double free or corruption (out) -> next chunk is beyond arena and arena is contiguous\n'
+            err += 'next chunk at {:x}, end of arena at {:x}'
+            err = err.format(next_chunk_addr, top_chunk_addr + chunksize(top_chunk['size']))
+            message.error(err)
+
+        # next chunk's P bit is set
+        prev_inuse,_,_ = current_heap.chunk_flags(next_chunk['size'])
+        if prev_inuse == 0:
+            err = 'double free or corruption (!prev) -> next chunk\'s Previous in use bit is 0\n'
+            message.error(err)
+
+        # next chunk's size is big enough and small enough
+        if next_chunk['size'] <= 2*size_sz or chunksize(next_chunk['size']) >= int(arena['system_mem']):
+            err = 'free(): invalid next size (normal) -> next chunk\'s size not in [2*size_sz; system_mem]\n'
+            err += 'next chunk\'s size is {:x}, 2*size_sz is {:x}, system_mem is {:x}'
+            err = err.format(next_chunk['size'], 2*size_sz, int(arena['system_mem']))
+            message.error(err)
+
+
+        # backward consolidation
+        prev_inuse,_,_ = current_heap.chunk_flags(chunk['size'])
+        if prev_inuse == 0:
+            message.notice('Backward consolidation')
+            chunk_size_unmasked += chunk['prev_size']
+            addr = chunk_size_unmasked - chunk['prev_size']
+            try_unlink(addr)
+
+
+        if next_chunk_addr != top_chunk_addr:
+            message.notice('Next chunk is not top chunk')
+            next_next_chunk = read_chunk(next_chunk_addr + chunksize(next_chunk['size']))
+            prev_inuse,_,_ = current_heap.chunk_flags(next_next_chunk['size'])
+
+            # consolidate forward
+            if prev_inuse == 0:
+                message.notice('Forward consolidation')
+                try_unlink(next_chunk_addr)
+                chunk_size_unmasked += chunksize(next_chunk['size'])
+            else:
+                message.notice('Clearing next chunk\'s P bit')
+
+            # unsorted bin fd->bk should be unsorted bean
+            unsorted_addr = int(arena['bins'][0])
+            unsorted = read_chunk(unsorted_addr)
+            if read_chunk(unsorted['fd'])['bk'] != unsorted_addr:
+                err = 'free(): corrupted unsorted chunks -> unsorted chunk->fd->bk != unsorted chunk'
+                err += 'unsorted at {:x}, unsorted->fd->bk == {:x}'
+                err = err.format(unsorted_addr, read_chunk(unsorted['fd'])['bk'])
+                message.error(err)
+        else:
+            message.notice('Next chunk is top chunk')
+            chunk_size_unmasked += chunksize(next_chunk['size'])
+
+        # todo: this may vary strong
+        FASTBIN_CONSOLIDATION_THRESHOLD = 65536
+        if chunk_size_unmasked >= FASTBIN_CONSOLIDATION_THRESHOLD:
+            message.notice('Doing malloc_consolidate and systrim/heap_trim')
+
+    else:
+    #is mapped
+        message.notice('Doing munmap_chunk')
+
+
+def try_unlink(addr):
+    pass
+
+
+try_malloc_parser = argparse.ArgumentParser(description='''
+Check what will happen if malloc will be called with given size
+''')
+try_malloc_parser.add_argument('size', nargs='?',
+                    help='Size passed to malloc')
+
+@pwndbg.commands.ArgparsedCommand(try_malloc_parser)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def try_malloc(addr):
+    addr = int(addr)
