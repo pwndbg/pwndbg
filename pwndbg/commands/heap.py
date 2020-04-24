@@ -490,12 +490,18 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     heap_region = main_heap.get_heap_boundaries(address)
     main_arena = main_heap.get_arena_for_chunk(address) if address else main_heap.main_arena
 
+    first_chunk = heap_region.start
     top_chunk = main_arena['top']
     ptr_size = main_heap.size_sz
 
+    # Check if there is an alignment at the start of the heap
+    first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(first_chunk + ptr_size, ptr_size))
+    if first_chunk_size == 0:
+        first_chunk += ptr_size * 2
+
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
-    cursor = int(address) if address else heap_region.start
+    cursor = int(address) if address else first_chunk
 
     for _ in range(count + 1):
         # Don't read beyond the heap mapping if --naive or corrupted heap.
@@ -545,7 +551,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     out = ''
     asc = ''
     labels = []
-    cursor = int(address) if address else heap_region.start
+    cursor = int(address) if address else first_chunk
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
