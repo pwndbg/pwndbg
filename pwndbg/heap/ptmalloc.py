@@ -249,7 +249,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def multithreaded(self):
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.symbol.address('__libc_multiple_threads')
-        return pwndbg.memory.s32(addr) > 0
+        if addr:
+            return pwndbg.memory.s32(addr) > 0
+        return len(gdb.execute('info threads', to_string=True).split('\n')) > 3
 
     def _request2size(self, req):
         """Corresponds to request2size in glibc malloc.c"""
