@@ -28,6 +28,7 @@ else
 CFLAGS		  +=	  -O1
 endif
 
+GLIBC=/glibc_versions/2.29/tcache_x64
 
 .PHONY : all clean
 
@@ -56,6 +57,21 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 	@GOARCH=amd64 $(GO) build $?
 	@# Not stripped on purpose
 
+heap_bugs: heap_bugs.c
+	${CC} \
+	-Wl,-rpath=${GLIBC}:\
+	${GLIBC}/math:\
+	${GLIBC}/elf:\
+	${GLIBC}/dlfcn:\
+	${GLIBC}/nss:\
+	${GLIBC}/nis:\
+	${GLIBC}/rt:\
+	${GLIBC}/resolv:\
+	${GLIBC}/crypt:\
+	${GLIBC}/nptl_db:\
+	${GLIBC}/nptl:\
+	-Wl,--dynamic-linker=${GLIBC}/elf/ld.so \
+	-g -o heap_bugs.out heap_bugs.c
 
 clean :
 	@echo "[+] Cleaning stuff"
