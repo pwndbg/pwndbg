@@ -17,6 +17,7 @@ from pwndbg.color import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
+
 # See https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=37183cfb6ab5d0735cc82759626670aff3832cd0;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l30
 # and https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f8e7250f70f6f26b0acb5901bcc4f6e39a8a52b2;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l869
 # 1 Mb (x86) or 64 Mb (x64)
@@ -24,7 +25,10 @@ HEAP_MAX_SIZE = 1024 * 1024 if pwndbg.arch.ptrsize == 4 else 2 * 4 * 1024 * 1024
 
 
 def heap_for_ptr(ptr):
-    "find the heap and corresponding arena for a given ptr"
+    """Round a pointer to a chunk down to find its corresponding heap_info
+    struct, the pointer must point inside a heap which does not belong to
+    the main arena.
+    """
     return (ptr & ~(HEAP_MAX_SIZE-1))
 
 
@@ -65,7 +69,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         # ptmalloc cache for current thread
         self._thread_cache  = None
 
-
     @property
     def main_arena(self):
         main_arena_addr = pwndbg.symbol.address('main_arena')
@@ -77,7 +80,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                                 'debugging symbols and try again.'))
 
         return self._main_arena
-
 
     @property
     @pwndbg.memoize.reset_on_stop
@@ -134,55 +136,34 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         self._arenas = arenas
         return arenas
 
-
     def has_tcache(self):
         return (self.mp and 'tcache_bins' in self.mp.type.keys() and self.mp['tcache_bins'])
 
-    def _fetch_tcache_addr(self):
-        """
-        As of Ubuntu 18.04 and glibc 2.27 the tcache_perthread_struct* tcache
-        is located 0x10 bytes after the heap page, so we just return it here.
-
-        pwndbg> p tcache
-        $1 = (tcache_perthread_struct *) 0x555555756010
-        pwndbg> vmmap 0x555555756010
-        LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
-            0x555555756000     0x555555777000 rw-p    21000 0      [heap]
-        """
-        return self.get_heap_boundaries().vaddr + 0x10
-
     @property
     def thread_cache(self):
-        tcache_addr = pwndbg.symbol.address('tcache')
+        """Locate a thread's tcache struct. If it doesn't have one, use the main
+        thread's tcache.
+        """
+        if self.has_tcache():
+            tcache = self.mp['sbrk_base'] + 0x10
+            if self.multithreaded:
+                tcache_addr = pwndbg.memory.pvoid(pwndbg.symbol.address('tcache'))
+                if tcache_addr != 0:
+                    tcache = tcache_addr
 
-        # The symbol.address returns ptr to ptr to tcache struct, as in:
-        # pwndbg> p &tcache
-        # $1 = (tcache_perthread_struct **) 0x7ffff7fd76f0
-        # so we need to dereference it
-        if tcache_addr is not None:
-            tcache_addr = pwndbg.memory.pvoid(tcache_addr)
-
-        if tcache_addr is None:
-            tcache_addr = self._fetch_tcache_addr()
-
-        if tcache_addr is not None:
             try:
-                self._thread_cache = pwndbg.memory.poi(self.tcache_perthread_struct, tcache_addr)
+                self._thread_cache = pwndbg.memory.poi(self.tcache_perthread_struct, tcache)
                 _ = self._thread_cache['entries'].fetch_lazy()
             except Exception as e:
                 print(message.error('Error fetching tcache. GDB cannot access '
                                     'thread-local variables unless you compile with -lpthread.'))
                 return None
+
+            return self._thread_cache
+
         else:
-            if not self.has_tcache():
-                print(message.warn('Your libc does not use thread cache'))
-                return None
-
-            print(message.error('Symbol \'tcache\' not found. Try installing libc '
-                                'debugging symbols and try again.'))
-
-        return self._thread_cache
-
+            print(message.warn('This version of GLIBC was not compiled with tcache support.'))
+            return None
 
     @property
     def mp(self):
@@ -193,54 +174,45 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return self._mp
 
-
     @property
     def global_max_fast(self):
         addr = pwndbg.symbol.address('global_max_fast')
         return pwndbg.memory.u(addr)
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def heap_info(self):
         return pwndbg.typeinfo.load('heap_info')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_chunk(self):
         return pwndbg.typeinfo.load('struct malloc_chunk')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_state(self):
         return pwndbg.typeinfo.load('struct malloc_state')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def tcache_perthread_struct(self):
         return pwndbg.typeinfo.load('struct tcache_perthread_struct')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
     def tcache_entry(self):
         return pwndbg.typeinfo.load('struct tcache_entry')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def mallinfo(self):
         return pwndbg.typeinfo.load('struct mallinfo')
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def malloc_par(self):
         return pwndbg.typeinfo.load('struct malloc_par')
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
@@ -248,13 +220,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
         return pwndbg.arch.ptrsize * 2
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def size_sz(self):
         """Corresponds to SIZE_SZ in glibc malloc.c"""
         return pwndbg.arch.ptrsize
-
 
     @property
     @pwndbg.memoize.reset_on_objfile
@@ -268,19 +238,26 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         """Corresponds to MINSIZE in glibc malloc.c"""
         return self.min_chunk_size
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def min_chunk_size(self):
         """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.arch.ptrsize * 4
 
+    @property
+    @pwndbg.memoize.reset_on_objfile
+    def multithreaded(self):
+        """Is malloc operating within a multithreaded environment."""
+        addr = pwndbg.symbol.address('__libc_multiple_threads')
+        if addr:
+            return pwndbg.memory.s32(addr) > 0
+        return len(gdb.execute('info threads', to_string=True).split('\n')) > 3
+
     def _request2size(self, req):
         """Corresponds to request2size in glibc malloc.c"""
         if req + self.size_sz + self.malloc_align_mask < self.minsize:
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
-
 
     def _spaces_table(self):
         spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
@@ -312,38 +289,48 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                  size & ptmalloc.IS_MMAPPED,
                  size & ptmalloc.NON_MAIN_ARENA )
 
-
     def chunk_key_offset(self, key):
-        """
-        Finds the index of a field in the malloc_chunk struct.
+        """Find the index of a field in the malloc_chunk struct.
 
-        64 bit example.)
+        64bit example:
             prev_size == 0
             size      == 8
             fd        == 16
             bk        == 24
             ...
         """
-        chunk_keys = self.malloc_chunk.keys()
+        renames = {
+            "mchunk_size": "size",
+            "mchunk_prev_size": "prev_size",
+        }
+        val = self.malloc_chunk
+        chunk_keys = list(dict({renames.get(key, key): 0 for key in val.keys()}).keys())
 
         try:
             return chunk_keys.index(key) * pwndbg.arch.ptrsize
         except:
             return None
 
-
     @property
     @pwndbg.memoize.reset_on_objfile
     def tcache_next_offset(self):
         return  self.tcache_entry.keys().index('next') * pwndbg.arch.ptrsize
 
-
-    def get_heap(self,addr):
-        return pwndbg.memory.poi(self.heap_info,heap_for_ptr(addr))
-
+    def get_heap(self, addr):
+        """Find & read the heap_info struct belonging to the chunk at 'addr'."""
+        return pwndbg.memory.poi(self.heap_info, heap_for_ptr(addr))
 
     def get_arena(self, arena_addr=None):
+        """Read a malloc_state struct from the specified address, default to
+        reading the current thread's arena. Return the main arena if the
+        current thread is not attached to an arena.
+        """
         if arena_addr is None:
+            if self.multithreaded:
+                arena_addr = pwndbg.memory.u(pwndbg.symbol.address('thread_arena'))
+                if arena_addr != 0:
+                    return pwndbg.memory.poi(self.malloc_state, arena_addr)
+
             return self.main_arena
 
         try:
@@ -352,8 +339,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
             return None
 
-
-    def get_arena_for_chunk(self,addr):
+    def get_arena_for_chunk(self, addr):
         chunk = pwndbg.commands.heap.read_chunk(addr)
         _,_,nm = self.chunk_flags(chunk['size'])
         if nm:
@@ -362,57 +348,40 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             r=self.main_arena
         return r
 
-
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
             return self.thread_cache
 
         return pwndbg.memory.poi(self.tcache_perthread_struct, tcache_addr)
 
-
     def get_heap_boundaries(self, addr=None):
+        """Find the boundaries of the heap containing `addr`, default to the
+        boundaries of the heap containing the top chunk for the thread's arena.
         """
-        Get the boundaries of the heap containing `addr`. Returns the brk region for
-        adresses inside it or a fake Page for the containing heap for non-main arenas.
-        """
+        region = self.get_region(addr) if addr else self.get_region(self.get_arena()['top'])
+
+        # Occasionally, the [heap] vm region and the actual start of the heap are
+        # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
+        # Return an adjusted Page object if this is the case.
         page = pwndbg.memory.Page(0, 0, 0, 0)
-        brk = self.get_region(addr)
-        if brk == self.get_region():
-            # Occasionally, the [heap] vm region and the actual start of the heap are
-            # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
-            # Return an adjusted Page object if this is the case.
-            sbrk_base = int(self.mp['sbrk_base'])
-            if sbrk_base != brk.vaddr:
+        sbrk_base = int(self.mp['sbrk_base'])
+        if region == self.get_region(sbrk_base):
+            if sbrk_base != region.vaddr:
                 page.vaddr = sbrk_base
-                page.memsz = brk.memsz - (sbrk_base - brk.vaddr)
+                page.memsz = region.memsz - (sbrk_base - region.vaddr)
                 return page
 
-        return brk
+        return region
 
-
-    def get_region(self, addr=None):
-        """
-        Finds the memory map used for the heap at addr or the main heap by looking for a
-        mapping named [heap].
-        """
-        if addr:
-            return pwndbg.vmmap.find(addr)
-
-        # No address provided, find the vm region of the main heap.
-        brk = None
-        for m in pwndbg.vmmap.get():
-            if m.objfile == '[heap]':
-                brk = m
-                break
-
-        return brk
+    def get_region(self, addr):
+        """Find the memory map containing 'addr'."""
+        return pwndbg.vmmap.find(addr)
 
     def fastbin_index(self, size):
         if pwndbg.arch.ptrsize == 8:
             return (size >> 4) - 2
         else:
             return (size >> 3) - 2
-
 
     def fastbins(self, arena_addr=None):
         """Returns: chain or None"""
@@ -435,7 +404,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         result['type'] = 'fastbins'
         return result
-
 
     def tcachebins(self, tcache_addr=None):
         """Returns: tuple(chain, count) or None"""
@@ -463,7 +431,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         result['type'] = 'tcachebins'
         return result
-
 
     def bin_at(self, index, arena_addr=None):
         """
@@ -511,7 +478,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
-
     def unsortedbin(self, arena_addr=None):
         chain  = self.bin_at(1, arena_addr=arena_addr)
         result = OrderedDict()
@@ -523,7 +489,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         result['type'] = 'unsortedbin'
         return result
-
 
     def smallbins(self, arena_addr=None):
         size         = self.min_chunk_size - self.malloc_alignment
@@ -542,7 +507,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         result['type'] = 'smallbins'
         return result
 
-
     def largebins(self, arena_addr=None):
         size         = (ptmalloc.NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
         spaces_table = self._spaces_table()
@@ -560,6 +524,33 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         result['type'] = 'largebins'
         return result
 
+    def largebin_index_32(self, sz):
+        """Modeled on the GLIBC malloc largebin_index_32 macro.
+
+        https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1414
+        """
+        return 56 + (sz >> 6) if (sz >> 6) <= 38 else\
+        91 + (sz >> 9) if (sz >> 9) <= 20 else\
+        110 + (sz >> 12) if (sz >> 12) <= 10 else\
+        119 + (sz >> 15) if (sz >> 15) <= 4 else\
+        124 + (sz >> 18) if (sz >> 18) <= 2 else\
+        126
+
+    def largebin_index_64(self, sz):
+        """Modeled on the GLIBC malloc largebin_index_64 macro.
+
+        https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1433
+        """
+        return 48 + (sz >> 6) if (sz >> 6) <= 48 else\
+        91 + (sz >> 9) if (sz >> 9) <= 20 else\
+        110 + (sz >> 12) if (sz >> 12) <= 10 else\
+        119 + (sz >> 15) if (sz >> 15) <= 4 else\
+        124 + (sz >> 18) if (sz >> 18) <= 2 else\
+        126
+
+    def largebin_index(self, sz):
+        """Pick the appropriate largebin_index_ function for this architecture."""
+        return self.largebin_index_64(sz) if pwndbg.arch.ptrsize == 8 else self.largebin_index_32(sz)
 
     def is_initialized(self):
         addr = pwndbg.symbol.address('__libc_malloc_initialized')

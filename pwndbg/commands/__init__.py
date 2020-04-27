@@ -229,6 +229,15 @@ def OnlyWhenRunning(function):
             print("%s: The program is not being run." % function.__name__)
     return _OnlyWhenRunning
 
+def OnlyWithTcache(function):
+    @functools.wraps(function)
+    def _OnlyWithTcache(*a, **kw):
+        if pwndbg.heap.current.has_tcache():
+            return function(*a, **kw)
+        else:
+            print("%s: This version of GLIBC was not compiled with tcache support." % function.__name__)
+    return _OnlyWithTcache
+
 def OnlyWhenHeapIsInitialized(function):
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a, **kw):
@@ -307,7 +316,7 @@ class ArgparsedCommand(object):
 def sloppy_gdb_parse(s):
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
-    
+
     This makes the type being parsed as gdb value and if that parsing fails,
     a string is returned.
 

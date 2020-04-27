@@ -21,9 +21,10 @@ from pwndbg.color import message
 
 
 def read_chunk(addr):
-    # in old versions of glibc, `mchunk_[prev_]size` was simply called `[prev_]size`
-    # to support both versions, we change the new names to the old ones here so that
-    # the rest of the code can deal with uniform names
+    """Read a chunk's metadata."""
+    # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
+    # To support both versions, change the new names to the old ones here so that
+    # the rest of the code can deal with uniform names.
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
@@ -33,9 +34,9 @@ def read_chunk(addr):
 
 
 def format_bin(bins, verbose=False, offset=None):
-    main_heap = pwndbg.heap.current
+    allocator = pwndbg.heap.current
     if offset is None:
-        offset = main_heap.chunk_key_offset('fd')
+        offset = allocator.chunk_key_offset('fd')
 
     result = []
     bins_type = bins.pop('type')
@@ -72,7 +73,7 @@ def format_bin(bins, verbose=False, offset=None):
         if is_chain_corrupted:
             line = message.hint(size) + message.error(' [corrupted]') + '\n'
             line += message.hint('FD: ') + formatted_chain + '\n'
-            line += message.hint('BK: ') + pwndbg.chain.format(chain_bk[0], offset=main_heap.chunk_key_offset('bk'))
+            line += message.hint('BK: ') + pwndbg.chain.format(chain_bk[0], offset=allocator.chunk_key_offset('bk'))
         else:
             if count is not None:
                 line = (message.hint(size) + message.hint(' [%3d]' % count) + ': ').ljust(13)
@@ -89,154 +90,194 @@ def format_bin(bins, verbose=False, offset=None):
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Prints out chunks starting from the address specified by `addr`."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the heap.")
+parser.description = "Iteratively print chunks on a heap, default to the current thread's active heap."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the first chunk.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def heap(addr=None):
+def heap(addr=None, verbose=False):
+    """Iteratively print chunks on a heap, default to the current thread's
+    active heap.
     """
-    Prints out chunks starting from the address specified by `addr`.
-    """
-    main_heap  = pwndbg.heap.current
-    main_arena = main_heap.main_arena
-    if main_arena is None:
-        return
+    allocator = pwndbg.heap.current
+    heap_region = allocator.get_heap_boundaries(addr)
+    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
 
-    page = main_heap.get_heap_boundaries(addr)
-    if addr is None:
-        addr = page.vaddr
+    top_chunk = arena['top']
+    ptr_size = allocator.size_sz
 
-    # Print out all chunks on the heap
-    # TODO: Add an option to print out only free or allocated chunks
+    # Calculate where to start printing; if an address was supplied, use that,
+    # if this heap belongs to the main arena, start at the beginning of the
+    # heap's mapping, otherwise, compensate for the presence of a heap_info
+    # struct and possibly an arena.
+    if addr:
+        cursor = int(addr)
+    elif arena == allocator.main_arena:
+        cursor = heap_region.start
+    else:
+        cursor = heap_region.start + allocator.heap_info.sizeof
+        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)['ar_ptr']) == heap_region:
+            # Round up to a 2-machine-word alignment after an arena to
+            # compensate for the presence of the have_fastchunks variable
+            # in GLIBC versions >= 2.27.
+            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
 
-    # Check if there is an alignment at the start of the heap
-    size_t = pwndbg.arch.ptrsize
-    first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(addr + size_t, size_t))
+    # i686 alignment heuristic
+    first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
     if first_chunk_size == 0:
-        addr += size_t * 2  # Skip the alignment
+        cursor += ptr_size * 2
 
-    while addr < page.vaddr + page.memsz:
-        chunk = malloc_chunk(addr)  # Prints the chunk
-        if not chunk:
-            print(message.error('Bad chunk at address 0x{:x}'.format(addr)))
+    while cursor in heap_region:
+        old_cursor = cursor
+        size_field = pwndbg.memory.u(cursor + allocator.chunk_key_offset('size'))
+        real_size = size_field & ~allocator.malloc_align_mask
+
+        if cursor == top_chunk:
+            out = message.off("Top chunk\n")
+            out += "Addr: {}\nSize: 0x{:02x}".format(M.get(cursor), size_field)
+            print(out)
             break
 
-        size = int(chunk['size'])
-        if size < 0:
-            print(message.notice('Negative chunk size, breaking'))
+        fastbins = allocator.fastbins(arena.address)
+        smallbins = allocator.smallbins(arena.address)
+        largebins = allocator.largebins(arena.address)
+        unsortedbin = allocator.unsortedbin(arena.address)
+        if allocator.has_tcache():
+            tcachebins = allocator.tcachebins(None)
+
+        out = "Addr: {}\nSize: 0x{:02x}\n".format(M.get(cursor), size_field)
+
+        if real_size in fastbins.keys() and cursor in fastbins[real_size]:
+            out = message.on("Free chunk (fastbins)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+        elif real_size in smallbins.keys() and cursor in bin_addrs(smallbins[real_size], "smallbins"):
+            out = message.on("Free chunk (smallbins)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+        elif real_size >= list(largebins.items())[0][0] and cursor in bin_addrs(largebins[(list(largebins.items())[allocator.largebin_index(real_size) - 64][0])], "largebins"):
+            out = message.on("Free chunk (largebins)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+                out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
+                out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
+        elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
+            out = message.on("Free chunk (unsortedbin)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+        elif allocator.has_tcache() and real_size in tcachebins.keys() and cursor + ptr_size*2 in bin_addrs(tcachebins[real_size], "tcachebins"):
+            out = message.on("Free chunk (tcache)\n") + out
+            if not verbose:
+                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+        else:
+            out = message.hint("Allocated chunk\n") + out
+
+        if verbose:
+            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
+            out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
+            out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
+            out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
+
+        print(out)
+        cursor += real_size
+
+        # Avoid an infinite loop when a chunk's size is 0.
+        if cursor == old_cursor:
             break
-        # Clear the bottom 3 bits
-        size &= ~7
-        if size == 0:
-            break
-        addr += size
+
+
 parser = argparse.ArgumentParser()
-parser.description = "Prints out the main arena or the arena at the specified by address."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+parser.description = "Print the contents of an arena, default to the current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
-    """
-    Prints out the main arena or the arena at the specified by address.
-    """
-    main_heap   = pwndbg.heap.current
-    main_arena  = main_heap.get_arena(addr)
-
-    if main_arena is None:
-        return
-
-    print(main_arena)
+    """Print the contents of an arena, default to the current thread's arena."""
+    allocator = pwndbg.heap.current
+    arena = allocator.get_arena(addr)
+    print(arena)
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Prints out allocated arenas."
+parser.description = "List this process's arenas."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
-    """
-    Prints out allocated arenas.
-    """
-    heap = pwndbg.heap.current
-    for ar in heap.arenas:
+    """Lists this process's arenas."""
+    allocator = pwndbg.heap.current
+    for ar in allocator.arenas:
         print(ar)
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Print malloc thread cache info."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+parser.description = "Print a thread's tcache contents, default to the current thread's tcache."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
+@pwndbg.commands.OnlyWithTcache
 def tcache(addr=None):
+    """Print a thread's tcache contents, default to the current thread's
+    tcache.
     """
-    Prints out the thread cache.
-
-    Glibc 2.26 malloc introduced per-thread chunk cache. This command prints
-    out per-thread control structure of the cache.
-    """
-    main_heap = pwndbg.heap.current
-    tcache = main_heap.get_tcache(addr)
-
-    if tcache is None:
-        return
-
+    allocator = pwndbg.heap.current
+    tcache = allocator.get_tcache(addr)
     print(tcache)
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Prints out the mp_ structure from glibc."
+parser.description = "Print the mp_ struct's contents."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
-    """
-    Prints out the mp_ structure from glibc
-    """
-    main_heap   = pwndbg.heap.current
-
-    print(main_heap.mp)
+    """Print the mp_ struct's contents."""
+    allocator = pwndbg.heap.current
+    print(allocator.mp)
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Prints out the address of the top chunk of the main arena, or of the arena at the specified address."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the arena.")
+parser.description = "Print relevant information about an arena's top chunk, default to current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
+    """Print relevant information about an arena's top chunk, default to the
+    current thread's arena.
     """
-    Prints out the address of the top chunk of the main arena, or of the arena
-    at the specified address.
-    """
-    main_heap   = pwndbg.heap.current
-    main_arena  = main_heap.get_arena(addr)
-    address = main_arena['top']
+    allocator = pwndbg.heap.current
+    arena = allocator.get_arena(addr)
+    address = arena['top']
+    size = pwndbg.memory.u(int(address) + allocator.chunk_key_offset('size'))
 
-    return malloc_chunk(address)
+    out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
+    print(out)
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Prints out the malloc_chunk at the specified address."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the chunk.")
-parser.add_argument("fake", nargs="?", type=bool, default=False, help="If the chunk is a fake chunk.")#TODO describe this better
+parser.description = "Print a malloc_chunk struct's contents."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the chunk.")
+parser.add_argument("fake", nargs="?", type=bool, default=False, help="Is this a fake chunk?")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr,fake=False):
-    """
-    Prints out the malloc_chunk at the specified address.
-    """
-    main_heap = pwndbg.heap.current
+    """Print a malloc_chunk struct's contents."""
+    allocator = pwndbg.heap.current
 
     if not isinstance(addr, six.integer_types):
         addr = int(addr)
@@ -244,10 +285,10 @@ def malloc_chunk(addr,fake=False):
     chunk = read_chunk(addr)
     size = int(chunk['size'])
     actual_size = size & ~7
-    prev_inuse, is_mmapped, non_main_arena = main_heap.chunk_flags(size)
+    prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(size)
     arena = None
     if not fake and non_main_arena:
-        arena = main_heap.get_heap(addr)['ar_ptr']
+        arena = allocator.get_heap(addr)['ar_ptr']
 
     fastbins = [] if fake else main_heap.fastbins(arena)
     if not fastbins:
@@ -271,20 +312,16 @@ def malloc_chunk(addr,fake=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
-    main_arena or the specified address.
-    """
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the bins.") #TODO describe this better if necessary
-parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="The address of the tcache.")
+parser.description = "Print the contents of all an arena's bins and a thread's tcache, default to the current thread's arena and tcache."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
-    """
-    Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the
-    main_arena or the specified address.
+    """Print the contents of all an arena's bins and a thread's tcache,
+    default to the current thread's arena and tcache.
     """
     if pwndbg.heap.current.has_tcache():
         tcachebins(tcache_addr)
@@ -295,23 +332,19 @@ def bins(addr=None, tcache_addr=None):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the fastbins of the main arena or the arena
-    at the specified address.
-    """
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the fastbins.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+parser.description = "Print the contents of an arena's fastbins, default to the current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
+    """Print the contents of an arena's fastbins, default to the current
+    thread's arena.
     """
-    Prints out the contents of the fastbins of the main arena or the arena
-    at the specified address.
-    """
-    main_heap = pwndbg.heap.current
-    fastbins  = main_heap.fastbins(addr)
+    allocator = pwndbg.heap.current
+    fastbins = allocator.fastbins(addr)
 
     if fastbins is None:
         return
@@ -324,23 +357,19 @@ def fastbins(addr=None, verbose=True):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the unsorted bin of the main arena or the
-    arena at the specified address.
-    """
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the unsorted bin.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Whether to show more details or not.")
+parser.description = "Print the contents of an arena's unsortedbin, default to the current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
+    """Print the contents of an arena's unsortedbin, default to the current
+    thread's arena.
     """
-    Prints out the contents of the unsorted bin of the main arena or the
-    arena at the specified address.
-    """
-    main_heap   = pwndbg.heap.current
-    unsortedbin = main_heap.unsortedbin(addr)
+    allocator = pwndbg.heap.current
+    unsortedbin = allocator.unsortedbin(addr)
 
     if unsortedbin is None:
         return
@@ -353,23 +382,19 @@ def unsortedbin(addr=None, verbose=True):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the small bin of the main arena or the arena
-    at the specified address.
-    """
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the smallbins.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+parser.description = "Print the contents of an arena's smallbins, default to the current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
+    """Print the contents of an arena's smallbins, default to the current
+    thread's arena.
     """
-    Prints out the contents of the small bin of the main arena or the arena
-    at the specified address.
-    """
-    main_heap = pwndbg.heap.current
-    smallbins = main_heap.smallbins(addr)
+    allocator = pwndbg.heap.current
+    smallbins = allocator.smallbins(addr)
 
     if smallbins is None:
         return
@@ -382,23 +407,19 @@ def smallbins(addr=None, verbose=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the large bin of the main arena or the arena
-    at the specified address.
-    """
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the largebins.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+parser.description = "Print the contents of an arena's largebins, default to the current thread's arena."
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
+    """Print the contents of an arena's largebins, default to the current
+    thread's arena.
     """
-    Prints out the contents of the large bin of the main arena or the arena
-    at the specified address.
-    """
-    main_heap = pwndbg.heap.current
-    largebins = main_heap.largebins(addr)
+    allocator = pwndbg.heap.current
+    largebins = allocator.largebins(addr)
 
     if largebins is None:
         return
@@ -411,28 +432,23 @@ def largebins(addr=None, verbose=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Prints out the contents of the bins in current thread tcache or in tcache
-    at the specified address.
-    """
+parser.description = "Print the contents of a tcache, default to the current thread's tcache."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache bins.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
+@pwndbg.commands.OnlyWithTcache
 def tcachebins(addr=None, verbose=False):
-    """
-    Prints out the contents of the bins in current thread tcache or in tcache
-    at the specified address.
-    """
-    main_heap = pwndbg.heap.current
-    tcachebins = main_heap.tcachebins(addr)
+    """Print the contents of a tcache, default to the current thread's tcache."""
+    allocator = pwndbg.heap.current
+    tcachebins = allocator.tcachebins(addr)
 
     if tcachebins is None:
         return
 
-    formatted_bins = format_bin(tcachebins, verbose, offset = main_heap.tcache_next_offset)
+    formatted_bins = format_bin(tcachebins, verbose, offset = allocator.tcache_next_offset)
 
     print(C.banner('tcachebins'))
     for node in formatted_bins:
@@ -440,29 +456,23 @@ def tcachebins(addr=None, verbose=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = """
-    Finds candidate fake fast chunks that will overlap with the specified
-    address. Used for fastbin dups and house of spirit
-    """
-parser.add_argument("addr", type=int, help="The start address of a word size value you want to overlap.")
-parser.add_argument("size", nargs="?", type=int, default=None, help="The size of fastbin you want to use.")
+parser.description = "Find candidate fake fast chunks overlapping the specified address."
+parser.add_argument("addr", type=int, help="Address of the word-sized value to overlap.")
+parser.add_argument("size", nargs="?", type=int, default=None, help="Size of fake chunks to find.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size=None):
-    """
-    Finds candidate fake fast chunks that will overlap with the specified
-    address. Used for fastbin dups and house of spirit
-    """
+    """Find candidate fake fast chunks overlapping the specified address."""
     psize = pwndbg.arch.ptrsize
-    main_heap = pwndbg.heap.current
-    align = main_heap.malloc_alignment
-    min_fast = main_heap.min_chunk_size
-    max_fast = main_heap.global_max_fast
-    max_fastbin  = main_heap.fastbin_index(max_fast)
-    start    = int(addr) - max_fast + psize
-    mem      = pwndbg.memory.read(start, max_fast - psize, partial=True)
+    allocator = pwndbg.heap.current
+    align = allocator.malloc_alignment
+    min_fast = allocator.min_chunk_size
+    max_fast = allocator.global_max_fast
+    max_fastbin = allocator.fastbin_index(max_fast)
+    start = int(addr) - max_fast + psize
+    mem = pwndbg.memory.read(start, max_fast - psize, partial=True)
 
     fmt = {
         'little': '<',
@@ -479,41 +489,54 @@ def find_fake_fast(addr, size=None):
 
     print(C.banner("FAKE CHUNKS"))
     for size in sizes:
-        fastbin  = main_heap.fastbin_index(size)
+        fastbin  = allocator.fastbin_index(size)
         for offset in range((max_fastbin - fastbin) * align, max_fast - align + 1):
             candidate = mem[offset : offset + psize]
             if len(candidate) == psize:
                 value = struct.unpack(fmt, candidate)[0]
-                if main_heap.fastbin_index(value) == fastbin:
+                if allocator.fastbin_index(value) == fastbin:
                     malloc_chunk(start+offset-psize, fake=True)
 
 
-vis_heap_chunks_parser = argparse.ArgumentParser(description='Visualize heap chunks at the specified address')
-vis_heap_chunks_parser.add_argument('count', type=lambda n:max(int(n, 0),1), nargs='?', default=10, help='Number of chunks to visualize')
-vis_heap_chunks_parser.add_argument('address', help='Start address', nargs='?', default=None)
-vis_heap_chunks_parser.add_argument('--naive', '-n', help='Attempt to keep printing beyond the top chunk', action='store_true', default=False)
-
-@pwndbg.commands.ArgparsedCommand(vis_heap_chunks_parser)
+parser = argparse.ArgumentParser()
+parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
+parser.add_argument("count", nargs="?", type=lambda n:max(int(n, 0),1), default=10, help="Number of chunks to visualize.")
+parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
+parser.add_argument("--naive", "-n", action="store_true", default=False, help="Attempt to keep printing beyond the top chunk.")
+@pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(address=None, count=None, naive=None):
-    main_heap = pwndbg.heap.current
-    heap_region = main_heap.get_heap_boundaries(address)
-    main_arena = main_heap.get_arena_for_chunk(address) if address else main_heap.main_arena
+def vis_heap_chunks(addr=None, count=None, naive=None):
+    """Visualize chunks on a heap, default to the current arena's active heap."""
+    allocator = pwndbg.heap.current
+    heap_region = allocator.get_heap_boundaries(addr)
+    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
 
-    first_chunk = heap_region.start
-    top_chunk = main_arena['top']
-    ptr_size = main_heap.size_sz
-
-    # Check if there is an alignment at the start of the heap
-    first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(first_chunk + ptr_size, ptr_size))
-    if first_chunk_size == 0:
-        first_chunk += ptr_size * 2
+    top_chunk = arena['top']
+    ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
-    cursor = int(address) if address else first_chunk
+    if addr:
+        cursor = int(addr)
+    elif arena == allocator.main_arena:
+        cursor = heap_region.start
+    else:
+        cursor = heap_region.start + allocator.heap_info.sizeof
+        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)['ar_ptr']) == heap_region:
+            # Round up to a 2-machine-word alignment after an arena to
+            # compensate for the presence of the have_fastchunks variable
+            # in GLIBC versions >= 2.27.
+            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
+
+    # Check if there is an alignment at the start of the heap, adjust if necessary.
+    if not addr:
+        first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+        if first_chunk_size == 0:
+            cursor += ptr_size * 2
+
+    cursor_backup = cursor
 
     for _ in range(count + 1):
         # Don't read beyond the heap mapping if --naive or corrupted heap.
@@ -522,8 +545,8 @@ def vis_heap_chunks(address=None, count=None, naive=None):
             break
 
         size_field = pwndbg.memory.u(cursor + ptr_size)
-        real_size = size_field & ~main_heap.malloc_align_mask
-        prev_inuse = main_heap.chunk_flags(size_field)[0]
+        real_size = size_field & ~allocator.malloc_align_mask
+        prev_inuse = allocator.chunk_flags(size_field)[0]
 
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
         if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
@@ -551,19 +574,23 @@ def vis_heap_chunks(address=None, count=None, naive=None):
     ]
 
     bin_collections = [
-        pwndbg.heap.current.fastbins(None),
-        pwndbg.heap.current.unsortedbin(None),
-        pwndbg.heap.current.smallbins(None),
-        pwndbg.heap.current.largebins(None),
+        allocator.fastbins(arena.address),
+        allocator.unsortedbin(arena.address),
+        allocator.smallbins(arena.address),
+        allocator.largebins(arena.address),
         ]
-    if pwndbg.heap.current.has_tcache():
-        bin_collections.insert(0, pwndbg.heap.current.tcachebins(None))
+    if allocator.has_tcache():
+        # Only check for tcache entries belonging to the current thread,
+        # it's difficult (impossible?) to find all the thread caches for a
+        # specific heap.
+        bin_collections.insert(0, allocator.tcachebins(None))
 
     printed = 0
     out = ''
     asc = ''
     labels = []
-    cursor = int(address) if address else first_chunk
+
+    cursor = cursor_backup
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
@@ -572,7 +599,7 @@ def vis_heap_chunks(address=None, count=None, naive=None):
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = pwndbg.memory.u(cursor)
+            cell = pwndbg.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
             cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
 
             out += color_func(cell_hex)
@@ -592,10 +619,12 @@ def vis_heap_chunks(address=None, count=None, naive=None):
 
     print(out)
 
+
 def bin_ascii(bs):
     from string import printable
-    valid_chars = list(map(ord, set(printable) - set('\t\r\n')))
+    valid_chars = list(map(ord, set(printable) - set('\t\r\n\x0c')))
     return ''.join(chr(c) if c in valid_chars else '.'for c in bs)
+
 
 def bin_labels(addr, collections):
     labels = []
@@ -615,6 +644,7 @@ def bin_labels(addr, collections):
                     labels.append('{:s}[{:s}][{:d}{}]'.format(bins_type, size, chunks.index(addr), count or ''))
 
     return labels
+
 
 def bin_addrs(b, bins_type):
     addrs = []
