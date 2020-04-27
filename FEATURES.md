@@ -155,7 +155,8 @@ Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of
 ![](caps/heap_heap2.png)  
 ![](caps/heap_mallocchunk.png)  
 ![](caps/heap_topchunk.png)  
-![](caps/fake_fast.png)  
+![](caps/heap_fake_fast.png)
+![](caps/heap_try_free.png)  
 
 ## IDA Pro Integration
 

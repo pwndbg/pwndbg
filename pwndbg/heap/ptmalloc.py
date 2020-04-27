@@ -333,7 +333,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
             return self.main_arena
 
-        return pwndbg.memory.poi(self.malloc_state, arena_addr)
+        try:
+            return pwndbg.memory.poi(self.malloc_state, arena_addr)
+        except gdb.MemoryError:
+            # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
+            return None
 
     def get_arena_for_chunk(self, addr):
         chunk = pwndbg.commands.heap.read_chunk(addr)
