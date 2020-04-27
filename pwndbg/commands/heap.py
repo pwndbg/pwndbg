@@ -290,7 +290,7 @@ def malloc_chunk(addr,fake=False):
     if not fake and non_main_arena:
         arena = allocator.get_heap(addr)['ar_ptr']
 
-    fastbins = [] if fake else main_heap.fastbins(arena)
+    fastbins = [] if fake else allocator.fastbins(arena)
     if not fastbins:
         fastbins = []
 
@@ -679,15 +679,14 @@ def try_free(addr):
         return
 
     # constants
-    current_heap = pwndbg.heap.current
-    arena = current_heap.get_arena()
-    arena_addr = int(arena.address)
+    allocator = pwndbg.heap.current
+    arena = allocator.get_arena()
 
-    aligned_lsb = current_heap.malloc_align_mask.bit_length()
-    size_sz = current_heap.size_sz
-    malloc_alignment = current_heap.malloc_alignment
-    malloc_align_mask = current_heap.malloc_align_mask
-    chunk_minsize = current_heap.minsize
+    aligned_lsb = allocator.malloc_align_mask.bit_length()
+    size_sz = allocator.size_sz
+    malloc_alignment = allocator.malloc_alignment
+    malloc_align_mask = allocator.malloc_align_mask
+    chunk_minsize = allocator.minsize
 
     ptr_size = pwndbg.arch.ptrsize
 
@@ -703,6 +702,16 @@ def try_free(addr):
         # maybe move this to ptmalloc.py
         return chunk_size & (~7)
 
+    def finalize(errors_found, returned_before_error):
+        print('-'*10)
+        if returned_before_error:
+            print(message.success('Free should succeed!'))
+        elif errors_found > 0:
+            print(message.error('Errors found!'))
+        else:
+            print(message.success('All checks passed!'))
+
+
     # mem2chunk
     addr -= 2 * size_sz
 
@@ -715,13 +724,14 @@ def try_free(addr):
 
     chunk_size = unsigned_size(chunk['size'])
     chunk_size_unmasked = chunksize(chunk_size)
-    _, is_mmapped, _ = current_heap.chunk_flags(chunk_size)
+    _, is_mmapped, _ = allocator.chunk_flags(chunk_size)
 
     if is_mmapped:
         print(message.notice('__libc_free: Doing munmap_chunk'))
         return
 
-    found_error = False
+    errors_found = False
+    returned_before_error = False
 
     # chunk doesn't overlap memory
     print(message.notice('General checks'))
@@ -731,7 +741,7 @@ def try_free(addr):
         err += '    0x{:x} + 0x{:x} > 0x{:x}'
         err = err.format(addr, chunk_size, max_mem)
         print(message.error(err))
-        found_error = True
+        errors_found += 1
 
     # chunk address is aligned
     addr_tmp = addr
@@ -745,7 +755,7 @@ def try_free(addr):
             err += ' (0x{:x} was added to the address)'.format(2*size_sz)
         err = err.format(addr_tmp, bin(addr_tmp)[-aligned_lsb:], '0'*aligned_lsb)
         print(message.error(err))
-        found_error = True
+        errors_found += 1
 
     # chunk's size is big enough
     if chunk_size_unmasked < chunk_minsize:
@@ -753,7 +763,7 @@ def try_free(addr):
         err += '    size is 0x{:x}, MINSIZE is 0x{:x}'
         err = err.format(chunk_size_unmasked, chunk_minsize)
         print(message.error(err))
-        found_error = True
+        errors_found += 1
 
     # chunk's size is aligned
     if chunk_size_unmasked & malloc_align_mask != 0:
@@ -761,37 +771,42 @@ def try_free(addr):
         err += '    LSB of size 0x{:x} are 0b{}, should be 0b{}'
         err = err.format(chunk_size_unmasked, bin(chunk_size_unmasked)[-aligned_lsb:], '0'*aligned_lsb)
         print(message.error(err))
-        found_error = True
-
-    if found_error:
-        return
+        errors_found += 1
 
     # tcache
-    if current_heap.has_tcache():
+    if allocator.has_tcache() and 'key' in allocator.tcache_entry.keys():
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
-        if tc_idx < current_heap.mp['tcache_bins']:
+        if tc_idx < allocator.mp['tcache_bins']:
             print(message.notice('Tcache checks'))
             e = addr + 2*size_sz
-            e += current_heap.tcache_entry.keys().index('key') * ptr_size
+            e += allocator.tcache_entry.keys().index('key') * ptr_size
             e = pwndbg.memory.pvoid(e)
-            tcache_addr = int(current_heap.thread_cache.address)
+            tcache_addr = int(allocator.thread_cache.address)
             if e == tcache_addr:
                 # todo, actually do checks
                 print(message.error('Will do checks for tcache double-free (memory_tcache_double_free)'))
+                errors_found += 1
 
-            if int(current_heap.get_tcache()['counts'][tc_idx]) < int(current_heap.mp['tcache_count']):
+            if int(allocator.get_tcache()['counts'][tc_idx]) < int(allocator.mp['tcache_count']):
                 print(message.success('Using tcache_put'))
+                if errors_found == 0:
+                    returned_before_error = True
+
+    if errors_found > 0:
+        finalize(errors_found, returned_before_error)
+        return
 
     # is fastbin
-    if chunk_size_unmasked <= current_heap.global_max_fast:
+    if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice('Fastbin checks'))
-        chunk_fastbin_idx = current_heap.fastbin_index(chunk_size_unmasked)
-        fastbin_list = current_heap.fastbins(arena_addr)[(chunk_fastbin_idx+2)*(ptr_size*2)]
+        chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
+        fastbin_list = allocator.fastbins(int(arena.address))[(chunk_fastbin_idx+2)*(ptr_size*2)]
 
-        try :
+        try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
         except gdb.MemoryError as e:
             print(message.error('Can\'t read next chunk at address 0x{:x}, memory error'.format(chunk + chunk_size_unmasked)))
+            finalize(errors_found, returned_before_error)
             return
 
         # next chunk's size is big enough and small enough
@@ -801,6 +816,7 @@ def try_free(addr):
             err += '    next chunk\'s size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}'
             err = err.format(next_chunk_size, 2*size_sz, int(arena['system_mem']))
             print(message.error(err))
+            errors_found += 1
 
         # chunk is not the same as the one on top of fastbin[idx]
         if int(fastbin_list[0]) == addr:
@@ -808,6 +824,7 @@ def try_free(addr):
             err += '    fastbin idx == {}'
             err = err.format(chunk_fastbin_idx)
             print(message.error(err))
+            errors_found += 1
 
         # chunk's size is ~same as top chunk's size
         fastbin_top_chunk = int(fastbin_list[0])
@@ -816,17 +833,19 @@ def try_free(addr):
                 fastbin_top_chunk = read_chunk(fastbin_top_chunk)
             except gdb.MemoryError as e:
                 print(message.error('Can\'t read top fastbin chunk at address 0x{:x}, memory error'.format(fastbin_top_chunk)))
+                finalize(errors_found, returned_before_error)
                 return
 
             fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk['size']))
-            if chunk_fastbin_idx != current_heap.fastbin_index(fastbin_top_chunk_size):
+            if chunk_fastbin_idx != allocator.fastbin_index(fastbin_top_chunk_size):
                 err = 'invalid fastbin entry (free) -> chunk\'s size is not near top chunk\'s size\n'
                 err += '    chunk\'s size == {}, idx == {}\n'
                 err += '    top chunk\'s size == {}, idx == {}'
                 err += '    if `have_lock` is false then the error is invalid'
                 err = err.format(chunk['size'], chunk_fastbin_idx,
-                    fastbin_top_chunk_size, current_heap.fastbin_index(fastbin_top_chunk_size))
+                    fastbin_top_chunk_size, allocator.fastbin_index(fastbin_top_chunk_size))
                 print(message.error(err))
+                errors_found += 1
 
     # is not mapped
     elif is_mmapped == 0:
@@ -836,6 +855,7 @@ def try_free(addr):
         if addr == int(arena['top']):
             err = 'double free or corruption (top) -> chunk is top chunk'
             print(message.error(err))
+            errors_found += 1
 
         # next chunk is not beyond the boundaries of the arena
         NONCONTIGUOUS_BIT = 2
@@ -849,6 +869,7 @@ def try_free(addr):
             err += 'next chunk at 0x{:x}, end of arena at 0x{:x}'
             err = err.format(next_chunk_addr, top_chunk_addr + chunksize(unsigned_size(top_chunk['size'])))
             print(message.error(err))
+            errors_found += 1
 
         # now we need to dereference chunk
         try :
@@ -856,13 +877,15 @@ def try_free(addr):
             next_chunk_size = chunksize(unsigned_size(next_chunk['size']))
         except (OverflowError, gdb.MemoryError) as e:
             print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_chunk_addr)))
+            finalize(errors_found, returned_before_error)
             return
 
         # next chunk's P bit is set
-        prev_inuse,_,_ = current_heap.chunk_flags(next_chunk['size'])
+        prev_inuse,_,_ = allocator.chunk_flags(next_chunk['size'])
         if prev_inuse == 0:
             err = 'double free or corruption (!prev) -> next chunk\'s previous-in-use bit is 0\n'
             print(message.error(err))
+            errors_found += 1
 
         # next chunk's size is big enough and small enough
         if next_chunk_size <= 2*size_sz or next_chunk_size >= int(arena['system_mem']):
@@ -870,9 +893,10 @@ def try_free(addr):
             err += 'next chunk\'s size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}'
             err = err.format(next_chunk_size, 2*size_sz, int(arena['system_mem']))
             print(message.error(err))
+            errors_found += 1
 
         # consolidate backward
-        prev_inuse,_,_ = current_heap.chunk_flags(chunk['size'])
+        prev_inuse,_,_ = allocator.chunk_flags(chunk['size'])
         if prev_inuse == 0:
             print(message.notice('Backward consolidation'))
             prev_size = chunksize(unsigned_size(chunk['prev_size']))
@@ -883,6 +907,7 @@ def try_free(addr):
                 prev_chunk_size = chunksize(unsigned_size(prev_chunk['size']))
             except (OverflowError, gdb.MemoryError) as e:
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(prev_chunk_addr)))
+                finalize(errors_found, returned_before_error)
                 return
 
             if unsigned_size(prev_chunk['size']) != prev_size:
@@ -890,6 +915,7 @@ def try_free(addr):
                 err += 'prev_size field is 0x{:x}, prev chunk at 0x{:x}, prev chunk size is 0x{:x}'
                 err = err.format(prev_size, prev_chunk_addr, unsigned_size(prev_chunk['size']))
                 print(message.error(err))
+                errors_found += 1
             else:
                 addr = prev_chunk_addr
                 chunk_size += prev_size
@@ -904,10 +930,10 @@ def try_free(addr):
                 next_next_chunk = read_chunk(next_next_chunk_addr)
             except (OverflowError, gdb.MemoryError) as e:
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_next_chunk_addr)))
+                finalize(errors_found, returned_before_error)
                 return
             
-            prev_inuse,_,_ = current_heap.chunk_flags(next_next_chunk['size'])
-
+            prev_inuse,_,_ = allocator.chunk_flags(next_next_chunk['size'])
             if prev_inuse == 0:
                 print(message.notice('Forward consolidation'))
                 try_unlink(next_chunk_addr)
@@ -926,10 +952,13 @@ def try_free(addr):
                         err += 'unsorted at 0x{:x}, unsorted->fd == 0x{:x}, unsorted->fd->bk == 0x{:x}'
                         err = err.format(unsorted_addr, unsorted['fd'], read_chunk(unsorted['fd'])['bk'])
                         print(message.error(err))
+                        errors_found += 1
                 except (OverflowError, gdb.MemoryError) as e:
                     print(message.error('Can\'t read chunk at 0x{:x}, it is unsorted bin fd'.format(unsorted['fd'])))
+                    errors_found += 1
             except (OverflowError, gdb.MemoryError) as e:
                 print(message.error('Can\'t read unsorted bin chunk at 0x{:x}'.format(unsorted_addr)))
+                errors_found += 1
 
         else:
             print(message.notice('Next chunk is top chunk'))
@@ -944,6 +973,8 @@ def try_free(addr):
     #is mapped
     else:
         message.notice('Doing munmap_chunk')
+
+    finalize(errors_found, returned_before_error)
 
 
 def try_unlink(addr):
