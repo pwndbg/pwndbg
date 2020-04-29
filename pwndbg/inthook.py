@@ -39,7 +39,7 @@ class xint(with_metaclass(IsAnInt, builtins.int)):
             if pwndbg.typeinfo.is_pointer(value):
                 value = value.cast(pwndbg.typeinfo.size_t)
             else:
-                value = value.cast(pwndbg.typeinfo.ssize_t)
+                return _int.__new__(cls, value, *a, **kw)
 
         elif isinstance(value, gdb.Symbol):
             symbol = value
