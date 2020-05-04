@@ -247,6 +247,17 @@ def OnlyWhenHeapIsInitialized(function):
             print("%s: Heap is not initialized yet." % function.__name__)
     return _OnlyWhenHeapIsInitialized
 
+def OnlyAmd64(function):
+    """Decorates function to work only when pwndbg.arch.current == \"x86-64\".
+    """
+    @functools.wraps(function)
+    def _OnlyAmd64(*a, **kw):
+        if pwndbg.arch.current == "x86-64":
+            return function(*a, **kw)
+        else:
+            print("%s: Only works with \"x86-64\" arch." % function.__name__)
+    return _OnlyAmd64
+
 def OnlyWithLibcDebugSyms(function):
     @functools.wraps(function)
     def _OnlyWithLibcDebugSyms(*a, **kw):
