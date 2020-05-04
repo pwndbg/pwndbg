@@ -12,3 +12,4 @@ pygments
 capstone==4.0.1
 enum34
 pytest
+testresources
