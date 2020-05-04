@@ -119,13 +119,16 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     prev = None
 
+    first_pc = True
+
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
         asm    = D.instruction(instr)
         prefix_sign  = pwndbg.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
-        show_prefix = instr.address == pc and not nearpc.repeat
+        # or when showing current instruction for the second time
+        show_prefix = instr.address == pc and not nearpc.repeat and first_pc
         prefix = ' %s' % (prefix_sign if show_prefix else ' ' * len(prefix_sign))
         prefix = N.prefix(prefix)
 
@@ -138,10 +141,11 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if instr.address != pc or not pwndbg.config.highlight_pc or nearpc.repeat:
             address_str = N.address(address_str)
             symbol = N.symbol(symbol)
-        elif pwndbg.config.highlight_pc:
+        elif pwndbg.config.highlight_pc and first_pc:
             prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
+            first_pc = False
 
         line   = ' '.join((prefix, address_str, symbol, asm))
 
