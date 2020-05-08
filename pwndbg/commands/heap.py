@@ -113,7 +113,7 @@ def heap(addr=None, verbose=False, simple=False):
     # heap's mapping, otherwise, compensate for the presence of a heap_info
     # struct and possibly an arena.
     if addr:
-        cursor = int(addr) - 2 * ptr_size
+        cursor = int(addr)
     elif arena == allocator.main_arena:
         cursor = heap_region.start
     else:
@@ -128,7 +128,6 @@ def heap(addr=None, verbose=False, simple=False):
     first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
     if first_chunk_size == 0:
         cursor += ptr_size * 2
-
 
     while cursor in heap_region:
         malloc_chunk(cursor, verbose=verbose, simple=simple)
