@@ -30,7 +30,7 @@ def read_chunk(addr):
         "mchunk_prev_size": "prev_size",
     }
     val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
-    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() }, value=val)
+    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
 
 
 def format_bin(bins, verbose=False, offset=None):
@@ -91,20 +91,20 @@ def format_bin(bins, verbose=False, offset=None):
 
 parser = argparse.ArgumentParser()
 parser.description = "Iteratively print chunks on a heap, default to the current thread's active heap."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the first chunk.")
+parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the first chunk (malloc_chunk struct start, prev_size field).")
 parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
+parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def heap(addr=None, verbose=False):
+def heap(addr=None, verbose=False, simple=False):
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
     arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
-
     top_chunk = arena['top']
     ptr_size = allocator.size_sz
 
@@ -130,64 +130,17 @@ def heap(addr=None, verbose=False):
         cursor += ptr_size * 2
 
     while cursor in heap_region:
-        old_cursor = cursor
-        size_field = pwndbg.memory.u(cursor + allocator.chunk_key_offset('size'))
-        real_size = size_field & ~allocator.malloc_align_mask
+        malloc_chunk(cursor, verbose=verbose, simple=simple)
 
         if cursor == top_chunk:
-            out = message.off("Top chunk\n")
-            out += "Addr: {}\nSize: 0x{:02x}".format(M.get(cursor), size_field)
-            print(out)
             break
 
-        fastbins = allocator.fastbins(arena.address)
-        smallbins = allocator.smallbins(arena.address)
-        largebins = allocator.largebins(arena.address)
-        unsortedbin = allocator.unsortedbin(arena.address)
-        if allocator.has_tcache():
-            tcachebins = allocator.tcachebins(None)
-
-        out = "Addr: {}\nSize: 0x{:02x}\n".format(M.get(cursor), size_field)
-
-        if real_size in fastbins.keys() and cursor in fastbins[real_size]:
-            out = message.on("Free chunk (fastbins)\n") + out
-            if not verbose:
-                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-        elif real_size in smallbins.keys() and cursor in bin_addrs(smallbins[real_size], "smallbins"):
-            out = message.on("Free chunk (smallbins)\n") + out
-            if not verbose:
-                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
-        elif real_size >= list(largebins.items())[0][0] and cursor in bin_addrs(largebins[(list(largebins.items())[allocator.largebin_index(real_size) - 64][0])], "largebins"):
-            out = message.on("Free chunk (largebins)\n") + out
-            if not verbose:
-                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
-                out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
-                out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
-        elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
-            out = message.on("Free chunk (unsortedbin)\n") + out
-            if not verbose:
-                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-                out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
-        elif allocator.has_tcache() and real_size in tcachebins.keys() and cursor + ptr_size*2 in bin_addrs(tcachebins[real_size], "tcachebins"):
-            out = message.on("Free chunk (tcache)\n") + out
-            if not verbose:
-                out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-        else:
-            out = message.hint("Allocated chunk\n") + out
-
-        if verbose:
-            out += message.system("fd: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd')))
-            out += message.system("bk: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk')))
-            out += message.system("fd_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('fd_nextsize')))
-            out += message.system("bk_nextsize: ") + "0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset('bk_nextsize')))
-
-        print(out)
+        size_field = pwndbg.memory.u(cursor + allocator.chunk_key_offset('size'))
+        real_size = size_field & ~allocator.malloc_align_mask
         cursor += real_size
 
         # Avoid an infinite loop when a chunk's size is 0.
-        if cursor == old_cursor:
+        if real_size == 0:
             break
 
 
@@ -268,47 +221,120 @@ def top_chunk(addr=None):
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Print a malloc_chunk struct's contents."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the chunk.")
-parser.add_argument("fake", nargs="?", type=bool, default=False, help="Is this a fake chunk?")
+parser.description = "Print a chunk."
+parser.add_argument("addr", type=int, help="Address of the chunk (malloc_chunk struct start, prev_size field).")
+parser.add_argument("-f", "--fake", action="store_true", help="Is this a fake chunk?")
+parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
+parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def malloc_chunk(addr,fake=False):
+def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
+    # points to the real start of the chunk
+    cursor = int(addr)
+
     allocator = pwndbg.heap.current
+    ptr_size = allocator.size_sz
 
-    if not isinstance(addr, six.integer_types):
-        addr = int(addr)
+    size_field = pwndbg.memory.u(cursor + allocator.chunk_key_offset('size'))
+    real_size = size_field & ~allocator.malloc_align_mask
 
-    chunk = read_chunk(addr)
-    size = int(chunk['size'])
-    actual_size = size & ~7
-    prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(size)
-    arena = None
-    if not fake and non_main_arena:
-        arena = allocator.get_heap(addr)['ar_ptr']
+    headers_to_print = []  # both state (free/allocated) and flags
+    fields_to_print = set()  # in addition to addr and size
+    out_fields = "Addr: {}\n".format(M.get(cursor))
 
-    fastbins = [] if fake else allocator.fastbins(arena)
-    if not fastbins:
-        fastbins = []
+    arena = allocator.get_arena_for_chunk(cursor)
+    arena_address = None
 
-    header = M.get(addr)
     if fake:
-        header += message.prompt(' FAKE')
-    if prev_inuse:
-        if actual_size in fastbins:
-            header += message.hint(' FASTBIN')
-        else:
-            header += message.hint(' PREV_INUSE')
-    if is_mmapped:
-        header += message.hint(' IS_MMAPED')
-    if non_main_arena:
-        header += message.hint(' NON_MAIN_ARENA')
-    print(header, chunk["value"])
+        headers_to_print.append(message.on("Fake chunk"))
+        verbose = True  # print all fields for fake chunks
 
-    return chunk
+    if simple:
+        chunk = read_chunk(cursor)
+
+        if not headers_to_print:
+            headers_to_print.append(message.hint(M.get(cursor)))
+
+        prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(int(chunk['size']))
+        if prev_inuse:
+            headers_to_print.append(message.hint('PREV_INUSE'))
+        if is_mmapped:
+            headers_to_print.append(message.hint('IS_MMAPED'))
+        if non_main_arena:
+            headers_to_print.append(message.hint('NON_MAIN_ARENA'))
+
+        print(' | '.join(headers_to_print))
+        for key, val in chunk.items():
+            print(message.system(key) + ": 0x{:02x}".format(int(val)))
+        print('')
+        return
+
+    is_top = False
+    if arena:
+        arena_address = arena.address
+        top_chunk = arena['top']
+        if cursor == top_chunk:
+            headers_to_print.append(message.off("Top chunk"))
+            is_top = True
+
+    if not is_top:
+        fastbins = allocator.fastbins(arena_address) or {}
+        smallbins = allocator.smallbins(arena_address) or {}
+        largebins = allocator.largebins(arena_address) or {}
+        unsortedbin = allocator.unsortedbin(arena_address) or {}
+        if allocator.has_tcache():
+            tcachebins = allocator.tcachebins(None)
+
+        if real_size in fastbins.keys() and cursor in fastbins[real_size]:
+            headers_to_print.append(message.on("Free chunk (fastbins)"))
+            if not verbose:
+                fields_to_print.add('fd')
+
+        elif real_size in smallbins.keys() and cursor in bin_addrs(smallbins[real_size], "smallbins"):
+            headers_to_print.append(message.on("Free chunk (smallbins)"))
+            if not verbose:
+                fields_to_print.update(['fd', 'bk'])
+
+        elif real_size >= list(largebins.items())[0][0] and cursor in bin_addrs(largebins[(list(largebins.items())[allocator.largebin_index(real_size) - 64][0])], "largebins"):
+            headers_to_print.append(message.on("Free chunk (largebins)"))
+            if not verbose:
+                fields_to_print.update(['fd', 'bk', 'fd_nextsize', 'bk_nextsize'])
+        
+        elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
+            headers_to_print.append(message.on("Free chunk (unsortedbin)"))
+            if not verbose:
+                fields_to_print.update(['fd', 'bk'])
+
+        elif allocator.has_tcache() and real_size in tcachebins.keys() and cursor + ptr_size*2 in bin_addrs(tcachebins[real_size], "tcachebins"):
+            headers_to_print.append(message.on("Free chunk (tcache)"))
+            if not verbose:
+                fields_to_print.add('fd')
+
+        else:
+            headers_to_print.append(message.hint("Allocated chunk"))
+
+    if verbose:
+        fields_to_print.update(['prev_size', 'size', 'fd', 'bk', 'fd_nextsize', 'bk_nextsize'])
+    else:
+        out_fields += "Size: 0x{:02x}\n".format(size_field)
+
+    prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(size_field)
+    if prev_inuse:
+        headers_to_print.append(message.hint('PREV_INUSE'))
+    if is_mmapped:
+        headers_to_print.append(message.hint('IS_MMAPED'))
+    if non_main_arena:
+        headers_to_print.append(message.hint('NON_MAIN_ARENA'))
+
+    fields_ordered = ['prev_size', 'size', 'fd', 'bk', 'fd_nextsize', 'bk_nextsize']
+    for field_to_print in fields_ordered:
+        if field_to_print in fields_to_print:
+            out_fields += message.system(field_to_print) + ": 0x{:02x}\n".format(pwndbg.memory.u(cursor + allocator.chunk_key_offset(field_to_print)))
+
+    print(' | '.join(headers_to_print) + "\n" + out_fields)
 
 
 parser = argparse.ArgumentParser()
