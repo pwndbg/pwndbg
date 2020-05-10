@@ -35,6 +35,12 @@ install_dnf() {
     sudo dnf -y debuginfo-install glibc
 }
 
+install_xbps() {
+    sudo xbps-install -Su
+    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make
+    sudo xbps-install -Sy glibc-dbg
+}
+
 install_swupd() {
     sudo swupd update || true
     sudo swupd bundle-add gdb python3-basic make c-basic
@@ -86,6 +92,9 @@ if linux; then
             echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
             echo " - https://aur.archlinux.org/packages/pwndbg-git/"
             exit 1
+            ;;
+        "void")
+            install_xbps
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
