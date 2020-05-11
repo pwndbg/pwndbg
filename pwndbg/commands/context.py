@@ -545,7 +545,7 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width
     result = []
 
     if with_banner:
-        result.append(pwndbg.ui.banner("backtrace"))
+        result.append(pwndbg.ui.banner("backtrace", target=target, width=width))
 
     frames = gdb.execute('backtrace', to_string=True, from_tty=False).split("\n")
     frames.remove('')
