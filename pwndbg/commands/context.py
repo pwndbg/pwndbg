@@ -545,48 +545,28 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width
     result = []
 
     if with_banner:
-        result.append(pwndbg.ui.banner("backtrace", target=target, width=width))
+        result.append(pwndbg.ui.banner("backtrace"))
 
-    this_frame    = gdb.selected_frame()
-    newest_frame  = this_frame
-    oldest_frame  = this_frame
-
-    for i in range(frame_count):
+    frames = gdb.execute('backtrace', to_string=True, from_tty=False).split("\n")
+    frames.remove('')
+    for frame in frames:
+        split = frame.split(" ")
+        print('[+]', split)
+        split.remove('') # in case of two adjacent spaces
+        idx = split[0][1:] # reomve '#'
         try:
-            candidate = oldest_frame.older()
-        except gdb.MemoryError:
+            addr = int(split[1], 16) # a hex string 
+            addr = B.address(pwndbg.ui.addrsz(addr))
+        except:
+            addr = split[1].rjust(2*pwndbg.arch.ptrsize) # fucntion name
+        symbol = ' '.join(split[2:])
+        formatted = ' '.join(map(str, (B.frame_label('%s%s' % (backtrace_frame_label, idx)), addr)))
+        formatted += ' ' + B.symbol(symbol)
+        result.append(formatted)
+
+        frame_count -= 1
+        if frame_count <= 0:
             break
-
-        if not candidate:
-            break
-        oldest_frame = candidate
-
-    for i in range(frame_count):
-        candidate = newest_frame.newer()
-        if not candidate:
-            break
-        newest_frame = candidate
-
-    frame = newest_frame
-    i     = 0
-    bt_prefix = "%s" % B.config_prefix
-    while True:
-
-        prefix = bt_prefix if frame == this_frame else ' ' * len(bt_prefix)
-        prefix = " %s" % B.prefix(prefix)
-        addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = B.symbol(pwndbg.symbol.get(frame.pc()))
-        if symbol:
-            addrsz = addrsz + ' ' + symbol
-        line   = map(str, (prefix, B.frame_label('%s%i' % (backtrace_frame_label, i)), addrsz))
-        line   = ' '.join(line)
-        result.append(line)
-
-        if frame == oldest_frame:
-            break
-
-        frame = frame.older()
-        i    += 1
     return result
 
 
