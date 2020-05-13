@@ -551,7 +551,6 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width
     frames.remove('')
     for frame in frames:
         split = frame.split(" ")
-        print('[+]', split)
         split.remove('') # in case of two adjacent spaces
         idx = split[0][1:] # reomve '#'
         try:
