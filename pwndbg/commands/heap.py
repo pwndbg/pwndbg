@@ -511,7 +511,7 @@ def find_fake_fast(addr, size=None):
     if size is None:
         sizes = range(min_fast, max_fast + 1, align)
     else:
-        sizes = [size]
+        sizes = [int(size)]
 
     print(C.banner("FAKE CHUNKS"))
     for size in sizes:
