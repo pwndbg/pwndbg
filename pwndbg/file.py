@@ -30,9 +30,9 @@ def get_file(path):
         The local path to the file
     """
     local_path = path
-
-    if pwndbg.qemu.root():
-        return os.path.join(pwndbg.qemu.binfmt_root, path)
+    qemu_root = pwndbg.qemu.root()
+    if qemu_root:
+        return os.path.join(qemu_root, path)
     elif pwndbg.remote.is_remote() and not pwndbg.qemu.is_qemu():
         local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
         error      = None
