@@ -361,31 +361,10 @@ def ln(value=None):
     if x:
         result = '(%#x)   %s' % (value, x)
         print(result)
-
-@pwndbg.commands.QuietSloppyParsedCommand
-@pwndbg.commands.OnlyWhenRunning
-def lm(map):
-    """
-    Windbg compatibility alias for 'vmmap' command.
-    """
-    return pwndbg.commands.vmmap.vmmap(map)
-
-@pwndbg.commands.QuietSloppyParsedCommand
-@pwndbg.commands.OnlyWhenRunning
-def address(map):
-    """
-    Windbg compatibility alias for 'vmmap' command.
-    """
-    return pwndbg.commands.vmmap.vmmap(map)
-
-
-@pwndbg.commands.QuietSloppyParsedCommand
-@pwndbg.commands.OnlyWhenRunning
-def vprot(map):
-    """
-    Windbg compatibility alias for 'vmmap' command.
-    """
-    return pwndbg.commands.vmmap.vmmap(map)
+# The three commands are aliases for `vmmap` and are set so in vmmap.py
+# lm
+# address
+# vprot
 
 @pwndbg.commands.ArgparsedCommand("Not be windows.")
 @pwndbg.commands.OnlyWhenRunning
