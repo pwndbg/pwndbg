@@ -52,7 +52,7 @@ parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
                     help='Address or module name.')
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['lm', 'address', 'vprot'])
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(pages_filter=None):
     pages = list(filter(pages_filter, pwndbg.vmmap.get()))
