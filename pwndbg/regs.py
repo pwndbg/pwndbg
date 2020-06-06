@@ -388,7 +388,7 @@ class module(ModuleType):
     @property
     def changed(self):
         delta = []
-        for reg, value in self.last.items():
+        for reg, value in self.previous.items():
             if self[reg] != value:
                 delta.append(reg)
         return delta
@@ -443,6 +443,7 @@ sys.modules[__name__] = module(__name__, '')
 @pwndbg.events.stop
 def update_last():
     M = sys.modules[__name__]
+    M.previous = M.last
     M.last = {k:M[k] for k in M.common}
     if pwndbg.config.show_retaddr_reg:
         M.last.update({k:M[k] for k in M.retaddr})
