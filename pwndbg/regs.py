@@ -304,9 +304,6 @@ class module(ModuleType):
     @pwndbg.memoize.reset_on_stop
     @pwndbg.memoize.reset_on_prompt
     def __getitem__(self, item):
-        if isinstance(item, six.integer_types):
-            return arch_to_regs[pwndbg.arch.current][item]
-
         if not isinstance(item, six.string_types):
             print("Unknown register type: %r" % (item))
             import pdb, traceback
