@@ -293,7 +293,8 @@ class module(ModuleType):
                 if attr.lower() == 'xpsr':
                     attr = 'xPSR'
                 value = get_register(attr)
-                value = value.cast(pwndbg.typeinfo.ptrdiff)
+                size = pwndbg.typeinfo.unsigned.get(value.type.sizeof, pwndbg.typeinfo.ulong)
+                value = value.cast(size)
 
             value = int(value)
             return value & pwndbg.arch.ptrmask

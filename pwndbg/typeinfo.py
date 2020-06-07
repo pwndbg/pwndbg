@@ -55,15 +55,28 @@ def update():
     module.ushort = lookup_types('unsigned short', 'ushort', 'u16', 'uint16')
     module.uint   = lookup_types('unsigned int', 'uint', 'u32', 'uint32')
     module.void   = lookup_types('void', '()')
+    
     module.uint8  = module.uchar
     module.uint16 = module.ushort
     module.uint32 = module.uint
     module.uint64 = lookup_types('unsigned long long', 'ulong', 'u64', 'uint64')
+    module.unsigned = {
+        1: module.uint8,
+        2: module.uint16,
+        4: module.uint32,
+        8: module.uint64
+    }
 
     module.int8   = lookup_types('char', 'i8', 'int8')
     module.int16  = lookup_types('short', 'i16', 'int16')
     module.int32  = lookup_types('int', 'i32', 'int32')
     module.int64  = lookup_types('long long', 'long', 'i64', 'int64')
+    module.signed = {
+        1: module.int8,
+        2: module.int16,
+        4: module.int32,
+        8: module.int64
+    }
 
     module.pvoid  = void.pointer()
     module.ppvoid = pvoid.pointer()
