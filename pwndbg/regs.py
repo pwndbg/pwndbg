@@ -323,7 +323,7 @@ class module(ModuleType):
         return item
 
     def __iter__(self):
-        regs = set(arch_to_regs[pwndbg.arch.current]) | set(['pc','sp'])
+        regs = set(arch_to_regs[pwndbg.arch.current]) | {'pc', 'sp'}
         for item in regs:
             yield item
 
