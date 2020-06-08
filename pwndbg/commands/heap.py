@@ -969,7 +969,7 @@ def try_free(addr):
                 print(message.notice('Clearing next chunk\'s P bit'))
 
             # unsorted bin fd->bk should be unsorted bean
-            unsorted_addr = int(arena['bins']) - 2*ptr_size
+            unsorted_addr = int(arena['bins'][0])
             try:
                 unsorted = read_chunk(unsorted_addr)
                 try:
