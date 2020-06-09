@@ -334,8 +334,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             return self.main_arena
 
         try:
+            next(i for i in pwndbg.vmmap.get() if arena_addr in i)
             return pwndbg.memory.poi(self.malloc_state, arena_addr)
-        except gdb.MemoryError:
+        except (gdb.MemoryError, StopIteration):
             # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
             return None
 
