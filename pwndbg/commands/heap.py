@@ -245,9 +245,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     fields_to_print = set()  # in addition to addr and size
     out_fields = "Addr: {}\n".format(M.get(cursor))
 
-    arena = allocator.get_arena_for_chunk(cursor)
-    arena_address = None
-
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
         verbose = True  # print all fields for fake chunks
@@ -272,8 +269,10 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
         print('')
         return
 
+    arena = allocator.get_arena_for_chunk(cursor)
+    arena_address = None
     is_top = False
-    if arena:
+    if not fake and arena:
         arena_address = arena.address
         top_chunk = arena['top']
         if cursor == top_chunk:
@@ -498,6 +497,9 @@ def find_fake_fast(addr, size=None):
     max_fast = allocator.global_max_fast
     max_fastbin = allocator.fastbin_index(max_fast)
     start = int(addr) - max_fast + psize
+    if start < 0:
+        print(message.warn('addr - global_max_fast is negative, if the max_fast is not corrupted, you gave wrong address'))
+        start = 0  # TODO, maybe some better way to handle case when global_max_fast is overwritten with something large
     mem = pwndbg.memory.read(start, max_fast - psize, partial=True)
 
     fmt = {
