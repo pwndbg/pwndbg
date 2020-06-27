@@ -21,8 +21,16 @@ import pwndbg.elf
 import pwndbg.vmmap
 
 
+integer_types = six.integer_types + (gdb.Value,)
+
+# Ugly hack
+arg_val = None
+
 def pages_filter(s):
+    global arg_val
+
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
+    arg_val = gdbval_or_str
 
     # returns a module filter
     if isinstance(gdbval_or_str, six.string_types):
@@ -30,7 +38,7 @@ def pages_filter(s):
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, six.integer_types + (gdb.Value,)):
+    elif isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
@@ -62,8 +70,13 @@ def vmmap(pages_filter=None):
         return
 
     print(M.legend())
-    for page in pages:
-        print(M.get(page.vaddr, text=str(page)))
+
+    if len(pages) == 1 and isinstance(arg_val, integer_types):
+        page = pages[0]
+        print(M.get(page.vaddr, text=str(page) + ' +0x%x' % (int(arg_val) - page.vaddr)))
+    else:
+        for page in pages:
+            print(M.get(page.vaddr, text=str(page)))
 
     if pwndbg.qemu.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
