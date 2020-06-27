@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import argparse
 import collections
 import math
+import gdb
 
 import pwndbg.arch
 import pwndbg.chain
@@ -71,30 +72,38 @@ def telescope(address=None, count=None, to_string=False):
         count -= address
         count = max(math.ceil(count / ptrsize), 1)
 
-    reg_values = collections.defaultdict(lambda: [])
+    names_values = collections.defaultdict(lambda: [])
+
+    # Add register values
     for reg in pwndbg.regs.common:
-        reg_values[pwndbg.regs[reg]].append(reg)
-    # address    = pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address)
+        names_values[pwndbg.regs[reg]].append(reg)
+
+    # Add return addresses names
+    for idx, retaddr in enumerate(pwndbg.stack.yield_retaddrs()):
+        name = 'ret%d' % idx
+        names_values[retaddr].append(name)
+        # Set $retX variable so it can be used by the user
+        gdb.execute("set $%s=0x%x" % (name, retaddr))
 
     start = address
     stop  = address + (count*ptrsize)
     step  = ptrsize
 
     # Find all registers which show up in the trace
-    regs = {}
+    names = {}
     for i in range(start, stop, step):
-        values = list(reg_values[i])
+        values = list(names_values[i])
 
         for width in range(1, pwndbg.arch.ptrsize):
-            values.extend('%s-%i' % (r,width) for r in reg_values[i+width])
+            values.extend('%s-%i' % (r,width) for r in names_values[i+width])
 
-        regs[i] = ' '.join(values)
+        names[i] = ' '.join(values)
 
-    # Find the longest set of register information
-    if regs:
-        longest_regs = max(map(len, regs.values())) + 1
+    # Find the longest set of name information
+    if names:
+        longest_names = max(map(len, names.values())) + 1
     else:
-        longest_regs = 0
+        longest_names = 0
 
     # Print everything out
     result = []
@@ -117,7 +126,7 @@ def telescope(address=None, count=None, to_string=False):
 
         line = ' '.join((T.offset("%02x%s%04x%s" % (i + telescope.offset, delimiter,
                                                     addr - start + (telescope.offset * ptrsize), separator)),
-                         T.register(regs[addr].ljust(longest_regs)),
+                         T.register(names[addr].ljust(longest_names)),
                          pwndbg.chain.format(addr)))
         result.append(line)
     telescope.offset += i

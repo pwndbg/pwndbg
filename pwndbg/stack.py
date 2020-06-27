@@ -135,3 +135,29 @@ def is_executable():
             nx = True
 
     return not nx
+
+
+def yield_retaddrs():
+    sp = pwndbg.regs.sp
+    stack = pwndbg.vmmap.find(sp)
+
+    # Enumerate all return addresses
+    frame = gdb.newest_frame()
+    addresses = []
+    while frame:
+        addresses.append(frame.pc())
+        frame = frame.older()
+
+    # Find all of them on the stack
+    start = stack.vaddr
+    stop = start + stack.memsz
+    while addresses and start < sp < stop:
+        value = pwndbg.memory.u(sp)
+
+        if value in addresses:
+            index = addresses.index(value)
+            del addresses[:index]
+            yield sp
+
+        sp += pwndbg.arch.ptrsize
+
