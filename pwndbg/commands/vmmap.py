@@ -21,16 +21,17 @@ import pwndbg.elf
 import pwndbg.vmmap
 
 
-def pages_filter(s):
-    gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
+integer_types = six.integer_types + (gdb.Value,)
 
+
+def pages_filter(gdbval_or_str):
     # returns a module filter
     if isinstance(gdbval_or_str, six.string_types):
         module_name = gdbval_or_str
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, six.integer_types + (gdb.Value,)):
+    elif isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
@@ -48,22 +49,27 @@ Memory pages on QEMU targets may be inaccurate. This is because:
 
 Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
 parser.formatter_class=argparse.RawDescriptionHelpFormatter
-parser.add_argument('pages_filter', type=pages_filter, nargs='?', default=None,
+parser.add_argument('gdbval_or_str', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
                     help='Address or module name.')
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['lm', 'address', 'vprot'])
 @pwndbg.commands.OnlyWhenRunning
-def vmmap(pages_filter=None):
-    pages = list(filter(pages_filter, pwndbg.vmmap.get()))
+def vmmap(gdbval_or_str=None):
+    pages = list(filter(pages_filter(gdbval_or_str), pwndbg.vmmap.get()))
 
     if not pages:
         print('There are no mappings for specified address or module.')
         return
 
     print(M.legend())
-    for page in pages:
-        print(M.get(page.vaddr, text=str(page)))
+
+    if len(pages) == 1 and isinstance(gdbval_or_str, integer_types):
+        page = pages[0]
+        print(M.get(page.vaddr, text=str(page) + ' +0x%x' % (int(gdbval_or_str) - page.vaddr)))
+    else:
+        for page in pages:
+            print(M.get(page.vaddr, text=str(page)))
 
     if pwndbg.qemu.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
