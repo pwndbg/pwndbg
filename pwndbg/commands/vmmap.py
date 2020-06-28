@@ -56,7 +56,10 @@ parser.add_argument('gdbval_or_str', type=pwndbg.commands.sloppy_gdb_parse, narg
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['lm', 'address', 'vprot'])
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(gdbval_or_str=None):
-    pages = list(filter(pages_filter(gdbval_or_str), pwndbg.vmmap.get()))
+    pages = pwndbg.vmmap.get()
+
+    if gdbval_or_str:
+        pages = list(filter(pages_filter(gdbval_or_str), pages))
 
     if not pages:
         print('There are no mappings for specified address or module.')
