@@ -22,7 +22,7 @@ try:
 except ImportError:
     pass
 
-verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktracefor exceptions raised in Pwndbg commands')
+verbose = pwndbg.config.Parameter('exception-verbose', False, 'whether to print a full stacktrace for exceptions raised in Pwndbg commands')
 debug = pwndbg.config.Parameter('exception-debugger', False, 'whether to debug exceptions raised in Pwndbg commands')
 
 
