@@ -42,7 +42,7 @@ def db(address, count=64):
     Starting at the specified address, dump N bytes
     (default 64).
     """
-    return dX(1, (address), (count))
+    return dX(1, address, count, repeat=db.repeat)
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N words.")
@@ -55,7 +55,7 @@ def dw(address, count=32):
     Starting at the specified address, dump N words
     (default 32).
     """
-    return dX(2, (address), (count))
+    return dX(2, address, count, repeat=dw.repeat)
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N dwrods.")
@@ -68,7 +68,7 @@ def dd(address, count=16):
     Starting at the specified address, dump N dwords
     (default 16).
     """
-    return dX(4, (address), (count))
+    return dX(4, address, count, repeat=dd.repeat)
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N qwords.")
 parser.add_argument("address", type=int, help="The address to dump from.")
@@ -80,7 +80,7 @@ def dq(address, count=8):
     Starting at the specified address, dump N qwords
     (default 8).
     """
-    return dX(8, (address), (count))
+    return dX(8, address, count, repeat=dq.repeat)
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, hexdump.")
 parser.add_argument("address", type=int, help="The address to dump from.")
@@ -88,16 +88,23 @@ parser.add_argument("count", type=int, default=8, nargs="?", help="The number of
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dc(address, count=8):
-    return pwndbg.commands.hexdump.hexdump(address=address, count=count)
+    return pwndbg.commands.hexdump.hexdump(address=address, count=count, repeat=dc.repeat)
 
-def dX(size, address, count, to_string=False):
+def dX(size, address, count, to_string=False, repeat=False):
     """
     Traditionally, windbg will display 16 bytes of data per line.
     """
     values = []
-    address = int(address) & pwndbg.arch.ptrmask
+
+    if repeat:
+        count = dX.last_count
+        address = dX.last_address
+    else:
+        address = int(address) & pwndbg.arch.ptrmask
+        count = int(count)
+
     type   = get_type(size)
-    count = int(count)
+
     for i in range(count):
         try:
             gval = pwndbg.memory.poi(type, address + i * size)
@@ -123,6 +130,9 @@ def dX(size, address, count, to_string=False):
 
     if not to_string:
         print('\n'.join(lines))
+
+    dX.last_count = count
+    dX.last_address = address + len(rows)*16
 
     return lines
 
