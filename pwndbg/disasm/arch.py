@@ -199,8 +199,6 @@ class DisassemblyAssistant(object):
         operand.symbol:
             Resolved symbol name for this operand.
         """
-        current = (instruction.address == pwndbg.regs.pc)
-
         for i, op in enumerate(instruction.operands):
             op.int    = None
             op.symbol = None
