@@ -1,0 +1,32 @@
+name: Unit tests
+on: [push, pull_request]
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache for pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ matrix.os }}-cache-pip
+
+    - name: Install dependencies
+      run: |
+        ./setup.sh --user
+
+    - name: Python version info
+      run: |
+        echo 'GDB py:'
+        gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
+        echo 'Installed py:'
+        python -V
+
+    - name: Run tests
+      run: |
+        PWNDBG_TRAVIS_TEST_RUN=1 ./tests.sh
