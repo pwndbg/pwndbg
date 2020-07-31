@@ -47,7 +47,7 @@ def prot_str_to_val(protstr):
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyAmd64
-def mprotect(addr, length, prot: str):
+def mprotect(addr, length, prot):
     '''Only x86_64.'''
     saved_rax = pwndbg.regs.rax
     saved_rbx = pwndbg.regs.rbx
