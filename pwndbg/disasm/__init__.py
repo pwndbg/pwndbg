@@ -14,7 +14,6 @@ from capstone import *
 import pwndbg.arch
 import pwndbg.disasm.arch
 import pwndbg.ida
-import pwndbg.jump
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.symbol
