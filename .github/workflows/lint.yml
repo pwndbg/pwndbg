@@ -25,6 +25,6 @@ jobs:
     - name: Run tests
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
-        isort --check-only --diff --recursive pwndbg tests
+        isort --check-only --diff pwndbg tests
         python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
 
