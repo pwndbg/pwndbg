@@ -5,10 +5,6 @@ Retrieve files from the debuggee's filesystem.  Useful when
 debugging a remote process over SSH or similar, where e.g.
 /proc/FOO/maps is needed from the remote system.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import binascii
 import os

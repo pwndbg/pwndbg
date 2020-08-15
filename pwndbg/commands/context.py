@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import ast
@@ -75,7 +71,7 @@ def validate_context_sections():
             config_context_sections.revert_default()
             return
 
-class StdOutput(object):
+class StdOutput:
     """A context manager wrapper to give stdout"""
     def __enter__(self):
         return sys.stdout
@@ -86,7 +82,7 @@ class StdOutput(object):
     def __eq__(self, other):
         return type(other) is StdOutput
 
-class FileOutput(object):
+class FileOutput:
     """A context manager wrapper to reopen files on enter"""
     def __init__(self, *args):
         self.args = args
@@ -101,7 +97,7 @@ class FileOutput(object):
     def __eq__(self, other):
         return self.args == other.args
 
-class CallOutput(object):
+class CallOutput:
     """A context manager which calls a function on write"""
     def __init__(self, func):
         self.func = func

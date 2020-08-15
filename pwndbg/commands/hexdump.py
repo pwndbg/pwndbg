@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 
 import gdb
-import six
 
 import pwndbg.arch
 import pwndbg.commands
@@ -26,14 +20,14 @@ pwndbg.config.Parameter('hexdump-bytes',
 
 def address_or_module_name(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
-    if isinstance(gdbval_or_str, six.string_types):
+    if isinstance(gdbval_or_str, str):
         module_name = gdbval_or_str
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.vmmap.get()))
         if pages:
             return pages[0].vaddr
         else:
             raise argparse.ArgumentError('Could not find pages for module %s' % module_name)
-    elif isinstance(gdbval_or_str, six.integer_types + (gdb.Value,)):
+    elif isinstance(gdbval_or_str, (int, gdb.Value)):
         addr = gdbval_or_str
         return addr
     else:

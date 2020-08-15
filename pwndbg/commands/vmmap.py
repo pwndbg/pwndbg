@@ -3,15 +3,9 @@
 """
 Command to print the virtual memory map a la /proc/self/maps.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 
 import gdb
-import six
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
@@ -21,12 +15,12 @@ import pwndbg.elf
 import pwndbg.vmmap
 
 
-integer_types = six.integer_types + (gdb.Value,)
+integer_types = (int, gdb.Value)
 
 
 def pages_filter(gdbval_or_str):
     # returns a module filter
-    if isinstance(gdbval_or_str, six.string_types):
+    if isinstance(gdbval_or_str, str):
         module_name = gdbval_or_str
         return lambda page: module_name in page.objfile
 

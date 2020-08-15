@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import binascii
@@ -117,10 +113,6 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
             'dword': 'L',
             'qword': 'Q'
         }[type]
-
-        # Work around Python 2.7.6 struct.pack / unicode incompatibility
-        # See https://github.com/pwndbg/pwndbg/pull/336 for more information.
-        fmt = str(fmt)
 
         try:
             value = struct.pack(fmt, value)

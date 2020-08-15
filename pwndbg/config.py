@@ -17,11 +17,6 @@ module, for example:
     >>> int(pwndbg.config.example_value)
     7
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import codecs
 import collections
 import re
@@ -30,7 +25,6 @@ import types
 from functools import total_ordering
 
 import gdb
-import six
 
 import pwndbg.decorators
 
@@ -42,20 +36,18 @@ TYPES[bool] = gdb.PARAM_BOOLEAN
 
 # The value is an integer.
 # This is like PARAM_INTEGER, except 0 is interpreted as itself.
-for typ in six.integer_types:
-    TYPES[typ] = gdb.PARAM_ZINTEGER
+TYPES[int] = gdb.PARAM_ZINTEGER
 
 # The value is a string.
 # When the user modifies the string, any escape sequences,
 # such as ‘\t’, ‘\f’, and octal escapes, are translated into
 # corresponding characters and encoded into the current host charset.
-for typ in six.string_types:
-    TYPES[typ] = gdb.PARAM_STRING
+TYPES[str] = gdb.PARAM_STRING
 
 triggers = collections.defaultdict(lambda: [])
 
 
-class Trigger(object):
+class Trigger:
     def __init__(self, names):
         if not isinstance(names, list):
             names = [names]
@@ -150,11 +142,11 @@ class Parameter(gdb.Parameter):
         value = self.raw_value
 
         # For string value, convert utf8 byte string to unicode.
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             value = codecs.decode(value, 'utf-8')
 
         # Remove surrounded ' and " characters
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             # The first character must be ' or " and ends with the same character.
             # See PR #404 for more information
             pattern = r"^(?P<quote>[\"'])(?P<content>.*?)(?P=quote)$"

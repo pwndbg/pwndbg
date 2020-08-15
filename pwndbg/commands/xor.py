@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 
 import gdb
-import six
 
 import pwndbg.commands
 import pwndbg.memory
@@ -37,7 +31,7 @@ def xor(address, key, count):
 
     XOR ``count`` bytes at ``address`` with the key ``key``.
     '''
-    if not isinstance(address, six.integer_types):
+    if not isinstance(address, int):
         try:
             address = int(address, 0)
         except ValueError:
@@ -60,7 +54,7 @@ def memfrob(address, count):
 
     Run the memfrob command on a region of memory
     '''
-    if not isinstance(address, six.integer_types):
+    if not isinstance(address, int):
         try:
             address = int(address, 0)
         except ValueError:

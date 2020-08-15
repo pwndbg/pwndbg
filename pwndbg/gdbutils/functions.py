@@ -4,10 +4,6 @@ Put all functions defined for gdb in here.
 
 This file might be changed into a module in the future.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import functools
 
