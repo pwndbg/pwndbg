@@ -82,6 +82,7 @@ version = __version__
 
 try:
     import unicorn
+
     import pwndbg.emu
 except:
     pass

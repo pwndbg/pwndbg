@@ -300,7 +300,8 @@ class module(ModuleType):
     def __getitem__(self, item):
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
-            import pdb, traceback
+            import pdb
+            import traceback
             traceback.print_stack()
             pdb.set_trace()
             return None

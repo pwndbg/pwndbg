@@ -11,8 +11,9 @@ from pwndbg.color import theme
 
 try:
     import pygments
-    import pygments.lexers
     import pygments.formatters
+    import pygments.lexers
+
     from pwndbg.color.lexer import PwntoolsLexer
 except ImportError:
     pygments = None

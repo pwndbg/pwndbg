@@ -14,7 +14,6 @@ import pwndbg.commands
 import pwndbg.elf
 import pwndbg.vmmap
 
-
 integer_types = (int, gdb.Value)
 
 

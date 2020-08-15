@@ -4,6 +4,7 @@
 import argparse
 
 import gdb
+
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance

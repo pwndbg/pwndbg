@@ -6,6 +6,7 @@ entry point.
 """
 import argparse
 import shlex
+from shlex import quote
 
 import gdb
 
@@ -13,11 +14,6 @@ import pwndbg.commands
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.symbol
-
-from shlex import quote
-
-
-
 
 break_on_first_instruction = False
 
