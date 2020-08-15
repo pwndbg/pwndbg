@@ -444,7 +444,7 @@ def check_aslr():
         data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
         if b'0' in data:
             vmmap.aslr = False
-            return vmmap.aslr
+            return vmmap.aslr, 'kernel.randomize_va_space == 0'
     except Exception as e:
         print("Could not check ASLR: Couldn't get randomize_va_space")
         pass
@@ -456,7 +456,7 @@ def check_aslr():
             personality = int(data, 16)
             if personality & 0x40000 == 0:
                 vmmap.aslr = True
-            return vmmap.aslr
+            return vmmap.aslr, 'read status from process\' personality'
         except:
             print("Could not check ASLR: Couldn't get personality")
             pass
@@ -469,7 +469,7 @@ def check_aslr():
     if "is off." in output:
         vmmap.aslr = True
 
-    return vmmap.aslr
+    return vmmap.aslr, 'show disable-randomization'
 
 @pwndbg.events.cont
 def mark_pc_as_executable():
