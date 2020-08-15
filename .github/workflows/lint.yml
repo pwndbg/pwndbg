@@ -20,11 +20,10 @@ jobs:
 
     - name: Install linters
       run: |
-        pip install isort future
+        pip install isort
 
     - name: Run tests
       run: |
-        futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg tests
         git diff-index --quiet HEAD -- pwndbg tests
         isort --check-only --diff --recursive pwndbg tests
         python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
