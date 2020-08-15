@@ -23,7 +23,7 @@ Some guides:
 * Mid-cycle releases get a patch version bump (`1.1.X`) when bugs affecting `stable` or `beta` are found
 * Pull requests which fix bugs target the oldest branch they affect (e.g. `stable`).
 * There might be occassional cherry-picks if something is fixed in a later branch and we don't notice/forget that it should really target an earlier branch.
-* Documentation fixes, travis fixes, CHANGELOG/README fixes and other tiny fixes does not trigger a new point release.
+* Documentation fixes, CI fixes, CHANGELOG/README fixes and other tiny fixes does not trigger a new point release.
 
 ### Contact
 
