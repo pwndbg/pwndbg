@@ -1,10 +1,11 @@
-import gdb
-import pwndbg
-import tests
-import stat
 import os
+import stat
 import tempfile
 
+import gdb
+
+import pwndbg
+import tests
 
 HEAP_BINARY = tests.binaries.get('heap_bugs.out')
 HEAP_CODE = tests.binaries.get('heap_bugs.c')

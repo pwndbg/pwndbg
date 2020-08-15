@@ -7,17 +7,11 @@ address ranges with various ELF files and permissions.
 The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import bisect
 import os
 import sys
 
 import gdb
-import six
 
 import pwndbg.abi
 import pwndbg.elf
@@ -200,8 +194,7 @@ def proc_pid_maps():
     else:
         return tuple()
 
-    if six.PY3:
-        data = data.decode()
+    data = data.decode()
 
     pages = []
     for line in data.splitlines():

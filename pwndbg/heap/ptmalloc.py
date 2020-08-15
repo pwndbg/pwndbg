@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 from collections import OrderedDict
 from collections import namedtuple
@@ -16,7 +12,6 @@ import pwndbg.typeinfo
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
-
 
 # See https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=37183cfb6ab5d0735cc82759626670aff3832cd0;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l30
 # and https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f8e7250f70f6f26b0acb5901bcc4f6e39a8a52b2;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l869
@@ -32,7 +27,7 @@ def heap_for_ptr(ptr):
     return (ptr & ~(HEAP_MAX_SIZE-1))
 
 
-class Arena(object):
+class Arena:
     def __init__(self, addr, heaps):
         self.addr  = addr
         self.heaps = heaps
@@ -49,7 +44,7 @@ class Arena(object):
         return '\n'.join(res)
 
 
-class HeapInfo(object):
+class HeapInfo:
     def __init__(self, addr, first_chunk):
         self.addr        = addr
         self.first_chunk = first_chunk

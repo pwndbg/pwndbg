@@ -4,13 +4,9 @@
 Launches the target process after setting a breakpoint at a convenient
 entry point.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import shlex
+from shlex import quote
 
 import gdb
 
@@ -18,15 +14,6 @@ import pwndbg.commands
 import pwndbg.elf
 import pwndbg.events
 import pwndbg.symbol
-
-# Py 2 vs Py 3
-try:
-    from shlex import quote
-except ImportError:
-    from pipes import quote
-
-
-
 
 break_on_first_instruction = False
 

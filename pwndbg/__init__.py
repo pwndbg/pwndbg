@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import signal
 
 import gdb
@@ -68,7 +63,6 @@ import pwndbg.elf
 import pwndbg.exception
 import pwndbg.gdbutils.functions
 import pwndbg.heap
-import pwndbg.inthook
 import pwndbg.memory
 import pwndbg.net
 import pwndbg.proc
@@ -88,6 +82,7 @@ version = __version__
 
 try:
     import unicorn
+
     import pwndbg.emu
 except:
     pass

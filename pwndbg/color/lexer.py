@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import re
 
-import six
 from pygments.lexer import RegexLexer
 from pygments.lexer import include
 from pygments.token import Comment
@@ -115,21 +109,4 @@ class PwntoolsLexer(RegexLexer):
         'punctuation': [
             (r'[-*,.():]+', Punctuation)
         ]
-    }
-
-# Note: convert all unicode() to str() if in Python2.7 since unicode_literals is enabled
-# The pygments<=2.2.0 (latest stable when commit) in Python2.7 use 'str' type in rules matching
-# We must convert all unicode back to str()
-if six.PY2:
-    def _to_str(obj):
-        type_ = type(obj)
-        if type_ in (tuple, list):
-            return type_(map(_to_str, obj))
-        elif type_ is unicode:
-            return str(obj)
-        return obj
-
-    PwntoolsLexer.tokens = {
-        _to_str(k): _to_str(v)
-        for k, v in PwntoolsLexer.tokens.iteritems()
     }

@@ -5,10 +5,6 @@ Caches return values until some event in the inferior happens,
 e.g. execution stops because of a SIGINT or breakpoint, or a
 new library/objfile are loaded, etc.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import collections
 import functools
@@ -19,7 +15,7 @@ import pwndbg.events
 debug = False
 
 
-class memoize(object):
+class memoize:
     """
     Base memoization class. Do not use directly. Instead use one of classes defined below.
     """

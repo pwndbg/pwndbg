@@ -5,10 +5,6 @@ Runs a few useful commands which are available under "info".
 
 We probably don't need this anymore.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import gdb
 

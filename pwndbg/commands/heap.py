@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import ctypes
 import struct
 
 import gdb
-import six
 
 import pwndbg.color.context as C
 import pwndbg.color.memory as M

@@ -7,10 +7,6 @@ is declared.
 We need to catch on the fly.  We do this by swapping out the base classes of the
 Structure type, and incurring a performance penalty for foreign-endianness targets.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import ctypes
 import sys

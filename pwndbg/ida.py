@@ -5,11 +5,6 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import errno
 import functools
 import socket
@@ -18,7 +13,6 @@ import time
 import traceback
 
 import gdb
-import six
 
 import pwndbg.arch
 import pwndbg.config
@@ -42,9 +36,6 @@ ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable id
 ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
 
 xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
-
-if six.PY2:
-    xmlrpclib.Marshaller.dispatch[long] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -107,7 +98,7 @@ def init_ida_rpc_client():
     _ida_last_connection_check = now
 
 
-class withIDA(object):
+class withIDA:
     def __init__(self, fn):
         self.fn = fn
         functools.update_wrapper(self, fn)
@@ -465,7 +456,7 @@ def GetStrucNextOff(sid, offset):
     return _ida.GetStrucNextOff(sid, offset)
 
 
-class IDC(object):
+class IDC:
     query = "{k:v for k,v in globals()['idc'].__dict__.items() if type(v) in (int,long)}"
 
     def __init__(self):

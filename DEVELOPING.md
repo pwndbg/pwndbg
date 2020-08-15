@@ -24,8 +24,6 @@ Feel free to update the list below!
 
 * Process properties can be retrieved thx to `pwndbg/proc.py` - e.g. using `pwndbg.proc.pid` will give us current process pid
 
-* We have an inthook to make it easier to work with Python 2 and gdb.Value objects - see the docstring in `pwndbg/inthook.py` . Specifically, it makes it so that you can call `int()` on a `gdb.Value` instance and get what you want. 
-
 * We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
 
 * Some of pwndbg's functionality - e.g. memory fetching - require us to have an instance of proper `gdb.Type` - the problem with that is that there is no way to define our own types - we have to ask gdb if it detected particular type in this particular binary (that sucks). We do it in `pwndbg/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.

@@ -5,10 +5,6 @@ Enables callbacks into functions to be automatically invoked
 when various events occur to the debuggee (e.g. STOP on SIGINT)
 by using a decorator.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import sys
 from functools import partial
@@ -35,7 +31,7 @@ pause = 0
 # Additionally, when attaching to a process running under QEMU, the
 # very first event which is fired is a 'stop' event.  We need to
 # capture this so that we can fire off all of the 'start' events first.
-class StartEvent(object):
+class StartEvent:
     def __init__(self):
         self.registered = list()
         self.running    = False
@@ -69,7 +65,7 @@ class StartEvent(object):
 gdb.events.start = StartEvent()
 
 
-class EventWrapper(object):
+class EventWrapper:
     """
     Wraper for GDB events which may not exist on older GDB versions but we still can
     fire them manually (to invoke them you have to call `invoke_callbacks`).
@@ -124,7 +120,7 @@ except (NameError, AttributeError):
     pass
 
 
-class Pause(object):
+class Pause:
     def __enter__(self, *a, **kw):
         global pause
         pause += 1

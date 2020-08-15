@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import functools
 import subprocess
@@ -13,7 +9,7 @@ import pwndbg.commands
 import pwndbg.which
 
 
-class OnlyWithCommand(object):
+class OnlyWithCommand:
     def __init__(self, *commands):
         self.all_cmds = list(map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands))
         for command in commands:

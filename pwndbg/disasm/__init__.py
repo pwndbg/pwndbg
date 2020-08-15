@@ -4,10 +4,6 @@
 Functionality for disassmebling code at an address, or at an
 address +/- a few instructions.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import collections
 
@@ -18,7 +14,6 @@ from capstone import *
 import pwndbg.arch
 import pwndbg.disasm.arch
 import pwndbg.ida
-import pwndbg.jump
 import pwndbg.memoize
 import pwndbg.memory
 import pwndbg.symbol

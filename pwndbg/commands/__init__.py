@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import functools
 
 import gdb
-import six
 
 import pwndbg.chain
 import pwndbg.color
@@ -297,13 +291,13 @@ class _ArgparsedCommand(Command):
         return tuple(), vars(self.parser.parse_args(argv))
 
 
-class ArgparsedCommand(object):
+class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
     def __init__(self, parser_or_desc, aliases=[]):
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
-        if isinstance(parser_or_desc, six.string_types):
+        if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
             self.parser = parser_or_desc

@@ -5,10 +5,6 @@ Prints out pointer chains starting at some address in memory.
 
 Generally used to print out the stack or register values.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import collections

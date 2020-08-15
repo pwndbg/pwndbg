@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-import six
-
 import pwndbg.color.theme as theme
 import pwndbg.config as config
 import pwndbg.vmmap
@@ -62,7 +55,7 @@ def get(address, text = None):
         old_color = color
         color = lambda x: rwx(old_color(x))
 
-    if text is None and isinstance(address, six.integer_types) and address > 255:
+    if text is None and isinstance(address, int) and address > 255:
         text = hex(int(address))
     if text is None:
         text = str(int(address))

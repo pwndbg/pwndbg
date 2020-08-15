@@ -4,11 +4,6 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import collections
 import ctypes
 import re
@@ -16,7 +11,6 @@ import sys
 from types import ModuleType
 
 import gdb
-import six
 
 import pwndbg.arch
 import pwndbg.events
@@ -30,7 +24,7 @@ except NameError:
     long=int
 
 
-class RegisterSet(object):
+class RegisterSet:
     #: Program counter register
     pc = None
 
@@ -304,9 +298,10 @@ class module(ModuleType):
     @pwndbg.memoize.reset_on_stop
     @pwndbg.memoize.reset_on_prompt
     def __getitem__(self, item):
-        if not isinstance(item, six.string_types):
+        if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
-            import pdb, traceback
+            import pdb
+            import traceback
             traceback.print_stack()
             pdb.set_trace()
             return None
@@ -315,7 +310,7 @@ class module(ModuleType):
         item = item.lstrip('$')
         item = getattr(self, item.lower())
 
-        if isinstance(item, six.integer_types):
+        if isinstance(item, int):
             return int(item) & pwndbg.arch.ptrmask
 
         return item

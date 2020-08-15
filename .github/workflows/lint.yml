@@ -13,11 +13,6 @@ jobs:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
 
-    - name: Set up Python 2.7
-      uses: actions/setup-python@v1
-      with:
-        python-version: 2.7
-
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
@@ -25,13 +20,11 @@ jobs:
 
     - name: Install linters
       run: |
-        pip install isort future
+        pip install isort
 
     - name: Run tests
       run: |
-        futurize --all-imports --stage1 --print-function --write --unicode-literals pwndbg tests
         git diff-index --quiet HEAD -- pwndbg tests
-        isort --check-only --diff --recursive pwndbg tests
-        python2.7 -m py_compile ida_script.py $(git ls-files 'pwndbg/*.py')
+        isort --check-only --diff pwndbg tests
         python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
 

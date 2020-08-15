@@ -8,10 +8,6 @@ Currently prints out code, integers, or strings, in a best-effort manner
 dependent on page permissions, the contents of the data, and any
 supplemental information sources (e.g. active IDA Pro connection).
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import string
 

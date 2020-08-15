@@ -3,10 +3,6 @@
 """
 Emulation assistance from Unicorn.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import binascii
 import re
@@ -113,7 +109,7 @@ e.until_jump()
 '''
 
 
-class Emulator(object):
+class Emulator:
     def __init__(self):
         self.arch = pwndbg.arch.current
 
