@@ -102,9 +102,11 @@ if linux; then
             ;;
         "gentoo")
             install_emerge
-            sudo() {
-                $*
-            }
+            if ! hash sudo 2>/dev/null && whoami | grep root; then
+                sudo() {
+                    $*
+                }
+            fi
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
