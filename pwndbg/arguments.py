@@ -201,5 +201,11 @@ def format_args(instruction):
     for arg, value in get(instruction):
         code   = arg.type != 'char'
         pretty = pwndbg.chain.format(value, code=code)
+
+        # Enhance args display
+        if arg.name == 'fd' and isinstance(value, int):
+            path = pwndbg.file.readlink('/proc/%d/fd/%d' % (pwndbg.proc.pid, value))
+            pretty += ' (%s)' % path
+
         result.append('%-10s %s' % (N.argument(arg.name) + ':', pretty))
     return result
