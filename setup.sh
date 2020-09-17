@@ -53,6 +53,10 @@ install_zypper() {
     fi
 }
 
+install_emerge() {
+    emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip sys-devel/gdb
+}
+
 PYTHON=''
 INSTALLFLAGS=''
 
@@ -93,6 +97,14 @@ if linux; then
             ;;
         "void")
             install_xbps
+            ;;
+        "gentoo")
+            install_emerge
+            if ! hash sudo 2>/dev/null && whoami | grep root; then
+                sudo() {
+                    $*
+                }
+            fi
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
