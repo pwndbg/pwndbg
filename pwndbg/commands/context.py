@@ -352,7 +352,7 @@ def context(subcontext=None):
             out.flush()
 
 
-pwndbg.config.Parameter('show-compact-regs', True, 'whether to show a compact register view')
+pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view')
 pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters reserved for each register and value')
 pwndbg.config.Parameter('show-compact-regs-space', 4, 'the number of characters separating each register')
 
