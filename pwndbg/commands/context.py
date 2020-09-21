@@ -526,7 +526,6 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
 
 stack_lines = pwndbg.config.Parameter('context-stack-lines', 8, 'number of lines to print in the stack context')
 
-
 def context_stack(target=sys.stdout, with_banner=True, width=None):
     result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(pwndbg.regs.sp, to_string=True, count=stack_lines)
@@ -534,10 +533,11 @@ def context_stack(target=sys.stdout, with_banner=True, width=None):
         result.extend(telescope)
     return result
 
+
+backtrace_lines = pwndbg.config.Parameter('context-backtrace-lines', 8, 'number of lines to print in the backtrace context')
 backtrace_frame_label = theme.Parameter('backtrace-frame-label', 'f ', 'frame number label for backtrace')
 
-
-def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width=None):
+def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     result = []
 
     if with_banner:
@@ -547,7 +547,7 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width
     newest_frame  = this_frame
     oldest_frame  = this_frame
 
-    for i in range(frame_count):
+    for i in range(backtrace_lines-1):
         try:
             candidate = oldest_frame.older()
         except gdb.MemoryError:
@@ -557,7 +557,7 @@ def context_backtrace(frame_count=10, with_banner=True, target=sys.stdout, width
             break
         oldest_frame = candidate
 
-    for i in range(frame_count):
+    for i in range(backtrace_lines-1):
         candidate = newest_frame.newer()
         if not candidate:
             break
