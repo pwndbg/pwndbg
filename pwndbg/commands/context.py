@@ -357,13 +357,17 @@ pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters
 pwndbg.config.Parameter('show-compact-regs-space', 4, 'the number of characters separating each register')
 
 
+def calculate_padding_to_align(length, align):
+    ''' Calculates the number of spaces to append to reach the next alignment.
+        The next alignment point is given by "x * align >= length".
+    '''
+    return 0 if length % align == 0 else (align - (length % align))
+
+
 def compact_regs(regs, width):
     align = int(pwndbg.config.show_compact_regs_align)
     space = int(pwndbg.config.show_compact_regs_space)
     result = []
-
-    def calculate_padding(length):
-        return 0 if length % align == 0 else (align - (length % align))
 
     def get_text_length(text):
         '''Returns the text length while ignoring color-code escape sequences.'''
@@ -388,7 +392,7 @@ def compact_regs(regs, width):
         # register string onto the screen / display
         line_length_with_padding = line_length
         line_length_with_padding += space if line_length != 0 else 0
-        line_length_with_padding += calculate_padding(line_length_with_padding)
+        line_length_with_padding += calculate_padding_to_align(line_length_with_padding, align)
 
         # When element does not fully fit, then start a new line
         if line_length_with_padding + max(reg_length, align) > width:
