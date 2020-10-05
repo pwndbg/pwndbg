@@ -28,6 +28,7 @@ CapstoneArch = {
     'armcm': CS_ARCH_ARM,
     'aarch64': CS_ARCH_ARM64,
     'i386': CS_ARCH_X86,
+    'i8086': CS_ARCH_X86,
     'x86-64': CS_ARCH_X86,
     'powerpc': CS_ARCH_PPC,
     'mips': CS_ARCH_MIPS,
@@ -52,6 +53,7 @@ CapstoneMode = {
 VariableInstructionSizeMax = {
     'i386':   16,
     'x86-64': 16,
+    'i8086':  16,
     'mips':   8,
 }
 
@@ -85,6 +87,10 @@ def get_disassembler(pc):
         else:
             # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
             extra = 0 
+            
+    elif pwndbg.arch.current == 'i8086':
+        extra = CS_MODE_16
+    
     else:
         extra = None
 

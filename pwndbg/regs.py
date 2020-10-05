@@ -162,7 +162,6 @@ i386 = RegisterSet( pc      = 'eip',
                                 'di','si','bp','sp','ip'),
                     retval  = 'eax')
 
-
 # http://math-atlas.sourceforge.net/devel/assembly/elfspec_ppc.pdf
 # r0      Volatile register which may be modified during function linkage
 # r1      Stack frame pointer, always valid
@@ -242,6 +241,7 @@ mips = RegisterSet( frame   = 'fp',
 
 arch_to_regs = {
     'i386': i386,
+    'i8086': i386,
     'x86-64': amd64,
     'mips': mips,
     'sparc': sparc,
@@ -289,6 +289,8 @@ class module(ModuleType):
                 value = get_register(attr)
                 size = pwndbg.typeinfo.unsigned.get(value.type.sizeof, pwndbg.typeinfo.ulong)
                 value = value.cast(size)
+                if attr.lower() == 'pc' and pwndbg.arch.current == 'i8086':
+                    value += self.cs * 16
 
             value = int(value)
             return value & pwndbg.arch.ptrmask
