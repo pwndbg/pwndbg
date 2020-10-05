@@ -352,9 +352,66 @@ def context(subcontext=None):
             out.flush()
 
 
+pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view')
+pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters reserved for each register and value')
+pwndbg.config.Parameter('show-compact-regs-space', 4, 'the minimum number of characters separating each register')
+
+
+def calculate_padding_to_align(length, align):
+    ''' Calculates the number of spaces to append to reach the next alignment.
+        The next alignment point is given by "x * align >= length".
+    '''
+    return 0 if length % align == 0 else (align - (length % align))
+
+
+def compact_regs(regs, width):
+    align = int(pwndbg.config.show_compact_regs_align)
+    space = int(pwndbg.config.show_compact_regs_space)
+    result = []
+
+    line = ''
+    line_length = 0
+    for reg in regs:
+        reg_length = len(pwndbg.color.strip(reg))
+
+        # Length of line with space and padding is required for fitting the
+        # register string onto the screen / display
+        line_length_with_padding = line_length
+        line_length_with_padding += space if line_length != 0 else 0
+        line_length_with_padding += calculate_padding_to_align(line_length_with_padding, align)
+
+        # When element does not fully fit, then start a new line
+        if line_length_with_padding + max(reg_length, align) > width:
+            result.append(line)
+
+            line = ''
+            line_length = 0
+            line_length_with_padding = 0
+
+        # Add padding
+        if line != '':
+            line += ' ' * (line_length_with_padding - line_length)
+
+        line += reg
+        line_length = line_length_with_padding + reg_length
+
+    if line != '':
+        result.append(line)
+
+    return result
+
+
 def context_regs(target=sys.stdout, with_banner=True, width=None):
+    if width is None:
+        _height, width = pwndbg.ui.get_window_size(target=target)
+
+    regs = get_regs()
+    if pwndbg.config.show_compact_regs:
+        regs = compact_regs(regs, width)
+
     banner = [pwndbg.ui.banner("registers", target=target, width=width)]
-    return banner + get_regs() if with_banner else get_regs()
+    return banner + regs if with_banner else regs
+
 
 parser = argparse.ArgumentParser()
 parser.description = '''Print out all registers and enhance the information.'''
