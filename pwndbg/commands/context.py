@@ -354,7 +354,7 @@ def context(subcontext=None):
 
 pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view')
 pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters reserved for each register and value')
-pwndbg.config.Parameter('show-compact-regs-space', 4, 'the number of characters separating each register')
+pwndbg.config.Parameter('show-compact-regs-space', 4, 'the minimum number of characters separating each register')
 
 
 def calculate_padding_to_align(length, align):
