@@ -299,7 +299,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             "mchunk_prev_size": "prev_size",
         }
         val = self.malloc_chunk
-        chunk_keys = list(dict({renames.get(key, key): 0 for key in val.keys()}).keys())
+        chunk_keys = [renames[key] if key in renames else key for key in val.keys()]
 
         try:
             return chunk_keys.index(key) * pwndbg.arch.ptrsize
