@@ -402,14 +402,14 @@ def compact_regs(regs, width):
 
 
 def context_regs(target=sys.stdout, with_banner=True, width=None):
-    banner = [pwndbg.ui.banner("registers", target=target, width=width)]
-    regs = get_regs()
+    if width is None:
+        _height, width = pwndbg.ui.get_window_size(target=target)
 
+    regs = get_regs()
     if pwndbg.config.show_compact_regs:
-        if width is None:
-            _height, width = pwndbg.ui.get_window_size(target=target)
         regs = compact_regs(regs, width)
 
+    banner = [pwndbg.ui.banner("registers", target=target, width=width)]
     return banner + regs if with_banner else regs
 
 
