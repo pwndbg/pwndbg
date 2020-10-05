@@ -369,24 +369,10 @@ def compact_regs(regs, width):
     space = int(pwndbg.config.show_compact_regs_space)
     result = []
 
-    def get_text_length(text):
-        '''Returns the text length while ignoring color-code escape sequences.'''
-        length = 0
-
-        escape_sequence = False
-        for char in text:
-            if escape_sequence:
-                escape_sequence = (char != 'm')
-            else:
-                escape_sequence = (char == '\033')
-                length += 0 if escape_sequence else 1
-
-        return length
-
     line = ''
     line_length = 0
     for reg in regs:
-        reg_length = get_text_length(reg)
+        reg_length = len(pwndbg.color.strip(reg))
 
         # Length of line with space and padding is required for fitting the
         # register string onto the screen / display
