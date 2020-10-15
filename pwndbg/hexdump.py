@@ -6,7 +6,6 @@ Hexdump implementation, ~= stolen from pwntools.
 
 import copy
 import string
-import itertools
 
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
