@@ -6,6 +6,7 @@ Hexdump implementation, ~= stolen from pwntools.
 
 import copy
 import string
+import itertools
 
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
@@ -23,6 +24,8 @@ def groupby(array, count, fill=None):
 
 config_colorize_ascii = theme.Parameter('hexdump-colorize-ascii', True, 'whether to colorize the hexdump command ascii section')
 config_separator      = theme.Parameter('hexdump-ascii-block-separator', '│', 'block separator char of the hexdump command')
+config_byte_separator = theme.Parameter('hexdump-byte-separator', ' ', 'separator of single bytes in hexdump (does NOT affect group separator)')
+
 
 @pwndbg.config.Trigger([H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii])
 def load_color_scheme():
@@ -49,7 +52,7 @@ def load_color_scheme():
     color_scheme[-1] = '  '
     printable[-1] = ' '
 
-def hexdump(data, address = 0, width = 16, skip = True, offset = 0):
+def hexdump(data, address = 0, width = 16, group_width=4, flip_group_endianess = False, skip = True, offset = 0):
     if not color_scheme or not printable:
         load_color_scheme()
     data = list(bytearray(data))
@@ -73,14 +76,19 @@ def hexdump(data, address = 0, width = 16, skip = True, offset = 0):
 
         hexline.append(H.address("%#08x  " % (base + (i * width))))
 
-        for group in groupby(line, 4):
-            for char in group:
-                hexline.append(color_scheme[char])
-                hexline.append(' ')
+        for group in groupby(line, group_width):
+            group_length = len(group)
+            group = reversed(group) if flip_group_endianess else group
+            for idx, char in enumerate(group):
+                if flip_group_endianess and idx == group_length - 1:
+                    hexline.append(H.highlight_group_lsb(color_scheme[char]))
+                else:
+                    hexline.append(color_scheme[char])
+                hexline.append(f'{config_byte_separator}')
             hexline.append(' ')
 
         hexline.append(H.separator('%s' % config_separator))
-        for group in groupby(line, 4):
+        for group in groupby(line, group_width):
             for char in group:
                 hexline.append(printable[char])
             hexline.append(H.separator('%s' % config_separator))
