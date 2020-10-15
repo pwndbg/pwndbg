@@ -932,10 +932,10 @@ def try_free(addr):
                 finalize(errors_found, returned_before_error)
                 return
 
-            if unsigned_size(prev_chunk['size']) != prev_size:
+            if prev_chunk_size != prev_size:
                 err = 'corrupted size vs. prev_size while consolidating\n'
                 err += 'prev_size field is 0x{:x}, prev chunk at 0x{:x}, prev chunk size is 0x{:x}'
-                err = err.format(prev_size, prev_chunk_addr, unsigned_size(prev_chunk['size']))
+                err = err.format(prev_size, prev_chunk_addr, prev_chunk_size)
                 print(message.error(err))
                 errors_found += 1
             else:
