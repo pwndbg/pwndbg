@@ -23,7 +23,7 @@ pwndbg.config.Parameter('hexdump-group-width',
 pwndbg.config.Parameter('hexdump-group-use-big-endian',
                          False,
                          'Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. '
-                         'Also see hexdump-highlight-group-lsb.')
+                         'See also hexdump-highlight-group-lsb.')
 
 def address_or_module_name(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
