@@ -17,6 +17,13 @@ pwndbg.config.Parameter('hexdump-width',
 pwndbg.config.Parameter('hexdump-bytes',
                          64,
                          'number of bytes printed by hexdump command')
+pwndbg.config.Parameter('hexdump-group-width',
+                         4,
+                         "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)")
+pwndbg.config.Parameter('hexdump-group-use-big-endian',
+                         False,
+                         'Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. '
+                         'See also hexdump-highlight-group-lsb.')
 
 def address_or_module_name(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
@@ -50,10 +57,13 @@ def hexdump(address_or_module=None, count=pwndbg.config.hexdump_bytes):
     else:
         hexdump.offset = 0
 
-    address = int(address)
-    address &= pwndbg.arch.ptrmask
-    count   = max(int(count), 0)
-    width   = int(pwndbg.config.hexdump_width)
+    address     = int(address)
+    address     &= pwndbg.arch.ptrmask
+    count       = max(int(count), 0)
+    width       = int(pwndbg.config.hexdump_width)
+    group_width = int(pwndbg.config.hexdump_group_width)
+    group_width = pwndbg.typeinfo.ptrsize if group_width == -1 else group_width
+    flip_group_endianess = pwndbg.config.hexdump_group_use_big_endian and pwndbg.arch.endian == 'little'
 
     if count > address > 0x10000:
         count -= address
@@ -65,7 +75,7 @@ def hexdump(address_or_module=None, count=pwndbg.config.hexdump_bytes):
         print(e)
         return
 
-    for i, line in enumerate(pwndbg.hexdump.hexdump(data, address=address, width=width, offset=hexdump.offset)):
+    for i, line in enumerate(pwndbg.hexdump.hexdump(data, address=address, width=width, group_width=group_width, flip_group_endianess=flip_group_endianess, offset=hexdump.offset)):
         print(line)
     hexdump.offset += i
 
