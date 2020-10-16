@@ -19,7 +19,7 @@ pwndbg.config.Parameter('hexdump-bytes',
                          'number of bytes printed by hexdump command')
 pwndbg.config.Parameter('hexdump-group-width',
                          4,
-                         "number of bytes grouped in hexdump command. If -1, the architecture's pointer size is used.")
+                         "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)")
 pwndbg.config.Parameter('hexdump-group-use-big-endian',
                          False,
                          'Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. '
