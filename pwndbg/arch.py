@@ -32,6 +32,7 @@ def fix_arch(arch):
     return arch
 
 @pwndbg.events.start
+@pwndbg.events.stop
 @pwndbg.events.new_objfile
 def update():
     m = sys.modules[__name__]
