@@ -20,7 +20,7 @@ def r2(arguments, no_seek=False):
     filename = pwndbg.file.get_file(pwndbg.proc.exe)
 
     # Build up the command line to run
-    cmd = ['radare2', filename]
+    cmd = ['radare2']
     if pwndbg.proc.alive:
         addr = pwndbg.regs.pc
         if pwndbg.elf.get_elf_info(filename).is_pie:
@@ -28,6 +28,7 @@ def r2(arguments, no_seek=False):
         if not no_seek:
             cmd.extend(['-s', hex(addr)])
     cmd += arguments
+    cmd.extend([filename])
 
     try:
         subprocess.call(cmd)
