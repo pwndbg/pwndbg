@@ -83,7 +83,7 @@ def hexdump(data, address = 0, width = 16, group_width=4, flip_group_endianess =
                     hexline.append(H.highlight_group_lsb(color_scheme[char]))
                 else:
                     hexline.append(color_scheme[char])
-                hexline.append(f'{config_byte_separator}')
+                hexline.append(str(config_byte_separator))
             hexline.append(' ')
 
         hexline.append(H.separator('%s' % config_separator))
