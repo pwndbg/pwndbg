@@ -12,4 +12,4 @@ FROM ubuntu:20.04
 ADD . /pwndbg/
 RUN cd /pwndbg && DEBIAN_FRONTEND=noninteractive ./setup.sh
 RUN echo 'source /pwndbg/gdbinit.py' >> ~/.gdbinit.py
-
+RUN echo 'export PATH=$PATH:/usr/local/lib/python3.8/dist-packages/bin' >> /root/.bashrc
