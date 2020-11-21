@@ -162,6 +162,21 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
             if syscall_name:
                 line += ' <%s>' % N.syscall_name(syscall_name)
 
+        # For Comment Function
+        f = open(".gdb_comments","r")
+        if(f != None):
+            lists = {}
+            text = f.read()
+            text = text.split("\n")
+            for i in range(len(text)-1):
+                box = text[i].split(":")
+                lists[box[0]] = box[1]
+
+            try:
+                line += " "*8 + C.comment(lists[hex(instr.address)])
+            except:
+                line += ""
+
         result.append(line)
 
         # For call instructions, attempt to resolve the target and

@@ -17,6 +17,7 @@ config_banner_color             = theme.ColoredParameter('banner-color', 'blue',
 config_banner_title             = theme.ColoredParameter('banner-title-color', 'none', 'color for banner title')
 config_register_changed_color   = theme.ColoredParameter('context-register-changed-color', 'normal', 'color for registers label (change marker)')
 config_register_changed_marker  = theme.Parameter('context-register-changed-marker', '*', 'change marker for registers label')
+config_comment                  = theme.ColoredParameter('comment-color', 'gray', 'color for comment')
 
 def prefix(x):
     return generateColorFunction(config.code_prefix_color)(x)
@@ -50,6 +51,9 @@ def banner(x):
 
 def banner_title(x):
     return generateColorFunction(config.banner_title_color)(x)
+
+def comment(x):
+    return generateColorFunction(config.comment_color)(x)
 
 def format_flags(value, flags, last=None):
     desc = flag_value('%#x' % value)
