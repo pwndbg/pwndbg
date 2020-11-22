@@ -163,8 +163,11 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
                 line += ' <%s>' % N.syscall_name(syscall_name)
 
         # For Comment Function
-        f = open(".gdb_comments","r")
-        if(f != None):
+        try : 
+            f = open(".gdb_comments","r")
+        except :
+            pass
+        else:
             lists = {}
             text = f.read()
             text = text.split("\n")
@@ -175,7 +178,9 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
             try:
                 line += " "*8 + C.comment(lists[hex(instr.address)])
             except:
-                line += ""
+                pass
+
+            f.close()
 
         result.append(line)
 

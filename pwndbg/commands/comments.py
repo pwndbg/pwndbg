@@ -11,12 +11,17 @@ parser.add_argument("comment", type=str, default=None,  help="The text you want 
 def comm(addr=None, comment=None):
     if(addr == None):
         addr = hex(pwndbg.regs.pc)
-    f = open(".gdb_comments", "a+")
+    try : 
+        f = open(".gdb_comments", "a+")
+    except :
+        print(message.error("Permission denied to create file"))
+    else :
+        target = int(addr,0)
 
-    target = int(addr,0)
+        if not pwndbg.memory.peek(target):
+            print(message.error("Invalid Address %#x" % target))
+        
+        else:
+            f.write("%#x:%s\n" % (target, comment))
 
-    if not pwndbg.memory.peek(target):
-        print(message.error("Invalid Address %#x" % target))
-    
-    else:
-        f.write("%#x:%s\n" % (target, comment))
+        f.close()
