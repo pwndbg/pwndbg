@@ -23,6 +23,8 @@ install_apt() {
     sudo apt-get -y install git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
+        sudo dpkg --add-architecture i386 || true
+        sudo apt-get update || true
         sudo apt-get -y install libc6-dbg:i386 || true
     fi
 }
