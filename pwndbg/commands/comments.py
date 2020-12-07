@@ -3,7 +3,7 @@ import pwndbg.commands
 from pwndbg.color import message
 
 parser = argparse.ArgumentParser(description="Put comments in assembly code")
-parser.add_argument("-addr", metavar='address', default=None, type=str, help="Address to write comments")
+parser.add_argument("--addr", metavar='address', default=None, type=str, help="Address to write comments")
 parser.add_argument("comment", type=str, default=None,  help="The text you want to comment")
 
 @pwndbg.commands.ArgparsedCommand(parser)
