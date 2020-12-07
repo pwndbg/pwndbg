@@ -22,6 +22,7 @@ def comm(addr=None, comment=None):
             print(message.error("Invalid Address %#x" % target))
         
         else:
+            f.write("file:%s=" % pwndbg.proc.exe)
             f.write("%#x:%s\n" % (target, comment))
 
         f.close()
