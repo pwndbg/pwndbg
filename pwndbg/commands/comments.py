@@ -9,7 +9,7 @@ parser.add_argument("comment", type=str, default=None,  help="The text you want 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def comm(addr=None, comment=None):
-    if(addr == None):
+    if addr is None:
         addr = hex(pwndbg.regs.pc)
     try : 
         f = open(".gdb_comments", "a+")
