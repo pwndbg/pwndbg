@@ -190,7 +190,7 @@ def get(address, gdb_only=False):
     return ''
 
 @pwndbg.memoize.reset_on_objfile
-def address(symbol):
+def address(symbol, allow_unmapped=False):
     if isinstance(symbol, int):
         return symbol
 
@@ -215,7 +215,7 @@ def address(symbol):
         # pwndbg> info address tcache
         # Symbol "tcache" is a thread-local variable at offset 0x40
         # in the thread-local storage for `/lib/x86_64-linux-gnu/libc.so.6'.
-        if not pwndbg.vmmap.find(address):
+        if not allow_unmapped and not pwndbg.vmmap.find(address):
             return None
 
         return address
