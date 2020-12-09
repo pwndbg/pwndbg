@@ -26,7 +26,7 @@ def comm(addr=None, comment=None):
                 if not pwndbg.proc.exe in file_lists.keys():
                     file_lists[pwndbg.proc.exe] = {}
                 file_lists[pwndbg.proc.exe][hex(target)] = comment
-    except FileNotFoundError:
+    except :
         print(message.error("Permission denied to create file"))
 
 def init():
