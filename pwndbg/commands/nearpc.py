@@ -22,6 +22,7 @@ import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
+import pwndbg.commands.comments
 from pwndbg.color import message
 
 
@@ -163,35 +164,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
                 line += ' <%s>' % N.syscall_name(syscall_name)
 
         # For Comment Function
-        try : 
-            f = open(".gdb_comments","r")
-        except :
+        try:
+            line += " "*10 + C.comment(pwndbg.commands.comments.file_lists[pwndbg.proc.exe][hex(instr.address)])
+        except:
             pass
-        else:
-            file_lists = {}
-            text = f.read()
-            text = text.split("\n")
-            for i in range(len(text)-1):
-                text1, text2 = text[i].split("=")
-
-                # split Filename, comments
-                filename = text1.split(":")[1]
-                addr_comm = text2.split(":")
-
-                if not filename in file_lists.keys():
-                    file_lists[filename] = {}
-
-                file_lists[filename][addr_comm[0]] = addr_comm[1]
-
-# Have to Make : Make dictionary with filename for key, comment list for value.
-# So, in printing comments, check in dictionary and get lists. And check address for what to print.
-
-            try:
-                line += " "*8 + C.comment(file_lists[pwndbg.proc.exe][hex(instr.address)])
-            except:
-                pass
-
-            f.close()
 
         result.append(line)
 
