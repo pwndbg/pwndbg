@@ -13,7 +13,7 @@ file_lists = {} # This saves all comments.
 def comm(addr=None, comment=None):
     if addr is None:
         addr = hex(pwndbg.regs.pc)
-    try : 
+    try: 
         with open(".gdb_comments", "a+") as f:
             target = int(addr,0)
 
@@ -26,11 +26,11 @@ def comm(addr=None, comment=None):
                 if not pwndbg.proc.exe in file_lists.keys():
                     file_lists[pwndbg.proc.exe] = {}
                 file_lists[pwndbg.proc.exe][hex(target)] = comment
-    except :
+    except:
         print(message.error("Permission denied to create file"))
 
 def init():
-    try :
+    try:
         with open(".gdb_comments","r") as f:
             text = f.read()
             text = text.split("\n")
@@ -41,10 +41,10 @@ def init():
                 filename = text1.split(":")[1]
                 addr_comm = text2.split(":")
 
-                if not filename in file_lists.keys():
+                if not filename in file_lists:
                     file_lists[filename] = {}
 
                 file_lists[filename][addr_comm[0]] = addr_comm[1]
 
-    except :
+    except:
         pass 
