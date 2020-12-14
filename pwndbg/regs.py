@@ -183,7 +183,7 @@ powerpc = RegisterSet(  retaddr = ('lr','r0'),
                                    'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29',
                                    'r30', 'r31'),
                         misc    = ('cr','lr','r2'),
-                        args    = tuple('r%i' for i in range(3,11)),
+                        args    = ('r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'),
                         retval  = 'r3')
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt
