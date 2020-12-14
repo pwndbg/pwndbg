@@ -49,7 +49,7 @@ def start(args=None):
                 "_init"]
 
     for symbol in symbols:
-        address = pwndbg.symbol.address(symbol)
+        address = pwndbg.symbol.address(symbol, allow_unmapped=True)
 
         if not address:
             continue
