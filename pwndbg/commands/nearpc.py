@@ -22,6 +22,7 @@ import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
+import pwndbg.commands.comments
 from pwndbg.color import message
 
 
@@ -161,6 +162,12 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
             syscall_name = pwndbg.arguments.get_syscall_name(instr)
             if syscall_name:
                 line += ' <%s>' % N.syscall_name(syscall_name)
+
+        # For Comment Function
+        try:
+            line += " "*10 + C.comment(pwndbg.commands.comments.file_lists[pwndbg.proc.exe][hex(instr.address)])
+        except:
+            pass
 
         result.append(line)
 

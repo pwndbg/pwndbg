@@ -50,6 +50,7 @@ import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
 import pwndbg.commands.xinfo
 import pwndbg.commands.xor
+import pwndbg.commands.comments
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm
@@ -158,3 +159,6 @@ signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" 
 # After GDB gets the fix, we should disable this only for bugged GDB versions.
 if 1:
     gdb.execute('set remote search-memory-packet off')
+
+# Reading Comment file 
+pwndbg.commands.comments.init()
