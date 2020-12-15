@@ -1,5 +1,16 @@
 #!/bin/bash
 
+type go || true
+whereis go || true
+go version || true
+echo "GOROOT: ${GOROOT}" || true
+go env || true
+ls -lha /usr/bin/go* || true
+ls -lha /usr/local/go* || true
+ls -lha /usr/local/go/bin/go* || true
+ls -lha /usr/local/opt/go* || true
+ls -lha /usr/lib/go* || true
+
 cd ./tests/binaries || exit 1
 make clean all || exit 2
 cd ../../
