@@ -65,3 +65,4 @@ npm-debug.log
 # PyTest files
 .pytest_cache/
 tests/.pytest_cache/
+tests/binaries/gosample.x*

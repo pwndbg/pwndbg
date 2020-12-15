@@ -37,7 +37,7 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $@ $? $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -w -o $@ $? $(LDFLAGS)
 
 %.o : %.asm
 	@echo "[+] Building '$@'"
@@ -75,7 +75,7 @@ heap_bugs: heap_bugs.c
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED) $(LINKED) $(COMPILED_GO)
+	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)
 
 
 reference-binary.out: EXTRA_FLAGS := -Dexample=1
