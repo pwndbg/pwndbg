@@ -75,11 +75,10 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
 
     mode |= CapstoneEndian[endian]
 
-    cs = Cs(arch, mode)
-
     flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
-    cs.syntax = CapstoneSyntax[flavor]
 
+    cs = Cs(arch, mode)
+    cs.syntax = CapstoneSyntax[flavor]
     cs.detail = True
     return cs
 

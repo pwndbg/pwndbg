@@ -475,8 +475,8 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
     syntax = pwndbg.disasm.CapstoneSyntax[flavor]
 
-    cache_get_disassembler_cached = pwndbg.memoize.reset_on_objfile(pwndbg.disasm.get_disassembler_cached)
-    cs = list(cache_get_disassembler_cached.__dict__['cache'].values())[-1]
+    # Get the Capstone object to set disassembly syntax
+    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()))
 
     if cs.syntax != syntax:
         pwndbg.memoize.reset()
