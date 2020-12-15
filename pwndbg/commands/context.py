@@ -472,6 +472,15 @@ Unicorn emulation of code near the current instruction
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
+    flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+    syntax = pwndbg.disasm.CapstoneSyntax[flavor]
+
+    # Get the Capstone object to set disassembly syntax
+    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()))
+
+    if cs.syntax != syntax:
+        pwndbg.memoize.reset()
+
     banner = [pwndbg.ui.banner("disasm", target=target, width=width)]
     emulate = bool(pwndbg.config.emulate)
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)

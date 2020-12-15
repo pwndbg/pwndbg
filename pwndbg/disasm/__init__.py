@@ -45,6 +45,11 @@ CapstoneMode = {
     8: CS_MODE_64
 }
 
+CapstoneSyntax = {
+    'intel': CS_OPT_SYNTAX_INTEL,
+    'att': CS_OPT_SYNTAX_ATT
+}
+
 # For variable-instruction-width architectures
 # (x86 and amd64), we keep a cache of instruction
 # sizes, and where the end of the instruction falls.
@@ -70,7 +75,10 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
 
     mode |= CapstoneEndian[endian]
 
+    flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+
     cs = Cs(arch, mode)
+    cs.syntax = CapstoneSyntax[flavor]
     cs.detail = True
     return cs
 
