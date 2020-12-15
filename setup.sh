@@ -131,8 +131,8 @@ fi
 git submodule update --init --recursive
 
 # Set Python3 as the default.
-rm -f /usr/bin/python
-ln -s /usr/bin/python3 /usr/bin/python
+sudo rm -f /usr/bin/python
+sudo ln -s /usr/bin/python3 /usr/bin/python
 
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
