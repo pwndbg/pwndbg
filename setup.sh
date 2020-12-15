@@ -6,7 +6,7 @@ set -ex
 # (yeah it won't work for sudo executed with flags)
 if [ -f /.dockerenv ] && ! hash sudo 2>/dev/null && whoami | grep root; then
     sudo() {
-        $*
+        "${*}"
     }
 fi
 
@@ -20,7 +20,7 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get -y install git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
+    sudo apt-get -y install git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg nasm golang
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
@@ -31,24 +31,24 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make nasm golang
     sudo dnf -y debuginfo-install glibc
 }
 
 install_xbps() {
     sudo xbps-install -Su
-    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make
+    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make nasm golang
     sudo xbps-install -Sy glibc-dbg
 }
 
 install_swupd() {
     sudo swupd update || true
-    sudo swupd bundle-add gdb python3-basic make c-basic
+    sudo swupd bundle-add gdb python3-basic make c-basic nasm golang
 }
 
 install_zypper() {
     sudo zypper refresh || true
-    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
+    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo nasm golang
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
@@ -104,7 +104,7 @@ if linux; then
             install_emerge
             if ! hash sudo 2>/dev/null && whoami | grep root; then
                 sudo() {
-                    $*
+                    "${*}"
                 }
             fi
             ;;
@@ -123,7 +123,7 @@ if linux; then
 fi
 
 if ! hash gdb; then
-    echo 'Could not find gdb in $PATH'
+    echo "Could not find gdb in $PATH"
     exit
 fi
 
@@ -148,14 +148,14 @@ fi
 
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
-    ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
+    ${PYTHON} -m ensurepip "${INSTALLFLAGS}" --upgrade
 fi
 
 # Upgrade pip itself
-${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
+${PYTHON} -m pip install "${INSTALLFLAGS}" --upgrade pip
 
 # Install Python dependencies
-${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
+${PYTHON} -m pip install "${INSTALLFLAGS}" -Ur requirements.txt
 
 # Load Pwndbg into GDB on every launch.
 if ! grep pwndbg ~/.gdbinit &>/dev/null; then
