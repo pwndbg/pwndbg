@@ -15,7 +15,7 @@ def test_emulate_disasm(start_binary):
     """
     start_binary(EMULATE_DISASM_BINARY)
 
-    assert emulate(to_string=True) == [
+    disasm_with_emu_0x401000 = [
         ' ► 0x401000 <_start>    jmp    label                      <label>',
         '    ↓',
         '   0x401003 <label>     nop    ',
@@ -30,7 +30,24 @@ def test_emulate_disasm(start_binary):
         '   0x401014             add    byte ptr [rax], al'
     ]
 
-    disasm_without_emu = [
+    disasm_with_emu_0x400080 = [
+        ' ► 0x400080 <_start>    jmp    label                      <label>',
+        '    ↓',
+        '   0x400083 <label>     nop    ',
+        '   0x400084             add    byte ptr [rax], al',
+        '   0x400086             add    byte ptr [rax], al',
+        '   0x400088             add    byte ptr [rax], al',
+        '   0x40008a             add    byte ptr [rax], al',
+        '   0x40008c             add    byte ptr [rax], al',
+        '   0x40008e             add    byte ptr [rax], al',
+        '   0x400090             add    byte ptr [rax], al',
+        '   0x400092             add    byte ptr [rax], al',
+        '   0x400094             add    byte ptr [rax], al'
+    ]
+
+    assert emulate(to_string=True) == disasm_with_emu_0x400080 or disasm_with_emu_0x401000
+
+    disasm_without_emu_0x401000 = [
         ' ► 0x401000 <_start>      jmp    label                      <label>',
         ' ',
         '   0x401002 <_start+2>    nop    ',
@@ -45,10 +62,10 @@ def test_emulate_disasm(start_binary):
         '   0x401012               add    byte ptr [rax], al'
     ]
 
-    assert nearpc(to_string=True) == disasm_without_emu
-    assert emulate(to_string=True, emulate=False) == disasm_without_emu
-    assert pdisass(to_string=True) == disasm_without_emu
-    assert u(to_string=True) == disasm_without_emu
+    assert nearpc(to_string=True) == disasm_without_emu_0x401000
+    assert emulate(to_string=True, emulate=False) == disasm_without_emu_0x401000
+    assert pdisass(to_string=True) == disasm_without_emu_0x401000
+    assert u(to_string=True) == disasm_without_emu_0x401000
 
 
 def test_emulate_disasm_loop(start_binary):
