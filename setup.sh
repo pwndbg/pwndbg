@@ -6,7 +6,7 @@ set -ex
 # (yeah it won't work for sudo executed with flags)
 if [ -f /.dockerenv ] && ! hash sudo 2>/dev/null && whoami | grep root; then
     sudo() {
-        "${*}"
+        ${*}
     }
 fi
 
@@ -104,7 +104,7 @@ if linux; then
             install_emerge
             if ! hash sudo 2>/dev/null && whoami | grep root; then
                 sudo() {
-                    "${*}"
+                    ${*}
                 }
             fi
             ;;
