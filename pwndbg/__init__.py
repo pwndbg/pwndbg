@@ -15,6 +15,7 @@ import pwndbg.commands.aslr
 import pwndbg.commands.auxv
 import pwndbg.commands.canary
 import pwndbg.commands.checksec
+import pwndbg.commands.comments
 import pwndbg.commands.config
 import pwndbg.commands.context
 import pwndbg.commands.cpsr
@@ -50,7 +51,6 @@ import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
 import pwndbg.commands.xinfo
 import pwndbg.commands.xor
-import pwndbg.commands.comments
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm
