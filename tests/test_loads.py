@@ -87,7 +87,7 @@ def test_loads_binary_with_core_without_crashing():
         '''Program terminated with signal SIGINT, Interrupt.''',
         '''#0  __addmntent (stream=0x7ffff79a7640 <_nl_global_locale+192>, ''',
         '''    mnt=<optimized out>) at mntent_r.c:257''',
-        '''57\tmntent_r.c: No such file or directory.'''
+        '''257\tmntent_r.c: No such file or directory.'''
     ]
     expected += HELLO
 
