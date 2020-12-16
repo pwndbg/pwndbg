@@ -77,7 +77,7 @@ def test_loads_binary_without_crashing():
     ]
     expected += HELLO
 
-    assert output == expected
+    assert all(item in output for item in expected)
 
 
 @pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
@@ -130,4 +130,4 @@ def test_entry_no_file_loaded():
     expected += HELLO
     expected += ['entry: There is no file loaded.']
 
-    assert output == expected
+    assert all(item in output for item in expected)
