@@ -70,11 +70,7 @@ def test_loads_pure_gdb_without_crashing():
 def test_loads_binary_without_crashing():
     output = run_gdb_with_script(binary=BASH_BIN).splitlines()
 
-    expected = [
-        'Reading symbols from ',
-        '%s...(no ' % BASH_BIN,
-        'debugging symbols found)...done.'
-    ]
+    expected = ['Reading symbols from %s...(no debugging symbols found)...done.' % BASH_BIN]
     expected += HELLO
 
     assert all(item in output for item in expected)
@@ -93,6 +89,7 @@ def test_loads_binary_with_core_without_crashing():
         '''Program terminated with signal SIGINT, Interrupt.''',
         '''#0  0x00007ffff76d36b0 in faccessat (fd=0, file=0x7fffffffc8ef "'''
     ]
+
     assert all(item in output for item in expected)
 
     # Skip 4 characters as this is some random thing
@@ -100,7 +97,6 @@ def test_loads_binary_with_core_without_crashing():
     expected = '''",
     mode=1, flag=-1) at ../sysdeps/unix/sysv/linux/faccessat.c:41
 41	../sysdeps/unix/sysv/linux/faccessat.c: No such file or directory.'''
-
     expected += HELLO
 
     assert output == expected
@@ -116,7 +112,6 @@ def test_loads_core_without_crashing():
         '''Program terminated with signal SIGINT, Interrupt.''',
         '''#0  0x00007ffff76d36b0 in ?? ()'''
     ]
-
     expected += HELLO
 
     assert all(item in output for item in expected)
