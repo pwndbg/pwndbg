@@ -62,7 +62,7 @@ def telescope(address=None, count=telescope_lines, to_string=False):
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
     if int(address) <= int(count):
-        # adjust count if it is an address. use ceil divison as count is number of
+        # adjust count if it is an address. use ceil division as count is number of
         # ptrsize values and we don't want to strip out a value if dest is unaligned
         count -= address
         count = max(math.ceil(count / ptrsize), 1)
