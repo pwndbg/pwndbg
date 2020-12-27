@@ -20,8 +20,7 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg nasm
-    test -f /usr/bin/go || sudo apt-get install -y golang
+    sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
@@ -32,24 +31,24 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make nasm golang
+    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make
     sudo dnf -y debuginfo-install glibc
 }
 
 install_xbps() {
     sudo xbps-install -Su
-    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make nasm golang
+    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make
     sudo xbps-install -Sy glibc-dbg
 }
 
 install_swupd() {
     sudo swupd update || true
-    sudo swupd bundle-add gdb python3-basic make c-basic nasm golang
+    sudo swupd bundle-add gdb python3-basic make c-basic
 }
 
 install_zypper() {
     sudo zypper refresh || true
-    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo nasm golang
+    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true

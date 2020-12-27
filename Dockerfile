@@ -29,6 +29,10 @@ ADD ./requirements.txt /pwndbg/
 RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
     DEBIAN_FRONTEND=noninteractive ./setup.sh
 
+# Comment these lines if you won't run the tests.
+ADD ./setup-test-tools.sh /pwndbg/
+RUN ./setup-test-tools.sh
+
 RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py && \
     echo "PYTHON_MINOR=$(python3 -c "import sys;print(sys.version_info.minor)")" >> /root/.bashrc && \
     echo "PYTHON_PATH=\"/usr/local/lib/python3.${PYTHON_MINOR}/dist-packages/bin\"" >> /root/.bashrc && \
