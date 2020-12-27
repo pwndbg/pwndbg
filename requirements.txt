@@ -12,4 +12,4 @@ capstone==4.0.1
 enum34
 pytest
 testresources
-unicorn==1.0.2rc1
+unicorn==1.0.2
