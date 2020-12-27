@@ -45,7 +45,7 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 
 %.out : %.o
 	@echo "[+] Linking '$@'"
-	@$(LD) -o $@ $?
+	@$(LD) -Ttext 0x400080 -o $@ $?
 
 %.x86 : %.x86.go
 	@echo "[+] Building '$@'"
