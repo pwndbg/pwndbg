@@ -19,6 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         ./setup.sh --user
+        ./setup-test-tools.sh --user
 
     - name: Python version info
       run: |
