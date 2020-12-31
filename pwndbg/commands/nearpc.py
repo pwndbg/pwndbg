@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import codecs
 
-import gdb
 from capstone import *
 
 import pwndbg.arguments
@@ -13,6 +11,7 @@ import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.nearpc as N
 import pwndbg.color.theme
+import pwndbg.commands.comments
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.functions
@@ -22,7 +21,6 @@ import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
-import pwndbg.commands.comments
 from pwndbg.color import message
 
 

@@ -1,4 +1,5 @@
 import argparse
+
 import pwndbg.commands
 from pwndbg.color import message
 
