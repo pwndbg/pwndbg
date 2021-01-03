@@ -144,14 +144,14 @@ fi
 
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
-    ${PYTHON} -m ensurepip "${INSTALLFLAGS}" --upgrade
+    ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
 fi
 
 # Upgrade pip itself
-${PYTHON} -m pip install "${INSTALLFLAGS}" --upgrade pip
+${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 
 # Install Python dependencies
-${PYTHON} -m pip install "${INSTALLFLAGS}" -Ur requirements.txt
+${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
 # Load Pwndbg into GDB on every launch.
 if ! grep pwndbg ~/.gdbinit &>/dev/null; then
