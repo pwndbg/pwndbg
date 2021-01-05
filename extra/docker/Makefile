@@ -22,7 +22,10 @@ run: build
 		--tty \
 		--privileged \
 		--net=host \
-		-v shared:/shared \
-		$(NAME):latest
+		-v ${PWD}/../..:/home/pwndbg/pwndbg \
+		-v ${PWD}/shared:/shared \
+		-p 41414:41414 \
+		$(NAME):latest \
+		$(COMMAND)
 
 .PHONY: all build run

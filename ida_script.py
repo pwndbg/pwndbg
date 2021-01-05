@@ -3,17 +3,35 @@
 from __future__ import print_function
 
 import datetime
+import sys
 import threading
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+
 from xml.sax.saxutils import escape
+from types import ModuleType
 
 import idaapi
 import idautils
 import idc
 
+if idaapi.IDA_SDK_VERSION >= 700:
+    import xmlrpc.client as xmlclient
+    import xmlrpc.server as xmlserver
+    from xmlrpc.server import SimpleXMLRPCServer
+
+    import ida_auto
+    import ida_lines
+    import ida_dbg
+else:
+    import xmlrpclib as xmlclient
+    xmlserver = xmlclient
+    from SimpleXMLRPCServer import SimpleXMLRPCServer    
+
 # Wait for any processing to get done
-idaapi.autoWait()
+if idaapi.IDA_SDK_VERSION >= 700:
+    ida_auto.auto_wait()
+else:
+    idaapi.autoWait()
+
 
 # On Windows with NTFS filesystem a filepath with ':'
 # is treated as NTFS ADS (Alternative Data Stream)
@@ -22,9 +40,9 @@ dt = datetime.datetime.now().isoformat().replace(':', '-')
 
 # Save the database so nothing gets lost.
 if idaapi.IDA_SDK_VERSION >= 700:
-    idaapi.save_database(idc.GetIdbPath() + '.' + dt)
+    pass # idaapi.save_database(idc.GetIdbPath() + '.' + dt)
 else:
-    idc.SaveBase(idc.GetIdbPath() + '.' + dt)
+    pass # idc.SaveBase(idc.GetIdbPath() + '.' + dt)
 
 
 DEBUG_MARSHALLING = False
@@ -45,13 +63,17 @@ def create_marshaller(use_format=None, just_to_str=False):
 
     return wrapper
 
-xmlrpclib.Marshaller.dispatch[type(0L)] = create_marshaller("<value><i8>%d</i8></value>")
-xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
-xmlrpclib.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
+xmlclient.Marshaller.dispatch[type(1 << 63)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlclient.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = '127.0.0.1'
 port = 31337
-orig_LineA = idc.LineA
+
+if hasattr(idc, 'LineA'):
+    orig_LineA = idc.LineA
+else:
+    orig_LineA = ida_lines.get_extra_cmt
 
 
 def LineA(*a, **kw):
@@ -98,8 +120,12 @@ def wrap(f):
 
 def register_module(module):
     for name, function in module.__dict__.items():
-        if hasattr(function, '__call__'):
-            server.register_function(wrap(function), name)
+        print("Trying", module, name)
+        try:
+            if hasattr(function, '__call__'):
+                server.register_function(wrap(function), name)
+        except Exception:
+            print("Could not register %s", function)
 
 
 def decompile(addr):
@@ -158,7 +184,6 @@ def decompile_context(addr, context_lines):
 
 def versions():
     """Returns IDA & Python versions"""
-    import sys
     return {
         'python': sys.version,
         'ida': idaapi.get_kernel_version(),
@@ -170,6 +195,12 @@ server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
 register_module(idc)
 register_module(idautils)
 register_module(idaapi)
+
+if idaapi.IDA_SDK_VERSION >= 700:
+    register_module(ida_auto)
+    register_module(ida_lines)
+    register_module(ida_dbg)
+
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
 server.register_function(wrap(decompile)) # overwrites idaapi/ida_hexrays.decompile
 server.register_function(wrap(decompile_context), 'decompile_context')  # support context decompile

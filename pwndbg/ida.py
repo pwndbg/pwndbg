@@ -174,7 +174,11 @@ def remote(function):
 
 @pwndbg.memoize.reset_on_objfile
 def base():
-    segaddr = _ida.NextSeg(0)
+    if idaver() >= 700:
+        segaddr = _ida.get_next_seg(0)
+    else:
+        segaddr = _ida.NextSeg(0)
+
     base = _ida.get_fileregion_offset(segaddr)
 
     return segaddr - base
@@ -245,6 +249,9 @@ def GetBreakpoints():
 
 @withIDA
 def GetBptQty():
+    if idaver() >= 700:
+        return _ida.get_bp_qty()
+    
     return _ida.GetBptQty()
 
 
@@ -287,6 +294,10 @@ def UpdateBreakpoints():
 @withIDA
 @takes_address
 def SetColor(pc, color):
+    import pdb; pdb.set_trace()
+    print("Version is", idaver())
+    if idaver() >= 700:
+        return _ida.set_color(pc, 1, color)
     return _ida.SetColor(pc, 1, color)
 
 
@@ -395,6 +406,8 @@ def decompile_context(pc, context_lines):
 def get_ida_versions():
     return _ida.versions()
 
+def idaver():
+    return get_ida_versions()['ida']
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
@@ -489,3 +502,4 @@ def print_structs():
         while offset < size:
             print_member(sid, offset)
             offset = GetStrucNextOff(sid, offset)
+
