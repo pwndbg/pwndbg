@@ -476,9 +476,10 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     syntax = pwndbg.disasm.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()))
+    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()), None)
 
-    if cs.syntax != syntax:
+    # The `None` case happens when the cache was not filled yet (see e.g. #881)
+    if cs is not None and cs.syntax != syntax:
         pwndbg.memoize.reset()
 
     banner = [pwndbg.ui.banner("disasm", target=target, width=width)]
