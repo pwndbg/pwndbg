@@ -35,7 +35,17 @@ cd pwndbg
 ./setup.sh
 ```
 
-If you use any other Linux distribution, we recommend using the latest available GDB built from source.  Be sure to pass `--with-python=/path/to/python` to `configure`.
+Other Linux distributions are also supported via `setup.sh`, including:
+
+* Debian-based OSes (via apt-get)
+* Fedora and Red Hat (via dnf)
+* Clear (via swiped)
+* OpenSUSE LEAP (via zypper)
+* Arch and Manjaro (via community AUR packages)
+* Void (via xbps)
+* Gentoo (via emerge)
+
+If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source.  Be sure to pass `--with-python=/path/to/python` to `./configure`.
 
 ## What can I do with that?
 
