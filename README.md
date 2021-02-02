@@ -27,7 +27,7 @@ Pwndbg exists not only to replace all of its predecessors, but also to have a cl
 
 ## How?
 
-Installation is straightforward.  Pwndbg is best supported on Ubuntu 14.04 with GDB 7.7, and Ubuntu 16.04 with GDB 7.11.  
+Installation is straightforward.  Pwndbg is best supported on Ubuntu 18.04 with GDB 7.11, and Ubuntu 20.04 with GDB 8.1.
 
 ```shell
 git clone https://github.com/pwndbg/pwndbg
