@@ -75,7 +75,13 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
 
     mode |= CapstoneEndian[endian]
 
-    flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+    try:
+        flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+    except gdb.error as e:
+        if str(e).find("disassembly-flavor") > -1:
+            flavor = 'intel'
+        else:
+            raise
 
     cs = Cs(arch, mode)
     cs.syntax = CapstoneSyntax[flavor]
