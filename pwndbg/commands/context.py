@@ -472,7 +472,14 @@ Unicorn emulation of code near the current instruction
 code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additional lines to print in the code context')
 
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
-    flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+    try:
+        flavor​​ ​​=​​ ​​gdb​​.​​execute​​(​'​show​ ​disassembly​-​flavor​'​, ​to_string​=​True​).​lower​().​split​(​'​"'​)[​​1​​]
+    except gdb.error as e:
+        if str(e).find("disassembly-flavor") > -1:
+            flavor​​ ​​=​​ ​​'intel'
+        else:
+            raise
+
     syntax = pwndbg.disasm.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
