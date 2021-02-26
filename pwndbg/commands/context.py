@@ -473,10 +473,10 @@ code_lines = pwndbg.config.Parameter('context-code-lines', 10, 'number of additi
 
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
     try:
-        flavor​​ ​​=​​ ​​gdb​​.​​execute​​(​'​show​ ​disassembly​-​flavor​'​, ​to_string​=​True​).​lower​().​split​(​'​"'​)[​​1​​]
+        flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
     except gdb.error as e:
         if str(e).find("disassembly-flavor") > -1:
-            flavor​​ ​​=​​ ​​'intel'
+            flavor = 'intel'
         else:
             raise
 

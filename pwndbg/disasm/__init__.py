@@ -76,10 +76,10 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     mode |= CapstoneEndian[endian]
 
     try:
-        flavor​​ ​​=​​ ​​gdb​​.​​execute​​(​'​show​ ​disassembly​-​flavor​'​, ​to_string​=​True​).​lower​().​split​(​'​"'​)[​​1​​]
+        flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
     except gdb.error as e:
         if str(e).find("disassembly-flavor") > -1:
-            flavor​​ ​​=​​ ​​'intel'
+            flavor = 'intel'
         else:
             raise
 
