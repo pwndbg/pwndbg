@@ -1,0 +1,45 @@
+name: Build AppImage
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  APPIMAGE_EXTRACT_AND_RUN: 1
+  TERM: xterm-256color
+
+jobs:
+  appimage:
+    strategy:
+      fail-fast: false
+      matrix:
+        ARCH: [x86_64]
+    name: Build AppImage for ${{ matrix.ARCH }}
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build AppImage
+        run: |
+          export ARCH="${{ matrix.ARCH }}"
+          bash -xe ci/build-appimage.sh
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: AppImage ${{ matrix.ARCH }}
+          path: pwndbg*.AppImage*
+
+  upload:
+    name: Create release and upload artifacts
+    runs-on: ubuntu-18.04
+    needs:
+      - appimage
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Inspect directory after downloading artifacts
+        run: ls -alFR
+      - name: Create release and upload artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+            wget -q https://github.com/TheAssassin/pyuploadtool/releases/download/continuous/pyuploadtool-x86_64.AppImage
+            chmod +x pyuploadtool-x86_64.AppImage
+            ./pyuploadtool-x86_64.AppImage **/pwndbg*.AppImage*
