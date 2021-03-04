@@ -72,3 +72,4 @@ tests/binaries/gosample.x*
 
 # build artifacts
 *.AppImage
+squashfs-root/
