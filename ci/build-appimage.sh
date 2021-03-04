@@ -64,8 +64,9 @@ fi
 shift
 
 # python3-config --ldflags lacks the python library
+# also gdb won't link on GitHub actions without libtinfow, which is not provided by the conda environment
 if [[ "$1" == "--ldflags" ]]; then
-    echo -n "-lpython3.8 "
+    echo -n "-lpython3.8 -ltinfow "
 fi
 
 exec "$CONDA_PREFIX"/bin/python3-config "$@"
