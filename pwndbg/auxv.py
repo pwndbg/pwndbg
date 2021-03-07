@@ -113,7 +113,7 @@ def use_info_auxv():
 
     auxv = AUXV()
     for line in lines:
-        match = re.match('([0-9]+) .*? (0x[0-9a-f]+|[0-9]+)', line)
+        match = re.match('([0-9]+) .*? (0x[0-9a-f]+|[0-9]+$)', line)
         if not match:
             print("Warning: Skipping auxv entry '{}'".format(line))
             continue
