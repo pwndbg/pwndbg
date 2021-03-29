@@ -27,7 +27,7 @@ Pwndbg exists not only to replace all of its predecessors, but also to have a cl
 
 ## How?
 
-Installation is straightforward.  Pwndbg is best supported on Ubuntu 14.04 with GDB 7.7, and Ubuntu 16.04 with GDB 7.11.  
+Installation is straightforward.  Pwndbg is best supported on Ubuntu 18.04 with GDB 7.11, and Ubuntu 20.04 with GDB 8.1.
 
 ```shell
 git clone https://github.com/pwndbg/pwndbg
@@ -35,7 +35,17 @@ cd pwndbg
 ./setup.sh
 ```
 
-If you use any other Linux distribution, we recommend using the latest available GDB built from source.  Be sure to pass `--with-python=/path/to/python` to `configure`.
+Other Linux distributions are also supported via `setup.sh`, including:
+
+* Debian-based OSes (via apt-get)
+* Fedora and Red Hat (via dnf)
+* Clear (via swiped)
+* OpenSUSE LEAP (via zypper)
+* Arch and Manjaro (via community AUR packages)
+* Void (via xbps)
+* Gentoo (via emerge)
+
+If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source.  Be sure to pass `--with-python=/path/to/python` to `./configure`.
 
 ## What can I do with that?
 
