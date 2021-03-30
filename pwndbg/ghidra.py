@@ -2,6 +2,7 @@ import os
 
 import gdb
 
+import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
 import pwndbg.radare2
 import pwndbg.regs
@@ -51,12 +52,14 @@ def decompile(func=None):
         if pos_annotations:
             curline = source.count("\n", 0, pos_annotations[0]["start"])
     source = source.split("\n")
-    # Append --> for the current line if possible
+
+    # Append code prefix marker for the current line and replace it later
+    current_line_marker = '/*%%PWNDBG_CODE_MARKER%%*/'
     if curline is not None:
         line = source[curline]
         if line.startswith('    '):
-            line = line[4:]
-        source[curline] = '--> ' + line
+            line = line[min(4, len(pwndbg.config.code_prefix) + 1):]
+        source[curline] = current_line_marker + ' ' + line
     # Join the source for highlighting
     source = "\n".join(source)
     if pwndbg.config.syntax_highlight:
@@ -66,5 +69,8 @@ def decompile(func=None):
         except: # if non, take the original filename and maybe append .c (just assuming is was c)
             src_filename = filename+".c" if os.path.basename(filename).find(".") < 0 else filename
         source = H.syntax_highlight(source, src_filename)
+
+    # Replace code prefix marker after syntax highlighting
+    source = source.replace(current_line_marker, C.prefix(pwndbg.config.code_prefix), 1)
     source = source.split("\n")
     return source
