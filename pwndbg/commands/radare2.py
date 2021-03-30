@@ -23,7 +23,7 @@ def r2(arguments, no_seek=False, no_rebase=False):
 
     # Build up the command line to run
     cmd = ['radare2']
-    flags = []
+    flags = ['-e', 'io.cache=true']
     if pwndbg.proc.alive:
         addr = pwndbg.regs.pc
         if pwndbg.elf.get_elf_info(filename).is_pie:
