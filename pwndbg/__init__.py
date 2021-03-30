@@ -23,6 +23,7 @@ import pwndbg.commands.dt
 import pwndbg.commands.dumpargs
 import pwndbg.commands.elf
 import pwndbg.commands.gdbinit
+import pwndbg.commands.ghidra
 import pwndbg.commands.got
 import pwndbg.commands.heap
 import pwndbg.commands.hexdump

@@ -26,6 +26,7 @@ import pwndbg.commands.telescope
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.events
+import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.regs
 import pwndbg.symbol
@@ -206,96 +207,31 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
         output.extend(lines)
     return banner + output if with_banner else output
 
-# Ghidra integration through radare2
-# This is not (sorry couldn't help it) "the yellow of the egg"
-# Using radare2 is suboptimal and will only be an intermediate step to have
-# ghidra decompiler within pwndbg.
-# But having ghidra in pwndgb is a lot more work as it requires quite some code and c/c++
-radare2 = {}
 
 config_context_ghidra = pwndbg.config.Parameter('context-ghidra',
-                                                  'never',
-                                                  'if or/when to try to decompile with '
-                                                  'ghidra (slow and requires radare2/r2pipe) '
-                                                  '(valid values: always, never, if-no-source)')
-def init_radare2(filename):
-    r2 = radare2.get(filename)
-    if r2:
-        return r2
-    import r2pipe
-    r2 = r2pipe.open(filename)
-    radare2[filename] = r2
-    r2.cmd("aaaa")
-    return r2
+                                                'never',
+                                                'when to try to decompile the current function with ghidra (slow and requires radare2/r2pipe) (valid values: always, never, if-no-source)')
 
-parser = argparse.ArgumentParser()
-parser.description = """Show current function decompiled by ghidra"""
-parser.add_argument("func", type=str, default=None, nargs="?",
-                    help="Function to be shown. Defaults to current")
-@pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-ghidra'])
-def contextghidra(func):
-    print("\n".join(context_ghidra(func, with_banner=False, force_show=True)))
 
-def context_ghidra(func=None, target=sys.stdout, with_banner=True, width=None, force_show=False):
-    banner = [pwndbg.ui.banner("ghidra decompile", target=target, width=width)]
+def context_ghidra(target=sys.stdout, with_banner=True, width=None):
+    """
+    Print out the source of the current function decompiled by ghidra.
 
-    if config_context_ghidra == "never" and not force_show:
+    The context-ghidra config parameter is used to configure whether to always,
+    never or only show the context if no source is available.
+    """
+    banner = [pwndbg.ui.banner("ghidra decompile", target=target, width=width)] if with_banner else []
+
+    if config_context_ghidra == "never":
         return []
-    elif config_context_ghidra == "if-no-source" and not force_show:
+    elif config_context_ghidra == "if-no-source":
         try:
             with open(gdb.selected_frame().find_sal().symtab.fullname()) as _:
                 pass
         except:         # a lot can go wrong in search of source code.
             return []   # we don't care what, just that it did not work out well...
 
-    filename = gdb.current_progspace().filename
-    try:
-        r2 = init_radare2(filename)
-        # LD         list supported decompilers (e cmd.pdc=?)
-        # Outputs for example:: pdc\npdg
-        if not "pdg" in r2.cmd("LD").split("\n"):
-            return banner + ["radare2 plugin r2ghidra-dec must be installed and available from r2"]
-    except ImportError: # no r2pipe present
-        return banner + ["r2pipe not available, but required for r2->ghidra-bridge"]
-    if func is None:
-        try:
-            func = hex(pwndbg.regs[pwndbg.regs.current.pc])
-        except:
-            func = "main"
-    src = r2.cmdj("pdgj @" + func)
-    source = src.get("code", "")
-    curline = None
-    try:
-        cur = pwndbg.regs[pwndbg.regs.current.pc]
-    except AttributeError:
-        cur = None # If not running there is no current.pc
-    if cur is not None:
-        closest = 0
-        for off in (a.get("offset", 0) for a in src.get("annotations", [])):
-            if abs(cur - closest) > abs(cur - off):
-                closest = off
-        pos_annotations = sorted([a for a in src.get("annotations", []) if a.get("offset") == closest],
-                         key=lambda a: a["start"])
-        if pos_annotations:
-            curline = source.count("\n", 0, pos_annotations[0]["start"])
-    source = source.split("\n")
-    # Append --> for the current line if possible
-    if curline is not None:
-        line = source[curline]
-        if line.startswith('    '):
-            line = line[4:]
-        source[curline] = '--> ' + line
-    # Join the source for highlighting
-    source = "\n".join(source)
-    if pwndbg.config.syntax_highlight:
-        # highlighting depends on the file extension to guess the language, so try to get one...
-        try: # try to read the source filename from debug information
-            src_filename = gdb.selected_frame().find_sal().symtab.fullname()
-        except: # if non, take the original filename and maybe append .c (just assuming is was c)
-            src_filename = filename+".c" if os.path.basename(filename).find(".") < 0 else filename
-        source = H.syntax_highlight(source, src_filename)
-    source = source.split("\n")
-    return banner + source if with_banner else source
+    return banner + pwndbg.ghidra.decompile()
 
 
 
@@ -303,14 +239,14 @@ def context_ghidra(func=None, target=sys.stdout, with_banner=True, width=None, f
 
 parser = argparse.ArgumentParser()
 parser.description = "Print out the current register, instruction, and stack context."
-parser.add_argument("subcontext", nargs="*", type=str, default=None, help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', and/or 'args'")
+parser.add_argument("subcontext", nargs="*", type=str, default=None, help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', and/or 'args'")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx'])
 @pwndbg.commands.OnlyWhenRunning
 def context(subcontext=None):
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', and 'args'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra' and 'args'.
     """
     if subcontext is None:
         subcontext = []
