@@ -31,6 +31,10 @@ def decompile(func=None):
         except:
             func = "main"
     src = r2.cmdj("pdgj @" + func)
+    # Early exit if decompile command failed horribly, like unknown addr/func
+    if not src:
+        return []
+
     source = src.get("code", "")
     curline = None
     try:
