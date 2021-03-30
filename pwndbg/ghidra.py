@@ -17,9 +17,8 @@ def decompile(func=None):
 
     Raises Exception if any fatal error occures.
     """
-    filename = gdb.current_progspace().filename
     try:
-        r2 = pwndbg.radare2.r2pipe(filename)
+        r2 = pwndbg.radare2.r2pipe()
         # LD         list supported decompilers (e cmd.pdc=?)
         # Outputs for example:: pdc\npdg
         if not "pdg" in r2.cmd("LD").split("\n"):
@@ -67,6 +66,7 @@ def decompile(func=None):
         try: # try to read the source filename from debug information
             src_filename = gdb.selected_frame().find_sal().symtab.fullname()
         except: # if non, take the original filename and maybe append .c (just assuming is was c)
+            filename = gdb.current_progspace().filename
             src_filename = filename+".c" if os.path.basename(filename).find(".") < 0 else filename
         source = H.syntax_highlight(source, src_filename)
 
