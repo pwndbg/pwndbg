@@ -10,6 +10,8 @@ import collections
 import functools
 import sys
 
+import gdb
+
 import pwndbg.events
 
 debug = False
@@ -178,6 +180,27 @@ class while_running(memoize):
     _reset = __reset_while_running
 
 
+class reset_on_new_base_address(memoize):
+    caches   = []
+    kind     = 'new_base_address'
+    filename = None
+    base     = None
+
+    @staticmethod
+    @pwndbg.events.start
+    @pwndbg.events.new_objfile
+    def __reset_on_base():
+        filename = gdb.current_progspace().filename
+        base = pwndbg.elf.exe().address if pwndbg.elf.exe() else None
+        if reset_on_new_base_address.base != base or reset_on_new_base_address.filename != filename:
+            reset_on_new_base_address.filename = filename
+            reset_on_new_base_address.base = base
+            for obj in reset_on_new_base_address.caches:
+                obj.clear()
+
+    _reset = __reset_on_base
+
+
 def reset():
     forever._reset()
     reset_on_stop._reset()
@@ -185,4 +208,5 @@ def reset():
     reset_on_objfile._reset()
     reset_on_start._reset()
     reset_on_cont._reset()
+    reset_on_new_base_address._reset()
     while_running._reset()
