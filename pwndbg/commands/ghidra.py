@@ -12,4 +12,7 @@ parser.add_argument("func", type=str, default=None, nargs="?", help="Function to
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.ArgparsedCommand(parser)
 def ghidra(func):
-    print("\n".join(pwndbg.ghidra.decompile(func)))
+    try:
+        print(pwndbg.ghidra.decompile(func))
+    except Exception as e:
+        print(message.error(e))

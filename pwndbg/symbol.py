@@ -262,5 +262,33 @@ def add_main_exe_to_symbols():
         except gdb.error:
             pass
 
+
+@pwndbg.memoize.reset_on_stop
+@pwndbg.memoize.reset_on_start
+def selected_frame_source_absolute_filename():
+    """
+    Retrieve the symbol table’s source absolute file name from the selected frame.
+
+    In case of missing symbol table or frame information, None is returned.
+    """
+    try:
+        frame = gdb.selected_frame()
+    except gdb.error:
+        return None
+
+    if not frame:
+        return None
+
+    sal = frame.find_sal()
+    if not sal:
+        return None
+
+    symtab = sal.symtab
+    if not symtab:
+        return None
+
+    return symtab.fullname()
+
+
 if '/usr/lib/debug' not in get_directory():
     set_directory(get_directory() + ':/usr/lib/debug')
