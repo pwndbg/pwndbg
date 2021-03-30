@@ -227,9 +227,9 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
     elif config_context_ghidra == "if-no-source":
         try:
             with open(gdb.selected_frame().find_sal().symtab.fullname()) as _:
-                pass
-        except:         # a lot can go wrong in search of source code.
-            return []   # we don't care what, just that it did not work out well...
+                return []  # return nothing if we found the source
+        except Exception:         # a lot can go wrong in search of source code.
+            pass   # we don't care what, just that it did not work out well...
 
     return banner + pwndbg.ghidra.decompile()
 
