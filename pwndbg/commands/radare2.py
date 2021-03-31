@@ -14,7 +14,7 @@ parser.add_argument('arguments', nargs='*', type=str,
                     help='Arguments to pass to radare')
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['radare2'])
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False):
     filename = pwndbg.file.get_file(pwndbg.proc.exe)
