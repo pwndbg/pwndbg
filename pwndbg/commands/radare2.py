@@ -4,7 +4,9 @@
 import argparse
 import subprocess
 
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.radare2
 
 parser = argparse.ArgumentParser(description='Launches radare2',
                                  epilog="Example: r2 -- -S -AA")
@@ -41,3 +43,21 @@ def r2(arguments, no_seek=False, no_rebase=False):
         subprocess.call(cmd)
     except Exception:
         print("Could not run radare2. Please ensure it's installed and in $PATH.")
+
+
+parser = argparse.ArgumentParser(description='Execute stateful radare2 commands through r2pipe',
+                                 epilog="Example: r2pipe pdf sym.main")
+parser.add_argument('arguments', nargs='+', type=str,
+                    help='Arguments to pass to r2pipe')
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWithFile
+def r2pipe(arguments):
+    try:
+        r2 = pwndbg.radare2.r2pipe()
+        print(r2.cmd(' '.join(arguments)))
+    except ImportError:
+        print(message.error("Could not import r2pipe python library"))
+    except Exception as e:
+        print(message.error(e))
