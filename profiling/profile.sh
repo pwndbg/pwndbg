@@ -15,4 +15,7 @@ import pstats
 p = pstats.Stats('stats')
 p.strip_dirs().sort_stats('tottime').print_stats(20)
 "
-[ -x /usr/local/bin/pyprof2calltree ] && command -v kcachegrind >/dev/null 2>&1 && /usr/local/bin/pyprof2calltree -k -i stats
+
+if command -v pyprof2calltree >/dev/null 2>&1 && command -v kcachegrind >/dev/null 2>&1; then
+	pyprof2calltree -k -i stats
+fi
