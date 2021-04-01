@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import imp
-import os
-import sys
 import types
 
 import gdb

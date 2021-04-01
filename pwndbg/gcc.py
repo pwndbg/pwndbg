@@ -5,7 +5,6 @@ Functions for determining the architecture-dependent path to
 GCC and any flags it should be executed with.
 """
 
-import collections
 import glob
 import os
 import platform

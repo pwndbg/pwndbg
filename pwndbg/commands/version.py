@@ -6,7 +6,6 @@ Displays gdb, python and pwndbg versions.
 
 
 import argparse
-import os
 import sys
 from platform import platform
 from subprocess import check_output

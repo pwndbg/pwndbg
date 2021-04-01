@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import collections
-
-import capstone
 import gdb
 from capstone import *
 
 import pwndbg.memoize
 import pwndbg.symbol
-
-CS_OP_IMM
 
 debug = False
 

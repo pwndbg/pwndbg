@@ -8,7 +8,6 @@ import argparse
 
 import pwndbg.commands
 import pwndbg.config
-from pwndbg.color import light_yellow
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint

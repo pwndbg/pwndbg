@@ -4,11 +4,7 @@
 Prints structures in a manner similar to Windbg's "dt" command.
 """
 
-import glob
-import os
 import re
-import subprocess
-import tempfile
 
 import gdb
 

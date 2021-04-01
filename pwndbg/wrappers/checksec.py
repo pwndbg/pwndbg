@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from re import search
-from subprocess import STDOUT
 from subprocess import CalledProcessError
 
 import pwndbg.commands

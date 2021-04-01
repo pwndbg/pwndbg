@@ -3,9 +3,6 @@
 
 import argparse
 import ast
-import codecs
-import ctypes
-import json
 import os
 import sys
 from collections import defaultdict
