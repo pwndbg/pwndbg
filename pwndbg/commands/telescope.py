@@ -90,7 +90,7 @@ def telescope(address=None, count=telescope_lines, to_string=False):
 
     # Find the longest set of register information
     if regs:
-        longest_regs = max(map(len, regs.values())) + 1
+        longest_regs = max(map(len, regs.values()))
     else:
         longest_regs = 0
 
