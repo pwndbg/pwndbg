@@ -98,12 +98,13 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     result = []
     last = None
     collapse_buffer = []
+    skipped_padding = 2 + len(offset_delimiter) + 4 + len(offset_separator) + 1 + longest_regs + 1 - len(repeating_marker)
 
     # Collapse repeating values exceeding minimum delta.
     def collapse_repeating_values():
         # The first line was already printed, hence increment by 1
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
-            result.append(T.repeating_marker('%s' % repeating_marker))
+            result.append(T.repeating_marker('%s%s%i skipped' % (repeating_marker, ' ' * skipped_padding, len(collapse_buffer))))
         else:
             result.extend(collapse_buffer)
         collapse_buffer.clear()
