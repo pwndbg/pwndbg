@@ -48,6 +48,7 @@ shellcmds = [
     "ps",
     "pstree",
     "pwd",
+    "pwn", # pwntools
     "rm",
     "sed",
     "sh",
