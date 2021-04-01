@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import itertools
 import os.path
 import re
 

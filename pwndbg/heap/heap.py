@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pwndbg.events
-import pwndbg.symbol
-
 
 class BaseHeap:
     """Heap abstraction layer."""

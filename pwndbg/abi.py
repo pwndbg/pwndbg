@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import functools
-import re
 
 import gdb
 

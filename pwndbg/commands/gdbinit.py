@@ -6,8 +6,6 @@ Compatibility functionality for GDBINIT users.
 https://github.com/gdbinit/Gdbinit/blob/master/gdbinit
 """
 
-import argparse
-
 import gdb
 
 import pwndbg.commands

@@ -5,14 +5,12 @@ Find a chain of leaks given some starting address.
 """
 
 import argparse
-from queue import *
 
 import gdb
 
 import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.message as message
-import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.vmmap
 from pwndbg.chain import config_arrow_right

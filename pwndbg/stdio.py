@@ -5,12 +5,7 @@ Provides functionality to circumvent GDB's hooks on sys.stdin and sys.stdout
 which prevent output from appearing on-screen inside of certain event handlers.
 """
 
-import codecs
-import io
-import os
 import sys
-
-import gdb
 
 
 class Stdio:

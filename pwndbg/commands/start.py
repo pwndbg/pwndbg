@@ -5,7 +5,6 @@ Launches the target process after setting a breakpoint at a convenient
 entry point.
 """
 import argparse
-import shlex
 from shlex import quote
 
 import gdb

@@ -30,7 +30,6 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 import ctypes
-import sys
 
 import pwndbg.arch
 import pwndbg.ctypes
