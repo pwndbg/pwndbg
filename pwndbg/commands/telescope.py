@@ -23,6 +23,8 @@ import pwndbg.typeinfo
 telescope_lines = pwndbg.config.Parameter('telescope-lines', 8, 'number of lines to printed by the telescope command')
 skip_repeating_values = pwndbg.config.Parameter('telescope-skip-repeating-val', True,
                                                 'whether to skip repeating values of the telescope command')
+skip_repeating_values_minimum = pwndbg.config.Parameter('telescope-skip-repeating-val-minimum', 3,
+                                                        'minimum amount of repeated values before skipping lines')
 
 offset_separator = theme.Parameter('telescope-offset-separator', '│', 'offset separator of the telescope command')
 offset_delimiter = theme.Parameter('telescope-offset-delimiter', ':', 'offset delimiter of the telescope command')
@@ -94,28 +96,40 @@ def telescope(address=None, count=telescope_lines, to_string=False):
 
     # Print everything out
     result = []
-    last   = None
-    skip   = False
-    for i,addr in enumerate(range(start, stop, step)):
+    last = None
+    collapse_buffer = []
+
+    # Collapse repeating values exceeding minimum delta.
+    def collapse_repeating_values():
+        # The first line was already printed, hence increment by 1
+        if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
+            result.append(T.repeating_marker('%s' % repeating_marker))
+        else:
+            result.extend(collapse_buffer)
+        collapse_buffer.clear()
+
+    for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.memory.peek(addr):
+            collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
-
-        # Collapse repeating values.
-        value = pwndbg.memory.pvoid(addr)
-        if skip_repeating_values and last == value:
-            if not skip:
-                result.append(T.repeating_marker('%s' % repeating_marker))
-                skip = True
-            continue
-        last = value
-        skip = False
 
         line = ' '.join((T.offset("%02x%s%04x%s" % (i + telescope.offset, delimiter,
                                                     addr - start + (telescope.offset * ptrsize), separator)),
                          T.register(regs[addr].ljust(longest_regs)),
                          pwndbg.chain.format(addr)))
+
+        # Buffer repeating values.
+        if skip_repeating_values:
+            value = pwndbg.memory.pvoid(addr)
+            if last == value:
+                collapse_buffer.append(line)
+                continue
+            collapse_repeating_values()
+            last = value
+
         result.append(line)
+
     telescope.offset += i
     telescope.last_address = addr
 
