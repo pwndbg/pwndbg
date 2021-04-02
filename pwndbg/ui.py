@@ -50,7 +50,7 @@ def banner(title, target=sys.stdin, width=None):
 
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask
-    return "%{}x".format(2*pwndbg.arch.ptrsize) % address
+    return "%#{}x".format(2*pwndbg.arch.ptrsize) % address
 
 def get_window_size(target=sys.stdin):
     fallback = (int(os.environ.get('LINES', 20)), int(os.environ.get('COLUMNS', 80)))
