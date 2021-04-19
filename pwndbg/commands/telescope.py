@@ -131,6 +131,7 @@ def telescope(address=None, count=telescope_lines, to_string=False):
 
         result.append(line)
 
+    collapse_repeating_values()
     telescope.offset += i
     telescope.last_address = addr
 
