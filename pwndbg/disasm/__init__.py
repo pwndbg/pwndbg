@@ -84,7 +84,12 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
             raise
 
     cs = Cs(arch, mode)
-    cs.syntax = CapstoneSyntax[flavor]
+    try:
+        cs.syntax = CapstoneSyntax[flavor]
+    except CsError as ex:
+        pass
+    except:
+        raise
     cs.detail = True
     return cs
 
