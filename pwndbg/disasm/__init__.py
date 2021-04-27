@@ -243,7 +243,9 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
             # unicorn-1.0.2rc1~unicorn-1.0.2rc3, but not on >= unicorn-1.0.2rc4.
             # If the address is equal with the last one, skip it
             last_emu_target = target_candidate
-            while last_emu_target == target_candidate:
+            for _ in range(2):
+                if last_emu_target != target_candidate:
+                    break
                 target_candidate, size_candidate = emu.single_step()
                 if not target_candidate:
                     break
