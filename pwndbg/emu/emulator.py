@@ -432,6 +432,7 @@ class Emulator:
         debug("# Single-stepping at %#x: %s %s" % (pc, insn.mnemonic, insn.op_str))
 
         try:
+            self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
         except U.unicorn.UcError as e:
             self._single_step = (None, None)
@@ -446,8 +447,13 @@ class Emulator:
             a = self.single_step(pc)
 
     def single_step_hook_code(self, _uc, address, instruction_size, _user_data):
-        debug("# single_step: %#-8x" % address)
-        self._single_step = (address, instruction_size)
+        # For whatever reason, the hook will hit twice on
+        # unicorn >= 1.0.2rc4, but not on unicorn-1.0.2rc1~unicorn-1.0.2rc3,
+        # So we use a counter to ensure the code run only once
+        if self.single_step_hook_hit_count == 0:
+            debug("# single_step: %#-8x" % address)
+            self._single_step = (address, instruction_size)
+            self.single_step_hook_hit_count += 1
 
     def dumpregs(self):
         for reg in list(self.regs.retaddr) + list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):

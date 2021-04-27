@@ -218,6 +218,8 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # If we hit the current instruction, we can do emulation going forward from there.
     if address == pc and emulate:
         emu = pwndbg.emu.emulator.Emulator()
+        # skip current line
+        emu.single_step()
 
     # Now find all of the instructions moving forward.
     #
@@ -225,8 +227,6 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # and the instruction at 'address'.
     insn = current
     total_instructions = 1 + (2*instructions)
-    last_emu_target = None
-    target_candidate = address
 
     while insn and len(insns) < total_instructions:
         target = insn.target
@@ -239,14 +239,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         # If we initialized the emulator and emulation is still enabled, we can use it
         # to figure out the next instruction.
         if emu:
-            # For whatever reason, the first instruction is emulated twice on
-            # unicorn-1.0.2rc1~unicorn-1.0.2rc3, but not on >= unicorn-1.0.2rc4.
-            # If the address is equal with the last one, skip it
-            last_emu_target = target_candidate
-            while last_emu_target == target_candidate:
-                target_candidate, size_candidate = emu.single_step()
-                if not target_candidate:
-                    break
+            target_candidate, size_candidate = emu.single_step()
 
             if None not in (target_candidate, size_candidate):
                 target = target_candidate
