@@ -94,7 +94,7 @@ parser.add_argument('module', type=str, nargs='?', default='',
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def breakrva(offset=None, module=None):
+def breakrva(offset=0, module=None):
     offset = int(offset)
     if not module:
         module = get_exe_name()
@@ -107,6 +107,6 @@ def breakrva(offset=None, module=None):
 
 @pwndbg.commands.QuietSloppyParsedCommand #TODO should this just be an alias or does the QuietSloppy have an effect?
 @pwndbg.commands.OnlyWhenRunning
-def brva(map):
+def brva(*args):
     """Alias for breakrva."""
-    return breakrva(map)
+    return breakrva(*args)
