@@ -201,6 +201,9 @@ class Emulator:
         elif arch in ('arm', 'aarch64'):
             mode |= U.UC_MODE_THUMB if (pwndbg.regs.cpsr & (1<<5)) else U.UC_MODE_ARM
 
+        elif arch == 'mips' and 'isa32r6' in gdb.newest_frame().architecture().name():
+            mode |= U.UC_MODE_MIPS32R6
+
         else:
             mode |= {4:U.UC_MODE_32, 8:U.UC_MODE_64}[pwndbg.arch.ptrsize]
 
