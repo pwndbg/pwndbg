@@ -25,7 +25,7 @@ def update_length():
     """
     global length
     message = gdb.execute('show print elements', from_tty=False, to_string=True)
-    message = message.split()[-1]
+    message = message.split('\n')[0].split()[-1]
     message = message.strip('.')
     if message == 'unlimited':
         length = 0
