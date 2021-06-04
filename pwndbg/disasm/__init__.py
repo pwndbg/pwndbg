@@ -109,6 +109,9 @@ def get_disassembler(pc):
             
     elif pwndbg.arch.current == 'i8086':
         extra = CS_MODE_16
+
+    elif pwndbg.arch.current == 'mips' and 'isa32r6' in gdb.newest_frame().architecture().name():
+        extra = CS_MODE_MIPS32R6
     
     else:
         extra = None
