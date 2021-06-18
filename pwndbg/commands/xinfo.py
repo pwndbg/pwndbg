@@ -96,6 +96,7 @@ def xinfo_default(page, addr):
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def xinfo(address=None):
+    address = address.cast(pwndbg.typeinfo.pvoid)  # Fixes issues with function ptrs (xinfo malloc)
     addr = int(address)
     addr &= pwndbg.arch.ptrmask
 
