@@ -290,6 +290,7 @@ def context(subcontext=None):
 pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view')
 pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters reserved for each register and value')
 pwndbg.config.Parameter('show-compact-regs-space', 4, 'the minimum number of characters separating each register')
+pwndbg.config.Parameter('show-compact-regs-columns', 0, 'the number of columns to show registers (if 0, using the show-compact-regs-align)')
 
 
 def calculate_padding_to_align(length, align):
@@ -302,6 +303,12 @@ def calculate_padding_to_align(length, align):
 def compact_regs(regs, width):
     align = int(pwndbg.config.show_compact_regs_align)
     space = int(pwndbg.config.show_compact_regs_space)
+    columns = int(pwndbg.config.show_compact_regs_columns)
+
+    # reset align while columns is set
+    if columns > 0:
+        align = max(align, width // columns)
+
     result = []
 
     line = ''
