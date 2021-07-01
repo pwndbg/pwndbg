@@ -5,6 +5,7 @@ Find a chain of leaks given some starting address.
 """
 
 import argparse
+import queue
 
 import gdb
 
@@ -92,7 +93,7 @@ def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
     visited_set = {int(address)}
-    address_queue = Queue()
+    address_queue = queue.Queue()
     address_queue.put(int(address))
     depth = 0
     time_to_depth_increase = 0
