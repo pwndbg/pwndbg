@@ -200,10 +200,12 @@ def proc_pid_maps():
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(None, 4)
 
-        try:    inode, objfile = inode_objfile.split(None, 1)
-        except: objfile = ''
-
         start, stop = maps.split('-')
+        
+        try:
+            inode, objfile = inode_objfile.split(None, 1)
+        except:
+            objfile = 'anon_' + start[:-3]
 
         start  = int(start, 16)
         stop   = int(stop, 16)
