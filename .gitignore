@@ -69,3 +69,6 @@ tests/.pytest_cache/
 tests/binaries/*.o
 tests/binaries/*.out
 tests/binaries/gosample.x*
+
+# VS Code files
+.vscode/
