@@ -44,11 +44,13 @@ Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_lo
 parser.formatter_class=argparse.RawDescriptionHelpFormatter
 parser.add_argument('gdbval_or_str', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
                     help='Address or module name.')
+parser.add_argument('-w', '--writable', action='store_true', help='Display writable maps only')
+parser.add_argument('-x', '--executable', action='store_true', help='Display executable maps only')
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['lm', 'address', 'vprot'])
 @pwndbg.commands.OnlyWhenRunning
-def vmmap(gdbval_or_str=None):
+def vmmap(gdbval_or_str=None, writable=False, executable=False):
     pages = pwndbg.vmmap.get()
 
     if gdbval_or_str:
@@ -65,6 +67,8 @@ def vmmap(gdbval_or_str=None):
         print(M.get(page.vaddr, text=str(page) + ' +0x%x' % (int(gdbval_or_str) - page.vaddr)))
     else:
         for page in pages:
+            if (executable and not page.execute) or (writable and not page.write):
+                continue
             print(M.get(page.vaddr, text=str(page)))
 
     if pwndbg.qemu.is_qemu():
