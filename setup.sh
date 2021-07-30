@@ -1,10 +1,10 @@
 #!/bin/bash
 set -ex
 
-# If we are a root in a Docker container and `sudo` doesn't exist
+# If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
-if [ -f /.dockerenv ] && ! hash sudo 2>/dev/null && whoami | grep root; then
+if ! hash sudo 2>/dev/null && whoami | grep root; then
     sudo() {
         ${*}
     }
