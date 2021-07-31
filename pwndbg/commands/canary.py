@@ -34,7 +34,7 @@ def canary():
         return
 
     print(message.notice("AT_RANDOM = %#x # points to (not masked) global canary value" % at_random))
-    print(message.notice("Canary    = 0x%x" % global_canary))
+    print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
     stack_canaries = list(
         pwndbg.search.search(pwndbg.arch.pack(global_canary), mappings=pwndbg.stack.stacks.values())
