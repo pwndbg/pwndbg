@@ -20,7 +20,7 @@ hint_lines = (
 for line in hint_lines:
     print(message.prompt('pwndbg: ') + message.system(line))
 
-cur = (gdb.selected_inferior(), gdb.selected_thread())
+cur = None
 
 
 def prompt_hook(*a):
@@ -30,7 +30,7 @@ def prompt_hook(*a):
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
     if cur != new:
-        pwndbg.events.after_reload(start=False)
+        pwndbg.events.after_reload(start=cur is None)
         cur = new
 
     if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
