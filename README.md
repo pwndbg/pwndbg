@@ -33,6 +33,9 @@ Pwndbg exists not only to replace all of its predecessors, but also to have a cl
 Installation is straightforward.  Pwndbg is best supported on Ubuntu 18.04 with GDB 7.11, and Ubuntu 20.04 with GDB 8.1.
 
 ```shell
+sudo apt install virtualenv
+virtualenv -p python3 fake_env
+source fake_env/bin/activate
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
