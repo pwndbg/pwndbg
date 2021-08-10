@@ -20,7 +20,7 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
+    sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg virtualenv
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
@@ -31,24 +31,24 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make virtualenv
     sudo dnf -y debuginfo-install glibc
 }
 
 install_xbps() {
     sudo xbps-install -Su
-    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make
+    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make python3-virtualenv
     sudo xbps-install -Sy glibc-dbg
 }
 
 install_swupd() {
     sudo swupd update || true
-    sudo swupd bundle-add gdb python3-basic make c-basic
+    sudo swupd bundle-add gdb python3-basic make c-basic python3-virtualenv
 }
 
 install_zypper() {
     sudo zypper refresh || true
-    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
+    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo python3-virtualenv
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
@@ -56,7 +56,7 @@ install_zypper() {
 }
 
 install_emerge() {
-    emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip sys-devel/gdb
+    emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip sys-devel/gdb dev-python/virtualenv
 }
 
 PYTHON=''
@@ -72,6 +72,9 @@ if linux; then
     distro=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed -e 's/"//g')
 
     case $distro in
+        "debian")
+            install_apt
+            ;;
         "ubuntu")
             install_apt
             ;;
@@ -145,6 +148,12 @@ fi
 # Make sure that pip is available
 if ! ${PYTHON} -m pip -V; then
     ${PYTHON} -m ensurepip ${INSTALLFLAGS} --upgrade
+fi
+
+if [ "$1" == "virtualenv" ]
+then
+    virtualenv -p python3 venv || { echo "virtualenv -p python3 venv && source venv/bin/activate failed. Do you have already installed python3 and virtualenv?" ; exit 1; }
+    source venv/bin/activate
 fi
 
 # Upgrade pip itself

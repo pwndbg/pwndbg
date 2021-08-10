@@ -35,7 +35,13 @@ Installation is straightforward.  Pwndbg is best supported on Ubuntu 18.04 with 
 ```shell
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
-./setup.sh
+./setup.sh virtualenv
+```
+
+Then to use pwndbg do:
+
+```
+source pwndbg/venv/bin/activate
 ```
 
 Other Linux distributions are also supported via `setup.sh`, including:
