@@ -56,6 +56,18 @@ Other Linux distributions are also supported via `setup.sh`, including:
 
 If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source.  Be sure to pass `--with-python=/path/to/python` to `./configure`.
 
+## More install options (optional):
+
+You can do:
+
+```shell
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```
+
+to directly to install pwndbg out of a virtual environment. This will most likely break your system. Use it at your own risk. For more information, fell free to consult the link: https://docs.python-guide.org/dev/virtualenvs/#basic-usage
+
 ## What can I do with that?
 
 For further info about features/functionalities, see [FEATURES](FEATURES.md).
