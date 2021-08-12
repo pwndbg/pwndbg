@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+
+import gdb
+
+import pwndbglib.arch
+import pwndbglib.argv
+import pwndbglib.commands
+import pwndbglib.typeinfo
+
+
+@pwndbglib.commands.ArgparsedCommand("Prints out the number of arguments.")
+@pwndbglib.commands.OnlyWhenRunning
+def argc():
+    print(pwndbglib.argv.argc)
+
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the contents of argv."
+parser.add_argument("i", nargs='?', type=int, default=None, help="Index of the argument to print out.")
+@pwndbglib.commands.ArgparsedCommand(parser, aliases=["args"])
+@pwndbglib.commands.OnlyWhenRunning
+def argv(i=None):
+    start = pwndbglib.argv.argv
+    n     = pwndbglib.argv.argc + 1
+
+    if i is not None:
+        n = 1
+        start += (pwndbglib.arch.ptrsize) * i
+
+    pwndbglib.commands.telescope.telescope(start, n)
+
+
+parser = argparse.ArgumentParser()
+parser.description = "Prints out the contents of the environment."
+parser.add_argument("name", nargs='?', type=str, default=None, help="Name of the environment variable to see.")
+@pwndbglib.commands.ArgparsedCommand(parser, aliases=["env", "environ"])
+@pwndbglib.commands.OnlyWhenRunning
+def envp(name=None):
+    if name is not None:
+        gdb.execute('p $environ("%s")' % name)
+        return
+    """
+    Prints out the contents of the environment.
+    """
+    start = pwndbglib.argv.envp
+    n     = pwndbglib.argv.envc + 1
+
+    return pwndbglib.commands.telescope.telescope(start, n)
+
+
+class argv_function(gdb.Function):
+    """
+    Evaluate argv on the supplied value.
+    """
+    def __init__(self):
+        super(argv_function, self).__init__('argv')
+    def invoke(self, number=0):
+        number = int(number)
+
+        if number > pwndbglib.argv.argc:
+            return 0
+
+        ppchar = pwndbglib.typeinfo.pchar.pointer()
+        value  = gdb.Value(pwndbglib.argv.argv)
+        argv   = value.cast(ppchar)
+        return((argv+number).dereference())
+
+argv_function()
+
+
+class envp_function(gdb.Function):
+    """
+    Evaluate envp on the supplied value.
+    """
+    def __init__(self):
+        super(envp_function, self).__init__('envp')
+    def invoke(self, number=0):
+        number = int(number)
+
+        if number > pwndbglib.argv.envc:
+            return pwndbglib.typeinfo.void
+
+        ppchar = pwndbglib.typeinfo.pchar.pointer()
+        value  = gdb.Value(pwndbglib.argv.envp)
+        envp   = value.cast(ppchar)
+        return((envp+number).dereference())
+
+envp_function()
+
+
+class argc_function(gdb.Function):
+    """
+    Evaluates to argc.
+    """
+    def __init__(self):
+        super(argc_function, self).__init__('argc')
+    def invoke(self, number=0):
+        return pwndbglib.argv.argc
+
+argc_function()
+
+
+class environ_function(gdb.Function):
+    """
+    Evaluate getenv() on the supplied value.
+    """
+    def __init__(self):
+        super(environ_function, self).__init__('environ')
+    def invoke(self, name):
+        name   = name.string() + '='
+        ppchar = pwndbglib.typeinfo.pchar.pointer()
+        value  = gdb.Value(pwndbglib.argv.envp)
+        envp   = value.cast(ppchar)
+
+        for i in range(pwndbglib.argv.envc):
+            ptr = (envp+i).dereference()
+            sz  = ptr.string()
+            if sz.startswith(name):
+                return ptr
+
+        return pwndbglib.typeinfo.void
+
+environ_function()

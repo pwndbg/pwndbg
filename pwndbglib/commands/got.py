@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+
+import pwndbglib.chain
+import pwndbglib.commands
+import pwndbglib.enhance
+import pwndbglib.file
+import pwndbglib.which
+import pwndbglib.wrappers.checksec
+import pwndbglib.wrappers.readelf
+from pwndbglib.color import message
+
+parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
+parser.add_argument('name_filter', help='Filter results by passed name.',
+                    type=str, nargs='?', default='')
+
+
+@pwndbglib.commands.ArgparsedCommand(parser)
+@pwndbglib.commands.OnlyWhenRunning
+def got(name_filter=''):
+
+    relro_status = pwndbglib.wrappers.checksec.relro_status()
+    pie_status = pwndbglib.wrappers.checksec.pie_status()
+    jmpslots = list(pwndbglib.wrappers.readelf.get_jmpslots())
+    if not len(jmpslots):
+        print(message.error("NO JUMP_SLOT entries available in the GOT"))
+        return
+
+    if "PIE enabled" in pie_status:
+        bin_base = pwndbglib.elf.exe().address
+
+    relro_color = message.off
+    if 'Partial' in relro_status:
+        relro_color = message.warn
+    elif 'Full' in relro_status:
+        relro_color = message.on
+    print("\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots)))
+
+    for line in jmpslots:
+        address, info, rtype, value, name = line.split()[:5]
+
+        if name_filter not in name:
+            continue
+
+        address_val = int(address, 16)
+
+        if "PIE enabled" in pie_status:  # if PIE, address is only the offset from the binary base address
+            address_val = bin_base + address_val
+
+        got_address = pwndbglib.memory.pvoid(address_val)
+        print("[0x%x] %s -> %s" % (address_val, message.hint(name), pwndbglib.chain.format(got_address)))

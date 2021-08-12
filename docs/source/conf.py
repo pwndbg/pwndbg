@@ -25,7 +25,7 @@ os.environ['SPHINX'] = '1'
 sys.path.insert(0, os.path.abspath('..'))    # <-- For 'gdb'
 sys.path.insert(0, os.path.abspath('../..')) # <-- For 'pwndbg'
 
-import pwndbg
+import pwndbglib
 
 # -- General configuration ------------------------------------------------
 

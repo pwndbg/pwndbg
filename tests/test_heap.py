@@ -5,7 +5,7 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg
+import pwndbglib
 import tests
 
 HEAP_BINARY = tests.binaries.get('heap_bugs.out')
@@ -159,8 +159,8 @@ def test_try_free_invalid_fastbin_entry(start_binary):
 def test_try_free_double_free_or_corruption_top(start_binary):
     setup_heap(start_binary, 9)
 
-    ptr_size = pwndbg.arch.ptrsize
-    top_chunk = int(pwndbg.heap.current.get_arena()['top']) + 2 * ptr_size
+    ptr_size = pwndbglib.arch.ptrsize
+    top_chunk = int(pwndbglib.heap.current.get_arena()['top']) + 2 * ptr_size
 
     result = gdb.execute('try_free {}'.format(hex(top_chunk)), to_string=True)
     assert 'double free or corruption (top)' in result

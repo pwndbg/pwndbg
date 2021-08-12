@@ -1,9 +1,9 @@
-import pwndbg.commands.context
+import pwndbglib.commands.context
 
 
 def warmup():
-    pwndbg.commands.context.context()
+    pwndbglib.commands.context.context()
 
 
 def run():
-    pwndbg.commands.context.context()
+    pwndbglib.commands.context.context()

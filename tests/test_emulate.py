@@ -1,8 +1,8 @@
 import tests
-from pwndbg.commands.nearpc import emulate
-from pwndbg.commands.nearpc import nearpc
-from pwndbg.commands.nearpc import pdisass
-from pwndbg.commands.windbg import u
+from pwndbglib.commands.nearpc import emulate
+from pwndbglib.commands.nearpc import nearpc
+from pwndbglib.commands.nearpc import pdisass
+from pwndbglib.commands.windbg import u
 
 EMULATE_DISASM_BINARY = tests.binaries.get('emulate_disasm.out')
 EMULATE_DISASM_LOOP_BINARY = tests.binaries.get('emulate_disasm_loop.out')
