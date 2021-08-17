@@ -106,7 +106,7 @@ def enhance(value, code = True):
     if szval:
         szval = E.string(repr(szval))
 
-    # Fix for case we can't read the end address anyway (#946)
+    # Fix for case when we can't read the end address anyway (#946)
     if value + pwndbg.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
