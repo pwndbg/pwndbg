@@ -106,6 +106,10 @@ def enhance(value, code = True):
     if szval:
         szval = E.string(repr(szval))
 
+    # Fix for case we can't read the end address anyway (#946)
+    if value + pwndbg.arch.ptrsize > page.end:
+        return E.integer(int_str(value))
+
     intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     intval0 = intval
     if 0 <= intval < 10:
