@@ -1,7 +1,7 @@
 
 import os
 
-from . import old_bash
+from . import div_zero_binary
 
 path = os.path.dirname(__file__)
 
