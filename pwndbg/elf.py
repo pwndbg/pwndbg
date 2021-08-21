@@ -228,57 +228,32 @@ def reset_ehdr_type_loaded():
     ehdr_type_loaded = 0
 
 
-@pwndbg.abi.LinuxOnly()
-def find_elf_magic(pointer, max_pages=1024, search_down=False, ret_addr_anyway=False):
-    """Search the nearest page which contains the ELF headers
-    by comparing the ELF magic with first 4 bytes.
-
-    Parameter:
-        search_down: change the search direction
-        to search over the lower address.
-        That is, decreasing the page pointer instead of increasing.
-            (default: False)
-    Returns:
-        An integer address of ELF page base
-        None if not found within the page limit
-    """
-    addr = pwndbg.memory.page_align(pointer)
-    step = pwndbg.memory.PAGE_SIZE
-    if search_down:
-        step = -step
-
-    max_addr = pwndbg.arch.ptrmask
-
-    for i in range(max_pages):
-        # Make sure address within valid range or gdb will raise Overflow exception
-        if addr < 0 or addr > max_addr:
-            return None
-
-        try:
-            data = pwndbg.memory.read(addr, 4)
-        except gdb.MemoryError:
-            return addr if ret_addr_anyway else None
-
-        # Return the address if found ELF header
-        if data == b'\x7FELF':
-            return addr
-
-        addr += step
-
-    return addr if ret_addr_anyway else None
-
-
 def get_ehdr(pointer):
-    """Returns an ehdr object for the ELF pointer points into.
     """
-    # Align down to a page boundary, and scan until we find
-    # the ELF header.
-    base = pwndbg.memory.page_align(pointer)
+    Returns an ehdr object for the ELF pointer points into.
 
-    # For non linux ABI, the ELF header may not be found in memory.
-    # This will hang the gdb when using the remote gdbserver to scan 1024 pages
-    base = find_elf_magic(pointer, search_down=True)
+    We expect the `pointer` to be an address from the binary.
+    """
+    vmmap = pwndbg.vmmap.find(pointer)
+    base = None
+
+    # We first check if the begining of the page contains the ELF magic
+    if pwndbg.memory.read(vmmap.start, 4) == b'\x7fELF':
+        base = vmmap.start
+
+    # The page did not have ELF magic; it may be that .text and binary start are split
+    # into two pages, so let's get the first page from the pointer's page objfile
+    else:
+        for v in pwndbg.vmmap.get():
+            if v.objfile == vmmap.objfile:
+                vmmap = v
+                break
+
+        if pwndbg.memory.read(vmmap.start, 4) == b'\x7fELF':
+            base = vmmap.start
+
     if base is None:
+        # For non linux ABI, the ELF header may not exist at all
         if pwndbg.abi.linux:
             print("ERROR: Could not find ELF base!")
         return None, None
@@ -287,7 +262,7 @@ def get_ehdr(pointer):
     ei_class = pwndbg.memory.byte(base+4)
 
     # Find out where the section headers start
-    Elfhdr   = read(Ehdr, base)
+    Elfhdr = read(Ehdr, base)
     return ei_class, Elfhdr
 
 
