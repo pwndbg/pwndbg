@@ -30,6 +30,7 @@ import pwndbg.commands.hexdump
 import pwndbg.commands.ida
 import pwndbg.commands.leakfind
 import pwndbg.commands.misc
+import pwndbg.commands.memoize
 import pwndbg.commands.mprotect
 import pwndbg.commands.next
 import pwndbg.commands.peda
@@ -161,5 +162,5 @@ signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" 
 if 1:
     gdb.execute('set remote search-memory-packet off')
 
-# Reading Comment file 
+# Reading Comment file
 pwndbg.commands.comments.init()
