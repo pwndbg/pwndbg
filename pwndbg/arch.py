@@ -20,8 +20,17 @@ fmt     = '=I'
 native_endian = str(sys.byteorder)
 
 
-def fix_arch(arch):
-    for match in ['x86-64', 'i386', 'mips', 'powerpc', 'sparc', 'aarch64']:
+def _get_arch():
+    not_exactly_arch = False
+
+    if pwndbg.proc.alive:
+        arch = gdb.newest_frame().architecture().name()
+    else:
+        arch = gdb.execute("show architecture", to_string=True).strip()
+        not_exactly_arch = True
+
+    # Below, we fix the fetched architecture
+    for match in ('x86-64', 'i386', 'aarch64', 'mips', 'powerpc', 'sparc'):
         if match in arch:
             return match
 
@@ -29,7 +38,12 @@ def fix_arch(arch):
     if 'arm' in arch:
         return 'armcm' if '-m' in arch else 'arm'
 
+    if not_exactly_arch:
+        raise RuntimeError("Could not deduce architecture from: %s" % arch)
+
     return arch
+
+
 
 @pwndbg.events.start
 @pwndbg.events.stop
@@ -37,16 +51,7 @@ def fix_arch(arch):
 def update():
     m = sys.modules[__name__]
 
-    # GDB 7.7 (Ubuntu Trusty) does not like selected_frame() when EBP/RBP
-    # is not mapped / pounts to an invalid address.
-    #
-    # As a work-around for Trusty users, handle the exception and bail.
-    # This may lead to inaccurate results, but there's not much to be done.
-    try:
-        m.current = fix_arch(gdb.newest_frame().architecture().name())
-    except Exception:
-        return
-
+    m.current = _get_arch()
     m.ptrsize = pwndbg.typeinfo.ptrsize
     m.ptrmask = (1 << 8*pwndbg.typeinfo.ptrsize)-1
 
