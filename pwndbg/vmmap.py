@@ -425,31 +425,23 @@ def find_boundaries(addr, name='', min=0):
 
     return pwndbg.memory.Page(start, end-start, 4, 0, name)
 
-aslr = False
-
-@pwndbg.events.new_objfile
-@pwndbg.memoize.while_running
 def check_aslr():
-    vmmap = sys.modules[__name__]
-    vmmap.aslr = False
+    """
+    Detects the ASLR status. Returns True, False or None.
 
-    # Check to see if ASLR is disabled on the system.
-    # if not pwndbg.remote.is_remote():
-    system_aslr = True
-    data        = b''
-
+    None is returned when we can't detect ASLR.
+    """
     # QEMU does not support this concept.
-    if pwndbg.qemu.is_qemu_usermode():
-        return vmmap.aslr
+    if pwndbg.qemu.is_qemu():
+        return None, 'Could not detect ASLR on QEMU targets'
 
     # Systemwide ASLR is disabled
     try:
         data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
         if b'0' in data:
-            vmmap.aslr = False
-            return vmmap.aslr, 'kernel.randomize_va_space == 0'
+            return False, 'kernel.randomize_va_space == 0'
     except Exception as e:
-        print("Could not check ASLR: Couldn't get randomize_va_space")
+        print("Could not check ASLR: can't read randomize_va_space")
         pass
 
     # Check the personality of the process
@@ -457,11 +449,9 @@ def check_aslr():
         try:
             data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
             personality = int(data, 16)
-            if personality & 0x40000 == 0:
-                vmmap.aslr = True
-            return vmmap.aslr, 'read status from process\' personality'
+            return (personality & 0x40000 == 0), 'read status from process\' personality'
         except:
-            print("Could not check ASLR: Couldn't get personality")
+            print("Could not check ASLR: can't read process' personality")
             pass
 
     # Just go with whatever GDB says it did.
@@ -469,10 +459,7 @@ def check_aslr():
     # This should usually be identical to the above, but we may not have
     # access to procfs.
     output = gdb.execute('show disable-randomization', to_string=True)
-    if "is off." in output:
-        vmmap.aslr = True
-
-    return vmmap.aslr, 'show disable-randomization'
+    return ("is off." in output), 'show disable-randomization'
 
 @pwndbg.events.cont
 def mark_pc_as_executable():

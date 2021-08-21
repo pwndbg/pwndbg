@@ -30,9 +30,12 @@ def aslr(state=None):
             print("Change will take effect when the process restarts")
 
     aslr, method = pwndbg.vmmap.check_aslr()
-    status = message.off('OFF')
 
-    if aslr:
+    if aslr is True:
         status = message.on('ON')
+    elif aslr is False:
+        status = message.off('OFF')
+    else:
+        status = message.off('???')
 
     print("ASLR is %s (%s)" % (status, method))

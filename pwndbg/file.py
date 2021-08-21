@@ -29,18 +29,21 @@ def get_file(path):
     qemu_root = pwndbg.qemu.root()
     if qemu_root:
         return os.path.join(qemu_root, path)
-    elif pwndbg.remote.is_remote() and not pwndbg.qemu.is_qemu():
-        local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
-        error      = None
-        try:
-            error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
-                                 to_string=True)
-        except gdb.error as e:
-            error = e
+    elif pwndbg.remote.is_remote():
+        if not pwndbg.qemu.is_qemu():
+            local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
+            error      = None
+            try:
+                error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
+                                     to_string=True)
+            except gdb.error as e:
+                error = e
 
-        if error:
-            raise OSError("Could not download remote file %r:\n" \
-                            "Error: %s" % (path, error))
+            if error:
+                raise OSError("Could not download remote file %r:\n" \
+                                "Error: %s" % (path, error))
+        else:
+            print("[pwndbg warning]: pwndbg.file.get(%s) returns local path" % path)
 
     return local_path
 

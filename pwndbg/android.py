@@ -7,11 +7,15 @@ import pwndbg.events
 import pwndbg.file
 import pwndbg.memoize
 import pwndbg.remote
+import pwndbg.qemu
 
 
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_exit
 def is_android():
+    if pwndbg.qemu.is_qemu():
+        return False
+
     try:
         if pwndbg.file.get('/system/etc/hosts'):
             return True
