@@ -33,7 +33,6 @@ explored_pages = []
 # List of custom pages that can be managed manually by vmmap_* commands family
 custom_pages = []
 
-@pwndbg.events.new_objfile
 @pwndbg.memoize.reset_on_stop
 def get():
     if not pwndbg.proc.alive:

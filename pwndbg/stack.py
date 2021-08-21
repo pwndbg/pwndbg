@@ -46,6 +46,9 @@ def find_upper_stack_boundary(addr, max_pages=1024):
     if not pwndbg.abi.linux:
         return addr + pwndbg.memory.PAGE_SIZE
 
+    # We don't want to find ELF magic here. We reuse the find_elf_magic func
+    # as it traverses 4kB pages and can find the boundary for us
+    # (in other words, we expect the ELF magic to not be present on the stack)
     return pwndbg.elf.find_elf_magic(addr, max_pages=max_pages, ret_addr_anyway=True)
 
 
