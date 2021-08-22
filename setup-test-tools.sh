@@ -20,7 +20,7 @@ linux() {
 
 install_apt() {
   sudo apt-get update || true
-  sudo apt-get install -y nasm
+  sudo apt-get install -y nasm gcc
   test -f /usr/bin/go || sudo apt-get install -y golang
 }
 
