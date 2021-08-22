@@ -205,7 +205,8 @@ def format_args(instruction):
         # Enhance args display
         if arg.name == 'fd' and isinstance(value, int):
             path = pwndbg.file.readlink('/proc/%d/fd/%d' % (pwndbg.proc.pid, value))
-            pretty += ' (%s)' % path
+            if path:
+                pretty += ' (%s)' % path
 
         result.append('%-10s %s' % (N.argument(arg.name) + ':', pretty))
     return result
