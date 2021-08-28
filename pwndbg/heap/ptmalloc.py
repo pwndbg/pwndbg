@@ -549,6 +549,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def is_initialized(self):
         addr = pwndbg.symbol.address('__libc_malloc_initialized')
+        if addr is None:
+            addr = pwndbg.symbol.address('__malloc_initialized')
         return pwndbg.memory.s32(addr) > 0
 
     def libc_has_debug_syms(self):
