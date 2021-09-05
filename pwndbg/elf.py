@@ -234,6 +234,11 @@ def get_ehdr(pointer):
 
     We expect the `pointer` to be an address from the binary.
     """
+
+    # This just does not work :(
+    if pwndbg.qemu.is_usermode():
+        return None, None
+
     vmmap = pwndbg.vmmap.find(pointer)
     base = None
 

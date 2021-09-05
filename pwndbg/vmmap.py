@@ -52,8 +52,14 @@ def get():
         # following links.
         pages.extend(info_auxv())
 
-        if pages: pages.extend(info_sharedlibrary())
-        else:     pages.extend(info_files())
+        if pages:
+            pages.extend(info_sharedlibrary())
+        else:
+            if pwndbg.qemu.is_usermode():
+                return (
+                    pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, '[qemu-user]'),
+                )
+            pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
 
