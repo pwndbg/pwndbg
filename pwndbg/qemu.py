@@ -33,17 +33,14 @@ def is_usermode():
     if not pwndbg.remote.is_remote():
         return False
 
-
-    # If we had QEMU 2.4 or better, we could use
-    #
-    #    maintenance packet QAttached:
-    #
-    # However, Ubuntu 14 still has QEMU 2.2, so we have to use
-    # a different command as a heuristic.
-    response = gdb.execute('maintenance packet QOffsets',
+    # There is also 'qAttached' - maybe we can use it too?
+    # for qemu user though it returned "0"?
+    # Try with:
+    #    qemu-x86_64 -g 1234 `which ps`
+    #    gdb -nx `which ps` -ex 'target remote :1234'
+    response = gdb.execute('maintenance packet qOffsets',
                            to_string=True,
                            from_tty=False)
-
 
     return 'Text=' in response
 

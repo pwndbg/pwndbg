@@ -11,6 +11,7 @@ import pwndbg.memoize
 
 
 @pwndbg.memoize.reset_on_objfile
+@pwndbg.memoize.reset_on_start
 def is_remote():
     # Example:
     # pwndbg> maintenance print target-stack
