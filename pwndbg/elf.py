@@ -236,7 +236,7 @@ def get_ehdr(pointer):
     """
 
     # This just does not work :(
-    if pwndbg.qemu.is_usermode():
+    if pwndbg.qemu.is_qemu():
         return None, None
 
     vmmap = pwndbg.vmmap.find(pointer)
