@@ -88,67 +88,7 @@ def autofetch():
         remote_files_dir = tempfile.mkdtemp()
         add_directory(remote_files_dir)
 
-    searchpath = get_directory()
-
-    for mapping in pwndbg.vmmap.get():
-        objfile = mapping.objfile
-
-        # Don't attempt to download things like '[stack]' and '[heap]'
-        if not objfile.startswith('/'):
-            continue
-
-        # Don't re-download things that we have already downloaded
-        if not objfile or objfile in remote_files:
-            continue
-
-        msg = "Downloading %r from the remote server" % objfile
-        print(msg, end='')
-
-        try:
-            data = pwndbg.file.get(objfile)
-            print('\r' + msg + ': OK')
-        except OSError:
-            # The file could not be downloaded :(
-            print('\r' + msg + ': Failed')
-            return
-
-        filename = os.path.basename(objfile)
-        local_path = os.path.join(remote_files_dir, filename)
-
-        with open(local_path, 'wb+') as f:
-            f.write(data)
-
-        remote_files[objfile] = local_path
-
-        base = None
-        for mapping in pwndbg.vmmap.get():
-            if mapping.objfile != objfile:
-                continue
-
-            if base is None or mapping.vaddr < base.vaddr:
-                base = mapping
-
-        if not base:
-            continue
-
-        base = base.vaddr
-
-        try:
-            elf = elftools.elf.elffile.ELFFile(open(local_path, 'rb'))
-        except elftools.common.exceptions.ELFError:
-            continue
-
-        gdb_command = ['add-symbol-file', local_path, hex(int(base))]
-        for section in elf.iter_sections():
-            name = section.name #.decode('latin-1')
-            section = section.header
-            if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
-                continue
-            gdb_command += ['-s', name, hex(int(base + section.sh_addr))]
-
-        print(' '.join(gdb_command))
-        # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
-
+    
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
     """
