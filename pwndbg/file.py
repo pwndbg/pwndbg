@@ -9,6 +9,7 @@ debugging a remote process over SSH or similar, where e.g.
 import binascii
 import os
 import tempfile
+import re
 
 import gdb
 
@@ -33,9 +34,25 @@ def get_file(path):
         if not pwndbg.qemu.is_qemu():
             local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
             error      = None
+
+            #assuming remote debugging is taking place, either use the proc path
+            #or download from the remote
             try:
-                error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
+                targetPrefix = "target:"
+                #if the file is explicitly remote (starts with "target:"), download it
+                if re.search("^" + targetPrefix, path):
+                    error = gdb.execute('remote get "%s" "%s"' % (path[len(targetPrefix):], local_path),
                                      to_string=True)
+                else:
+                    #gdb seems to be using a local file
+                    #if that exists, use that
+                    if os.path.isfile(path):
+                        local_path = path
+                    else:
+                        #otherwise, download from remote
+                        error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
+                                     to_string=True)
+
             except gdb.error as e:
                 error = e
 
