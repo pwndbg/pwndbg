@@ -386,7 +386,7 @@ def get_regs(*regs):
             continue
 
         if reg not in pwndbg.regs:
-            message.warn("Unknown register: %r" % reg)
+            print(message.warn("Unknown register: %r" % reg))
             continue
 
         value = pwndbg.regs[reg]
