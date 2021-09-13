@@ -7,6 +7,7 @@ import gdb
 
 import pwndbg.chain
 import pwndbg.color
+import pwndbg.color.message as message
 import pwndbg.enhance
 import pwndbg.exception
 import pwndbg.hexdump
@@ -209,7 +210,10 @@ def OnlyWithFile(function):
         if pwndbg.proc.exe:
             return function(*a, **kw)
         else:
-            print("%s: There is no file loaded." % function.__name__)
+            if pwndbg.qemu.is_qemu():
+                print(message.error("Could not determine the target binary on QEMU."))
+            else:
+                print(message.error("%s: There is no file loaded." % function.__name__))
 
     return _OnlyWithFile
 
