@@ -12,6 +12,7 @@ import tempfile
 
 import gdb
 
+import pwndbg.color.message as message
 import pwndbg.qemu
 import pwndbg.remote
 import pwndbg.symbol
@@ -53,7 +54,7 @@ def get_file(path):
                 raise OSError("Could not download remote file %r:\n" \
                                 "Error: %s" % (path, error))
         else:
-            print("[pwndbg warning]: pwndbg.file.get(%s) returns local path" % path)
+            print(message.warn("pwndbg.file.get(%s) returns local path as we can't download file from QEMU" % path))
 
     return local_path
 
