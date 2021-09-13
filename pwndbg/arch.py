@@ -7,7 +7,6 @@ import gdb
 from capstone import *
 
 import pwndbg.events
-import pwndbg.memoize
 import pwndbg.regs
 import pwndbg.typeinfo
 
