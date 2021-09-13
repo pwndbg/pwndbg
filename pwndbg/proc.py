@@ -64,6 +64,9 @@ class module(ModuleType):
 
         This should not be a problem on local targets as `gdb.current_progspace().filename`
         seems to return absolute paths.
+
+        DO NOT USE THIS if you want to process the debugged file with another tool.
+        For this, use `pwndbg.file.get_file` as it supports remote target.
         """
         fn = gdb.current_progspace().filename
 
