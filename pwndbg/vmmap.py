@@ -118,13 +118,13 @@ def explore(address_maybe):
     return page
 
 # Automatically ensure that all registers are explored on each stop
-@pwndbg.events.stop
+#@pwndbg.events.stop
 def explore_registers():
     for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
 
 
-@pwndbg.events.exit
+#@pwndbg.events.exit
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
