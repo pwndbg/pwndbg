@@ -7,6 +7,7 @@ import os
 import gdb
 
 import pwndbg.auxv
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.vmmap
 
@@ -77,12 +78,16 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def piebase(offset=None, module=None):
     offset = int(offset)
     if not module:
+        # Note: we do not use `pwndbg.file.get_file(module)` here as it is not needed.
+        # (as we do need the actual path that is in vmmap, not the file itself)
         module = get_exe_name()
 
     addr = translate_addr(offset, module)
 
     if addr is not None:
         print('Calculated VA from %s = 0x%x' % (module, addr))
+    else:
+        print(message.error('Could not calculate VA on current target.'))
 
 
 parser = argparse.ArgumentParser()
@@ -97,12 +102,16 @@ parser.add_argument('module', type=str, nargs='?', default='',
 def breakrva(offset=0, module=None):
     offset = int(offset)
     if not module:
+        # Note: we do not use `pwndbg.file.get_file(module)` here as it is not needed.
+        # (as we do need the actual path that is in vmmap, not the file itself)
         module = get_exe_name()
     addr = translate_addr(offset, module)
 
     if addr is not None:
         spec = "*%#x" % (addr)
         gdb.Breakpoint(spec)
+    else:
+        print(message.error('Could not determine rebased breakpoint address on current target'))
 
 
 @pwndbg.commands.QuietSloppyParsedCommand #TODO should this just be an alias or does the QuietSloppy have an effect?
