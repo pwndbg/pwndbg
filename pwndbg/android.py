@@ -6,8 +6,8 @@ import pwndbg.color.message as message
 import pwndbg.events
 import pwndbg.file
 import pwndbg.memoize
-import pwndbg.remote
 import pwndbg.qemu
+import pwndbg.remote
 
 
 @pwndbg.memoize.reset_on_start
