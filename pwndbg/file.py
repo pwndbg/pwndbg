@@ -22,13 +22,23 @@ def get_file(path):
     Downloads the specified file from the system where the current process is
     being debugged.
 
+    If the `path` is prefixed with "target:" the prefix is stripped
+    (to support remote target paths properly).
+
     Returns:
         The local path to the file
     """
+    assert path.startswith('/') or path.startswith('target:'), "get_file called with incorrect path"
+
+    if path.startswith('target:'):
+        path = path[7:]  # len('target:') == 7
+
     local_path = path
     qemu_root = pwndbg.qemu.root()
+
     if qemu_root:
         return os.path.join(qemu_root, path)
+
     elif pwndbg.remote.is_remote():
         if not pwndbg.qemu.is_qemu():
             local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)

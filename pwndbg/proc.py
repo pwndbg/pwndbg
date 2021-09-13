@@ -59,21 +59,17 @@ class module(ModuleType):
     @property
     def exe(self):
         """
-        We lstrip "target:" for remote debugging. Otherwise, the
-        `pwndbg.file.get_file(pwndbg.proc.exe)` would not work on remote targets.
+        Returns the debugged file name.
 
-        This should not be a problem on local targets as `gdb.current_progspace().filename`
-        seems to return absolute paths.
+        On remote targets, this may be prefixed with "target:" string.
+        See this by executing those in two terminals:
+        1. gdbserver 127.0.0.1:1234 /bin/ls
+        2. gdb -ex "target remote :1234" -ex "pi pwndbg.proc.exe"
 
-        DO NOT USE THIS if you want to process the debugged file with another tool.
-        For this, use `pwndbg.file.get_file` as it supports remote target.
+        If you need to process the debugged file use:
+            `pwndbg.file.get_file(pwndbg.proc.exe)`
         """
-        fn = gdb.current_progspace().filename
-
-        if fn.startswith('target:'):
-            return fn[7:]  # len('target') == 7
-
-        return fn
+        return gdb.current_progspace().filename
 
     @property
     def mem_page(self):
