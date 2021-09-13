@@ -115,7 +115,7 @@ parser.add_argument('filename', nargs='?', type=str, help='ELF filename, by defa
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):
     if filename is None:
-        filename = pwndbg.proc.exe
+        filename = pwndbg.file.get_file(pwndbg.proc.exe)
 
     print('Load "%s" ...' % filename)
 
