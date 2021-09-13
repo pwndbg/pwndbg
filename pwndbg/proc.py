@@ -58,7 +58,19 @@ class module(ModuleType):
 
     @property
     def exe(self):
-        return gdb.current_progspace().filename
+        """
+        We lstrip "target:" for remote debugging. Otherwise, the
+        `pwndbg.file.get_file(pwndbg.proc.exe)` would not work on remote targets.
+
+        This should not be a problem on local targets as `gdb.current_progspace().filename`
+        seems to return absolute paths.
+        """
+        fn = gdb.current_progspace().filename
+
+        if fn.startswith('target:'):
+            return fn[7:]  # len('target') == 7
+
+        return fn
 
     @property
     def mem_page(self):
