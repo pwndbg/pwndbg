@@ -212,7 +212,7 @@ def proc_pid_maps():
         try:
             inode, objfile = inode_objfile.split(None, 1)
         except:
-            objfile = 'anon_' + start[:-3]
+            objfile = '[anon_' + start[:-3] + ']'
 
         start  = int(start, 16)
         stop   = int(stop, 16)
