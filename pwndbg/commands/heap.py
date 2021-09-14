@@ -693,11 +693,11 @@ def try_free(addr):
     free_hook = pwndbg.symbol.address('__free_hook')
     if free_hook is not None:
         if pwndbg.memory.pvoid(free_hook) != 0:
-            message.success('__libc_free: will execute __free_hook')
+            print(message.success('__libc_free: will execute __free_hook'))
 
     # free(0) has no effect
     if addr == 0:
-        message.success('__libc_free: addr is 0, nothing to do')
+        print(message.success('__libc_free: addr is 0, nothing to do'))
         return
 
     # constants
@@ -994,7 +994,7 @@ def try_free(addr):
 
     #is mapped
     else:
-        message.notice('Doing munmap_chunk')
+        print(message.notice('Doing munmap_chunk'))
 
     finalize(errors_found, returned_before_error)
 
