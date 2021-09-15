@@ -63,3 +63,8 @@ Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md) or [
 ## Contact
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
 anybody on [Discord](https://discord.gg/x47DssnGwm) and ask away.
+
+
+## Test
+
+This is a test PR just to see if it will run tests via github actions
