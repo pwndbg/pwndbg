@@ -457,7 +457,7 @@ def get_highlight_source(filename):
     if pwndbg.config.syntax_highlight:
         source = H.syntax_highlight(source, filename)
 
-    source_lines = source.splitlines()
+    source_lines = source.split('\n')
     source_lines = tuple(line.rstrip() for line in source_lines)
     return source_lines
 
