@@ -32,7 +32,7 @@ class memoize:
     def __call__(self, *args, **kwargs):
         how = None
 
-        if not isinstance(args, collections.Hashable):
+        if not isinstance(args, collections.abc.Hashable):
             print("Cannot memoize %r!", file=sys.stderr)
             how   = "Not memoizeable!"
             value = self.func(*args)
