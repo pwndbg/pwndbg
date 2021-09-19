@@ -54,7 +54,7 @@ def dw(address, count=32):
     return dX(2, address, count, repeat=dw.repeat)
 
 
-parser = argparse.ArgumentParser(description="Starting at the specified address, dump N dwrods.")
+parser = argparse.ArgumentParser(description="Starting at the specified address, dump N dwords.")
 parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument("count", type=int, default=16, nargs="?", help="The number of dwords to dump.")
 @pwndbg.commands.ArgparsedCommand(parser)

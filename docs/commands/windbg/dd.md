@@ -2,7 +2,7 @@
 ```
 usage: dd [-h] address [count]
 ```
-Starting at the specified address, dump N dwrods.  
+Starting at the specified address, dump N dwords.
 
 | Positional Argument | Info |
 |---------------------|------|
