@@ -6,13 +6,19 @@ e.g. execution stops because of a SIGINT or breakpoint, or a
 new library/objfile are loaded, etc.
 """
 
-import collections
 import functools
 import sys
 
 import gdb
 
 import pwndbg.events
+
+try:
+    # Python >= 3.10
+    from collections.abc import Hashable
+except ImportError:
+    # Python < 3.10
+    from collections import Hashable
 
 debug = False
 
@@ -32,7 +38,7 @@ class memoize:
     def __call__(self, *args, **kwargs):
         how = None
 
-        if not isinstance(args, collections.abc.Hashable):
+        if not isinstance(args, Hashable):
             print("Cannot memoize %r!", file=sys.stderr)
             how   = "Not memoizeable!"
             value = self.func(*args)
