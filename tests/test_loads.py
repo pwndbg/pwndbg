@@ -73,7 +73,6 @@ def test_loads_pure_gdb_without_crashing():
     assert output == HELLO
 
 
-@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_binary_without_crashing():
     if not os.path.isfile(BINARY):
         compile_binary(BINARY_SOURCE, BINARY)
@@ -86,7 +85,6 @@ def test_loads_binary_without_crashing():
     assert all(item in output for item in expected)
 
 
-@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_binary_with_core_without_crashing():
     if not os.path.isfile(BINARY):
         compile_binary(BINARY_SOURCE, BINARY)
@@ -115,7 +113,6 @@ def test_loads_binary_with_core_without_crashing():
     assert any([crash_address_line.match(line) for line in output])
 
 
-@pytest.mark.skipif(launched_locally, reason='This test uses binaries compiled on travis builds.')
 def test_loads_core_without_crashing():
     if not os.path.isfile(BINARY):
         compile_binary(BINARY_SOURCE, BINARY)
