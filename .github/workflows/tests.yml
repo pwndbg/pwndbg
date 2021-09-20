@@ -28,6 +28,7 @@ jobs:
         echo 'Installed py:'
         python -V
 
+    # We use `sudo` for `attachp` command tests
     - name: Run tests
       run: |
-        PWNDBG_TRAVIS_TEST_RUN=1 ./tests.sh
+        PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo ./tests.sh

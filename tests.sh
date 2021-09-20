@@ -6,7 +6,14 @@ cd ../../
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
-TESTS_LIST=$(gdb --silent --nx --nh --command gdbinit.py --command pytests_collect.py --eval-command quit | grep -o "tests/.*::.*")
+TESTS_COLLECT_OUTPUT=$(gdb --silent --nx --nh --command gdbinit.py --command pytests_collect.py --eval-command quit)
+
+if [ $? -eq 1 ]; then
+    echo -E "$TESTS_COLLECT_OUTPUT";
+    exit 1;
+fi
+
+TESTS_LIST=$(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*")
 
 tests_passed_or_skipped=0
 tests_failed=0
