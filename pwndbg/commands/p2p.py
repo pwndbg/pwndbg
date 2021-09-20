@@ -5,11 +5,9 @@ import argparse
 import gdb
 
 import pwndbg.arch
-import pwndbg.commands
-import pwndbg.config
-import pwndbg.memory
-import pwndbg.regs
 import pwndbg.color
+import pwndbg.commands
+import pwndbg.memory
 
 ts = pwndbg.commands.telescope.telescope
 
