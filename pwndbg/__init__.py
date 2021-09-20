@@ -12,6 +12,7 @@ import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.argv
 import pwndbg.commands.aslr
+import pwndbg.commands.attachp
 import pwndbg.commands.auxv
 import pwndbg.commands.canary
 import pwndbg.commands.checksec
