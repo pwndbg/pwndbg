@@ -9,13 +9,13 @@ import glob
 import os
 import subprocess
 import sys
-import tempfile
 
 import gdb
 
 import pwndbg.events
 import pwndbg.gcc
 import pwndbg.memoize
+import pwndbg.tempfile
 
 module = sys.modules[__name__]
 
@@ -95,10 +95,6 @@ def update():
 # Call it once so we load all of the types
 update()
 
-tempdir = tempfile.gettempdir() + '/pwndbg'
-if not os.path.exists(tempdir):
-    os.mkdir(tempdir)
-
 # Trial and error until things work
 blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
 'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
@@ -145,7 +141,7 @@ def load(name):
 {name} foo;
 '''.format(**locals())
 
-    filename = '%s/%s_%s.cc' % (tempdir, arch, '-'.join(name.split()))
+    filename = '%s/%s_%s.cc' % (pwndbg.tempfile.cachedir('typeinfo'), arch, '-'.join(name.split()))
 
     with open(filename, 'w+') as f:
         f.write(source)
