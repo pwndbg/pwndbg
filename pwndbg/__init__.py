@@ -74,6 +74,7 @@ import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
+import pwndbg.tempfile
 import pwndbg.typeinfo
 import pwndbg.ui
 import pwndbg.version
