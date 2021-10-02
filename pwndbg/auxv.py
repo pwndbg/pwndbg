@@ -81,9 +81,6 @@ sys.modules[__name__].__dict__.update({v:k for k,v in AT_CONSTANTS.items()})
 
 
 class AUXV(dict):
-    def __init__(self):
-        for field in AT_CONSTANTS.values():
-            self[field] = None
     def set(self, const, value):
         name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
@@ -97,7 +94,7 @@ class AUXV(dict):
 
         self[name] = value
     def __getattr__(self, attr):
-        return self[attr]
+        return self.get(attr)
     def __str__(self):
         return str({k:v for k,v in self.items() if v is not None})
 
