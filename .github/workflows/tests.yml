@@ -20,6 +20,7 @@ jobs:
       run: |
         ./setup.sh --user
         ./setup-test-tools.sh --user
+        pip install --user coveralls
 
     - name: Python version info
       run: |
@@ -32,3 +33,8 @@ jobs:
     - name: Run tests
       run: |
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo --preserve-env ./tests.sh
+
+    - name: Process coverage data
+      run: |
+        coverage combine
+        # coveralls  ## XXX set up coveralls.io like pwntools?
