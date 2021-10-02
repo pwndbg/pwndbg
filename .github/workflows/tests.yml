@@ -31,4 +31,4 @@ jobs:
     # We use `sudo` for `attachp` command tests
     - name: Run tests
       run: |
-        PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo ./tests.sh
+        PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo --preserve-env ./tests.sh
