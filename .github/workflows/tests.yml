@@ -37,4 +37,10 @@ jobs:
     - name: Process coverage data
       run: |
         coverage combine
-        # coveralls  ## XXX set up coveralls.io like pwntools?
+        coverage xml
+
+    - name: "Upload coverage to Codecov"
+      uses: codecov/codecov-action@v2
+      with:
+        fail_ci_if_error: true
+
