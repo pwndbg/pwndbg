@@ -55,9 +55,9 @@ def get():
         if pages:
             pages.extend(info_sharedlibrary())
         else:
-            if pwndbg.qemu.is_usermode():
+            if pwndbg.qemu.is_qemu():
                 return (
-                    pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, '[qemu-user]'),
+                    pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, '[qemu]'),
                 )
             pages.extend(info_files())
 
