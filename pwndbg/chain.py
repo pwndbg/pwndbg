@@ -15,7 +15,7 @@ import pwndbg.vmmap
 
 LIMIT = pwndbg.config.Parameter('dereference-limit', 5, 'max number of pointers to dereference in a chain')
 
-def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_start=True):
+def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_start=True, safe_linking=False):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -26,6 +26,7 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_star
         hard_stop(int): address to stop at
         hard_end: value to append when hard_stop is reached
         include_start(bool): whether to include starting address or not
+        safe_linking(bool): whether this chain use safe-linking
 
     Returns:
         A list representing pointers of each ```address``` and reference
@@ -50,7 +51,8 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_star
             if not pwndbg.abi.linux and not pwndbg.vmmap.find(address):
                 break
 
-            address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+            next_address = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+            address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.arch.ptrmask
             result.append(address)
         except gdb.MemoryError:
@@ -63,7 +65,7 @@ config_arrow_left  = theme.Parameter('chain-arrow-left', '◂—', 'left arrow o
 config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow of chain formatting')
 config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
 
-def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
+def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
     """
     Recursively dereferences an address into string representation, or convert the list representation
     of address dereferences into string representation.
@@ -75,6 +77,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
         offset(int): Offset into the address to get the next pointer
         hard_stop(int): Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
+        safe_linking(bool): whether this chain use safe-linking
 
     Returns:
         A string representing pointers of each address and reference
@@ -86,7 +89,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0):
     if isinstance(value, list):
         chain = value
     else:
-        chain = get(value, limit, offset, hard_stop, hard_end)
+        chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking)
 
     arrow_left  = C.arrow(' %s ' % config_arrow_left)
     arrow_right = C.arrow(' %s ' % config_arrow_right)

@@ -9,6 +9,7 @@ import gdb
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.glibc
 import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
@@ -38,13 +39,16 @@ def format_bin(bins, verbose=False, offset=None):
     for size in bins:
         b = bins[size]
         count, is_chain_corrupted = None, False
+        safe_lnk = False
 
         # fastbins consists of only single linked list
         if bins_type == 'fastbins':
             chain_fd = b
+            safe_lnk = pwndbg.glibc.check_safe_linking()
         # tcachebins consists of single linked list and entries count
         elif bins_type == 'tcachebins':
             chain_fd, count = b
+            safe_lnk = pwndbg.glibc.check_safe_linking()
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
             chain_fd, chain_bk, is_chain_corrupted = b
@@ -56,9 +60,9 @@ def format_bin(bins, verbose=False, offset=None):
             limit = 8
             if count <= 7:
                 limit = count + 1
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, limit=limit)
+            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk)
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset)
+            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
 
 
         if isinstance(size, int):
