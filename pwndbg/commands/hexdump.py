@@ -41,7 +41,7 @@ def address_or_module_name(s):
         raise argparse.ArgumentTypeError('Unknown hexdump argument type.')
 
 parser = argparse.ArgumentParser(description='Hexdumps data at the specified address or module name (or at $sp)')
-parser.add_argument('address_or_module', type=address_or_module_name, nargs='?', default='$sp',
+parser.add_argument('address', type=address_or_module_name, nargs='?', default='$sp',
                     help='Address or module name to dump')
 parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
                     help='Number of bytes to dump')
@@ -49,8 +49,7 @@ parser.add_argument('count', nargs='?', default=pwndbg.config.hexdump_bytes,
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address_or_module=None, count=pwndbg.config.hexdump_bytes):
-    address = address_or_module
+def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
     if hexdump.repeat:
         address = hexdump.last_address
         hexdump.offset += 1

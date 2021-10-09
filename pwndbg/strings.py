@@ -32,17 +32,27 @@ def update_length():
     else:
         length = int(message)
 
-def get(address, maxlen = None):
+def get(address, maxlen=None, maxread=None):
+    """
+    Returns a printable C-string from address.
+
+    Returns `None` if string contains non-printable chars
+    or if the `maxlen` length data does not end up with a null byte.
+    """
     if maxlen is None:
         maxlen = length
 
-    try:
-        sz = pwndbg.memory.string(address, maxlen)
-        sz = sz.decode('latin-1', 'replace')
+    if maxread is None:
+        maxread = length
 
-        if not sz or not all(s in string.printable for s in sz):
-            return None
-    except Exception as e:
+    try:
+        sz = pwndbg.memory.string(address, maxread)
+    except gdb.error:  # should not happen, but sanity check?
+        return None
+
+    sz = sz.decode('latin-1', 'replace')
+
+    if not sz or not all(s in string.printable for s in sz):
         return None
 
     if len(sz) < maxlen or not maxlen:
