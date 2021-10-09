@@ -366,7 +366,7 @@ def find_lower_boundary(addr, max_pages=1024):
     return addr
 
 
-class Page(object):
+class Page:
     """
     Represents the address space and page permissions of at least
     one page of memory.
