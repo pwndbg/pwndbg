@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from .constant import Constant
 
 __NR_read = Constant('__NR_read',0)

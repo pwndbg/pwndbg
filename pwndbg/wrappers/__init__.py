@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import functools
 import subprocess
 from subprocess import STDOUT

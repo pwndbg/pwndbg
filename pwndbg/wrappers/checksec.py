@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from subprocess import CalledProcessError
 
 import pwndbg.commands

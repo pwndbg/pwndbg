@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import pwndbg.commands
 import pwndbg.which
 import pwndbg.wrappers.checksec
