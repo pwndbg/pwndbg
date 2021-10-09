@@ -157,7 +157,6 @@ i386 = RegisterSet( pc      = 'eip',
                                 'bx','bh','bl',
                                 'cx','ch','cl',
                                 'dx','dh','dl',
-                                'dil','sil','spl','bpl',
                                 'di','si','bp','sp','ip'),
                     retval  = 'eax')
 
