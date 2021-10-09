@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from capstone import CS_GRP_JUMP
 
 import pwndbg.arch

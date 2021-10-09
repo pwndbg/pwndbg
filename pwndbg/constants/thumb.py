@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from .constant import Constant
 
 __NR_OABI_SYSCALL_BASE = Constant('__NR_OABI_SYSCALL_BASE',0x900000)

@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope

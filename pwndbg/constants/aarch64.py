@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from .constant import Constant
 
 __NR_io_setup = Constant('__NR_io_setup',0)

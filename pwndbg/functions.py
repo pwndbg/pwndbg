@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import collections
 
 Function = collections.namedtuple('Function', ('type', 'derefcnt', 'name', 'args'))
