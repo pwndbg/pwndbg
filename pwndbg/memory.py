@@ -95,6 +95,7 @@ def write(addr, data):
     if isinstance(data, str):
         data = bytes(data, 'utf8')
 
+    # Throws an exception if can't access memory
     gdb.selected_inferior().write_memory(addr, data)
 
 
@@ -146,8 +147,10 @@ def string(addr, max=4096):
     if peek(addr):
         data = bytearray(read(addr, max, partial=True))
 
-        if b'\x00' in data:
-            return data.split(b'\x00')[0]
+        try:
+            return data[:data.index(b'\x00')]
+        except ValueError:
+            pass
 
     return bytearray()
 
