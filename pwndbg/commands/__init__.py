@@ -321,6 +321,11 @@ class ArgparsedCommand:
             _ArgparsedCommand(self.parser, function, alias)
         return _ArgparsedCommand(self.parser, function)
 
+# We use a 64-bit max value literal here instead of pwndbg.arch.current
+# as realistically its ok to pull off the biggest possible type here
+# We cache its GDB value type which is 'unsigned long long'
+_mask = 0xffffffffFFFFFFFF
+_mask_val_type = gdb.Value(_mask).type
 
 def sloppy_gdb_parse(s):
     """
@@ -333,6 +338,13 @@ def sloppy_gdb_parse(s):
     :return: Whatever gdb.parse_and_eval returns or string.
     """
     try:
-        return gdb.parse_and_eval(s)
+        val = gdb.parse_and_eval(s)
+        # We can't just return int(val) because GDB may return:
+        # "Python Exception <class 'gdb.error'> Cannot convert value to long."
+        # e.g. for:
+        # pwndbg> pi int(gdb.parse_and_eval('__libc_start_main'))
+        #
+        # Here, the _mask_val.type should be `unsigned long long`
+        return int(val.cast(_mask_val_type))
     except (TypeError, gdb.error):
         return s

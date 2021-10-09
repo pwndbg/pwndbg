@@ -29,8 +29,8 @@ def get_type(size):
     }[size]
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
-parser.add_argument("address", type=int, help="The address to dump from.")
-parser.add_argument("count", type=int, default=64, nargs="?", help="The number of bytes to dump.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
+parser.add_argument("count", type=pwndbg.commands.sloppy_gdb_parse, default=64, nargs="?", help="The number of bytes to dump.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def db(address, count=64):
@@ -42,8 +42,8 @@ def db(address, count=64):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N words.")
-parser.add_argument("address", type=int, help="The address to dump from.")
-parser.add_argument("count", type=int, default=32, nargs="?", help="The number of words to dump.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
+parser.add_argument("count", type=pwndbg.commands.sloppy_gdb_parse, default=32, nargs="?", help="The number of words to dump.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dw(address, count=32):
@@ -55,8 +55,8 @@ def dw(address, count=32):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N dwords.")
-parser.add_argument("address", type=int, help="The address to dump from.")
-parser.add_argument("count", type=int, default=16, nargs="?", help="The number of dwords to dump.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
+parser.add_argument("count", type=pwndbg.commands.sloppy_gdb_parse, default=16, nargs="?", help="The number of dwords to dump.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dd(address, count=16):
@@ -67,8 +67,8 @@ def dd(address, count=16):
     return dX(4, address, count, repeat=dd.repeat)
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N qwords.")
-parser.add_argument("address", type=int, help="The address to dump from.")
-parser.add_argument("count", type=int, default=8, nargs="?", help="The number of qwords to dump.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
+parser.add_argument("count", type=pwndbg.commands.sloppy_gdb_parse, default=8, nargs="?", help="The number of qwords to dump.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dq(address, count=8):
@@ -79,8 +79,8 @@ def dq(address, count=8):
     return dX(8, address, count, repeat=dq.repeat)
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, hexdump.")
-parser.add_argument("address", type=int, help="The address to dump from.")
-parser.add_argument("count", type=int, default=8, nargs="?", help="The number of bytes to hexdump.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
+parser.add_argument("count", type=pwndbg.commands.sloppy_gdb_parse, default=8, nargs="?", help="The number of bytes to hexdump.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def dc(address, count=8):
@@ -164,7 +164,7 @@ def ew(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write hex dwords at the specified address.")
-parser.add_argument("address", type=int, help="The address to write to.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The dwords to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
@@ -176,7 +176,7 @@ def ed(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write hex qwords at the specified address.")
-parser.add_argument("address", type=int, help="The address to write to.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The qwords to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
@@ -188,7 +188,7 @@ def eq(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write a string at the specified address.")
-parser.add_argument("address", type=int, help="The address to write to.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to write to.")
 parser.add_argument("data", type=str, help="The string to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
@@ -199,7 +199,7 @@ def ez(address, data):
     return eX(1, address, data, hex=False)
 
 parser = argparse.ArgumentParser(description="Write a string at the specified address.") #TODO Is eza just ez? If so just alias. I had trouble finding windbg documentation defining ez
-parser.add_argument("address", type=int, help="The address to write to.")
+parser.add_argument("address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to write to.")
 parser.add_argument("data", type=str, help="The string to write.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
@@ -237,7 +237,7 @@ def eX(size, address, data, hex=True):
         pwndbg.memory.write(address + (i * size), data)
 
 parser = argparse.ArgumentParser(description="Dump pointers and symbols at the specified address.")
-parser.add_argument("addr", type=int, help="The address to dump from.")
+parser.add_argument("addr", type=pwndbg.commands.sloppy_gdb_parse, help="The address to dump from.")
 @pwndbg.commands.ArgparsedCommand(parser,aliases=['kd','dps','dqs']) #TODO are these really all the same? They had identical implementation...
 @pwndbg.commands.OnlyWhenRunning
 def dds(addr):
@@ -249,19 +249,17 @@ def dds(addr):
 
 da_parser = argparse.ArgumentParser()
 da_parser.description = 'Dump a string at the specified address.'
-da_parser.add_argument('address', help='Address to dump')
+da_parser.add_argument('address', type=pwndbg.commands.sloppy_gdb_parse, help='Address to dump')
 da_parser.add_argument('max', type=int, nargs='?', default=256,
                        help='Maximum string length')
 @pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max):
-    address = int(address)
-    address &= pwndbg.arch.ptrmask
     print("%x" % address, repr(pwndbg.strings.get(address, max)))
 
 ds_parser = argparse.ArgumentParser()
 ds_parser.description = 'Dump a string at the specified address.'
-ds_parser.add_argument('address', help='Address to dump')
+ds_parser.add_argument('address', type=pwndbg.commands.sloppy_gdb_parse, help='Address to dump')
 ds_parser.add_argument('max', type=int, nargs='?', default=256,
                        help='Maximum string length')
 @pwndbg.commands.ArgparsedCommand(ds_parser)
