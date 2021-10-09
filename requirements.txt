@@ -8,7 +8,7 @@ python-ptrace>=0.8
 ROPgadget
 six
 pygments
-capstone==4.0.1
+capstone==4.0.2
 enum34
 pytest
 testresources
