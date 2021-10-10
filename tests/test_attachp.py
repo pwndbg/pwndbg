@@ -10,6 +10,17 @@ import tests
 
 from .utils import run_gdb_with_script
 
+can_attach = False
+
+if os.getuid() == 0:
+    can_attach = True
+else:
+    # see `man ptrace`
+    with open('/proc/sys/kernel/yama/ptrace_scope') as f:
+        can_attach = f.read() == '0'
+
+REASON_CANNOT_ATTACH = 'Test skipped due to inability to attach (needs sudo or sysctl -w kernel.yama.ptrace_scope=0'
+
 
 @pytest.fixture
 def launched_bash_binary():
@@ -25,6 +36,7 @@ def launched_bash_binary():
     os.remove(path)  # Cleanup
 
 
+@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_procname(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -36,6 +48,8 @@ def test_attachp_command_attaches_to_procname(launched_bash_binary):
 
     assert re.search(r'Detaching from program: %s, process %s' % (binary_path, pid), result)
 
+
+@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_pid(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -46,6 +60,8 @@ def test_attachp_command_attaches_to_pid(launched_bash_binary):
 
     assert re.search(r'Detaching from program: %s, process %s' % (binary_path, pid), result)
 
+
+@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -65,9 +81,12 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
 
     assert matches == expected_pids
 
+
+@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_nonexistent_procname():
     result = run_gdb_with_script(pyafter='attachp some-nonexistent-process-name')  # No chance there is a process name like this
     assert 'Process some-nonexistent-process-name not found' in result
+
 
 def test_attachp_command_no_pids():
     result = run_gdb_with_script(pyafter='attachp 99999999')  # No chance there is a PID like this
