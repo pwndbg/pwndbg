@@ -28,7 +28,9 @@ else
 CFLAGS		  +=	  -O1
 endif
 
+PWD=$(shell pwd)
 GLIBC=/glibc_versions/2.29/tcache_x64
+GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
@@ -72,6 +74,12 @@ heap_bugs: heap_bugs.c
 	${GLIBC}/nptl:\
 	-Wl,--dynamic-linker=${GLIBC}/elf/ld.so \
 	-g -o heap_bugs.out heap_bugs.c
+
+heap_bins: heap_bins.c
+	${CC} \
+	-Wl,-rpath=${GLIBC_2_33} \
+	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
+	-g -O0 -o heap_bins.out heap_bins.c
 
 clean :
 	@echo "[+] Cleaning stuff"
