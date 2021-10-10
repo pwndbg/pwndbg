@@ -1,7 +1,7 @@
 
 import gdb
-import pwndbg
 
+import pwndbg
 import tests
 
 MEMORY_BINARY = tests.binaries.get('memory.out')
