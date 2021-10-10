@@ -28,6 +28,8 @@ jobs:
         gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
         echo 'Installed py:'
         python -V
+        echo 'Installed packages:'
+        python -m pip freeze
 
     # We use `sudo` for `attachp` command tests
     - name: Run tests
