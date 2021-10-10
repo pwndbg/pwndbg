@@ -204,10 +204,23 @@ def test_windbg_eX_commands(start_binary):
     for cmd_prefix in ('eq', 'ed', 'ew', 'eb'):
         # With a non-existent symbol
         cmd = cmd_prefix + ' nonexistentsymbol'
-        assert gdb.execute(cmd, to_string=True) == (
-            'usage: XX [-h] address [data ...]\n'
-            "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
-        ).replace('XX', cmd_prefix)
+
+        # Seems there is some mismatch between Python 3.x argparse output
+        expected_in = (
+            # This version occured locally when tested on Python 3.9.5
+            (
+                'usage: XX [-h] address [data ...]\n'
+                "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
+            ).replace('XX', cmd_prefix),
+            # This version occurs on CI on Python 3.8.10
+            (
+                'usage: XX [-h] address [data [data ...]]\n'
+                "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
+            ).replace('XX', cmd_prefix),
+        )
+
+        assert gdb.execute(cmd, to_string=True) in expected_in
+        assert gdb.execute(cmd, to_string=True) in expected_in
 
         # With no data arguments provided
         cmd = cmd_prefix + ' 0'
