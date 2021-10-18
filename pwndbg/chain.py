@@ -115,7 +115,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
     elif len(chain) < limit + 1:
-        enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code)
+        enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
 
     else:
         enhanced = C.contiguous('%s' % config_contiguous)
