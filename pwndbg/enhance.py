@@ -50,7 +50,7 @@ def int_str(value):
 
 
 # @pwndbg.memoize.reset_on_stop
-def enhance(value, code = True):
+def enhance(value, code = True, safe_linking = False):
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -64,6 +64,7 @@ def enhance(value, code = True):
     Arguments:
         value(obj): Value to enhance
         code(bool): Hint that indicates the value may be an instruction
+        safe_linking(bool): Whether this chain use safe-linking
     """
     value = int(value)
 
@@ -111,6 +112,8 @@ def enhance(value, code = True):
         return E.integer(int_str(value))
 
     intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
+    if safe_linking:
+        intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
         intval = E.integer(str(intval))
