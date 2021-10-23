@@ -40,7 +40,10 @@ directory, file = path.split(__file__)
 directory       = path.expanduser(directory)
 directory       = path.abspath(directory)
 
+
+gdbpt = path.join(directory, 'gdb-pt-dump')
 sys.path.append(directory)
+sys.path.append(gdbpt)
 
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
