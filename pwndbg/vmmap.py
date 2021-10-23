@@ -231,8 +231,6 @@ def proc_pid_maps():
 
 @pwndbg.memoize.reset_on_stop
 def monitor_info_mem():
-    import sys
-    sys.path.append('/home/dc/tools/pwndbg/gdb-pt-dump/')
     import pt
     p = pt.PageTableDump()
     p.lazy_init()
