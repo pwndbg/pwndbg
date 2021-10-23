@@ -231,6 +231,24 @@ def proc_pid_maps():
 
 @pwndbg.memoize.reset_on_stop
 def monitor_info_mem():
+    import sys
+    sys.path.append('/home/dc/tools/pwndbg/gdb-pt-dump/')
+    import pt
+    p = pt.PageTableDump()
+    p.lazy_init()
+    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(''))
+
+    retpages = []
+    #import pdb
+    #pdb.set_trace()
+    for page in pages:
+        start = page.va
+        size = page.page_size
+        flags = 4 # IMPLY ALWAYS READ
+        if page.w: flags |= 2
+        if page.x: flags |= 1
+        retpages.append(pwndbg.memory.Page(start, size, flags, 0, '<pt>'))
+    return tuple(retpages)
     # NOTE: This works only on X86/X64/RISC-V
     # See: https://github.com/pwndbg/pwndbg/pull/685
     # (TODO: revisit with future QEMU versions)
