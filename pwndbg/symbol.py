@@ -258,7 +258,7 @@ def add_main_exe_to_symbols():
     path = mmap.objfile
     if path and (pwndbg.arch.endian == pwndbg.arch.native_endian):
         try:
-            gdb.execute('add-symbol-file %s %#x' % (path, addr), from_tty=False, to_string=True)
+            gdb.execute('add-symbol-file %s' % (path,), from_tty=False, to_string=True)
         except gdb.error:
             pass
 
