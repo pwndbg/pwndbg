@@ -64,6 +64,10 @@ def search(searchfor, mappings=None, start=None, end=None,
             if start is None:
                 break
 
+            # Fix bug: In kernel mode, search_memory may return a negative address,
+            # e.g. -1073733344, which supposed to be 0xffffffffc0002120 in kernel.
+            start &= 0xffffffffffffffff
+
             # For some reason, search_memory will return a positive hit
             # when it's unable to read memory.
             if not pwndbg.memory.peek(start):
