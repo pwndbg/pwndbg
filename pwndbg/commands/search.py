@@ -68,6 +68,8 @@ parser.add_argument('value', type=str,
                     help='Value to search for')
 parser.add_argument('mapping_name', type=str, nargs='?', default=None,
                     help='Mapping to search [e.g. libc]')
+parser.add_argument('mapping_addr', type=str, nargs='*', default=None,
+                    help='Any address of the mappings which to be search')
 parser.add_argument('--save', action='store_true', default=None,
                     help='Save results for --resume.  Default comes from config %r' % auto_save.name)
 parser.add_argument('--no-save', action='store_false', default=None, dest='save',
@@ -78,7 +80,7 @@ parser.add_argument('-n', '--next', action='store_true',
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping_name, save, next):
+def search(type, hex, string, executable, writable, value, mapping_name, mapping_addr, save, next):
     # Adjust pointer sizes to the local architecture
     if type == 'pointer':
         type = {
@@ -128,8 +130,20 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
     if mapping_name:
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
+    if mapping_addr:
+        try:
+            mappings = [
+                m for m in mappings if [
+                    i for i in mapping_addr
+                    if m.start <= pwndbg.commands.fix_int(i) < m.end
+                ]
+            ]
+        except TypeError:
+            print('invalid input for mapping_addr: {}'.format(mapping_addr))
+            return
+
     if not mappings:
-        print(message.error("Could not find mapping %r" % mapping_name))
+        print(message.error("Could not find mapping %r %r" % (mapping_name, mapping_addr)))
         return
 
     # Prep the saved set if necessary
