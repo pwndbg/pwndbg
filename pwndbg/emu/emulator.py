@@ -64,7 +64,7 @@ arch_to_CS = {
 DEBUG = False
 
 
-def debug(fmt, args=""):
+def debug(fmt, args=()):
     if DEBUG: print(fmt % args)
 
 
