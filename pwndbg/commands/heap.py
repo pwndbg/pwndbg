@@ -648,7 +648,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
 def bin_ascii(bs):
     from string import printable
-    valid_chars = list(map(ord, set(printable) - set('\t\r\n\x0c')))
+    valid_chars = list(map(ord, set(printable) - set('\t\r\n\x0c\x0b')))
     return ''.join(chr(c) if c in valid_chars else '.'for c in bs)
 
 
