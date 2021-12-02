@@ -29,13 +29,16 @@ def _get_arch():
         not_exactly_arch = True
 
     # Below, we fix the fetched architecture
-    for match in ('x86-64', 'i386', 'aarch64', 'mips', 'powerpc', 'sparc'):
+    for match in ('x86-64', 'i386', 'aarch64', 'mips', 'powerpc', 'sparc', 'rv32', 'rv64', 'rv128'):
         if match in arch:
             return match
 
     # Distinguish between Cortex-M and other ARM
     if 'arm' in arch:
         return 'armcm' if '-m' in arch else 'arm'
+
+    if 'riscv' in arch:
+        return 'rv64'
 
     if not_exactly_arch:
         raise RuntimeError("Could not deduce architecture from: %s" % arch)
