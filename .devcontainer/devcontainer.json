@@ -5,9 +5,9 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"runArgs": [
-		"--cap-add=SYS_PTRACE",
-		"--security-opt",
-		"seccomp=unconfined"
+		"--security-opt=no-new-privileges:true",
+		"--cap-drop=ALL",
+		"--cap-add=SYS_PTRACE"
 	],
 	"workspaceFolder": "/pwndbg",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/pwndbg,type=bind,consistency=cached",
