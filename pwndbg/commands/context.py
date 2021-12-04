@@ -284,10 +284,10 @@ def context(subcontext=None):
             out.flush()
 
 
-pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view')
-pwndbg.config.Parameter('show-compact-regs-align', 20, 'the number of characters reserved for each register and value')
-pwndbg.config.Parameter('show-compact-regs-space', 4, 'the minimum number of characters separating each register')
-pwndbg.config.Parameter('show-compact-regs-columns', 0, 'the number of columns to show registers (if 0, using the show-compact-regs-align)')
+pwndbg.config.Parameter('show-compact-regs', False, 'whether to show a compact register view with columns')
+pwndbg.config.Parameter('show-compact-regs-columns', 2, 'the number of columns (0 for dynamic number of columns)')
+pwndbg.config.Parameter('show-compact-regs-min-width', 20, 'the minimum width of each column')
+pwndbg.config.Parameter('show-compact-regs-separation', 4, 'the number of spaces separating columns')
 
 
 def calculate_padding_to_align(length, align):
@@ -297,56 +297,67 @@ def calculate_padding_to_align(length, align):
     return 0 if length % align == 0 else (align - (length % align))
 
 
-def compact_regs(regs, width):
-    align = int(pwndbg.config.show_compact_regs_align)
-    space = int(pwndbg.config.show_compact_regs_space)
-    columns = int(pwndbg.config.show_compact_regs_columns)
+def compact_regs(regs, width=None, target=sys.stdout):
+    columns = max(0, int(pwndbg.config.show_compact_regs_columns))
+    min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
+    separation = max(1, int(pwndbg.config.show_compact_regs_separation))
 
-    # reset align while columns is set
+    if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
+        _height, width = pwndbg.ui.get_window_size(target=target if target != sys.stdout else sys.stdin)
+
     if columns > 0:
-        align = max(align, width // columns)
+        # Adjust the minimum_width (column) according to the
+        # layout depicted below, where there are "columns" columns
+        # and "columns - 1" separations.
+        #
+        # |<----------------- window width -------------------->|
+        # | column | sep. | column | sep. | ... | sep. | column |
+        #
+        # Which results in the following formula:
+        # window_width = columns * min_width + (columns - 1) * separation
+        # => min_width = (window_width - (columns - 1) * separation) / columns
+        min_width = max(min_width, (width - (columns - 1) * separation) // columns)
 
     result = []
 
     line = ''
     line_length = 0
     for reg in regs:
+        # Strip the color / hightlight information the get the raw text width of the register
         reg_length = len(pwndbg.color.strip(reg))
 
-        # Length of line with space and padding is required for fitting the
-        # register string onto the screen / display
+        # Length of line with unoccupied space and padding is required
+        # to fit the register string onto the screen / display.
         line_length_with_padding = line_length
-        line_length_with_padding += space if line_length != 0 else 0
-        line_length_with_padding += calculate_padding_to_align(line_length_with_padding, align)
+        line_length_with_padding += separation if line_length != 0 else 0  # No separation at the start of a line
+        line_length_with_padding += calculate_padding_to_align(line_length_with_padding, min_width + separation)
 
         # When element does not fully fit, then start a new line
-        if line_length_with_padding + max(reg_length, align) > width:
+        if line_length_with_padding + max(reg_length, min_width) > width:
             result.append(line)
 
             line = ''
             line_length = 0
             line_length_with_padding = 0
 
-        # Add padding
-        if line != '':
+        # Add padding in front of the next printed register
+        if line_length != 0:
             line += ' ' * (line_length_with_padding - line_length)
 
         line += reg
         line_length = line_length_with_padding + reg_length
 
-    if line != '':
+    # Append last line if required
+    if line_length != 0:
         result.append(line)
 
     return result
 
 
 def context_regs(target=sys.stdout, with_banner=True, width=None):
-    if width is None:
-        _height, width = pwndbg.ui.get_window_size(target=target)
-
     regs = get_regs()
     if pwndbg.config.show_compact_regs:
-        regs = compact_regs(regs, width)
+        regs = compact_regs(regs, target=target, width=width)
 
     banner = [pwndbg.ui.banner("registers", target=target, width=width)]
     return banner + regs if with_banner else regs
