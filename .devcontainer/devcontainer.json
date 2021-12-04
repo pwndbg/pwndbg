@@ -1,0 +1,18 @@
+{
+	"name": "pwndbg",
+	"build": {
+		"context": "..",
+		"dockerfile": "../Dockerfile"
+	},
+	"runArgs": [
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined"
+	],
+	"workspaceFolder": "/pwndbg",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/pwndbg,type=bind,consistency=cached",
+	"settings": {},
+	"extensions": [
+		"ms-python.python"
+	]
+}
