@@ -8,7 +8,7 @@ Pointer scan for possible offset leaks. Examples: probeleak $rsp 0x64 - leaks 0x
 |---------------------|------|
 | address | Leak memory address (default: $sp) |
 | count | Leak size in bytes (default: 64) |
-| max_distance | Max acceptable distance between memory page boundry and leaked pointer (default: 0) |
+| max_distance | Max acceptable distance between memory page boundary and leaked pointer (default: 0) |
 
 | Optional Argument | Info |
 |---------------------|------|

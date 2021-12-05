@@ -24,7 +24,7 @@ def print_line(name, addr, first, second, op, width = 20):
 
 def xinfo_stack(page, addr):
     # If it's a stack address, print offsets to top and bottom of stack, as
-    # well as offsets to current stack and base pointer (if used by debugee)
+    # well as offsets to current stack and base pointer (if used by debuggee)
 
     sp = pwndbg.regs.sp
     frame = pwndbg.regs[pwndbg.regs.frame]

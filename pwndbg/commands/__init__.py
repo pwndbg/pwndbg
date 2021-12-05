@@ -362,7 +362,7 @@ def AddressExpr(s):
 
 def HexOrAddressExpr(s):
     """
-    Parses string as hexidecimal int or an address expression. Returns an int.
+    Parses string as hexadecimal int or an address expression. Returns an int.
     (e.g. '1234' will return 0x1234)
     """
     try:

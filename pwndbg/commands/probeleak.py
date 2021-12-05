@@ -53,7 +53,7 @@ parser.add_argument('address', nargs='?', default='$sp',
 parser.add_argument('count', nargs='?', default=0x40,
                     help='Leak size in bytes')
 parser.add_argument('--max-distance', type=int, default=0x0,
-                    help='Max acceptable distance between memory page boundry and leaked pointer')
+                    help='Max acceptable distance between memory page boundary and leaked pointer')
 parser.add_argument('--point-to', type=str, default=None,
                     help='Mapping name of the page that you want the pointers point to')
 parser.add_argument('--max-ptrs', type=int, default=0,
@@ -74,7 +74,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
         require_flags = flags_str2int(flags)
 
     if count > address > 0x10000: # in case someone puts in an end address and not a count (smh)
-        print(message.warn("Warning: you gave an end address, not a count. Substracting 0x%x from the count." % (address)))
+        print(message.warn("Warning: you gave an end address, not a count. Subtracting 0x%x from the count." % (address)))
         count -= address
 
     try:

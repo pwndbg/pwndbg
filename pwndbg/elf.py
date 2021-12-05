@@ -242,7 +242,7 @@ def get_ehdr(pointer):
     vmmap = pwndbg.vmmap.find(pointer)
     base = None
 
-    # We first check if the begining of the page contains the ELF magic
+    # We first check if the beginning of the page contains the ELF magic
     if pwndbg.memory.read(vmmap.start, 4) == b'\x7fELF':
         base = vmmap.start
 

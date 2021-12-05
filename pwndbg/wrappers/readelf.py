@@ -16,7 +16,7 @@ def _extract_jumps(line):
      NOTE: Because of that we DO NOT display entries that are not writeable (due to FULL RELRO)
      as they have `R_X86_64_GLOB_DAT` type.
 
-    It might be good to display them seperately in the future.
+    It might be good to display them separately in the future.
     '''
     try:
         if "JUMP" in line.split()[2]:
