@@ -45,9 +45,9 @@ def get():
         pages.extend(monitor_info_mem())
 
     if not pages:
-        # If debugee is launched from a symlink the debugee memory maps will be
+        # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
-        # labels debugee memory maps with real path (after symlinks).
+        # labels debuggee memory maps with real path (after symlinks).
         # This is because the exe path in AUXV (and so `info auxv`) is before
         # following links.
         pages.extend(info_auxv())

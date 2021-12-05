@@ -34,7 +34,7 @@ nearpc_lines = pwndbg.config.Parameter('nearpc-lines', 10, 'number of additional
 show_args = pwndbg.config.Parameter('nearpc-show-args', True, 'show call arguments below instruction')
 
 parser = argparse.ArgumentParser(description='''Disassemble near a specified address.''')
-parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to dissassemble near.")
+parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
 parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
 #parser.add_argument("to_string", type=bool, nargs="?", default=False, help="Whether to print it or not.") #TODO make sure this should not be exposed
 parser.add_argument("emulate", type=bool, nargs="?", default=False, help="Whether to emulate instructions to find the next ones or just linearly disassemble.")

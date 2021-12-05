@@ -53,7 +53,7 @@ class memoize:
             self.cache[args] = value
 
             if isinstance(value, list):
-                print("Shouldnt cache mutable types! %r" % self.func.__name__)
+                print("Should not cache mutable types! %r" % self.func.__name__)
 
         if debug:
             print("%s: %s(%r)" % (how, self, args))

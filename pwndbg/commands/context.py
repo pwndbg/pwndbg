@@ -119,7 +119,7 @@ class CallOutput:
 
 
 def output(section):
-    """Creates a context manager corresponding to configured context ouput"""
+    """Creates a context manager corresponding to configured context output"""
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
         return StdOutput()

@@ -15,7 +15,7 @@ def decompile(func=None):
     If no function is given, decompile the function within the current pc.
     This function requires radare2, r2pipe and r2ghidra.
 
-    Raises Exception if any fatal error occures.
+    Raises Exception if any fatal error occurs.
     """
     try:
         r2 = pwndbg.radare2.r2pipe()

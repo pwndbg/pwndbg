@@ -207,7 +207,7 @@ def test_windbg_eX_commands(start_binary):
 
         # Seems there is some mismatch between Python 3.x argparse output
         expected_in = (
-            # This version occured locally when tested on Python 3.9.5
+            # This version occurred locally when tested on Python 3.9.5
             (
                 'usage: XX [-h] address [data ...]\n'
                 "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
@@ -267,6 +267,6 @@ def test_windbg_eX_commands(start_binary):
         '(Made 1 writes to memory; skipping further writes)\n'
     )
 
-    # Check if the write actually occured
+    # Check if the write actually occurred
     assert pwndbg.memory.read(stack_last_qword_ea, 8) == b'\xef\xbe\xad\xde\xbe\xba\xfe\xca'
 

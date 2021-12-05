@@ -67,7 +67,7 @@ gdb.events.start = StartEvent()
 
 class EventWrapper:
     """
-    Wraper for GDB events which may not exist on older GDB versions but we still can
+    Wrapper for GDB events which may not exist on older GDB versions but we still can
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
     def __init__(self, name):

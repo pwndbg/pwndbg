@@ -201,7 +201,7 @@ def walk_stack2(offset=0):
     while p.dereference() != 0 or (p+1).dereference() != 0:
         p -= 2
 
-    # Now we want to continue until we fine, at a minumum, AT_BASE.
+    # Now we want to continue until we fine, at a minimum, AT_BASE.
     # While there's no guarantee that this exists, I've not ever found
     # an instance when it doesn't.
     #

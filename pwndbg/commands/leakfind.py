@@ -88,7 +88,7 @@ def leakfind(address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=
     negative_offset = int(negative_offset)
     
     # The below map stores a map of child address->(parent_address,parent_start_address)
-    # In the above tuple, parent_address is the exact address with a pointer to the child adddress.
+    # In the above tuple, parent_address is the exact address with a pointer to the child address.
     # parent_start_address is an address that a previous address pointed to.
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}

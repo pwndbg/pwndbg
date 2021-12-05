@@ -122,7 +122,7 @@ def vmmap_load(filename):
     # TODO: Add an argument to let use to choose loading the page information from sections or segments
 
     # Use section information to recover the segment information.
-    # The entry point of bare metal enviroment is often at the first segment.
+    # The entry point of bare metal environment is often at the first segment.
     # For example, assume the entry point is at 0x8000.
     # In most of case, link will create a segment and starts from 0x0.
     # This cause all values less than 0x8000 be considered as a valid pointer.
