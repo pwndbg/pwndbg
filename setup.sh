@@ -91,6 +91,12 @@ if linux; then
             echo " - https://aur.archlinux.org/packages/pwndbg-git/"
             exit 1
             ;;
+        "endeavouros")
+            echo "Install pwndbg using a community package. See:"
+            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
+            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
+            exit 1
+            ;;
         "manjaro")
             echo "Pwndbg is not available on Manjaro's repositories."
             echo "But it can be installed using Arch's AUR community package. See:"
