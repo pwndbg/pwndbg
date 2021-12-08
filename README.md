@@ -36,6 +36,7 @@ Installation is straightforward.  Pwndbg is best supported on Ubuntu 18.04 with 
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
+echo "source $(pwd)/gdbinit.py" >> ~/.gdbinit
 ```
 
 Other Linux distributions are also supported via `setup.sh`, including:
