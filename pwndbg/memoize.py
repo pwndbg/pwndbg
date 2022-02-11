@@ -144,7 +144,6 @@ class reset_on_start(memoize):
     kind   = 'start'
 
     @staticmethod
-    @pwndbg.events.stop
     @pwndbg.events.start
     def __reset_on_start():
         for obj in reset_on_start.caches:

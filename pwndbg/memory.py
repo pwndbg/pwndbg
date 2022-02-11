@@ -322,6 +322,7 @@ assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
 
 
+@pwndbg.memoize.reset_on_stop
 def find_upper_boundary(addr, max_pages=1024):
     """find_upper_boundary(addr, max_pages=1024) -> int
 
@@ -347,6 +348,7 @@ def find_upper_boundary(addr, max_pages=1024):
     return addr
 
 
+@pwndbg.memoize.reset_on_stop
 def find_lower_boundary(addr, max_pages=1024):
     """find_lower_boundary(addr, max_pages=1024) -> int
 
