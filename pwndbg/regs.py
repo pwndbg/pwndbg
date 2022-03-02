@@ -282,9 +282,9 @@ class module(ModuleType):
                 value = gdb77_get_register(attr)
                 value = value.cast(pwndbg.typeinfo.uint32)
             else:
-                if attr.lower() == 'xpsr':
-                    attr = 'xPSR'
                 value = get_register(attr)
+                if value is None and attr.lower() == 'xpsr':
+                    value = get_register('xPSR')
                 size = pwndbg.typeinfo.unsigned.get(value.type.sizeof, pwndbg.typeinfo.ulong)
                 value = value.cast(size)
                 if attr.lower() == 'pc' and pwndbg.arch.current == 'i8086':
