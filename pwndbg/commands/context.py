@@ -137,6 +137,8 @@ parser.add_argument("banner", type=str, nargs='?', default="both", help="Where a
 parser.add_argument("width", type=int, nargs='?', default=None, help="Sets a fixed width (used for banner). Set to None for auto")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
 def contextoutput(section, path, clearing, banner="both", width=None):
+    if(width != None):
+        width = int(width.cast(gdb.lookup_type('long')))
     outputs[section] = path
     output_settings[section] = dict(clearing=clearing,
                                     width=width,
