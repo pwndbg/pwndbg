@@ -133,8 +133,8 @@ parser.description = "Sets the output of a context section."
 parser.add_argument("section", type=str, help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', and/or 'args')")
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
-parser.add_argument("banner", type=str, default="both", help="Where a banner should be placed: both, top , bottom, none")
-parser.add_argument("width", type=int, default=None, help="Sets a fixed width (used for banner). Set to None for auto")
+parser.add_argument("banner", type=str, nargs='?', default="both", help="Where a banner should be placed: both, top , bottom, none")
+parser.add_argument("width", type=int, nargs='?', default=None, help="Sets a fixed width (used for banner). Set to None for auto")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
 def contextoutput(section, path, clearing, banner="both", width=None):
     outputs[section] = path
