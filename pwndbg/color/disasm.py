@@ -67,8 +67,11 @@ def instruction(ins):
             # XXX: not sure when this ever happens
             asm += '<-- file a pwndbg bug for this'
         else:
-            asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
-            asm = '%s <%s>' % (ljust_colored(asm, 36), M.get(ins.symbol_addr))
+            inlined_sym = asm.replace(hex(ins.symbol_addr), ins.symbol)
+
+            # display symbol as mem text if no inline replacement was made
+            mem_text = ins.symbol if inlined_sym == asm else None
+            asm = '%s <%s>' % (ljust_colored(inlined_sym, 36), M.get(ins.symbol_addr, mem_text))
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:
