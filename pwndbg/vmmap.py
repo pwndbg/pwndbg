@@ -41,7 +41,7 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
-    if not pages and pwndbg.arch.current in ('i386', 'x86-64') and pwndbg.qemu.is_qemu():
+    if not pages and pwndbg.arch.current in ('i386', 'x86-64', 'aarch64', 'riscv:rv64') and pwndbg.qemu.is_qemu():
         pages.extend(monitor_info_mem())
 
     if not pages:
@@ -243,8 +243,8 @@ def monitor_info_mem():
         start = page.va
         size = page.page_size
         flags = 4 # IMPLY ALWAYS READ
-        if page.w: flags |= 2
-        if page.x: flags |= 1
+        if page.pwndbg_is_writeable(): flags |= 2
+        if page.pwndbg_is_executable(): flags |= 1
         retpages.append(pwndbg.memory.Page(start, size, flags, 0, '<pt>'))
     return tuple(retpages)
     # NOTE: This works only on X86/X64/RISC-V
