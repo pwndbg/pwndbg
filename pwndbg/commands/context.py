@@ -137,6 +137,8 @@ banner_arg = parser.add_argument("banner", type=str, nargs='?', default="both", 
 parser.add_argument("width", type=int, nargs='?', default=None, help="Sets a fixed width (used for banner). Set to None for auto")
 @pwndbg.commands.ArgparsedCommand(parser, aliases=['ctx-out'])
 def contextoutput(section, path, clearing, banner="both", width=None):
+    if not banner:  # synonym for splitmind backwards compatibility
+        banner = 'none'
     if banner not in ('both', 'top', 'bottom', 'none'):
         raise argparse.ArgumentError(banner_arg, f"banner can not be '{banner}'")
     if width is not None:
