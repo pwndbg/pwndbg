@@ -174,7 +174,8 @@ def remote(function):
 
 @pwndbg.memoize.reset_on_objfile
 def base():
-    segaddr = _ida.NextSeg(0)
+    segaddr = _ida.get_next_seg(0)
+
     base = _ida.get_fileregion_offset(segaddr)
 
     return segaddr - base
@@ -183,21 +184,21 @@ def base():
 @withIDA
 @takes_address
 def Comment(addr):
-    return _ida.GetCommentEx(addr, 0) or _ida.GetCommentEx(addr)
+    return _ida.get_cmt(addr, 0) or _ida.get_cmt(addr)
 
 
 @withIDA
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def Name(addr):
-    return _ida.Name(addr)
+    return _ida.get_name(addr, 0x1)  # GN_VISIBLE
 
 
 @withIDA
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def GetFuncOffset(addr):
-    rv = _ida.GetFuncOffset(addr)
+    rv = _ida.get_func_off_str(addr)
     return rv
 
 
@@ -205,7 +206,7 @@ def GetFuncOffset(addr):
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def GetType(addr):
-    rv = _ida.GetType(addr)
+    rv = _ida.get_type(addr)
     return rv
 
 
@@ -229,7 +230,7 @@ def Anterior(addr):
     hexrays_prefix = '\x01\x04; '
     lines = []
     for i in range(10):
-        r = _ida.LineA(addr, i)
+        r = _ida.get_extra_cmt(addr, 0x3e8 + i)  # E_PREV
         if not r: break
         if r.startswith(hexrays_prefix):
             r = r[len(hexrays_prefix):]
@@ -245,13 +246,13 @@ def GetBreakpoints():
 
 @withIDA
 def GetBptQty():
-    return _ida.GetBptQty()
+    return _ida.get_bpt_qty()
 
 
 @withIDA
 @returns_address
 def GetBptEA(i):
-    return _ida.GetBptEA(i)
+    return _ida.get_bpt_ea(i)
 
 
 _breakpoints = []
@@ -287,7 +288,7 @@ def UpdateBreakpoints():
 @withIDA
 @takes_address
 def SetColor(pc, color):
-    return _ida.SetColor(pc, 1, color)
+    return _ida.set_color(pc, 1, color)
 
 
 colored_pc = None
@@ -314,7 +315,7 @@ def Auto_UnColor_PC():
 @returns_address
 @pwndbg.memoize.reset_on_objfile
 def LocByName(name):
-    return _ida.LocByName(str(name))
+    return _ida.get_name_ea_simple(str(name))
 
 
 @withIDA
@@ -322,7 +323,7 @@ def LocByName(name):
 @returns_address
 @pwndbg.memoize.reset_on_objfile
 def PrevHead(addr):
-    return _ida.PrevHead(addr)
+    return _ida.prev_head(addr)
 
 
 @withIDA
@@ -330,27 +331,27 @@ def PrevHead(addr):
 @returns_address
 @pwndbg.memoize.reset_on_objfile
 def NextHead(addr):
-    return _ida.NextHead(addr)
+    return _ida.next_head(addr)
 
 
 @withIDA
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def GetFunctionName(addr):
-    return _ida.GetFunctionName(addr)
+    return _ida.get_func_name(addr)
 
 
 @withIDA
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def GetFlags(addr):
-    return _ida.GetFlags(addr)
+    return _ida.get_full_flags(addr)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_objfile
 def isASCII(flags):
-    return _ida.isASCII(flags)
+    return _ida.is_strlit(flags)
 
 
 @withIDA
@@ -362,12 +363,12 @@ def ArgCount(address):
 
 @withIDA
 def SaveBase(path):
-    return _ida.SaveBase(path)
+    return _ida.save_database(path)
 
 
 @withIDA
 def GetIdbPath():
-    return _ida.GetIdbPath()
+    return _ida.get_idb_path()
 
 
 @takes_address
@@ -399,61 +400,61 @@ def get_ida_versions():
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucQty():
-    return _ida.GetStrucQty()
+    return _ida.get_struc_qty()
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucId(idx):
-    return _ida.GetStrucId(idx)
+    return _ida.get_struc_by_idx(idx)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucName(sid):
-    return _ida.GetStrucName(sid)
+    return _ida.get_struc_name(sid)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucSize(sid):
-    return _ida.GetStrucSize(sid)
+    return _ida.get_struc_size(sid)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetMemberQty(sid):
-    return _ida.GetMemberQty(sid)
+    return _ida.get_member_qty(sid)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetMemberSize(sid, offset):
-    return _ida.GetMemberSize(sid, offset)
+    return _ida.get_member_size(sid, offset)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetMemberId(sid, offset):
-    return _ida.GetMemberId(sid, offset)
+    return _ida.get_member_id(sid, offset)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetMemberName(sid, offset):
-    return _ida.GetMemberName(sid, offset)
+    return _ida.get_member_name(sid, offset)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetMemberFlag(sid, offset):
-    return _ida.GetMemberFlag(sid, offset)
+    return _ida.get_member_flag(sid, offset)
 
 
 @withIDA
 @pwndbg.memoize.reset_on_stop
 def GetStrucNextOff(sid, offset):
-    return _ida.GetStrucNextOff(sid, offset)
+    return _ida.get_next_offset(sid, offset)
 
 
 class IDC:

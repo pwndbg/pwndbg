@@ -4,16 +4,15 @@ from __future__ import print_function
 
 import datetime
 import threading
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+import xmlrpc.client as xmlclient
+from xmlrpc.server import SimpleXMLRPCServer
 from xml.sax.saxutils import escape
 
 import idaapi
-import idautils
 import idc
 
 # Wait for any processing to get done
-idaapi.autoWait()
+idaapi.auto_wait()
 
 # On Windows with NTFS filesystem a filepath with ':'
 # is treated as NTFS ADS (Alternative Data Stream)
@@ -21,10 +20,7 @@ idaapi.autoWait()
 dt = datetime.datetime.now().isoformat().replace(':', '-')
 
 # Save the database so nothing gets lost.
-if idaapi.IDA_SDK_VERSION >= 700:
-    idaapi.save_database(idc.GetIdbPath() + '.' + dt)
-else:
-    idc.SaveBase(idc.GetIdbPath() + '.' + dt)
+idc.save_database(idc.get_idb_path() + '.' + dt)
 
 
 DEBUG_MARSHALLING = False
@@ -45,23 +41,12 @@ def create_marshaller(use_format=None, just_to_str=False):
 
     return wrapper
 
-xmlrpclib.Marshaller.dispatch[type(0L)] = create_marshaller("<value><i8>%d</i8></value>")
-xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
-xmlrpclib.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
+xmlclient.Marshaller.dispatch[type(1 << 63)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlclient.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = '127.0.0.1'
 port = 31337
-orig_LineA = idc.LineA
-
-
-def LineA(*a, **kw):
-    v = orig_LineA(*a, **kw)
-    if v and v.startswith('\x01\x04; '):
-        v = v[4:]
-    return v
-
-
-idc.LineA = LineA
 
 mutex = threading.Condition()
 
@@ -80,7 +65,7 @@ def wrap(f):
 
         with mutex:
             flags = idaapi.MFF_WRITE
-            if f == idc.SetColor:
+            if f == idc.set_color:
                 flags |= idaapi.MFF_NOWAIT
                 rv.append(None)
             idaapi.execute_sync(work, flags)
@@ -114,6 +99,7 @@ def decompile(addr):
     except idaapi.DecompilationFailure:
         return None
 
+
 def get_decompile_coord_by_ea(cfunc, addr):
     if idaapi.IDA_SDK_VERSION >= 720:
         item = cfunc.body.find_closest_addr(addr)
@@ -131,9 +117,9 @@ def get_decompile_coord_by_ea(cfunc, addr):
             if ret and pitem.it:
                 lnmap[pitem.it.ea] = i
         y = None
-        closest_ea = BADADDR
+        closest_ea = idaapi.BADADDR
         for ea,line in lnmap.items():
-            if closest_ea == BADADDR or abs(closest_ea - addr) > abs(ea - addr):
+            if closest_ea == idaapi.BADADDR or abs(closest_ea - addr) > abs(ea - addr):
                 closest_ea = ea
                 y = lnmap[ea]
 
@@ -167,13 +153,13 @@ def versions():
 
 
 server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
-register_module(idc)
-register_module(idautils)
 register_module(idaapi)
+register_module(idc)  # prioritize idc functions over above (e.g. idc.get_next_seg/ida_segment.get_next_seg)
+
 server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
 server.register_function(wrap(decompile)) # overwrites idaapi/ida_hexrays.decompile
 server.register_function(wrap(decompile_context), 'decompile_context')  # support context decompile
-server.register_function(versions)
+server.register_function(wrap(versions))
 server.register_introspection_functions()
 
 print('IDA Pro xmlrpc hosted on http://%s:%s' % (host, port))
