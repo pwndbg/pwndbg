@@ -152,7 +152,7 @@ def versions():
     }
 
 
-server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
+server = SimpleXMLRPCServer((host, port), logRequests=False, allow_none=True)
 register_module(idaapi)
 register_module(idc)  # prioritize idc functions over above (e.g. idc.get_next_seg/ida_segment.get_next_seg)
 
