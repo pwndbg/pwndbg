@@ -23,6 +23,7 @@ import pwndbg.commands.cpsr
 import pwndbg.commands.dt
 import pwndbg.commands.dumpargs
 import pwndbg.commands.elf
+import pwndbg.commands.flags
 import pwndbg.commands.gdbinit
 import pwndbg.commands.ghidra
 import pwndbg.commands.got
