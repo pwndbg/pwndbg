@@ -5,7 +5,7 @@ import gdb
 import pwndbg.commands
 
 parser = argparse.ArgumentParser(description="Modify register flags",
-                                epilog="flags ZF 1")
+                                epilog="setflag ZF 1")
 parser.add_argument('flag', type=str,
                     help='Flag for which you want to change the value')
 parser.add_argument('value', type=int,
