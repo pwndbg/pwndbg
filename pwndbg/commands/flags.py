@@ -1,5 +1,7 @@
 import argparse
+
 import gdb
+
 import pwndbg.commands
 
 parser = argparse.ArgumentParser(description="Modify register flags",
