@@ -259,7 +259,7 @@ def OnlyAmd64(function):
 def OnlyWithLibcDebugSyms(function):
     @functools.wraps(function)
     def _OnlyWithLibcDebugSyms(*a, **kw):
-        if pwndbg.heap.current.libc_has_debug_syms():
+        if pwndbg.heap.current.libc_has_debug_syms() or pwndbg.config.resolve_via_heuristic:
             return function(*a, **kw)
         else:
             print('''%s: This command only works with libc debug symbols.
@@ -271,6 +271,8 @@ sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
 ''' % function.__name__)
+            print(message.warn('pwndbg can still try to use this command without debug symbols by `set resolve-via-heuristic on`.'))
+            print(message.warn("Then pwndbg will resolve some missing symbols via heuristics, but the result of those commands may be incorrect in some cases."))
     return _OnlyWithLibcDebugSyms
 
 class QuietSloppyParsedCommand(ParsedCommand):

@@ -9,6 +9,7 @@ import gdb
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.glibc
 import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
@@ -24,7 +25,10 @@ def read_chunk(addr):
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    if not pwndbg.config.resolve_via_heuristic:
+        val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    else:
+        val = pwndbg.heap.current.malloc_chunk(addr)
     return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
 
 
