@@ -389,12 +389,24 @@ class module(ModuleType):
     @property
     @pwndbg.memoize.reset_on_stop
     def fsbase(self):
-        return self._fs_gs_helper(ARCH_GET_FS)
+        try:
+            # We can try fs_base register in GDB >= 8.
+            assert get_register == gdb79_get_register
+            fs_base = get_register("fs_base")
+            return fs_base
+        except (ValueError, AssertionError):
+            return self._fs_gs_helper(ARCH_GET_FS)
 
     @property
     @pwndbg.memoize.reset_on_stop
     def gsbase(self):
-        return self._fs_gs_helper(ARCH_GET_GS)
+        try:
+            # We can try gs_base register in GDB >= 8.
+            assert get_register == gdb79_get_register
+            gs_base = get_register("gs_base")
+            return gs_base
+        except (ValueError, AssertionError):
+            return self._fs_gs_helper(ARCH_GET_GS)
 
     @pwndbg.memoize.reset_on_stop
     def _fs_gs_helper(self, which):
