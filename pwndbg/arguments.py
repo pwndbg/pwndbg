@@ -248,11 +248,14 @@ def enhance_printf_args(orig_args, format_str):
         if len_modifier_2 in ('hh', 'll'):
             specifier_type = len_modifier_table[len_modifier_2]
             i += 2
-        else:
+        elif i < len_format_str:
             len_modifier_1 = format_str[i]
             if len_modifier_1 in len_modifier_table:
                 specifier_type = len_modifier_table[len_modifier_1]
                 i += 1
+
+        if i >= len_format_str:
+            break
 
         conv_specifier = format_str[i]
         i += 1
