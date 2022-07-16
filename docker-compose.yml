@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  main:
+    build: .
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    cap_add:
+      - SYS_PTRACE
