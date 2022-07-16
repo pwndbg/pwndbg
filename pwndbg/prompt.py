@@ -6,6 +6,7 @@ import pwndbg.gdbutils
 import pwndbg.memoize
 from pwndbg.color import disable_colors
 from pwndbg.color import message
+from pwndbg.tips import get_tip_of_the_day
 
 funcs_list_str = ', '.join(message.notice('$' + f.name) for f in pwndbg.gdbutils.functions.functions)
 
@@ -16,6 +17,9 @@ hint_lines = (
 
 for line in hint_lines:
     print(message.prompt('pwndbg: ') + message.system(line))
+
+print(message.prompt('pwndbg: tip of the day: ') + get_tip_of_the_day())
+
 
 cur = None
 
