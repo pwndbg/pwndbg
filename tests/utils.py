@@ -6,7 +6,7 @@ import subprocess
 launched_locally = not (os.environ.get('PWNDBG_GITHUB_ACTIONS_TEST_RUN'))
 
 
-def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
+def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None, timeout=None):
     """
     Runs GDB with given commands launched before and after loading of gdbinit.py
     Returns GDB output.
@@ -33,7 +33,7 @@ def run_gdb_with_script(binary='', core='', pybefore=None, pyafter=None):
     command += ['--eval-command', 'quit']
 
     print("Launching command: %s" % command)
-    output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+    output = subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
 
     # Python 3 returns bytes-like object so lets have it consistent
     output = codecs.decode(output, 'utf8')

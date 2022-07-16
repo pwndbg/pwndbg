@@ -89,6 +89,6 @@ def test_attachp_command_nonexistent_procname():
 
 
 def test_attachp_command_no_pids():
-    result = run_gdb_with_script(pyafter='attachp 99999999')  # No chance there is a PID like this
+    result = run_gdb_with_script(pyafter='attachp 99999999', timeout=5)  # No chance there is a PID like this
     assert 'Error: ptrace: No such process.' in result
 
