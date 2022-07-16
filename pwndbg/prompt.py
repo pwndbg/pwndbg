@@ -19,7 +19,7 @@ for line in hint_lines:
     print(message.prompt('pwndbg: ') + message.system(line))
 
 # noinspection PyPackageRequirements
-show_mod = pwndbg.config.Parameter('show-tip', False, 'display tip of the day at startup')
+show_mod = pwndbg.config.Parameter('show-tip', True, 'display tip of the day at startup')
 
 cur = None
 
