@@ -287,7 +287,15 @@ class _ArgparsedCommand(Command):
             self.parser.prog = function.__name__
         else:
             self.parser.prog = command_name
-        self.__doc__ = function.__doc__ = self.parser.description.strip()
+        
+        # TODO/FIXME: Can we also append the generated positional args?
+        # E.g. "-f --flag  This does something"
+        doc = self.parser.description.strip()
+        if self.parser.epilog:
+            doc += '\n' + self.parser.epilog
+
+        self.__doc__ = function.__doc__ = doc
+
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
     def split_args(self, argument):
