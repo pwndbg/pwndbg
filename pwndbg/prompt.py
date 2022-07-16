@@ -18,15 +18,23 @@ hint_lines = (
 for line in hint_lines:
     print(message.prompt('pwndbg: ') + message.system(line))
 
-print(message.prompt('pwndbg: tip of the day: ') + get_tip_of_the_day())
-
+# noinspection PyPackageRequirements
+show_mod = pwndbg.config.Parameter('show-tip', False, 'display tip of the day at startup')
 
 cur = None
 
 
+def initial_hook(*a):
+    if show_mod and not pwndbg.decorators.first_prompt:
+        print(message.prompt('pwndbg: tip of the day: ') + get_tip_of_the_day())
+    pwndbg.decorators.first_prompt = True
+
+    prompt_hook(a)
+    gdb.prompt_hook = prompt_hook
+
+
 def prompt_hook(*a):
     global cur
-    pwndbg.decorators.first_prompt = True
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
@@ -56,7 +64,7 @@ def set_prompt():
 
 
 if pwndbg.events.before_prompt_event.is_real_event:
-    gdb.prompt_hook = prompt_hook
+    gdb.prompt_hook = initial_hook
 
 else:
     # Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
