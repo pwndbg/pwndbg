@@ -1,10 +1,7 @@
 import argparse
 from argparse import RawTextHelpFormatter
 
-import gdb
-
 import pwndbg.commands
-
 
 description="Modify the flags register"
 epilog = """Examples:
