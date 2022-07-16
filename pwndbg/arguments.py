@@ -146,6 +146,15 @@ def get(instruction):
 
     if func:
         args = func.args
+        if 'printf' in func.name:  # func.name contains 'printf' as a substring?
+            format_str = None
+            for i, arg in enumerate(args):
+                if arg.name == 'format' and arg.type == 'char' and arg.derefcnt == 1:
+                    format_str = pwndbg.strings.get(argument(i, abi))
+                    break
+
+            if format_str is not None:
+                args = enhance_printf_args(args, format_str)
     else:
         args = [pwndbg.functions.Argument('int', 0, argname(i, abi)) for i in range(n_args_default)]
 
@@ -195,6 +204,72 @@ def arguments(abi=None):
     for i in range(len(regs)):
         yield argname(i, abi), argument(i, abi)
 
+
+def enhance_printf_args(orig_args, format_str):
+    args = orig_args.copy()
+
+    vararg_arg = args.pop()
+    if vararg_arg.name != 'vararg':
+        return orig_args
+
+    # NOTE: this table is currently not quite used
+    len_modifier_table = {
+        'hh': 'char',
+        'll': 'long long',
+        'l': 'long',
+        'j': 'intmax_t',
+        'z': 'size_t',
+        't': 'ptrdiff_t',
+        'L': 'long double'
+    }
+
+    i = 0
+    len_format_str = len(format_str)
+
+    while i < len_format_str:
+        if format_str[i] != '%':
+            i += 1
+            continue
+
+        if i + 1 < len_format_str and format_str[i + 1] == '%':
+            i += 2
+            continue
+        fmt_specifier_start = i
+        i += 1
+
+        # FIXME: should recognize '*' and accept additional int arguments
+        while i < len_format_str and (format_str[i] in '-+ #0*.' or format_str[i].isdigit()):
+            i += 1
+
+        len_modifier_2 = format_str[i:i+2]
+
+        specifier_type = None
+        if len_modifier_2 in ('hh', 'll'):
+            specifier_type = len_modifier_table[len_modifier_2]
+            i += 2
+        else:
+            len_modifier_1 = format_str[i]
+            if len_modifier_1 in len_modifier_table:
+                specifier_type = len_modifier_table[len_modifier_1]
+                i += 1
+
+        conv_specifier = format_str[i]
+        i += 1
+        new_arg = None
+        arg_name = format_str[fmt_specifier_start:i]
+        if conv_specifier in ('c', 'd', 'i'):
+            new_arg = pwndbg.functions.Argument(type='int', derefcnt=0, name=arg_name)
+        elif conv_specifier in ('o', 'x', 'X', 'u'):
+            new_arg = pwndbg.functions.Argument(type='unsigned', derefcnt=0, name=arg_name)
+        elif conv_specifier.lower() in ('f', 'e', 'a', 'g'):
+            new_arg = pwndbg.functions.Argument(type='double', derefcnt=0, name=arg_name)
+        elif conv_specifier in ('s',):
+            new_arg = pwndbg.functions.Argument(type='char', derefcnt=1, name=arg_name)
+
+        if new_arg:
+            args.append(new_arg)
+
+    return args
 
 def format_args(instruction):
     result = []
