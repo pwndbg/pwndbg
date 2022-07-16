@@ -389,33 +389,27 @@ class module(ModuleType):
     @property
     @pwndbg.memoize.reset_on_stop
     def fsbase(self):
-        try:
-            # We can try fs_base register in GDB >= 8.
-            assert get_register == gdb79_get_register
-            fs_base = get_register("fs_base")
-            return fs_base
-        except (ValueError, AssertionError):
-            return self._fs_gs_helper(ARCH_GET_FS)
+        return self._fs_gs_helper("fs_base", ARCH_GET_FS)
+
 
     @property
     @pwndbg.memoize.reset_on_stop
     def gsbase(self):
-        try:
-            # We can try gs_base register in GDB >= 8.
-            assert get_register == gdb79_get_register
-            gs_base = get_register("gs_base")
-            return gs_base
-        except (ValueError, AssertionError):
-            return self._fs_gs_helper(ARCH_GET_GS)
+        return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.memoize.reset_on_stop
-    def _fs_gs_helper(self, which):
+    def _fs_gs_helper(self, regname, which):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
+        Requires ptrace'ing the child directly for GDB < 8."""
 
-        Requires ptrace'ing the child directly."""
+        # For GDB >= 8.x we can use get_register directly
+        # Elsewhere we have to get the register via ptrace
+        if get_register == gdb79_get_register:
+            return get_register(regname)
 
         # We can't really do anything if the process is remote.
-        if pwndbg.remote.is_remote(): return 0
+        if pwndbg.remote.is_remote():
+            return 0
 
         # Use the lightweight process ID
         pid, lwpid, tid = gdb.selected_thread().ptid
