@@ -262,10 +262,9 @@ def test_windbg_eX_commands(start_binary):
     # Last possible address on stack where we can perform an 8-byte write
     stack_last_qword_ea = stack_page.end - 8
 
-    assert gdb.execute('eq %#x 0xCAFEBABEdeadbeef 0xABCD' % stack_last_qword_ea, to_string=True) == (
-        'Cannot access memory at address 0x7fffffffeff8\n'
-        '(Made 1 writes to memory; skipping further writes)\n'
-    )
+    gdb_result = gdb.execute('eq %#x 0xCAFEBABEdeadbeef 0xABCD' % stack_last_qword_ea, to_string=True).split("\n")
+    assert "Cannot access memory at address" in gdb_result[0]
+    assert gdb_result[1] == '(Made 1 writes to memory; skipping further writes)'
 
     # Check if the write actually occurred
     assert pwndbg.memory.read(stack_last_qword_ea, 8) == b'\xef\xbe\xad\xde\xbe\xba\xfe\xca'

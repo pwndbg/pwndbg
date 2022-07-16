@@ -60,6 +60,13 @@ Pwndbg is an open-source project, written and maintained by [many contributors](
 
 Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md) or [join our Discord server](https://discord.gg/x47DssnGwm)!
 
+## How to develop?
+To run tests locally you can do this in docker image, after cloning repo run simply
+```shell
+docker-compose run main ./tests.sh 
+```
+Disclaimer - this won't work on apple silicon macs.
+
 ## Contact
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
 anybody on [Discord](https://discord.gg/x47DssnGwm) and ask away.
