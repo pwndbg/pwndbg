@@ -19,4 +19,4 @@ ROPGadget==6.8
 six==1.16.0
 testresources==2.0.1
 tomli==2.0.1
-unicorn==1.0.3
+unicorn==2.0.0
