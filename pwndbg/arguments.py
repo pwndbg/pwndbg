@@ -216,6 +216,7 @@ def enhance_printf_args(orig_args, format_str):
     len_modifier_table = {
         'hh': 'char',
         'll': 'long long',
+        'h': 'short',
         'l': 'long',
         'j': 'intmax_t',
         'z': 'size_t',
