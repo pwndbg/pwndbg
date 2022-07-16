@@ -5,23 +5,36 @@ import locale
 import sys
 from os import path, environ
 
+
+# Allow users to use packages from a virtualenv
+# That's not 100% supported, but they do it on their own,
+# so we will warn them if the GDB's Python is not virtualenv's Python
 virtual_env = environ.get('VIRTUAL_ENV')
 
-
 if virtual_env:
-    print("Found that you're using VIRTUAL_ENV '%s'" % virtual_env)
-    possible_site_packages = glob.glob(path.join(virtual_env, 'lib', 'python*', 'site-packages'))
-    if len(possible_site_packages) > 1:
-        print("Found multiple site packages in virtualenv, using the last choice.")
-    virtualenv_site_packages = []
-    for site_packages in possible_site_packages:
-        virtualenv_site_packages = site_packages
-    if not virtualenv_site_packages:
-        print("Not found site-packages in virtualenv, guessing")
-        guessed_python_directory = 'python%s.%s' % (sys.version_info.major, sys.version_info.minor)
-        virtualenv_site_packages = path.join(virtual_env, 'lib', guessed_python_directory, 'site-packages')
-    print("Using virtualenv's python site packages: %s " % virtualenv_site_packages)
-    sys.path.append(virtualenv_site_packages)
+    no_venv_warning = environ.get("PWNDBG_NO_VENV_WARNING", 0)
+    if not no_venv_warning and not sys.executable.startswith(virtual_env):
+        print("[!] Pwndbg Python virtualenv warning [!]")
+        print("Found Python virtual environment (VIRTUAL_ENV='%s') while GDB is built with a different Python binary (%s)" % (virtual_env, sys.executable))
+        print("Assuming that you installed Pwndbg dependencies into the virtual environment")
+        print("If this is not true, this may cause import errors or other issues in Pwndbg")
+        print("If all works for you, you can suppress this warning by setting PWNDBG_NO_VENV_WARNING=1")
+        print("")
+
+        possible_site_packages = glob.glob(path.join(virtual_env, 'lib', 'python*', 'site-packages'))
+        if len(possible_site_packages) > 1:
+            print("Found multiple site packages in virtualenv, using the last choice.")
+        virtualenv_site_packages = []
+        for site_packages in possible_site_packages:
+            virtualenv_site_packages = site_packages
+        if not virtualenv_site_packages:
+            print("Not found site-packages in virtualenv, guessing")
+            guessed_python_directory = 'python%s.%s' % (sys.version_info.major, sys.version_info.minor)
+            virtualenv_site_packages = path.join(virtual_env, 'lib', guessed_python_directory, 'site-packages')
+
+        print("Adding virtualenv's python site packages: %s to sys.path" % virtualenv_site_packages)
+        sys.path.append(virtualenv_site_packages)
+
 
 directory, file = path.split(__file__)
 directory       = path.expanduser(directory)
