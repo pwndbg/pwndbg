@@ -146,7 +146,16 @@ def get(instruction):
 
     if func:
         args = func.args
-        if 'printf' in func.name:  # func.name contains 'printf' as a substring?
+        # Does func.name contain 'printf' as a substring? If so, it could be e.g. printf,
+        # fprintf, snprintf or __printf_chk, which is the kind of functions we're interested
+        # in here.
+        #
+        # There may be false positives like register_printf_specifier, but these will be
+        # filtered out since they do not have a 'format' argument. If the last function
+        # argument is not called 'vararg', it won't be processed either, as these may be
+        # functions like vprintf that use a single va_list to access all args, thus the
+        # approach used for variadic arguments would most likely not work for them.
+        if 'printf' in func.name:
             format_str = None
             for i, arg in enumerate(args):
                 if arg.name == 'format' and arg.type == 'char' and arg.derefcnt == 1:
