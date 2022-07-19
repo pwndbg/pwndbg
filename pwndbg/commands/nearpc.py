@@ -156,7 +156,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if instr.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(instr)
             if syscall_name:
-                line += ' <%s>' % N.syscall_name(syscall_name)
+                line += ' <%s>' % N.syscall_name('SYS_' + syscall_name)
 
         # For Comment Function
         try:
