@@ -169,7 +169,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
         if show_args:
-            result.extend(['%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=instr)])
+            result.extend(('%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=instr)))
 
         prev = instr
 
