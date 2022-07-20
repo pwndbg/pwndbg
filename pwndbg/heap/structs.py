@@ -426,8 +426,8 @@ class c_malloc_par_2_25(ctypes.LittleEndianStructure):
         ('n_mmaps_max', ctypes.c_int32),
         ('max_n_mmaps', ctypes.c_int32),
         ('no_dyn_threshold', ctypes.c_int32),
-        ('mmaped_mem', SIZE_T),
-        ('max_mmaped_mem', SIZE_T),
+        ('mmapped_mem', SIZE_T),
+        ('max_mmapped_mem', SIZE_T),
         ('sbrk_base', PTR)
     ]
 
