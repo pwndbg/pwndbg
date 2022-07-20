@@ -816,10 +816,19 @@ class HeuristicHeap(Heap):
             # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
             if not self._mp_addr:
                 libc_page = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all'))
-                possible_sbrk_base = self.get_heap_boundaries().start
+
+                # try to find sbrk_base via main_arena or vmmap
+                # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
+                arena = self.main_arena
+                if self._main_arena_addr:
+                    region = self.get_region(arena['top'])
+                else:
+                    # If we can't find main_arena via heuristics, try to find it via vmmap
+                    region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
+                possible_sbrk_base = region.start
+
                 sbrk_offset = self.malloc_par(0).field_address('sbrk_base')
                 # try to search sbrk_base in a part of libc page
-                # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
                 result = pwndbg.search.search(pwndbg.arch.pack(possible_sbrk_base), start=libc_page.start, end=libc_page.end)
                 try:
                     self._mp_addr = next(result) - sbrk_offset
@@ -943,6 +952,8 @@ class HeuristicHeap(Heap):
         # Occasionally, the [heap] vm region and the actual start of the heap are
         # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
         # Return an adjusted Page object if this is the case.
+        if not self._mp_addr:
+            self.mp # try to fetch the mp_ structure to make sure it's initialized
         if self._mp_addr:  # sometimes we can't find mp_ via heuristics
             page = pwndbg.memory.Page(0, 0, 0, 0)
             sbrk_base = int(self.mp['sbrk_base'])
