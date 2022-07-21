@@ -635,6 +635,7 @@ class HeuristicHeap(Heap):
     def __init__(self):
         super().__init__()
         self._thread_arena_offset = None
+        self._thread_cache_offset = None
     
     @property
     def main_arena(self):
@@ -733,10 +734,11 @@ class HeuristicHeap(Heap):
             # TODO/FIXME: Add support to arm and aarch64
         
         if self._thread_arena_offset:
-            if pwndbg.arch.current == "x86-64":
+            # Note: fsbase/gsbase will not work for most of the remote debugging, see the implementation of pwndbg.regs.fsbase/gsbase
+            if pwndbg.arch.current == "x86-64" and pwndbg.regs.fsbase:
                 # fs:[rax]
                 return pwndbg.memory.pvoid(pwndbg.regs.fsbase + self._thread_arena_offset)
-            elif pwndbg.arch.current == "i386":
+            elif pwndbg.arch.current == "i386" and pwndbg.regs.gsbase:
                 # reg+eax or gs:[eax] (value of reg is gs:[0x0])
                 return pwndbg.memory.pvoid(pwndbg.regs.gsbase + self._thread_arena_offset)
 
@@ -749,7 +751,65 @@ class HeuristicHeap(Heap):
         thread's tcache.
         """
         if self.has_tcache():
-            # we guess tcache is the first chunk
+            if not self._thread_cache_offset:
+                # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
+                __libc_malloc_instruction = pwndbg.disasm.near(pwndbg.symbol.address('__libc_malloc'), 100, show_prev_insns=False)[10:]
+                # Try to find the reference to tcache in __libc_malloc, the target C code is like this:
+                # `if (tc_idx < mp_.tcache_bins && tcache && ......`
+                if pwndbg.arch.current == "x86-64":
+                    # Find the last `mov reg1, qword ptr [rip + disp]` before the first `mov reg2, fs:[reg1]`
+                    # In other words, find the first __thread variable
+                    
+                    get_offset_instruction = None
+
+                    for instr in __libc_malloc_instruction:
+                        if ', qword ptr [rip +' in instr.op_str:
+                            get_offset_instruction = instr
+                        if ', qword ptr fs:[r' in instr.op_str:
+                            break
+                    
+                    if get_offset_instruction:
+                        # rip + disp
+                        self._thread_cache_offset = pwndbg.memory.s64(get_offset_instruction.next + get_offset_instruction.disp)
+                elif pwndbg.arch.current == "i386":
+                    # We still need to find the first __thread variable like we did for x86-64
+                    # But the assembly code of i386 is a little bit unstable sometimes(idk why), there are two versions of the code:
+                    # 1. Find the last `mov reg1, dword ptr [reg0 + disp]` before the first `mov reg2, gs:[reg1]` (disp is a negative value)
+                    # 2. Find the first `mov reg1, dword ptr [reg0 + disp]` after `mov reg3, [reg1 + reg2]` (disp is a negative value),
+                    # and reg2 is from `mov reg2, gs:[0]`
+
+                    get_offset_instruction = None
+                    find_after = False
+                    
+                    for instr in __libc_malloc_instruction:
+                        if instr.disp < 0 and instr.mnemonic == 'mov' and ", dword ptr [e" in instr.op_str:
+                            get_offset_instruction = instr
+                            if find_after:
+                                break
+                        if ', dword ptr gs:[e' in instr.op_str:
+                            break
+                        elif instr.op_str.endswith('gs:[0]') and instr.mnemonic == 'mov':
+                            find_after = True
+                    
+                    if get_offset_instruction:
+                        # reg + disp (value of reg is the page start of the last libc page)
+                        base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
+                        self._thread_cache_offset = pwndbg.memory.s32(base_offset + get_offset_instruction.disp)
+
+                # TODO/FIXME: Add support to arm and aarch64
+
+            # The offset to tls should be a negative integer, but it can't be too small
+            # If it is too small, we find a wrong value
+            if self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0:
+                # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of pwndbg.regs.fsbase/gsbase
+                # TODO/FIXME: Maybe we need to find a way to get the correct tls base address even if we are remote debugging
+                if pwndbg.arch.current == "x86-64" and pwndbg.regs.fsbase:
+                    return self.tcache_perthread_struct(pwndbg.memory.pvoid(pwndbg.regs.fsbase + self._thread_cache_offset))
+                elif pwndbg.arch.current == "i386" and pwndbg.regs.gsbase:
+                    return self.tcache_perthread_struct(pwndbg.memory.pvoid(pwndbg.regs.gsbase + self._thread_cache_offset))
+
+            # If we still can't find the tcache, we guess tcache is the first chunk in the heap
+            # TODO/FIXME: This might fail if the arena is being shared by multiple threads
             arena = self.get_arena()
             heap_region = self.get_heap_boundaries()
             ptr_size = pwndbg.arch.ptrsize
