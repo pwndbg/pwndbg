@@ -633,6 +633,23 @@ class DebugSymsHeap(Heap):
             addr = pwndbg.symbol.address('__malloc_initialized')
         return pwndbg.memory.s32(addr) > 0
 
+def inform_report_issue(symbols):
+    print(message.notice("Symbol: ") +
+        message.hint(symbols) +
+        message.notice(" could not be found via heuristics for ") +
+        message.hint(pwndbg.arch.current) +
+        message.notice(" with GLIBC version ") +
+        message.hint(".".join(str(i) for i in pwndbg.glibc.get_version()))
+    )
+    print(message.notice(
+        "If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n"
+        "If possible, please provide your libc.so.6 when reporting the issue. Thanks!"
+        "(Please don't forget to search if it hasn't been reported before)\n"
+        "To generate the report and open a browser, you may run ") +
+        message.hint("`bugreport --run-browser`") +
+        message.notice("\nPS: Pull requests are welcome")
+    )
+
 def initialize_structs(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -663,6 +680,9 @@ class HeuristicHeap(Heap):
                     self._main_arena_addr = malloc_hook_addr - pwndbg.arch.ptrsize * 2 - self.malloc_state(0)._c_struct.__sizeof__()
                 elif pwndbg.arch.current == "arm":
                     self._main_arena_addr = malloc_hook_addr - pwndbg.arch.ptrsize - self.malloc_state(0)._c_struct.__sizeof__()
+                else:
+                    inform_report_issue("main_arena")
+                    raise OSError("Cannot find the symbol via heuristics")
             else: # glibc >= 2.34 does not have __malloc_hook
                 # try to find `mstate ar_ptr = &main_arena;` in malloc_trim instructions
                 malloc_trim_instructions = pwndbg.disasm.near(pwndbg.symbol.address('malloc_trim'), 10, show_prev_insns=False)
@@ -679,7 +699,10 @@ class HeuristicHeap(Heap):
                         if instr.mnemonic == 'lea' and "eax" in instr.op_str and instr.disp > 0:
                             self._main_arena_addr = base_offset + instr.disp # eax + disp
                             break
-                # TODO/FIXME: Add support to arm and aarch64
+                else:
+                    # TODO/FIXME: Add support to arm and aarch64
+                    inform_report_issue("main_arena")
+                    raise OSError("Cannot find the symbol via heuristics")
             # try to search main_arena in .data of libc if we can't find it via above trick
             if not self._main_arena_addr:
                 _IO_2_1_stdin_addr = pwndbg.symbol.address('_IO_2_1_stdin_')
@@ -702,6 +725,9 @@ class HeuristicHeap(Heap):
 
         if self._main_arena_addr:
             self._main_arena = self.malloc_state(self._main_arena_addr)
+        else:
+            inform_report_issue("main_arena")
+            raise OSError("Cannot find the symbol via heuristics")
 
         return self._main_arena
 
@@ -743,7 +769,10 @@ class HeuristicHeap(Heap):
                 get_offset_instruction = [instr for i, instr in enumerate(__libc_calloc_instruction[:-1]) if is_possible(i, instr)][-1]
                 # reg + disp (value of reg is the page start of the last libc page)
                 self._thread_arena_offset = pwndbg.memory.s32(base_offset + get_offset_instruction.disp)
-            # TODO/FIXME: Add support to arm and aarch64
+            else:
+                # TODO/FIXME: Add support to arm and aarch64
+                inform_report_issue("thread_arena")
+                raise OSError("Cannot find the symbol via heuristics")
         
         if self._thread_arena_offset:
             # Note: fsbase/gsbase will not work for most of the remote debugging, see the implementation of pwndbg.regs.fsbase/gsbase
@@ -754,7 +783,8 @@ class HeuristicHeap(Heap):
                 # reg+eax or gs:[eax] (value of reg is gs:[0x0])
                 return pwndbg.memory.pvoid(pwndbg.regs.gsbase + self._thread_arena_offset)
 
-        return -1
+        inform_report_issue("thread_arena")
+        raise OSError("Cannot find the symbol via heuristics")
 
 
     @property
@@ -807,8 +837,10 @@ class HeuristicHeap(Heap):
                         # reg + disp (value of reg is the page start of the last libc page)
                         base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
                         self._thread_cache_offset = pwndbg.memory.s32(base_offset + get_offset_instruction.disp)
-
-                # TODO/FIXME: Add support to arm and aarch64
+                else:
+                    # TODO/FIXME: Add support to arm and aarch64
+                    inform_report_issue("tcache")
+                    raise OSError("Cannot find the symbol via heuristics")
 
             # The offset to tls should be a negative integer, but it can't be too small
             # If it is too small, we find a wrong value
@@ -883,7 +915,10 @@ class HeuristicHeap(Heap):
                     self._mp_addr = base_offset + mp_ref.disp
                 except StopIteration:
                     pass
-            # TODO/FIXME: Add support to arm and aarch64
+            else:
+                # TODO/FIXME: Add support to arm and aarch64
+                inform_report_issue("mp_")
+                raise OSError("Cannot find the symbol via heuristics")
             
             # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
             if not self._mp_addr:
@@ -910,6 +945,9 @@ class HeuristicHeap(Heap):
 
         if self._mp_addr:
             self._mp = self.malloc_par(self._mp_addr)
+        else:
+            inform_report_issue("mp_")
+            raise OSError("Cannot find the symbol via heuristics")
 
         return self._mp
 
@@ -934,10 +972,8 @@ class HeuristicHeap(Heap):
                 self._global_max_fast_addr = base_offset + global_max_fast_ref.disp
             else:
                 # TODO/FIXME: Add support to arm and aarch64
-
-                # return default value to avoid error
-                # this might be a problem if you overwrite it with another value
-                return 128 if pwndbg.ptrsize == 8 else 64
+                inform_report_issue("global_max_fast")
+                raise OSError("Cannot find the symbol via heuristics")
 
         if self._global_max_fast_addr:
             self._global_max_fast = pwndbg.memory.u(self._global_max_fast_addr)
