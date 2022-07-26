@@ -1,4 +1,6 @@
+import importlib
 from collections import OrderedDict
+from functools import wraps
 
 import gdb
 
@@ -631,11 +633,21 @@ class DebugSymsHeap(Heap):
             addr = pwndbg.symbol.address('__malloc_initialized')
         return pwndbg.memory.s32(addr) > 0
 
+def initialize_structs(method):
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        # If structs module for HeuristicHeap is None, try to initialize it.
+        if self._structs_module is None:
+            self._structs_module = importlib.reload(importlib.import_module('pwndbg.heap.structs'))
+        return method(self, *args, **kwargs)
+    return wrapper
+
 class HeuristicHeap(Heap):
     def __init__(self):
         super().__init__()
         self._thread_arena_offset = None
         self._thread_cache_offset = None
+        self._structs_module = None
     
     @property
     def main_arena(self):
@@ -934,33 +946,33 @@ class HeuristicHeap(Heap):
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def heap_info(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.HeapInfo
+        return self._structs_module.HeapInfo
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def malloc_chunk(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.MallocChunk
+        return self._structs_module.MallocChunk
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def malloc_state(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.MallocState
+        return self._structs_module.MallocState
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def tcache_perthread_struct(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.TcachePerthreadStruct
+        return self._structs_module.TcachePerthreadStruct
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def tcache_entry(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.TcacheEntry
+        return self._structs_module.TcacheEntry
 
     @property
     @pwndbg.memoize.reset_on_objfile
@@ -970,9 +982,9 @@ class HeuristicHeap(Heap):
 
     @property
     @pwndbg.memoize.reset_on_objfile
+    @initialize_structs
     def malloc_par(self):
-        import pwndbg.heap.structs
-        return pwndbg.heap.structs.MallocPar
+        return self._structs_module.MallocPar
 
     def get_heap(self, addr):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""

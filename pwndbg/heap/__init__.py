@@ -13,11 +13,19 @@ resolve_via_heuristic = pwndbg.config.Parameter('resolve-via-heuristic', False, 
 def update():
     resolve_heap(is_first_run=True)
 
+@pwndbg.events.stop
+@pwndbg.events.new_objfile
+def clear():
+    global current
+    # Re-initialize the heap
+    if current:
+        current = type(current)()
+
 @pwndbg.config.Trigger([resolve_via_heuristic])
 def resolve_heap(is_first_run=False):
     import pwndbg.heap.ptmalloc
     global current
-    if pwndbg.config.resolve_via_heuristic:
+    if resolve_via_heuristic:
         current = pwndbg.heap.ptmalloc.HeuristicHeap()
         if not is_first_run and pwndbg.proc.alive and current.libc_has_debug_syms():
             print(message.warn("You are going to resolve the heap via heuristic even though you have libc debug symbols. This is not recommended!"))
