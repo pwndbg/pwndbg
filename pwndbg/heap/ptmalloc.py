@@ -670,20 +670,17 @@ class HeuristicHeap(Heap):
     def main_arena(self):
         # TODO/FIXME: These are quite dirty, we should find a better way to do this
         if not self._main_arena_addr:
-            if pwndbg.glibc.get_version() < (2, 34):
+            if pwndbg.glibc.get_version() < (2, 34) and pwndbg.arch.current != "arm":
                 malloc_hook_addr = pwndbg.symbol.address('__malloc_hook')
                 # Credit: This tricks is modified from https://github.com/hugsy/gef/blob/c530aa518ac96dff6fc810a5552ecf54fd1b3581/gef.py#L1189-L1196
                 # Thank @_hugsy_ and all the contributors of gef!
+                # (But somehow, gef's strategy for arm doesn't seem reliable, at least for my test it isn't work)
                 if pwndbg.arch.current == "x86-64" or pwndbg.arch.current == "i386":
                     self._main_arena_addr = malloc_hook_addr + ((0x20 - (malloc_hook_addr % 0x20)) % 0x20)
                 elif pwndbg.arch.current == "aarch64":
-                    self._main_arena_addr = malloc_hook_addr - pwndbg.arch.ptrsize * 2 - self.malloc_state(0)._c_struct.__sizeof__()
-                elif pwndbg.arch.current == "arm":
-                    self._main_arena_addr = malloc_hook_addr - pwndbg.arch.ptrsize - self.malloc_state(0)._c_struct.__sizeof__()
-                else:
-                    inform_report_issue("main_arena")
-                    raise OSError("Cannot find the symbol via heuristics")
-            else: # glibc >= 2.34 does not have __malloc_hook
+                    self._main_arena_addr = malloc_hook_addr - pwndbg.arch.ptrsize * 2 - self.malloc_state.sizeof
+            # If we can not find the main_arena via offset trick, we try to find its reference
+            if not self._main_arena_addr:
                 # try to find `mstate ar_ptr = &main_arena;` in malloc_trim instructions
                 malloc_trim_instructions = pwndbg.disasm.near(pwndbg.symbol.address('malloc_trim'), 10, show_prev_insns=False)
                 if pwndbg.arch.current == "x86-64":
@@ -699,8 +696,32 @@ class HeuristicHeap(Heap):
                         if instr.mnemonic == 'lea' and "eax" in instr.op_str and instr.disp > 0:
                             self._main_arena_addr = base_offset + instr.disp # eax + disp
                             break
+                elif pwndbg.arch.current == "aarch64":
+                    base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
+                    reg = None
+                    for instr in malloc_trim_instructions[5:]:
+                        # Try to find `add reg2, reg1, #offset` after `adrp reg1, #base_offset`
+                        if instr.mnemonic == 'add' and instr.operands[1].str == reg:
+                            self._main_arena_addr = base_offset + instr.operands[2].int
+                            break
+                        if instr.mnemonic == 'adrp' and instr.operands[1].int == base_offset:
+                            reg = instr.operands[0].str
+                elif pwndbg.arch.current == "arm":
+                    ldrw_instr = None
+                    for instr in malloc_trim_instructions:
+                        # Try to find `ldr.w reg, [pc, #offset]`, then `add reg, pc`
+                        if not ldrw_instr:
+                            if instr.mnemonic == 'ldr.w':
+                                ldrw_instr = instr
+                        else:
+                            reg = ldrw_instr.operands[0].str
+                            if instr.mnemonic == 'add' and instr.op_str == reg + ", pc":
+                                # ldr.w reg, [pc, #offset]
+                                offset = ldrw_instr.operands[1].mem.disp
+                                offset = pwndbg.memory.s32((ldrw_instr.address + 4 & -4) + offset)
+                                # add reg, pc
+                                self._main_arena_addr = offset + instr.address + 4
                 else:
-                    # TODO/FIXME: Add support to arm and aarch64
                     inform_report_issue("main_arena")
                     raise OSError("Cannot find the symbol via heuristics")
             # try to search main_arena in .data of libc if we can't find it via above trick
@@ -769,19 +790,45 @@ class HeuristicHeap(Heap):
                 get_offset_instruction = [instr for i, instr in enumerate(__libc_calloc_instruction[:-1]) if is_possible(i, instr)][-1]
                 # reg + disp (value of reg is the page start of the last libc page)
                 self._thread_arena_offset = pwndbg.memory.s32(base_offset + get_offset_instruction.disp)
+            elif pwndbg.arch.current == "aarch64":
+                # There's a branch to get main_arena or thread_arena
+                # and before the branch, the flow of assembly code will like:
+                # `mrs reg1, tpidr_el;
+                # adrp reg2, #base_offset;
+                # /* branch to arena_get or use main_arena */;
+                # /* if branch to thread_arena*/;
+                # ldr reg2, [reg1, reg2]`
+                # So reg2 is the offset to tls
+                found_mrs = False
+                first_adrp = None
+                for instr in __libc_calloc_instruction:
+                    if not found_mrs:
+                        found_mrs = instr.mnemonic == 'mrs'
+                    else:
+                        if not first_adrp:
+                            if instr.mnemonic == 'adrp':
+                                first_adrp = instr
+                        else:
+                            if instr.mnemonic == 'ldr':
+                                base_offset = first_adrp.operands[1].int
+                                self._thread_arena_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp)
+                                break
             else:
-                # TODO/FIXME: Add support to arm and aarch64
+                # TODO/FIXME: Add support to arm
                 inform_report_issue("thread_arena")
                 raise OSError("Cannot find the symbol via heuristics")
         
         if self._thread_arena_offset:
-            # Note: fsbase/gsbase will not work for most of the remote debugging, see the implementation of pwndbg.regs.fsbase/gsbase
+            # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of pwndbg.regs.fsbase/gsbase
             if pwndbg.arch.current == "x86-64" and pwndbg.regs.fsbase:
                 # fs:[rax]
                 return pwndbg.memory.pvoid(pwndbg.regs.fsbase + self._thread_arena_offset)
             elif pwndbg.arch.current == "i386" and pwndbg.regs.gsbase:
                 # reg+eax or gs:[eax] (value of reg is gs:[0x0])
                 return pwndbg.memory.pvoid(pwndbg.regs.gsbase + self._thread_arena_offset)
+            elif pwndbg.arch.current == "aarch64":
+                # [reg1, reg2]
+                return pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_arena_offset)
 
         inform_report_issue("thread_arena")
         raise OSError("Cannot find the symbol via heuristics")
@@ -837,12 +884,41 @@ class HeuristicHeap(Heap):
                         # reg + disp (value of reg is the page start of the last libc page)
                         base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
                         self._thread_cache_offset = pwndbg.memory.s32(base_offset + get_offset_instruction.disp)
+                elif pwndbg.arch.current == "aarch64":
+                    # The logic is the same as the previous one..
+                    # The assembly code to access tcache is sth like:
+                    # `mrs reg1, tpidr_el0;
+                    # adrp reg2, #base_offset;
+                    # ldr reg2, [reg2, #offset]
+                    # ...
+                    # add reg3, reg1, reg2;
+                    # ldr reg3, [reg3, #8]`
+                    # , then reg3 will be tcache address
+                    found_mrs = False
+                    first_adrp = None
+                    for instr in __libc_malloc_instruction:
+                        if not found_mrs:
+                            found_mrs = instr.mnemonic == 'mrs'
+                        else:
+                            if not first_adrp:
+                                if instr.mnemonic == 'adrp':
+                                    first_adrp = instr
+                            else:
+                                if instr.mnemonic == 'ldr':
+                                    base_offset = first_adrp.operands[1].int
+                                    self._thread_cache_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp) + 8
+                                    break
+                elif pwndbg.arch.current == "arm":
+                    # TODO/FIXME: Find a way to get tls base for arm
+                    print(message.notice("You are trying to access tcache, "
+                        "but we can't find the thread variable for arm architecture via heuristic\n"
+                        + "We guess tcache perthread struct is the first chunk of the heap"
+                    ))
                 else:
-                    # TODO/FIXME: Add support to arm and aarch64
                     inform_report_issue("tcache")
                     raise OSError("Cannot find the symbol via heuristics")
 
-            # The offset to tls should be a negative integer, but it can't be too small
+            # The offset to tls should be a negative integer for x86/x64, but it can't be too small
             # If it is too small, we find a wrong value
             if self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0:
                 # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of pwndbg.regs.fsbase/gsbase
@@ -851,6 +927,11 @@ class HeuristicHeap(Heap):
                     return self.tcache_perthread_struct(pwndbg.memory.pvoid(pwndbg.regs.fsbase + self._thread_cache_offset))
                 elif pwndbg.arch.current == "i386" and pwndbg.regs.gsbase:
                     return self.tcache_perthread_struct(pwndbg.memory.pvoid(pwndbg.regs.gsbase + self._thread_cache_offset))
+            # The offset to tls should be a positive interger for aarch64, but it can't be too big
+            # If it is too big, we find a wrong value
+            elif self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250:
+                if pwndbg.arch.current == "aarch64":
+                    return self.tcache_perthread_struct(pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset))
 
             # If we still can't find the tcache, we guess tcache is the first chunk in the heap
             # TODO/FIXME: This might fail if the arena is being shared by multiple threads
@@ -915,8 +996,53 @@ class HeuristicHeap(Heap):
                     self._mp_addr = base_offset + mp_ref.disp
                 except StopIteration:
                     pass
+            elif pwndbg.arch.current == "aarch64":
+                base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
+                regs = set()
+                found = False
+                for instr in __libc_free_instructions:
+                    if found:
+                        break
+                    # We want to find sth like: `str reg2, [reg1, #offset]``
+                    # and reg1 is from `adrp reg1, base_offset`
+                    # We can notice that it only have one match in __libc_free
+                    # The match should be the reference to mp_
+                    if instr.mnemonic == 'str':
+                        for reg in regs:
+                            if "[" + reg in instr.op_str:
+                                self._mp_addr = base_offset + instr.operands[1].mem.disp
+                                found = True
+                                break
+                    elif instr.mnemonic == 'adrp' and instr.operands[1].int == base_offset:
+                        regs.add(instr.operands[0].str)
+            elif pwndbg.arch.current == "arm":
+                regs = {}
+                ldr = {}
+                found = False
+                for instr in __libc_free_instructions:
+                    if found:
+                        break
+                    # We want to find sth like: `str reg2, [reg1, #8 or #0]`
+                    # and reg1 is from `ldr reg1, [pc, #offset]` and `add reg1, pc`
+                    # We can notice that it only have one match in __libc_free
+                    # The match should be the reference to mp_ and mp_.mmap_threshold
+                    if instr.mnemonic == 'str':
+                        for reg in regs:
+                            if "[" + reg + "]" in instr.op_str:
+                                # ldr reg1, [pc, #offset]
+                                offset = regs[reg].operands[1].mem.disp
+                                offset = pwndbg.memory.s32((regs[reg].address + 4 & -4) + offset)
+                                # add reg1, pc
+                                self._mp_addr = offset + ldr[reg].address + 4
+                                found = True
+                                break
+                    elif instr.mnemonic == 'add':
+                        for reg in regs:
+                            if instr.op_str == reg + ", pc":
+                                ldr[reg] = instr
+                    elif instr.mnemonic == 'ldr' and "[pc," in instr.op_str:
+                        regs[instr.operands[0].str] = instr
             else:
-                # TODO/FIXME: Add support to arm and aarch64
                 inform_report_issue("mp_")
                 raise OSError("Cannot find the symbol via heuristics")
             
@@ -934,7 +1060,7 @@ class HeuristicHeap(Heap):
                     region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
                 possible_sbrk_base = region.start
 
-                sbrk_offset = self.malloc_par(0).field_address('sbrk_base')
+                sbrk_offset = self.malloc_par(0).get_field_address('sbrk_base')
                 # try to search sbrk_base in a part of libc page
                 result = pwndbg.search.search(pwndbg.arch.pack(possible_sbrk_base), start=libc_page.start, end=libc_page.end)
                 try:
@@ -956,22 +1082,59 @@ class HeuristicHeap(Heap):
         # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
         if not self._global_max_fast_addr:
             # `__libc_malloc` will call `_int_malloc`, so we try to find the reference to `_int_malloc`
-            __libc_malloc_instructions  = pwndbg.disasm.near(pwndbg.symbol.address('__libc_malloc'), 25, show_prev_insns=False)
-            _int_malloc_addr = next(instr for instr in __libc_malloc_instructions[5:] if instr.mnemonic == 'call').operands[0].imm
-            _int_malloc_instructions = pwndbg.disasm.near(_int_malloc_addr, 25, show_prev_insns=False)
-            # there is a reference to global_max_fast in _int_malloc, which is:
+            # because there is a reference to global_max_fast in _int_malloc, which is:
             # `if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))`
+            __libc_malloc_instructions  = pwndbg.disasm.near(pwndbg.symbol.address('__libc_malloc'), 25, show_prev_insns=False)
             if pwndbg.arch.current == "x86-64":
+                _int_malloc_addr = next(instr for instr in __libc_malloc_instructions[5:] if instr.mnemonic == 'call').operands[0].imm
+                _int_malloc_instructions = pwndbg.disasm.near(_int_malloc_addr, 25, show_prev_insns=False)
                 # cmp qword ptr [rip + global_max_fast_offset], 0x1f
                 global_max_fast_ref = next(instr for instr in _int_malloc_instructions if instr.mnemonic == 'cmp' and instr.op_str.startswith('qword ptr [rip +'))
                 self._global_max_fast_addr = global_max_fast_ref.next + global_max_fast_ref.disp
             elif pwndbg.arch.current == "i386":
+                _int_malloc_addr = next(instr for instr in __libc_malloc_instructions[5:] if instr.mnemonic == 'call').operands[0].imm
+                _int_malloc_instructions = pwndbg.disasm.near(_int_malloc_addr, 25, show_prev_insns=False)
                 base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
                 # cmp reg, [base_offset + global_max_fast_offset]
                 global_max_fast_ref = next(instr for instr in _int_malloc_instructions if instr.mnemonic == 'cmp' and 'dword ptr [' in instr.op_str)
                 self._global_max_fast_addr = base_offset + global_max_fast_ref.disp
+            elif pwndbg.arch.current == "aarch64":
+                _int_malloc_addr = next(instr for instr in __libc_malloc_instructions[5:] if instr.mnemonic == 'bl').operands[0].imm
+                _int_malloc_instructions = pwndbg.disasm.near(_int_malloc_addr, 25, show_prev_insns=False)
+                base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).end
+                reg = None
+                for instr in _int_malloc_instructions:
+                    # We want to find sth like:
+                    # `adrp reg1, #base_offset;
+                    # add reg2, reg1, #offset;
+                    # ldr reg2, [reg2, #8];
+                    # cmp reg2, #0x1f;`
+                    # So global_max_fast address is `base_offset+offset+8`
+                    if reg and instr.mnemonic == 'add' and reg + ', #' in instr.op_str:
+                        self._global_max_fast_addr = base_offset + instr.operands[2].int + 8
+                        break
+                    elif instr.mnemonic == 'adrp' and instr.operands[1].int == base_offset:
+                        reg = instr.operands[0].str
+            elif pwndbg.arch.current == "arm":
+                _int_malloc_addr = next(instr for instr in __libc_malloc_instructions[5:] if instr.mnemonic == 'bl').operands[0].imm
+                _int_malloc_instructions = pwndbg.disasm.near(_int_malloc_addr, 25, show_prev_insns=False)
+                ldr_instr = None
+                for instr in _int_malloc_instructions:
+                    # We want to find sth like:
+                    # `ldr r3, [pc, #612];
+                    # add r3, pc;
+                    # ldr r3, [r3, #4];
+                    # cmp r3, #15`
+                    if ldr_instr and instr.mnemonic == 'add' and instr.op_str == ldr_instr.operands[0].str + ', pc':
+                        # ldr r3, [pc, #612]
+                        offset = ldr_instr.operands[1].mem.disp
+                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                        # add r3, pc; ldr r3, [r3, #4];
+                        self._global_max_fast_addr = offset + instr.address + 8
+                        break
+                    elif instr.mnemonic == 'ldr' and "[pc" in instr.op_str:
+                        ldr_instr = instr
             else:
-                # TODO/FIXME: Add support to arm and aarch64
                 inform_report_issue("global_max_fast")
                 raise OSError("Cannot find the symbol via heuristics")
 
@@ -1032,9 +1195,10 @@ class HeuristicHeap(Heap):
         current thread is not attached to an arena.
         """
         if arena_addr is None:
-            thread_arena = self.thread_arena
-            if self.multithreaded and thread_arena > 0:
-                return self.malloc_state(thread_arena)
+            if self.multithreaded:
+                thread_arena = self.thread_arena
+                if thread_arena > 0:
+                    return self.malloc_state(thread_arena)
 
             return self.main_arena
 

@@ -11,12 +11,13 @@ NBINS = 128
 BINMAPSIZE = 4
 TCACHE_MAX_BINS = 64
 
+# Somehow, i386 is 11, and x86-64/arm/aarch64 are 10
+NFASTBINS = 11 if pwndbg.arch.current == "i386" else 10
+
 if pwndbg.arch.ptrsize == 4:
-    NFASTBINS = 11
     PTR = ctypes.c_uint32
     SIZE_T = ctypes.c_uint32
 else:
-    NFASTBINS = 10
     PTR = ctypes.c_uint64
     SIZE_T = ctypes.c_uint64
 
@@ -76,7 +77,7 @@ class CStruct2GDB:
         """
         output = "{\n"
         for f in self._c_struct._fields_:
-            output += "  %s = %s,\n" % (f[0], getattr(self, f[0]))
+            output += "  %s = %s,\n" % (f[0], self.read_field(f[0]))
         output += "}"
         return output
     
@@ -84,12 +85,12 @@ class CStruct2GDB:
         """
         Returns the value of the specified field as a `gdb.Value`.
         """
-        field_offset = getattr(self._c_struct, field).offset
+        field_address = self.get_field_address(field)
         field_type = next((f for f in self._c_struct._fields_ if f[0] == field))[1]
         if hasattr(field_type, "_length_"): # f is a ctypes Array
             t = C2GDB_MAPPING[field_type._type_]
-            return pwndbg.memory.poi(t.array(field_type._length_ - 1), self.address + field_offset)
-        return pwndbg.memory.poi(C2GDB_MAPPING[field_type], self.address + field_offset)
+            return pwndbg.memory.poi(t.array(field_type._length_ - 1), field_address)
+        return pwndbg.memory.poi(C2GDB_MAPPING[field_type], field_address)
 
     @property
     def type(self):
@@ -98,7 +99,7 @@ class CStruct2GDB:
         """
         return self
     
-    def field_address(self, field: str) -> int:
+    def get_field_address(self, field: str) -> int:
         """
         Returns the address of the specified field.
         """
