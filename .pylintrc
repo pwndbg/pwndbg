@@ -228,7 +228,7 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=
+generated-members=pwndbg.typeinfo.*
 
 # Tells whether missing members accessed in mixin class should be ignored. A
 # class is considered mixin if its name matches the mixin-class-rgx option.
@@ -533,6 +533,8 @@ known-third-party=enchant
 # Couples of modules and preferred modules, separated by a comma.
 preferred-modules=
 
+# Ignore `Unable to import 'gdb' (import-error)`
+ignored-modules=gdb
 
 [CLASSES]
 
@@ -551,7 +553,10 @@ exclude-protected=_asdict,
                   _fields,
                   _replace,
                   _source,
-                  _make
+                  _make,
+                  _fields_,
+                  _type_,
+                  _length_
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg=cls
