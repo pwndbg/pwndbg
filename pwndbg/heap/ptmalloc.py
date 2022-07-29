@@ -670,6 +670,7 @@ class HeuristicHeap(Heap):
         self._thread_arena_offset = None
         self._thread_cache_offset = None
         self._structs_module = None
+        self._errno_offset = None
 
     @property
     def main_arena(self):
@@ -768,6 +769,27 @@ class HeuristicHeap(Heap):
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
 
+    def get_arm_tls_base(self):
+        assert pwndbg.arch.current == "arm"
+        # TODO/FIXME: Need a better way to find tls
+        errno_addr = gdb.execute("call (long)__errno_location()", to_string=True)
+        errno_addr = int(errno_addr.split(' = ')[1].strip())
+        if not self._errno_offset:
+            __errno_location_instr = pwndbg.disasm.near(pwndbg.symbol.address('__errno_location'), 5,
+                                                        show_prev_insns=False)
+            ldr_instr = None
+            for instr in __errno_location_instr:
+                if not ldr_instr and instr.mnemonic == 'ldr':
+                    ldr_instr = instr
+                elif ldr_instr and instr.mnemonic == 'add':
+                    offset = ldr_instr.operands[1].mem.disp
+                    offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                    self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
+                    break
+        if not self._errno_offset:
+            raise OSError("Can not find tls base")
+        return errno_addr - self._errno_offset
+
     @property
     def thread_arena(self):
         thread_arena_via_config = int(pwndbg.config.thread_arena)
@@ -814,7 +836,7 @@ class HeuristicHeap(Heap):
                 # /* branch to arena_get or use main_arena */;
                 # /* if branch to thread_arena*/;
                 # ldr reg2, [reg1, reg2]`
-                # So reg2 is the offset to tls
+                # , then reg2 will be &thread_arena
                 found_mrs = False
                 first_adrp = None
                 for instr in __libc_calloc_instruction:
@@ -829,8 +851,31 @@ class HeuristicHeap(Heap):
                                 base_offset = first_adrp.operands[1].int
                                 self._thread_arena_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp)
                                 break
+            elif pwndbg.arch.current == "arm":
+                # We need to find something near the first `mrc 15, ......`
+                # The flow of assembly code will like:
+                # `ldr reg1, [pc, #offset];
+                # mrc 15, 0, reg2, cr13, cr0, {3};
+                # add reg1, pc;
+                # ldr reg1, [reg1];
+                # add reg1, reg2`
+                # , then reg1 will be &thread_arena
+                found_mrc = False
+                ldr_instr = None
+                for instr in __libc_calloc_instruction:
+                    if not found_mrc:
+                        if instr.mnemonic == 'mrc':
+                            found_mrc = True
+                        elif instr.mnemonic == 'ldr':
+                            ldr_instr = instr
+                    else:
+                        reg = ldr_instr.operands[0].str
+                        if instr.mnemonic == 'add' and instr.op_str == reg + ", pc":
+                            offset = ldr_instr.operands[1].mem.disp
+                            offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                            self._thread_arena_offset = pwndbg.memory.s32(instr.address + 4 + offset)
+                            break
             else:
-                # TODO/FIXME: Add support to arm
                 inform_report_issue("thread_arena")
                 raise OSError("Cannot find the symbol via heuristics")
 
@@ -846,6 +891,9 @@ class HeuristicHeap(Heap):
             elif pwndbg.arch.current == "aarch64":
                 # [reg1, reg2]
                 return pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_arena_offset)
+            else:
+                # reg1, reg2
+                return pwndbg.memory.pvoid(self.get_arm_tls_base() + self._thread_arena_offset)
 
         inform_report_issue("thread_arena")
         raise OSError("Cannot find the symbol via heuristics")
@@ -930,11 +978,34 @@ class HeuristicHeap(Heap):
                                     self._thread_cache_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp) + 8
                                     break
                 elif pwndbg.arch.current == "arm":
-                    # TODO/FIXME: Find a way to get tls base for arm
-                    print(message.notice("You are trying to access tcache, "
-                                         "but we can't find the thread variable for arm architecture via heuristic\n"
-                                         + "We guess tcache perthread struct is the first chunk of the heap"
-                                         ))
+                    # We need to find something near the first `mrc 15, ......`
+                    # The flow of assembly code will like:
+                    # `ldr reg1, [pc, #offset];
+                    # ...
+                    # mrc 15, 0, reg2, cr13, cr0, {3};
+                    # ...
+                    # add reg1, pc;
+                    # ldr reg1, [reg1];
+                    # ...
+                    # add reg1, reg2
+                    # ...
+                    # ldr reg3, [reg1, #4]`
+                    # , then reg3 will be tcache address
+                    found_mrc = False
+                    ldr_instr = None
+                    for instr in __libc_malloc_instruction:
+                        if not found_mrc:
+                            if instr.mnemonic == 'mrc':
+                                found_mrc = True
+                            elif instr.mnemonic == 'ldr':
+                                ldr_instr = instr
+                        else:
+                            reg = ldr_instr.operands[0].str
+                            if instr.mnemonic == 'add' and instr.op_str == reg + ", pc":
+                                offset = ldr_instr.operands[1].mem.disp
+                                offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                                self._thread_cache_offset = pwndbg.memory.s32(instr.address + 4 + offset) + 4
+                                break
                 else:
                     inform_report_issue("tcache")
                     raise OSError("Cannot find the symbol via heuristics")
@@ -961,8 +1032,12 @@ class HeuristicHeap(Heap):
                     return self.tcache_perthread_struct(
                         pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset)
                     )
+                elif pwndbg.arch.current == "arm":
+                    return self.tcache_perthread_struct(
+                        pwndbg.memory.pvoid(self.get_arm_tls_base() + self._thread_cache_offset)
+                    )
 
-            # If we still can't find the tcache, we guess tcache is the first chunk in the heap
+            # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
             # TODO/FIXME: This might fail if the arena is being shared by multiple threads
             arena = self.get_arena()
             heap_region = self.get_heap_boundaries()
