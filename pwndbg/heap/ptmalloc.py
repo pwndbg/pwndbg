@@ -772,8 +772,12 @@ class HeuristicHeap(Heap):
     def get_arm_tls_base(self):
         assert pwndbg.arch.current == "arm"
         # TODO/FIXME: Need a better way to find tls
-        errno_addr = gdb.execute("call (long)__errno_location()", to_string=True)
-        errno_addr = int(errno_addr.split(' = ')[1].strip())
+        already_lock = gdb.parameter("scheduler-locking") == "on"
+        if not already_lock:
+            gdb.execute("set scheduler-locking on")
+        errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
+        if not already_lock:
+            gdb.execute("set scheduler-locking off")
         if not self._errno_offset:
             __errno_location_instr = pwndbg.disasm.near(pwndbg.symbol.address('__errno_location'), 5,
                                                         show_prev_insns=False)
