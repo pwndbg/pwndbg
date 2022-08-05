@@ -29,7 +29,7 @@ def initial_hook(*a):
         print(message.prompt('pwndbg: tip of the day: ') + get_tip_of_the_day())
     pwndbg.decorators.first_prompt = True
 
-    prompt_hook(a)
+    prompt_hook(*a)
     gdb.prompt_hook = prompt_hook
 
 
