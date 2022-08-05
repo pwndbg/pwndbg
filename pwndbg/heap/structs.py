@@ -7,11 +7,16 @@ import pwndbg.glibc
 import pwndbg.memory
 import pwndbg.typeinfo
 
+if pwndbg.arch.current not in ("i386", "x86-64", "arm", "aarch64"):
+    raise OSError(f"{pwndbg.arch.current} is not supported yet")
+
 NBINS = 128
 BINMAPSIZE = 4
 TCACHE_MAX_BINS = 64
 
-# Somehow, i386 is 11, and x86-64/arm/aarch64 are 10
+# TODO/FIXME: IDK how to calculate `NFASTBINS`, I tried `(fastbin_index (request2size (MAX_FAST_SIZE)) + 1)`, but the
+# results seem incorrect sometimes, so I use a hard-coded way to make it work, this might be a problem if we want to
+# support heuristic for other architectures
 NFASTBINS = 11 if pwndbg.arch.current == "i386" else 10
 
 if pwndbg.arch.ptrsize == 4:
@@ -289,9 +294,12 @@ class c_heap_info(ctypes.LittleEndianStructure):
     _fields_ = [
         ('ar_ptr', c_pvoid),
         ('prev', c_pvoid),
-        ('next', c_pvoid),
         ('size', c_size_t),
-        ('pad', ctypes.c_uint8 * (8 if pwndbg.arch.ptrsize == 4 else 0)),
+        ('mprotect_size', c_size_t),
+        # TODO/FIXME: IDK how to calculate the size of `pad`, I tried `-6 * SIZE_SZ & MALLOC_ALIGN_MASK`, but the
+        # results seems incorrect sometimes, so I use a hard-coded way to make it work, this might be a problem if we
+        # want to support heuristic for other architectures
+        ('pad', ctypes.c_uint8 * (8 if pwndbg.arch.current == "i386" else 0)),
     ]
 
 
