@@ -185,7 +185,10 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     @pwndbg.memoize.reset_on_objfile
     def malloc_alignment(self):
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        return pwndbg.arch.ptrsize * 2
+        # i386 will override it to 16 when GLIBC version >= 2.26
+        # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+        return 16 if pwndbg.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26) \
+            else pwndbg.arch.ptrsize * 2
 
     @property
     @pwndbg.memoize.reset_on_objfile

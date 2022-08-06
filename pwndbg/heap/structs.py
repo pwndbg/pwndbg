@@ -7,17 +7,32 @@ import pwndbg.glibc
 import pwndbg.memory
 import pwndbg.typeinfo
 
-if pwndbg.arch.current not in ("i386", "x86-64", "arm", "aarch64"):
-    raise OSError(f"{pwndbg.arch.current} is not supported yet")
 
+def request2size(req):
+    if req + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE:
+        return MINSIZE
+    return (req + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK
+
+
+def fastbin_index(size):
+    if pwndbg.arch.ptrsize == 8:
+        return (size >> 4) - 2
+    else:
+        return (size >> 3) - 2
+
+
+SIZE_SZ = pwndbg.arch.ptrsize
+MINSIZE = pwndbg.arch.ptrsize * 4
+# i386 will override it to 16.
+# See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+MALLOC_ALIGN = 16 if pwndbg.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26) \
+    else pwndbg.arch.ptrsize * 2
+MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
+MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
 BINMAPSIZE = 4
 TCACHE_MAX_BINS = 64
-
-# TODO/FIXME: IDK how to calculate `NFASTBINS`, I tried `(fastbin_index (request2size (MAX_FAST_SIZE)) + 1)`, but the
-# results seem incorrect sometimes, so I use a hard-coded way to make it work, this might be a problem if we want to
-# support heuristic for other architectures
-NFASTBINS = 11 if pwndbg.arch.current == "i386" else 10
+NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
 if pwndbg.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
@@ -296,10 +311,7 @@ class c_heap_info(ctypes.LittleEndianStructure):
         ('prev', c_pvoid),
         ('size', c_size_t),
         ('mprotect_size', c_size_t),
-        # TODO/FIXME: IDK how to calculate the size of `pad`, I tried `-6 * SIZE_SZ & MALLOC_ALIGN_MASK`, but the
-        # results seems incorrect sometimes, so I use a hard-coded way to make it work, this might be a problem if we
-        # want to support heuristic for other architectures
-        ('pad', ctypes.c_uint8 * (8 if pwndbg.arch.current == "i386" else 0)),
+        ('pad', ctypes.c_uint8 * (-6 * SIZE_SZ & MALLOC_ALIGN_MASK)),
     ]
 
 
