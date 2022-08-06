@@ -33,6 +33,9 @@ explored_pages = []
 # List of custom pages that can be managed manually by vmmap_* commands family
 custom_pages = []
 
+
+kernel_vmmap_via_pt = pwndbg.config.Parameter('kernel-vmmap-via-page-tables', True, 'When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel\'s `monitor info mem` command')
+
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_stop
 def get():
@@ -41,8 +44,11 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
-    if not pages and pwndbg.arch.current in ('i386', 'x86-64', 'aarch64', 'riscv:rv64') and pwndbg.qemu.is_qemu():
-        pages.extend(monitor_info_mem())
+    if not pages and pwndbg.qemu.is_qemu_kernel() and pwndbg.arch.current in ('i386', 'x86-64', 'aarch64', 'riscv:rv64'):
+        if kernel_vmmap_via_pt:
+            pages.extend(kernel_vmmap_via_page_tables())
+        else:
+            pages.extend(kernel_vmmap_via_monitor_info_mem())
 
     if not pages:
         # If debuggee is launched from a symlink the debuggee memory maps will be
@@ -230,15 +236,14 @@ def proc_pid_maps():
     return tuple(pages)
 
 @pwndbg.memoize.reset_on_stop
-def monitor_info_mem():
+def kernel_vmmap_via_page_tables():
     import pt
     p = pt.PageTableDump()
     p.lazy_init()
     pages = p.backend.parse_tables(p.cache, p.parser.parse_args(''))
 
     retpages = []
-    #import pdb
-    #pdb.set_trace()
+
     for page in pages:
         start = page.va
         size = page.page_size
@@ -247,20 +252,31 @@ def monitor_info_mem():
         if page.pwndbg_is_executable(): flags |= 1
         retpages.append(pwndbg.memory.Page(start, size, flags, 0, '<pt>'))
     return tuple(retpages)
-    # NOTE: This works only on X86/X64/RISC-V
-    # See: https://github.com/pwndbg/pwndbg/pull/685
-    # (TODO: revisit with future QEMU versions)
-    #
+
+
+def kernel_vmmap_via_monitor_info_mem():
+    """
+    Returns Linux memory maps information by parsing `monitor info mem` output
+    from QEMU kernel GDB stub.
+    Works only on X86/X64/RISC-V as this is what QEMU supports.
+
+    Consider using the `kernel_vmmap_via_page_tables` method
+    as it is probably more reliable/better.
+    
+    See also: https://github.com/pwndbg/pwndbg/pull/685
+    (TODO: revisit with future QEMU versions)
+
+    # Example output from the command:
     # pwndbg> monitor info mem
     # ffff903580000000-ffff903580099000 0000000000099000 -rw
     # ffff903580099000-ffff90358009b000 0000000000002000 -r-
     # ffff90358009b000-ffff903582200000 0000000002165000 -rw
     # ffff903582200000-ffff903582803000 0000000000603000 -r-
+    """
     try:
         lines = gdb.execute('monitor info mem', to_string=True).splitlines()
     except gdb.error:
         # Likely a `gdb.error: "monitor" command not supported by this target.`
-        # TODO: add debug logging
         return tuple()
 
     # Handle disabled PG
