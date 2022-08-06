@@ -1,4 +1,5 @@
 import gdb
+import re
 
 import pwndbg.decorators
 import pwndbg.events
@@ -19,14 +20,16 @@ for line in hint_lines:
     print(message.prompt('pwndbg: ') + message.system(line))
 
 # noinspection PyPackageRequirements
-show_mod = pwndbg.config.Parameter('show-tip', True, 'display tip of the day at startup')
+show_tip = pwndbg.config.Parameter('show-tips', True, 'whether to display the tip of the day on startup')
 
 cur = None
 
 
 def initial_hook(*a):
-    if show_mod and not pwndbg.decorators.first_prompt:
-        print(message.prompt('pwndbg: tip of the day: ') + get_tip_of_the_day())
+    if show_tip and not pwndbg.decorators.first_prompt:
+        colored_tip = re.sub('`(.*?)`', lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day())
+        print(message.prompt('------- tip of the day') + message.system(' (disable with %s)' % message.notice('set show-tips off')) + message.prompt(' -------'))
+        print((colored_tip))
     pwndbg.decorators.first_prompt = True
 
     prompt_hook(a)
