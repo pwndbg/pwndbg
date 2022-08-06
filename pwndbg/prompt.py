@@ -1,5 +1,5 @@
-import gdb
 import re
+import gdb
 
 import pwndbg.decorators
 import pwndbg.events
