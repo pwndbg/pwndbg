@@ -5,22 +5,22 @@ import pwndbg.symbol
 
 current = None
 
-heap_chain_limit = pwndbg.config.Parameter('heap-dereference-limit', 8, 'number of bins to dereference')
+main_arena = pwndbg.config.Parameter('main_arena', "0", 'main_arena address for heuristics', 'heap')
 
-resolve_via_heuristic = pwndbg.config.Parameter('resolve-via-heuristic', False,
-                                                'Resolve some missing symbols via heuristics')
+thread_arena = pwndbg.config.Parameter('thread_arena', "0", 'thread_arena value for heuristics', 'heap')
 
-main_arena = pwndbg.config.Parameter('main_arena', "0", 'main_arena address for heuristics')
+mp_ = pwndbg.config.Parameter('mp_', "0", 'mp_ address for heuristics', 'heap')
 
-thread_arena = pwndbg.config.Parameter('thread_arena', "0", 'thread_arena value for heuristics')
+tcache = pwndbg.config.Parameter('tcache', "0", 'tcache value for heuristics', 'heap')
 
-mp_ = pwndbg.config.Parameter('mp_', "0", 'mp_ address for heuristics')
+global_max_fast = pwndbg.config.Parameter('global_max_fast', "0", 'global_max_fast address for heuristics', 'heap')
 
-tcache = pwndbg.config.Parameter('tcache', "0", 'tcache value for heuristics')
+symbol_list = pwndbg.config.get_params('heap')
 
-global_max_fast = pwndbg.config.Parameter('global_max_fast', "0", 'global_max_fast address for heuristics')
+heap_chain_limit = pwndbg.config.Parameter('heap-dereference-limit', 8, 'number of bins to dereference', 'heap')
 
-symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
+resolve_heap_via_heuristic = pwndbg.config.Parameter('resolve-heap-via-heuristic', False,
+                                                     'Resolve missing heap related symbols via heuristics', 'heap')
 
 
 @pwndbg.config.Trigger(symbol_list)
@@ -34,14 +34,7 @@ def parse_config2address():
         if address_str == "0":
             continue
         try:
-            if address_str.startswith("0b"):
-                address = int(address_str, 2)
-            elif address_str.startswith("0o"):
-                address = int(address_str, 8)
-            elif address_str.startswith("0x"):
-                address = int(address_str, 16)
-            else:
-                address = int(address_str)
+            address = int(address_str, 0)
         except ValueError:
             symbol.value = "0"
             raise ValueError("Please input a valid integer literal string")
@@ -64,11 +57,11 @@ def reset():
         symbol.value = "0"
 
 
-@pwndbg.config.Trigger([resolve_via_heuristic])
+@pwndbg.config.Trigger([resolve_heap_via_heuristic])
 def resolve_heap(is_first_run=False):
     import pwndbg.heap.ptmalloc
     global current
-    if resolve_via_heuristic:
+    if resolve_heap_via_heuristic:
         current = pwndbg.heap.ptmalloc.HeuristicHeap()
         if not is_first_run and pwndbg.proc.alive and current.libc_has_debug_syms():
             print(message.warn(
