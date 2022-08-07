@@ -23,24 +23,6 @@ resolve_heap_via_heuristic = pwndbg.config.Parameter('resolve-heap-via-heuristic
                                                      'Resolve missing heap related symbols via heuristics', 'heap')
 
 
-@pwndbg.config.Trigger(symbol_list)
-def parse_config2address():
-    # Somehow, we can't use integer config because the integer is too big and will cause out of range error for GDB API
-    # So we convert the string to a int manually
-    for symbol in symbol_list:
-        if not isinstance(symbol.value, str):
-            continue
-        address_str = symbol.value.strip()
-        if address_str == "0":
-            continue
-        try:
-            address = int(address_str, 0)
-        except ValueError:
-            symbol.value = "0"
-            raise ValueError("Please input a valid integer literal string")
-        symbol.value = address
-
-
 @pwndbg.events.start
 def update():
     resolve_heap(is_first_run=True)

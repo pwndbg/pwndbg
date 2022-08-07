@@ -677,7 +677,7 @@ class HeuristicHeap(Heap):
 
     @property
     def main_arena(self):
-        main_arena_via_config = int(pwndbg.config.main_arena)
+        main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
         if main_arena_via_config > 0:
             return self.malloc_state(main_arena_via_config)
         # TODO/FIXME: These are quite dirty, we should find a better way to do this
@@ -799,7 +799,7 @@ class HeuristicHeap(Heap):
 
     @property
     def thread_arena(self):
-        thread_arena_via_config = int(pwndbg.config.thread_arena)
+        thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
         if thread_arena_via_config > 0:
             return thread_arena_via_config
         if not self._thread_arena_offset:
@@ -911,7 +911,7 @@ class HeuristicHeap(Heap):
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
         """
-        thread_cache_via_config = int(pwndbg.config.tcache)
+        thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
         if thread_cache_via_config > 0:
             return self.tcache_perthread_struct(thread_cache_via_config)
         if self.has_tcache():
@@ -1074,7 +1074,7 @@ class HeuristicHeap(Heap):
 
     @property
     def mp(self):
-        mp_via_config = int(pwndbg.config.mp_)
+        mp_via_config = int(str(pwndbg.config.mp_), 0)
         if mp_via_config > 0:
             return self.malloc_par(mp_via_config)
         if not self._mp_addr:
@@ -1198,7 +1198,7 @@ class HeuristicHeap(Heap):
 
     @property
     def global_max_fast(self):
-        global_max_fast_via_config = int(pwndbg.config.global_max_fast)
+        global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
         if global_max_fast_via_config > 0:
             return pwndbg.memory.u(global_max_fast_via_config)
         # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
