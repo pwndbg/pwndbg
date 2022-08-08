@@ -1,5 +1,6 @@
 import argparse
 
+import gdb
 from capstone import *
 
 import pwndbg.arguments
@@ -51,6 +52,9 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         pc = nearpc.next_pc
 
     result = []
+
+    if pc is not None:
+        pc = gdb.Value(pc).cast(pwndbg.typeinfo.pvoid)
 
     # Fix the case where we only have one argument, and
     # it's a small value.
