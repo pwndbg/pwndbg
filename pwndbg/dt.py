@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Prints structures in a manner similar to Windbg's "dt" command.
 """

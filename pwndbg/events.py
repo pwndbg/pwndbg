@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Enables callbacks into functions to be automatically invoked
 when various events occur to the debuggee (e.g. STOP on SIGINT)

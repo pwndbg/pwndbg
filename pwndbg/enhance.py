@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Given an address in memory which does not contain a pointer elsewhere
 into memory, attempt to describe the data as best as possible.

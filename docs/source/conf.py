@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pwndbg documentation build configuration file, created by
 # sphinx-quickstart on Tue Feb 28 14:36:07 2017.

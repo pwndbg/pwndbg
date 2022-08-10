@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Hexdump implementation, ~= stolen from pwntools.
 """

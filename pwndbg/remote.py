@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Information about whether the debuggee is local (under GDB) or remote
 (under GDBSERVER or QEMU stub).

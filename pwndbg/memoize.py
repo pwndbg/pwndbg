@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Caches return values until some event in the inferior happens,
 e.g. execution stops because of a SIGINT or breakpoint, or a

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Dumps all pwndbg-specific theme configuration points.
 """
