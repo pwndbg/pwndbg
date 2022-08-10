@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Runs a few useful commands which are available under "info".
 

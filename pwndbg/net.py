@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Re-implements some psutil functionality to be able to get information from
 remote debugging sessions.

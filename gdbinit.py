@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import glob
 import locale
 import sys

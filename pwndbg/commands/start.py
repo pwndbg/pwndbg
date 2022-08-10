@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Launches the target process after setting a breakpoint at a convenient
 entry point.

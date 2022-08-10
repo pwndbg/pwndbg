@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Search the address space for byte patterns.
 """

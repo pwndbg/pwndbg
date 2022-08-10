@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".

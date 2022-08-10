@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Compatibility functionality for GDBINIT users.
 

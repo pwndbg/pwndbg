@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Functionality for disassmebling code at an address, or at an
 address +/- a few instructions.

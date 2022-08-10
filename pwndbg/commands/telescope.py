@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Prints out pointer chains starting at some address in memory.
 

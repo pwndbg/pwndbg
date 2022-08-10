@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Find a chain of leaks given some starting address.
 """

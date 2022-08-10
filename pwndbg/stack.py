@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Helpers for finding address mappings which are used as
 a stack.

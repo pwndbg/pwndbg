@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Hexdump implementation, ~= stolen from pwntools.
 """

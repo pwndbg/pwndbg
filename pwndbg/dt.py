@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Prints structures in a manner similar to Windbg's "dt" command.
 """

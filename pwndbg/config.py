@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Dynamic configuration system for pwndbg, using GDB's built-in Parameter
 mechanism.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import gdb
 
 import pwndbg.color.message as message

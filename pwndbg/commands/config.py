@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Dumps all pwndbg-specific configuration points.
 """

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Retrieve files from the debuggee's filesystem.  Useful when
 debugging a remote process over SSH or similar, where e.g.

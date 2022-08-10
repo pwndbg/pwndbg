@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pwndbg.auxv
 import pwndbg.chain
 import pwndbg.commands

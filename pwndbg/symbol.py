@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Looking up addresses for function names / symbols, and
 vice-versa.

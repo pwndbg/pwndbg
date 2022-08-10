@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Emulation assistance from Unicorn.
 """

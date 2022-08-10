@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pwndbg.color.theme as theme
 import pwndbg.config as config
 import pwndbg.vmmap

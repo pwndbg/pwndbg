@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 A few helpers for making things print pretty-like.
 """

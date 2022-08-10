@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Functionality for resolving ASCII printable strings within
 the debuggee's address space.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Determine whether the target is being run under QEMU.
 """

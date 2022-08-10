@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Get information about the GLibc
 """

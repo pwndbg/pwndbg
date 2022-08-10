@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Common helper and cache for pwndbg tempdir
 """

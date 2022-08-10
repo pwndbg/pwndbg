@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 This file declares types and methods useful for enumerating
 all of the address spaces and permissions of an ELF file in memory.

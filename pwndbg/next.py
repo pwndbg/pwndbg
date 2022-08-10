@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Commands for setting temporary breakpoints on the next
 instruction of some type (call, branch, etc.)

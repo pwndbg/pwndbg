@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Reading, writing, and describing memory.
 """

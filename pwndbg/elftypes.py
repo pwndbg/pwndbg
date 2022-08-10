@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 #  mayhem/datatypes/elf.py
 #

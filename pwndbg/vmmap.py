@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Routines to enumerate mapped memory, and attempt to associate
 address ranges with various ELF files and permissions.

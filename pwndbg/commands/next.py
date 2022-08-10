@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Stepping until an event occurs
 """
