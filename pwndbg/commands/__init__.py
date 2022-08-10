@@ -299,7 +299,8 @@ class _ArgparsedCommand(Command):
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
     def split_args(self, argument):
-        argv = gdb.string_to_argv(argument)
+        escaped_arg = argument.replace("'", "\\'")  # Escaping apostrophes is needed for arguments like `&'A::foo()'`
+        argv = gdb.string_to_argv(escaped_arg)
         return tuple(), vars(self.parser.parse_args(argv))
 
 
