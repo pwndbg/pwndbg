@@ -8,13 +8,13 @@ working on a BSD system which simply does not have /proc.
 """
 
 import ctypes
+import importlib
 import sys
 from collections import namedtuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
-from six.moves import reload_module
 
 import pwndbg.abi
 import pwndbg.arch
@@ -51,7 +51,7 @@ class ELFInfo(namedtuple('ELFInfo', 'header sections segments')):
 @pwndbg.events.start
 @pwndbg.events.new_objfile
 def update():
-    reload_module(pwndbg.elftypes)
+    importlib.reload(pwndbg.elftypes)
 
     if pwndbg.arch.ptrsize == 4:
         Ehdr = pwndbg.elftypes.Elf32_Ehdr
