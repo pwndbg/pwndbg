@@ -33,7 +33,7 @@ def initial_hook(*a):
         print((colored_tip))
     pwndbg.decorators.first_prompt = True
 
-    prompt_hook(a)
+    prompt_hook(*a)
     gdb.prompt_hook = prompt_hook
 
 
