@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Command to print the virtual memory map a la /proc/self/maps.
 """

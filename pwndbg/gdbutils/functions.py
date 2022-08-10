@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Put all functions defined for gdb in here.
 

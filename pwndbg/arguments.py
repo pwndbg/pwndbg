@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.

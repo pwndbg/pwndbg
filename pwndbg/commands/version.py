@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Displays gdb, python and pwndbg versions.
 """
@@ -9,6 +7,7 @@ import argparse
 import sys
 from platform import platform
 from subprocess import check_output
+from urllib.parse import quote
 
 import gdb
 
@@ -16,11 +15,6 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.ida
 from pwndbg.color import message
-
-try:
-    from urllib import quote
-except:
-    from urllib.parse import quote
 
 
 def _gdb_version():
@@ -68,7 +62,7 @@ def all_versions():
         ida_hr_ver  = 'Hexrays:  %s' % ida_versions['hexrays']
         all_versions += (ida_version, ida_py_ver, ida_hr_ver)
     return all_versions
-    
+
 
 @pwndbg.commands.ArgparsedCommand("Displays gdb, python and pwndbg versions.")
 def version():
@@ -169,7 +163,7 @@ If it is somehow unavailable, use:
 
     gdb_current_session_history = (v for (k, v) in sorted(gdb_current_session_history.items()))
     gdb_current_session_history = '\n'.join(gdb_current_session_history)
-    
+
     issue_bugreport = ISSUE_TEMPLATE.format(gdb_history=gdb_current_session_history, setup=current_setup)
     print(issue_bugreport)
 
@@ -181,6 +175,6 @@ If it is somehow unavailable, use:
         try:
             check_output(['xdg-open', github_issue_url + github_issue_body])
         except:
-            print(please_please_submit + github_issue_url)    
+            print(please_please_submit + github_issue_url)
     else:
         print(please_please_submit + github_issue_url)

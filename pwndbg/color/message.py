@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 from pwndbg import config
 from pwndbg.color import generateColorFunction

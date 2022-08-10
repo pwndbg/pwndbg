@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Functionality for disassmebling code at an address, or at an
 address +/- a few instructions.

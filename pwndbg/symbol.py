@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Looking up addresses for function names / symbols, and
 vice-versa.

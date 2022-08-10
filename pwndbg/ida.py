@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
@@ -11,6 +9,7 @@ import socket
 import sys
 import time
 import traceback
+import xmlrpc.client
 
 import gdb
 
@@ -24,20 +23,14 @@ import pwndbg.memory
 import pwndbg.regs
 from pwndbg.color import message
 
-try:
-    import xmlrpc.client as xmlrpclib
-except:
-    import xmlrpclib
-
-
 ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
 ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 31337, 'ida xmlrpc server port')
 ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
 ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
 
-xmlrpclib.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-xmlrpclib.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+xmlrpc.client.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 _ida = None
 
@@ -62,7 +55,7 @@ def init_ida_rpc_client():
 
     addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
 
-    _ida = xmlrpclib.ServerProxy(addr)
+    _ida = xmlrpc.client.ServerProxy(addr)
     socket.setdefaulttimeout(int(ida_timeout))
 
     exception = None # (type, value, traceback)
@@ -76,7 +69,7 @@ def init_ida_rpc_client():
     except socket.timeout:
         exception = sys.exc_info()
         _ida = None
-    except xmlrpclib.ProtocolError:
+    except xmlrpc.client.ProtocolError:
         exception = sys.exc_info()
         _ida = None
 

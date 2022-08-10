@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Dynamic configuration system for pwndbg, using GDB's built-in Parameter
 mechanism.

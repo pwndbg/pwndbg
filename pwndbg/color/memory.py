@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import pwndbg.color.theme as theme
 import pwndbg.config as config
 import pwndbg.vmmap
