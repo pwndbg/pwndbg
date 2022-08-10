@@ -20,6 +20,7 @@ import pwndbg.commands.comments
 import pwndbg.commands.config
 import pwndbg.commands.context
 import pwndbg.commands.cpsr
+import pwndbg.commands.dxc
 import pwndbg.commands.dt
 import pwndbg.commands.dumpargs
 import pwndbg.commands.elf
@@ -129,6 +130,7 @@ __all__ = [
 ]
 
 pwndbg.prompt.set_prompt()
+
 
 pre_commands = """
 set confirm off
