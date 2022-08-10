@@ -73,6 +73,9 @@ def get(instruction):
     """
     n_args_default = 4
 
+    if instruction is None:
+        return []
+
     if instruction.address != pwndbg.regs.pc:
         return []
 
