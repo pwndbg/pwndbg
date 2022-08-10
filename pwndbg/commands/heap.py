@@ -104,6 +104,10 @@ def heap(addr=None, verbose=False, simple=False):
     top_chunk = arena['top']
     ptr_size = allocator.size_sz
 
+    # Store the heap base address in a GDB variable that can be used in other
+    # GDB commands
+    gdb.execute('set $heap_base=0x{:x}'.format(heap_region.start))
+
     # Calculate where to start printing; if an address was supplied, use that,
     # if this heap belongs to the main arena, start at the beginning of the
     # heap's mapping, otherwise, compensate for the presence of a heap_info
