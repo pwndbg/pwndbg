@@ -337,6 +337,30 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
 
 
 parser = argparse.ArgumentParser()
+parser.description = "Print the next chunk."
+parser.add_argument("addr", type=int, help="Address of the chunk (malloc_chunk struct start, prev_size field).")
+parser.add_argument("-f", "--fake", action="store_true", help="Is this a fake chunk?")
+parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
+parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
+@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def next_malloc_chunk(addr, fake=False, verbose=False, simple=False):
+    """Print a the next malloc_chunk struct's contents."""
+    # points to the real start of the chunk
+    cursor = int(addr)
+
+    allocator = pwndbg.heap.current
+    ptr_size = allocator.size_sz
+
+    size_field = pwndbg.memory.u(cursor + allocator.chunk_key_offset('size'))
+    real_size = size_field & ~allocator.malloc_align_mask
+
+    malloc_chunk(addr + real_size, fake, verbose, simple)
+
+
+parser = argparse.ArgumentParser()
 parser.description = "Print the contents of all an arena's bins and a thread's tcache, default to the current thread's arena and tcache."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
