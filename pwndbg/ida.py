@@ -223,7 +223,8 @@ def Anterior(addr):
     lines = []
     for i in range(10):
         r = _ida.LineA(addr, i)
-        if not r: break
+        if not r:
+            break
         if r.startswith(hexrays_prefix):
             r = r[len(hexrays_prefix):]
         lines.append(r)

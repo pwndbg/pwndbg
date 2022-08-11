@@ -63,7 +63,8 @@ DEBUG = False
 
 
 def debug(fmt, args=()):
-    if DEBUG: print(fmt % args)
+    if DEBUG:
+        print(fmt % args)
 
 
 # Until Unicorn Engine provides full information about the specific instruction
@@ -99,7 +100,7 @@ arch_to_SYSCALL = {
     ],
 }
 
-blacklisted_regs = ['ip','cs','ds','es','fs','gs','ss','fsbase','gsbase']
+blacklisted_regs = ['ip', 'cs', 'ds', 'es', 'fs', 'gs', 'ss', 'fsbase', 'gsbase']
 
 '''
 e = pwndbg.emu.emulator.Emulator()
@@ -119,7 +120,7 @@ class Emulator:
         # Just registers, for faster lookup
         self.const_regs = {}
         r = re.compile(r'^UC_.*_REG_(.*)$')
-        for k,v in self.consts.items():
+        for k, v in self.consts.items():
             m = r.match(k)
             if m:
                 self.const_regs[m.group(1)] = v
@@ -203,7 +204,7 @@ class Emulator:
             mode |= U.UC_MODE_MIPS32R6
 
         else:
-            mode |= {4:U.UC_MODE_32, 8:U.UC_MODE_64}[pwndbg.arch.ptrsize]
+            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.arch.ptrsize]
 
         if pwndbg.arch.endian == 'little':
             mode |= U.UC_MODE_LITTLE_ENDIAN

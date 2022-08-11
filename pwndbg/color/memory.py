@@ -11,23 +11,30 @@ config_data   = theme.ColoredParameter('memory-data-color', 'purple', 'color for
 config_rodata = theme.ColoredParameter('memory-rodata-color', 'normal', 'color for all read only memory')
 config_rwx    = theme.ColoredParameter('memory-rwx-color', 'underline', 'color added to all RWX memory')
 
+
 def stack(x):
     return generateColorFunction(config.memory_stack_color)(x)
+
 
 def heap(x):
     return generateColorFunction(config.memory_heap_color)(x)
 
+
 def code(x):
     return generateColorFunction(config.memory_code_color)(x)
+
 
 def data(x):
     return generateColorFunction(config.memory_data_color)(x)
 
+
 def rodata(x):
     return generateColorFunction(config.memory_rodata_color)(x)
 
+
 def rwx(x):
     return generateColorFunction(config.memory_rwx_color)(x)
+
 
 def get(address, text = None):
     """
@@ -42,16 +49,22 @@ def get(address, text = None):
 
     page = pwndbg.vmmap.find(int(address))
 
-    if page is None:                 color = normal
-    elif '[stack' in page.objfile:   color = stack
-    elif '[heap'  in page.objfile:   color = heap
-    elif page.execute:               color = code
-    elif page.rw:                    color = data
-    else:                            color = rodata
+    if page is None:
+        color = normal
+    elif '[stack' in page.objfile:
+        color = stack
+    elif '[heap' in page.objfile:
+        color = heap
+    elif page.execute:
+        color = code
+    elif page.rw:
+        color = data
+    else:
+        color = rodata
 
     if page and page.rwx:
         old_color = color
-        color = lambda x: rwx(old_color(x))
+        def color(x): return rwx(old_color(x))
 
     if text is None and isinstance(address, int) and address > 255:
         text = hex(int(address))
@@ -59,6 +72,7 @@ def get(address, text = None):
         text = str(int(address))
 
     return color(text)
+
 
 def legend():
     return 'LEGEND: ' + ' | '.join((

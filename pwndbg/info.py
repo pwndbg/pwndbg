@@ -16,12 +16,14 @@ def proc_mapping():
     except gdb.error:
         return ''
 
+
 @pwndbg.memoize.reset_on_exit
 def auxv():
     try:
         return gdb.execute('info auxv', to_string=True)
     except gdb.error:
         return ''
+
 
 @pwndbg.memoize.reset_on_stop
 def files():

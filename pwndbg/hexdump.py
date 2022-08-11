@@ -12,12 +12,14 @@ import pwndbg.config
 color_scheme = None
 printable = None
 
+
 def groupby(array, count, fill=None):
     array = copy.copy(array)
     while fill and len(array) % count:
         array.append(fill)
     for i in range(0, len(array), count):
         yield array[i:i+count]
+
 
 config_colorize_ascii = theme.Parameter('hexdump-colorize-ascii', True, 'whether to colorize the hexdump command ascii section')
 config_separator      = theme.Parameter('hexdump-ascii-block-separator', '│', 'block separator char of the hexdump command')
@@ -31,8 +33,8 @@ def load_color_scheme():
     # We want to colorize the hex characters and only print out
     # printable values on the righ hand side.
     #
-    color_scheme = {i:H.normal("%02x" % i) for i in range(256)}
-    printable = {i:H.normal('.') for i in range(256)}
+    color_scheme = {i: H.normal("%02x" % i) for i in range(256)}
+    printable = {i: H.normal('.') for i in range(256)}
 
     for c in bytearray((string.ascii_letters + string.digits + string.punctuation).encode('utf-8', 'ignore')):
         color_scheme[c] = H.printable("%02x" % c)
@@ -48,6 +50,7 @@ def load_color_scheme():
 
     color_scheme[-1] = '  '
     printable[-1] = ' '
+
 
 def hexdump(data, address = 0, width = 16, group_width=4, flip_group_endianess = False, skip = True, offset = 0):
     if not color_scheme or not printable:
@@ -90,7 +93,7 @@ def hexdump(data, address = 0, width = 16, group_width=4, flip_group_endianess =
                 hexline.append(printable[char])
             hexline.append(H.separator('%s' % config_separator))
 
-        yield(''.join(hexline))
+        yield (''.join(hexline))
 
     # skip empty footer if we printed something
     if last_line:

@@ -35,6 +35,7 @@ def errno(err):
     msg = _errno.errorcode.get(int(err), "Unknown error code")
     print("Errno %i: %s" % (err, msg))
 
+
 parser = argparse.ArgumentParser(description='''
 Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
 ''')
@@ -46,9 +47,12 @@ def pwndbg(filter_pattern):
     for name, docs in list_and_filter_commands(filter_pattern):
         print("%-20s %s" % (name, docs))
 
+
 parser = argparse.ArgumentParser(description='''Print the distance between the two arguments.''')
 parser.add_argument('a', type=int, help="The first address.")
 parser.add_argument('b', type=int, help="The second address.")
+
+
 @_pwndbg.commands.ArgparsedCommand(parser)
 def distance(a, b):
     '''Print the distance between the two arguments'''
@@ -73,8 +77,10 @@ def list_and_filter_commands(filter_str):
         name = c.__name__
         docs = c.__doc__
 
-        if docs: docs = docs.strip()
-        if docs: docs = docs.splitlines()[0]
+        if docs:
+            docs = docs.strip()
+        if docs:
+            docs = docs.splitlines()[0]
 
         if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
             results.append((name, docs))

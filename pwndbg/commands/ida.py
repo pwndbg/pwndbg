@@ -32,7 +32,9 @@ parser.description = """
     Select and print stack frame that called this one.
     An argument says how many frames up to go.
     """
-parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go up.") 
+parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go up.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1):
@@ -55,12 +57,15 @@ def up(n=1):
 
     j()
 
+
 parser = argparse.ArgumentParser()
 parser.description = """
     Select and print stack frame called by this one.
     An argument says how many frames down to go.
     """
-parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go down.") 
+parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go down.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1):
@@ -125,12 +130,12 @@ def save_ida():
     # Remove old version
     os.unlink(full_path)
 
+
 save_ida()
 
 
 @GdbFunction()
 def ida(name):
-
     """Evaluate ida.LocByName() on the supplied value."""
     name = name.string()
     result = pwndbg.ida.LocByName(name)

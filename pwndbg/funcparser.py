@@ -20,8 +20,8 @@ def extractTypeAndName(n, defaultName=None):
         return extractTypeAndName(t)
 
     if isinstance(t.type, c_ast.Struct) \
-    or isinstance(t.type, c_ast.Union) \
-    or isinstance(t.type, c_ast.Enum):
+            or isinstance(t.type, c_ast.Union) \
+            or isinstance(t.type, c_ast.Enum):
         typename = t.type.name
     else:
         typename = t.type.names[0]
@@ -30,13 +30,16 @@ def extractTypeAndName(n, defaultName=None):
         return None
 
     name     = t.declname or defaultName or ''
-    return typename.lstrip('_'),d,name.lstrip('_')
+    return typename.lstrip('_'), d, name.lstrip('_')
+
 
 Function = collections.namedtuple('Function', ('type', 'derefcnt', 'name', 'args'))
 Argument = collections.namedtuple('Argument', ('type', 'derefcnt', 'name'))
 
+
 def Stringify(X):
     return '%s %s %s' % (X.type, X.derefcnt * '*', X.name)
+
 
 def ExtractFuncDecl(node, verbose=False):
     # The function name needs to be dereferenced.
@@ -62,6 +65,7 @@ def ExtractFuncDecl(node, verbose=False):
 
     return Func
 
+
 def ExtractAllFuncDecls(ast, verbose=False):
     Functions = {}
 
@@ -73,6 +77,7 @@ def ExtractAllFuncDecls(ast, verbose=False):
     FuncDefVisitor().visit(ast)
 
     return Functions
+
 
 def ExtractFuncDeclFromSource(source):
     try:

@@ -9,6 +9,7 @@ from pygments.token import Text
 
 __all__ = ['PwntoolsLexer']
 
+
 class PwntoolsLexer(RegexLexer):
     """
     Fork from pwntools

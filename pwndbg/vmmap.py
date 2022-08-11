@@ -34,6 +34,7 @@ custom_pages = []
 
 kernel_vmmap_via_pt = pwndbg.config.Parameter('kernel-vmmap-via-page-tables', True, 'When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel\'s `monitor info mem` command')
 
+
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_stop
 def get():
@@ -72,6 +73,7 @@ def get():
     pages.sort()
     return tuple(pages)
 
+
 @pwndbg.memoize.reset_on_stop
 def find(address):
     if address is None:
@@ -84,6 +86,7 @@ def find(address):
             return page
 
     return explore(address)
+
 
 @pwndbg.abi.LinuxOnly()
 def explore(address_maybe):
@@ -111,7 +114,7 @@ def explore(address_maybe):
         return None
 
     flags |= 2 if pwndbg.memory.poke(address_maybe) else 0
-    flags |= 1 if not pwndbg.stack.nx               else 0
+    flags |= 1 if not pwndbg.stack.nx else 0
 
     page = find_boundaries(address_maybe)
     page.objfile = '<explored>'
@@ -123,6 +126,8 @@ def explore(address_maybe):
 
 # Automatically ensure that all registers are explored on each stop
 #@pwndbg.events.stop
+
+
 def explore_registers():
     for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
@@ -212,7 +217,7 @@ def proc_pid_maps():
         maps, perm, offset, dev, inode_objfile = line.split(None, 4)
 
         start, stop = maps.split('-')
-        
+
         try:
             inode, objfile = inode_objfile.split(None, 1)
         except:
@@ -224,14 +229,18 @@ def proc_pid_maps():
         size   = stop-start
 
         flags = 0
-        if 'r' in perm: flags |= 4
-        if 'w' in perm: flags |= 2
-        if 'x' in perm: flags |= 1
+        if 'r' in perm:
+            flags |= 4
+        if 'w' in perm:
+            flags |= 2
+        if 'x' in perm:
+            flags |= 1
 
         page = pwndbg.memory.Page(start, size, flags, offset, objfile)
         pages.append(page)
 
     return tuple(pages)
+
 
 @pwndbg.memoize.reset_on_stop
 def kernel_vmmap_via_page_tables():
@@ -246,8 +255,10 @@ def kernel_vmmap_via_page_tables():
         start = page.va
         size = page.page_size
         flags = 4 # IMPLY ALWAYS READ
-        if page.pwndbg_is_writeable(): flags |= 2
-        if page.pwndbg_is_executable(): flags |= 1
+        if page.pwndbg_is_writeable():
+            flags |= 2
+        if page.pwndbg_is_executable():
+            flags |= 1
         retpages.append(pwndbg.memory.Page(start, size, flags, 0, '<pt>'))
     return tuple(retpages)
 
@@ -260,7 +271,7 @@ def kernel_vmmap_via_monitor_info_mem():
 
     Consider using the `kernel_vmmap_via_page_tables` method
     as it is probably more reliable/better.
-    
+
     See also: https://github.com/pwndbg/pwndbg/pull/685
     (TODO: revisit with future QEMU versions)
 
@@ -295,8 +306,10 @@ def kernel_vmmap_via_monitor_info_mem():
         perm = line[rspace_idx+1:]
 
         flags = 0
-        if 'r' in perm: flags |= 4
-        if 'w' in perm: flags |= 2
+        if 'r' in perm:
+            flags |= 4
+        if 'w' in perm:
+            flags |= 2
         # QEMU does not expose X/NX bit, see #685
         #if 'x' in perm: flags |= 1
         flags |= 1
@@ -352,6 +365,7 @@ def info_sharedlibrary():
 
     return tuple(sorted(pages))
 
+
 @pwndbg.memoize.reset_on_stop
 def info_files():
 
@@ -391,11 +405,13 @@ def info_files():
             continue
 
         # start, stop, _, segment, _, filename = line.split(None,6)
-        fields = line.split(None,6)
+        fields = line.split(None, 6)
         vaddr  = int(fields[0], 16)
 
-        if len(fields) == 5:    objfile = main_exe
-        elif len(fields) == 7:  objfile = fields[6]
+        if len(fields) == 5:
+            objfile = main_exe
+        elif len(fields) == 7:
+            objfile = fields[6]
         else:
             print("Bad data: %r" % line)
             continue
@@ -408,7 +424,6 @@ def info_files():
         pages.extend(pwndbg.elf.map(vaddr, objfile))
 
     return tuple(pages)
-
 
 
 @pwndbg.memoize.reset_on_exit
@@ -461,6 +476,7 @@ def find_boundaries(addr, name='', min=0):
 
     return pwndbg.memory.Page(start, end-start, 4, 0, name)
 
+
 def check_aslr():
     """
     Detects the ASLR status. Returns True, False or None.
@@ -496,6 +512,7 @@ def check_aslr():
     # access to procfs.
     output = gdb.execute('show disable-randomization', to_string=True)
     return ("is off." in output), 'show disable-randomization'
+
 
 @pwndbg.events.cont
 def mark_pc_as_executable():

@@ -26,6 +26,7 @@ WHITE          = "\x1b[97m"
 BOLD           = "\x1b[1m"
 UNDERLINE      = "\x1b[4m"
 
+
 def none(x): return str(x)
 def normal(x): return colorize(x, NORMAL)
 def black(x): return colorize(x, BLACK)
@@ -60,9 +61,10 @@ def generateColorFunctionInner(old, new):
 
     return wrapper
 
+
 def generateColorFunction(config):
-    function = lambda x: x
-    
+    def function(x): return x
+
     if disable_colors:
         return function
 
@@ -70,15 +72,19 @@ def generateColorFunction(config):
         function = generateColorFunctionInner(function, globals()[color.lower().replace('-', '_')])
     return function
 
+
 def strip(x):
     return re.sub('\x1b\\[[\d;]+m', '', x)
+
 
 def terminateWith(x, color):
     return re.sub('\x1b\\[0m', NORMAL + color, x)
 
+
 def ljust_colored(x, length, char=' '):
     remaining = length - len(strip(x))
     return x + ((remaining // len(char) + 1) * char)[:remaining]
+
 
 def rjust_colored(x, length, char=' '):
     remaining = length - len(strip(x))

@@ -8,7 +8,7 @@ import pwndbg.commands
 import pwndbg.vmmap
 
 parser = argparse.ArgumentParser(description="ROP gadget search with ropper.",
-                                epilog="Example: ropper -- --console; ropper -- --search 'mov e?x'")
+                                 epilog="Example: ropper -- --console; ropper -- --search 'mov e?x'")
 parser.add_argument('argument', nargs='*', type=str,
                     help='Arguments to pass to ropper')
 
@@ -28,7 +28,7 @@ def ropper(argument):
         # Build up the command line to run
         cmd = ['ropper',
                '--file',
-               filename] 
+               filename]
         cmd += argument
 
         try:

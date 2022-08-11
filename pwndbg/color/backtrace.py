@@ -8,14 +8,18 @@ config_address_color  = theme.ColoredParameter('backtrace-address-color', 'none'
 config_symbol_color   = theme.ColoredParameter('backtrace-symbol-color', 'none', 'color for backtrace (symbol)')
 config_label_color    = theme.ColoredParameter('backtrace-frame-label-color', 'none', 'color for backtrace (frame label)')
 
+
 def prefix(x):
     return generateColorFunction(config.backtrace_prefix_color)(x)
+
 
 def address(x):
     return generateColorFunction(config.backtrace_address_color)(x)
 
+
 def symbol(x):
     return generateColorFunction(config.backtrace_symbol_color)(x)
+
 
 def frame_label(x):
     return generateColorFunction(config.backtrace_frame_label_color)(x)

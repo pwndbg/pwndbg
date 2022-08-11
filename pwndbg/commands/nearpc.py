@@ -26,6 +26,7 @@ def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
 
+
 nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', '    ↓', 'branch marker line for nearpc command')
 nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-marker-contiguous', ' ', 'contiguous branch marker line for nearpc command')
 pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
@@ -39,6 +40,8 @@ parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to di
 parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
 #parser.add_argument("to_string", type=bool, nargs="?", default=False, help="Whether to print it or not.") #TODO make sure this should not be exposed
 parser.add_argument("emulate", type=bool, nargs="?", default=False, help="Whether to emulate instructions to find the next ones or just linearly disassemble.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False, emulate=False):
@@ -186,6 +189,8 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 parser = argparse.ArgumentParser(description='''Like nearpc, but will emulate instructions from the current $PC forward.''')
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to emulate near.")
 parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def emulate(pc=None, lines=None, to_string=False, emulate=True):
@@ -202,6 +207,8 @@ emulate_command = emulate
 parser = argparse.ArgumentParser(description='''Compatibility layer for PEDA's pdisass command.''')
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
 parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def pdisass(pc=None, lines=None, to_string=False):

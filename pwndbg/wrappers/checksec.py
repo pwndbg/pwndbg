@@ -7,6 +7,7 @@ import pwndbg.wrappers
 cmd_name = "checksec"
 cmd_pwntools = ["pwn", "checksec"]
 
+
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 @pwndbg.memoize.reset_on_objfile
 def get_raw_out():
@@ -21,6 +22,7 @@ def get_raw_out():
         pass
     return pwndbg.wrappers.call_cmd(get_raw_out.cmd + [local_path])
 
+
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 def relro_status():
     relro = "No RELRO"
@@ -32,6 +34,7 @@ def relro_status():
         relro = "Partial RELRO"
 
     return relro
+
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 def pie_status():

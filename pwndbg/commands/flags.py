@@ -3,7 +3,7 @@ from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
 
-description="Modify the flags register"
+description = "Modify the flags register"
 epilog = """Examples:
   On X86/X64:
     setflag ZF 1        -- set zero flag
@@ -24,6 +24,7 @@ parser.add_argument('flag', type=str,
                     help='Flag for which you want to change the value')
 parser.add_argument('value', type=int,
                     help='Value to which you want to set the flag - only valid options are 0 and 1')
+
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], )
 def setflag(flag, value):
@@ -50,4 +51,3 @@ def setflag(flag, value):
                 return
 
     print("The %s not a valid/recognized flag" % flag)
-

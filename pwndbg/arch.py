@@ -41,7 +41,6 @@ def _get_arch():
     return arch
 
 
-
 @pwndbg.events.start
 @pwndbg.events.stop
 @pwndbg.events.new_objfile
@@ -58,10 +57,10 @@ def update():
         m.endian = 'big'
 
     m.fmt = {
-    (4, 'little'): '<I',
-    (4, 'big'):    '>I',
-    (8, 'little'): '<Q',
-    (8, 'big'):    '>Q',
+        (4, 'little'): '<I',
+        (4, 'big'):    '>I',
+        (8, 'little'): '<Q',
+        (8, 'big'):    '>Q',
     }.get((m.ptrsize, m.endian))
 
     # Attempt to detect the qemu-user binary name

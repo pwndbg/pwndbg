@@ -77,6 +77,7 @@ bugreport_parser = argparse.ArgumentParser(description='''
     ''')
 bugreport_parser.add_argument('--run-browser', '-b', action='store_true', help='Open browser on github/issues/new')
 
+
 @pwndbg.commands.ArgparsedCommand(bugreport_parser)
 def bugreport(run_browser=False):
     ISSUE_TEMPLATE = '''

@@ -10,7 +10,7 @@ import pwndbg.typeinfo
 import pwndbg.vmmap
 
 
-def search(searchfor, mappings=None, start=None, end=None, 
+def search(searchfor, mappings=None, start=None, end=None,
            executable=False, writable=False):
     """Search inferior memory for a byte sequence.
 
@@ -29,7 +29,7 @@ def search(searchfor, mappings=None, start=None, end=None,
     i = gdb.selected_inferior()
 
     maps = mappings or pwndbg.vmmap.get()
-    
+
     if end and start:
         assert start < end, 'Last address to search must be greater then first address'
         maps = [m for m in maps if start in m or (end-1) in m]

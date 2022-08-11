@@ -39,7 +39,7 @@ Memory pages on QEMU targets may be inaccurate. This is because:
 - for others, we create mempages by exploring current register values (this is least correct)
 
 Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
-parser.formatter_class=argparse.RawDescriptionHelpFormatter
+parser.formatter_class = argparse.RawDescriptionHelpFormatter
 parser.add_argument('gdbval_or_str', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
                     help='Address or module name.')
 parser.add_argument('-w', '--writable', action='store_true', help='Display writable maps only')
@@ -80,6 +80,7 @@ parser.add_argument('size', help='Size of the address space, in bytes')
 parser.add_argument('flags', nargs='?', type=str, default='', help='Flags set by the ELF file, see PF_X, PF_R, PF_W')
 parser.add_argument('offset', nargs='?', default=0, help='Offset into the original ELF file that the data is loaded from')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_add(start, size, flags, offset):
     page_flags = {
@@ -101,7 +102,7 @@ def vmmap_add(start, size, flags, offset):
     print('%r added' % page)
 
 
-@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.") #TODO is this accurate?
+@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
 def vmmap_clear():
     pwndbg.vmmap.clear_custom_page()
 
@@ -109,6 +110,7 @@ def vmmap_clear():
 parser = argparse.ArgumentParser()
 parser.description = 'Load virtual memory map pages from ELF file.'
 parser.add_argument('filename', nargs='?', type=str, help='ELF filename, by default uses current loaded filename.')
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):

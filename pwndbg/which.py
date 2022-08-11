@@ -71,7 +71,7 @@ def which(name, all = False):
                 continue
             # work around this issue: https://bugs.python.org/issue9311
             if isroot and not \
-              st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+                    st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
                 continue
             if all:
                 out.add(p)

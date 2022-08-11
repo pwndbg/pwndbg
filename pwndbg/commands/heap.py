@@ -23,7 +23,7 @@ def read_chunk(addr):
         "mchunk_prev_size": "prev_size",
     }
     val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
-    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
+    return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
 
 
 def format_bin(bins, verbose=False, offset=None):
@@ -62,7 +62,6 @@ def format_bin(bins, verbose=False, offset=None):
         else:
             formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
 
-
         if isinstance(size, int):
             size = hex(size)
 
@@ -90,6 +89,8 @@ parser.description = "Iteratively print chunks on a heap, default to the current
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the first chunk (malloc_chunk struct start, prev_size field).")
 parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
 parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -147,6 +148,8 @@ def heap(addr=None, verbose=False, simple=False):
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena, default to the current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -160,6 +163,8 @@ def arena(addr=None):
 
 parser = argparse.ArgumentParser()
 parser.description = "List this process's arenas."
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -174,6 +179,8 @@ def arenas():
 parser = argparse.ArgumentParser()
 parser.description = "Print a thread's tcache contents, default to the current thread's tcache."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -190,6 +197,8 @@ def tcache(addr=None):
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the mp_ struct's contents."
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -203,6 +212,8 @@ def mp():
 parser = argparse.ArgumentParser()
 parser.description = "Print relevant information about an arena's top chunk, default to current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -226,6 +237,8 @@ parser.add_argument("addr", type=int, help="Address of the chunk (malloc_chunk s
 parser.add_argument("-f", "--fake", action="store_true", help="Is this a fake chunk?")
 parser.add_argument("-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones.")
 parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -301,7 +314,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
             headers_to_print.append(message.on("Free chunk (largebins)"))
             if not verbose:
                 fields_to_print.update(['fd', 'bk', 'fd_nextsize', 'bk_nextsize'])
-        
+
         elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
             headers_to_print.append(message.on("Free chunk (unsortedbin)"))
             if not verbose:
@@ -340,6 +353,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of all an arena's bins and a thread's tcache, default to the current thread's arena and tcache."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -360,6 +375,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's fastbins, default to the current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -385,6 +402,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's unsortedbin, default to the current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -410,6 +429,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's smallbins, default to the current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -435,6 +456,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's largebins, default to the current thread's arena."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -460,6 +483,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the contents of a tcache, default to the current thread's tcache."
 parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache bins.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -484,6 +509,8 @@ parser = argparse.ArgumentParser()
 parser.description = "Find candidate fake fast chunks overlapping the specified address."
 parser.add_argument("addr", type=int, help="Address of the word-sized value to overlap.")
 parser.add_argument("size", nargs="?", type=int, default=None, help="Size of fake chunks to find.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -528,9 +555,11 @@ def find_fake_fast(addr, size=None):
 
 parser = argparse.ArgumentParser()
 parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
-parser.add_argument("count", nargs="?", type=lambda n:max(int(n, 0),1), default=10, help="Number of chunks to visualize.")
+parser.add_argument("count", nargs="?", type=lambda n: max(int(n, 0), 1), default=10, help="Number of chunks to visualize.")
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument("--naive", "-n", action="store_true", default=False, help="Attempt to keep printing beyond the top chunk.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithLibcDebugSyms
@@ -606,7 +635,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
         allocator.unsortedbin(arena.address),
         allocator.smallbins(arena.address),
         allocator.largebins(arena.address),
-        ]
+    ]
     if allocator.has_tcache():
         # Only check for tcache entries belonging to the current thread,
         # it's difficult (impossible?) to find all the thread caches for a
@@ -689,6 +718,8 @@ def bin_addrs(b, bins_type):
 
 try_free_parser = argparse.ArgumentParser(description='Check what would happen if free was called with given address')
 try_free_parser.add_argument('addr', nargs='?', help='Address passed to free')
+
+
 @pwndbg.commands.ArgparsedCommand(try_free_parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -738,7 +769,6 @@ def try_free(addr):
             print(message.error('Errors found!'))
         else:
             print(message.success('All checks passed!'))
-
 
     # mem2chunk
     addr -= 2 * size_sz
@@ -871,7 +901,7 @@ def try_free(addr):
                 err += '    top chunk\'s size == {}, idx == {}'
                 err += '    if `have_lock` is false then the error is invalid'
                 err = err.format(chunk['size'], chunk_fastbin_idx,
-                    fastbin_top_chunk_size, allocator.fastbin_index(fastbin_top_chunk_size))
+                                 fastbin_top_chunk_size, allocator.fastbin_index(fastbin_top_chunk_size))
                 print(message.error(err))
                 errors_found += 1
 
@@ -909,7 +939,7 @@ def try_free(addr):
             return
 
         # next chunk's P bit is set
-        prev_inuse,_,_ = allocator.chunk_flags(next_chunk['size'])
+        prev_inuse, _, _ = allocator.chunk_flags(next_chunk['size'])
         if prev_inuse == 0:
             err = 'double free or corruption (!prev) -> next chunk\'s previous-in-use bit is 0\n'
             print(message.error(err))
@@ -924,7 +954,7 @@ def try_free(addr):
             errors_found += 1
 
         # consolidate backward
-        prev_inuse,_,_ = allocator.chunk_flags(chunk['size'])
+        prev_inuse, _, _ = allocator.chunk_flags(chunk['size'])
         if prev_inuse == 0:
             print(message.notice('Backward consolidation'))
             prev_size = chunksize(unsigned_size(chunk['prev_size']))
@@ -960,8 +990,8 @@ def try_free(addr):
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_next_chunk_addr)))
                 finalize(errors_found, returned_before_error)
                 return
-            
-            prev_inuse,_,_ = allocator.chunk_flags(next_next_chunk['size'])
+
+            prev_inuse, _, _ = allocator.chunk_flags(next_next_chunk['size'])
             if prev_inuse == 0:
                 print(message.notice('Forward consolidation'))
                 try_unlink(next_chunk_addr)
@@ -1007,4 +1037,3 @@ def try_free(addr):
 
 def try_unlink(addr):
     pass
-

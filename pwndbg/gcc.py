@@ -21,21 +21,23 @@ def flags():
 
     return []
 
+
 def which():
     gcc = which_binutils('g++')
 
     if not gcc:
         global printed_message
         if not printed_message:
-            printed_message=True
+            printed_message = True
             print("Can't find appropriate GCC, using default version")
 
         if pwndbg.arch.ptrsize == 32:
-            return ['g++','-m32']
+            return ['g++', '-m32']
         elif pwndbg.arch.ptrsize == 64:
-            return ['g++','-m32']
+            return ['g++', '-m32']
 
     return [gcc] + flags()
+
 
 printed_message = False
 
@@ -69,10 +71,12 @@ def which_binutils(util, **kwargs):
         # hack for homebrew-installed binutils on mac
         for gutil in ['g'+util, util]:
             # e.g. objdump
-            if arch is None: pattern = gutil
+            if arch is None:
+                pattern = gutil
 
             # e.g. aarch64-linux-gnu-objdump
-            else:       pattern = '%s*linux*-%s' % (arch,gutil)
+            else:
+                pattern = '%s*linux*-%s' % (arch, gutil)
 
             for dir in os.environ['PATH'].split(':'):
                 res = sorted(glob.glob(os.path.join(dir, pattern)))

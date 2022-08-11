@@ -6,9 +6,9 @@ import pwndbg.symbol
 
 debug = False
 
-groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('CS_OP_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith('CS_GRP_')}
+ops    = {v: k for k, v in globals().items() if k.startswith('CS_OP_')}
+access = {v: k for k, v in globals().items() if k.startswith('CS_AC_')}
 
 for value1, name1 in dict(access).items():
     for value2, name2 in dict(access).items():
@@ -99,7 +99,6 @@ class DisassemblyAssistant:
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
 
-
         instruction.next = next_addr & pwndbg.arch.ptrmask
 
         if instruction.target is None:
@@ -107,7 +106,6 @@ class DisassemblyAssistant:
 
         if instruction.operands and instruction.operands[0].int:
             instruction.target_const = True
-
 
     def next(self, instruction, call=False):
         """
@@ -199,7 +197,6 @@ class DisassemblyAssistant:
             if op.int:
                 op.symbol = pwndbg.symbol.get(op.int)
 
-
     def immediate(self, instruction, operand):
         return operand.value.imm
 
@@ -260,5 +257,6 @@ class DisassemblyAssistant:
                 rv.append('            str = %s' % (op.str))
 
         return '\n'.join(rv)
+
 
 generic_assistant = DisassemblyAssistant(None)

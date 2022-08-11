@@ -31,6 +31,7 @@ def check_title_position():
               (title_position, ', '.join(valid_values))))
         title_position.revert_default()
 
+
 def banner(title, target=sys.stdin, width=None):
     title = title.upper()
     if width is None: # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
@@ -46,9 +47,11 @@ def banner(title, target=sys.stdin, width=None):
         banner = ljust_colored(banner, width, config.banner_separator)
     return C.banner(banner)
 
+
 def addrsz(address):
     address = int(address) & pwndbg.arch.ptrmask
     return "%#{}x".format(2*pwndbg.arch.ptrsize) % address
+
 
 def get_window_size(target=sys.stdin):
     fallback = (int(os.environ.get('LINES', 20)), int(os.environ.get('COLUMNS', 80)))

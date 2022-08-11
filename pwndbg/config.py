@@ -85,6 +85,8 @@ member_remap = {
     'value': '_value',
     'raw_value': 'value'
 }
+
+
 @total_ordering
 class Parameter(gdb.Parameter):
     """
@@ -100,6 +102,7 @@ class Parameter(gdb.Parameter):
     * Parameter.raw_value -> gdb.Parameter.value
         Only used in get_set_string()
     """
+
     def __init__(self, name, default, docstring, scope='config'):
         self.docstring = docstring.strip()
         self.optname = name

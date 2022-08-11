@@ -10,18 +10,19 @@ import pwndbg.memory
 import pwndbg.regs
 
 pwndbg.config.Parameter('hexdump-width',
-                         16,
-                         'line width of hexdump command')
+                        16,
+                        'line width of hexdump command')
 pwndbg.config.Parameter('hexdump-bytes',
-                         64,
-                         'number of bytes printed by hexdump command')
+                        64,
+                        'number of bytes printed by hexdump command')
 pwndbg.config.Parameter('hexdump-group-width',
-                         4,
-                         "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)")
+                        4,
+                        "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)")
 pwndbg.config.Parameter('hexdump-group-use-big-endian',
-                         False,
-                         'Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. '
-                         'See also hexdump-highlight-group-lsb.')
+                        False,
+                        'Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. '
+                        'See also hexdump-highlight-group-lsb.')
+
 
 def address_or_module_name(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
@@ -37,6 +38,7 @@ def address_or_module_name(s):
         return addr
     else:
         raise argparse.ArgumentTypeError('Unknown hexdump argument type.')
+
 
 parser = argparse.ArgumentParser(description='Hexdumps data at the specified address or module name (or at $sp)')
 parser.add_argument('address', type=address_or_module_name, nargs='?', default='$sp',
@@ -75,6 +77,7 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
     for i, line in enumerate(pwndbg.hexdump.hexdump(data, address=address, width=width, group_width=group_width, flip_group_endianess=flip_group_endianess, offset=hexdump.offset)):
         print(line)
     hexdump.offset += i
+
 
 hexdump.last_address = 0
 hexdump.offset = 0

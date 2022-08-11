@@ -41,7 +41,7 @@ def get_exe_name():
 
 
 def translate_addr(offset, module):
-    mod_filter = lambda page: module in page.objfile
+    def mod_filter(page): return module in page.objfile
     pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
     if not pages:
@@ -70,6 +70,7 @@ parser.add_argument('offset', nargs='?', default=0,
 parser.add_argument('module', type=str, nargs='?', default='',
                     help='Module to choose as base. Defaults to the target executable.')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def piebase(offset=None, module=None):
@@ -94,6 +95,7 @@ parser.add_argument('offset', nargs='?', default=0,
 parser.add_argument('module', type=str, nargs='?', default='',
                     help='Module to choose as base. Defaults to the target executable.')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def breakrva(offset=0, module=None):
@@ -111,7 +113,7 @@ def breakrva(offset=0, module=None):
         print(message.error('Could not determine rebased breakpoint address on current target'))
 
 
-@pwndbg.commands.QuietSloppyParsedCommand #TODO should this just be an alias or does the QuietSloppy have an effect?
+@pwndbg.commands.QuietSloppyParsedCommand  # TODO should this just be an alias or does the QuietSloppy have an effect?
 @pwndbg.commands.OnlyWhenRunning
 def brva(*args):
     """Alias for breakrva."""

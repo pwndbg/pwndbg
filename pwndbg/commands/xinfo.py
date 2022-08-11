@@ -16,11 +16,13 @@ parser = argparse.ArgumentParser(description='Shows offsets of the specified add
 parser.add_argument('address', nargs='?', default='$pc',
                     help='Address to inspect')
 
+
 def print_line(name, addr, first, second, op, width = 20):
 
     print("{} {} = {} {} {:#x}".format(name.rjust(width), M.get(addr),
-        M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L'))),
-        op, second,))
+                                       M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L'))),
+                                       op, second,))
+
 
 def xinfo_stack(page, addr):
     # If it's a stack address, print offsets to top and bottom of stack, as
@@ -47,6 +49,7 @@ def xinfo_stack(page, addr):
         if follow_canaries is not None and len(follow_canaries) > 0:
             nxt = follow_canaries[0]
             print_line("Next Stack Canary", addr, nxt, nxt - addr, "-")
+
 
 def xinfo_mmap_file(page, addr):
     # If it's an address pointing into a memory mapped file, print offsets

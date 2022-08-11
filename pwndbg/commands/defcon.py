@@ -11,10 +11,12 @@ from pwndbg.color import message
 parser = argparse.ArgumentParser()
 parser.description = "Print out the heap (defcon edition)."
 parser.add_argument("addr", nargs="?", type=int, default=0x2aaaaaad5000, help="The address of the heap.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def defcon_heap(addr=0x2aaaaaad5000):
-# def heap(addr=0x2aaaaaaaf000):
+    # def heap(addr=0x2aaaaaaaf000):
     free = []
 
     try:
@@ -28,7 +30,6 @@ def defcon_heap(addr=0x2aaaaaad5000):
     except Exception as e:
         print(e)
         pass
-
 
 
 def heap_freebins(addr=0x0602558):
@@ -66,6 +67,7 @@ def heap_freebins(addr=0x0602558):
     print()
     return free
 
+
 def heap_allocations(addr, free):
     while addr and pwndbg.memory.peek(addr):
         size   = pwndbg.memory.u64(addr)
@@ -101,7 +103,6 @@ def heap_allocations(addr, free):
         print()
 
 
-
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def ll(addr=0x637128):
@@ -110,7 +111,7 @@ def ll(addr=0x637128):
     .bss:0000000000637128 core_list       dq ?                    ; DATA XREF: start_main_randomize+19Eo
     """
     fd = pwndbg.memory.u64(addr)
-    print('%16s%#16s %#16s %#16s %#16s' % ('', 'o','v','bk','fd'))
+    print('%16s%#16s %#16s %#16s %#16s' % ('', 'o', 'v', 'bk', 'fd'))
 
     while fd:
         o = pwndbg.memory.u64(fd)
@@ -121,4 +122,4 @@ def ll(addr=0x637128):
         at = fd
         bk = pwndbg.memory.u64(fd+8)
         fd  = pwndbg.memory.u64(fd+16)
-        print('@ %#-15x%#16x %16s %#16x %#16x' % (at, o,v,bk,fd))
+        print('@ %#-15x%#16x %16s %#16x %#16x' % (at, o, v, bk, fd))

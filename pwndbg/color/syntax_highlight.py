@@ -23,6 +23,7 @@ formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
 lexer_cache = {}
 
+
 @pwndbg.config.Trigger([style])
 def check_style():
     global formatter

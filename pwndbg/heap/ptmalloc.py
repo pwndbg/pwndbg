@@ -252,16 +252,16 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
     def _spaces_table(self):
-        spaces_table =  [ pwndbg.arch.ptrsize * 2 ]      * 64 \
-                      + [ pow(2, 6) ]                    * 32 \
-                      + [ pow(2, 9) ]                    * 16 \
-                      + [ pow(2, 12) ]                   * 8  \
-                      + [ pow(2, 15) ]                   * 4  \
-                      + [ pow(2, 18) ]                   * 2  \
-                      + [ pow(2, 21) ]                   * 1
+        spaces_table = [pwndbg.arch.ptrsize * 2]      * 64 \
+            + [pow(2, 6)]                    * 32 \
+            + [pow(2, 9)]                    * 16 \
+            + [pow(2, 12)]                   * 8  \
+            + [pow(2, 15)]                   * 4  \
+            + [pow(2, 18)]                   * 2  \
+            + [pow(2, 21)]                   * 1
 
         # There is no index 0
-        spaces_table = [ None ] + spaces_table
+        spaces_table = [None] + spaces_table
 
         # Fix up the slop in bin spacing (part of libc - they made
         # the trade off of some slop for speed)
@@ -277,9 +277,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return spaces_table
 
     def chunk_flags(self, size):
-        return ( size & ptmalloc.PREV_INUSE ,
-                 size & ptmalloc.IS_MMAPPED,
-                 size & ptmalloc.NON_MAIN_ARENA )
+        return (size & ptmalloc.PREV_INUSE ,
+                size & ptmalloc.IS_MMAPPED,
+                size & ptmalloc.NON_MAIN_ARENA)
 
     def chunk_key_offset(self, key):
         """Find the index of a field in the malloc_chunk struct.
@@ -306,7 +306,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     @property
     @pwndbg.memoize.reset_on_objfile
     def tcache_next_offset(self):
-        return  self.tcache_entry.keys().index('next') * pwndbg.arch.ptrsize
+        return self.tcache_entry.keys().index('next') * pwndbg.arch.ptrsize
 
     def get_heap(self, addr):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
@@ -334,11 +334,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def get_arena_for_chunk(self, addr):
         chunk = pwndbg.commands.heap.read_chunk(addr)
-        _,_,nm = self.chunk_flags(chunk['size'])
+        _, _, nm = self.chunk_flags(chunk['size'])
         if nm:
-            r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
+            r = self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])
         else:
-            r=self.main_arena
+            r = self.main_arena
         return r
 
     def get_tcache(self, tcache_addr=None):
@@ -449,7 +449,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         normal_bins = arena['bins']
         num_bins    = normal_bins.type.sizeof // normal_bins.type.target().sizeof
 
-        bins_base    = int(normal_bins.address) - (pwndbg.arch.ptrsize* 2)
+        bins_base    = int(normal_bins.address) - (pwndbg.arch.ptrsize * 2)
         current_base = bins_base + (index * pwndbg.arch.ptrsize * 2)
 
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
@@ -458,7 +458,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         is_chain_corrupted = False
 
-        get_chain = lambda bin, offset: pwndbg.chain.get(int(bin), offset=offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
+        def get_chain(bin, offset): return pwndbg.chain.get(int(bin), offset=offset, hard_stop=current_base, limit=heap_chain_limit, include_start=True)
         chain_fd = get_chain(front, fd_offset)
         chain_bk = get_chain(back, bk_offset)
 
@@ -525,11 +525,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1414
         """
         return 56 + (sz >> 6) if (sz >> 6) <= 38 else\
-        91 + (sz >> 9) if (sz >> 9) <= 20 else\
-        110 + (sz >> 12) if (sz >> 12) <= 10 else\
-        119 + (sz >> 15) if (sz >> 15) <= 4 else\
-        124 + (sz >> 18) if (sz >> 18) <= 2 else\
-        126
+            91 + (sz >> 9) if (sz >> 9) <= 20 else\
+            110 + (sz >> 12) if (sz >> 12) <= 10 else\
+            119 + (sz >> 15) if (sz >> 15) <= 4 else\
+            124 + (sz >> 18) if (sz >> 18) <= 2 else\
+            126
 
     def largebin_index_64(self, sz):
         """Modeled on the GLIBC malloc largebin_index_64 macro.
@@ -537,11 +537,11 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1433
         """
         return 48 + (sz >> 6) if (sz >> 6) <= 48 else\
-        91 + (sz >> 9) if (sz >> 9) <= 20 else\
-        110 + (sz >> 12) if (sz >> 12) <= 10 else\
-        119 + (sz >> 15) if (sz >> 15) <= 4 else\
-        124 + (sz >> 18) if (sz >> 18) <= 2 else\
-        126
+            91 + (sz >> 9) if (sz >> 9) <= 20 else\
+            110 + (sz >> 12) if (sz >> 12) <= 10 else\
+            119 + (sz >> 15) if (sz >> 15) <= 4 else\
+            124 + (sz >> 18) if (sz >> 18) <= 2 else\
+            126
 
     def largebin_index(self, sz):
         """Pick the appropriate largebin_index_ function for this architecture."""

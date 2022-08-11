@@ -8,17 +8,22 @@ offset_separator_color = theme.ColoredParameter('telescope-offset-separator-colo
 offset_delimiter_color = theme.ColoredParameter('telescope-offset-delimiter-color', 'normal', 'color of the telescope command (offset delimiter)')
 repeating_marker_color = theme.ColoredParameter('telescope-repeating-marker-color', 'normal', 'color of the telescope command (repeating values marker)')
 
+
 def offset(x):
     return generateColorFunction(config.telescope_offset_color)(x)
+
 
 def register(x):
     return generateColorFunction(config.telescope_register_color)(x)
 
+
 def separator(x):
     return generateColorFunction(config.telescope_offset_separator_color)(x)
 
+
 def delimiter(x):
     return generateColorFunction(config.telescope_offset_delimiter_color)(x)
+
 
 def repeating_marker(x):
     return generateColorFunction(config.telescope_repeating_marker_color)(x)

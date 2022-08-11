@@ -13,6 +13,7 @@ TESTS_PATH = os.path.join(
 
 class CollectTestFunctionNames:
     """See https://github.com/pytest-dev/pytest/issues/2039#issuecomment-257753269"""
+
     def __init__(self):
         self.collected = []
 

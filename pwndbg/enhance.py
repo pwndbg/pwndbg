@@ -24,16 +24,18 @@ import pwndbg.typeinfo
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [
-'.byte',
-'.long',
-'rex.R',
-'rex.XB',
-'.inst',
-'(bad)'
+    '.byte',
+    '.long',
+    'rex.R',
+    'rex.XB',
+    '.inst',
+    '(bad)'
 ]
+
 
 def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
+
 
 def int_str(value):
     retval = '%#x' % int(value & pwndbg.arch.ptrmask)
@@ -127,8 +129,6 @@ def enhance(value, code = True, safe_linking = False):
     # If it's on the stack, don't display it as code in a chain.
     if instr and 'stack' in page.objfile:
         retval = [intval, szval]
-
-
 
     # If it's RWX but a small value, don't display it as code in a chain.
     elif instr and rwx and intval0 < 0x1000:

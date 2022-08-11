@@ -30,6 +30,8 @@ Original GDB attach command help:
     to specify the program, and to load its symbol table.""")
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def attachp(target):
     try:

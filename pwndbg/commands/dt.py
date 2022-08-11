@@ -15,6 +15,8 @@ parser.description = """
     """
 parser.add_argument("typename", type=str, help="The name of the structure being dumped.")
 parser.add_argument("address", type=int, nargs="?", default=None, help="The address of the structure.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def dt(typename, address=None):
     """

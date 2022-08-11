@@ -12,6 +12,7 @@ import pwndbg.vmmap
 
 LIMIT = pwndbg.config.Parameter('dereference-limit', 5, 'max number of pointers to dereference in a chain')
 
+
 def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_start=True, safe_linking=False):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
@@ -61,6 +62,7 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_star
 config_arrow_left  = theme.Parameter('chain-arrow-left', '◂—', 'left arrow of chain formatting')
 config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow of chain formatting')
 config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
+
 
 def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
     """

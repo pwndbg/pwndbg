@@ -44,17 +44,18 @@ def get_file(path):
             error      = None
             try:
                 error = gdb.execute('remote get "%s" "%s"' % (path, local_path),
-                                     to_string=True)
+                                    to_string=True)
             except gdb.error as e:
                 error = e
 
             if error:
-                raise OSError("Could not download remote file %r:\n" \
-                                "Error: %s" % (path, error))
+                raise OSError("Could not download remote file %r:\n"
+                              "Error: %s" % (path, error))
         else:
             print(message.warn("pwndbg.file.get(%s) returns local path as we can't download file from QEMU" % path))
 
     return local_path
+
 
 def get(path):
     """
@@ -67,10 +68,11 @@ def get(path):
     local_path = get_file(path)
 
     try:
-        with open(local_path,'rb') as f:
+        with open(local_path, 'rb') as f:
             return f.read()
     except:
         return b''
+
 
 def readlink(path):
     """readlink(path) -> str

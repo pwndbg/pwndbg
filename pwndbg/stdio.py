@@ -19,4 +19,5 @@ class Stdio:
     def __exit__(self, *a, **kw):
         sys.stdin, sys.stdout, sys.stderr = self.queue.pop()
 
+
 stdio = Stdio()

@@ -9,6 +9,7 @@ Toggles memoization (caching). Pwndbg will work slower when it's off, however
 it's useful for diagnosing caching-related bugs.
 ''')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def memoize():
     pwndbg.memoize.memoize.caching = not pwndbg.memoize.memoize.caching

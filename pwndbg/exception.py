@@ -29,8 +29,8 @@ def inform_report_issue(exception_msg):
         "If that is an issue, you can report it on https://github.com/pwndbg/pwndbg/issues\n"
         "(Please don't forget to search if it hasn't been reported before)\n"
         "To generate the report and open a browser, you may run ") +
-        message.hint("`bugreport --run-browser`") +
-        message.notice("\nPS: Pull requests are welcome")
+        message.hint("`bugreport --run-browser`")
+        + message.notice("\nPS: Pull requests are welcome")
     )
 
 
@@ -61,11 +61,11 @@ def handle(name='Error'):
 
         print(message.error('Exception occurred: {}: {} ({})'.format(name, exc_value, exc_type)))
 
-        print(message.notice('For more info invoke `') +
-              message.hint('set exception-verbose on') +
-              message.notice('` and rerun the command\nor debug it by yourself with `') +
-              message.hint('set exception-debugger on') +
-              message.notice('`'))
+        print(message.notice('For more info invoke `')
+              + message.hint('set exception-verbose on')
+              + message.notice('` and rerun the command\nor debug it by yourself with `')
+              + message.hint('set exception-debugger on')
+              + message.notice('`'))
 
     # Break into the interactive debugger
     if debug:
@@ -81,6 +81,7 @@ def set_trace():
                        stdout=sys.__stdout__,
                        skip=['pwndbg.stdio', 'pwndbg.exception'])
     debugger.set_trace()
+
 
 pdb.set_trace = set_trace
 

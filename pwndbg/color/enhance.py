@@ -7,14 +7,18 @@ config_string_color  = theme.ColoredParameter('enhance-string-value-color', 'non
 config_comment_color = theme.ColoredParameter('enhance-comment-color', 'none', 'color of value enhance (comment)')
 config_unknown_color = theme.ColoredParameter('enhance-unknown-color', 'none', 'color of value enhance (unknown value)')
 
+
 def integer(x):
     return generateColorFunction(config.enhance_integer_value_color)(x)
+
 
 def string(x):
     return generateColorFunction(config.enhance_string_value_color)(x)
 
+
 def comment(x):
     return generateColorFunction(config.enhance_comment_color)(x)
+
 
 def unknown(x):
     return generateColorFunction(config.enhance_unknown_color)(x)

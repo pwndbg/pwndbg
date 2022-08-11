@@ -28,6 +28,8 @@ parser = argparse.ArgumentParser(description="""
     Set a breakpoint at a convenient location in the binary,
     generally 'main', 'init', or the entry point.""")
 parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def start(args=None):
     if args is None:
@@ -39,11 +41,11 @@ def start(args=None):
     run = 'run ' + ' '.join(args)
 
     symbols = ["main",
-                "_main",
-                "start",
-                "_start",
-                "init",
-                "_init"]
+               "_main",
+               "start",
+               "_start",
+               "init",
+               "_init"]
 
     for symbol in symbols:
         address = pwndbg.symbol.address(symbol, allow_unmapped=True)
@@ -64,6 +66,8 @@ parser = argparse.ArgumentParser(description="""
     the target binary.
     """)
 parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWithFile
 def entry(args=None):

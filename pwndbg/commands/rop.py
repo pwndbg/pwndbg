@@ -9,7 +9,7 @@ import pwndbg.commands
 import pwndbg.vmmap
 
 parser = argparse.ArgumentParser(description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
-                                epilog="Example: rop --grep 'pop rdi' -- --nojop")
+                                 epilog="Example: rop --grep 'pop rdi' -- --nojop")
 parser.add_argument('--grep', type=str,
                     help='String to grep the output for')
 parser.add_argument('argument', nargs='*', type=str,

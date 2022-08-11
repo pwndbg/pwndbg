@@ -13,26 +13,34 @@ config_highlight_group_lsb = theme.Parameter('hexdump-highlight-group-lsb', 'und
                                              'highlight LSB of each group. Applies only if hexdump-adjust-group-endianess'
                                              ' actually changes byte order.')
 
+
 def normal(x):
     return generateColorFunction(config.hexdump_normal_color)(x)
+
 
 def printable(x):
     return generateColorFunction(config.hexdump_printable_color)(x)
 
+
 def zero(x):
     return generateColorFunction(config.hexdump_zero_color)(x)
+
 
 def special(x):
     return generateColorFunction(config.hexdump_special_color)(x)
 
+
 def offset(x):
     return generateColorFunction(config.hexdump_offset_color)(x)
+
 
 def address(x):
     return generateColorFunction(config.hexdump_address_color)(x)
 
+
 def separator(x):
     return generateColorFunction(config.hexdump_separator_color)(x)
+
 
 def highlight_group_lsb(x):
     return generateColorFunction(config.hexdump_highlight_group_lsb)(x)

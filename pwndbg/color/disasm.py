@@ -18,6 +18,7 @@ capstone_branch_groups = set((
 
 config_branch = theme.ColoredParameter('disasm-branch-color', 'bold', 'color for disasm (branch/call instruction)')
 
+
 def branch(x):
     return generateColorFunction(config.disasm_branch_color)(x)
 

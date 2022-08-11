@@ -17,6 +17,7 @@ import pwndbg.ui
 commands = []
 command_names = set()
 
+
 def list_current_commands():
     current_pagination = gdb.execute('show pagination', to_string=True)
     current_pagination = current_pagination.split()[-1].rstrip('.')  # Take last word and skip period
@@ -34,7 +35,9 @@ def list_current_commands():
     gdb.execute('set pagination %s' % current_pagination) # Restore original setting
     return existing_commands
 
+
 GDB_BUILTIN_COMMANDS = list_current_commands()
+
 
 class Command(gdb.Command):
     """Generic command wrapper"""
@@ -196,7 +199,8 @@ def fix(arg, sloppy=False, quiet=True, reraise=False):
 
 
 def fix_int(*a, **kw):
-    return int(fix(*a,**kw))
+    return int(fix(*a, **kw))
+
 
 def fix_int_reraise(*a, **kw):
     return fix(*a, reraise=True, **kw)
@@ -225,6 +229,7 @@ def OnlyWhenRunning(function):
             print("%s: The program is not being run." % function.__name__)
     return _OnlyWhenRunning
 
+
 def OnlyWithTcache(function):
     @functools.wraps(function)
     def _OnlyWithTcache(*a, **kw):
@@ -234,6 +239,7 @@ def OnlyWithTcache(function):
             print("%s: This version of GLIBC was not compiled with tcache support." % function.__name__)
     return _OnlyWithTcache
 
+
 def OnlyWhenHeapIsInitialized(function):
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a, **kw):
@@ -242,6 +248,7 @@ def OnlyWhenHeapIsInitialized(function):
         else:
             print("%s: Heap is not initialized yet." % function.__name__)
     return _OnlyWhenHeapIsInitialized
+
 
 def OnlyAmd64(function):
     """Decorates function to work only when pwndbg.arch.current == \"x86-64\".
@@ -253,6 +260,7 @@ def OnlyAmd64(function):
         else:
             print("%s: Only works with \"x86-64\" arch." % function.__name__)
     return _OnlyAmd64
+
 
 def OnlyWithLibcDebugSyms(function):
     @functools.wraps(function)
@@ -271,6 +279,7 @@ sudo apt-get install libc-dbg:i386
 ''' % function.__name__)
     return _OnlyWithLibcDebugSyms
 
+
 class QuietSloppyParsedCommand(ParsedCommand):
     def __init__(self, *a, **kw):
         super(QuietSloppyParsedCommand, self).__init__(*a, **kw)
@@ -285,7 +294,7 @@ class _ArgparsedCommand(Command):
             self.parser.prog = function.__name__
         else:
             self.parser.prog = command_name
-        
+
         # TODO/FIXME: Can we also append the generated positional args?
         # E.g. "-f --flag  This does something"
         doc = self.parser.description.strip()
@@ -303,6 +312,7 @@ class _ArgparsedCommand(Command):
 
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
+
     def __init__(self, parser_or_desc, aliases=[]):
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -327,11 +337,13 @@ class ArgparsedCommand:
             _ArgparsedCommand(self.parser, function, alias)
         return _ArgparsedCommand(self.parser, function)
 
+
 # We use a 64-bit max value literal here instead of pwndbg.arch.current
 # as realistically its ok to pull off the biggest possible type here
 # We cache its GDB value type which is 'unsigned long long'
 _mask = 0xffffffffFFFFFFFF
 _mask_val_type = gdb.Value(_mask).type
+
 
 def sloppy_gdb_parse(s):
     """
@@ -355,6 +367,7 @@ def sloppy_gdb_parse(s):
     except (TypeError, gdb.error):
         return s
 
+
 def AddressExpr(s):
     """
     Parses an address expression. Returns an int.
@@ -365,6 +378,7 @@ def AddressExpr(s):
         raise argparse.ArgumentError('Incorrect address (or GDB expression): %s' % s)
 
     return val
+
 
 def HexOrAddressExpr(s):
     """

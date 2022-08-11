@@ -10,23 +10,30 @@ config_argument      = theme.ColoredParameter('nearpc-argument-color', 'bold', '
 config_ida_anterior  = theme.ColoredParameter('nearpc-ida-anterior-color', 'bold', 'color for nearpc command (IDA anterior)')
 config_branch_marker = theme.ColoredParameter('nearpc-branch-marker-color', 'normal', 'color for nearpc command (branch marker line)')
 
+
 def symbol(x):
     return generateColorFunction(config.nearpc_symbol_color)(x)
+
 
 def address(x):
     return generateColorFunction(config.nearpc_address_color)(x)
 
+
 def prefix(x):
     return generateColorFunction(config.nearpc_prefix_color)(x)
+
 
 def syscall_name(x):
     return generateColorFunction(config.nearpc_syscall_name_color)(x)
 
+
 def argument(x):
     return generateColorFunction(config.nearpc_argument_color)(x)
 
+
 def ida_anterior(x):
     return generateColorFunction(config.nearpc_ida_anterior_color)(x)
+
 
 def branch_marker(x):
     return generateColorFunction(config.nearpc_branch_marker_color)(x)

@@ -84,41 +84,42 @@ class RegisterSet:
         for r in self.all:
             yield r
 
+
 arm_cpsr_flags = collections.OrderedDict([
     ('N', 31), ('Z', 30), ('C', 29), ('V', 28), ('Q', 27), ('J', 24), ('T', 5), ('E', 9), ('A', 8), ('I', 7), ('F', 6)])
 arm_xpsr_flags = collections.OrderedDict([
     ('N', 31), ('Z', 30), ('C', 29), ('V', 28), ('Q', 27), ('T', 24)])
 
-arm = RegisterSet(  retaddr = ('lr',),
-                    flags   = {'cpsr': arm_cpsr_flags},
-                    gpr     = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12'),
-                    args    = ('r0','r1','r2','r3'),
-                    retval  = 'r0')
+arm = RegisterSet(retaddr = ('lr',),
+                  flags   = {'cpsr': arm_cpsr_flags},
+                  gpr     = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12'),
+                  args    = ('r0', 'r1', 'r2', 'r3'),
+                  retval  = 'r0')
 
 # ARM Cortex-M
-armcm = RegisterSet(  retaddr = ('lr',),
+armcm = RegisterSet(retaddr = ('lr',),
                     flags   = {'xpsr': arm_xpsr_flags},
                     gpr     = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12'),
-                    args    = ('r0','r1','r2','r3'),
+                    args    = ('r0', 'r1', 'r2', 'r3'),
                     retval  = 'r0')
 
 # FIXME AArch64 does not have a CPSR register
-aarch64 = RegisterSet(  retaddr = ('lr',),
-                        flags   = {'cpsr':{}},
-                        # X29 is the frame pointer register (FP) but setting it
-                        # as frame here messes up the register order to the point
-                        # it's confusing. Think about improving this if frame
-                        # pointer semantics are required for other functionalities.
-                        # frame   = 'x29',
-                        gpr     = ('x0', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9',
-                                   'x10', 'x11', 'x12', 'x13', 'x14', 'x15', 'x16', 'x17', 'x18', 'x19',
-                                   'x20', 'x21', 'x22', 'x23', 'x24', 'x25', 'x26', 'x27', 'x28', 'x29',
-                                   'x30'),
-                        misc    = ('w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9',
-                                   'w10', 'w11', 'w12', 'w13', 'w14', 'w15', 'w16', 'w17', 'w18', 'w19',
-                                   'w20', 'w21', 'w22', 'w23', 'w24', 'w25', 'w26', 'w27', 'w28'),
-                        args    = ('x0','x1','x2','x3'),
-                        retval  = 'x0')
+aarch64 = RegisterSet(retaddr = ('lr',),
+                      flags   = {'cpsr': {}},
+                      # X29 is the frame pointer register (FP) but setting it
+                      # as frame here messes up the register order to the point
+                      # it's confusing. Think about improving this if frame
+                      # pointer semantics are required for other functionalities.
+                      # frame   = 'x29',
+                      gpr     = ('x0', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9',
+                                 'x10', 'x11', 'x12', 'x13', 'x14', 'x15', 'x16', 'x17', 'x18', 'x19',
+                                 'x20', 'x21', 'x22', 'x23', 'x24', 'x25', 'x26', 'x27', 'x28', 'x29',
+                                 'x30'),
+                      misc    = ('w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9',
+                                 'w10', 'w11', 'w12', 'w13', 'w14', 'w15', 'w16', 'w17', 'w18', 'w19',
+                                 'w20', 'w21', 'w22', 'w23', 'w24', 'w25', 'w26', 'w27', 'w28'),
+                      args    = ('x0', 'x1', 'x2', 'x3'),
+                      retval  = 'x0')
 
 x86flags = {'eflags': collections.OrderedDict([
     ('CF',  0),
@@ -135,33 +136,33 @@ amd64 = RegisterSet(pc      = 'rip',
                     stack   = 'rsp',
                     frame   = 'rbp',
                     flags   = x86flags,
-                    gpr     = ('rax','rbx','rcx','rdx','rdi','rsi',
-                               'r8', 'r9', 'r10','r11','r12',
-                               'r13','r14','r15'),
-                    misc    =  ('cs','ss','ds','es','fs','gs',
-                                'fsbase', 'gsbase',
-                                'ax','ah','al',
-                                'bx','bh','bl',
-                                'cx','ch','cl',
-                                'dx','dh','dl',
-                                'dil','sil','spl','bpl',
-                                'di','si','bp','sp','ip'),
-                    args    =  ('rdi','rsi','rdx','rcx','r8','r9'),
+                    gpr     = ('rax', 'rbx', 'rcx', 'rdx', 'rdi', 'rsi',
+                               'r8', 'r9', 'r10', 'r11', 'r12',
+                               'r13', 'r14', 'r15'),
+                    misc    = ('cs', 'ss', 'ds', 'es', 'fs', 'gs',
+                               'fsbase', 'gsbase',
+                               'ax', 'ah', 'al',
+                               'bx', 'bh', 'bl',
+                               'cx', 'ch', 'cl',
+                               'dx', 'dh', 'dl',
+                               'dil', 'sil', 'spl', 'bpl',
+                               'di', 'si', 'bp', 'sp', 'ip'),
+                    args    = ('rdi', 'rsi', 'rdx', 'rcx', 'r8', 'r9'),
                     retval  = 'rax')
 
-i386 = RegisterSet( pc      = 'eip',
-                    stack   = 'esp',
-                    frame   = 'ebp',
-                    flags   = x86flags,
-                    gpr     = ('eax','ebx','ecx','edx','edi','esi'),
-                    misc    =  ('cs','ss','ds','es','fs','gs',
-                                'fsbase', 'gsbase',
-                                'ax','ah','al',
-                                'bx','bh','bl',
-                                'cx','ch','cl',
-                                'dx','dh','dl',
-                                'di','si','bp','sp','ip'),
-                    retval  = 'eax')
+i386 = RegisterSet(pc      = 'eip',
+                   stack   = 'esp',
+                   frame   = 'ebp',
+                   flags   = x86flags,
+                   gpr     = ('eax', 'ebx', 'ecx', 'edx', 'edi', 'esi'),
+                   misc    = ('cs', 'ss', 'ds', 'es', 'fs', 'gs',
+                              'fsbase', 'gsbase',
+                              'ax', 'ah', 'al',
+                              'bx', 'bh', 'bl',
+                              'cx', 'ch', 'cl',
+                              'dx', 'dh', 'dl',
+                              'di', 'si', 'bp', 'sp', 'ip'),
+                   retval  = 'eax')
 
 # http://math-atlas.sourceforge.net/devel/assembly/elfspec_ppc.pdf
 # r0      Volatile register which may be modified during function linkage
@@ -173,14 +174,14 @@ i386 = RegisterSet( pc      = 'eip',
 # r13     Small data area pointer register (points to TLS)
 # r14-r30 Registers used for local variables
 # r31     Used for local variables or "environment pointers"
-powerpc = RegisterSet(  retaddr = ('lr',),
-                        flags   = {'msr':{},'xer':{}},
-                        gpr     = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9',
-                                   'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16', 'r17', 'r18', 'r19',
-                                   'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29',
-                                   'r30', 'r31', 'cr', 'ctr'),
-                        args    = ('r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'),
-                        retval  = 'r3')
+powerpc = RegisterSet(retaddr = ('lr',),
+                      flags   = {'msr': {}, 'xer': {}},
+                      gpr     = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9',
+                                 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16', 'r17', 'r18', 'r19',
+                                 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29',
+                                 'r30', 'r31', 'cr', 'ctr'),
+                      args    = ('r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'),
+                      retval  = 'r3')
 
 # http://people.cs.clemson.edu/~mark/sparc/sparc_arch_desc.txt
 # http://people.cs.clemson.edu/~mark/subroutines/sparc.html
@@ -211,12 +212,12 @@ powerpc = RegisterSet(  retaddr = ('lr',),
 sparc = RegisterSet(stack   = 'sp',
                     frame   = 'fp',
                     retaddr = ('i7',),
-                    flags   = {'psr':{}},
+                    flags   = {'psr': {}},
                     gpr     = ('g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7',
                                'o0', 'o1', 'o2', 'o3', 'o4', 'o5', 'o7',
                                'l0', 'l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7',
                                'i0', 'i1', 'i2', 'i3', 'i4', 'i5'),
-                    args    = ('i0','i1','i2','i3','i4','i5'),
+                    args    = ('i0', 'i1', 'i2', 'i3', 'i4', 'i5'),
                     retval  = 'o0')
 
 # http://logos.cs.uic.edu/366/notes/mips%20quick%20tutorial.htm
@@ -232,13 +233,13 @@ sparc = RegisterSet(stack   = 'sp',
 # r29       => stack pointer
 # r30       => frame pointer
 # r31       => return address
-mips = RegisterSet( frame   = 'fp',
-                    retaddr = ('ra',),
-                    gpr     = ('v0','v1','a0','a1','a2','a3',
-                               't0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9',
-                               's0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'gp'),
-                    args    = ('a0','a1','a2','a3'),
-                    retval  = 'v0')
+mips = RegisterSet(frame   = 'fp',
+                   retaddr = ('ra',),
+                   gpr     = ('v0', 'v1', 'a0', 'a1', 'a2', 'a3',
+                              't0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9',
+                              's0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'gp'),
+                   args    = ('a0', 'a1', 'a2', 'a3'),
+                   retval  = 'v0')
 
 arch_to_regs = {
     'i386': i386,
@@ -252,13 +253,16 @@ arch_to_regs = {
     'powerpc': powerpc,
 }
 
+
 @pwndbg.proc.OnlyWhenRunning
 def gdb77_get_register(name):
     return gdb.parse_and_eval('$' + name)
 
+
 @pwndbg.proc.OnlyWhenRunning
 def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
+
 
 try:
     gdb.Frame.read_register
@@ -271,6 +275,7 @@ except AttributeError:
 PTRACE_ARCH_PRCTL = 30
 ARCH_GET_FS = 0x1003
 ARCH_GET_GS = 0x1004
+
 
 class module(ModuleType):
     last = {}
@@ -371,7 +376,7 @@ class module(ModuleType):
         return retval
 
     def fix(self, expression):
-        for regname in set(self.all + ['sp','pc']):
+        for regname in set(self.all + ['sp', 'pc']):
             expression = re.sub(r'\$?\b%s\b' % regname, r'$'+regname, expression)
         return expression
 
@@ -393,7 +398,6 @@ class module(ModuleType):
     @pwndbg.memoize.reset_on_stop
     def fsbase(self):
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
-
 
     @property
     @pwndbg.memoize.reset_on_stop
@@ -436,6 +440,7 @@ class module(ModuleType):
     def __repr__(self):
         return ('<module pwndbg.regs>')
 
+
 # To prevent garbage collection
 tether = sys.modules[__name__]
 sys.modules[__name__] = module(__name__, '')
@@ -446,6 +451,6 @@ sys.modules[__name__] = module(__name__, '')
 def update_last():
     M = sys.modules[__name__]
     M.previous = M.last
-    M.last = {k:M[k] for k in M.common}
+    M.last = {k: M[k] for k in M.common}
     if pwndbg.config.show_retaddr_reg:
-        M.last.update({k:M[k] for k in M.retaddr})
+        M.last.update({k: M[k] for k in M.retaddr})

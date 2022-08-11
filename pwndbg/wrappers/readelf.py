@@ -2,6 +2,7 @@ import pwndbg.wrappers
 
 cmd_name = "readelf"
 
+
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 def get_jmpslots():
     local_path = pwndbg.file.get_file(pwndbg.proc.exe)
@@ -9,6 +10,7 @@ def get_jmpslots():
     readelf_out = pwndbg.wrappers.call_cmd(cmd)
 
     return filter(_extract_jumps, readelf_out.splitlines())
+
 
 def _extract_jumps(line):
     '''

@@ -29,6 +29,7 @@ else:
 
 DEBUG_MARSHALLING = False
 
+
 def create_marshaller(use_format=None, just_to_str=False):
     assert use_format or just_to_str, 'Either pass format to use or make it converting the value to str.'
 
@@ -44,6 +45,7 @@ def create_marshaller(use_format=None, just_to_str=False):
         appender(marshalled)
 
     return wrapper
+
 
 xmlrpclib.Marshaller.dispatch[type(0L)] = create_marshaller("<value><i8>%d</i8></value>")
 xmlrpclib.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
@@ -114,6 +116,7 @@ def decompile(addr):
     except idaapi.DecompilationFailure:
         return None
 
+
 def get_decompile_coord_by_ea(cfunc, addr):
     if idaapi.IDA_SDK_VERSION >= 720:
         item = cfunc.body.find_closest_addr(addr)
@@ -132,7 +135,7 @@ def get_decompile_coord_by_ea(cfunc, addr):
                 lnmap[pitem.it.ea] = i
         y = None
         closest_ea = BADADDR
-        for ea,line in lnmap.items():
+        for ea, line in lnmap.items():
             if closest_ea == BADADDR or abs(closest_ea - addr) > abs(ea - addr):
                 closest_ea = ea
                 y = lnmap[ea]

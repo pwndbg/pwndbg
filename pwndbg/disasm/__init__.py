@@ -62,6 +62,7 @@ VariableInstructionSizeMax = {
 
 backward_cache = collections.defaultdict(lambda: None)
 
+
 @pwndbg.memoize.reset_on_objfile
 def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     arch = CapstoneArch[arch]
@@ -91,6 +92,7 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     cs.detail = True
     return cs
 
+
 def get_disassembler(pc):
     if pwndbg.arch.current == 'armcm':
         extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if (pwndbg.regs.xpsr & (1<<24)) else CS_MODE_MCLASS
@@ -103,14 +105,14 @@ def get_disassembler(pc):
             extra = CS_MODE_V9
         else:
             # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
-            extra = 0 
-            
+            extra = 0
+
     elif pwndbg.arch.current == 'i8086':
         extra = CS_MODE_16
 
     elif pwndbg.arch.current == 'mips' and 'isa32r6' in gdb.newest_frame().architecture().name():
         extra = CS_MODE_MIPS32R6
-    
+
     else:
         extra = None
 
@@ -118,6 +120,7 @@ def get_disassembler(pc):
                                    pwndbg.arch.ptrsize,
                                    pwndbg.arch.endian,
                                    extra)
+
 
 @pwndbg.memoize.reset_on_cont
 def get_one_instruction(address):
@@ -128,6 +131,7 @@ def get_one_instruction(address):
         pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
 
+
 def one(address=None):
     if address is None:
         address = pwndbg.regs.pc
@@ -137,12 +141,14 @@ def one(address=None):
         backward_cache[insn.next] = insn.address
         return insn
 
+
 def fix(i):
     for op in i.operands:
         if op.type == CS_OP_IMM and op.va:
             i.op_str = i.op_str.replace()
 
     return i
+
 
 def get(address, instructions=1):
     address = int(address)
@@ -263,4 +269,3 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         del insns[-1]
 
     return insns
-

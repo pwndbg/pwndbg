@@ -13,12 +13,12 @@ import pwndbg.vmmap
 
 
 def find_module(addr, max_distance):
-    mod_filter = lambda page: page.start <= addr < page.end
+    def mod_filter(page): return page.start <= addr < page.end
     pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
     if not pages:
         if max_distance != 0:
-            mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
+            def mod_filter(page): return page.start - max_distance <= addr < page.end + max_distance
             pages = list(filter(mod_filter, pwndbg.vmmap.get()))
 
         if not pages:
@@ -26,8 +26,10 @@ def find_module(addr, max_distance):
 
     return pages[-1]
 
+
 def satisfied_flags(require_flags, flags):
     return (require_flags & ~(flags)) == 0
+
 
 def flags_str2int(flags_s):
     flag_i = 0
@@ -39,6 +41,7 @@ def flags_str2int(flags_s):
         flag_i |= os.X_OK
     return flag_i
 
+
 parser = argparse.ArgumentParser(description='''
 Pointer scan for possible offset leaks.
 Examples:
@@ -47,7 +50,7 @@ Examples:
     probeleak $rsp 0x64 --point-to libc --max-ptrs 1 --flags rwx - leaks 0x64 bytes starting at stack pointer and \
 search for one valid pointer which points to a libc rwx page
 ''')
-parser.formatter_class=argparse.RawDescriptionHelpFormatter
+parser.formatter_class = argparse.RawDescriptionHelpFormatter
 parser.add_argument('address', nargs='?', default='$sp',
                     help='Leak memory address')
 parser.add_argument('count', nargs='?', default=0x40,
@@ -61,6 +64,7 @@ parser.add_argument('--max-ptrs', type=int, default=0,
 parser.add_argument('--flags', type=str, default=None,
                     help='flags of the page that you want the pointers point to. [e.g. rwx]')
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None):
@@ -69,7 +73,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
     address &= pwndbg.arch.ptrmask
     ptrsize = pwndbg.arch.ptrsize
     count   = max(int(count), ptrsize)
-    off_zeros = int(math.ceil(math.log(count,2)/4))
+    off_zeros = int(math.ceil(math.log(count, 2)/4))
     if flags != None:
         require_flags = flags_str2int(flags)
 

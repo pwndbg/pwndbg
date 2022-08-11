@@ -36,6 +36,8 @@ parser = argparse.ArgumentParser(description="""
     """)
 parser.add_argument("address", nargs="?", default=None, type=int, help="The address to telescope at.")
 parser.add_argument("count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(address=None, count=telescope_lines, to_string=False):
@@ -82,7 +84,7 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         values = list(reg_values[i])
 
         for width in range(1, pwndbg.arch.ptrsize):
-            values.extend('%s-%i' % (r,width) for r in reg_values[i+width])
+            values.extend('%s-%i' % (r, width) for r in reg_values[i+width])
 
         regs[i] = ' '.join(values)
 

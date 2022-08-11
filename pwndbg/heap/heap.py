@@ -34,7 +34,6 @@ class BaseHeap:
         """
         raise NotImplementedError()
 
-
     def is_initialized(self):
         """Returns whether the allocator is initialized or not.
 

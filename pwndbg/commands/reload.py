@@ -13,7 +13,6 @@ except:
     from imp import reload as _reload
 
 
-
 def rreload(module, mdict=None):
     """Recursively reload modules."""
     name = module.__name__
@@ -38,6 +37,7 @@ def reload(*a):
     pwndbg.events.on_reload()
     rreload(pwndbg)
     pwndbg.events.after_reload()
+
 
 @pwndbg.commands.ArgparsedCommand("Makes pwndbg reinitialize all state.")
 def reinit_pwndbg():

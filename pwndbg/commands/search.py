@@ -38,13 +38,14 @@ def print_search_hit(address):
     display = pwndbg.enhance.enhance(address)
     print(region, addr, display)
 
+
 auto_save = pwndbg.config.Parameter('auto-save-search', False,
-                        'automatically pass --save to "search" command')
+                                    'automatically pass --save to "search" command')
 
 parser = argparse.ArgumentParser(description='''
 Search memory for byte sequences, strings, pointers, and integer values
 ''')
-parser.add_argument('-t', '--type', choices=['byte','short','word','dword','qword','pointer','string','bytes'],
+parser.add_argument('-t', '--type', choices=['byte', 'short', 'word', 'dword', 'qword', 'pointer', 'string', 'bytes'],
                     help='Size of search target', default='bytes', type=str)
 parser.add_argument('-1', '--byte', dest='type', action='store_const', const='byte',
                     help='Search for a 1-byte integer')

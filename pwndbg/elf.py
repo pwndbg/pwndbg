@@ -27,8 +27,8 @@ import pwndbg.proc
 import pwndbg.stack
 
 # ELF constants
-PF_X, PF_W, PF_R = 1,2,4
-ET_EXEC, ET_DYN  = 2,3
+PF_X, PF_W, PF_R = 1, 2, 4
+ET_EXEC, ET_DYN  = 2, 3
 
 
 module = sys.modules[__name__]
@@ -60,6 +60,7 @@ def update():
         Phdr = pwndbg.elftypes.Elf64_Phdr
 
     module.__dict__.update(locals())
+
 
 update()
 
@@ -217,6 +218,7 @@ def entry():
 def load(pointer):
     return get_ehdr(pointer)[1]
 
+
 ehdr_type_loaded = 0
 
 
@@ -368,7 +370,8 @@ def map_inner(ei_class, ehdr, objfile):
                 # Don't ever remove the execute flag.
                 # Sometimes we'll load a read-only area into .text
                 # and the loader doesn't actually *remove* the executable flag.
-                if page.flags & PF_X: flags |= PF_X
+                if page.flags & PF_X:
+                    flags |= PF_X
                 page.flags = flags
             else:
                 page = pwndbg.memory.Page(page_addr, pwndbg.memory.PAGE_SIZE, flags, offset + (page_addr-vaddr))

@@ -17,8 +17,10 @@ def get_type(v):
             t = t.target()
     return t.name
 
+
 def get_typename(t):
-    return(str(t))
+    return (str(t))
+
 
 def get_arrsize(f):
     t = f.type
@@ -28,12 +30,14 @@ def get_arrsize(f):
     s  = t2.sizeof
     return int(t.sizeof / t2.sizeof)
 
+
 def get_field_by_name(obj, field):
     # Dereference once
     if obj.type.code == gdb.TYPE_CODE_PTR:
         obj = obj.dereference()
     for f in re.split('(->|\.|\[\d+\])', field):
-        if not f: continue
+        if not f:
+            continue
         if f   == '->':
             obj = obj.dereference()
         elif f == '.':
@@ -47,20 +51,22 @@ def get_field_by_name(obj, field):
             obj = obj[f]
     return obj
 
+
 def happy(typename):
     prefix = ''
     if 'unsigned' in typename:
         prefix = 'u'
         typename = typename.replace('unsigned ', '')
     return prefix + {
-    'char': 'char',
-    'short int': 'short',
-    'long int': 'long',
-    'int': 'int',
-    'long long': 'longlong',
-    'float': 'float',
-    'double': 'double'
+        'char': 'char',
+        'short int': 'short',
+        'long int': 'long',
+        'int': 'int',
+        'long long': 'longlong',
+        'float': 'float',
+        'double': 'double'
     }[typename]
+
 
 def dt(name='', addr=None, obj = None):
     """
@@ -92,7 +98,8 @@ def dt(name='', addr=None, obj = None):
 
     # Header, optionally include the name
     header = name
-    if obj: header = "%s @ %s" % (header, hex(int(obj.address)))
+    if obj:
+        header = "%s @ %s" % (header, hex(int(obj.address)))
     rv.append(header)
 
     if t.strip_typedefs().code == gdb.TYPE_CODE_ARRAY:
@@ -113,7 +120,7 @@ def dt(name='', addr=None, obj = None):
             if ftype.code == gdb.TYPE_CODE_INT:
                 v = hex(int(v))
             if ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY) \
-                and ftype.target() == pwndbg.typeinfo.uchar:
+                    and ftype.target() == pwndbg.typeinfo.uchar:
                 data = pwndbg.memory.read(v.address, ftype.sizeof)
                 v = ' '.join('%02x' % b for b in data)
 
@@ -124,8 +131,10 @@ def dt(name='', addr=None, obj = None):
         # Ideally we'd expand recursively if the type is complex.
         extra_lines = []
         for i, line in enumerate(str(extra).splitlines()):
-            if i == 0: extra_lines.append(line)
-            else:      extra_lines.append(35*' ' + line)
+            if i == 0:
+                extra_lines.append(line)
+            else:
+                extra_lines.append(35*' ' + line)
         extra = '\n'.join(extra_lines)
 
         bitpos = '' if not b else ('.%i' % b)

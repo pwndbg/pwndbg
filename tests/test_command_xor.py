@@ -21,6 +21,7 @@ def test_command_xor_with_gdb_execute(start_binary):
     after = pwndbg.memory.read(before, 8)
     assert after == b"AAAAaaaa"
 
+
 def test_command_xor_with_int(start_binary):
     """
     Tests simple xoring

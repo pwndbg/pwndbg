@@ -29,6 +29,7 @@ prot_dict = {
     'PROT_EXEC': 0x4,
 }
 
+
 def prot_str_to_val(protstr):
     '''Heuristic to convert PROT_EXEC|PROT_WRITE to integer value.'''
     prot_int = 0
@@ -79,4 +80,3 @@ def mprotect(addr, length, prot):
     pwndbg.regs.rcx = saved_rcx
     pwndbg.regs.rdx = saved_rdx
     pwndbg.regs.rip = saved_rip
-

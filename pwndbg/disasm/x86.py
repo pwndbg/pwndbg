@@ -6,12 +6,13 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
-groups = {v:k for k,v in globals().items() if k.startswith('X86_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}
-regs   = {v:k for k,v in globals().items() if k.startswith('X86_REG_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith('X86_GRP_')}
+ops    = {v: k for k, v in globals().items() if k.startswith('X86_OP_')}
+regs   = {v: k for k, v in globals().items() if k.startswith('X86_REG_')}
+access = {v: k for k, v in globals().items() if k.startswith('CS_AC_')}
 
 pc     = X86_REG_RSP
+
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def regs(self, instruction, reg):
@@ -90,7 +91,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         sz = '[%s]' % sz
         return sz
 
-
     def register(self, instruction, operand):
         if operand.value.reg != X86_REG_RIP:
             return super(DisassemblyAssistant, self).register(instruction, operand)
@@ -116,8 +116,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if pwndbg.memory.peek(address):
             return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
 
-
-
     def condition(self, instruction):
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
@@ -137,12 +135,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         of = efl & (1<<11)
 
         return {
-            X86_INS_CMOVA:  not (cf or zf),
+            X86_INS_CMOVA: not (cf or zf),
             X86_INS_CMOVAE: not cf,
             X86_INS_CMOVB:  cf,
             X86_INS_CMOVBE: cf or zf,
             X86_INS_CMOVE:  zf,
-            X86_INS_CMOVG:  not zf and (sf == of),
+            X86_INS_CMOVG: not zf and (sf == of),
             X86_INS_CMOVGE: sf == of,
             X86_INS_CMOVL:  sf != of,
             X86_INS_CMOVLE: zf or (sf != of),
@@ -153,12 +151,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_CMOVO:  of,
             X86_INS_CMOVP:  pf,
             X86_INS_CMOVS:  sf,
-            X86_INS_JA:  not (cf or zf),
+            X86_INS_JA: not (cf or zf),
             X86_INS_JAE: not cf,
             X86_INS_JB:  cf,
             X86_INS_JBE: cf or zf,
             X86_INS_JE:  zf,
-            X86_INS_JG:  not zf and (sf == of),
+            X86_INS_JG: not zf and (sf == of),
             X86_INS_JGE: sf == of,
             X86_INS_JL:  sf != of,
             X86_INS_JLE: zf or (sf != of),

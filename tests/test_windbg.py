@@ -43,13 +43,13 @@ def test_windbg_dX_commands(start_binary):
         '00000000004000a1     0102030405060708 1122334455667788\n'
         '00000000004000b1     0123456789abcdef 0000000000000000\n'
     )
-    
+
     # Try `dq` with different counts
     dq_count1 = gdb.execute('dq data 2', to_string=True)
     dq_count2 = gdb.execute('dq &data 2', to_string=True)
     dq_count3 = gdb.execute('dq %s 2' % data_addr, to_string=True)
     assert dq_count1 == dq_count2 == dq_count3 == '0000000000400081     0000000000000000 0000000000000001\n'
-    
+
     assert gdb.execute('dq data 1', to_string=True) == '0000000000400081     0000000000000000\n'
     assert gdb.execute('dq data 3', to_string=True) == (
         '0000000000400081     0000000000000000 0000000000000001\n'
@@ -268,4 +268,3 @@ def test_windbg_eX_commands(start_binary):
 
     # Check if the write actually occurred
     assert pwndbg.memory.read(stack_last_qword_ea, 8) == b'\xef\xbe\xad\xde\xbe\xba\xfe\xca'
-

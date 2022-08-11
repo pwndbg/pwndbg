@@ -75,7 +75,7 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
     matches = re.search(r'Found pids: ([0-9]+), ([0-9]+) \(use `attach <pid>`\)', result).groups()
     matches = list(map(int, matches))
     matches.sort()
-    
+
     expected_pids = [pid, process.pid]
     expected_pids.sort()
 
@@ -97,4 +97,3 @@ def test_attachp_command_no_pids():
         return
 
     assert 'Error: ptrace: No such process.' in result
-

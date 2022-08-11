@@ -69,6 +69,7 @@ shellcmds = [
 
 shellcmds = filter(pwndbg.which.which, shellcmds)
 
+
 def register_shell_function(cmd):
     def handler(*a):
         if os.fork() == 0:
@@ -79,6 +80,7 @@ def register_shell_function(cmd):
     handler.__doc__ = 'Invokes {}'.format(cmd)
 
     pwndbg.commands.Command(handler, False)
+
 
 for cmd in shellcmds:
     register_shell_function(cmd)

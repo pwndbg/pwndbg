@@ -7,7 +7,7 @@ import pwndbg.proc
 import pwndbg.vmmap
 from pwndbg.color import message
 
-options = {'on':'off', 'off':'on'}
+options = {'on': 'off', 'off': 'on'}
 
 parser = argparse.ArgumentParser(description='''
 Check the current ASLR status, or turn it on/off.
@@ -17,10 +17,11 @@ Does not take effect until the program is restarted.
 parser.add_argument('state', nargs='?', type=str, choices=options,
                     help="Turn ASLR on or off (takes effect when target is started)")
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def aslr(state=None):
     if state:
-        gdb.execute('set disable-randomization %s' % options[state], 
+        gdb.execute('set disable-randomization %s' % options[state],
                     from_tty=False, to_string=True)
 
         if pwndbg.proc.alive:

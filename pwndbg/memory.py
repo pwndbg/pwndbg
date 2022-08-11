@@ -41,7 +41,7 @@ def read(addr, count, partial=False):
             raise
 
         if not hasattr(e, 'message'):
-            e.message=str(e)
+            e.message = str(e)
 
         stop_addr = int(e.message.split()[-1], 0)
         if stop_addr != addr:
@@ -109,8 +109,10 @@ def peek(address):
         :class:`str`: A single byte of data, or ``None`` if the
         address cannot be read.
     """
-    try:    return read(address, 1)
-    except: pass
+    try:
+        return read(address, 1)
+    except:
+        pass
     return None
 
 
@@ -126,9 +128,12 @@ def poke(address):
         :class:`bool`: Whether the address is writable.
     """
     c = peek(address)
-    if c is None: return False
-    try:    write(address, c)
-    except: return False
+    if c is None:
+        return False
+    try:
+        write(address, c)
+    except:
+        return False
     return True
 
 
@@ -297,6 +302,7 @@ def round_up(address, align):
     """
     return (address+(align-1))&(~(align-1))
 
+
 align_down = round_down
 align_up   = round_up
 
@@ -315,6 +321,7 @@ def page_size_align(address):
 
 def page_offset(address):
     return (address & (PAGE_SIZE-1))
+
 
 assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
 assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
@@ -388,7 +395,7 @@ class Page:
         self.objfile = objfile
 
         # if self.rwx:
-            # self.flags = self.flags ^ 1
+        # self.flags = self.flags ^ 1
 
     @property
     def start(self):

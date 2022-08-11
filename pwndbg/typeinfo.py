@@ -49,7 +49,7 @@ def update():
     module.ushort = lookup_types('unsigned short', 'ushort', 'u16', 'uint16')
     module.uint   = lookup_types('unsigned int', 'uint', 'u32', 'uint32')
     module.void   = lookup_types('void', '()')
-    
+
     module.uint8  = module.uchar
     module.uint16 = module.ushort
     module.uint32 = module.uint
@@ -78,11 +78,11 @@ def update():
 
     module.ptrsize = pvoid.sizeof
 
-    if pvoid.sizeof == 4: 
+    if pvoid.sizeof == 4:
         module.ptrdiff = module.uint32
         module.size_t = module.uint32
         module.ssize_t = module.int32
-    elif pvoid.sizeof == 8: 
+    elif pvoid.sizeof == 8:
         module.ptrdiff = module.uint64
         module.size_t = module.uint64
         module.ssize_t = module.int64
@@ -90,20 +90,22 @@ def update():
         raise Exception('Pointer size not supported')
     module.null = gdb.Value(0).cast(void)
 
+
 # Call it once so we load all of the types
 update()
 
 # Trial and error until things work
 blacklist = ['regexp.h', 'xf86drm.h', 'libxl_json.h', 'xf86drmMode.h',
-'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
-'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
-'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
-'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
-'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
-'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
-'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h','revm-objects.h',
-'libetrace.h', 'revm-io.h','libasm-mips.h','libstderesi.h','libasm.h','libaspect.h',
-'libunwind.h','libmjollnir-objects.h','libunwind-coredump.h','libunwind-dynamic.h']
+             'caca0.h', 'xenguest.h', '_libxl_types_json.h', 'term_entry.h', 'slcurses.h',
+             'pcreposix.h', 'sudo_plugin.h', 'tic.h', 'sys/elf.h', 'sys/vm86.h',
+             'xenctrlosdep.h', 'xenctrl.h', 'cursesf.h', 'cursesm.h', 'gdbm.h', 'dbm.h',
+             'gcrypt-module.h', 'term.h', 'gmpxx.h', 'pcap/namedb.h', 'pcap-namedb.h',
+             'evr.h', 'mpc.h', 'fdt.h', 'mpfr.h', 'evrpc.h', 'png.h', 'zlib.h', 'pngconf.h',
+             'libelfsh.h', 'libmjollnir.h', 'hwloc.h', 'ares.h', 'revm.h', 'ares_rules.h',
+             'libunwind-ptrace.h', 'libui.h', 'librevm-color.h', 'libedfmt.h', 'revm-objects.h',
+             'libetrace.h', 'revm-io.h', 'libasm-mips.h', 'libstderesi.h', 'libasm.h', 'libaspect.h',
+             'libunwind.h', 'libmjollnir-objects.h', 'libunwind-coredump.h', 'libunwind-dynamic.h']
+
 
 def load(name):
     """Load symbol by name from headers in standard system include directory"""
@@ -130,10 +132,9 @@ def load(name):
         dirname = os.path.join(include_dir, subdir)
         for path in glob.glob(os.path.join(dirname, '*.h')):
             if any(b in path for b in blacklist):
-              continue
+                continue
             print(path)
             source += '#include "%s"\n' % path
-
 
     source += '''
 {name} foo;
@@ -149,6 +150,7 @@ def load(name):
     compile(filename)
 
     return gdb.lookup_type(name)
+
 
 def compile(filename=None, address=0):
     """Compile and extract symbols from specified file"""
@@ -168,6 +170,7 @@ def compile(filename=None, address=0):
 
     add_symbol_file(objectname, address)
 
+
 def add_symbol_file(filename=None, address=0):
     """Read additional symbol table information from the object file filename"""
     if filename is None:
@@ -176,6 +179,7 @@ def add_symbol_file(filename=None, address=0):
 
     with pwndbg.events.Pause():
         gdb.execute('add-symbol-file %s %s' % (filename, address), from_tty=False, to_string=True)
+
 
 def read_gdbvalue(type_name, addr):
     """ Read the memory contents at addr and interpret them as a GDB value with the given type """

@@ -20,6 +20,8 @@ def nextjmp():
 
 parser = argparse.ArgumentParser(description="""Breaks at the next call instruction""")
 parser.add_argument("symbol_regex", type=str, default=None, nargs="?", help="A regex matching the name of next symbol to be broken on before calling.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def nextcall(symbol_regex=None):
@@ -60,6 +62,8 @@ def nextproginstr():
 
 parser = argparse.ArgumentParser(description="""Sets a breakpoint on the instruction after this one""")
 parser.add_argument("addr", type=int, default=None, nargs="?", help="The address to break after.")
+
+
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["so"])
 @pwndbg.commands.OnlyWhenRunning
 def stepover(addr=None):
@@ -67,7 +71,7 @@ def stepover(addr=None):
     pwndbg.next.break_on_next(addr)
 
 
-@pwndbg.commands.ArgparsedCommand("Breaks at the next syscall not taking branches.",aliases=["nextsc"])
+@pwndbg.commands.ArgparsedCommand("Breaks at the next syscall not taking branches.", aliases=["nextsc"])
 @pwndbg.commands.OnlyWhenRunning
 def nextsyscall():
     """
@@ -80,7 +84,7 @@ def nextsyscall():
         pwndbg.commands.context.context()
 
 
-@pwndbg.commands.ArgparsedCommand("Breaks at the next syscall by taking branches.",aliases=["stepsc"])
+@pwndbg.commands.ArgparsedCommand("Breaks at the next syscall by taking branches.", aliases=["stepsc"])
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall():
     """

@@ -49,4 +49,3 @@ def compile_binary(binary_source, binary_out):
     assert os.path.isfile(binary_source)
 
     subprocess.check_call(['gcc', binary_source, '-o', binary_out])
-

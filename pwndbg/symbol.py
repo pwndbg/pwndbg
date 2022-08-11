@@ -46,8 +46,10 @@ def get_directory():
         return match.group(1)
     return ''
 
+
 def set_directory(d):
     gdb.execute('set debug-file-directory %s' % d, to_string=True, from_tty=False)
+
 
 def add_directory(d):
     current = get_directory()
@@ -56,8 +58,10 @@ def add_directory(d):
     else:
         set_directory(d)
 
+
 remote_files = {}
 remote_files_dir = None
+
 
 @pwndbg.events.exit
 def reset_remote_files():
@@ -67,6 +71,7 @@ def reset_remote_files():
     if remote_files_dir is not None:
         shutil.rmtree(remote_files_dir)
         remote_files_dir = None
+
 
 @pwndbg.events.new_objfile
 def autofetch():
@@ -138,7 +143,7 @@ def autofetch():
 
         gdb_command = ['add-symbol-file', local_path, hex(int(base))]
         for section in elf.iter_sections():
-            name = section.name #.decode('latin-1')
+            name = section.name  # .decode('latin-1')
             section = section.header
             if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
                 continue
@@ -146,6 +151,7 @@ def autofetch():
 
         print(' '.join(gdb_command))
         # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
+
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
@@ -169,7 +175,7 @@ def get(address, gdb_only=False):
         if exe:
             exe_map = pwndbg.vmmap.find(exe.address)
             if exe_map and address in exe_map:
-                res =  pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
+                res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ''
 
     # Expected format looks like this:
@@ -179,13 +185,13 @@ def get(address, gdb_only=False):
     # No symbol matches system-1.
     a, b, c, _ = result.split(None, 3)
 
-
     if b == '+':
         return "%s+%s" % (a, c)
     if b == 'in':
         return a
 
     return ''
+
 
 @pwndbg.memoize.reset_on_objfile
 def address(symbol, allow_unmapped=False):
@@ -227,6 +233,7 @@ def address(symbol, allow_unmapped=False):
             return address
     except Exception:
         pass
+
 
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_start

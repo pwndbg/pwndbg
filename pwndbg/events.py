@@ -68,6 +68,7 @@ class EventWrapper:
     Wrapper for GDB events which may not exist on older GDB versions but we still can
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -171,11 +172,11 @@ def connect(func, event_handler, name=''):
     return func
 
 
-def exit(func):        return connect(func, gdb.events.exited, 'exit')
-def cont(func):        return connect(func, gdb.events.cont, 'cont')
+def exit(func): return connect(func, gdb.events.exited, 'exit')
+def cont(func): return connect(func, gdb.events.cont, 'cont')
 def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
-def stop(func):        return connect(func, gdb.events.stop, 'stop')
-def start(func):       return connect(func, gdb.events.start, 'start')
+def stop(func): return connect(func, gdb.events.stop, 'stop')
+def start(func): return connect(func, gdb.events.start, 'start')
 
 
 before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name='before_prompt')
@@ -213,7 +214,8 @@ def after_reload(start=True):
         for f in registered[gdb.events.stop]:
             f()
         for f in registered[gdb.events.start]:
-            if start: f()
+            if start:
+                f()
         for f in registered[gdb.events.new_objfile]:
             f()
         for f in registered[gdb.events.before_prompt]:

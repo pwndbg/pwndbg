@@ -57,10 +57,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LS: Z or not C,
             ARM_CC_GE: N == V,
             ARM_CC_LT: N != V,
-            ARM_CC_GT: not Z and (N==V),
+            ARM_CC_GT: not Z and (N == V),
             ARM_CC_LE: Z or (N != V),
         }.get(instruction.cc, None)
 
         return cc
+
 
 assistant = DisassemblyAssistant('arm')
