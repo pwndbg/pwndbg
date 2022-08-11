@@ -594,18 +594,33 @@ def find_fake_fast(addr, size=None):
 
 parser = argparse.ArgumentParser()
 parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
-parser.add_argument("count", nargs="?", type=lambda n:max(int(n, 0),1), default=10, help="Number of chunks to visualize.")
-parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
-parser.add_argument("--naive", "-n", action="store_true", default=False, help="Attempt to keep printing beyond the top chunk.")
+parser.add_argument(
+    "count",
+    nargs="?",
+    type=lambda n: max(int(n, 0), 1),
+    default=10,
+    help="Number of chunks to visualize."
+)
+parser.add_argument(
+    "addr", nargs="?", default=None, help="Address of the first chunk."
+)
+parser.add_argument(
+    "--naive",
+    "-n",
+    action="store_true",
+    default=False,
+    help="Attempt to keep printing beyond the top chunk."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None):
+def vis_heap_chunks(addr: Optional[int] = None, count=None, naive=False):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
-    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
+    arena = allocator.get_arena_for_chunk(addr
+                                         ) if addr else allocator.get_arena()
 
     top_chunk = arena['top']
     ptr_size = allocator.size_sz
@@ -618,66 +633,67 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
         cursor = heap_region.start
     else:
         cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)['ar_ptr']) == heap_region:
+        if pwndbg.vmmap.find(
+            allocator.get_heap(heap_region.start)['ar_ptr']
+        ) == heap_region:
             # Round up to a 2-machine-word alignment after an arena to
             # compensate for the presence of the have_fastchunks variable
             # in GLIBC versions >= 2.27.
-            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
+            cursor += pwndbg.memory.align_down(
+                allocator.malloc_state.sizeof + ptr_size,
+                allocator.malloc_alignment
+            )
 
     # Check if there is an alignment at the start of the heap, adjust if necessary.
     if not addr:
-        first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+        first_chunk_size = pwndbg.arch.unpack(
+            pwndbg.memory.read(cursor + ptr_size, ptr_size)
+        )
         if first_chunk_size == 0:
             cursor += ptr_size * 2
 
     cursor_backup = cursor
 
-    for _ in range(count + 1):
+    i = 0
+    # TODO: This rewrite probably breaks --naive
+    # TODO: If we do it like this, we should store the first chunk, not the next one
+    for cursor in allocator.chunks(cursor):
+        if i == 0:
+            i += 1
+            continue
+
+        if i >= count:
+            break
+
+        i += 1
+
+        next_chunk = allocator.next_chunk(cursor)
+        if cursor == top_chunk:
+            inuse = False
+        else:
+            inuse = allocator.prev_inuse(next_chunk)
+
+        # TODO: Is this check still necessary?
         # Don't read beyond the heap mapping if --naive or corrupted heap.
         if cursor not in heap_region:
-            chunk_delims.append(heap_region.end)
+            chunk_delims.append((heap_region.end, inuse))
             break
 
-        size_field = pwndbg.memory.u(cursor + ptr_size)
-        real_size = size_field & ~allocator.malloc_align_mask
-        prev_inuse = allocator.chunk_flags(size_field)[0]
+        chunk_delims.append((cursor, inuse))
 
-        # Don't repeatedly operate on the same address (e.g. chunk size of 0).
-        if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
-            break
-
-        if prev_inuse:
-            chunk_delims.append(cursor + ptr_size)
-        else:
-            chunk_delims.append(cursor)
-
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - ptr_size*2):
-            chunk_delims.append(cursor + ptr_size*2)
-            break
-
-        cursor += real_size
+        # if (cursor == top_chunk
+        #     and not naive) or (cursor == heap_region.end - ptr_size * 2):
+        #     chunk_delims.append(cursor + ptr_size * 2)
+        #     break
 
     # Build the output buffer, changing color at each chunk delimiter.
-    # TODO: maybe print free chunks in bold or underlined
     color_funcs = [
-        generateColorFunction("yellow"),
-        generateColorFunction("cyan"),
-        generateColorFunction("purple"),
-        generateColorFunction("green"),
-        generateColorFunction("blue"),
+        generateColorFunction('yellow'),
+        generateColorFunction('cyan'),
+        generateColorFunction('purple'),
+        generateColorFunction('green'),
+        generateColorFunction('blue'),
     ]
-
-    bin_collections = [
-        allocator.fastbins(arena.address),
-        allocator.unsortedbin(arena.address),
-        allocator.smallbins(arena.address),
-        allocator.largebins(arena.address),
-        ]
-    if allocator.has_tcache():
-        # Only check for tcache entries belonging to the current thread,
-        # it's difficult (impossible?) to find all the thread caches for a
-        # specific heap.
-        bin_collections.insert(0, allocator.tcachebins(None))
 
     printed = 0
     out = ''
@@ -686,7 +702,13 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
     cursor = cursor_backup
 
-    for c, stop in enumerate(chunk_delims):
+    for c, (stop, inuse) in enumerate(chunk_delims):
+        if inuse:
+            stop += ptr_size
+
+        # TODO: Are we duplicating work with bin_labels?
+        bin_type = get_chunk_bin(cursor)
+
         color_func = color_funcs[c % len(color_funcs)]
 
         while cursor != stop:
@@ -694,18 +716,26 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
                 out += "\n0x%x" % cursor
 
             cell = pwndbg.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
-            cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
+            cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size * 2)
 
-            out += color_func(cell_hex)
+            colored_text = color_func(cell_hex)
+            if bin_type != BinType.NOT_IN_BIN:
+                colored_text = underline(colored_text)
+            out += colored_text
             printed += 1
 
-            labels.extend(bin_labels(cursor, bin_collections))
+            labels.extend(bin_labels(cursor, bin_type))
             if cursor == top_chunk:
                 labels.append('Top chunk')
 
-            asc += bin_ascii(pwndbg.memory.read(cursor, ptr_size))
+            asc += ''.join(
+                c if c.isprintable() and c.isascii() else '.'
+                for c in map(chr, pwndbg.memory.read(cursor, ptr_size))
+            )
             if printed % 2 == 0:
-                out += '\t' + color_func(asc) + ('\t <-- ' + ', '.join(labels) if len(labels) else '')
+                out += '\t' + color_func(asc) + (
+                    '\t <-- ' + ', '.join(labels) if len(labels) else ''
+                )
                 asc = ''
                 labels = []
 
@@ -714,43 +744,29 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
     print(out)
 
 
-def bin_ascii(bs):
-    from string import printable
-    valid_chars = list(map(ord, set(printable) - set('\t\r\n\x0c\x0b')))
-    return ''.join(chr(c) if c in valid_chars else '.'for c in bs)
-
-
-def bin_labels(addr, collections):
+def bin_labels(addr: int, bin_type: BinType) -> list[str]:
     labels = []
-    for bins in collections:
-        bins_type = bins.get('type', None)
-        if not bins_type:
-            continue
+    allocator = pwndbg.heap.current
 
-        for size in filter(lambda x: x != 'type', bins.keys()):
-            b = bins[size]
-            if isinstance(size, int):
-                size = hex(size)
-            count = '/{:d}'.format(b[1]) if bins_type == 'tcachebins' else None
-            chunks = bin_addrs(b, bins_type)
-            for chunk_addr in chunks:
-                if addr == chunk_addr:
-                    labels.append('{:s}[{:s}][{:d}{}]'.format(bins_type, size, chunks.index(addr), count or ''))
+    bins = allocator.get_bins(bin_type)
+    if bins is None:
+        return []
+
+    for size, b in bins.bins.items():
+        size_str = Bin.size_to_display_name(size)
+
+        if b.contains_chunk(addr):
+            count = ''
+            if bins.bin_type == BinType.TCACHE:
+                count = '/{:d}'.format(b.count)
+
+            labels.append(
+                '{:s}[{:s}][{:d}{:s}]'.format(
+                    bins.bin_type.value, size_str, b.fd_chain.index(addr), count
+                )
+            )
 
     return labels
-
-
-def bin_addrs(b, bins_type):
-    addrs = []
-    if bins_type == 'fastbins':
-        return b
-    # tcachebins consists of single linked list and entries count
-    elif bins_type == 'tcachebins':
-        addrs, _ = b
-    # normal bins consists of double linked list and may be corrupted (we can detect corruption)
-    else:  # normal bin
-        addrs, _, _ = b
-    return addrs
 
 
 try_free_parser = argparse.ArgumentParser(description='Check what would happen if free was called with given address')

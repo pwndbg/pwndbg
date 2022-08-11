@@ -765,6 +765,10 @@ class DebugSymsHeap(Heap):
     def next_chunk(self, addr: int) -> int:
         return addr + self.chunk_size(addr)
 
+    def prev_inuse(self, addr: int) -> bool:
+        prev_inuse, _, _ = self.chunk_flags(self.chunk_size(addr))
+        return prev_inuse == ptmalloc.PREV_INUSE
+
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
             return self.thread_cache
