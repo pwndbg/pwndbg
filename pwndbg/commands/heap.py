@@ -232,21 +232,25 @@ def mp():
 
 parser = argparse.ArgumentParser()
 parser.description = "Print relevant information about an arena's top chunk, default to current thread's arena."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def top_chunk(addr=None):
+def top_chunk(addr: Optional[int] = None):
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
     """
     allocator = pwndbg.heap.current
     arena = allocator.get_arena(addr)
     address = arena['top']
-    size = pwndbg.memory.u(int(address) + allocator.chunk_key_offset('size'))
+    size = allocator.chunk_size_nomask(int(address))
 
-    out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
+    out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(
+        M.get(address), size
+    )
     print(out)
 
 

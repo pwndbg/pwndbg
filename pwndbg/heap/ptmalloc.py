@@ -753,7 +753,6 @@ class DebugSymsHeap(Heap):
                 break
 
     def chunk_size_nomask(self, addr: int) -> int:
-        print(hex(addr + self.chunk_key_offset('size')))
         return pwndbg.memory.u(addr + self.chunk_key_offset('size'))
 
     def chunk_size(self, addr: int) -> int:
