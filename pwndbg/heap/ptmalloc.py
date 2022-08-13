@@ -898,7 +898,7 @@ class HeuristicHeap(Heap):
             elif pwndbg.arch.current == "aarch64":
                 # [reg1, reg2]
                 return pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_arena_offset)
-            else:
+            elif pwndbg.arch.current == "arm":
                 # reg1, reg2
                 return pwndbg.memory.pvoid(self.get_arm_tls_base() + self._thread_arena_offset)
 
