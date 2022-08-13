@@ -2,6 +2,7 @@ import importlib
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps
+from typing import Optional
 
 import gdb
 
@@ -388,6 +389,20 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def get_region(self, addr):
         """Find the memory map containing 'addr'."""
         return pwndbg.vmmap.find(addr)
+
+    def get_bins(self, bin_type: BinType, addr: Optional[int] = None) -> Bins:
+        if bin_type == BinType.TCACHE:
+            return self.tcachebins(addr)
+        elif bin_type == BinType.FAST:
+            return self.fastbins(addr)
+        elif bin_type == BinType.UNSORTED:
+            return self.unsortedbin(addr)
+        elif bin_type == BinType.SMALL:
+            return self.smallbins(addr)
+        elif bin_type == BinType.LARGE:
+            return self.largebins(addr)
+        else:
+            return None
 
     def fastbin_index(self, size):
         if pwndbg.arch.ptrsize == 8:

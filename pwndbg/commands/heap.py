@@ -1,6 +1,7 @@
 import argparse
 import ctypes
 import struct
+from typing import Optional
 
 import gdb
 
@@ -12,12 +13,16 @@ import pwndbg.glibc
 import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
+from pwndbg.color import underline
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import get_config_parameters
 from pwndbg.commands.config import print_row
+from pwndbg.heap.ptmalloc import Bin
+from pwndbg.heap.ptmalloc import Bins
+from pwndbg.heap.ptmalloc import BinType
 
 
-def read_chunk(addr):
+def read_chunk(addr: int):
     """Read a chunk's metadata."""
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
@@ -33,55 +38,49 @@ def read_chunk(addr):
     return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
 
 
-def format_bin(bins, verbose=False, offset=None):
+def format_bin(bins: Bins, verbose=False, offset=None) -> list[str]:
     allocator = pwndbg.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset('fd')
 
     result = []
-    bins_type = bins.pop('type')
+    bins_type = bins.bin_type
 
-    for size in bins:
-        b = bins[size]
-        count, is_chain_corrupted = None, False
-        safe_lnk = False
-
-        # fastbins consists of only single linked list
-        if bins_type == 'fastbins':
-            chain_fd = b
-            safe_lnk = pwndbg.glibc.check_safe_linking()
-        # tcachebins consists of single linked list and entries count
-        elif bins_type == 'tcachebins':
-            chain_fd, count = b
-            safe_lnk = pwndbg.glibc.check_safe_linking()
-        # normal bins consists of double linked list and may be corrupted (we can detect corruption)
-        else:  # normal bin
-            chain_fd, chain_bk, is_chain_corrupted = b
-
-        if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
+    for size, b in bins.bins.items():
+        if not verbose and (
+            b.fd_chain == [0] and not b.count
+        ) and not b.is_corrupted:
             continue
 
-        if bins_type == 'tcachebins':
-            limit = 8
-            if count <= 7:
-                limit = count + 1
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk)
+        safe_lnk = False
+        if bins_type in [BinType.FAST, BinType.TCACHE]:
+            safe_lnk = pwndbg.glibc.check_safe_linking()
+
+        if bins_type == BinType.TCACHE:
+            limit = min(8, b.count + 1)
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
+            limit = pwndbg.chain.LIMIT
 
+        formatted_chain = pwndbg.chain.format(
+            b.fd_chain[0], limit=limit, offset=offset, safe_linking=safe_lnk
+        )
 
-        if isinstance(size, int):
-            size = hex(size)
+        size_str = Bin.size_to_display_name(size)
 
-        if is_chain_corrupted:
-            line = message.hint(size) + message.error(' [corrupted]') + '\n'
+        if b.is_corrupted:
+            line = message.hint(size_str) + message.error(' [corrupted]') + '\n'
             line += message.hint('FD: ') + formatted_chain + '\n'
-            line += message.hint('BK: ') + pwndbg.chain.format(chain_bk[0], offset=allocator.chunk_key_offset('bk'))
+            line += message.hint('BK: ') + pwndbg.chain.format(
+                b.bk_chain[0], offset=allocator.chunk_key_offset('bk')
+            )
         else:
-            if count is not None:
-                line = (message.hint(size) + message.hint(' [%3d]' % count) + ': ').ljust(13)
-            else:
-                line = (message.hint(size) + ': ').ljust(13)
+            line = message.hint(size_str)
+            if b.count is not None:
+                line += message.hint(' [%3d]' % b.count)
+
+            line += ': '
+            line.ljust(13)
+
             line += formatted_chain
 
         result.append(line)
@@ -345,13 +344,21 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of all an arena's bins and a thread's tcache, default to the current thread's arena and tcache."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
+parser.add_argument(
+    "tcache_addr",
+    nargs="?",
+    type=int,
+    default=None,
+    help="Address of the tcache."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def bins(addr=None, tcache_addr=None):
+def bins(addr: Optional[int] = None, tcache_addr: Optional[int] = None):
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
     """
@@ -363,128 +370,129 @@ def bins(addr=None, tcache_addr=None):
     largebins(addr)
 
 
+def print_bins(
+    bin_type: BinType, addr: Optional[int] = None, verbose: bool = False
+):
+    allocator = pwndbg.heap.current
+    offset = None
+
+    # TODO: Abstract this away
+    if bin_type == BinType.TCACHE:
+        offset = allocator.tcache_next_offset
+    else:
+        offset = None
+
+    bins = allocator.get_bins(bin_type, addr=addr)
+    if bins is None:
+        return
+
+    formatted_bins = format_bin(bins, verbose, offset=offset)
+
+    print(C.banner(bin_type.value))
+    for node in formatted_bins:
+        print(node)
+
+
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's fastbins, default to the current thread's arena."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=True, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def fastbins(addr=None, verbose=True):
+def fastbins(addr: Optional[int] = None, verbose=True):
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    fastbins = allocator.fastbins(addr)
-
-    if fastbins is None:
-        return
-
-    formatted_bins = format_bin(fastbins, verbose)
-
-    print(C.banner('fastbins'))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.FAST, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's unsortedbin, default to the current thread's arena."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=True, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def unsortedbin(addr=None, verbose=True):
+def unsortedbin(addr: Optional[int] = None, verbose=True):
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    unsortedbin = allocator.unsortedbin(addr)
-
-    if unsortedbin is None:
-        return
-
-    formatted_bins = format_bin(unsortedbin, verbose)
-
-    print(C.banner('unsortedbin'))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.UNSORTED, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's smallbins, default to the current thread's arena."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=False, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def smallbins(addr=None, verbose=False):
+def smallbins(addr: Optional[int] = None, verbose=False):
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    smallbins = allocator.smallbins(addr)
-
-    if smallbins is None:
-        return
-
-    formatted_bins = format_bin(smallbins, verbose)
-
-    print(C.banner('smallbins'))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.SMALL, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of an arena's largebins, default to the current thread's arena."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
+)
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=False, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def largebins(addr=None, verbose=False):
+def largebins(addr: Optional[int] = None, verbose=False):
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    largebins = allocator.largebins(addr)
-
-    if largebins is None:
-        return
-
-    formatted_bins = format_bin(largebins, verbose)
-
-    print(C.banner('largebins'))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.LARGE, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of a tcache, default to the current thread's tcache."
-parser.add_argument("addr", nargs="?", type=int, default=None, help="The address of the tcache bins.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
+parser.add_argument(
+    "addr",
+    nargs="?",
+    type=int,
+    default=None,
+    help="The address of the tcache bins."
+)
+parser.add_argument(
+    "verbose",
+    nargs="?",
+    type=bool,
+    default=False,
+    help="Whether to show more details or not."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
-def tcachebins(addr=None, verbose=False):
+def tcachebins(addr: Optional[int] = None, verbose=False):
     """Print the contents of a tcache, default to the current thread's tcache."""
-    allocator = pwndbg.heap.current
-    tcachebins = allocator.tcachebins(addr)
-
-    if tcachebins is None:
-        return
-
-    formatted_bins = format_bin(tcachebins, verbose, offset = allocator.tcache_next_offset)
-
-    print(C.banner('tcachebins'))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.TCACHE, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
