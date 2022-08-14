@@ -792,7 +792,7 @@ class HeuristicHeap(Heap):
             elif pwndbg.arch.current == "i386":
                 for instr in __errno_location_instr:
                     # Find something like: mov eax, dword ptr [eax + disp]
-                    # (disp is a negative value, and eax is come from one of the page address of libc)
+                    # (disp is a negative value, and eax comes from one of the page address of libc)
                     if instr.mnemonic == 'mov':
                         base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
                         self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
