@@ -44,7 +44,6 @@ import pwndbg.commands.rop
 import pwndbg.commands.ropper
 import pwndbg.commands.search
 import pwndbg.commands.segments
-import pwndbg.commands.shell
 import pwndbg.commands.stack
 import pwndbg.commands.start
 import pwndbg.commands.telescope
