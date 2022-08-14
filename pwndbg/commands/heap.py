@@ -7,10 +7,14 @@ import gdb
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.glibc
 import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
+from pwndbg.commands.config import extend_value_with_default
+from pwndbg.commands.config import get_config_parameters
+from pwndbg.commands.config import print_row
 
 
 def read_chunk(addr):
@@ -22,7 +26,10 @@ def read_chunk(addr):
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    if not pwndbg.config.resolve_heap_via_heuristic:
+        val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    else:
+        val = pwndbg.heap.current.malloc_chunk(addr)
     return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
 
 
@@ -92,7 +99,7 @@ parser.add_argument("-v", "--verbose", action="store_true", help="Print all chun
 parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def heap(addr=None, verbose=False, simple=False):
     """Iteratively print chunks on a heap, default to the current thread's
@@ -149,7 +156,7 @@ parser.description = "Print the contents of an arena, default to the current thr
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arena(addr=None):
     """Print the contents of an arena, default to the current thread's arena."""
@@ -162,7 +169,7 @@ parser = argparse.ArgumentParser()
 parser.description = "List this process's arenas."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def arenas():
     """Lists this process's arenas."""
@@ -176,7 +183,7 @@ parser.description = "Print a thread's tcache contents, default to the current t
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 def tcache(addr=None):
@@ -192,7 +199,7 @@ parser = argparse.ArgumentParser()
 parser.description = "Print the mp_ struct's contents."
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def mp():
     """Print the mp_ struct's contents."""
@@ -205,7 +212,7 @@ parser.description = "Print relevant information about an arena's top chunk, def
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def top_chunk(addr=None):
     """Print relevant information about an arena's top chunk, default to the
@@ -228,7 +235,7 @@ parser.add_argument("-v", "--verbose", action="store_true", help="Print all chun
 parser.add_argument("-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
@@ -301,7 +308,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
             headers_to_print.append(message.on("Free chunk (largebins)"))
             if not verbose:
                 fields_to_print.update(['fd', 'bk', 'fd_nextsize', 'bk_nextsize'])
-        
+
         elif cursor in bin_addrs(unsortedbin['all'], "unsortedbin"):
             headers_to_print.append(message.on("Free chunk (unsortedbin)"))
             if not verbose:
@@ -342,7 +349,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def bins(addr=None, tcache_addr=None):
     """Print the contents of all an arena's bins and a thread's tcache,
@@ -362,7 +369,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def fastbins(addr=None, verbose=True):
     """Print the contents of an arena's fastbins, default to the current
@@ -387,7 +394,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def unsortedbin(addr=None, verbose=True):
     """Print the contents of an arena's unsortedbin, default to the current
@@ -412,7 +419,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def smallbins(addr=None, verbose=False):
     """Print the contents of an arena's smallbins, default to the current
@@ -437,7 +444,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def largebins(addr=None, verbose=False):
     """Print the contents of an arena's largebins, default to the current
@@ -462,7 +469,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="The address
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 def tcachebins(addr=None, verbose=False):
@@ -486,7 +493,7 @@ parser.add_argument("addr", type=int, help="Address of the word-sized value to o
 parser.add_argument("size", nargs="?", type=int, default=None, help="Size of fake chunks to find.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size=None):
     """Find candidate fake fast chunks overlapping the specified address."""
@@ -533,7 +540,7 @@ parser.add_argument("addr", nargs="?", default=None, help="Address of the first 
 parser.add_argument("--naive", "-n", action="store_true", default=False, help="Attempt to keep printing beyond the top chunk.")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithLibcDebugSyms
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def vis_heap_chunks(addr=None, count=None, naive=None):
     """Visualize chunks on a heap, default to the current arena's active heap."""
@@ -960,7 +967,7 @@ def try_free(addr):
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_next_chunk_addr)))
                 finalize(errors_found, returned_before_error)
                 return
-            
+
             prev_inuse,_,_ = allocator.chunk_flags(next_next_chunk['size'])
             if prev_inuse == 0:
                 print(message.notice('Forward consolidation'))
@@ -1008,3 +1015,26 @@ def try_free(addr):
 def try_unlink(addr):
     pass
 
+
+parser = argparse.ArgumentParser(description='Shows heap related config. The list can be filtered.')
+parser.add_argument('filter_pattern', type=str, nargs='?', default=None,
+                    help='Filter to apply to config parameters names/descriptions')
+@pwndbg.commands.ArgparsedCommand(parser)
+def heap_config(filter_pattern):
+    values = get_config_parameters('heap', filter_pattern)
+
+    if not values:
+        print(message.hint('No config parameter found with filter "{}"'.format(filter_pattern)))
+        return
+
+    longest_optname = max(map(len, [v.optname for v in values]))
+    longest_value = max(map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values]))
+
+    header = print_row('Name', 'Value', 'Def', 'Documentation', longest_optname, longest_value)
+    print('-' * (len(header)))
+
+    for v in sorted(values):
+        print_row(v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value)
+
+    print(message.hint('You can set config variable with `set <config-var> <value>`'))
+    print(message.hint('Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `True`'))

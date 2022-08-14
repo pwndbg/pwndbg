@@ -254,10 +254,10 @@ def OnlyAmd64(function):
             print("%s: Only works with \"x86-64\" arch." % function.__name__)
     return _OnlyAmd64
 
-def OnlyWithLibcDebugSyms(function):
+def OnlyWithResolvedHeapSyms(function):
     @functools.wraps(function)
-    def _OnlyWithLibcDebugSyms(*a, **kw):
-        if pwndbg.heap.current.libc_has_debug_syms():
+    def _OnlyWithResolvedHeapSyms(*a, **kw):
+        if pwndbg.heap.current.libc_has_debug_syms() or pwndbg.config.resolve_heap_via_heuristic:
             return function(*a, **kw)
         else:
             print('''%s: This command only works with libc debug symbols.
@@ -269,7 +269,10 @@ sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
 ''' % function.__name__)
-    return _OnlyWithLibcDebugSyms
+            print(message.warn('pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`.'))
+            print(message.warn('You can show your current config about heap by `heap_config`.'))
+            print(message.warn("Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."))
+    return _OnlyWithResolvedHeapSyms
 
 class QuietSloppyParsedCommand(ParsedCommand):
     def __init__(self, *a, **kw):
