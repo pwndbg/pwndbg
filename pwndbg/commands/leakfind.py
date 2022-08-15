@@ -23,7 +23,7 @@ def get_rec_addr_string(addr, visited_map):
     arrow_right = C.arrow(" %s " % config_arrow_right)
 
     if not page is None:
-        if not addr in visited_map:
+        if addr not in visited_map:
             return ""
 
         parent_info = visited_map[addr]
