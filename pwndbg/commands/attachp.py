@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
     description="""Attaches to a given pid, process name or device file.
 
 This command wraps the original GDB `attach` command to add the ability
-to debug a process with given name. In such case the process identifier is 
+to debug a process with given name. In such case the process identifier is
 fetched via the `pidof <name>` command.
 
 Original GDB attach command help:
