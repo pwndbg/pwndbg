@@ -26,7 +26,7 @@ class PwntoolsLexer(RegexLexer):
     #: optional Comment or Whitespace
     string = r'"(\\"|[^"])*"'
     char = r"[\w$.@-]"
-    identifier = r"(?:[a-zA-Z$_]" + char + "*|\." + char + "+|or)"
+    identifier = r"(?:[a-zA-Z$_]" + char + r"*|\." + char + r"+|or)"
     number = r"(?:0[xX][a-zA-Z0-9]+|\d+)"
     memory = r"(?:[\]\[])"
 
