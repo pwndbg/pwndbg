@@ -101,7 +101,7 @@ def p2p_walk(addr, ranges, current_level):
 
     maybe_addr = maybe_points_to_ranges(addr, ranges[current_level])
 
-    if maybe_addr == None:
+    if maybe_addr is None:
         return None
 
     if current_level == levels - 1:
@@ -124,5 +124,5 @@ def p2p(mapping_names: [] = None):
         for addr in range(rng.begin, rng.end):
             maybe_pointer = p2p_walk(addr, mapping_names, current_level=1)
 
-            if maybe_pointer != None:
+            if maybe_pointer is not None:
                 ts(address=addr, count=1)
