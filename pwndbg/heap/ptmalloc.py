@@ -110,6 +110,22 @@ class Bins:
         return False
 
 
+def read_chunk_from_gdb(addr: int):
+    """Read a chunk's metadata."""
+    # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
+    # To support both versions, change the new names to the old ones here so that
+    # the rest of the code can deal with uniform names.
+    renames = {
+        "mchunk_size": "size",
+        "mchunk_prev_size": "prev_size",
+    }
+    if not pwndbg.config.resolve_heap_via_heuristic:
+        val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+    else:
+        val = pwndbg.heap.current.malloc_chunk(addr)
+    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
+
+
 def heap_for_ptr(ptr):
     """Round a pointer to a chunk down to find its corresponding heap_info
     struct, the pointer must point inside a heap which does not belong to
@@ -379,7 +395,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         raise NotImplementedError()
 
     def get_arena_for_chunk(self, addr):
-        chunk = pwndbg.commands.heap.read_chunk(addr)
+        chunk = read_chunk_from_gdb(addr)
         _,_,nm = self.chunk_flags(chunk['size'])
         if nm:
             r=self.get_arena(arena_addr=self.get_heap(addr)['ar_ptr'])

@@ -20,22 +20,7 @@ from pwndbg.commands.config import print_row
 from pwndbg.heap.ptmalloc import Bin
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
-
-
-def read_chunk(addr: int):
-    """Read a chunk's metadata."""
-    # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
-    # To support both versions, change the new names to the old ones here so that
-    # the rest of the code can deal with uniform names.
-    renames = {
-        "mchunk_size": "size",
-        "mchunk_prev_size": "prev_size",
-    }
-    if not pwndbg.config.resolve_heap_via_heuristic:
-        val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
-    else:
-        val = pwndbg.heap.current.malloc_chunk(addr)
-    return dict({ renames.get(key, key): int(val[key]) for key in val.type.keys() })
+from pwndbg.heap.ptmalloc import read_chunk_from_gdb
 
 
 def format_bin(bins: Bins, verbose=False, offset=None) -> list[str]:
@@ -338,7 +323,7 @@ def malloc_chunk(addr: int, fake=False, verbose=False, simple=False):
         verbose = True  # print all fields for fake chunks
 
     if simple:
-        chunk = read_chunk(cursor)
+        chunk = read_chunk_from_gdb(cursor)
 
         # The address should be the first header
         headers_to_print.insert(0, message.hint(M.get(cursor)))
@@ -801,7 +786,7 @@ def try_free(addr):
     ptr_size = pwndbg.arch.ptrsize
 
     def unsigned_size(size):
-        # read_chunk()['size'] is signed in pwndbg ;/
+        # read_chunk_from_gdb()['size'] is signed in pwndbg ;/
         # there may be better way to handle that
         if ptr_size < 8:
             return ctypes.c_uint32(size).value
@@ -827,7 +812,7 @@ def try_free(addr):
 
     # try to get the chunk
     try:
-        chunk = read_chunk(addr)
+        chunk = read_chunk_from_gdb(addr)
     except gdb.MemoryError as e:
         print(message.error('Can\'t read chunk at address 0x{:x}, memory error'.format(addr)))
         return
@@ -913,7 +898,7 @@ def try_free(addr):
         fastbin_list = allocator.fastbins(int(arena.address))[(chunk_fastbin_idx+2)*(ptr_size*2)]
 
         try:
-            next_chunk = read_chunk(addr + chunk_size_unmasked)
+            next_chunk = read_chunk_from_gdb(addr + chunk_size_unmasked)
         except gdb.MemoryError as e:
             print(message.error('Can\'t read next chunk at address 0x{:x}, memory error'.format(chunk + chunk_size_unmasked)))
             finalize(errors_found, returned_before_error)
@@ -940,7 +925,7 @@ def try_free(addr):
         fastbin_top_chunk = int(fastbin_list[0])
         if fastbin_top_chunk != 0:
             try:
-                fastbin_top_chunk = read_chunk(fastbin_top_chunk)
+                fastbin_top_chunk = read_chunk_from_gdb(fastbin_top_chunk)
             except gdb.MemoryError as e:
                 print(message.error('Can\'t read top fastbin chunk at address 0x{:x}, memory error'.format(fastbin_top_chunk)))
                 finalize(errors_found, returned_before_error)
@@ -970,7 +955,7 @@ def try_free(addr):
         # next chunk is not beyond the boundaries of the arena
         NONCONTIGUOUS_BIT = 2
         top_chunk_addr = (int(arena['top']))
-        top_chunk = read_chunk(top_chunk_addr)
+        top_chunk = read_chunk_from_gdb(top_chunk_addr)
         next_chunk_addr = addr + chunk_size_unmasked
 
         # todo: in libc, addition may overflow
@@ -983,7 +968,7 @@ def try_free(addr):
 
         # now we need to dereference chunk
         try :
-            next_chunk = read_chunk(next_chunk_addr)
+            next_chunk = read_chunk_from_gdb(next_chunk_addr)
             next_chunk_size = chunksize(unsigned_size(next_chunk['size']))
         except (OverflowError, gdb.MemoryError) as e:
             print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_chunk_addr)))
@@ -1013,7 +998,7 @@ def try_free(addr):
             prev_chunk_addr = addr - prev_size
 
             try :
-                prev_chunk = read_chunk(prev_chunk_addr)
+                prev_chunk = read_chunk_from_gdb(prev_chunk_addr)
                 prev_chunk_size = chunksize(unsigned_size(prev_chunk['size']))
             except (OverflowError, gdb.MemoryError) as e:
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(prev_chunk_addr)))
@@ -1037,7 +1022,7 @@ def try_free(addr):
             print(message.notice('Next chunk is not top chunk'))
             try :
                 next_next_chunk_addr = next_chunk_addr + next_chunk_size
-                next_next_chunk = read_chunk(next_next_chunk_addr)
+                next_next_chunk = read_chunk_from_gdb(next_next_chunk_addr)
             except (OverflowError, gdb.MemoryError) as e:
                 print(message.error('Can\'t read next chunk at address 0x{:x}'.format(next_next_chunk_addr)))
                 finalize(errors_found, returned_before_error)
@@ -1055,12 +1040,12 @@ def try_free(addr):
             # unsorted bin fd->bk should be unsorted bean
             unsorted_addr = int(arena['bins'][0])
             try:
-                unsorted = read_chunk(unsorted_addr)
+                unsorted = read_chunk_from_gdb(unsorted_addr)
                 try:
-                    if read_chunk(unsorted['fd'])['bk'] != unsorted_addr:
+                    if read_chunk_from_gdb(unsorted['fd'])['bk'] != unsorted_addr:
                         err = 'free(): corrupted unsorted chunks -> unsorted_chunk->fd->bk != unsorted_chunk\n'
                         err += 'unsorted at 0x{:x}, unsorted->fd == 0x{:x}, unsorted->fd->bk == 0x{:x}'
-                        err = err.format(unsorted_addr, unsorted['fd'], read_chunk(unsorted['fd'])['bk'])
+                        err = err.format(unsorted_addr, unsorted['fd'], read_chunk_from_gdb(unsorted['fd'])['bk'])
                         print(message.error(err))
                         errors_found += 1
                 except (OverflowError, gdb.MemoryError) as e:
