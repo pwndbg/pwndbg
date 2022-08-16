@@ -37,6 +37,7 @@ def format_bin(bins: Bins, verbose=False, offset=None) -> list[str]:
         ) and not b.is_corrupted:
             continue
 
+        # TODO: Abstract this away
         safe_lnk = False
         if bins_type in [BinType.FAST, BinType.TCACHE]:
             safe_lnk = pwndbg.glibc.check_safe_linking()
@@ -107,53 +108,20 @@ def heap(addr: int = None, verbose=False, simple=False):
     active heap.
     """
     allocator = pwndbg.heap.current
-    heap_region = allocator.get_heap_boundaries(addr)
 
+    # If an address was supplied, start printing from there, otherwise start
+    # from the first chunk in the heap region
     if addr:
-        arena = allocator.get_arena_for_chunk(addr)
+        cursor = int(addr)
     else:
-        arena = allocator.get_arena()
+        heap_region = allocator.get_heap_boundaries(addr)
+        cursor = allocator.get_first_chunk_in_heap(heap_region.start)
 
-    ptr_size = allocator.size_sz
 
     # Store the heap base address in a GDB variable that can be used in other
     # GDB commands
     # TODO: See https://github.com/pwndbg/pwndbg/issues/1060
     gdb.execute('set $heap_base=0x{:x}'.format(heap_region.start))
-
-    # Calculate where to start printing; if an address was supplied, use that,
-    # if this heap belongs to the main arena, start at the beginning of the
-    # heap's mapping, otherwise, compensate for the presence of a heap_info
-    # struct and possibly an arena.
-
-    if addr:
-        cursor = int(addr)
-    elif arena == allocator.main_arena:
-        cursor = heap_region.start
-    else:
-        cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(
-            allocator.get_heap(heap_region.start)['ar_ptr']
-        ) == heap_region:
-            # Round up to a 2-machine-word alignment after an arena to
-            # compensate for the presence of the have_fastchunks variable
-            # in GLIBC versions >= 2.27.
-            cursor += pwndbg.memory.align_down(
-                allocator.malloc_state.sizeof + ptr_size,
-                allocator.malloc_alignment
-            )
-
-    # In glibc 2.26, the malloc_alignment for i386 was hardcoded to 16 (instead
-    # of 2*sizeof(size_t), which is 8). In order for the data to be aligned to
-    # 16 bytes, the first chunk now needs to start offset 8 instead of offset 0
-
-    # TODO: Can we just check if this is 32bit and >= glibc 2.26? This type of
-    # check is confusing as is, and unnecessary in most cases
-    first_chunk_size = pwndbg.arch.unpack(
-        pwndbg.memory.read(cursor + ptr_size, ptr_size)
-    )
-    if first_chunk_size == 0:
-        cursor += ptr_size * 2
 
     for chunk in allocator.chunks(cursor):
         malloc_chunk(chunk, verbose=verbose, simple=simple)
@@ -258,8 +226,8 @@ def get_chunk_bin(addr: int) -> list[BinType]:
     if allocator.has_tcache():
         bins.append(allocator.tcachebins(None))
 
-    # TODO: What if we were able to free a chunk of one size and get into a bin
-    # of another size? Should we check every size?
+    # TODO: What if we somehow got this chunk into a bin of a different size? We
+    # would miss it with this logic. Should we check every bin?
     res = []
     for bin_ in bins:
         if bin_.contains_chunk(size, cursor):
@@ -604,38 +572,21 @@ def vis_heap_chunks(addr: Optional[int] = None, count=None, naive=False):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
-    arena = allocator.get_arena_for_chunk(addr
-                                         ) if addr else allocator.get_arena()
+    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
 
     top_chunk = arena['top']
     ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
+
+    # If an address was supplied, start printing from there, otherwise start
+    # from the first chunk in the heap region
     if addr:
         cursor = int(addr)
-    elif arena == allocator.main_arena:
-        cursor = heap_region.start
     else:
-        cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(
-            allocator.get_heap(heap_region.start)['ar_ptr']
-        ) == heap_region:
-            # Round up to a 2-machine-word alignment after an arena to
-            # compensate for the presence of the have_fastchunks variable
-            # in GLIBC versions >= 2.27.
-            cursor += pwndbg.memory.align_down(
-                allocator.malloc_state.sizeof + ptr_size,
-                allocator.malloc_alignment
-            )
-
-    # Check if there is an alignment at the start of the heap, adjust if necessary.
-    if not addr:
-        first_chunk_size = pwndbg.arch.unpack(
-            pwndbg.memory.read(cursor + ptr_size, ptr_size)
-        )
-        if first_chunk_size == 0:
-            cursor += ptr_size * 2
+        heap_region = allocator.get_heap_boundaries(addr)
+        cursor = allocator.get_first_chunk_in_heap(heap_region.start)
 
     cursor_backup = cursor
 

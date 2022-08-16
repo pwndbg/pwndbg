@@ -391,6 +391,41 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     def get_heap(self, addr):
         raise NotImplementedError()
 
+    def get_first_chunk_in_heap(self, heap_start=None):
+        # Find which arena this heap belongs to
+        if heap_start:
+            arena = self.get_arena_for_chunk(heap_start)
+        else:
+            arena = self.get_arena()
+
+        ptr_size = self.size_sz
+
+        start_addr = heap_start
+        if arena != self.main_arena:
+            start_addr += self.heap_info.sizeof
+            if pwndbg.vmmap.find(self.get_heap(heap_start)['ar_ptr']) == heap_region:
+                # Round up to a 2-machine-word alignment after an arena to
+                # compensate for the presence of the have_fastchunks variable
+                # in GLIBC versions >= 2.27.
+                start_addr += pwndbg.memory.align_down(
+                    self.malloc_state.sizeof + ptr_size,
+                    self.malloc_alignment
+                )
+
+        # In glibc 2.26, the malloc_alignment for i386 was hardcoded to 16 (instead
+        # of 2*sizeof(size_t), which is 8). In order for the data to be aligned to
+        # 16 bytes, the first chunk now needs to start offset 8 instead of offset 0
+
+        # TODO: Can we just check if this is 32bit and >= glibc 2.26? This type of
+        # check is confusing as is, and unnecessary in most cases
+        first_chunk_size = pwndbg.arch.unpack(
+            pwndbg.memory.read(start_addr + ptr_size, ptr_size)
+        )
+        if first_chunk_size == 0:
+            start_addr += ptr_size * 2
+
+        return start_addr
+
     def get_arena(self, arena_addr=None):
         raise NotImplementedError()
 
