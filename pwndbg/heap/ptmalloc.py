@@ -599,13 +599,8 @@ class DebugSymsHeap(Heap):
                     return pwndbg.memory.poi(self.malloc_state, arena_addr)
 
             return self.main_arena
-
-        try:
-            next(i for i in pwndbg.vmmap.get() if arena_addr in i)
-            return pwndbg.memory.poi(self.malloc_state, arena_addr)
-        except (gdb.MemoryError, StopIteration):
-            # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
-            return None
+        
+        return None if pwndbg.vmmap.find(arena_addr) is None else pwndbg.memory.poi(self.malloc_state, arena_addr)
 
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
