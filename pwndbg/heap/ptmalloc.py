@@ -730,28 +730,36 @@ class HeuristicHeap(Heap):
                                 offset = pwndbg.memory.s32((ldrw_instr.address + 4 & -4) + offset)
                                 # add reg, pc
                                 self._main_arena_addr = offset + instr.address + 4
-                else:
-                    inform_report_issue("main_arena")
-                    raise OSError("Cannot find the symbol via heuristics")
+
             # try to search main_arena in .data of libc if we can't find it via above trick
             if not self._main_arena_addr:
-                _IO_2_1_stdin_addr = pwndbg.symbol.address('_IO_2_1_stdin_')
-                _IO_list_all_addr = pwndbg.symbol.address('_IO_list_all')
-                # main_arena is between _IO_2_1_stdin and _IO_list_all
-                for addr in range(_IO_2_1_stdin_addr, _IO_list_all_addr, pwndbg.arch.ptrsize):
-                    tmp_arena = self.malloc_state(addr)
-                    if tmp_arena["next"] == addr:
-                        self._main_arena_addr = addr
+                start = pwndbg.symbol.address('_IO_2_1_stdin_')
+                end = pwndbg.symbol.address('_IO_list_all') - self.malloc_state.sizeof
+                while start < end:
+                    start += pwndbg.arch.ptrsize
+                    if not pwndbg.symbol.get(start).startswith('_IO'):
                         break
-                if not self._main_arena_addr:
-                    # there are more than one arena, try to find by main_arena.top and main_arena.max_system_mem
-                    heap_page = next(x for x in pwndbg.vmmap.get() if "heap]" in x.objfile)
-                    for addr in range(_IO_2_1_stdin_addr, _IO_list_all_addr, pwndbg.arch.ptrsize):
-                        tmp_arena = self.malloc_state(addr)
-                        if heap_page.start <= tmp_arena["top"] <= heap_page.end:
-                            if tmp_arena["max_system_mem"] != 0:
-                                self._main_arena_addr = addr
-                                break
+                # main_arena is between _IO_2_1_stdin and _IO_list_all
+                for addr in range(start, end, pwndbg.arch.ptrsize):
+                    found = False
+                    tmp_arena = self.malloc_state(addr)
+                    tmp_next = int(tmp_arena["next"])
+                    # check if the `next` pointer of tmp_arena will point to the same address we guess
+                    # e.g. when our process is single-threaded, &tmp_arena->next == &main_arena
+                    # when our process is multi-threaded, &tmp_arena->next->...->next == &main_arena
+                    while tmp_next > 0:
+                        if tmp_next == addr:
+                            self._main_arena_addr = addr
+                            found = True
+                            break
+                        tmp_arena = self.malloc_state(tmp_next)
+                        try:
+                            tmp_next = int(tmp_arena["next"])
+                        except gdb.MemoryError:
+                            # tmp_arena->next is not valid, break
+                            break
+                    if found:
+                        break
 
         if self._main_arena_addr:
             self._main_arena = self.malloc_state(self._main_arena_addr)
