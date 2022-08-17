@@ -9,8 +9,8 @@ import gdb
 import pwndbg.commands
 import pwndbg.which
 
+pwncmds = ["asm", "constgrep", "cyclic", "disasm", "pwn", "unhex"]
 shellcmds = [
-    "asm", # pwntools
     "awk",
     "bash",
     "cat",
@@ -18,12 +18,9 @@ shellcmds = [
     "chmod",
     "chown",
     # "clear",
-    "constgrep", # pwntools
     "cp",
-    "cyclic", # pwntools
     "date",
     "diff",
-    "disasm", # pwntools
     "egrep",
     # "find", don't expose find as its an internal gdb command
     "grep",
@@ -46,7 +43,6 @@ shellcmds = [
     "ps",
     "pstree",
     "pwd",
-    "pwn", # pwntools
     "rm",
     "sed",
     "sh",
@@ -56,7 +52,6 @@ shellcmds = [
     "tail",
     "top",
     "touch",
-    "unhex", # pwntools
     "uniq",
     "vi",
     "vim",
@@ -67,18 +62,29 @@ shellcmds = [
     "zsh",
 ]
 
+pwncmds = filter(pwndbg.which.which, pwncmds)
 shellcmds = filter(pwndbg.which.which, shellcmds)
 
-def register_shell_function(cmd):
+def register_shell_function(cmd, deprecated=False):
     def handler(*a):
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()
+        print("This command is deprecated in Pwndbg. Please use the GDB's built-in syntax for running shell commands instead: !%s <args>" % cmd)
+
+
+    doc = 'Invokes `{}` shell command'.format(cmd)
+    if deprecated:
+        doc += ' (deprecated)'
 
     handler.__name__ = str(cmd)
-    handler.__doc__ = 'Invokes {}'.format(cmd)
+    handler.__doc__ = doc
 
     pwndbg.commands.Command(handler, False)
 
-for cmd in shellcmds:
+
+for cmd in pwncmds:
     register_shell_function(cmd)
+
+for cmd in shellcmds:
+    register_shell_function(cmd, deprecated=True)
