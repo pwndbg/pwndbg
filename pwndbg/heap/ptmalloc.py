@@ -853,24 +853,37 @@ class HeuristicHeap(Heap):
                 # and before the branch, the flow of assembly code will like:
                 # `mrs reg1, tpidr_el;
                 # adrp reg2, #base_offset;
-                # /* branch to arena_get or use main_arena */;
+                # ldr reg2, [reg2, #offset]
+                # /* branch(cbnz) to arena_get or use main_arena */;
+                # /* if branch to thread_arena*/;
+                # ldr reg3, [reg1, reg2]`
+                # Or:
+                # `adrp	reg1, #base_offset;
+                # ldr reg1, [reg1, #offset];
+                # mrs reg2, tpidr_el;
+                # /* branch(cbnz) to arena_get or use main_arena */;
                 # /* if branch to thread_arena*/;
                 # ldr reg2, [reg1, reg2]`
-                # , then reg2 will be &thread_arena
-                found_mrs = False
-                first_adrp = None
-                for instr in __libc_calloc_instruction:
-                    if not found_mrs:
-                        found_mrs = instr.mnemonic == 'mrs'
-                    else:
-                        if not first_adrp:
-                            if instr.mnemonic == 'adrp':
-                                first_adrp = instr
-                        else:
-                            if instr.mnemonic == 'ldr':
-                                base_offset = first_adrp.operands[1].int
-                                self._thread_arena_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp)
-                                break
+                # , then reg3 or reg2 will be &thread_arena
+                mrs_instr = next(instr for instr in __libc_calloc_instruction if instr.mnemonic == 'mrs')
+                min_adrp_distance = 0x1000  # just a big enough number
+                nearest_adrp = None
+                nearest_adrp_idx = 0
+                for i, instr in enumerate(__libc_calloc_instruction):
+                    if instr.mnemonic == 'adrp' and abs(mrs_instr.address - instr.address) < min_adrp_distance:
+                        reg = instr.operands[0].str
+                        nearest_adrp = instr
+                        nearest_adrp_idx = i
+                        min_adrp_distance = abs(mrs_instr.address - instr.address)
+                    if instr.address - mrs_instr.address > min_adrp_distance:
+                        break
+                for instr in __libc_calloc_instruction[nearest_adrp_idx + 1:]:
+                    if instr.mnemonic == 'ldr':
+                        base_offset = nearest_adrp.operands[1].int
+                        offset = instr.operands[1].mem.disp
+                        self._thread_arena_offset = pwndbg.memory.s64(base_offset + offset)
+                        break
+                
             elif pwndbg.arch.current == "arm":
                 # We need to find something near the first `mrc 15, ......`
                 # The flow of assembly code will like:
@@ -989,21 +1002,32 @@ class HeuristicHeap(Heap):
                     # ...
                     # add reg3, reg1, reg2;
                     # ldr reg3, [reg3, #8]`
-                    # , then reg3 will be tcache address
-                    found_mrs = False
-                    first_adrp = None
-                    for instr in __libc_malloc_instruction:
-                        if not found_mrs:
-                            found_mrs = instr.mnemonic == 'mrs'
-                        else:
-                            if not first_adrp:
-                                if instr.mnemonic == 'adrp':
-                                    first_adrp = instr
-                            else:
-                                if instr.mnemonic == 'ldr':
-                                    base_offset = first_adrp.operands[1].int
-                                    self._thread_cache_offset = pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp) + 8
-                                    break
+                    # Or:
+                    # `adrp reg2, #base_offset;
+                    # mrs reg1, tpidr_el0;
+                    # ldr reg2, [reg2, #offset]
+                    # ...
+                    # add reg3, reg1, reg2;
+                    # ldr reg3, [reg3, #8]`
+                    # , then reg3 will be &tcache
+                    mrs_instr = next(instr for instr in __libc_malloc_instruction if instr.mnemonic == 'mrs')
+                    min_adrp_distance = 0x1000 # just a big enough number
+                    nearest_adrp = None
+                    nearest_adrp_idx = 0
+                    for i, instr in enumerate(__libc_malloc_instruction):
+                        if instr.mnemonic == 'adrp' and abs(mrs_instr.address - instr.address) < min_adrp_distance:
+                            reg = instr.operands[0].str
+                            nearest_adrp = instr
+                            nearest_adrp_idx = i
+                            min_adrp_distance = abs(mrs_instr.address - instr.address)
+                        if instr.address - mrs_instr.address > min_adrp_distance:
+                            break
+                    for instr in __libc_malloc_instruction[nearest_adrp_idx + 1:]:
+                        if instr.mnemonic == 'ldr':
+                            base_offset = nearest_adrp.operands[1].int
+                            offset = instr.operands[1].mem.disp
+                            self._thread_cache_offset = pwndbg.memory.s64(base_offset + offset) + 8
+                            break
                 elif pwndbg.arch.current == "arm":
                     # We need to find something near the first `mrc 15, ......`
                     # The flow of assembly code will like:
@@ -1037,6 +1061,8 @@ class HeuristicHeap(Heap):
                     inform_report_issue("tcache")
                     raise OSError("Cannot find the symbol via heuristics")
 
+            thread_cache_addr = 0
+
             # The offset to tls should be a negative integer for x86/x64, but it can't be too small
             # If it is too small, we find a wrong value
             if self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0:
@@ -1047,23 +1073,23 @@ class HeuristicHeap(Heap):
                     tls_base = pwndbg.regs.fsbase
                     tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
                     if tls_base:
-                        return self.tcache_perthread_struct(pwndbg.memory.pvoid(tls_base + self._thread_cache_offset))
+                        thread_cache_addr = pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
                 elif pwndbg.arch.current == "i386":
                     tls_base = pwndbg.regs.gsbase
                     tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
                     if tls_base:
-                        return self.tcache_perthread_struct(pwndbg.memory.pvoid(tls_base + self._thread_cache_offset))
+                        thread_cache_addr = pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
             # The offset to tls should be a positive integer for aarch64, but it can't be too big
             # If it is too big, we find a wrong value
             elif self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250:
                 if pwndbg.arch.current == "aarch64":
-                    return self.tcache_perthread_struct(
-                        pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset)
-                    )
+                    thread_cache_addr = pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset)
                 elif pwndbg.arch.current == "arm":
-                    return self.tcache_perthread_struct(
-                        pwndbg.memory.pvoid(self.get_tls_base_via_errno_location() + self._thread_cache_offset)
-                    )
+                    thread_cache_addr = pwndbg.memory.pvoid(self.get_tls_base_via_errno_location() + self._thread_cache_offset)
+                    
+            if thread_cache_addr > 0:
+                self._thread_cache = self.tcache_perthread_struct(thread_cache_addr)
+                return self._thread_cache
 
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
             # TODO/FIXME: This might fail if the arena is being shared by multiple threads
@@ -1258,10 +1284,19 @@ class HeuristicHeap(Heap):
                     # add reg2, reg1, #offset;
                     # ldr reg2, [reg2, #8];
                     # cmp reg2, #0x1f;`
-                    # So global_max_fast address is `base_offset+offset+8`
-                    if reg and instr.mnemonic == 'add' and reg + ', #' in instr.op_str:
-                        self._global_max_fast_addr = base_offset + instr.operands[2].int + 8
-                        break
+                    # Or:
+                    # `adrp reg, #base_offset;
+                    # ...
+                    # ldr reg2, [reg, #offset];
+                    # cmp reg3, reg2; (reg3 stored 0x1f)`
+                    # So global_max_fast address is `base_offset+offset+8` or `base_offset+offset`
+                    if reg:
+                        if instr.mnemonic == 'add' and reg + ', #' in instr.op_str:
+                            self._global_max_fast_addr = base_offset + instr.operands[2].int + 8
+                            break
+                        elif instr.mnemonic == 'ldr' and reg + ', #' in instr.op_str:
+                            self._global_max_fast_addr = base_offset + instr.operands[1].mem.disp
+                            break
                     elif instr.mnemonic == 'adrp' and instr.operands[1].int == base_offset:
                         reg = instr.operands[0].str
             elif pwndbg.arch.current == "arm":
