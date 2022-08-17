@@ -74,11 +74,19 @@ parser.add_argument('--no-save', action='store_false', default=None, dest='save'
                     help='Invert --save')
 parser.add_argument('-n', '--next', action='store_true',
                     help='Search only locations returned by previous search with --save')
+parser.add_argument('--trunc-out', action='store_true', default=False,
+                    help='Truncate the output to 20 results')
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping_name, save, next):
+def search(type, hex, string, executable, writable, value, mapping_name, save, next, trunc_out):
+    global saved
+    if next and not saved:
+        print("WARNING: cannot filter previous search results as they were empty. Performing new search saving results.")
+        next = False
+        save = True
+
     # Adjust pointer sizes to the local architecture
     if type == 'pointer':
         type = {
@@ -132,21 +140,42 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
         print(message.error("Could not find mapping %r" % mapping_name))
         return
 
+    # If next is passed, only perform a manual search over previously saved addresses
+    print("Searching for value: " + repr(value))
+    if next:
+        val_len = len(value)
+        new_saved = set()
+
+        i = 0
+        for addr in saved:
+            try:
+                val = pwndbg.memory.read(addr, val_len)
+            except:
+                continue
+            if val == value:
+                new_saved.add(addr)
+                if not trunc_out or i < 20:
+                    print_search_hit(addr)
+                i += 1
+
+        print("Search found %d items" % i)
+        saved = new_saved
+        return
+
     # Prep the saved set if necessary
-    global saved
     if save:
         saved = set()
 
     # Perform the search
+    i = 0
     for address in pwndbg.search.search(value,
                                         mappings=mappings,
                                         executable=executable,
                                         writable=writable):
 
-        if next and address not in saved:
-            continue
-
         if save:
             saved.add(address)
 
-        print_search_hit(address)
+        if not trunc_out or i < 20:
+            print_search_hit(address)
+        i += 1
