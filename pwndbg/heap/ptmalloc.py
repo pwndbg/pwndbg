@@ -1210,9 +1210,6 @@ class HeuristicHeap(Heap):
                                 ldr[reg] = instr
                     elif instr.mnemonic == 'ldr' and "[pc," in instr.op_str:
                         regs[instr.operands[0].str] = instr
-            else:
-                inform_report_issue("mp_")
-                raise OSError("Cannot find the symbol via heuristics")
 
             # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
             if not self._mp_addr:
