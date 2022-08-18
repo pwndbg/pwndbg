@@ -887,13 +887,16 @@ class HeuristicHeap(Heap):
 
     @property
     def thread_cache(self):
-        """Locate a thread's tcache struct. If it doesn't have one, use the main
-        thread's tcache.
+        """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
+        and if that fails, we guess it's at the first chunk of the heap.
         """
         thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
         if thread_cache_via_config > 0:
             return self.tcache_perthread_struct(thread_cache_via_config)
         if self.has_tcache():
+            # Each thread has a tcache struct, and the address of the tcache struct is stored in the TLS.
+
+            # Try to find tcache in TLS, so first we need to find the offset of tcache to TLS base
             if not self._thread_cache_offset:
                 # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
                 __libc_malloc_instruction = pwndbg.disasm.near(pwndbg.symbol.address('__libc_malloc'), 100, show_prev_insns=False)[10:]
@@ -1007,6 +1010,7 @@ class HeuristicHeap(Heap):
                     inform_report_issue("tcache")
                     raise OSError("Cannot find the symbol via heuristics")
 
+            # Validate the the offset we found
             is_offset_valid = False
 
             if pwndbg.arch.current in ("x86-64", "i386"):
@@ -1018,6 +1022,7 @@ class HeuristicHeap(Heap):
                 # If it is too big, we find a wrong value
                 is_offset_valid = self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250
             
+            # If the offset is valid, we add the offset to TLS base to locate the tcache struct
             if is_offset_valid:
                 tls_base = pwndbg.tls.address
                 if tls_base:
@@ -1026,7 +1031,8 @@ class HeuristicHeap(Heap):
                     return self._thread_cache
 
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
-            # TODO/FIXME: This might fail if the arena is being shared by multiple threads
+            # Note: The result might be wrong if the arena is being shared by multiple threads
+            # And that's why we need to find the tcache address in TLS first
             arena = self.get_arena()
             heap_region = self.get_heap_boundaries()
             ptr_size = pwndbg.arch.ptrsize
