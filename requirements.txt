@@ -13,10 +13,10 @@ pycparser==2.21
 pyelftools==0.28
 Pygments==2.12.0
 pyparsing==3.0.9
-pytest==7.1.2
 python-ptrace==0.9.8
 ROPGadget==6.8
 six==1.16.0
 testresources==2.0.1
-tomli==2.0.1
 unicorn==2.0.0
+pytest
+tomli
