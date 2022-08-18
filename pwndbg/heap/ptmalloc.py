@@ -11,6 +11,7 @@ import pwndbg.events
 import pwndbg.glibc
 import pwndbg.search
 import pwndbg.symbol
+import pwndbg.tls
 import pwndbg.typeinfo
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -668,7 +669,6 @@ class HeuristicHeap(Heap):
         self._thread_arena_offset = None
         self._thread_cache_offset = None
         self._structs_module = None
-        self._errno_offset = None
 
     @property
     def main_arena(self):
@@ -775,44 +775,6 @@ class HeuristicHeap(Heap):
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
 
-    def get_tls_base_via_errno_location(self):
-        assert pwndbg.arch.current in ("x86-64", "i386", "arm")
-        # TODO/FIXME: Need a better way to find tls
-        already_lock = gdb.parameter("scheduler-locking") == "on"
-        if not already_lock:
-            gdb.execute("set scheduler-locking on")
-        errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
-        if not already_lock:
-            gdb.execute("set scheduler-locking off")
-        if not self._errno_offset:
-            __errno_location_instr = pwndbg.disasm.near(pwndbg.symbol.address('__errno_location'), 5,
-                                                        show_prev_insns=False)
-            if pwndbg.arch.current == "x86-64":
-                for instr in __errno_location_instr:
-                    # Find something like: mov rax, qword ptr [rip + disp]
-                    if instr.mnemonic == 'mov':
-                        self._errno_offset = pwndbg.memory.s64(instr.next + instr.disp)
-            elif pwndbg.arch.current == "i386":
-                for instr in __errno_location_instr:
-                    # Find something like: mov eax, dword ptr [eax + disp]
-                    # (disp is a negative value, and eax comes from one of the page address of libc)
-                    if instr.mnemonic == 'mov':
-                        base_offset = pwndbg.vmmap.find(pwndbg.symbol.address('_IO_list_all')).start
-                        self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
-            elif pwndbg.arch.current == "arm":
-                ldr_instr = None
-                for instr in __errno_location_instr:
-                    if not ldr_instr and instr.mnemonic == 'ldr':
-                        ldr_instr = instr
-                    elif ldr_instr and instr.mnemonic == 'add':
-                        offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                        self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
-                        break
-        if not self._errno_offset:
-            raise OSError("Can not find tls base")
-        return errno_addr - self._errno_offset
-
     @property
     def thread_arena(self):
         thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
@@ -916,31 +878,12 @@ class HeuristicHeap(Heap):
                 raise OSError("Cannot find the symbol via heuristics")
 
         if self._thread_arena_offset:
-            # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of
-            # pwndbg.regs.fsbase/gsbase
-            # If fsbase/gsbase not work, we use get_tls_base_via_errno_location() as a fallback
-            if pwndbg.arch.current == "x86-64":
-                # fs:[rax]
-                tls_base = pwndbg.regs.fsbase
-                tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                if tls_base:
-                    return pwndbg.memory.pvoid(tls_base + self._thread_arena_offset)
-            elif pwndbg.arch.current == "i386":
-                # reg+eax or gs:[eax] (value of reg is gs:[0x0])
-                tls_base = pwndbg.regs.gsbase
-                tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                if tls_base:
-                    return pwndbg.memory.pvoid(tls_base + self._thread_arena_offset)
-            elif pwndbg.arch.current == "aarch64":
-                # [reg1, reg2]
-                return pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_arena_offset)
-            elif pwndbg.arch.current == "arm":
-                # reg1, reg2
-                return pwndbg.memory.pvoid(self.get_tls_base_via_errno_location() + self._thread_arena_offset)
+            tls_base = pwndbg.tls.address
+            if tls_base:
+                return pwndbg.memory.pvoid(tls_base + self._thread_arena_offset)
 
         inform_report_issue("thread_arena")
         raise OSError("Cannot find the symbol via heuristics")
-
 
     @property
     def thread_cache(self):
@@ -1064,35 +1007,23 @@ class HeuristicHeap(Heap):
                     inform_report_issue("tcache")
                     raise OSError("Cannot find the symbol via heuristics")
 
-            thread_cache_addr = 0
+            is_offset_valid = False
 
-            # The offset to tls should be a negative integer for x86/x64, but it can't be too small
-            # If it is too small, we find a wrong value
-            if self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0:
-                # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of
-                # pwndbg.regs.fsbase/gsbase
-                # If fsbase/gsbase not work, we use get_tls_base_via_errno_location() as a fallback
-                if pwndbg.arch.current == "x86-64":
-                    tls_base = pwndbg.regs.fsbase
-                    tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                    if tls_base:
-                        thread_cache_addr = pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
-                elif pwndbg.arch.current == "i386":
-                    tls_base = pwndbg.regs.gsbase
-                    tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                    if tls_base:
-                        thread_cache_addr = pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
-            # The offset to tls should be a positive integer for aarch64, but it can't be too big
-            # If it is too big, we find a wrong value
-            elif self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250:
-                if pwndbg.arch.current == "aarch64":
-                    thread_cache_addr = pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset)
-                elif pwndbg.arch.current == "arm":
-                    thread_cache_addr = pwndbg.memory.pvoid(self.get_tls_base_via_errno_location() + self._thread_cache_offset)
-                    
-            if thread_cache_addr > 0:
-                self._thread_cache = self.tcache_perthread_struct(thread_cache_addr)
-                return self._thread_cache
+            if pwndbg.arch.current in ("x86-64", "i386"):
+                # The offset to tls should be a negative integer for x86/x64, but it can't be too small
+                # If it is too small, we find a wrong value
+                is_offset_valid  = self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0
+            elif pwndbg.arch.current in ("aarch64", "arm"):
+                # The offset to tls should be a positive integer for aarch64, but it can't be too big
+                # If it is too big, we find a wrong value
+                is_offset_valid = self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250
+            
+            if is_offset_valid:
+                tls_base = pwndbg.tls.address
+                if tls_base:
+                    thread_cache_addr = pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
+                    self._thread_cache = self.tcache_perthread_struct(thread_cache_addr)
+                    return self._thread_cache
 
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
             # TODO/FIXME: This might fail if the arena is being shared by multiple threads

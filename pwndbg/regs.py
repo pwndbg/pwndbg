@@ -405,10 +405,11 @@ class module(ModuleType):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directly for GDB < 8."""
 
-        # For GDB >= 8.x we can use get_register directly
+        # For GDB >= 8.x we can use get_register directly if the current arch is x86-64
         # Elsewhere we have to get the register via ptrace
-        if get_register == gdb79_get_register:
-            return get_register(regname)
+        if pwndbg.arch.current == "x86-64":
+            if get_register == gdb79_get_register:
+                return get_register(regname)
 
         # We can't really do anything if the process is remote.
         if pwndbg.remote.is_remote():
