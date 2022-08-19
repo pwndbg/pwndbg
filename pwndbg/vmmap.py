@@ -37,6 +37,7 @@ kernel_vmmap_via_pt = pwndbg.config.Parameter('kernel-vmmap-via-page-tables', Tr
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_stop
 def get():
+    # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.proc.alive:
         return tuple()
     pages = []
@@ -168,44 +169,42 @@ def proc_pid_maps():
     if pwndbg.qemu.is_qemu():
         return tuple()
 
-    example_proc_pid_maps = """
-    7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    7f9526abb000-7f9526ac0000 rw-p 00000000 00:00 0
-    7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526cbe000-7f9526cc1000 rw-p 00000000 00:00 0
-    7f9526ce0000-7f9526ce2000 rw-p 00000000 00:00 0
-    7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    7f9526ce4000-7f9526ce5000 rw-p 00000000 00:00 0
-    7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466                     /bin/dash
-    7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466                     /bin/dash
-    7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466                     /bin/dash
-    7f9526f03000-7f9526f05000 rw-p 00000000 00:00 0
-    7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0                          [heap]
-    7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
-    7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
-    ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
-    """
+    # Example /proc/$pid/maps
+    # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526abb000-7f9526ac0000 rw-p 00000000 00:00 0
+    # 7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526cbe000-7f9526cc1000 rw-p 00000000 00:00 0
+    # 7f9526ce0000-7f9526ce2000 rw-p 00000000 00:00 0
+    # 7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce4000-7f9526ce5000 rw-p 00000000 00:00 0
+    # 7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466                     /bin/dash
+    # 7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466                     /bin/dash
+    # 7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466                     /bin/dash
+    # 7f9526f03000-7f9526f05000 rw-p 00000000 00:00 0
+    # 7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0                          [heap]
+    # 7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
+    # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
+    # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
+    pid = pwndbg.proc.pid
     locations = [
-        '/proc/%s/maps' % pwndbg.proc.pid,
-        '/proc/%s/map'  % pwndbg.proc.pid,
-        '/usr/compat/linux/proc/%s/maps'  % pwndbg.proc.pid,
+        '/proc/%s/maps' % pid,
+        '/proc/%s/map'  % pid,
+        '/usr/compat/linux/proc/%s/maps'  % pid
     ]
 
     for location in locations:
         try:
-            data = pwndbg.file.get(location)
+            data = pwndbg.file.get(location).decode()
             break
         except (OSError, gdb.error):
             continue
     else:
         return tuple()
-
-    data = data.decode()
 
     pages = []
     for line in data.splitlines():
@@ -216,6 +215,7 @@ def proc_pid_maps():
         try:
             inode, objfile = inode_objfile.split(None, 1)
         except:
+            # Name unnamed anonymous pages so they can be used e.g. with search commands
             objfile = '[anon_' + start[:-3] + ']'
 
         start  = int(start, 16)
