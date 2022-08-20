@@ -205,9 +205,6 @@ def coredump_maps():
         if 'DATA' in flags_list: flags |= 2
         if 'CODE' in flags_list or name in KNOWN_DATA_SECTS: flags |= 1
 
-        # Main thread stack detection heuristic
-        0x7ffffffff000
-
         # Now, if the section is already in pages, just add its perms
         known_page = False
 
