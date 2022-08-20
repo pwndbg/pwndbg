@@ -69,7 +69,7 @@ def get(path):
     try:
         with open(local_path,'rb') as f:
             return f.read()
-    except:
+    except Exception:
         return b''
 
 def readlink(path):

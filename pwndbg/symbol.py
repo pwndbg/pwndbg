@@ -194,7 +194,7 @@ def address(symbol, allow_unmapped=False):
 
     try:
         return int(symbol, 0)
-    except:
+    except Exception:
         pass
 
     try:

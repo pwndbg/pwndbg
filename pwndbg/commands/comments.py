@@ -27,7 +27,7 @@ def comm(addr=None, comment=None):
                 if not pwndbg.proc.exe in file_lists.keys():
                     file_lists[pwndbg.proc.exe] = {}
                 file_lists[pwndbg.proc.exe][hex(target)] = comment
-    except:
+    except Exception:
         print(message.error("Permission denied to create file"))
 
 def init():
@@ -47,5 +47,5 @@ def init():
 
                 file_lists[filename][addr_comm[0]] = addr_comm[1]
 
-    except:
+    except Exception:
         pass 

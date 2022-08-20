@@ -11,7 +11,7 @@ import pwndbg.proc
 
 try:
     import psutil
-except:
+except Exception:
     psutil = None
 
 """

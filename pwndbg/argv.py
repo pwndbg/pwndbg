@@ -34,7 +34,7 @@ def update():
 
     try:
         argc = pwndbg.memory.u(sp, ptrbits)
-    except:
+    except Exception:
         return
 
     sp += ptrsize

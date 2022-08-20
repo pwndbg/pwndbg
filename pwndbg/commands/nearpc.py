@@ -165,7 +165,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # For Comment Function
         try:
             line += " "*10 + C.comment(pwndbg.commands.comments.file_lists[pwndbg.proc.exe][hex(instr.address)])
-        except:
+        except Exception:
             pass
 
         result.append(line)

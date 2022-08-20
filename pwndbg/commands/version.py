@@ -174,7 +174,7 @@ If it is somehow unavailable, use:
     if run_browser:
         try:
             check_output(['xdg-open', github_issue_url + github_issue_body])
-        except:
+        except Exception:
             print(please_please_submit + github_issue_url)
     else:
         print(please_please_submit + github_issue_url)

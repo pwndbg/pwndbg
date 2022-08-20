@@ -110,7 +110,7 @@ def peek(address):
         address cannot be read.
     """
     try:    return read(address, 1)
-    except: pass
+    except Exception: pass
     return None
 
 
@@ -128,7 +128,7 @@ def poke(address):
     c = peek(address)
     if c is None: return False
     try:    write(address, c)
-    except: return False
+    except Exception: return False
     return True
 
 
