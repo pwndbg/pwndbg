@@ -176,7 +176,13 @@ def coredump_maps():
     """
     pages = []
 
-    for line in gdb.execute('info proc mappings', to_string=True).splitlines():
+    try:
+        info_proc_mappings = gdb.execute('info proc mappings', to_string=True).splitlines()
+    except gdb.error:
+        # On qemu user emulation, we may get: gdb.error: Not supported on this target.
+        info_proc_mappings = []
+
+    for line in info_proc_mappings:
         # We look for lines like:
         # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', '/home/user/a.out']
         try:
@@ -218,6 +224,9 @@ def coredump_maps():
             continue
 
         pages.append(pwndbg.memory.Page(start, end-start, flags, offset, name))
+
+    if not pages:
+        return tuple()
 
     # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
     vsyscall_page = pages[-1]
