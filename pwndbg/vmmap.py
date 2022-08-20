@@ -165,7 +165,6 @@ def clear_custom_page():
     # TODO: avoid flush all caches
     pwndbg.memoize.reset()
 
-KNOWN_DATA_SECTS = ('.auxv',)
 
 @pwndbg.memoize.reset_on_objfile
 @pwndbg.memoize.reset_on_start
@@ -203,7 +202,7 @@ def coredump_maps():
         flags = 0
         if 'READONLY' in flags_list: flags |= 4
         if 'DATA' in flags_list: flags |= 2
-        if 'CODE' in flags_list or name in KNOWN_DATA_SECTS: flags |= 1
+        if 'CODE' in flags_list: flags |= 1
 
         # Now, if the section is already in pages, just add its perms
         known_page = False
@@ -234,7 +233,6 @@ def coredump_maps():
             try:
                 stack_addr = int(line.split()[-2], 16)
             except Exception as e:
-                print("AA", e)
                 pass
             break
 
