@@ -34,6 +34,13 @@ custom_pages = []
 
 kernel_vmmap_via_pt = pwndbg.config.Parameter('kernel-vmmap-via-page-tables', True, 'When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel\'s `monitor info mem` command')
 
+
+@pwndbg.memoize.reset_on_objfile
+@pwndbg.memoize.reset_on_start
+def is_corefile():
+    return gdb.execute('info target', to_string=True).startswith('Local core dump file')
+
+
 @pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_stop
 def get():
@@ -48,6 +55,12 @@ def get():
         else:
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
+    if not pages:
+        pages.extend(coredump_maps())
+
+    # TODO/FIXME: Do we still need it after coredump_maps()?
+    # Add tests for other cases and see if this is needed e.g. for QEMU user
+    # if not, remove the code below & cleanup other parts of Pwndbg codebase
     if not pages:
         # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
@@ -151,6 +164,91 @@ def clear_custom_page():
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
     pwndbg.memoize.reset()
+
+KNOWN_DATA_SECTS = ('.auxv',)
+
+@pwndbg.memoize.reset_on_objfile
+@pwndbg.memoize.reset_on_start
+def coredump_maps():
+    """
+    Parses `info proc mappings` and `maintenance info sections`
+    and tries to make sense out of the result :)
+    """
+    pages = []
+
+    for line in gdb.execute('info proc mappings', to_string=True).splitlines():
+        # We look for lines like:
+        # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', '/home/user/a.out']
+        try:
+            start, _end, size, offset, objfile = line.split()
+            start, size, offset = int(start, 16), int(size, 16), int(offset, 16)
+        except (IndexError, ValueError):
+            continue
+
+        # Note: we set flags=0 because we do not have this information here
+        pages.append(pwndbg.memory.Page(start, size, 0, offset, objfile))
+
+    for line in gdb.execute('maintenance info sections', to_string=True).splitlines():
+        # We look for lines like:
+        # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
+        # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
+        try:
+            _idx, start_end, _at, offset, name, *flags_list = line.split()
+            start, end = map(lambda v: int(v, 16), start_end.split('->'))
+            offset = int(offset[:-1], 16)
+        except (IndexError, ValueError):
+            continue
+
+        # Note: can we deduce anything from 'ALLOC', 'HAS_CONTENTS' or 'LOAD' flags?
+        flags = 0
+        if 'READONLY' in flags_list: flags |= 4
+        if 'DATA' in flags_list: flags |= 2
+        if 'CODE' in flags_list or name in KNOWN_DATA_SECTS: flags |= 1
+
+        # Main thread stack detection heuristic
+        0x7ffffffff000
+
+        # Now, if the section is already in pages, just add its perms
+        known_page = False
+
+        for page in pages:
+            if start in page:
+                page.flags |= flags
+                known_page = True
+                break
+
+        if known_page:
+            continue
+
+        pages.append(pwndbg.memory.Page(start, end-start, flags, offset, name))
+
+    # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
+    vsyscall_page = pages[-1]
+    if vsyscall_page.start > 0xffffffffff000000 and vsyscall_page.flags & 1:
+        vsyscall_page.objfile = '[vsyscall]'
+
+    # Detect stack based on addresses in AUXV from stack memory
+    stack_addr = None
+
+    # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
+    auxv = gdb.execute('info auxv', to_string=True).splitlines()
+    for line in auxv:
+        if 'AT_EXECFN' in line:
+            try:
+                stack_addr = int(line.split()[-2], 16)
+            except Exception as e:
+                print("AA", e)
+                pass
+            break
+
+    if stack_addr is not None:
+        for page in pages:
+            if stack_addr in page:
+                page.objfile = '[stack]'
+                page.flags |= 6
+                break
+
+    return tuple(pages)
 
 
 @pwndbg.memoize.reset_on_start
