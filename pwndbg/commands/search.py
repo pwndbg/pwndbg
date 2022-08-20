@@ -150,7 +150,7 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
         for addr in saved:
             try:
                 val = pwndbg.memory.read(addr, val_len)
-            except:
+            except Exception:
                 continue
             if val == value:
                 new_saved.add(addr)

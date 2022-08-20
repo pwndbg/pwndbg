@@ -52,12 +52,12 @@ def heap_freebins(addr=0x0602558):
 
         try:
             bk = pwndbg.memory.u64(linkedlist)
-        except:
+        except Exception:
             bk = None
 
         try:
             fd = pwndbg.memory.u64(linkedlist+8)
-        except:
+        except Exception:
             fd = None
 
         print('    %#x %#x %s' % (addr, size, '*' if in_use else ''))

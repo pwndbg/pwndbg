@@ -89,7 +89,7 @@ try:
     import unicorn
 
     import pwndbg.emu
-except:
+except Exception:
     pass
 
 __all__ = [

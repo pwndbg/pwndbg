@@ -41,7 +41,7 @@ def address_range_explicit(section):
         end = int(end, guess_numbers_base(end))
 
         return AddrRange(begin, end)
-    except:
+    except Exception:
         parser.error('\"%s\" - Bad format of explicit address range!' \
                 ' Expected format: \"BEGIN_ADDRESS:END_ADDRESS\"' % pwndbg.color.red(section))
 
@@ -72,7 +72,7 @@ parser.add_argument('mapping_names', type=address_range, nargs='+', help='Mappin
 def maybe_points_to_ranges(ptr: int, rs: [AddrRange]):
     try:
         pointee = pwndbg.memory.pvoid(ptr)
-    except:
+    except Exception:
         return None
 
     for r in rs:

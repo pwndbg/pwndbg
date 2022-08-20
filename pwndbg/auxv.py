@@ -86,7 +86,7 @@ class AUXV(dict):
                 value = gdb.Value(value)
                 value = value.cast(pwndbg.typeinfo.pchar)
                 value = value.string()
-            except:
+            except Exception:
                 value = 'couldnt read AUXV!'
 
         self[name] = value

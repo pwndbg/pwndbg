@@ -277,7 +277,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         chunk_keys = [renames[key] if key in renames else key for key in val.keys()]
         try:
             return chunk_keys.index(key) * pwndbg.arch.ptrsize
-        except:
+        except Exception:
             return None
 
     @property

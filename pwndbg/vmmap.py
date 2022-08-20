@@ -307,7 +307,7 @@ def proc_pid_maps():
         
         try:
             inode, objfile = inode_objfile.split(None, 1)
-        except:
+        except Exception:
             # Name unnamed anonymous pages so they can be used e.g. with search commands
             objfile = '[anon_' + start[:-3] + ']'
 
@@ -579,7 +579,7 @@ def check_aslr():
             data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
             personality = int(data, 16)
             return (personality & 0x40000 == 0), 'read status from process\' personality'
-        except:
+        except Exception:
             print("Could not check ASLR: can't read process' personality")
             pass
 

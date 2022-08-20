@@ -9,7 +9,7 @@ import pwndbg.memoize
 
 try:
     from __builtins__ import reload as _reload
-except:
+except Exception:
     from imp import reload as _reload
 
 
