@@ -843,7 +843,7 @@ def try_free(addr):
     if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice('Fastbin checks'))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
-        fastbin_list = allocator.fastbins(int(arena.address))[(chunk_fastbin_idx+2)*(ptr_size*2)]
+        fastbin_list = allocator.fastbins(int(arena.address)).bins[(chunk_fastbin_idx+2)*(ptr_size*2)]
 
         try:
             next_chunk = read_chunk_from_gdb(addr + chunk_size_unmasked)
@@ -862,7 +862,7 @@ def try_free(addr):
             errors_found += 1
 
         # chunk is not the same as the one on top of fastbin[idx]
-        if int(fastbin_list[0]) == addr:
+        if int(fastbin_list.fd_chain[0]) == addr:
             err = 'double free or corruption (fasttop) -> chunk already is on top of fastbin list\n'
             err += '    fastbin idx == {}'
             err = err.format(chunk_fastbin_idx)
@@ -870,7 +870,7 @@ def try_free(addr):
             errors_found += 1
 
         # chunk's size is ~same as top chunk's size
-        fastbin_top_chunk = int(fastbin_list[0])
+        fastbin_top_chunk = int(fastbin_list.fd_chain[0])
         if fastbin_top_chunk != 0:
             try:
                 fastbin_top_chunk = read_chunk_from_gdb(fastbin_top_chunk)
