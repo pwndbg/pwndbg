@@ -2,7 +2,6 @@ import importlib
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps
-from typing import Optional
 
 import gdb
 
@@ -34,7 +33,7 @@ class BinType(str, Enum):
     UNSORTED = 'unsortedbin'
     NOT_IN_BIN = 'not_in_bin'
 
-    def valid_fields(self) -> list[str]:
+    def valid_fields(self):
         if self in [BinType.FAST, BinType.TCACHE]:
             return ['fd']
         elif self in [BinType.SMALL, BinType.UNSORTED]:
@@ -43,23 +42,17 @@ class BinType(str, Enum):
             return ['fd', 'bk', 'fd_nextsize', 'bk_nextsize']
 
 class Bin:
-    def __init__(
-        self,
-        fd_chain: list[int],
-        bk_chain=None,
-        count=None,
-        is_corrupted=False
-    ):
+    def __init__(self, fd_chain, bk_chain=None, count=None, is_corrupted=False):
         self.fd_chain = fd_chain
         self.bk_chain = bk_chain
         self.count = count
         self.is_corrupted = is_corrupted
 
-    def contains_chunk(self, chunk: int) -> bool:
+    def contains_chunk(self, chunk):
         return chunk in self.fd_chain
 
     @staticmethod
-    def size_to_display_name(size: int | str) -> str:
+    def size_to_display_name(size):
         if size == 'all':
             return size
 
@@ -69,13 +62,13 @@ class Bin:
 
 
 class Bins:
-    def __init__(self, bin_type: BinType):
-        self.bins: OrderedDict[int | str, Bin] = OrderedDict()
+    def __init__(self, bin_type):
+        self.bins     = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
     # subclass and put that logic in there
-    def contains_chunk(self, size, chunk: int) -> bool:
+    def contains_chunk(self, size, chunk):
         # TODO: It will be the same thing, but it would be better if we used
         # pwndbg.heap.current.size_sz. I think each bin should already have a
         # reference to the allocator and shouldn't need to access the `current`
@@ -110,7 +103,7 @@ class Bins:
         return False
 
 
-def read_chunk_from_gdb(addr: int):
+def read_chunk_from_gdb(addr):
     """Read a chunk's metadata."""
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
@@ -448,7 +441,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         """Find the memory map containing 'addr'."""
         return pwndbg.vmmap.find(addr)
 
-    def get_bins(self, bin_type: BinType, addr: Optional[int] = None) -> Bins:
+    def get_bins(self, bin_type, addr=None):
         if bin_type == BinType.TCACHE:
             return self.tcachebins(addr)
         elif bin_type == BinType.FAST:
@@ -468,7 +461,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         else:
             return (size >> 3) - 2
 
-    def fastbins(self, arena_addr: Optional[int] = None):
+    def fastbins(self, arena_addr=None):
         """Returns: chain or None"""
         result = Bins(BinType.FAST)
         arena = self.get_arena(arena_addr)
@@ -495,7 +488,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    def tcachebins(self, tcache_addr: Optional[int] = None):
+    def tcachebins(self, tcache_addr=None):
         """Returns: tuple(chain, count) or None"""
         result = Bins(BinType.TCACHE)
         tcache = self.get_tcache(tcache_addr)
@@ -527,7 +520,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    def bin_at(self, index: int, arena_addr: Optional[int] = None):
+    def bin_at(self, index, arena_addr=None):
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
         https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1394
@@ -579,7 +572,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
-    def unsortedbin(self, arena_addr: Optional[int] = None):
+    def unsortedbin(self, arena_addr=None):
         result = Bins(BinType.UNSORTED)
         chain = self.bin_at(1, arena_addr=arena_addr)
 
@@ -591,7 +584,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    def smallbins(self, arena_addr: Optional[int] = None):
+    def smallbins(self, arena_addr=None):
         size = self.min_chunk_size - self.malloc_alignment
         spaces_table = self._spaces_table()
 
@@ -611,7 +604,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
-    def largebins(self, arena_addr: Optional[int] = None):
+    def largebins(self, arena_addr=None):
         size = (
             ptmalloc.NSMALLBINS * self.malloc_alignment
         ) - self.malloc_alignment
@@ -634,7 +627,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         return result
 
 
-    def chunks(self, addr: int):
+    def chunks(self, addr):
         # TODO: Add assertions to verify alignment? Maybe write a decorator
         # that enforces that an argument is aligned
 
@@ -656,20 +649,20 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             if old_chunk == chunk:
                 break
 
-    def chunk_size_nomask(self, addr: int) -> int:
+    def chunk_size_nomask(self, addr):
         return pwndbg.memory.u(addr + self.chunk_key_offset('size'))
 
-    def chunk_size(self, addr: int) -> int:
+    def chunk_size(self, addr):
         # TODO: Check if this breaks on 32-bit glibc versions >= 2.26, where
         # only the data is aligned and not the chunk address
         return pwndbg.memory.align_down(
             self.chunk_size_nomask(addr), self.malloc_alignment
         )
 
-    def next_chunk(self, addr: int) -> int:
+    def next_chunk(self, addr):
         return addr + self.chunk_size(addr)
 
-    def prev_inuse(self, addr: int) -> bool:
+    def prev_inuse(self, addr):
         prev_inuse, _, _ = self.chunk_flags(self.chunk_size(addr))
         return prev_inuse == ptmalloc.PREV_INUSE
 

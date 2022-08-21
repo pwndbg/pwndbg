@@ -1,7 +1,6 @@
 import argparse
 import ctypes
 import struct
-from typing import Optional
 
 import gdb
 
@@ -23,7 +22,7 @@ from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import read_chunk_from_gdb
 
 
-def format_bin(bins: Bins, verbose=False, offset=None) -> list[str]:
+def format_bin(bins, verbose=False, offset=None):
     allocator = pwndbg.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset('fd')
@@ -103,7 +102,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def heap(addr: int = None, verbose=False, simple=False):
+def heap(addr=None, verbose=False, simple=False):
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
@@ -192,7 +191,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def top_chunk(addr: Optional[int] = None):
+def top_chunk(addr=None):
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
     """
@@ -207,7 +206,7 @@ def top_chunk(addr: Optional[int] = None):
     print(out)
 
 
-def get_chunk_bin(addr: int) -> list[BinType]:
+def get_chunk_bin(addr):
     # points to the real start of the chunk
     cursor = int(addr)
 
@@ -265,7 +264,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def malloc_chunk(addr: int, fake=False, verbose=False, simple=False):
+def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
     # points to the real start of the chunk
     cursor = int(addr)
@@ -362,7 +361,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def bins(addr: Optional[int] = None, tcache_addr: Optional[int] = None):
+def bins(addr=None, tcache_addr=None):
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
     """
@@ -374,9 +373,7 @@ def bins(addr: Optional[int] = None, tcache_addr: Optional[int] = None):
     largebins(addr)
 
 
-def print_bins(
-    bin_type: BinType, addr: Optional[int] = None, verbose: bool = False
-):
+def print_bins(bin_type, addr=None, verbose=False):
     allocator = pwndbg.heap.current
     offset = None
 
@@ -409,7 +406,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def fastbins(addr: Optional[int] = None, verbose=True):
+def fastbins(addr=None, verbose=True):
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
@@ -428,7 +425,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def unsortedbin(addr: Optional[int] = None, verbose=True):
+def unsortedbin(addr=None, verbose=True):
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
@@ -447,7 +444,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def smallbins(addr: Optional[int] = None, verbose=False):
+def smallbins(addr=None, verbose=False):
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
@@ -466,7 +463,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def largebins(addr: Optional[int] = None, verbose=False):
+def largebins(addr=None, verbose=False):
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
@@ -494,7 +491,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
-def tcachebins(addr: Optional[int] = None, verbose=False):
+def tcachebins(addr=None, verbose=False):
     """Print the contents of a tcache, default to the current thread's tcache."""
     print_bins(BinType.TCACHE, addr, verbose)
 
@@ -568,7 +565,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr: Optional[int] = None, count=None, naive=False):
+def vis_heap_chunks(addr=None, count=None, naive=False):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
@@ -680,7 +677,7 @@ def vis_heap_chunks(addr: Optional[int] = None, count=None, naive=False):
     print(out)
 
 
-def bin_labels(addr: int, bin_type: BinType) -> list[str]:
+def bin_labels(addr, bin_type):
     labels = []
     allocator = pwndbg.heap.current
 
