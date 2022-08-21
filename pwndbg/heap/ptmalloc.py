@@ -396,6 +396,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         start_addr = heap_start
         if arena != self.main_arena:
             start_addr += self.heap_info.sizeof
+            heap_region = self.get_heap_boundaries(heap_start)
             if pwndbg.vmmap.find(self.get_heap(heap_start)['ar_ptr']) == heap_region:
                 # Round up to a 2-machine-word alignment after an arena to
                 # compensate for the presence of the have_fastchunks variable
