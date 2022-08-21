@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd ./tests/binaries || exit 1
-make clean all || exit 2
+make clean && make all || exit 2
 cd ../../
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
