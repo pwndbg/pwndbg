@@ -633,6 +633,46 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
         return result
 
+
+    def chunks(self, addr: int):
+        # TODO: Add assertions to verify alignment? Maybe write a decorator
+        # that enforces that an argument is aligned
+
+        heap_region = self.get_heap_boundaries(addr)
+        arena = self.get_arena_for_chunk(addr)
+        top_chunk = arena['top']
+
+        chunk = addr
+        while chunk in heap_region:
+            yield chunk
+
+            if chunk == top_chunk:
+                break
+
+            old_chunk = chunk
+            chunk = self.next_chunk(chunk)
+
+            # Avoid an infinite loop when a chunk's size is 0.
+            if old_chunk == chunk:
+                break
+
+    def chunk_size_nomask(self, addr: int) -> int:
+        return pwndbg.memory.u(addr + self.chunk_key_offset('size'))
+
+    def chunk_size(self, addr: int) -> int:
+        # TODO: Check if this breaks on 32-bit glibc versions >= 2.26, where
+        # only the data is aligned and not the chunk address
+        return pwndbg.memory.align_down(
+            self.chunk_size_nomask(addr), self.malloc_alignment
+        )
+
+    def next_chunk(self, addr: int) -> int:
+        return addr + self.chunk_size(addr)
+
+    def prev_inuse(self, addr: int) -> bool:
+        prev_inuse, _, _ = self.chunk_flags(self.chunk_size(addr))
+        return prev_inuse == ptmalloc.PREV_INUSE
+
     def largebin_index_32(self, sz):
         """Modeled on the GLIBC malloc largebin_index_32 macro.
 
@@ -780,45 +820,6 @@ class DebugSymsHeap(Heap):
         except (gdb.MemoryError, StopIteration):
             # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
             return None
-
-    def chunks(self, addr: int):
-        # TODO: Add assertions to verify alignment? Maybe write a decorator
-        # that enforces that an argument is aligned
-
-        heap_region = self.get_heap_boundaries(addr)
-        arena = self.get_arena_for_chunk(addr)
-        top_chunk = arena['top']
-
-        chunk = addr
-        while chunk in heap_region:
-            yield chunk
-
-            if chunk == top_chunk:
-                break
-
-            old_chunk = chunk
-            chunk = self.next_chunk(chunk)
-
-            # Avoid an infinite loop when a chunk's size is 0.
-            if old_chunk == chunk:
-                break
-
-    def chunk_size_nomask(self, addr: int) -> int:
-        return pwndbg.memory.u(addr + self.chunk_key_offset('size'))
-
-    def chunk_size(self, addr: int) -> int:
-        # TODO: Check if this breaks on 32-bit glibc versions >= 2.26, where
-        # only the data is aligned and not the chunk address
-        return pwndbg.memory.align_down(
-            self.chunk_size_nomask(addr), self.malloc_alignment
-        )
-
-    def next_chunk(self, addr: int) -> int:
-        return addr + self.chunk_size(addr)
-
-    def prev_inuse(self, addr: int) -> bool:
-        prev_inuse, _, _ = self.chunk_flags(self.chunk_size(addr))
-        return prev_inuse == ptmalloc.PREV_INUSE
 
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
