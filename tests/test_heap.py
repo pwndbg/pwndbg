@@ -12,6 +12,8 @@ HEAP_BINARY = tests.binaries.get('heap_bugs.out')
 HEAP_CODE = tests.binaries.get('heap_bugs.c')
 _, OUTPUT_FILE = tempfile.mkstemp()
 
+HEAP_VIS = tests.binaries.get('heap_vis.out')
+
 
 def binary_parse_breakpoints(binary_code):
     """
@@ -214,3 +216,238 @@ def test_try_free_corrupted_unsorted_chunks(start_binary):
     result = gdb.execute('try_free {}'.format(hex(chunks['f'])), to_string=True)
     assert 'free(): corrupted unsorted chunks' in result
     os.remove(OUTPUT_FILE)
+
+
+def test_vis_heap_chunk_command(start_binary):
+    start_binary(HEAP_VIS)
+    gdb.execute('break break_here')
+    gdb.execute('continue')
+
+    # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
+    # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
+    heap_page = next(page for page in pwndbg.vmmap.get() if page.objfile == '[heap]')
+
+    # Just a sanity check...
+    assert (heap_page.start & 0xfff) == 0
+
+    result = gdb.execute('vis_heap_chunk 1', to_string=True).splitlines()
+
+    # We will use `heap_addr` variable to fill in proper addresses below
+    heap_addr = heap_page.start
+    heap_end = heap_page.end
+
+    def heap_iter(offset=0x10):
+        nonlocal heap_addr
+        heap_addr += offset
+        return heap_addr
+
+    def top_chunk_size(prev_inuse=True):
+        # We need to subtract -0x10 because we will execute this
+        # after a heap_iter call that will add +0x10 to heap_addr
+        size = heap_end - heap_addr #- 0x10
+
+        # Account for PREV_INUSE flag
+        if prev_inuse:
+            size |= 1
+
+        return size
+
+    def hexdump_16B(gdb_symbol):
+        from pwndbg.commands.heap import bin_ascii
+
+        first, second = gdb.execute('x/16xb %s' % gdb_symbol, to_string=True).splitlines()
+        first = [int(v, 16) for v in first.split(':')[1].split('\t')[1:]]
+        second = [int(v, 16) for v in second.split(':')[1].split('\t')[1:]]
+
+        return bin_ascii(first + second)
+
+    expected = ['',
+        '%#x\t0x0000000000000000\t0x0000000000000291\t................' % heap_iter(0),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000' % heap_iter()
+    ]
+    assert result == expected
+
+    del result
+
+    ## Test vis_heap_chunk with count=2
+    result2 = gdb.execute('vis_heap_chunk 2', to_string=True).splitlines()
+
+    # Note: we copy expected here but we truncate last line as it is easier
+    # to provide it in full here
+    expected2 = expected[:-1] + [
+        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......' % heap_iter(0),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000' % heap_iter()
+    ]
+    assert result2 == expected2
+
+    del expected
+    del result2
+
+    ## Test vis_heap_chunk with count=3
+    result3 = gdb.execute('vis_heap_chunk 3', to_string=True).splitlines()
+
+    # Note: we copy expected here but we truncate last line as it is easier
+    # to provide it in full here
+    expected3 = expected2[:-1] + [
+        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......' % heap_iter(0),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t%#018x\t........1.......\t <-- Top chunk' % (heap_iter(), top_chunk_size())
+    ]
+    assert result3 == expected3
+
+    del expected2
+    del result3
+
+    ## Test vis_heap_chunk with count=4
+    result4 = gdb.execute('vis_heap_chunk 4', to_string=True).splitlines()
+
+    # Since on this breakpoint we only have 4 chunks, the output should probably be the same?
+    # TODO/FIXME: Shall we maybe print user that there are only 3 chunks?
+    assert result4 == expected3
+
+    del result4
+
+    ## Test vis_heap_chunk with no flags
+    result_all = gdb.execute('vis_heap_chunk', to_string=True).splitlines()
+    assert result_all == expected3
+
+    del result_all
+
+    # Continue, so that another allocation is made
+    gdb.execute('continue')
+
+    ## Test vis_heap_chunk with count=4 again
+    result4_b = gdb.execute('vis_heap_chunk 4', to_string=True).splitlines()
+
+    expected4_b = expected3[:-1] + [
+        '%#x\t0x0000000000000000\t0x0000000000000031\t........1.......' % heap_iter(0),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
+        '%#x\t0x0000000000000000\t%#018x\t................\t <-- Top chunk' % (heap_iter(), top_chunk_size())
+    ]
+
+    assert result4_b == expected4_b
+
+    del expected3
+    del result4_b
+
+    ## Test vis_heap_chunk with no flags
+    result_all2 = gdb.execute('vis_heap_chunk', to_string=True).splitlines()
+    assert result_all2 == expected4_b
+
+    del result_all2
+
+    ## Continue, so that alloc[1] is freed
+    gdb.execute('continue')
+
+    result_all3 = gdb.execute('vis_heap_chunk', to_string=True).splitlines()
+
+    # The tcache chunks have two fields: next and key
+    # We are fetching it from the glibc's TLS tcache variable :)
+    tcache_next = int(gdb.parse_and_eval('tcache->entries[0]->next'))
+    tcache_key = int(gdb.parse_and_eval('tcache->entries[0]->key'))
+
+    tcache_hexdump = hexdump_16B('tcache->entries[0]')
+    freed_chunk = '%#x\t%#018x\t%#018x\t%s\t ' % (heap_iter(-0x40), tcache_next, tcache_key, tcache_hexdump)
+    freed_chunk += '<-- tcachebins[0x20][0/1]'
+
+    heap_addr = heap_page.start
+
+    # This is not ideal, but hopefully it works on different builds // feel free to name it better
+    some_addr = heap_addr + 0x2c0
+    some_addr_hexdump = hexdump_16B(hex(heap_addr + 0x90))
+
+    expected_all3 = ['',
+        '%#x\t0x0000000000000000\t0x0000000000000291\t................'% heap_iter(0),
+        '%#x\t0x0000000000000001\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t%#018x\t0x0000000000000000\t%s' % (heap_iter(), some_addr, some_addr_hexdump),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......'% heap_iter(),
+        '%#x\t%#018x\t%#018x\t%s\t <-- tcachebins[0x20][0/1]'% (heap_iter(), tcache_next, tcache_key, tcache_hexdump),
+        '%#x\t0x0000000000000000\t0x0000000000000031\t........1.......'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
+        '%#x\t0x0000000000000000\t%#018x\t................\t <-- Top chunk'% (heap_iter(), top_chunk_size())
+    ]
+
+    assert result_all3 == expected_all3
