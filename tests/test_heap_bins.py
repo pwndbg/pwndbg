@@ -5,7 +5,6 @@ import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.vmmap
 import tests
-from pwndbg.heap.ptmalloc import BinType
 
 BINARY = tests.binaries.get('heap_bins.out')
 
@@ -40,94 +39,94 @@ def test_heap_bins(start_binary):
     largebin_count = pwndbg.memory.u64(addr)
 
     result = allocator.tcachebins()
-    assert result.bin_type == BinType.TCACHE
-    assert tcache_size in result.bins
-    assert result.bins[tcache_size].count == 0 and len(result.bins[tcache_size].fd_chain) == 1
+    assert result['type'] == 'tcachebins'
+    assert tcache_size in result
+    assert result[tcache_size][1] == 0 and len(result[tcache_size][0]) == 1
 
     result = allocator.fastbins()
-    assert result.bin_type == BinType.FAST
-    assert fastbin_size in result.bins
-    assert len(result.bins[fastbin_size].fd_chain) == 1
+    assert result['type'] == 'fastbins'
+    assert fastbin_size in result
+    assert len(result[fastbin_size]) == 1
 
     result = allocator.unsortedbin()
-    assert result.bin_type == BinType.UNSORTED
-    assert len(result.bins['all'].fd_chain) == 1
-    assert not result.bins['all'].is_corrupted
+    assert result['type'] == 'unsortedbin'
+    assert len(result['all'][0]) == 1
+    assert not result['all'][2]
 
     result = allocator.smallbins()
-    assert result.bin_type == BinType.SMALL
-    assert smallbin_size in result.bins
-    assert len(result.bins[smallbin_size].fd_chain) == 1 and len(result.bins[smallbin_size].bk_chain) == 1
-    assert not result.bins[smallbin_size].is_corrupted
+    assert result['type'] == 'smallbins'
+    assert smallbin_size in result
+    assert len(result[smallbin_size][0]) == 1 and len(result[smallbin_size][1]) == 1
+    assert not result[smallbin_size][2]
 
     result = allocator.largebins()
-    assert result.bin_type == BinType.LARGE
-    largebin_size = list(result.bins.items())[allocator.largebin_index(largebin_size) - 64][0]
-    assert largebin_size in result.bins
-    assert len(result.bins[largebin_size].fd_chain) == 1 and len(result.bins[largebin_size].bk_chain) == 1
-    assert not result.bins[largebin_size].is_corrupted
+    assert result['type'] == 'largebins'
+    largebin_size = list(result.items())[allocator.largebin_index(largebin_size) - 64][0]
+    assert largebin_size in result
+    assert len(result[largebin_size][0]) == 1 and len(result[largebin_size][1]) == 1
+    assert not result[largebin_size][2]
 
     # check tcache
     gdb.execute('continue')
 
     result = allocator.tcachebins()
-    assert result.bin_type == BinType.TCACHE
-    assert tcache_size in result.bins
-    assert result.bins[tcache_size].count == tcache_count and len(result.bins[tcache_size].fd_chain) == tcache_count + 1
-    for addr in result.bins[tcache_size].fd_chain[:-1]:
+    assert result['type'] == 'tcachebins'
+    assert tcache_size in result
+    assert result[tcache_size][1] == tcache_count and len(result[tcache_size][0]) == tcache_count + 1
+    for addr in result[tcache_size][0][:-1]:
         assert pwndbg.vmmap.find(addr)
 
     # check fastbin
     gdb.execute('continue')
 
     result = allocator.fastbins()
-    assert result.bin_type == BinType.FAST
-    assert (fastbin_size in result.bins) and (len(result.bins[fastbin_size].fd_chain) == fastbin_count + 1)
-    for addr in result.bins[fastbin_size].fd_chain[:-1]:
+    assert result['type'] == 'fastbins'
+    assert (fastbin_size in result) and (len(result[fastbin_size]) == fastbin_count + 1)
+    for addr in result[fastbin_size][:-1]:
         assert pwndbg.vmmap.find(addr)
 
     # check unsortedbin
     gdb.execute('continue')
 
     result = allocator.unsortedbin()
-    assert result.bin_type == BinType.UNSORTED
-    assert len(result.bins['all'].fd_chain) == smallbin_count + 2 and len(result.bins['all'].bk_chain) == smallbin_count + 2
-    assert not result.bins['all'].is_corrupted
-    for addr in result.bins['all'].fd_chain[:-1]:
+    assert result['type'] == 'unsortedbin'
+    assert len(result['all'][0]) == smallbin_count + 2 and len(result['all'][1]) == smallbin_count + 2
+    assert not result['all'][2]
+    for addr in result['all'][0][:-1]:
         assert pwndbg.vmmap.find(addr)
-    for addr in result.bins['all'].bk_chain[:-1]:
+    for addr in result['all'][1][:-1]:
         assert pwndbg.vmmap.find(addr)
 
     # check smallbins
     gdb.execute('continue')
 
     result = allocator.smallbins()
-    assert result.bin_type == BinType.SMALL
-    assert len(result.bins[smallbin_size].fd_chain) == smallbin_count + 2 and len(result.bins[smallbin_size].bk_chain) == smallbin_count + 2
-    assert not result.bins[smallbin_size].is_corrupted
-    for addr in result.bins[smallbin_size].fd_chain[:-1]:
+    assert result['type'] == 'smallbins'
+    assert len(result[smallbin_size][0]) == smallbin_count + 2 and len(result[smallbin_size][1]) == smallbin_count + 2
+    assert not result[smallbin_size][2]
+    for addr in result[smallbin_size][0][:-1]:
         assert pwndbg.vmmap.find(addr)
-    for addr in result.bins[smallbin_size].bk_chain[:-1]:
+    for addr in result[smallbin_size][1][:-1]:
         assert pwndbg.vmmap.find(addr)
 
     # check largebins
     gdb.execute('continue')
 
     result = allocator.largebins()
-    assert result.bin_type == BinType.LARGE
-    assert len(result.bins[largebin_size].fd_chain) == largebin_count + 2 and len(result.bins[largebin_size].bk_chain) == largebin_count + 2
-    assert not result.bins[largebin_size].is_corrupted
-    for addr in result.bins[largebin_size].fd_chain[:-1]:
+    assert result['type'] == 'largebins'
+    assert len(result[largebin_size][0]) == largebin_count + 2 and len(result[largebin_size][1]) == largebin_count + 2
+    assert not result[largebin_size][2]
+    for addr in result[largebin_size][0][:-1]:
         assert pwndbg.vmmap.find(addr)
-    for addr in result.bins[largebin_size].bk_chain[:-1]:
+    for addr in result[largebin_size][1][:-1]:
         assert pwndbg.vmmap.find(addr)
 
     # check corrupted
     gdb.execute('continue')
     result = allocator.smallbins()
-    assert result.bin_type == BinType.SMALL
-    assert result.bins[smallbin_size].is_corrupted
+    assert result['type'] == 'smallbins'
+    assert result[smallbin_size][2]
 
     result = allocator.largebins()
-    assert result.bin_type == BinType.LARGE
-    assert result.bins[largebin_size].is_corrupted
+    assert result['type'] == 'largebins'
+    assert result[largebin_size][2]
