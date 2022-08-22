@@ -28,8 +28,7 @@ def update():
     resolve_heap(is_first_run=True)
 
 
-@pwndbg.events.stop
-@pwndbg.events.new_objfile
+@pwndbg.events.exit
 def reset():
     global current
     # Re-initialize the heap
