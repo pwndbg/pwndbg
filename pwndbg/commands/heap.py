@@ -10,9 +10,10 @@ import pwndbg.commands
 import pwndbg.config
 import pwndbg.glibc
 import pwndbg.typeinfo
+from pwndbg.color import NORMAL
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
-from pwndbg.color import underline, NORMAL
+from pwndbg.color import underline
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import get_config_parameters
 from pwndbg.commands.config import print_row
