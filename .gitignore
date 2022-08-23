@@ -70,6 +70,10 @@ tests/.pytest_cache/
 tests/binaries/*.o
 tests/binaries/*.out
 tests/binaries/gosample.x*
+/tests/binaries/div_zero_binary/core
+/tests/binaries/div_zero_binary/binary
 
 # VS Code files
 .vscode/
+
+.zig/

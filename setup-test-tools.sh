@@ -23,10 +23,33 @@ install_apt() {
   sudo apt-get install -y \
     nasm \
     gcc \
-    libc6-dev
-  test -f /usr/bin/go || sudo apt-get install -y golang
+    libc6-dev \
+    curl \
+    build-essential \
+    gdb
+  test -f /usr/bin/go || sudo apt-ge\t install -y golang
+
+  # Install zig to current directory
   # We use zig to compile some test binaries as it is much easier than with gcc
-  sudo snap install zig --classic --edge
+  if ! command -v zig &> /dev/null
+  then
+    ZIG_TAR_URL="https://ziglang.org/builds/zig-linux-x86_64-0.10.0-dev.3685+dae7aeb33.tar.xz"
+    ZIG_TAR_SHA256="dfc8f5ecb651342f1fc2b2828362b62f74fadac9931bda785b80bf7ecfcfabb2"
+    curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
+    ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
+    if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
+      echo "Zig binary checksum mismatch"
+      echo "Expected: ${ZIG_TAR_SHA256}"
+      echo "Actual: ${ACTUAL_SHA256}"
+      exit 1
+    fi
+
+    tar -C /tmp -xJf /tmp/zig.tar.xz
+
+    mv /tmp/zig-linux-x86_64-* "$(pwd)/.zig" 2>/dev/null >/dev/null || true
+    echo "Zig installed to $(pwd)/.zig"
+  fi
+  
 }
 
 if linux; then
