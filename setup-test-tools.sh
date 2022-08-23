@@ -5,6 +5,13 @@ echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT."
 echo "# --------------------------------------"
 
+if [[ -z "$ZIGPATH" ]]; then
+    # If ZIGPATH is not set, set it to $pwd/.zig
+    # In Docker environment this should by default be set to /opt/zig
+    export ZIGPATH="$(pwd)/.zig"
+fi
+echo "ZIGPATH set to $ZIGPATH"
+
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
@@ -46,8 +53,8 @@ install_apt() {
 
     tar -C /tmp -xJf /tmp/zig.tar.xz
 
-    mv /tmp/zig-linux-x86_64-* "$(pwd)/.zig" 2>/dev/null >/dev/null || true
-    echo "Zig installed to $(pwd)/.zig"
+    mv /tmp/zig-linux-x86_64-* ${ZIGPATH} 2>/dev/null >/dev/null || true
+    echo "Zig installed to ${ZIGPATH}"
   fi
   
 }

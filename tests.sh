@@ -1,8 +1,17 @@
 #!/bin/bash
 
+if [[ -z "$ZIGPATH" ]]; then
+    # If ZIGPATH is not set, set it to $pwd/.zig
+    # In Docker environment this should by default be set to /opt/zig
+    export ZIGPATH="$(pwd)/.zig"
+fi
+echo "ZIGPATH set to $ZIGPATH"
+
+
 cd ./tests/binaries || exit 1
 make clean && make all || exit 2
 cd ../../
+
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
