@@ -36,14 +36,18 @@ parser = argparse.ArgumentParser(description="""
     """)
 parser.add_argument("address", nargs="?", default=None, type=int, help="The address to telescope at.")
 parser.add_argument("count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show.")
+parser.add_argument("-r", "--reverse", dest="reverse", action='store_true', default=False,
+                    help='Show <count> previous addresses instead of next ones')
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False):
+def telescope(address=None, count=telescope_lines, to_string=False, reverse=False):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
     """
-    ptrsize   = pwndbg.typeinfo.ptrsize
+    ptrsize = pwndbg.typeinfo.ptrsize
     if telescope.repeat:
         address = telescope.last_address + ptrsize
         telescope.offset += 1
@@ -51,9 +55,13 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         telescope.offset = 0
 
     address = int(address if address else pwndbg.regs.sp) & pwndbg.arch.ptrmask
-    count   = max(int(count), 1) & pwndbg.arch.ptrmask
+    count = max(int(count), 1) & pwndbg.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
+
+    # Allow invocation of telescope -r to dump previous addresses
+    if reverse:
+        address -= (count - 1) * ptrsize
 
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
