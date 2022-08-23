@@ -44,9 +44,9 @@ install_apt() {
 
     sudo tar -C /usr/local -xJf /tmp/zig.tar.xz
 
-    mv /usr/local/zig-linux-x86_64-*/* /usr/local/
+    sudo mv /usr/local/zig-linux-x86_64-*/* /usr/local/
     # link binary to path
-    ln -s /usr/local/zig /usr/local/bin/zig || true 
+    sudo ln -s /usr/local/zig /usr/local/bin/zig || true 
   fi
   
 }
