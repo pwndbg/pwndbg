@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <pthread.h>
+
 void break_here() {}
 
 int main() {
@@ -18,4 +20,11 @@ int main() {
     free(allocs[1]);
 
     break_here();
+
+    // We do not really need it for our test
+    // but we need it so that our CI test pass can get TLS variables
+    // See:
+    // - https://github.com/pwndbg/pwndbg/pull/1086
+    // - https://sourceware.org/bugzilla/show_bug.cgi?id=24548
+    pthread_create(0,0,0,0);
 }
