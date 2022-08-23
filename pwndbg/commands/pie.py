@@ -94,7 +94,7 @@ parser.add_argument('offset', nargs='?', default=0,
 parser.add_argument('module', type=str, nargs='?', default='',
                     help='Module to choose as base. Defaults to the target executable.')
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=['brva'])
 @pwndbg.commands.OnlyWhenRunning
 def breakrva(offset=0, module=None):
     offset = int(offset)
@@ -109,10 +109,3 @@ def breakrva(offset=0, module=None):
         gdb.Breakpoint(spec)
     else:
         print(message.error('Could not determine rebased breakpoint address on current target'))
-
-
-@pwndbg.commands.QuietSloppyParsedCommand #TODO should this just be an alias or does the QuietSloppy have an effect?
-@pwndbg.commands.OnlyWhenRunning
-def brva(*args):
-    """Alias for breakrva."""
-    return breakrva(*args)
