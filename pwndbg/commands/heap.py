@@ -12,6 +12,7 @@ import pwndbg.glibc
 import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
+from pwndbg.color import underline, NORMAL
 from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import get_config_parameters
 from pwndbg.commands.config import print_row
@@ -599,7 +600,6 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
         cursor += real_size
 
     # Build the output buffer, changing color at each chunk delimiter.
-    # TODO: maybe print free chunks in bold or underlined
     color_funcs = [
         generateColorFunction("yellow"),
         generateColorFunction("cyan"),
@@ -619,6 +619,10 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
         # it's difficult (impossible?) to find all the thread caches for a
         # specific heap.
         bin_collections.insert(0, allocator.tcachebins(None))
+    bin_collections.insert(0, allocator.fastbins(None))
+    bin_collections.insert(0, allocator.unsortedbin(None))
+    bin_collections.insert(0, allocator.smallbins(None))
+    bin_collections.insert(0, allocator.largebins(None))
 
     printed = 0
     out = ''
@@ -629,28 +633,45 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
-
+        out_for_chunk = ''
+        # we store if this chunk is in a bin so that we can underline it
+        was_in_bin = False
         while cursor != stop:
             if printed % 2 == 0:
-                out += "\n0x%x" % cursor
+                out_for_chunk += "\n0x%x" % cursor
 
             cell = pwndbg.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
             cell_hex = '\t0x{:0{n}x}'.format(cell, n=ptr_size*2)
 
-            out += color_func(cell_hex)
-            printed += 1
+            
 
+            prev_len_of_labels = len(labels)
             labels.extend(bin_labels(cursor, bin_collections))
+            # an address was in a bin when a label was added
+            if  len(labels) != prev_len_of_labels:
+               pass
+          
             if cursor == top_chunk:
                 labels.append('Top chunk')
+             # highlight known free chunks
+           
+            out_for_chunk += color_func(cell_hex)
+            
+            printed += 1
 
             asc += bin_ascii(pwndbg.memory.read(cursor, ptr_size))
             if printed % 2 == 0:
-                out += '\t' + color_func(asc) + ('\t <-- ' + ', '.join(labels) if len(labels) else '')
+                out_for_chunk += '\t' + color_func(asc) + ('\t <-- ' + ', '.join(labels) if len(labels) else '')
                 asc = ''
+                if len(labels) > 0:
+                    was_in_bin = True
+                
                 labels = []
 
             cursor += ptr_size
+        if was_in_bin:
+            out_for_chunk =  underline(out_for_chunk) + NORMAL
+        out += out_for_chunk
 
     print(out)
 
