@@ -1,8 +1,9 @@
-
 import os
 import pytest
 import sys
 print(sys.argv)
+
+use_pdb = os.environ.get('USE_PDB') == '1'
 
 sys._pwndbg_unittest_run = True
 
@@ -12,8 +13,10 @@ test = os.environ['PWNDBG_LAUNCH_TEST']
 
 test = os.path.join(CURRENT_DIR, test)
 
-# If you want to debug tests locally, add '--pdb' here
 args = [test, '-vvv', '-s', '--showlocals', '--color=yes']
+
+if use_pdb:
+    args.append('--pdb')
 
 print('Launching pytest with args: %s' % args)
 
