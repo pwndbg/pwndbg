@@ -81,8 +81,11 @@ heap_bins: heap_bins.c
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 	-g -O0 -o heap_bins.out heap_bins.c
 
-heap_vis: heap_vis.c
-	${CC} -g -O0 -o heap_vis.out heap_vis.c
+# Note: we use -pthread -lpthread because we hit this bug on CI builds:
+# https://sourceware.org/bugzilla/show_bug.cgi?id=24548
+heap_vis.out: heap_vis.c
+	@echo "[+] Building heap_vis.out"
+	${CC} -g -O0 -o heap_vis.out heap_vis.c -pthread -lpthread
 
 clean :
 	@echo "[+] Cleaning stuff"
