@@ -1,4 +1,4 @@
-ZIGCC		=	   zig cc
+ZIGCC		=	   $(shell pwd)/../../.zig/zig cc
 
 CC              =	   gcc
 DEBUG           =	   1

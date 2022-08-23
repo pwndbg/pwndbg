@@ -24,10 +24,12 @@ install_apt() {
     nasm \
     gcc \
     libc6-dev \
-    curl
+    curl \
+    build-essential \
+    gdb
   test -f /usr/bin/go || sudo apt-ge\t install -y golang
 
-  # Install zig
+  # Install zig to current directory
   # We use zig to compile some test binaries as it is much easier than with gcc
   if ! command -v zig &> /dev/null
   then
@@ -42,11 +44,10 @@ install_apt() {
       exit 1
     fi
 
-    sudo tar -C /usr/local -xJf /tmp/zig.tar.xz
+    tar -C /tmp -xJf /tmp/zig.tar.xz
 
-    sudo mv /usr/local/zig-linux-x86_64-*/* /usr/local/
-    # link binary to path
-    sudo ln -s /usr/local/zig /usr/local/bin/zig || true 
+    mv /tmp/zig-linux-x86_64-* "$(pwd)/.zig" 2>/dev/null >/dev/null || true
+    echo "Zig installed to $(pwd)/.zig"
   fi
   
 }
