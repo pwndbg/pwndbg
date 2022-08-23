@@ -274,12 +274,6 @@ sudo apt-get install libc-dbg:i386
             print(message.warn("Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."))
     return _OnlyWithResolvedHeapSyms
 
-class QuietSloppyParsedCommand(ParsedCommand):
-    def __init__(self, *a, **kw):
-        super(QuietSloppyParsedCommand, self).__init__(*a, **kw)
-        self.quiet = True
-        self.sloppy = True
-
 
 class _ArgparsedCommand(Command):
     def __init__(self, parser, function, command_name=None, *a, **kw):
