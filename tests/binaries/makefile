@@ -59,7 +59,8 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 	@GOARCH=amd64 $(GO) build $?
 	@# Not stripped on purpose
 
-heap_bugs: heap_bugs.c
+heap_bugs.out: heap_bugs.c
+	@echo "[+] Building heap_bugs.out"
 	${CC} \
 	-Wl,-rpath=${GLIBC}:\
 	${GLIBC}/math:\
@@ -75,7 +76,8 @@ heap_bugs: heap_bugs.c
 	-Wl,--dynamic-linker=${GLIBC}/elf/ld.so \
 	-g -o heap_bugs.out heap_bugs.c
 
-heap_bins: heap_bins.c
+heap_bins.out: heap_bins.c
+	@echo "[+] Building heap_bins.out"
 	${CC} \
 	-Wl,-rpath=${GLIBC_2_33} \
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
