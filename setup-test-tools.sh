@@ -25,6 +25,8 @@ install_apt() {
     gcc \
     libc6-dev
   test -f /usr/bin/go || sudo apt-get install -y golang
+  # We use zig to compile some test binaries as it is much easier than with gcc
+  sudo snap install zig --classic --edge
 }
 
 if linux; then
