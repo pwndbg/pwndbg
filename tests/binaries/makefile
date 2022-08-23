@@ -83,7 +83,8 @@ heap_bins: heap_bins.c
 
 # Note: we use -pthread -lpthread because we hit this bug on CI builds:
 # https://sourceware.org/bugzilla/show_bug.cgi?id=24548
-heap_vis: heap_vis.c
+heap_vis.out: heap_vis.c
+	@echo "[+] Building heap_vis.out"
 	${CC} -g -O0 -o heap_vis.out heap_vis.c -pthread -lpthread
 
 clean :
