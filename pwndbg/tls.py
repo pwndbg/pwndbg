@@ -11,6 +11,7 @@ import pwndbg.disasm
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.symbol
+import pwndbg.vmmap
 
 
 class module(ModuleType):
@@ -85,7 +86,8 @@ class module(ModuleType):
         # For i386, gsbase might be 0 if we are remotely debugging
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
-        return tls_base if tls_base else self.get_tls_base_via_errno_location()
+        is_valid_tls_base = pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.arch.ptrsize == 0
+        return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 
 
 @pwndbg.events.exit
