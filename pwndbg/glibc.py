@@ -17,10 +17,21 @@ import pwndbg.symbol
 
 safe_lnk = pwndbg.config.Parameter('safe-linking', 'auto', 'whether glibc use safe-linking (on/off/auto)')
 
+glibc_version = pwndbg.config.Parameter('glibc', '', 'GLIBC version for heuristics', scope='heap')
+
+
+@pwndbg.proc.OnlyWhenRunning
+def get_version():
+    if glibc_version.value:
+        ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+        if ret:
+            return tuple(int(_) for _ in ret.groups())
+    return _get_version()
+
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_objfile
-def get_version():
+def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.symbol.address(b'__libc_version')
         if addr is not None:
