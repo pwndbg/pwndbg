@@ -5,15 +5,15 @@ import pwndbg.symbol
 
 current = None
 
-main_arena = pwndbg.config.Parameter('main_arena', "0", 'main_arena address for heuristics', 'heap')
+main_arena = pwndbg.config.Parameter('main_arena', "0", '&main_arena for heuristics', 'heap')
 
-thread_arena = pwndbg.config.Parameter('thread_arena', "0", 'thread_arena value for heuristics', 'heap')
+thread_arena = pwndbg.config.Parameter('thread_arena', "0", '*thread_arena for heuristics', 'heap')
 
-mp_ = pwndbg.config.Parameter('mp_', "0", 'mp_ address for heuristics', 'heap')
+mp_ = pwndbg.config.Parameter('mp_', "0", '&mp_ for heuristics', 'heap')
 
-tcache = pwndbg.config.Parameter('tcache', "0", 'tcache value for heuristics', 'heap')
+tcache = pwndbg.config.Parameter('tcache', "0", '*tcache for heuristics', 'heap')
 
-global_max_fast = pwndbg.config.Parameter('global_max_fast', "0", 'global_max_fast address for heuristics', 'heap')
+global_max_fast = pwndbg.config.Parameter('global_max_fast', "0", '&global_max_fast for heuristics', 'heap')
 
 symbol_list = pwndbg.config.get_params('heap')
 
