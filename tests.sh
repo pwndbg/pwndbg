@@ -48,12 +48,13 @@ make clean && make all || exit 2
 cd ../../
 
 run_gdb() {
-    gdb --silent --nx --nh $1 --eval-command quit
+    gdb --silent --nx --nh "$@" --eval-command quit
 }
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
-TESTS_COLLECT_OUTPUT=$(run_gdb "--command $GDB_INIT_PATH --command pytests_collect.py")
+gdb_args=(--command $GDB_INIT_PATH --command pytests_collect.py)
+TESTS_COLLECT_OUTPUT=$(run_gdb "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -66,11 +67,12 @@ tests_passed_or_skipped=0
 tests_failed=0
 
 for test_case in ${TESTS_LIST}; do
+    gdb_args=(-ex 'py import coverage;coverage.process_startup()' --command $GDB_INIT_PATH --command pytests_launcher.py)
     COVERAGE_PROCESS_START=.coveragerc \
         USE_PDB="${USE_PDB}" \
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
-        run_gdb "-ex 'py import coverage;coverage.process_startup()' --command $GDB_INIT_PATH --command pytests_launcher.py"
+        run_gdb "${gdb_args[@]}"
 
     exit_status=$?
     if [ ${exit_status} -eq 0 ]; then
