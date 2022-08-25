@@ -17,7 +17,9 @@ if os.getuid() == 0:
 else:
     # see `man ptrace`
     with open('/proc/sys/kernel/yama/ptrace_scope') as f:
-        can_attach = f.read() == '0'
+        result = f.read()
+        if len(result) >= 1 and result[0] == '0':
+            can_attach = True
 
 REASON_CANNOT_ATTACH = 'Test skipped due to inability to attach (needs sudo or sysctl -w kernel.yama.ptrace_scope=0'
 
