@@ -1,7 +1,6 @@
 import os
 import pytest
 import sys
-print(sys.argv)
 
 use_pdb = os.environ.get('USE_PDB') == '1'
 

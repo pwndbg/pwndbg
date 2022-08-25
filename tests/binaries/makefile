@@ -93,7 +93,7 @@ heap_bugs.out: heap_bugs.c
 # https://sourceware.org/bugzilla/show_bug.cgi?id=24548
 heap_vis.out: heap_vis.c
 	@echo "[+] Building heap_vis.out"
-	${CC} -g -O0 -o heap_vis.out heap_vis.c -pthread -lpthread
+	${CC} -g -O0 -Wno-nonnull -o heap_vis.out heap_vis.c -pthread -lpthread
 
 clean :
 	@echo "[+] Cleaning stuff"
