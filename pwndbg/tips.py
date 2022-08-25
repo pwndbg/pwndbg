@@ -22,6 +22,8 @@ TIPS = [
     "Use the `procinfo` command for better process introspection (than the GDB's `info proc` command)",
     "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
+    "Use `set resolve-heap-via-heuristic on` before using `heap` command if there's some error occurred before we set it to on",
+    "Use `heap_config` to show the current configurations about the heap heuristics",
 ]
 
 
