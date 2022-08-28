@@ -54,7 +54,6 @@ install_apt() {
 
   mv /tmp/zig-linux-x86_64-* ${ZIGPATH} 2>/dev/null >/dev/null || true
   echo "Zig installed to ${ZIGPATH}"
-  
 }
 
 if linux; then
@@ -74,4 +73,6 @@ if linux; then
     fi
     ;;
   esac
+
+  python3 -m pip install -r dev-requirements.txt
 fi
