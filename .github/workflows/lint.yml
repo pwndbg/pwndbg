@@ -23,7 +23,7 @@ jobs:
         pip install isort
         pip install black
 
-    - name: Run tests
+    - name: Run linters
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
         isort --check-only --diff pwndbg tests
