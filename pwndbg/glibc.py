@@ -32,6 +32,7 @@ def get_version():
 
 
 @pwndbg.proc.OnlyWhenRunning
+@pwndbg.memoize.reset_on_start
 @pwndbg.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
