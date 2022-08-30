@@ -21,6 +21,9 @@ def proc_mapping():
 def auxv():
     try:
         return gdb.execute("info auxv", to_string=True)
+    # The gdb.error may be one of:
+    # - "The program has no auxiliary information now."
+    # - "No auxiliary vector found, or failed reading it."
     except gdb.error:
         return ""
 
