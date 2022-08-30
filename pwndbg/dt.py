@@ -35,7 +35,7 @@ def get_field_by_name(obj, field):
     # Dereference once
     if obj.type.code == gdb.TYPE_CODE_PTR:
         obj = obj.dereference()
-    for f in re.split("(->|\.|\[\d+\])", field):
+    for f in re.split(r"(->|\.|\[\d+\])", field):
         if not f:
             continue
         if f == "->":

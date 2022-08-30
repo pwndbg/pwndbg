@@ -142,7 +142,7 @@ def generateColorFunction(config):
 
 
 def strip(x):
-    return re.sub("\x1b\\[[\d;]+m", "", x)
+    return re.sub("\x1b\\[[\\d;]+m", "", x)
 
 
 def terminateWith(x, color):

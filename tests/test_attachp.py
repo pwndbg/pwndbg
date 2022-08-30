@@ -40,7 +40,7 @@ def launched_bash_binary():
     os.remove(path)  # Cleanup
 
 
-@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_procname(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -53,7 +53,7 @@ def test_attachp_command_attaches_to_procname(launched_bash_binary):
     assert re.search(r"Detaching from program: %s, process %s" % (binary_path, pid), result)
 
 
-@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_pid(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -65,7 +65,7 @@ def test_attachp_command_attaches_to_pid(launched_bash_binary):
     assert re.search(r"Detaching from program: %s, process %s" % (binary_path, pid), result)
 
 
-@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
@@ -86,7 +86,7 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
     assert matches == expected_pids
 
 
-@pytest.mark.skipif(can_attach == False, reason=REASON_CANNOT_ATTACH)
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
 def test_attachp_command_nonexistent_procname():
     result = run_gdb_with_script(
         pyafter="attachp some-nonexistent-process-name"

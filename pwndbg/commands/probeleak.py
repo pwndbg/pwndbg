@@ -87,7 +87,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
     ptrsize = pwndbg.arch.ptrsize
     count = max(int(count), ptrsize)
     off_zeros = int(math.ceil(math.log(count, 2) / 4))
-    if flags != None:
+    if flags is not None:
         require_flags = flags_str2int(flags)
 
     if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
@@ -119,9 +119,9 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
         p = pwndbg.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:
-            if point_to != None and point_to not in page.objfile:
+            if point_to is not None and point_to not in page.objfile:
                 continue
-            if flags != None and not satisfied_flags(require_flags, page.flags):
+            if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
             if not found:
                 print(M.legend())

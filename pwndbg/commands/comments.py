@@ -27,7 +27,7 @@ def comm(addr=None, comment=None):
             else:
                 f.write("file:%s=" % pwndbg.proc.exe)
                 f.write("%#x:%s\n" % (target, comment))
-                if not pwndbg.proc.exe in file_lists.keys():
+                if pwndbg.proc.exe not in file_lists.keys():
                     file_lists[pwndbg.proc.exe] = {}
                 file_lists[pwndbg.proc.exe][hex(target)] = comment
     except Exception:
@@ -46,7 +46,7 @@ def init():
                 filename = text1.split(":")[1]
                 addr_comm = text2.split(":")
 
-                if not filename in file_lists:
+                if filename not in file_lists:
                     file_lists[filename] = {}
 
                 file_lists[filename][addr_comm[0]] = addr_comm[1]
