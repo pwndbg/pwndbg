@@ -15,8 +15,8 @@ import pwndbg.vmmap
 
 
 class module(ModuleType):
-    """Getting Thread Local Storage (TLS) information.
-    """
+    """Getting Thread Local Storage (TLS) information."""
+
     _errno_offset = None
 
     def get_tls_base_via_errno_location(self) -> int:
@@ -33,33 +33,45 @@ class module(ModuleType):
             gdb.execute("set scheduler-locking off")
 
         if not self._errno_offset:
-            __errno_location_instr = pwndbg.disasm.near(pwndbg.symbol.address('__errno_location'), 5,
-                                                        show_prev_insns=False)
+            __errno_location_instr = pwndbg.disasm.near(
+                pwndbg.symbol.address("__errno_location"), 5, show_prev_insns=False
+            )
             if pwndbg.arch.current == "x86-64":
                 for instr in __errno_location_instr:
                     # Find something like: mov rax, qword ptr [rip + disp]
-                    if instr.mnemonic == 'mov':
+                    if instr.mnemonic == "mov":
                         self._errno_offset = pwndbg.memory.s64(instr.next + instr.disp)
                         break
             elif pwndbg.arch.current == "i386":
                 for instr in __errno_location_instr:
                     # Find something like: mov eax, dword ptr [eax + disp]
                     # (disp is a negative value)
-                    if instr.mnemonic == 'mov':
+                    if instr.mnemonic == "mov":
                         # base offset is from the first `add eax` after `call __x86.get_pc_thunk.bx`
-                        base_offset_instr = next(instr for instr in __errno_location_instr if instr.mnemonic == 'add')
-                        base_offset = base_offset_instr.address + base_offset_instr.operands[1].int
+                        base_offset_instr = next(
+                            instr
+                            for instr in __errno_location_instr
+                            if instr.mnemonic == "add"
+                        )
+                        base_offset = (
+                            base_offset_instr.address
+                            + base_offset_instr.operands[1].int
+                        )
                         self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
                         break
             elif pwndbg.arch.current == "arm":
                 ldr_instr = None
                 for instr in __errno_location_instr:
-                    if not ldr_instr and instr.mnemonic == 'ldr':
+                    if not ldr_instr and instr.mnemonic == "ldr":
                         ldr_instr = instr
-                    elif ldr_instr and instr.mnemonic == 'add':
+                    elif ldr_instr and instr.mnemonic == "add":
                         offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                        self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
+                        offset = pwndbg.memory.s32(
+                            (ldr_instr.address + 4 & -4) + offset
+                        )
+                        self._errno_offset = pwndbg.memory.s32(
+                            instr.address + 4 + offset
+                        )
                         break
         if not self._errno_offset:
             raise OSError("Can not find tls base")
@@ -86,7 +98,10 @@ class module(ModuleType):
         # For i386, gsbase might be 0 if we are remotely debugging
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
-        is_valid_tls_base = pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.arch.ptrsize == 0
+        is_valid_tls_base = (
+            pwndbg.vmmap.find(tls_base) is not None
+            and tls_base % pwndbg.arch.ptrsize == 0
+        )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 
 
@@ -98,4 +113,4 @@ def reset():
 
 # To prevent garbage collection
 tether = sys.modules[__name__]
-sys.modules[__name__] = module(__name__, '')
+sys.modules[__name__] = module(__name__, "")

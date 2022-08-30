@@ -15,9 +15,13 @@ import pwndbg.proc
 import pwndbg.search
 import pwndbg.symbol
 
-safe_lnk = pwndbg.config.Parameter('safe-linking', 'auto', 'whether glibc use safe-linking (on/off/auto)')
+safe_lnk = pwndbg.config.Parameter(
+    "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
+)
 
-glibc_version = pwndbg.config.Parameter('glibc', '', 'GLIBC version for heuristics', scope='heap')
+glibc_version = pwndbg.config.Parameter(
+    "glibc", "", "GLIBC version for heuristics", scope="heap"
+)
 
 
 @pwndbg.proc.OnlyWhenRunning
@@ -27,7 +31,10 @@ def get_version():
         if ret:
             return tuple(int(_) for _ in ret.groups())
         else:
-            raise ValueError('Invalid GLIBC version: `%s`, you should provide something like: 2.31 or 2.34' % glibc_version.value)
+            raise ValueError(
+                "Invalid GLIBC version: `%s`, you should provide something like: 2.31 or 2.34"
+                % glibc_version.value
+            )
     return _get_version()
 
 
@@ -36,11 +43,11 @@ def get_version():
 @pwndbg.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
-        addr = pwndbg.symbol.address(b'__libc_version')
+        addr = pwndbg.symbol.address(b"__libc_version")
         if addr is not None:
             ver = pwndbg.memory.string(addr)
-            return tuple([int(_) for _ in ver.split(b'.')])
-    for addr in pwndbg.search.search(b'GNU C Library'):
+            return tuple([int(_) for _ in ver.split(b".")])
+    for addr in pwndbg.search.search(b"GNU C Library"):
         banner = pwndbg.memory.string(addr)
         ret = re.search(rb"release version (\d+)\.(\d+)", banner)
         if ret:
@@ -54,7 +61,8 @@ def OnlyWhenGlibcLoaded(function):
         if get_version() is not None:
             return function(*a, **kw)
         else:
-            print('%s: GLibc not loaded yet.' % function.__name__)
+            print("%s: GLibc not loaded yet." % function.__name__)
+
     return _OnlyWhenGlibcLoaded
 
 
