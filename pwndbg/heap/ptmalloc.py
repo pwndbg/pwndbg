@@ -661,9 +661,10 @@ def initialize_structs(method):
             try:
                 self._structs_module = importlib.reload(importlib.import_module('pwndbg.heap.structs'))
             except TypeError as e:
+                # If there's a TypeError, maybe it's because `pwndbg.glibc.get_version()` return a `None`.
                 print(
                     message.hint(
-                        "There is a TypeError when importing the structs for heap heuristic.\n"
+                        "We failed to import the structs for the heap heuristic.\n"
                         "Maybe it's because we can't find the GLIBC version\n"
                         "Try `set glibc <version>` to set it manually (e.g. set glibc 2.31 )\n"
                         "Use `heap_config` to show the current config about heap heuristics.\n"
