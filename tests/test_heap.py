@@ -227,6 +227,8 @@ def test_vis_heap_chunk_command(start_binary):
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
     heap_page = next(page for page in pwndbg.vmmap.get() if page.objfile == '[heap]')
 
+    first_chunk_size = pwndbg.memory.u64(heap_page.start + pwndbg.arch.ptrsize)
+
     # Just a sanity check...
     assert (heap_page.start & 0xfff) == 0
 
@@ -236,21 +238,13 @@ def test_vis_heap_chunk_command(start_binary):
     heap_addr = heap_page.start
     heap_end = heap_page.end
 
+    # We sometimes need that value, so let's cache it
+    dq2 = None
+
     def heap_iter(offset=0x10):
         nonlocal heap_addr
         heap_addr += offset
         return heap_addr
-
-    def top_chunk_size(prev_inuse=True):
-        # We need to subtract -0x10 because we will execute this
-        # after a heap_iter call that will add +0x10 to heap_addr
-        size = heap_end - heap_addr #- 0x10
-
-        # Account for PREV_INUSE flag
-        if prev_inuse:
-            size |= 1
-
-        return size
 
     def hexdump_16B(gdb_symbol):
         from pwndbg.commands.heap import bin_ascii
@@ -261,50 +255,27 @@ def test_vis_heap_chunk_command(start_binary):
 
         return bin_ascii(first + second)
 
+    def vis_heap_line(heap_iter_offset=0x10, suffix=''):
+        """Returns data to format a vis_heap_chunk line"""
+        addr = heap_iter(heap_iter_offset)
+        hexdump = hexdump_16B(addr)
+
+        nonlocal dq2
+        dq1, dq2 = map(pwndbg.memory.u64, (addr, addr+8))
+
+        formatted = '%#x\t%#018x\t%#018x\t%s' % (addr, dq1, dq2, hexdump)
+        formatted += suffix
+
+        return formatted
+
+    first_hexdump = hexdump_16B(hex(heap_page.start))
+
     expected = ['',
-        '%#x\t0x0000000000000000\t0x0000000000000291\t................' % heap_iter(0),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000' % heap_iter()
+        '%#x\t0x0000000000000000\t%#018x\t%s' % (heap_iter(0), first_chunk_size | 1, first_hexdump),
     ]
+    for _ in range(first_chunk_size//16 - 1):
+        expected.append('%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter())
+    expected.append('%#x\t0x0000000000000000' % heap_iter())
     assert result == expected
 
     del result
@@ -332,7 +303,7 @@ def test_vis_heap_chunk_command(start_binary):
     expected3 = expected2[:-1] + [
         '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......' % heap_iter(0),
         '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t%#018x\t........1.......\t <-- Top chunk' % (heap_iter(), top_chunk_size())
+        vis_heap_line(suffix='\t <-- Top chunk')
     ]
     assert result3 == expected3
 
@@ -364,7 +335,7 @@ def test_vis_heap_chunk_command(start_binary):
         '%#x\t0x0000000000000000\t0x0000000000000031\t........1.......' % heap_iter(0),
         '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
         '%#x\t0x0000000000000000\t0x0000000000000000\t................' % heap_iter(),
-        '%#x\t0x0000000000000000\t%#018x\t................\t <-- Top chunk' % (heap_iter(), top_chunk_size())
+        vis_heap_line(suffix='\t <-- Top chunk')
     ]
 
     assert result4_b == expected4_b
@@ -398,56 +369,24 @@ def test_vis_heap_chunk_command(start_binary):
     some_addr = heap_addr + 0x2c0
     some_addr_hexdump = hexdump_16B(hex(heap_addr + 0x90))
 
-    expected_all3 = ['',
-        '%#x\t0x0000000000000000\t0x0000000000000291\t................'% heap_iter(0),
-        '%#x\t0x0000000000000001\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t%#018x\t0x0000000000000000\t%s' % (heap_iter(), some_addr, some_addr_hexdump),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000021\t........!.......'% heap_iter(),
-        '%#x\t%#018x\t%#018x\t%s\t <-- tcachebins[0x20][0/1]'% (heap_iter(), tcache_next, tcache_key, tcache_hexdump),
-        '%#x\t0x0000000000000000\t0x0000000000000031\t........1.......'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t0x0000000000000000\t................'% heap_iter(),
-        '%#x\t0x0000000000000000\t%#018x\t................\t <-- Top chunk'% (heap_iter(), top_chunk_size())
-    ]
+    expected_all3 = ['']
+
+    # Add the biggest chunk, the one from libc
+    expected_all3.append(vis_heap_line(0))
+
+    last_chunk_size = dq2
+    for _ in range(last_chunk_size//16):
+        expected_all3.append(vis_heap_line())
+
+    last_chunk_size = dq2
+    for _ in range(last_chunk_size//16):
+        expected_all3.append(vis_heap_line())
+    expected_all3.append(vis_heap_line(suffix='\t <-- tcachebins[0x20][0/1]'))
+
+    expected_all3.append(vis_heap_line())
+    last_chunk_size = dq2
+    for _ in range(last_chunk_size//16 - 1):
+        expected_all3.append(vis_heap_line())
+    expected_all3.append(vis_heap_line(suffix='\t <-- Top chunk'))
 
     assert result_all3 == expected_all3
