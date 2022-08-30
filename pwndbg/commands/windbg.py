@@ -190,7 +190,7 @@ def dX(size, address, count, to_string=False, repeat=False):
 
 
 def enhex(size, value):
-    value = value & pwndbg.arch.ptrmask
+    value = value & ((1 << 8*size) - 1)
     x = "%x" % abs(value)
     x = x.rjust(size * 2, "0")
     return x
