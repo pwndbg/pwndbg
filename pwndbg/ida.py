@@ -23,10 +23,10 @@ import pwndbg.memory
 import pwndbg.regs
 from pwndbg.color import message
 
-ida_rpc_host = pwndbg.config.Parameter('ida-rpc-host', '127.0.0.1', 'ida xmlrpc server address')
-ida_rpc_port = pwndbg.config.Parameter('ida-rpc-port', 31337, 'ida xmlrpc server port')
-ida_enabled = pwndbg.config.Parameter('ida-enabled', True, 'whether to enable ida integration')
-ida_timeout = pwndbg.config.Parameter('ida-timeout', 2, 'time to wait for ida xmlrpc in seconds')
+ida_rpc_host = pwndbg.config.Parameter("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
+ida_rpc_port = pwndbg.config.Parameter("ida-rpc-port", 31337, "ida xmlrpc server port")
+ida_enabled = pwndbg.config.Parameter("ida-enabled", True, "whether to enable ida integration")
+ida_timeout = pwndbg.config.Parameter("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -53,12 +53,12 @@ def init_ida_rpc_client():
     if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
         return
 
-    addr = 'http://{host}:{port}'.format(host=ida_rpc_host, port=ida_rpc_port)
+    addr = "http://{host}:{port}".format(host=ida_rpc_host, port=ida_rpc_port)
 
     _ida = xmlrpc.client.ServerProxy(addr)
     socket.setdefaulttimeout(int(ida_timeout))
 
-    exception = None # (type, value, traceback)
+    exception = None  # (type, value, traceback)
     try:
         _ida.here()
         print(message.success("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
@@ -74,18 +74,39 @@ def init_ida_rpc_client():
         _ida = None
 
     if exception:
-        if not isinstance(_ida_last_exception, exception[0]) or _ida_last_exception.args != exception[1].args:
+        if (
+            not isinstance(_ida_last_exception, exception[0])
+            or _ida_last_exception.args != exception[1].args
+        ):
             if hasattr(pwndbg.config, "exception_verbose") and pwndbg.config.exception_verbose:
                 print(message.error("[!] Ida Pro xmlrpc error"))
                 traceback.print_exception(*exception)
             else:
                 exc_type, exc_value, _ = exception
-                print(message.error('Failed to connect to IDA Pro ({}: {})'.format(exc_type.__qualname__, exc_value)))
+                print(
+                    message.error(
+                        "Failed to connect to IDA Pro ({}: {})".format(
+                            exc_type.__qualname__, exc_value
+                        )
+                    )
+                )
                 if exc_type is socket.timeout:
-                    print(message.notice('To increase the time to wait for IDA Pro use `') + message.hint('set ida-timeout <new-timeout-in-seconds>') + message.notice('`'))
+                    print(
+                        message.notice("To increase the time to wait for IDA Pro use `")
+                        + message.hint("set ida-timeout <new-timeout-in-seconds>")
+                        + message.notice("`")
+                    )
                 else:
-                    print(message.notice('For more info invoke `') + message.hint('set exception-verbose on') + message.notice('`'))
-                print(message.notice('To disable IDA Pro integration invoke `') + message.hint('set ida-enabled off') + message.notice('`'))
+                    print(
+                        message.notice("For more info invoke `")
+                        + message.hint("set exception-verbose on")
+                        + message.notice("`")
+                    )
+                print(
+                    message.notice("To disable IDA Pro integration invoke `")
+                    + message.hint("set ida-enabled off")
+                    + message.notice("`")
+                )
 
     _ida_last_exception = exception and exception[1]
     _ida_last_connection_check = now
@@ -220,15 +241,16 @@ def Jump(addr):
 @takes_address
 @pwndbg.memoize.reset_on_objfile
 def Anterior(addr):
-    hexrays_prefix = '\x01\x04; '
+    hexrays_prefix = "\x01\x04; "
     lines = []
     for i in range(10):
-        r = _ida.get_extra_cmt(addr, 0x3e8 + i)  # E_PREV
-        if not r: break
+        r = _ida.get_extra_cmt(addr, 0x3E8 + i)  # E_PREV
+        if not r:
+            break
         if r.startswith(hexrays_prefix):
-            r = r[len(hexrays_prefix):]
+            r = r[len(hexrays_prefix) :]
         lines.append(r)
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 @withIDA
@@ -256,14 +278,14 @@ _breakpoints = []
 @withIDA
 def UpdateBreakpoints():
     # XXX: Remove breakpoints from IDA when the user removes them.
-    current = set(eval(b.location.lstrip('*')) for b in _breakpoints)
+    current = set(eval(b.location.lstrip("*")) for b in _breakpoints)
     want = set(GetBreakpoints())
 
     # print(want)
 
     for addr in current - want:
         for bp in _breakpoints:
-            if int(bp.location.lstrip('*'), 0) == addr:
+            if int(bp.location.lstrip("*"), 0) == addr:
                 # print("delete", addr)
                 bp.delete()
                 break
@@ -273,7 +295,7 @@ def UpdateBreakpoints():
         if not pwndbg.memory.peek(bp):
             continue
 
-        bp = gdb.Breakpoint('*' + hex(int(bp)))
+        bp = gdb.Breakpoint("*" + hex(int(bp)))
         _breakpoints.append(bp)
         # print(_breakpoints)
 
@@ -292,7 +314,7 @@ colored_pc = None
 def Auto_Color_PC():
     global colored_pc
     colored_pc = pwndbg.regs.pc
-    SetColor(colored_pc, 0x7f7fff)
+    SetColor(colored_pc, 0x7F7FFF)
 
 
 @pwndbg.events.cont
@@ -300,7 +322,7 @@ def Auto_Color_PC():
 def Auto_UnColor_PC():
     global colored_pc
     if colored_pc:
-        SetColor(colored_pc, 0xffffff)
+        SetColor(colored_pc, 0xFFFFFF)
     colored_pc = None
 
 
@@ -464,7 +486,7 @@ idc = IDC()
 
 def print_member(sid, offset):
     mid = GetMemberId(sid, offset)
-    mname = GetMemberName(sid, offset) or '(no name)'
+    mname = GetMemberName(sid, offset) or "(no name)"
     msize = GetMemberSize(sid, offset) or 0
     mflag = GetMemberFlag(sid, offset) or 0
     print("    +%#x - %s [%#x bytes]" % (offset, mname, msize))

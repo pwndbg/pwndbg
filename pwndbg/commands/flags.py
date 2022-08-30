@@ -3,7 +3,7 @@ from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
 
-description="Modify the flags register"
+description = "Modify the flags register"
 epilog = """Examples:
   On X86/X64:
     setflag ZF 1        -- set zero flag
@@ -19,13 +19,21 @@ epilog = """Examples:
 (This command supports flags registers that are defined for architectures in the pwndbg/regs.py file)
     """
 
-parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=RawTextHelpFormatter)
-parser.add_argument('flag', type=str,
-                    help='Flag for which you want to change the value')
-parser.add_argument('value', type=int,
-                    help='Value to which you want to set the flag - only valid options are 0 and 1')
+parser = argparse.ArgumentParser(
+    description=description, epilog=epilog, formatter_class=RawTextHelpFormatter
+)
+parser.add_argument("flag", type=str, help="Flag for which you want to change the value")
+parser.add_argument(
+    "value",
+    type=int,
+    help="Value to which you want to set the flag - only valid options are 0 and 1",
+)
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], )
+
+@pwndbg.commands.ArgparsedCommand(
+    parser,
+    aliases=["flag"],
+)
 def setflag(flag, value):
     if value not in [0, 1]:
         print("can only set flag bit to 0 or 1")
@@ -46,8 +54,10 @@ def setflag(flag, value):
                     new_flags_reg_value = old_flags_reg_value & ~bit_value
 
                 setattr(pwndbg.regs, flag_reg, new_flags_reg_value)
-                print("Set flag %s=%d in flag register %s (old val=%#x, new val=%#x)" % (flag, value, flag_reg, old_flags_reg_value, new_flags_reg_value))
+                print(
+                    "Set flag %s=%d in flag register %s (old val=%#x, new val=%#x)"
+                    % (flag, value, flag_reg, old_flags_reg_value, new_flags_reg_value)
+                )
                 return
 
     print("The %s not a valid/recognized flag" % flag)
-

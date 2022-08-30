@@ -13,7 +13,7 @@ import pwndbg.qemu
 import pwndbg.typeinfo
 
 PAGE_SIZE = 0x1000
-PAGE_MASK = ~(PAGE_SIZE-1)
+PAGE_MASK = ~(PAGE_SIZE - 1)
 MMAP_MIN_ADDR = 0x8000
 
 
@@ -31,7 +31,7 @@ def read(addr, count, partial=False):
         :class:`bytearray`: The memory at the specified address,
         or ``None``.
     """
-    result = b''
+    result = b""
     count = max(int(count), 0)
 
     try:
@@ -40,12 +40,12 @@ def read(addr, count, partial=False):
         if not partial:
             raise
 
-        if not hasattr(e, 'message'):
-            e.message=str(e)
+        if not hasattr(e, "message"):
+            e.message = str(e)
 
         stop_addr = int(e.message.split()[-1], 0)
         if stop_addr != addr:
-            return read(addr, stop_addr-addr)
+            return read(addr, stop_addr - addr)
 
         # QEMU will return the start address as the failed
         # read address.  Try moving back a few pages at a time.
@@ -54,7 +54,7 @@ def read(addr, count, partial=False):
         # Move the stop address down to the previous page boundary
         stop_addr &= PAGE_MASK
         while stop_addr > addr:
-            result = read(addr, stop_addr-addr)
+            result = read(addr, stop_addr - addr)
 
             if result:
                 return result
@@ -91,7 +91,7 @@ def write(addr, data):
         data(str,bytes,bytearray): Data to write
     """
     if isinstance(data, str):
-        data = bytes(data, 'utf8')
+        data = bytes(data, "utf8")
 
     # Throws an exception if can't access memory
     gdb.selected_inferior().write_memory(addr, data)
@@ -109,8 +109,10 @@ def peek(address):
         :class:`str`: A single byte of data, or ``None`` if the
         address cannot be read.
     """
-    try:    return read(address, 1)
-    except Exception: pass
+    try:
+        return read(address, 1)
+    except Exception:
+        pass
     return None
 
 
@@ -126,9 +128,12 @@ def poke(address):
         :class:`bool`: Whether the address is writable.
     """
     c = peek(address)
-    if c is None: return False
-    try:    write(address, c)
-    except Exception: return False
+    if c is None:
+        return False
+    try:
+        write(address, c)
+    except Exception:
+        return False
     return True
 
 
@@ -146,7 +151,7 @@ def string(addr, max=4096):
         data = bytearray(read(addr, max, partial=True))
 
         try:
-            return data[:data.index(b'\x00')]
+            return data[: data.index(b"\x00")]
         except ValueError:
             pass
 
@@ -234,12 +239,7 @@ def u(addr, size=None):
     """
     if size is None:
         size = pwndbg.arch.ptrsize * 8
-    return {
-        8: u8,
-        16: u16,
-        32: u32,
-        64: u64
-    }[size](addr)
+    return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 
 def s8(addr):
@@ -287,7 +287,7 @@ def round_down(address, align):
 
     Round down ``address`` to the nearest increment of ``align``.
     """
-    return address & ~(align-1)
+    return address & ~(align - 1)
 
 
 def round_up(address, align):
@@ -295,10 +295,11 @@ def round_up(address, align):
 
     Round up ``address`` to the nearest increment of ``align``.
     """
-    return (address+(align-1))&(~(align-1))
+    return (address + (align - 1)) & (~(align - 1))
+
 
 align_down = round_down
-align_up   = round_up
+align_up = round_up
 
 
 def page_align(address):
@@ -314,10 +315,11 @@ def page_size_align(address):
 
 
 def page_offset(address):
-    return (address & (PAGE_SIZE-1))
+    return address & (PAGE_SIZE - 1)
 
-assert round_down(0xdeadbeef, 0x1000) == 0xdeadb000
-assert round_up(0xdeadbeef, 0x1000)   == 0xdeadc000
+
+assert round_down(0xDEADBEEF, 0x1000) == 0xDEADB000
+assert round_up(0xDEADBEEF, 0x1000) == 0xDEADC000
 
 
 @pwndbg.memoize.reset_on_stop
@@ -374,21 +376,22 @@ class Page:
     Represents the address space and page permissions of at least
     one page of memory.
     """
-    vaddr   = 0 #: Starting virtual address
-    memsz   = 0 #: Size of the address space, in bytes
-    flags   = 0 #: Flags set by the ELF file, see PF_X, PF_R, PF_W
-    offset  = 0 #: Offset into the original ELF file that the data is loaded from
-    objfile = '' #: Path to the ELF on disk
 
-    def __init__(self, start, size, flags, offset, objfile=''):
-        self.vaddr  = start
-        self.memsz  = size
-        self.flags  = flags
+    vaddr = 0  #: Starting virtual address
+    memsz = 0  #: Size of the address space, in bytes
+    flags = 0  #: Flags set by the ELF file, see PF_X, PF_R, PF_W
+    offset = 0  #: Offset into the original ELF file that the data is loaded from
+    objfile = ""  #: Path to the ELF on disk
+
+    def __init__(self, start, size, flags, offset, objfile=""):
+        self.vaddr = start
+        self.memsz = size
+        self.flags = flags
         self.offset = offset
         self.objfile = objfile
 
         # if self.rwx:
-            # self.flags = self.flags ^ 1
+        # self.flags = self.flags ^ 1
 
     @property
     def start(self):
@@ -407,11 +410,11 @@ class Page:
 
     @property
     def is_stack(self):
-        return self.objfile == '[stack]'
+        return self.objfile == "[stack]"
 
     @property
     def is_memory_mapped_file(self):
-        return len(self.objfile) > 0 and self.objfile[0] != '[' and self.objfile != '<pt>'
+        return len(self.objfile) > 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
 
     @property
     def read(self):
@@ -436,21 +439,27 @@ class Page:
     @property
     def permstr(self):
         flags = self.flags
-        return ''.join(['r' if flags & os.R_OK else '-',
-                        'w' if flags & os.W_OK else '-',
-                        'x' if flags & os.X_OK else '-',
-                        'p'])
+        return "".join(
+            [
+                "r" if flags & os.R_OK else "-",
+                "w" if flags & os.W_OK else "-",
+                "x" if flags & os.X_OK else "-",
+                "p",
+            ]
+        )
 
     def __str__(self):
-        width = 2 + 2*pwndbg.typeinfo.ptrsize
+        width = 2 + 2 * pwndbg.typeinfo.ptrsize
         fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
         fmt_string = fmt_string.format(width, width)
-        return fmt_string % (self.vaddr,
-                             self.vaddr+self.memsz,
-                             self.permstr,
-                             self.memsz,
-                             self.offset,
-                             self.objfile or '')
+        return fmt_string % (
+            self.vaddr,
+            self.vaddr + self.memsz,
+            self.permstr,
+            self.memsz,
+            self.offset,
+            self.objfile or "",
+        )
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
@@ -459,10 +468,10 @@ class Page:
         return self.start <= addr < self.end
 
     def __eq__(self, other):
-        return self.vaddr == getattr(other, 'vaddr', other)
+        return self.vaddr == getattr(other, "vaddr", other)
 
     def __lt__(self, other):
-        return self.vaddr < getattr(other, 'vaddr', other)
+        return self.vaddr < getattr(other, "vaddr", other)
 
     def __hash__(self):
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))

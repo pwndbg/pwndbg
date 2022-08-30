@@ -32,7 +32,7 @@ import os
 import stat
 
 
-def which(name, all = False):
+def which(name, all=False):
     """which(name, flags = os.X_OK, all = False) -> str or str set
 
     Works as the system command ``which``; searches $PATH for ``name`` and
@@ -60,9 +60,9 @@ def which(name, all = False):
     isroot = os.getuid() == 0
     out = set()
     try:
-        path = os.environ['PATH']
+        path = os.environ["PATH"]
     except KeyError:
-        log.exception('Environment variable $PATH is not set')
+        log.exception("Environment variable $PATH is not set")
     for p in path.split(os.pathsep):
         p = os.path.join(p, name)
         if os.access(p, os.X_OK):
@@ -70,8 +70,7 @@ def which(name, all = False):
             if not stat.S_ISREG(st.st_mode):
                 continue
             # work around this issue: https://bugs.python.org/issue9311
-            if isroot and not \
-              st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+            if isroot and not st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
                 continue
             if all:
                 out.add(p)

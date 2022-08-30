@@ -6,37 +6,42 @@ from pycparser import c_ast
 
 def extractTypeAndName(n, defaultName=None):
     if isinstance(n, c_ast.EllipsisParam):
-        return ('int', 0, 'vararg')
+        return ("int", 0, "vararg")
 
     t = n.type
     d = 0
 
     while isinstance(t, c_ast.PtrDecl) or isinstance(t, c_ast.ArrayDecl):
         d += 1
-        children  = dict(t.children())
-        t = children['type']
+        children = dict(t.children())
+        t = children["type"]
 
     if isinstance(t, c_ast.FuncDecl):
         return extractTypeAndName(t)
 
-    if isinstance(t.type, c_ast.Struct) \
-    or isinstance(t.type, c_ast.Union) \
-    or isinstance(t.type, c_ast.Enum):
+    if (
+        isinstance(t.type, c_ast.Struct)
+        or isinstance(t.type, c_ast.Union)
+        or isinstance(t.type, c_ast.Enum)
+    ):
         typename = t.type.name
     else:
         typename = t.type.names[0]
 
-    if typename == 'void' and d == 0 and not t.declname:
+    if typename == "void" and d == 0 and not t.declname:
         return None
 
-    name     = t.declname or defaultName or ''
-    return typename.lstrip('_'),d,name.lstrip('_')
+    name = t.declname or defaultName or ""
+    return typename.lstrip("_"), d, name.lstrip("_")
 
-Function = collections.namedtuple('Function', ('type', 'derefcnt', 'name', 'args'))
-Argument = collections.namedtuple('Argument', ('type', 'derefcnt', 'name'))
+
+Function = collections.namedtuple("Function", ("type", "derefcnt", "name", "args"))
+Argument = collections.namedtuple("Argument", ("type", "derefcnt", "name"))
+
 
 def Stringify(X):
-    return '%s %s %s' % (X.type, X.derefcnt * '*', X.name)
+    return "%s %s %s" % (X.type, X.derefcnt * "*", X.name)
+
 
 def ExtractFuncDecl(node, verbose=False):
     # The function name needs to be dereferenced.
@@ -49,7 +54,7 @@ def ExtractFuncDecl(node, verbose=False):
 
     fargs = []
     for i, (argName, arg) in enumerate(node.args.children()):
-        defname = 'arg%i' % i
+        defname = "arg%i" % i
         argdata = extractTypeAndName(arg, defname)
         if argdata is not None:
             a = Argument(*argdata)
@@ -58,9 +63,10 @@ def ExtractFuncDecl(node, verbose=False):
     Func = Function(ftype, fderef, fname, fargs)
 
     if verbose:
-        print(Stringify(Func) + '(' + ','.join(Stringify(a) for a in Func.args) + ');')
+        print(Stringify(Func) + "(" + ",".join(Stringify(a) for a in Func.args) + ");")
 
     return Func
+
 
 def ExtractAllFuncDecls(ast, verbose=False):
     Functions = {}
@@ -74,14 +80,16 @@ def ExtractAllFuncDecls(ast, verbose=False):
 
     return Functions
 
+
 def ExtractFuncDeclFromSource(source):
     try:
-        p     = CParser()
-        ast   = p.parse(source + ';')
+        p = CParser()
+        ast = p.parse(source + ";")
         funcs = ExtractAllFuncDecls(ast)
         for name, func in funcs.items():
             return func
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         # eat it

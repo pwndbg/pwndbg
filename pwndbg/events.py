@@ -12,7 +12,7 @@ import gdb
 
 import pwndbg.config
 
-debug = pwndbg.config.Parameter('debug-events', False, 'display internal event debugging info')
+debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
 pause = 0
 
 
@@ -32,7 +32,7 @@ pause = 0
 class StartEvent:
     def __init__(self):
         self.registered = list()
-        self.running    = False
+        self.running = False
 
     def connect(self, function):
         if function not in self.registered:
@@ -50,7 +50,7 @@ class StartEvent:
 
         for function in self.registered:
             if debug:
-                sys.stdout.write('%r %s.%s\n' % ('start', function.__module__, function.__name__))
+                sys.stdout.write("%r %s.%s\n" % ("start", function.__module__, function.__name__))
             function()
 
     def on_exited(self):
@@ -68,6 +68,7 @@ class EventWrapper:
     Wrapper for GDB events which may not exist on older GDB versions but we still can
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -95,7 +96,7 @@ class EventWrapper:
 
 
 # Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
-before_prompt_event = EventWrapper('before_prompt')
+before_prompt_event = EventWrapper("before_prompt")
 gdb.events.before_prompt = before_prompt_event
 
 
@@ -107,7 +108,7 @@ registered = {
     gdb.events.new_objfile: [],
     gdb.events.stop: [],
     gdb.events.start: [],
-    gdb.events.before_prompt: []  # The real event might not exist, but we wrap it
+    gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
 }
 
 # GDB 7.9 and above only
@@ -135,18 +136,18 @@ class Pause:
 objfile_cache = dict()
 
 
-def connect(func, event_handler, name=''):
+def connect(func, event_handler, name=""):
     if debug:
         print("Connecting", func.__name__, event_handler)
 
     @wraps(func)
     def caller(*a):
         if debug:
-            sys.stdout.write('%r %s.%s %r\n' % (name, func.__module__, func.__name__, a))
+            sys.stdout.write("%r %s.%s %r\n" % (name, func.__module__, func.__name__, a))
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile
-            handler = '%s.%s' % (func.__module__, func.__name__)
+            handler = "%s.%s" % (func.__module__, func.__name__)
             path = objfile.filename
             dispatched = objfile_cache.get(path, set())
 
@@ -163,6 +164,7 @@ def connect(func, event_handler, name=''):
             func()
         except Exception as e:
             import pwndbg.exception
+
             pwndbg.exception.handle()
             raise e
 
@@ -171,26 +173,39 @@ def connect(func, event_handler, name=''):
     return func
 
 
-def exit(func):        return connect(func, gdb.events.exited, 'exit')
-def cont(func):        return connect(func, gdb.events.cont, 'cont')
-def new_objfile(func): return connect(func, gdb.events.new_objfile, 'obj')
-def stop(func):        return connect(func, gdb.events.stop, 'stop')
-def start(func):       return connect(func, gdb.events.start, 'start')
+def exit(func):
+    return connect(func, gdb.events.exited, "exit")
 
 
-before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name='before_prompt')
+def cont(func):
+    return connect(func, gdb.events.cont, "cont")
+
+
+def new_objfile(func):
+    return connect(func, gdb.events.new_objfile, "obj")
+
+
+def stop(func):
+    return connect(func, gdb.events.stop, "stop")
+
+
+def start(func):
+    return connect(func, gdb.events.start, "start")
+
+
+before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")
 
 
 def reg_changed(func):
     try:
-        return connect(func, gdb.events.register_changed, 'reg_changed')
+        return connect(func, gdb.events.register_changed, "reg_changed")
     except AttributeError:
         return func
 
 
 def mem_changed(func):
     try:
-        return connect(func, gdb.events.memory_changed, 'mem_changed')
+        return connect(func, gdb.events.memory_changed, "mem_changed")
     except AttributeError:
         return func
 
@@ -202,7 +217,7 @@ def log_objfiles(ofile=None):
     name = ofile.new_objfile.filename
 
     print("objfile: %r" % name)
-    gdb.execute('info sharedlibrary')
+    gdb.execute("info sharedlibrary")
 
 
 gdb.events.new_objfile.connect(log_objfiles)
@@ -213,7 +228,8 @@ def after_reload(start=True):
         for f in registered[gdb.events.stop]:
             f()
         for f in registered[gdb.events.start]:
-            if start: f()
+            if start:
+                f()
         for f in registered[gdb.events.new_objfile]:
             f()
         for f in registered[gdb.events.before_prompt]:

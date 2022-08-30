@@ -15,18 +15,20 @@ import pwndbg.proc
 import pwndbg.search
 import pwndbg.symbol
 
-safe_lnk = pwndbg.config.Parameter('safe-linking', 'auto', 'whether glibc use safe-linking (on/off/auto)')
+safe_lnk = pwndbg.config.Parameter(
+    "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
+)
 
 
 @pwndbg.proc.OnlyWhenRunning
 @pwndbg.memoize.reset_on_objfile
 def get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
-        addr = pwndbg.symbol.address(b'__libc_version')
+        addr = pwndbg.symbol.address(b"__libc_version")
         if addr is not None:
             ver = pwndbg.memory.string(addr)
-            return tuple([int(_) for _ in ver.split(b'.')])
-    for addr in pwndbg.search.search(b'GNU C Library'):
+            return tuple([int(_) for _ in ver.split(b".")])
+    for addr in pwndbg.search.search(b"GNU C Library"):
         banner = pwndbg.memory.string(addr)
         ret = re.search(rb"release version (\d+)\.(\d+)", banner)
         if ret:
@@ -40,7 +42,8 @@ def OnlyWhenGlibcLoaded(function):
         if get_version() is not None:
             return function(*a, **kw)
         else:
-            print('%s: GLibc not loaded yet.' % function.__name__)
+            print("%s: GLibc not loaded yet." % function.__name__)
+
     return _OnlyWhenGlibcLoaded
 
 

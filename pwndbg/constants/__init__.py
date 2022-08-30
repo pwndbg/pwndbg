@@ -7,14 +7,8 @@ from . import i386
 from . import mips
 from . import thumb
 
-arches = {
-    'arm': arm,
-    'armcm': arm,
-    'i386': i386,
-    'mips': mips,
-    'x86-64': amd64,
-    'aarch64': aarch64
-}
+arches = {"arm": arm, "armcm": arm, "i386": i386, "mips": mips, "x86-64": amd64, "aarch64": aarch64}
+
 
 def syscall(value):
     """
@@ -26,7 +20,7 @@ def syscall(value):
     if not arch:
         return None
 
-    prefix = '__NR_'
+    prefix = "__NR_"
 
     for k, v in arch.__dict__.items():
         if v != value:
@@ -35,6 +29,6 @@ def syscall(value):
         if not k.startswith(prefix):
             continue
 
-        return k[len(prefix):].lower()
+        return k[len(prefix) :].lower()
 
     return None

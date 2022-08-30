@@ -27,20 +27,21 @@ import pwndbg.proc
 import pwndbg.stack
 
 # ELF constants
-PF_X, PF_W, PF_R = 1,2,4
-ET_EXEC, ET_DYN  = 2,3
+PF_X, PF_W, PF_R = 1, 2, 4
+ET_EXEC, ET_DYN = 2, 3
 
 
 module = sys.modules[__name__]
 
 
-class ELFInfo(namedtuple('ELFInfo', 'header sections segments')):
+class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
     """
     ELF metadata and structures.
     """
+
     @property
     def is_pic(self):
-        return self.header['e_type'] == 'ET_DYN'
+        return self.header["e_type"] == "ET_DYN"
 
     @property
     def is_pie(self):
@@ -61,6 +62,7 @@ def update():
 
     module.__dict__.update(locals())
 
+
 update()
 
 
@@ -70,7 +72,7 @@ def read(typ, address, blob=None):
     if not blob:
         data = pwndbg.memory.read(address, size)
     else:
-        data = blob[address:address+size]
+        data = blob[address : address + size]
 
     obj = typ.from_buffer_copy(data)
     obj.address = address
@@ -87,26 +89,27 @@ def get_elf_info(filepath):
     Such added properties are those with prefix 'x_' in the returned dicts.
     """
     local_path = pwndbg.file.get_file(filepath)
-    with open(local_path, 'rb') as f:
+    with open(local_path, "rb") as f:
         elffile = ELFFile(f)
         header = dict(elffile.header)
         segments = []
         for seg in elffile.iter_segments():
             s = dict(seg.header)
-            s['x_perms'] = [
-                mnemonic for mask, mnemonic in [(PF_R, 'read'), (PF_W, 'write'), (PF_X, 'execute')]
-                if s['p_flags'] & mask != 0
+            s["x_perms"] = [
+                mnemonic
+                for mask, mnemonic in [(PF_R, "read"), (PF_W, "write"), (PF_X, "execute")]
+                if s["p_flags"] & mask != 0
             ]
             # end of memory backing
-            s['x_vaddr_mem_end'] = s['p_vaddr'] + s['p_memsz']
+            s["x_vaddr_mem_end"] = s["p_vaddr"] + s["p_memsz"]
             # end of file backing
-            s['x_vaddr_file_end'] = s['p_vaddr'] + s['p_filesz']
+            s["x_vaddr_file_end"] = s["p_vaddr"] + s["p_filesz"]
             segments.append(s)
         sections = []
         for sec in elffile.iter_sections():
             s = dict(sec.header)
-            s['x_name'] = sec.name
-            s['x_addr_mem_end'] = s['x_addr_file_end'] = s['sh_addr'] + s['sh_size']
+            s["x_name"] = sec.name
+            s["x_addr_mem_end"] = s["x_addr_file_end"] = s["sh_addr"] + s["sh_size"]
             sections.append(s)
         return ELFInfo(header, sections, segments)
 
@@ -120,19 +123,19 @@ def get_elf_info_rebased(filepath, vaddr):
     # silently ignores "wrong" vaddr supplied for non-PIE ELF
     load = vaddr if raw_info.is_pic else 0
     headers = dict(raw_info.header)
-    headers['e_entry'] += load
+    headers["e_entry"] += load
 
     segments = []
     for seg in raw_info.segments:
         s = dict(seg)
-        for vaddr_attr in ['p_vaddr', 'x_vaddr_mem_end', 'x_vaddr_file_end']:
+        for vaddr_attr in ["p_vaddr", "x_vaddr_mem_end", "x_vaddr_file_end"]:
             s[vaddr_attr] += load
         segments.append(s)
 
     sections = []
     for sec in raw_info.sections:
         s = dict(sec)
-        for vaddr_attr in ['sh_addr', 'x_addr_mem_end', 'x_addr_file_end']:
+        for vaddr_attr in ["sh_addr", "x_addr_mem_end", "x_addr_file_end"]:
             s[vaddr_attr] += load
         sections.append(s)
 
@@ -145,10 +148,10 @@ def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
     for seg in elf.segments:
         # disregard segments which were unable to be named by pyelftools (see #777)
         # and non-LOAD segments that are not file-backed (typically STACK)
-        if isinstance(seg['p_type'], int) or ('LOAD' not in seg['p_type'] and seg['p_filesz'] == 0):
+        if isinstance(seg["p_type"], int) or ("LOAD" not in seg["p_type"] and seg["p_filesz"] == 0):
             continue
         # disregard segments not containing vaddr
-        if vaddr < seg['p_vaddr'] or vaddr >= seg['x_vaddr_mem_end']:
+        if vaddr < seg["p_vaddr"] or vaddr >= seg["x_vaddr_mem_end"]:
             continue
         segments.append(dict(seg))
     return segments
@@ -159,10 +162,10 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
     sections = []
     for sec in elf.sections:
         # disregard sections not occupying memory
-        if sec['sh_flags'] & SH_FLAGS.SHF_ALLOC == 0:
+        if sec["sh_flags"] & SH_FLAGS.SHF_ALLOC == 0:
             continue
         # disregard sections that do not contain vaddr
-        if vaddr < sec['sh_addr'] or vaddr >= sec['x_addr_mem_end']:
+        if vaddr < sec["sh_addr"] or vaddr >= sec["x_addr_mem_end"]:
             continue
         sections.append(dict(sec))
     return sections
@@ -204,7 +207,7 @@ def entry():
             return entry_point
 
     # Try common names
-    for name in ['_start', 'start', '__start', 'main']:
+    for name in ["_start", "start", "__start", "main"]:
         try:
             return pwndbg.symbol.address(name)
         except gdb.error:
@@ -216,6 +219,7 @@ def entry():
 
 def load(pointer):
     return get_ehdr(pointer)[1]
+
 
 ehdr_type_loaded = 0
 
@@ -246,7 +250,7 @@ def get_ehdr(pointer):
         return None, None
 
     # We first check if the beginning of the page contains the ELF magic
-    if pwndbg.memory.read(vmmap.start, 4) == b'\x7fELF':
+    if pwndbg.memory.read(vmmap.start, 4) == b"\x7fELF":
         base = vmmap.start
 
     # The page did not have ELF magic; it may be that .text and binary start are split
@@ -257,7 +261,7 @@ def get_ehdr(pointer):
                 vmmap = v
                 break
 
-        if pwndbg.memory.read(vmmap.start, 4) == b'\x7fELF':
+        if pwndbg.memory.read(vmmap.start, 4) == b"\x7fELF":
             base = vmmap.start
 
     if base is None:
@@ -267,7 +271,7 @@ def get_ehdr(pointer):
         return None, None
 
     # Determine whether it's 32- or 64-bit
-    ei_class = pwndbg.memory.byte(base+4)
+    ei_class = pwndbg.memory.byte(base + 4)
 
     # Find out where the section headers start
     Elfhdr = read(Ehdr, base)
@@ -285,8 +289,8 @@ def get_phdrs(pointer):
     if Elfhdr is None:
         return (0, 0, None)
 
-    phnum     = Elfhdr.e_phnum
-    phoff     = Elfhdr.e_phoff
+    phnum = Elfhdr.e_phnum
+    phoff = Elfhdr.e_phoff
     phentsize = Elfhdr.e_phentsize
 
     x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
@@ -303,15 +307,15 @@ def iter_phdrs(ehdr):
         return
 
     first_phdr = phdr.address
-    PhdrType   = phdr.type
+    PhdrType = phdr.type
 
     for i in range(0, phnum):
-        p_phdr = int(first_phdr + (i*phentsize))
+        p_phdr = int(first_phdr + (i * phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
 
 
-def map(pointer, objfile=''):
+def map(pointer, objfile=""):
     """
     Given a pointer into an ELF module, return a list of all loaded
     sections in the ELF.
@@ -331,7 +335,7 @@ def map(pointer, objfile=''):
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),
          Page('7ffff79a6000-7ffff79ad000 rw-p 0x7000 1bf000')]
     """
-    ei_class, ehdr         = get_ehdr(pointer)
+    ei_class, ehdr = get_ehdr(pointer)
     return map_inner(ei_class, ehdr, objfile)
 
 
@@ -350,33 +354,36 @@ def map_inner(ei_class, ehdr, objfile):
     # override their small subset of address space.
     pages = []
     for phdr in iter_phdrs(ehdr):
-        memsz   = int(phdr.p_memsz)
+        memsz = int(phdr.p_memsz)
 
         if not memsz:
             continue
 
-        vaddr   = int(phdr.p_vaddr)
-        offset  = int(phdr.p_offset)
-        flags   = int(phdr.p_flags)
-        ptype   = int(phdr.p_type)
+        vaddr = int(phdr.p_vaddr)
+        offset = int(phdr.p_offset)
+        flags = int(phdr.p_flags)
+        ptype = int(phdr.p_type)
 
         memsz += pwndbg.memory.page_offset(vaddr)
-        memsz  = pwndbg.memory.page_size_align(memsz)
-        vaddr  = pwndbg.memory.page_align(vaddr)
+        memsz = pwndbg.memory.page_size_align(memsz)
+        vaddr = pwndbg.memory.page_align(vaddr)
         offset = pwndbg.memory.page_align(offset)
 
         # For each page described by this program header
-        for page_addr in range(vaddr, vaddr+memsz, pwndbg.memory.PAGE_SIZE):
+        for page_addr in range(vaddr, vaddr + memsz, pwndbg.memory.PAGE_SIZE):
             if page_addr in pages:
                 page = pages[pages.index(page_addr)]
 
                 # Don't ever remove the execute flag.
                 # Sometimes we'll load a read-only area into .text
                 # and the loader doesn't actually *remove* the executable flag.
-                if page.flags & PF_X: flags |= PF_X
+                if page.flags & PF_X:
+                    flags |= PF_X
                 page.flags = flags
             else:
-                page = pwndbg.memory.Page(page_addr, pwndbg.memory.PAGE_SIZE, flags, offset + (page_addr-vaddr))
+                page = pwndbg.memory.Page(
+                    page_addr, pwndbg.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr)
+                )
                 pages.append(page)
 
     # Adjust against the base address that we discovered
@@ -389,7 +396,7 @@ def map_inner(ei_class, ehdr, objfile):
     pages.sort()
     prev = pages[0]
     for page in list(pages[1:]):
-        if (prev.flags & PF_W) == (page.flags & PF_W) and prev.vaddr+prev.memsz == page.vaddr:
+        if (prev.flags & PF_W) == (page.flags & PF_W) and prev.vaddr + prev.memsz == page.vaddr:
             prev.memsz += page.memsz
             pages.remove(page)
         else:
@@ -398,12 +405,12 @@ def map_inner(ei_class, ehdr, objfile):
     # Fill in any gaps with no-access pages.
     # This is what the linker does, and what all the '---p' pages are.
     gaps = []
-    for i in range(len(pages)-1):
-        a, b    = pages[i:i+2]
-        a_end   = (a.vaddr + a.memsz)
+    for i in range(len(pages) - 1):
+        a, b = pages[i : i + 2]
+        a_end = a.vaddr + a.memsz
         b_begin = b.vaddr
         if a_end != b_begin:
-            gaps.append(pwndbg.memory.Page(a_end, b_begin-a_end, 0, b.offset))
+            gaps.append(pwndbg.memory.Page(a_end, b_begin - a_end, 0, b.offset))
 
     pages.extend(gaps)
 

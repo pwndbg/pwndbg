@@ -10,9 +10,20 @@ import pwndbg.symbol
 import pwndbg.typeinfo
 import pwndbg.vmmap
 
-LIMIT = pwndbg.config.Parameter('dereference-limit', 5, 'max number of pointers to dereference in a chain')
+LIMIT = pwndbg.config.Parameter(
+    "dereference-limit", 5, "max number of pointers to dereference in a chain"
+)
 
-def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_start=True, safe_linking=False):
+
+def get(
+    address,
+    limit=LIMIT,
+    offset=0,
+    hard_stop=None,
+    hard_end=0,
+    include_start=True,
+    safe_linking=False,
+):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -58,9 +69,12 @@ def get(address, limit=LIMIT, offset=0, hard_stop=None, hard_end=0, include_star
     return result
 
 
-config_arrow_left  = theme.Parameter('chain-arrow-left', '◂—', 'left arrow of chain formatting')
-config_arrow_right = theme.Parameter('chain-arrow-right', '—▸', 'right arrow of chain formatting')
-config_contiguous  = theme.Parameter('chain-contiguous-marker', '...', 'contiguous marker of chain formatting')
+config_arrow_left = theme.Parameter("chain-arrow-left", "◂—", "left arrow of chain formatting")
+config_arrow_right = theme.Parameter("chain-arrow-right", "—▸", "right arrow of chain formatting")
+config_contiguous = theme.Parameter(
+    "chain-contiguous-marker", "...", "contiguous marker of chain formatting"
+)
+
 
 def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
     """
@@ -88,15 +102,15 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking)
 
-    arrow_left  = C.arrow(' %s ' % config_arrow_left)
-    arrow_right = C.arrow(' %s ' % config_arrow_right)
+    arrow_left = C.arrow(" %s " % config_arrow_left)
+    arrow_right = C.arrow(" %s " % config_arrow_right)
 
     # Colorize the chain
     rest = []
     for link in chain:
         symbol = pwndbg.symbol.get(link) or None
         if symbol:
-            symbol = '%#x (%s)' % (link, symbol)
+            symbol = "%#x (%s)" % (link, symbol)
         rest.append(M.get(link, symbol))
 
     # If the dereference limit is zero, skip any enhancements.
@@ -118,7 +132,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
 
     else:
-        enhanced = C.contiguous('%s' % config_contiguous)
+        enhanced = C.contiguous("%s" % config_contiguous)
 
     if len(chain) == 1:
         return enhanced

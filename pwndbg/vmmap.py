@@ -32,13 +32,17 @@ explored_pages = []
 custom_pages = []
 
 
-kernel_vmmap_via_pt = pwndbg.config.Parameter('kernel-vmmap-via-page-tables', True, 'When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel\'s `monitor info mem` command')
+kernel_vmmap_via_pt = pwndbg.config.Parameter(
+    "kernel-vmmap-via-page-tables",
+    True,
+    "When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel's `monitor info mem` command",
+)
 
 
 @pwndbg.memoize.reset_on_objfile
 @pwndbg.memoize.reset_on_start
 def is_corefile():
-    return gdb.execute('info target', to_string=True).startswith('Local core dump file')
+    return gdb.execute("info target", to_string=True).startswith("Local core dump file")
 
 
 @pwndbg.memoize.reset_on_start
@@ -50,7 +54,11 @@ def get():
     pages = []
     pages.extend(proc_pid_maps())
 
-    if not pages and pwndbg.qemu.is_qemu_kernel() and pwndbg.arch.current in ('i386', 'x86-64', 'aarch64', 'riscv:rv64'):
+    if (
+        not pages
+        and pwndbg.qemu.is_qemu_kernel()
+        and pwndbg.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+    ):
         if kernel_vmmap_via_pt:
             pages.extend(kernel_vmmap_via_page_tables())
         else:
@@ -74,9 +82,7 @@ def get():
             pages.extend(info_sharedlibrary())
         else:
             if pwndbg.qemu.is_qemu():
-                return (
-                    pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, '[qemu]'),
-                )
+                return (pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
@@ -85,6 +91,7 @@ def get():
     pages.extend(custom_pages)
     pages.sort()
     return tuple(pages)
+
 
 @pwndbg.memoize.reset_on_stop
 def find(address):
@@ -98,6 +105,7 @@ def find(address):
             return page
 
     return explore(address)
+
 
 @pwndbg.abi.LinuxOnly()
 def explore(address_maybe):
@@ -125,24 +133,25 @@ def explore(address_maybe):
         return None
 
     flags |= 2 if pwndbg.memory.poke(address_maybe) else 0
-    flags |= 1 if not pwndbg.stack.nx               else 0
+    flags |= 1 if not pwndbg.stack.nx else 0
 
     page = find_boundaries(address_maybe)
-    page.objfile = '<explored>'
+    page.objfile = "<explored>"
     page.flags = flags
 
     explored_pages.append(page)
 
     return page
 
+
 # Automatically ensure that all registers are explored on each stop
-#@pwndbg.events.stop
+# @pwndbg.events.stop
 def explore_registers():
     for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
 
 
-#@pwndbg.events.exit
+# @pwndbg.events.exit
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
@@ -177,7 +186,7 @@ def coredump_maps():
     pages = []
 
     try:
-        info_proc_mappings = gdb.execute('info proc mappings', to_string=True).splitlines()
+        info_proc_mappings = gdb.execute("info proc mappings", to_string=True).splitlines()
     except gdb.error:
         # On qemu user emulation, we may get: gdb.error: Not supported on this target.
         info_proc_mappings = []
@@ -194,22 +203,25 @@ def coredump_maps():
         # Note: we set flags=0 because we do not have this information here
         pages.append(pwndbg.memory.Page(start, size, 0, offset, objfile))
 
-    for line in gdb.execute('maintenance info sections', to_string=True).splitlines():
+    for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
         # We look for lines like:
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
             _idx, start_end, _at, offset, name, *flags_list = line.split()
-            start, end = map(lambda v: int(v, 16), start_end.split('->'))
+            start, end = map(lambda v: int(v, 16), start_end.split("->"))
             offset = int(offset[:-1], 16)
         except (IndexError, ValueError):
             continue
 
         # Note: can we deduce anything from 'ALLOC', 'HAS_CONTENTS' or 'LOAD' flags?
         flags = 0
-        if 'READONLY' in flags_list: flags |= 4
-        if 'DATA' in flags_list: flags |= 2
-        if 'CODE' in flags_list: flags |= 1
+        if "READONLY" in flags_list:
+            flags |= 4
+        if "DATA" in flags_list:
+            flags |= 2
+        if "CODE" in flags_list:
+            flags |= 1
 
         # Now, if the section is already in pages, just add its perms
         known_page = False
@@ -223,23 +235,23 @@ def coredump_maps():
         if known_page:
             continue
 
-        pages.append(pwndbg.memory.Page(start, end-start, flags, offset, name))
+        pages.append(pwndbg.memory.Page(start, end - start, flags, offset, name))
 
     if not pages:
         return tuple()
 
     # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
     vsyscall_page = pages[-1]
-    if vsyscall_page.start > 0xffffffffff000000 and vsyscall_page.flags & 1:
-        vsyscall_page.objfile = '[vsyscall]'
+    if vsyscall_page.start > 0xFFFFFFFFFF000000 and vsyscall_page.flags & 1:
+        vsyscall_page.objfile = "[vsyscall]"
 
     # Detect stack based on addresses in AUXV from stack memory
     stack_addr = None
 
     # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
-    auxv = gdb.execute('info auxv', to_string=True).splitlines()
+    auxv = gdb.execute("info auxv", to_string=True).splitlines()
     for line in auxv:
-        if 'AT_EXECFN' in line:
+        if "AT_EXECFN" in line:
             try:
                 stack_addr = int(line.split()[-2], 16)
             except Exception as e:
@@ -249,7 +261,7 @@ def coredump_maps():
     if stack_addr is not None:
         for page in pages:
             if stack_addr in page:
-                page.objfile = '[stack]'
+                page.objfile = "[stack]"
                 page.flags |= 6
                 break
 
@@ -294,9 +306,9 @@ def proc_pid_maps():
 
     pid = pwndbg.proc.pid
     locations = [
-        '/proc/%s/maps' % pid,
-        '/proc/%s/map'  % pid,
-        '/usr/compat/linux/proc/%s/maps'  % pid
+        "/proc/%s/maps" % pid,
+        "/proc/%s/map" % pid,
+        "/usr/compat/linux/proc/%s/maps" % pid,
     ]
 
     for location in locations:
@@ -312,45 +324,52 @@ def proc_pid_maps():
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(None, 4)
 
-        start, stop = maps.split('-')
-        
+        start, stop = maps.split("-")
+
         try:
             inode, objfile = inode_objfile.split(None, 1)
         except Exception:
             # Name unnamed anonymous pages so they can be used e.g. with search commands
-            objfile = '[anon_' + start[:-3] + ']'
+            objfile = "[anon_" + start[:-3] + "]"
 
-        start  = int(start, 16)
-        stop   = int(stop, 16)
+        start = int(start, 16)
+        stop = int(stop, 16)
         offset = int(offset, 16)
-        size   = stop-start
+        size = stop - start
 
         flags = 0
-        if 'r' in perm: flags |= 4
-        if 'w' in perm: flags |= 2
-        if 'x' in perm: flags |= 1
+        if "r" in perm:
+            flags |= 4
+        if "w" in perm:
+            flags |= 2
+        if "x" in perm:
+            flags |= 1
 
         page = pwndbg.memory.Page(start, size, flags, offset, objfile)
         pages.append(page)
 
     return tuple(pages)
 
+
 @pwndbg.memoize.reset_on_stop
 def kernel_vmmap_via_page_tables():
     import pt
+
     p = pt.PageTableDump()
     p.lazy_init()
-    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(''))
+    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
 
     retpages = []
 
     for page in pages:
         start = page.va
         size = page.page_size
-        flags = 4 # IMPLY ALWAYS READ
-        if page.pwndbg_is_writeable(): flags |= 2
-        if page.pwndbg_is_executable(): flags |= 1
-        retpages.append(pwndbg.memory.Page(start, size, flags, 0, '<pt>'))
+        flags = 4  # IMPLY ALWAYS READ
+        if page.pwndbg_is_writeable():
+            flags |= 2
+        if page.pwndbg_is_executable():
+            flags |= 1
+        retpages.append(pwndbg.memory.Page(start, size, flags, 0, "<pt>"))
     return tuple(retpages)
 
 
@@ -362,7 +381,7 @@ def kernel_vmmap_via_monitor_info_mem():
 
     Consider using the `kernel_vmmap_via_page_tables` method
     as it is probably more reliable/better.
-    
+
     See also: https://github.com/pwndbg/pwndbg/pull/685
     (TODO: revisit with future QEMU versions)
 
@@ -374,36 +393,38 @@ def kernel_vmmap_via_monitor_info_mem():
     # ffff903582200000-ffff903582803000 0000000000603000 -r-
     """
     try:
-        lines = gdb.execute('monitor info mem', to_string=True).splitlines()
+        lines = gdb.execute("monitor info mem", to_string=True).splitlines()
     except gdb.error:
         # Likely a `gdb.error: "monitor" command not supported by this target.`
         return tuple()
 
     # Handle disabled PG
     # This will prevent a crash on abstract architectures
-    if len(lines) == 1 and lines[0] == 'PG disabled':
+    if len(lines) == 1 and lines[0] == "PG disabled":
         return tuple()
 
     pages = []
     for line in lines:
-        dash_idx = line.index('-')
-        space_idx = line.index(' ')
-        rspace_idx = line.rindex(' ')
+        dash_idx = line.index("-")
+        space_idx = line.index(" ")
+        rspace_idx = line.rindex(" ")
 
         start = int(line[:dash_idx], 16)
-        end = int(line[dash_idx+1:space_idx], 16)
-        size = int(line[space_idx+1:rspace_idx], 16)
-        assert end-start == size, "monitor info mem output didn't pass a sanity check"
-        perm = line[rspace_idx+1:]
+        end = int(line[dash_idx + 1 : space_idx], 16)
+        size = int(line[space_idx + 1 : rspace_idx], 16)
+        assert end - start == size, "monitor info mem output didn't pass a sanity check"
+        perm = line[rspace_idx + 1 :]
 
         flags = 0
-        if 'r' in perm: flags |= 4
-        if 'w' in perm: flags |= 2
+        if "r" in perm:
+            flags |= 4
+        if "w" in perm:
+            flags |= 2
         # QEMU does not expose X/NX bit, see #685
-        #if 'x' in perm: flags |= 1
+        # if 'x' in perm: flags |= 1
         flags |= 1
 
-        pages.append(pwndbg.memory.Page(start, size, flags, 0, '<qemu>'))
+        pages.append(pwndbg.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
 
@@ -442,17 +463,18 @@ def info_sharedlibrary():
     """
     pages = []
 
-    for line in gdb.execute('info sharedlibrary', to_string=True).splitlines():
-        if not line.startswith('0x'):
+    for line in gdb.execute("info sharedlibrary", to_string=True).splitlines():
+        if not line.startswith("0x"):
             continue
 
         tokens = line.split()
-        text   = int(tokens[0], 16)
-        obj    = tokens[-1]
+        text = int(tokens[0], 16)
+        obj = tokens[-1]
 
         pages.extend(pwndbg.elf.map(text, obj))
 
     return tuple(sorted(pages))
+
 
 @pwndbg.memoize.reset_on_stop
 def info_files():
@@ -476,28 +498,30 @@ def info_files():
     """
 
     seen_files = set()
-    pages      = list()
-    main_exe   = ''
+    pages = list()
+    main_exe = ""
 
-    for line in gdb.execute('info files', to_string=True).splitlines():
+    for line in gdb.execute("info files", to_string=True).splitlines():
         line = line.strip()
 
         # The name of the main executable
-        if line.startswith('`'):
+        if line.startswith("`"):
             exename, filetype = line.split(None, 1)
             main_exe = exename.strip("`,'")
             continue
 
         # Everything else should be addresses
-        if not line.startswith('0x'):
+        if not line.startswith("0x"):
             continue
 
         # start, stop, _, segment, _, filename = line.split(None,6)
-        fields = line.split(None,6)
-        vaddr  = int(fields[0], 16)
+        fields = line.split(None, 6)
+        vaddr = int(fields[0], 16)
 
-        if len(fields) == 5:    objfile = main_exe
-        elif len(fields) == 7:  objfile = fields[6]
+        if len(fields) == 5:
+            objfile = main_exe
+        elif len(fields) == 7:
+            objfile = fields[6]
         else:
             print("Bad data: %r" % line)
             continue
@@ -510,7 +534,6 @@ def info_files():
         pages.extend(pwndbg.elf.map(vaddr, objfile))
 
     return tuple(pages)
-
 
 
 @pwndbg.memoize.reset_on_exit
@@ -531,37 +554,38 @@ def info_auxv(skip_exe=False):
     if not auxv:
         return tuple()
 
-    pages    = []
-    exe_name = auxv.AT_EXECFN or 'main.exe'
-    entry    = auxv.AT_ENTRY
-    base     = auxv.AT_BASE
-    vdso     = auxv.AT_SYSINFO_EHDR or auxv.AT_SYSINFO
-    phdr     = auxv.AT_PHDR
+    pages = []
+    exe_name = auxv.AT_EXECFN or "main.exe"
+    entry = auxv.AT_ENTRY
+    base = auxv.AT_BASE
+    vdso = auxv.AT_SYSINFO_EHDR or auxv.AT_SYSINFO
+    phdr = auxv.AT_PHDR
 
     if not skip_exe and (entry or phdr):
         pages.extend(pwndbg.elf.map(entry or phdr, exe_name))
 
     if base:
-        pages.extend(pwndbg.elf.map(base, '[linker]'))
+        pages.extend(pwndbg.elf.map(base, "[linker]"))
 
     if vdso:
-        pages.extend(pwndbg.elf.map(vdso, '[vdso]'))
+        pages.extend(pwndbg.elf.map(vdso, "[vdso]"))
 
     return tuple(sorted(pages))
 
 
-def find_boundaries(addr, name='', min=0):
+def find_boundaries(addr, name="", min=0):
     """
     Given a single address, find all contiguous pages
     which are mapped.
     """
     start = pwndbg.memory.find_lower_boundary(addr)
-    end   = pwndbg.memory.find_upper_boundary(addr)
+    end = pwndbg.memory.find_upper_boundary(addr)
 
     if start < min:
         start = min
 
-    return pwndbg.memory.Page(start, end-start, 4, 0, name)
+    return pwndbg.memory.Page(start, end - start, 4, 0, name)
+
 
 def check_aslr():
     """
@@ -571,13 +595,13 @@ def check_aslr():
     """
     # QEMU does not support this concept.
     if pwndbg.qemu.is_qemu():
-        return None, 'Could not detect ASLR on QEMU targets'
+        return None, "Could not detect ASLR on QEMU targets"
 
     # Systemwide ASLR is disabled
     try:
-        data = pwndbg.file.get('/proc/sys/kernel/randomize_va_space')
-        if b'0' in data:
-            return False, 'kernel.randomize_va_space == 0'
+        data = pwndbg.file.get("/proc/sys/kernel/randomize_va_space")
+        if b"0" in data:
+            return False, "kernel.randomize_va_space == 0"
     except Exception as e:
         print("Could not check ASLR: can't read randomize_va_space")
         pass
@@ -585,9 +609,9 @@ def check_aslr():
     # Check the personality of the process
     if pwndbg.proc.alive:
         try:
-            data = pwndbg.file.get('/proc/%i/personality' % pwndbg.proc.pid)
+            data = pwndbg.file.get("/proc/%i/personality" % pwndbg.proc.pid)
             personality = int(data, 16)
-            return (personality & 0x40000 == 0), 'read status from process\' personality'
+            return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:
             print("Could not check ASLR: can't read process' personality")
             pass
@@ -596,8 +620,9 @@ def check_aslr():
     #
     # This should usually be identical to the above, but we may not have
     # access to procfs.
-    output = gdb.execute('show disable-randomization', to_string=True)
-    return ("is off." in output), 'show disable-randomization'
+    output = gdb.execute("show disable-randomization", to_string=True)
+    return ("is off." in output), "show disable-randomization"
+
 
 @pwndbg.events.cont
 def mark_pc_as_executable():

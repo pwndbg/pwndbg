@@ -27,9 +27,12 @@ Original GDB attach command help:
     program running in the process, looking first in the current working
     directory, or (if not found there) using the source file search path
     (see the "directory" command).  You can also use the "file" command
-    to specify the program, and to load its symbol table.""")
+    to specify the program, and to load its symbol table."""
+)
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def attachp(target):
     try:
@@ -52,7 +55,7 @@ def attachp(target):
 
         else:
             try:
-                pids = check_output(['pidof', target]).decode().rstrip('\n').split(' ')
+                pids = check_output(["pidof", target]).decode().rstrip("\n").split(" ")
             except FileNotFoundError:
                 print(message.error("Error: did not find `pidof` command"))
                 return
@@ -64,16 +67,16 @@ def attachp(target):
                 return
 
             if len(pids) > 1:
-                print(message.warn("Found pids: %s (use `attach <pid>`)" % ', '.join(pids)))
+                print(message.warn("Found pids: %s (use `attach <pid>`)" % ", ".join(pids)))
                 return
 
             resolved_target = int(pids[0])
 
     print(message.on("Attaching to %s" % resolved_target))
     try:
-        gdb.execute('attach %s' % resolved_target)
+        gdb.execute("attach %s" % resolved_target)
     except gdb.error as e:
-        print(message.error('Error: %s' % e))
+        print(message.error("Error: %s" % e))
 
 
 def _is_device(path):

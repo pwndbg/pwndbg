@@ -25,8 +25,11 @@ SIZE_SZ = pwndbg.arch.ptrsize
 MINSIZE = pwndbg.arch.ptrsize * 4
 # i386 will override it to 16.
 # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
-MALLOC_ALIGN = 16 if pwndbg.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26) \
+MALLOC_ALIGN = (
+    16
+    if pwndbg.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
     else pwndbg.arch.ptrsize * 2
+)
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
@@ -65,7 +68,7 @@ C2GDB_MAPPING = {
     ctypes.c_uint32: pwndbg.typeinfo.uint32,
     ctypes.c_uint64: pwndbg.typeinfo.uint64,
     c_pvoid: pwndbg.typeinfo.pvoid,
-    c_size_t: pwndbg.typeinfo.size_t
+    c_size_t: pwndbg.typeinfo.size_t,
 }
 
 
@@ -180,19 +183,20 @@ class c_malloc_state_2_26(ctypes.LittleEndianStructure):
         INTERNAL_SIZE_T max_system_mem;
     };
     """
+
     _fields_ = [
-        ('mutex', ctypes.c_int32),
-        ('flags', ctypes.c_int32),
-        ('fastbinsY', c_pvoid * NFASTBINS),
-        ('top', c_pvoid),
-        ('last_remainder', c_pvoid),
-        ('bins', c_pvoid * (NBINS * 2 - 2)),
-        ('binmap', ctypes.c_int32 * BINMAPSIZE),
-        ('next', c_pvoid),
-        ('next_free', c_pvoid),
-        ('attached_threads', c_size_t),
-        ('system_mem', c_size_t),
-        ('max_system_mem', c_size_t),
+        ("mutex", ctypes.c_int32),
+        ("flags", ctypes.c_int32),
+        ("fastbinsY", c_pvoid * NFASTBINS),
+        ("top", c_pvoid),
+        ("last_remainder", c_pvoid),
+        ("bins", c_pvoid * (NBINS * 2 - 2)),
+        ("binmap", ctypes.c_int32 * BINMAPSIZE),
+        ("next", c_pvoid),
+        ("next_free", c_pvoid),
+        ("attached_threads", c_size_t),
+        ("system_mem", c_size_t),
+        ("max_system_mem", c_size_t),
     ]
 
 
@@ -247,20 +251,21 @@ class c_malloc_state_2_27(ctypes.LittleEndianStructure):
         INTERNAL_SIZE_T max_system_mem;
     };
     """
+
     _fields_ = [
-        ('mutex', ctypes.c_int32),
-        ('flags', ctypes.c_int32),
-        ('have_fastchunks', ctypes.c_int32),
-        ('fastbinsY', c_pvoid * NFASTBINS),
-        ('top', c_pvoid),
-        ('last_remainder', c_pvoid),
-        ('bins', c_pvoid * (NBINS * 2 - 2)),
-        ('binmap', ctypes.c_int32 * BINMAPSIZE),
-        ('next', c_pvoid),
-        ('next_free', c_pvoid),
-        ('attached_threads', c_size_t),
-        ('system_mem', c_size_t),
-        ('max_system_mem', c_size_t),
+        ("mutex", ctypes.c_int32),
+        ("flags", ctypes.c_int32),
+        ("have_fastchunks", ctypes.c_int32),
+        ("fastbinsY", c_pvoid * NFASTBINS),
+        ("top", c_pvoid),
+        ("last_remainder", c_pvoid),
+        ("bins", c_pvoid * (NBINS * 2 - 2)),
+        ("binmap", ctypes.c_int32 * BINMAPSIZE),
+        ("next", c_pvoid),
+        ("next_free", c_pvoid),
+        ("attached_threads", c_size_t),
+        ("system_mem", c_size_t),
+        ("max_system_mem", c_size_t),
     ]
 
 
@@ -268,6 +273,7 @@ class MallocState(CStruct2GDB):
     """
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
+
     if pwndbg.glibc.get_version() >= (2, 27):
         _c_struct = c_malloc_state_2_27
     else:
@@ -306,12 +312,13 @@ class c_heap_info(ctypes.LittleEndianStructure):
         char pad[-6 * SIZE_SZ & MALLOC_ALIGN_MASK];
     } heap_info;
     """
+
     _fields_ = [
-        ('ar_ptr', c_pvoid),
-        ('prev', c_pvoid),
-        ('size', c_size_t),
-        ('mprotect_size', c_size_t),
-        ('pad', ctypes.c_uint8 * (-6 * SIZE_SZ & MALLOC_ALIGN_MASK)),
+        ("ar_ptr", c_pvoid),
+        ("prev", c_pvoid),
+        ("size", c_size_t),
+        ("mprotect_size", c_size_t),
+        ("pad", ctypes.c_uint8 * (-6 * SIZE_SZ & MALLOC_ALIGN_MASK)),
     ]
 
 
@@ -319,6 +326,7 @@ class HeapInfo(CStruct2GDB):
     """
     This class represents heap_info struct with interface compatible with `gdb.Value`.
     """
+
     _c_struct = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
 
@@ -352,13 +360,14 @@ class c_malloc_chunk(ctypes.LittleEndianStructure):
         struct malloc_chunk* bk_nextsize;
     };
     """
+
     _fields_ = [
-        ('prev_size', c_size_t),
-        ('size', c_size_t),
-        ('fd', c_pvoid),
-        ('bk', c_pvoid),
-        ('fd_nextsize', c_pvoid),
-        ('bk_nextsize', c_pvoid),
+        ("prev_size", c_size_t),
+        ("size", c_size_t),
+        ("fd", c_pvoid),
+        ("bk", c_pvoid),
+        ("fd_nextsize", c_pvoid),
+        ("bk_nextsize", c_pvoid),
     ]
 
 
@@ -366,6 +375,7 @@ class MallocChunk(CStruct2GDB):
     """
     This class represents malloc_chunk struct with interface compatible with `gdb.Value`.
     """
+
     _c_struct = c_malloc_chunk
     sizeof = ctypes.sizeof(_c_struct)
 
@@ -392,10 +402,8 @@ class c_tcache_perthread_struct_2_29(ctypes.LittleEndianStructure):
         tcache_entry *entries[TCACHE_MAX_BINS];
     } tcache_perthread_struct;
     """
-    _fields_ = [
-        ('counts', ctypes.c_char * TCACHE_MAX_BINS),
-        ('entries', c_pvoid * TCACHE_MAX_BINS)
-    ]
+
+    _fields_ = [("counts", ctypes.c_char * TCACHE_MAX_BINS), ("entries", c_pvoid * TCACHE_MAX_BINS)]
 
 
 class c_tcache_perthread_struct_2_30(ctypes.LittleEndianStructure):
@@ -410,9 +418,10 @@ class c_tcache_perthread_struct_2_30(ctypes.LittleEndianStructure):
         tcache_entry *entries[TCACHE_MAX_BINS];
     } tcache_perthread_struct;
     """
+
     _fields_ = [
-        ('counts', ctypes.c_uint16 * TCACHE_MAX_BINS),
-        ('entries', c_pvoid * TCACHE_MAX_BINS)
+        ("counts", ctypes.c_uint16 * TCACHE_MAX_BINS),
+        ("entries", c_pvoid * TCACHE_MAX_BINS),
     ]
 
 
@@ -420,6 +429,7 @@ class TcachePerthreadStruct(CStruct2GDB):
     """
     This class represents tcache_perthread_struct with interface compatible with `gdb.Value`.
     """
+
     if pwndbg.glibc.get_version() >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
@@ -450,9 +460,8 @@ class c_tcache_entry_2_28(ctypes.LittleEndianStructure):
         struct tcache_entry *next;
     } tcache_entry;
     """
-    _fields_ = [
-        ('next', c_pvoid)
-    ]
+
+    _fields_ = [("next", c_pvoid)]
 
 
 class c_tcache_entry_2_29(ctypes.LittleEndianStructure):
@@ -468,16 +477,15 @@ class c_tcache_entry_2_29(ctypes.LittleEndianStructure):
         uintptr_t key;
     } tcache_entry;
     """
-    _fields_ = [
-        ('next', c_pvoid),
-        ('key', c_pvoid)
-    ]
+
+    _fields_ = [("next", c_pvoid), ("key", c_pvoid)]
 
 
 class TcacheEntry:
     """
     This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
     """
+
     if pwndbg.glibc.get_version() >= (2, 29):
         _c_struct = c_tcache_entry_2_29
     else:
@@ -531,18 +539,18 @@ class c_malloc_par_2_25(ctypes.LittleEndianStructure):
     """
 
     _fields_ = [
-        ('trim_threshold', c_size_t),
-        ('top_pad', c_size_t),
-        ('mmap_threshold', c_size_t),
-        ('arena_test', c_size_t),
-        ('arena_max', c_size_t),
-        ('n_mmaps', ctypes.c_int32),
-        ('n_mmaps_max', ctypes.c_int32),
-        ('max_n_mmaps', ctypes.c_int32),
-        ('no_dyn_threshold', ctypes.c_int32),
-        ('mmapped_mem', c_size_t),
-        ('max_mmapped_mem', c_size_t),
-        ('sbrk_base', c_pvoid)
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
     ]
 
 
@@ -589,23 +597,24 @@ class c_malloc_par_2_26(ctypes.LittleEndianStructure):
     #endif
     };
     """
+
     _fields_ = [
-        ('trim_threshold', c_size_t),
-        ('top_pad', c_size_t),
-        ('mmap_threshold', c_size_t),
-        ('arena_test', c_size_t),
-        ('arena_max', c_size_t),
-        ('n_mmaps', ctypes.c_int32),
-        ('n_mmaps_max', ctypes.c_int32),
-        ('max_n_mmaps', ctypes.c_int32),
-        ('no_dyn_threshold', ctypes.c_int32),
-        ('mmapped_mem', c_size_t),
-        ('max_mmapped_mem', c_size_t),
-        ('sbrk_base', c_pvoid),
-        ('tcache_bins', c_size_t),
-        ('tcache_max_bytes', c_size_t),
-        ('tcache_count', ctypes.c_int32),
-        ('tcache_unsorted_limit', c_size_t)
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+        ("tcache_bins", c_size_t),
+        ("tcache_max_bytes", c_size_t),
+        ("tcache_count", ctypes.c_int32),
+        ("tcache_unsorted_limit", c_size_t),
     ]
 
 
@@ -613,6 +622,7 @@ class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
+
     if pwndbg.glibc.get_version() >= (2, 26):
         _c_struct = c_malloc_par_2_26
     else:

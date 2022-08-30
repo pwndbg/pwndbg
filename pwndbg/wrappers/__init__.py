@@ -24,9 +24,10 @@ class OnlyWithCommand:
             if self.cmd_path:
                 return function(*a, **kw)
             else:
-                raise OSError('Could not find command(s) %s in $PATH' % ', '.join(self.all_cmds))
+                raise OSError("Could not find command(s) %s in $PATH" % ", ".join(self.all_cmds))
+
         return _OnlyWithCommand
 
 
 def call_cmd(cmd):
-    return subprocess.check_output(cmd, stderr=STDOUT).decode('utf-8')
+    return subprocess.check_output(cmd, stderr=STDOUT).decode("utf-8")

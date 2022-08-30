@@ -9,6 +9,7 @@ def only_after_first_prompt(value_before=None):
     The 'value_before' parameter can be used to specify the value that is
     returned if the function is called before the first prompt was displayed.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -16,5 +17,7 @@ def only_after_first_prompt(value_before=None):
                 return func(*args, **kwargs)
             else:
                 return value_before
+
         return wrapper
+
     return decorator

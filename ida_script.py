@@ -17,22 +17,25 @@ idaapi.auto_wait()
 # On Windows with NTFS filesystem a filepath with ':'
 # is treated as NTFS ADS (Alternative Data Stream)
 # and so saving file with such name fails
-dt = datetime.datetime.now().isoformat().replace(':', '-')
+dt = datetime.datetime.now().isoformat().replace(":", "-")
 
 # Save the database so nothing gets lost.
-idc.save_database(idc.get_idb_path() + '.' + dt)
+idc.save_database(idc.get_idb_path() + "." + dt)
 
 
 DEBUG_MARSHALLING = False
 
+
 def create_marshaller(use_format=None, just_to_str=False):
-    assert use_format or just_to_str, 'Either pass format to use or make it converting the value to str.'
+    assert (
+        use_format or just_to_str
+    ), "Either pass format to use or make it converting the value to str."
 
     def wrapper(_marshaller, value, appender):
         if use_format:
             marshalled = use_format % value
         elif just_to_str:
-            marshalled = '<value><string>%s</string></value>' % escape(str(value))
+            marshalled = "<value><string>%s</string></value>" % escape(str(value))
 
         if DEBUG_MARSHALLING:
             print("Marshalled: '%s'" % marshalled)
@@ -41,11 +44,12 @@ def create_marshaller(use_format=None, just_to_str=False):
 
     return wrapper
 
+
 xmlclient.Marshaller.dispatch[type(1 << 63)] = create_marshaller("<value><i8>%d</i8></value>")
 xmlclient.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
 xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
-host = '127.0.0.1'
+host = "127.0.0.1"
 port = 31337
 
 mutex = threading.Condition()
@@ -71,9 +75,10 @@ def wrap(f):
             idaapi.execute_sync(work, flags)
 
         if error:
-            msg = 'Failed on calling {}.{} with args: {}, kwargs: {}\nException: {}' \
-                .format(f.__module__, f.__name__, a, kw, str(error[0]))
-            print('[!!!] ERROR:', msg)
+            msg = "Failed on calling {}.{} with args: {}, kwargs: {}\nException: {}".format(
+                f.__module__, f.__name__, a, kw, str(error[0])
+            )
+            print("[!!!] ERROR:", msg)
             raise error[0]
 
         return rv[0]
@@ -83,7 +88,7 @@ def wrap(f):
 
 def register_module(module):
     for name, function in module.__dict__.items():
-        if hasattr(function, '__call__'):
+        if hasattr(function, "__call__"):
             server.register_function(wrap(function), name)
 
 
@@ -118,7 +123,7 @@ def get_decompile_coord_by_ea(cfunc, addr):
                 lnmap[pitem.it.ea] = i
         y = None
         closest_ea = idaapi.BADADDR
-        for ea,line in lnmap.items():
+        for ea, line in lnmap.items():
             if closest_ea == idaapi.BADADDR or abs(closest_ea - addr) > abs(ea - addr):
                 closest_ea = ea
                 y = lnmap[ea]
@@ -138,32 +143,35 @@ def decompile_context(addr, context_lines):
     for lnnum in range(max(0, y - context_lines), min(len(lines), y + context_lines)):
         retlines.append(idaapi.tag_remove(lines[lnnum].line))
         if lnnum == y:
-            retlines[-1] = '>' + retlines[-1][1:]
-    return '\n'.join(retlines)
+            retlines[-1] = ">" + retlines[-1][1:]
+    return "\n".join(retlines)
 
 
 def versions():
     """Returns IDA & Python versions"""
     import sys
+
     return {
-        'python': sys.version,
-        'ida': idaapi.get_kernel_version(),
-        'hexrays': idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None
+        "python": sys.version,
+        "ida": idaapi.get_kernel_version(),
+        "hexrays": idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None,
     }
 
 
 server = SimpleXMLRPCServer((host, port), logRequests=False, allow_none=True)
 register_module(idaapi)
-register_module(idc)  # prioritize idc functions over above (e.g. idc.get_next_seg/ida_segment.get_next_seg)
+register_module(
+    idc
+)  # prioritize idc functions over above (e.g. idc.get_next_seg/ida_segment.get_next_seg)
 
-server.register_function(lambda a: eval(a, globals(), locals()), 'eval')
-server.register_function(wrap(decompile)) # overwrites idaapi/ida_hexrays.decompile
-server.register_function(wrap(decompile_context), 'decompile_context')  # support context decompile
+server.register_function(lambda a: eval(a, globals(), locals()), "eval")
+server.register_function(wrap(decompile))  # overwrites idaapi/ida_hexrays.decompile
+server.register_function(wrap(decompile_context), "decompile_context")  # support context decompile
 server.register_function(wrap(versions))
 server.register_introspection_functions()
 
-print('IDA Pro xmlrpc hosted on http://%s:%s' % (host, port))
-print('Call `shutdown()` to shutdown the IDA Pro xmlrpc server.')
+print("IDA Pro xmlrpc hosted on http://%s:%s" % (host, port))
+print("Call `shutdown()` to shutdown the IDA Pro xmlrpc server.")
 
 thread = threading.Thread(target=server.serve_forever)
 thread.daemon = True

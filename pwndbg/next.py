@@ -12,14 +12,10 @@ import pwndbg.disasm
 import pwndbg.regs
 from pwndbg.color import message
 
-jumps = set((
-    capstone.CS_GRP_CALL,
-    capstone.CS_GRP_JUMP,
-    capstone.CS_GRP_RET,
-    capstone.CS_GRP_IRET
-))
+jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET))
 
 interrupts = set((capstone.CS_GRP_INT,))
+
 
 @pwndbg.events.exit
 def clear_temp_breaks():
@@ -27,8 +23,11 @@ def clear_temp_breaks():
         breakpoints = gdb.breakpoints()
         if breakpoints:
             for bp in breakpoints:
-                if bp.temporary and not bp.visible: #visible is used instead of internal because older gdb's don't support internal 
+                if (
+                    bp.temporary and not bp.visible
+                ):  # visible is used instead of internal because older gdb's don't support internal
                     bp.delete()
+
 
 def next_int(address=None):
     """
@@ -75,7 +74,7 @@ def break_next_branch(address=None):
 
     if ins:
         gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
-        gdb.execute('continue', from_tty=False, to_string=True)
+        gdb.execute("continue", from_tty=False, to_string=True)
         return ins
 
 
@@ -84,7 +83,7 @@ def break_next_interrupt(address=None):
 
     if ins:
         gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
-        gdb.execute('continue', from_tty=False, to_string=True)
+        gdb.execute("continue", from_tty=False, to_string=True)
         return ins
 
 
@@ -104,11 +103,11 @@ def break_next_call(symbol_regex=None):
             return ins
 
         # return call if we match target address
-        if ins.target_const and re.match('%s$' % symbol_regex, hex(ins.target)):
+        if ins.target_const and re.match("%s$" % symbol_regex, hex(ins.target)):
             return ins
 
         # return call if we match symbol name
-        if ins.symbol and re.match('%s$' % symbol_regex, ins.symbol):
+        if ins.symbol and re.match("%s$" % symbol_regex, ins.symbol):
             return ins
 
 
@@ -133,11 +132,11 @@ def break_on_program_code():
     end = mp.end
 
     if start <= pwndbg.regs.pc < end:
-        print(message.error('The pc is already at the binary objfile code. Not stepping.'))
+        print(message.error("The pc is already at the binary objfile code. Not stepping."))
         return False
 
     while pwndbg.proc.alive:
-        gdb.execute('si', from_tty=False, to_string=False)
+        gdb.execute("si", from_tty=False, to_string=False)
 
         addr = pwndbg.regs.pc
         if start <= addr < end:
@@ -151,4 +150,4 @@ def break_on_next(address=None):
     ins = pwndbg.disasm.one(address)
 
     gdb.Breakpoint("*%#x" % (ins.address + ins.size), temporary=True)
-    gdb.execute('continue', from_tty=False, to_string=True)
+    gdb.execute("continue", from_tty=False, to_string=True)

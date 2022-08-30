@@ -21,6 +21,6 @@ def is_jump_taken(instruction):
         return False
 
     return {
-        'i386': pwndbg.disasm.x86.is_jump_taken,
-        'x86-64': pwndbg.disasm.x86.is_jump_taken,
+        "i386": pwndbg.disasm.x86.is_jump_taken,
+        "x86-64": pwndbg.disasm.x86.is_jump_taken,
     }.get(pwndbg.arch.current, lambda *a: False)(instruction)

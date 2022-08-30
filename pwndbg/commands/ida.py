@@ -32,7 +32,11 @@ parser.description = """
     Select and print stack frame that called this one.
     An argument says how many frames up to go.
     """
-parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go up.") 
+parser.add_argument(
+    "n", nargs="?", default=1, type=int, help="The number of stack frames to go up."
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1):
@@ -48,19 +52,24 @@ def up(n=1):
     f.select()
 
     # workaround for #632
-    gdb.execute('frame', to_string=True)
+    gdb.execute("frame", to_string=True)
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
-    print('\n'.join(bt))
+    print("\n".join(bt))
 
     j()
+
 
 parser = argparse.ArgumentParser()
 parser.description = """
     Select and print stack frame called by this one.
     An argument says how many frames down to go.
     """
-parser.add_argument("n", nargs="?", default=1, type=int, help="The number of stack frames to go down.") 
+parser.add_argument(
+    "n", nargs="?", default=1, type=int, help="The number of stack frames to go down."
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1):
@@ -76,10 +85,10 @@ def down(n=1):
     f.select()
 
     # workaround for #632
-    gdb.execute('frame', to_string=True)
+    gdb.execute("frame", to_string=True)
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
-    print('\n'.join(bt))
+    print("\n".join(bt))
 
     j()
 
@@ -94,36 +103,37 @@ def save_ida():
     path = pwndbg.ida.GetIdbPath()
 
     # Need to handle emulated paths for Wine
-    if path.startswith('Z:'):
-        path = path[2:].replace('\\', '/')
+    if path.startswith("Z:"):
+        path = path[2:].replace("\\", "/")
         pwndbg.ida.SaveBase(path)
 
     basename = os.path.basename(path)
     dirname = os.path.dirname(path)
-    backups = os.path.join(dirname, 'ida-backup')
+    backups = os.path.join(dirname, "ida-backup")
 
     if not os.path.isdir(backups):
         os.mkdir(backups)
 
     basename, ext = os.path.splitext(basename)
-    basename += '-%s' % datetime.datetime.now().isoformat()
+    basename += "-%s" % datetime.datetime.now().isoformat()
     basename += ext
 
     # Windows doesn't like colons in paths
-    basename = basename.replace(':', '_')
+    basename = basename.replace(":", "_")
 
     full_path = os.path.join(backups, basename)
 
     pwndbg.ida.SaveBase(full_path)
 
-    data = open(full_path, 'rb').read()
+    data = open(full_path, "rb").read()
 
     # Compress!
-    full_path_compressed = full_path + '.bz2'
-    bz2.BZ2File(full_path_compressed, 'w').write(data)
+    full_path_compressed = full_path + ".bz2"
+    bz2.BZ2File(full_path_compressed, "w").write(data)
 
     # Remove old version
     os.unlink(full_path)
+
 
 save_ida()
 
@@ -135,7 +145,7 @@ def ida(name):
     name = name.string()
     result = pwndbg.ida.LocByName(name)
 
-    if 0xffffe000 <= result <= 0xffffffff or 0xffffffffffffe000 <= result <= 0xffffffffffffffff:
+    if 0xFFFFE000 <= result <= 0xFFFFFFFF or 0xFFFFFFFFFFFFE000 <= result <= 0xFFFFFFFFFFFFFFFF:
         raise ValueError("ida.LocByName(%r) == BADADDR" % name)
 
     return result

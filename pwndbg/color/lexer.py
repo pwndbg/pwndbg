@@ -7,7 +7,8 @@ from pygments.token import Punctuation
 from pygments.token import String
 from pygments.token import Text
 
-__all__ = ['PwntoolsLexer']
+__all__ = ["PwntoolsLexer"]
+
 
 class PwntoolsLexer(RegexLexer):
     """
@@ -18,90 +19,74 @@ class PwntoolsLexer(RegexLexer):
         * Remove Objdump rules
         * Merge pygments-arm (https://github.com/heia-fr/pygments-arm)
     """
-    name = 'PwntoolsLexer'
-    filenames = ['*.s', '*.S', '*.asm']
+
+    name = "PwntoolsLexer"
+    filenames = ["*.s", "*.S", "*.asm"]
 
     #: optional Comment or Whitespace
     string = r'"(\\"|[^"])*"'
-    char = r'[\w$.@-]'
-    identifier = r'(?:[a-zA-Z$_]' + char + '*|\.' + char + '+|or)'
-    number = r'(?:0[xX][a-zA-Z0-9]+|\d+)'
-    memory = r'(?:[\]\[])'
+    char = r"[\w$.@-]"
+    identifier = r"(?:[a-zA-Z$_]" + char + "*|\." + char + "+|or)"
+    number = r"(?:0[xX][a-zA-Z0-9]+|\d+)"
+    memory = r"(?:[\]\[])"
 
-    eol = r'[\r\n]+'
+    eol = r"[\r\n]+"
 
     tokens = {
-        'root': [
-            include('whitespace'),
-
+        "root": [
+            include("whitespace"),
             # Label
-            (identifier + ':', Name.Label),
-            (number + ':', Name.Label),
-
+            (identifier + ":", Name.Label),
+            (number + ":", Name.Label),
             # AT&T directive
-            (r'\.' + identifier, Name.Attribute, 'directive-args'),
-            (r'lock|rep(n?z)?|data\d+', Name.Attribute),
-
+            (r"\." + identifier, Name.Attribute, "directive-args"),
+            (r"lock|rep(n?z)?|data\d+", Name.Attribute),
             # Instructions
-            (identifier, Name.Function, 'instruction-args'),
-
-            (r'[\r\n]+', Text),
+            (identifier, Name.Function, "instruction-args"),
+            (r"[\r\n]+", Text),
         ],
-        'directive-args': [
+        "directive-args": [
             (identifier, Name.Constant),
             (string, String),
-            ('@' + identifier, Name.Attribute),
+            ("@" + identifier, Name.Attribute),
             (number, Number.Integer),
-
-            (eol, Text, '#pop'),
-            (r'#.*?$', Comment, '#pop'),
-
-            include('punctuation'),
-            include('whitespace')
+            (eol, Text, "#pop"),
+            (r"#.*?$", Comment, "#pop"),
+            include("punctuation"),
+            include("whitespace"),
         ],
-        'instruction-args': [
+        "instruction-args": [
             # Fun things
-            (r'([\]\[]|BYTE|DWORD|PTR|\+|\-|}|{|\^|>>|<<|&)', Text),
-
+            (r"([\]\[]|BYTE|DWORD|PTR|\+|\-|}|{|\^|>>|<<|&)", Text),
             # Address constants
             (identifier, Name.Constant),
-            ('=' + identifier, Name.Constant), # ARM symbol
+            ("=" + identifier, Name.Constant),  # ARM symbol
             (number, Number.Integer),
-
             # Registers
-            ('%' + identifier, Name.Variable),
-            ('$' + identifier, Name.Variable),
-
+            ("%" + identifier, Name.Variable),
+            ("$" + identifier, Name.Variable),
             # Numeric constants
-            ('$' + number, Number.Integer),
-            ('#' + number, Number.Integer),
-
+            ("$" + number, Number.Integer),
+            ("#" + number, Number.Integer),
             # ARM predefined constants
-            ('#' + identifier, Name.Constant),
-
+            ("#" + identifier, Name.Constant),
             (r"$'(.|\\')'", String.Char),
-
-            (eol, Text, '#pop'),
-
-            include('punctuation'),
-            include('whitespace')
+            (eol, Text, "#pop"),
+            include("punctuation"),
+            include("whitespace"),
         ],
-        'whitespace': [
-            (r'\n', Text),
-            (r'\s+', Text),
-
+        "whitespace": [
+            (r"\n", Text),
+            (r"\s+", Text),
             # Block comments
             # /* */ (AT&T)
-            (r'/\*.*?\*/', Comment),
-
+            (r"/\*.*?\*/", Comment),
             # Line comments
             # //    (AArch64)
             # #     (AT&T)
             # ;     (NASM/intel, LLVM)
             # @     (ARM)
-            (r'(//|[#;@]).*$', Comment.Single)
+            (r"(//|[#;@]).*$", Comment.Single),
         ],
-        'punctuation': [
-            (r'[-*,.():]+', Punctuation)
-        ]
+        "punctuation": [(r"[-*,.():]+", Punctuation)],
     }

@@ -23,39 +23,39 @@ def parse_consts(u_consts):
     """
     consts = {}
     for name in dir(u_consts):
-        if name.startswith('UC_'):
+        if name.startswith("UC_"):
             consts[name] = getattr(u_consts, name)
     return consts
 
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {
-    'i386':    U.UC_ARCH_X86,
-    'x86-64':  U.UC_ARCH_X86,
-    'mips':    U.UC_ARCH_MIPS,
-    'sparc':   U.UC_ARCH_SPARC,
-    'arm':     U.UC_ARCH_ARM,
-    'aarch64': U.UC_ARCH_ARM64,
+    "i386": U.UC_ARCH_X86,
+    "x86-64": U.UC_ARCH_X86,
+    "mips": U.UC_ARCH_MIPS,
+    "sparc": U.UC_ARCH_SPARC,
+    "arm": U.UC_ARCH_ARM,
+    "aarch64": U.UC_ARCH_ARM64,
     # 'powerpc': U.UC_ARCH_PPC,
 }
 
 arch_to_UC_consts = {
-    'i386':    parse_consts(U.x86_const),
-    'x86-64':  parse_consts(U.x86_const),
-    'mips':    parse_consts(U.mips_const),
-    'sparc':   parse_consts(U.sparc_const),
-    'arm':     parse_consts(U.arm_const),
-    'aarch64': parse_consts(U.arm64_const),
+    "i386": parse_consts(U.x86_const),
+    "x86-64": parse_consts(U.x86_const),
+    "mips": parse_consts(U.mips_const),
+    "sparc": parse_consts(U.sparc_const),
+    "arm": parse_consts(U.arm_const),
+    "aarch64": parse_consts(U.arm64_const),
 }
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_CS = {
-    'i386':    C.CS_ARCH_X86,
-    'x86-64':  C.CS_ARCH_X86,
-    'mips':    C.CS_ARCH_MIPS,
-    'sparc':   C.CS_ARCH_SPARC,
-    'arm':     C.CS_ARCH_ARM,
-    'aarch64': C.CS_ARCH_ARM64,
+    "i386": C.CS_ARCH_X86,
+    "x86-64": C.CS_ARCH_X86,
+    "mips": C.CS_ARCH_MIPS,
+    "sparc": C.CS_ARCH_SPARC,
+    "arm": C.CS_ARCH_ARM,
+    "aarch64": C.CS_ARCH_ARM64,
     # 'powerpc': C.CS_ARCH_PPC,
 }
 
@@ -63,7 +63,8 @@ DEBUG = False
 
 
 def debug(fmt, args=()):
-    if DEBUG: print(fmt % args)
+    if DEBUG:
+        print(fmt % args)
 
 
 # Until Unicorn Engine provides full information about the specific instruction
@@ -82,29 +83,19 @@ arch_to_SYSCALL = {
         C.x86_const.X86_INS_INT1,
         C.x86_const.X86_INS_INT3,
     ],
-    U.UC_ARCH_MIPS: [
-        C.mips_const.MIPS_INS_SYSCALL
-    ],
-    U.UC_ARCH_SPARC: [
-        C.sparc_const.SPARC_INS_T
-    ],
-    U.UC_ARCH_ARM: [
-        C.arm_const.ARM_INS_SVC
-    ],
-    U.UC_ARCH_ARM64: [
-        C.arm64_const.ARM64_INS_SVC
-    ],
-    U.UC_ARCH_PPC: [
-        C.ppc_const.PPC_INS_SC
-    ],
+    U.UC_ARCH_MIPS: [C.mips_const.MIPS_INS_SYSCALL],
+    U.UC_ARCH_SPARC: [C.sparc_const.SPARC_INS_T],
+    U.UC_ARCH_ARM: [C.arm_const.ARM_INS_SVC],
+    U.UC_ARCH_ARM64: [C.arm64_const.ARM64_INS_SVC],
+    U.UC_ARCH_PPC: [C.ppc_const.PPC_INS_SC],
 }
 
-blacklisted_regs = ['ip','cs','ds','es','fs','gs','ss','fsbase','gsbase']
+blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss", "fsbase", "gsbase"]
 
-'''
+"""
 e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
-'''
+"""
 
 
 class Emulator:
@@ -118,8 +109,8 @@ class Emulator:
 
         # Just registers, for faster lookup
         self.const_regs = {}
-        r = re.compile(r'^UC_.*_REG_(.*)$')
-        for k,v in self.consts.items():
+        r = re.compile(r"^UC_.*_REG_(.*)$")
+        for k, v in self.consts.items():
             m = r.match(k)
             if m:
                 self.const_regs[m.group(1)] = v
@@ -136,7 +127,12 @@ class Emulator:
         self._curr = None
 
         # Initialize the register state
-        for reg in list(self.regs.retaddr) + list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
+        for reg in (
+            list(self.regs.retaddr)
+            + list(self.regs.misc)
+            + list(self.regs.common)
+            + list(self.regs.flags)
+        ):
             enum = self.get_reg_enum(reg)
 
             if not reg:
@@ -156,7 +152,7 @@ class Emulator:
             if value == 0:
                 continue
 
-            name = 'U.x86_const.UC_X86_REG_%s' % reg.upper()
+            name = "U.x86_const.UC_X86_REG_%s" % reg.upper()
             debug("uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
 
@@ -193,19 +189,23 @@ class Emulator:
         arch = pwndbg.arch.current
         mode = 0
 
-        if arch == 'armcm':
-            mode |= (U.UC_MODE_MCLASS | U.UC_MODE_THUMB) if (pwndbg.regs.xpsr & (1<<24)) else U.UC_MODE_MCLASS
+        if arch == "armcm":
+            mode |= (
+                (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
+                if (pwndbg.regs.xpsr & (1 << 24))
+                else U.UC_MODE_MCLASS
+            )
 
-        elif arch in ('arm', 'aarch64'):
-            mode |= U.UC_MODE_THUMB if (pwndbg.regs.cpsr & (1<<5)) else U.UC_MODE_ARM
+        elif arch in ("arm", "aarch64"):
+            mode |= U.UC_MODE_THUMB if (pwndbg.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
 
-        elif arch == 'mips' and 'isa32r6' in gdb.newest_frame().architecture().name():
+        elif arch == "mips" and "isa32r6" in gdb.newest_frame().architecture().name():
             mode |= U.UC_MODE_MIPS32R6
 
         else:
-            mode |= {4:U.UC_MODE_32, 8:U.UC_MODE_64}[pwndbg.arch.ptrsize]
+            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.arch.ptrsize]
 
-        if pwndbg.arch.endian == 'little':
+        if pwndbg.arch.endian == "little":
             mode |= U.UC_MODE_LITTLE_ENDIAN
         else:
             mode |= U.UC_MODE_BIG_ENDIAN
@@ -216,7 +216,7 @@ class Emulator:
         page = pwndbg.memory.page_align(page)
         size = pwndbg.memory.PAGE_SIZE
 
-        debug("# Mapping %#x-%#x", (page, page+size))
+        debug("# Mapping %#x-%#x", (page, page + size))
 
         try:
             data = pwndbg.memory.read(page, size)
@@ -243,8 +243,8 @@ class Emulator:
 
         # Page-align the start address
         start = pwndbg.memory.page_align(address)
-        size  = pwndbg.memory.page_size_align(address + size - start)
-        stop  = start + size
+        size = pwndbg.memory.page_size_align(address + size - start)
+        stop = start + size
 
         # Map each page with the permissions that we think it has.
         for page in range(start, stop, pwndbg.memory.PAGE_SIZE):
@@ -296,7 +296,7 @@ class Emulator:
         #
         #   'sp' ==> 'stack' ==> 'esp' ==> enum
         #
-        elif reg == 'sp':
+        elif reg == "sp":
             return self.get_reg_enum(self.regs.stack)
 
         return None
@@ -457,14 +457,19 @@ class Emulator:
             self.single_step_hook_hit_count += 1
 
     def dumpregs(self):
-        for reg in list(self.regs.retaddr) + list(self.regs.misc) + list(self.regs.common) + list(self.regs.flags):
+        for reg in (
+            list(self.regs.retaddr)
+            + list(self.regs.misc)
+            + list(self.regs.common)
+            + list(self.regs.flags)
+        ):
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
                 debug("# Could not dump register %r", reg)
                 continue
 
-            name = 'U.x86_const.UC_X86_REG_%s' % reg.upper()
+            name = "U.x86_const.UC_X86_REG_%s" % reg.upper()
             value = self.uc.reg_read(enum)
             debug("uc.reg_read(%(name)s) ==> %(value)x", locals())
 

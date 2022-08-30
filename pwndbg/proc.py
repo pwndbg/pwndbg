@@ -45,8 +45,8 @@ class module(ModuleType):
     @property
     def thread_is_stopped(self):
         """
-        This detects whether selected thread is stopped. 
-        It is not stopped in situations when gdb is executing commands 
+        This detects whether selected thread is stopped.
+        It is not stopped in situations when gdb is executing commands
         that are attached to a breakpoint by `command` command.
 
         For more info see issue #229 ( https://github.com/pwndbg/pwndbg/issues/299 )
@@ -85,4 +85,4 @@ class module(ModuleType):
 # To prevent garbage collection
 tether = sys.modules[__name__]
 
-sys.modules[__name__] = module(__name__, '')
+sys.modules[__name__] = module(__name__, "")

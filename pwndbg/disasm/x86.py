@@ -6,12 +6,13 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
-groups = {v:k for k,v in globals().items() if k.startswith('X86_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('X86_OP_')}
-regs   = {v:k for k,v in globals().items() if k.startswith('X86_REG_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
+ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
+regs = {v: k for k, v in globals().items() if k.startswith("X86_REG_")}
+access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
-pc     = X86_REG_RSP
+pc = X86_REG_RSP
+
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def regs(self, instruction, reg):
@@ -24,7 +25,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
     def memory(self, instruction, op):
-        current = (instruction.address == pwndbg.regs.pc)
+        current = instruction.address == pwndbg.regs.pc
 
         # The only register we can reason about if it's *not* the current
         # instruction is $rip.  For example:
@@ -52,21 +53,21 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             if index is None:
                 return None
 
-            target += (scale * index)
+            target += scale * index
 
         return target
 
     def memory_sz(self, instruction, op):
-        arith   = False
+        arith = False
         segment = op.mem.segment
-        disp    = op.value.mem.disp
-        base    = op.value.mem.base
-        index   = op.value.mem.index
-        scale   = op.value.mem.scale
-        sz      = ''
+        disp = op.value.mem.disp
+        base = op.value.mem.base
+        index = op.value.mem.index
+        scale = op.value.mem.scale
+        sz = ""
 
         if segment != 0:
-            sz += '%s:' % instruction.reg_name(segment)
+            sz += "%s:" % instruction.reg_name(segment)
 
         if base != 0:
             sz += instruction.reg_name(base)
@@ -74,7 +75,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if index != 0:
             if arith:
-                sz += ' + '
+                sz += " + "
 
             index = pwndbg.regs[instruction.reg_name(index)]
             sz += "%s*%#x" % (index, scale)
@@ -82,14 +83,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if op.mem.disp != 0:
             if arith and op.mem.disp < 0:
-                sz += ' - '
+                sz += " - "
             elif arith and op.mem.disp >= 0:
-                sz += ' + '
-            sz += '%#x' % abs(op.mem.disp)
+                sz += " + "
+            sz += "%#x" % abs(op.mem.disp)
 
-        sz = '[%s]' % sz
+        sz = "[%s]" % sz
         return sz
-
 
     def register(self, instruction, operand):
         if operand.value.reg != X86_REG_RIP:
@@ -116,8 +116,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if pwndbg.memory.peek(address):
             return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
 
-
-
     def condition(self, instruction):
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
@@ -129,48 +127,48 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         efl = pwndbg.regs.eflags
 
-        cf = efl & (1<<0)
-        pf = efl & (1<<2)
-        af = efl & (1<<4)
-        zf = efl & (1<<6)
-        sf = efl & (1<<7)
-        of = efl & (1<<11)
+        cf = efl & (1 << 0)
+        pf = efl & (1 << 2)
+        af = efl & (1 << 4)
+        zf = efl & (1 << 6)
+        sf = efl & (1 << 7)
+        of = efl & (1 << 11)
 
         return {
-            X86_INS_CMOVA:  not (cf or zf),
+            X86_INS_CMOVA: not (cf or zf),
             X86_INS_CMOVAE: not cf,
-            X86_INS_CMOVB:  cf,
+            X86_INS_CMOVB: cf,
             X86_INS_CMOVBE: cf or zf,
-            X86_INS_CMOVE:  zf,
-            X86_INS_CMOVG:  not zf and (sf == of),
+            X86_INS_CMOVE: zf,
+            X86_INS_CMOVG: not zf and (sf == of),
             X86_INS_CMOVGE: sf == of,
-            X86_INS_CMOVL:  sf != of,
+            X86_INS_CMOVL: sf != of,
             X86_INS_CMOVLE: zf or (sf != of),
             X86_INS_CMOVNE: not zf,
             X86_INS_CMOVNO: not of,
             X86_INS_CMOVNP: not pf,
             X86_INS_CMOVNS: not sf,
-            X86_INS_CMOVO:  of,
-            X86_INS_CMOVP:  pf,
-            X86_INS_CMOVS:  sf,
-            X86_INS_JA:  not (cf or zf),
+            X86_INS_CMOVO: of,
+            X86_INS_CMOVP: pf,
+            X86_INS_CMOVS: sf,
+            X86_INS_JA: not (cf or zf),
             X86_INS_JAE: not cf,
-            X86_INS_JB:  cf,
+            X86_INS_JB: cf,
             X86_INS_JBE: cf or zf,
-            X86_INS_JE:  zf,
-            X86_INS_JG:  not zf and (sf == of),
+            X86_INS_JE: zf,
+            X86_INS_JG: not zf and (sf == of),
             X86_INS_JGE: sf == of,
-            X86_INS_JL:  sf != of,
+            X86_INS_JL: sf != of,
             X86_INS_JLE: zf or (sf != of),
             X86_INS_JNE: not zf,
             X86_INS_JNO: not of,
             X86_INS_JNP: not pf,
             X86_INS_JNS: not sf,
-            X86_INS_JO:  of,
-            X86_INS_JP:  pf,
-            X86_INS_JS:  sf,
+            X86_INS_JO: of,
+            X86_INS_JP: pf,
+            X86_INS_JS: sf,
         }.get(instruction.id, None)
 
 
-assistant = DisassemblyAssistant('i386')
-assistant = DisassemblyAssistant('x86-64')
+assistant = DisassemblyAssistant("i386")
+assistant = DisassemblyAssistant("x86-64")
