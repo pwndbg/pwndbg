@@ -20,7 +20,7 @@ def build_id():
         return ""
 
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 b_id = build_id()
 
