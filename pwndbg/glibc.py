@@ -26,6 +26,8 @@ def get_version():
         ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
         if ret:
             return tuple(int(_) for _ in ret.groups())
+        else:
+            raise ValueError('Invalid GLIBC version: `%s`, you should provide something like: 2.31 or 2.34' % glibc_version.value)
     return _get_version()
 
 
