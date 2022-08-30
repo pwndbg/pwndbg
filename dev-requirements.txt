@@ -1,3 +1,4 @@
+black
 coverage==6.4.4; python_version >= '3.7'
 coverage==6.2; python_version < '3.7'
 pytest==7.1.2; python_version >= '3.7'
