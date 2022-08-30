@@ -50,7 +50,7 @@ class Trigger:
         if not isinstance(names, list):
             names = [names]
         names = list(map(lambda n: n.name if isinstance(n, Parameter) else n, names))
-        self.names = list(map(lambda n: n.replace('-', '_'), names))
+        self.names = list(map(lambda n: n.replace("-", "_"), names))
 
     def __call__(self, function):
         global triggers
@@ -66,14 +66,16 @@ def get_param(value):
 
 
 def get_params(scope):
-    module_attributes = globals()['module'].__dict__.values()
-    return sorted(filter(lambda p: isinstance(p, Parameter) and p.scope == scope, module_attributes))
+    module_attributes = globals()["module"].__dict__.values()
+    return sorted(
+        filter(lambda p: isinstance(p, Parameter) and p.scope == scope, module_attributes)
+    )
 
 
 def value_to_gdb_native(value):
     """Translates Python value into native GDB syntax string."""
     mapping = collections.OrderedDict()
-    mapping[bool] = lambda value: 'on' if value else 'off'
+    mapping[bool] = lambda value: "on" if value else "off"
 
     for k, v in mapping.items():
         if isinstance(value, k):
@@ -81,10 +83,9 @@ def value_to_gdb_native(value):
     return value
 
 
-member_remap = {
-    'value': '_value',
-    'raw_value': 'value'
-}
+member_remap = {"value": "_value", "raw_value": "value"}
+
+
 @total_ordering
 class Parameter(gdb.Parameter):
     """
@@ -100,16 +101,15 @@ class Parameter(gdb.Parameter):
     * Parameter.raw_value -> gdb.Parameter.value
         Only used in get_set_string()
     """
-    def __init__(self, name, default, docstring, scope='config'):
+
+    def __init__(self, name, default, docstring, scope="config"):
         self.docstring = docstring.strip()
         self.optname = name
-        self.name = name.replace('-', '_')
+        self.name = name.replace("-", "_")
         self.default = default
-        self.set_doc = 'Set ' + docstring
-        self.show_doc = docstring + ':'
-        super(Parameter, self).__init__(name,
-                                        gdb.COMMAND_SUPPORT,
-                                        get_param(default))
+        self.set_doc = "Set " + docstring
+        self.show_doc = docstring + ":"
+        super(Parameter, self).__init__(name, gdb.COMMAND_SUPPORT, get_param(default))
         self.value = default
         self.scope = scope
         setattr(module, self.name, self)
@@ -128,12 +128,12 @@ class Parameter(gdb.Parameter):
 
     def __setattr__(self, name, value):
         new_name = member_remap.get(name, name)
-        new_name = str(new_name) # Python2 only accept str type as key
+        new_name = str(new_name)  # Python2 only accept str type as key
         return super(Parameter, self).__setattr__(new_name, value)
 
     def __getattribute__(self, name):
         new_name = member_remap.get(name, name)
-        new_name = str(new_name) # Python2 only accept str type as key
+        new_name = str(new_name)  # Python2 only accept str type as key
         return super(Parameter, self).__getattribute__(new_name)
 
     def get_set_string(self):
@@ -141,7 +141,7 @@ class Parameter(gdb.Parameter):
 
         # For string value, convert utf8 byte string to unicode.
         if isinstance(value, bytes):
-            value = codecs.decode(value, 'utf-8')
+            value = codecs.decode(value, "utf-8")
 
         # Remove surrounded ' and " characters
         if isinstance(value, str):
@@ -158,11 +158,11 @@ class Parameter(gdb.Parameter):
             trigger()
 
         if not pwndbg.decorators.first_prompt:
-            return ''
-        return 'Set %s to %r' % (self.docstring, self.value)
+            return ""
+        return "Set %s to %r" % (self.docstring, self.value)
 
     def get_show_string(self, svalue):
-        return 'Sets %s (currently: %r)' % (self.docstring, self.value)
+        return "Sets %s (currently: %r)" % (self.docstring, self.value)
 
     def revert_default(self):
         self.value = self.default
@@ -226,7 +226,7 @@ class Parameter(gdb.Parameter):
         return self.value // other
 
     def __pow__(self, other):
-        return self.value ** other
+        return self.value**other
 
     def __mod__(self, other):
         return self.value % other

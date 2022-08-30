@@ -13,6 +13,7 @@ import pwndbg.typeinfo
 
 length = 15
 
+
 @pwndbg.events.stop
 def update_length():
     r"""
@@ -22,13 +23,14 @@ def update_length():
     'Limit on string chars or array elements to print is 21.\n'
     """
     global length
-    message = gdb.execute('show print elements', from_tty=False, to_string=True)
-    message = message.split('\n')[0].split()[-1]
-    message = message.strip('.')
-    if message == 'unlimited':
+    message = gdb.execute("show print elements", from_tty=False, to_string=True)
+    message = message.split("\n")[0].split()[-1]
+    message = message.strip(".")
+    if message == "unlimited":
         length = 0
     else:
         length = int(message)
+
 
 def get(address, maxlen=None, maxread=None):
     """
@@ -48,7 +50,7 @@ def get(address, maxlen=None, maxread=None):
     except gdb.error:  # should not happen, but sanity check?
         return None
 
-    sz = sz.decode('latin-1', 'replace')
+    sz = sz.decode("latin-1", "replace")
 
     if not sz or not all(s in string.printable for s in sz):
         return None
@@ -56,4 +58,4 @@ def get(address, maxlen=None, maxread=None):
     if len(sz) < maxlen or not maxlen:
         return sz
 
-    return sz[:maxlen] + '...'
+    return sz[:maxlen] + "..."

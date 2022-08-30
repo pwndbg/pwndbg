@@ -25,10 +25,11 @@ class memoize:
     """
     Base memoization class. Do not use directly. Instead use one of classes defined below.
     """
+
     caching = True
 
     def __init__(self, func):
-        self.func  = func
+        self.func = func
         self.cache = {}
         self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
@@ -38,15 +39,15 @@ class memoize:
 
         if not isinstance(args, Hashable):
             print("Cannot memoize %r!", file=sys.stderr)
-            how   = "Not memoizeable!"
+            how = "Not memoizeable!"
             value = self.func(*args)
 
         if self.caching and args in self.cache:
-            how   = "Cached"
+            how = "Cached"
             value = self.cache[args]
 
         else:
-            how   = "Executed"
+            how = "Executed"
             value = self.func(*args, **kwargs)
             self.cache[args] = value
 
@@ -59,7 +60,7 @@ class memoize:
         return value
 
     def __repr__(self):
-        funcname = self.func.__module__ + '.' + self.func.__name__
+        funcname = self.func.__module__ + "." + self.func.__name__
         return "<%s-memoized function %s>" % (self.kind, funcname)
 
     def __get__(self, obj, objtype):
@@ -75,6 +76,7 @@ class forever(memoize):
     """
     Memoizes forever - for a pwndbg session or until `_reset` is called explicitly.
     """
+
     caches = []
 
     @staticmethod
@@ -85,7 +87,7 @@ class forever(memoize):
 
 class reset_on_stop(memoize):
     caches = []
-    kind   = 'stop'
+    kind = "stop"
 
     @staticmethod
     @pwndbg.events.stop
@@ -100,7 +102,7 @@ class reset_on_stop(memoize):
 
 class reset_on_prompt(memoize):
     caches = []
-    kind   = 'prompt'
+    kind = "prompt"
 
     @staticmethod
     @pwndbg.events.before_prompt
@@ -113,7 +115,7 @@ class reset_on_prompt(memoize):
 
 class reset_on_exit(memoize):
     caches = []
-    kind   = 'exit'
+    kind = "exit"
 
     @staticmethod
     @pwndbg.events.exit
@@ -126,7 +128,7 @@ class reset_on_exit(memoize):
 
 class reset_on_objfile(memoize):
     caches = []
-    kind   = 'objfile'
+    kind = "objfile"
 
     @staticmethod
     @pwndbg.events.new_objfile
@@ -139,7 +141,7 @@ class reset_on_objfile(memoize):
 
 class reset_on_start(memoize):
     caches = []
-    kind   = 'start'
+    kind = "start"
 
     @staticmethod
     @pwndbg.events.start
@@ -152,7 +154,7 @@ class reset_on_start(memoize):
 
 class reset_on_cont(memoize):
     caches = []
-    kind   = 'cont'
+    kind = "cont"
 
     @staticmethod
     @pwndbg.events.cont
@@ -165,7 +167,7 @@ class reset_on_cont(memoize):
 
 class while_running(memoize):
     caches = []
-    kind   = 'running'
+    kind = "running"
     caching = False
 
     @staticmethod

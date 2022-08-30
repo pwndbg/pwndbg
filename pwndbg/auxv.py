@@ -38,67 +38,70 @@ example_info_auxv_linux = """
 
 
 AT_CONSTANTS = {
-    0 : 'AT_NULL',      # /* End of vector */
-    1 : 'AT_IGNORE',    # /* Entry should be ignored */
-    2 : 'AT_EXECFD',    # /* File descriptor of program */
-    3 : 'AT_PHDR',      # /* Program headers for program */
-    4 : 'AT_PHENT',     # /* Size of program header entry */
-    5 : 'AT_PHNUM',     # /* Number of program headers */
-    6 : 'AT_PAGESZ',    # /* System page size */
-    7 : 'AT_BASE',      # /* Base address of interpreter */
-    8 : 'AT_FLAGS',     # /* Flags */
-    9 : 'AT_ENTRY',     # /* Entry point of program */
-    10: 'AT_NOTELF',    # /* Program is not ELF */
-    11: 'AT_UID',       # /* Real uid */
-    12: 'AT_EUID',      # /* Effective uid */
-    13: 'AT_GID',       # /* Real gid */
-    14: 'AT_EGID',      # /* Effective gid */
-    15: 'AT_PLATFORM',  # /* String identifying platform */
-    16: 'AT_HWCAP',     # /* Machine dependent hints about processor capabilities */
-    17: 'AT_CLKTCK',    # /* Frequency of times() */
-    18: 'AT_FPUCW',
-    19: 'AT_DCACHEBSIZE',
-    20: 'AT_ICACHEBSIZE',
-    21: 'AT_UCACHEBSIZE',
-    22: 'AT_IGNOREPPC',
-    23: 'AT_SECURE',
-    24: 'AT_BASE_PLATFORM', # String identifying real platforms
-    25: 'AT_RANDOM',    # Address of 16 random bytes
-    31: 'AT_EXECFN',    # Filename of executable
-    32: 'AT_SYSINFO',
-    33: 'AT_SYSINFO_EHDR',
-    34: 'AT_L1I_CACHESHAPE',
-    35: 'AT_L1D_CACHESHAPE',
-    36: 'AT_L2_CACHESHAPE',
-    37: 'AT_L3_CACHESHAPE',
+    0: "AT_NULL",  # /* End of vector */
+    1: "AT_IGNORE",  # /* Entry should be ignored */
+    2: "AT_EXECFD",  # /* File descriptor of program */
+    3: "AT_PHDR",  # /* Program headers for program */
+    4: "AT_PHENT",  # /* Size of program header entry */
+    5: "AT_PHNUM",  # /* Number of program headers */
+    6: "AT_PAGESZ",  # /* System page size */
+    7: "AT_BASE",  # /* Base address of interpreter */
+    8: "AT_FLAGS",  # /* Flags */
+    9: "AT_ENTRY",  # /* Entry point of program */
+    10: "AT_NOTELF",  # /* Program is not ELF */
+    11: "AT_UID",  # /* Real uid */
+    12: "AT_EUID",  # /* Effective uid */
+    13: "AT_GID",  # /* Real gid */
+    14: "AT_EGID",  # /* Effective gid */
+    15: "AT_PLATFORM",  # /* String identifying platform */
+    16: "AT_HWCAP",  # /* Machine dependent hints about processor capabilities */
+    17: "AT_CLKTCK",  # /* Frequency of times() */
+    18: "AT_FPUCW",
+    19: "AT_DCACHEBSIZE",
+    20: "AT_ICACHEBSIZE",
+    21: "AT_UCACHEBSIZE",
+    22: "AT_IGNOREPPC",
+    23: "AT_SECURE",
+    24: "AT_BASE_PLATFORM",  # String identifying real platforms
+    25: "AT_RANDOM",  # Address of 16 random bytes
+    31: "AT_EXECFN",  # Filename of executable
+    32: "AT_SYSINFO",
+    33: "AT_SYSINFO_EHDR",
+    34: "AT_L1I_CACHESHAPE",
+    35: "AT_L1D_CACHESHAPE",
+    36: "AT_L2_CACHESHAPE",
+    37: "AT_L3_CACHESHAPE",
 }
 
-sys.modules[__name__].__dict__.update({v:k for k,v in AT_CONSTANTS.items()})
-
+sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
 class AUXV(dict):
     def set(self, const, value):
-        name         = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
+        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
-        if name in ['AT_EXECFN', 'AT_PLATFORM']:
+        if name in ["AT_EXECFN", "AT_PLATFORM"]:
             try:
                 value = gdb.Value(value)
                 value = value.cast(pwndbg.typeinfo.pchar)
                 value = value.string()
             except Exception:
-                value = 'couldnt read AUXV!'
+                value = "couldnt read AUXV!"
 
         self[name] = value
+
     def __getattr__(self, attr):
         return self.get(attr)
+
     def __str__(self):
-        return str({k:v for k,v in self.items() if v is not None})
+        return str({k: v for k, v in self.items() if v is not None})
+
 
 @pwndbg.memoize.reset_on_objfile
 @pwndbg.memoize.reset_on_start
 def get():
     return use_info_auxv() or walk_stack() or AUXV()
+
 
 def use_info_auxv():
     lines = pwndbg.info.auxv().splitlines()
@@ -108,7 +111,7 @@ def use_info_auxv():
 
     auxv = AUXV()
     for line in lines:
-        match = re.match('([0-9]+) .*? (0x[0-9a-f]+|[0-9]+$)', line)
+        match = re.match("([0-9]+) .*? (0x[0-9a-f]+|[0-9]+$)", line)
         if not match:
             print("Warning: Skipping auxv entry '{}'".format(line))
             continue
@@ -134,12 +137,13 @@ def find_stack_boundary(addr):
     addr = pwndbg.memory.page_align(int(addr))
     try:
         while True:
-            if b'\x7fELF' == pwndbg.memory.read(addr, 4):
+            if b"\x7fELF" == pwndbg.memory.read(addr, 4):
                 break
             addr += pwndbg.memory.PAGE_SIZE
     except gdb.MemoryError:
         pass
     return addr
+
 
 def walk_stack():
     if not pwndbg.abi.linux:
@@ -154,16 +158,17 @@ def walk_stack():
         # not aligned properly.
         auxv = walk_stack2(1)
 
-    if not auxv.get('AT_EXECFN', None):
+    if not auxv.get("AT_EXECFN", None):
         try:
-            auxv['AT_EXECFN'] = _get_execfn()
+            auxv["AT_EXECFN"] = _get_execfn()
         except gdb.MemoryError:
             pass
 
     return auxv
 
+
 def walk_stack2(offset=0):
-    sp  = pwndbg.regs.sp
+    sp = pwndbg.regs.sp
 
     if not sp:
         return AUXV()
@@ -180,7 +185,7 @@ def walk_stack2(offset=0):
     #    set of known AT_ enums.
     # 5) Vacuum up between the two.
     #
-    end  = find_stack_boundary(sp)
+    end = find_stack_boundary(sp)
     p = gdb.Value(end).cast(pwndbg.typeinfo.ulong.pointer())
 
     p -= offset
@@ -198,7 +203,7 @@ def walk_stack2(offset=0):
     # (i.e. doesn't include 8-16 consecutive zero-length args)
     # this should land us at the *END* of AUXV, which is the
     # AT_NULL vector.
-    while p.dereference() != 0 or (p+1).dereference() != 0:
+    while p.dereference() != 0 or (p + 1).dereference() != 0:
         p -= 2
 
     # Now we want to continue until we fine, at a minimum, AT_BASE.
@@ -219,14 +224,14 @@ def walk_stack2(offset=0):
     # very end of ENVP (and perhaps ARGV if ENVP is empty).
     #
     # The highest value for the vector is AT_SYSINFO_EHDR, 33.
-    while (p-2).dereference() < 37:
+    while (p - 2).dereference() < 37:
         p -= 2
 
     # Scan them into our structure
     auxv = AUXV()
     while True:
-        const = int((p+0).dereference()) & pwndbg.arch.ptrmask
-        value = int((p+1).dereference()) & pwndbg.arch.ptrmask
+        const = int((p + 0).dereference()) & pwndbg.arch.ptrmask
+        value = int((p + 1).dereference()) & pwndbg.arch.ptrmask
 
         if const == AT_NULL:
             break
@@ -235,6 +240,7 @@ def walk_stack2(offset=0):
         p += 2
 
     return auxv
+
 
 def _get_execfn():
     # If the stack is not sane, this won't work
@@ -253,10 +259,10 @@ def _get_execfn():
     # 330:1980|      0x7ffffffff000
     addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.regs.sp)
 
-    while pwndbg.memory.byte(addr-1) == 0:
+    while pwndbg.memory.byte(addr - 1) == 0:
         addr -= 1
 
-    while pwndbg.memory.byte(addr-1) != 0:
+    while pwndbg.memory.byte(addr - 1) != 0:
         addr -= 1
 
     v = pwndbg.strings.get(addr, 1024)

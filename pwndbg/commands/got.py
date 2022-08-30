@@ -9,14 +9,15 @@ import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
 
-parser = argparse.ArgumentParser(description='Show the state of the Global Offset Table')
-parser.add_argument('name_filter', help='Filter results by passed name.',
-                    type=str, nargs='?', default='')
+parser = argparse.ArgumentParser(description="Show the state of the Global Offset Table")
+parser.add_argument(
+    "name_filter", help="Filter results by passed name.", type=str, nargs="?", default=""
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def got(name_filter=''):
+def got(name_filter=""):
 
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
@@ -29,11 +30,13 @@ def got(name_filter=''):
         bin_base = pwndbg.elf.exe().address
 
     relro_color = message.off
-    if 'Partial' in relro_status:
+    if "Partial" in relro_status:
         relro_color = message.warn
-    elif 'Full' in relro_status:
+    elif "Full" in relro_status:
         relro_color = message.on
-    print("\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots)))
+    print(
+        "\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots))
+    )
 
     for line in jmpslots:
         address, info, rtype, value, name = line.split()[:5]
@@ -43,8 +46,12 @@ def got(name_filter=''):
 
         address_val = int(address, 16)
 
-        if "PIE enabled" in pie_status:  # if PIE, address is only the offset from the binary base address
+        if (
+            "PIE enabled" in pie_status
+        ):  # if PIE, address is only the offset from the binary base address
             address_val = bin_base + address_val
 
         got_address = pwndbg.memory.pvoid(address_val)
-        print("[0x%x] %s -> %s" % (address_val, message.hint(name), pwndbg.chain.format(got_address)))
+        print(
+            "[0x%x] %s -> %s" % (address_val, message.hint(name), pwndbg.chain.format(got_address))
+        )

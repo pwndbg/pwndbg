@@ -6,13 +6,13 @@ import pwndbg.symbol
 
 debug = False
 
-groups = {v:k for k,v in globals().items() if k.startswith('CS_GRP_')}
-ops    = {v:k for k,v in globals().items() if k.startswith('CS_OP_')}
-access = {v:k for k,v in globals().items() if k.startswith('CS_AC_')}
+groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
+ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
+access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
 for value1, name1 in dict(access).items():
     for value2, name2 in dict(access).items():
-        access.setdefault(value1 | value2, '%s | %s' % (name1, name2))
+        access.setdefault(value1 | value2, "%s | %s" % (name1, name2))
 
 
 class DisassemblyAssistant:
@@ -26,13 +26,13 @@ class DisassemblyAssistant:
         self.op_handlers = {
             CS_OP_IMM: self.immediate,
             CS_OP_REG: self.register,
-            CS_OP_MEM: self.memory
+            CS_OP_MEM: self.memory,
         }
 
         self.op_names = {
             CS_OP_IMM: self.immediate_sz,
             CS_OP_REG: self.register_sz,
-            CS_OP_MEM: self.memory_sz
+            CS_OP_MEM: self.memory_sz,
         }
 
     @staticmethod
@@ -99,7 +99,6 @@ class DisassemblyAssistant:
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
 
-
         instruction.next = next_addr & pwndbg.arch.ptrmask
 
         if instruction.target is None:
@@ -107,7 +106,6 @@ class DisassemblyAssistant:
 
         if instruction.operands and instruction.operands[0].int:
             instruction.target_const = True
-
 
     def next(self, instruction, call=False):
         """
@@ -126,7 +124,7 @@ class DisassemblyAssistant:
             return None
 
         # Memory operands must be dereferenced
-        op   = instruction.operands[0]
+        op = instruction.operands[0]
         addr = op.int
         if addr:
             addr &= pwndbg.arch.ptrmask
@@ -188,7 +186,7 @@ class DisassemblyAssistant:
             Resolved symbol name for this operand.
         """
         for i, op in enumerate(instruction.operands):
-            op.int    = None
+            op.int = None
             op.symbol = None
 
             op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
@@ -198,7 +196,6 @@ class DisassemblyAssistant:
 
             if op.int:
                 op.symbol = pwndbg.symbol.get(op.int)
-
 
     def immediate(self, instruction, operand):
         return operand.value.imm
@@ -219,46 +216,47 @@ class DisassemblyAssistant:
         # if operand.access & CS_AC_WRITE and not operand.access & CS_AC_READ:
         #     return None
 
-        reg  = operand.value.reg
+        reg = operand.value.reg
         name = instruction.reg_name(reg)
 
         return pwndbg.regs[name]
 
     def register_sz(self, instruction, operand):
-        reg  = operand.value.reg
+        reg = operand.value.reg
         return instruction.reg_name(reg).lower()
 
     def memory(self, instruction, operand):
         return None
 
     def memory_sz(self, instruction, operand):
-        return None # raise NotImplementedError
+        return None  # raise NotImplementedError
 
     def dump(self, instruction):
         """
         Debug-only method.
         """
         ins = instruction
-        rv  = []
-        rv.append('%s %s' % (ins.mnemonic, ins.op_str))
+        rv = []
+        rv.append("%s %s" % (ins.mnemonic, ins.op_str))
 
         for i, group in enumerate(ins.groups):
-            rv.append('   groups[%i]   = %s' % (i, groups.get(group, group)))
+            rv.append("   groups[%i]   = %s" % (i, groups.get(group, group)))
 
-        rv.append('           next = %#x' % (ins.next))
-        rv.append('      condition = %r' % (ins.condition))
+        rv.append("           next = %#x" % (ins.next))
+        rv.append("      condition = %r" % (ins.condition))
 
         for i, op in enumerate(ins.operands):
-            rv.append('   operands[%i] = %s' % (i, ops.get(op.type, op.type)))
-            rv.append('       access   = %s' % (access.get(op.access, op.access)))
+            rv.append("   operands[%i] = %s" % (i, ops.get(op.type, op.type)))
+            rv.append("       access   = %s" % (access.get(op.access, op.access)))
 
             if op.int is not None:
-                rv.append('            int = %#x' % (op.int))
+                rv.append("            int = %#x" % (op.int))
             if op.symbol is not None:
-                rv.append('            sym = %s' % (op.symbol))
+                rv.append("            sym = %s" % (op.symbol))
             if op.str is not None:
-                rv.append('            str = %s' % (op.str))
+                rv.append("            str = %s" % (op.str))
 
-        return '\n'.join(rv)
+        return "\n".join(rv)
+
 
 generic_assistant = DisassemblyAssistant(None)

@@ -20,21 +20,21 @@ def decompile(func=None):
     try:
         r2 = pwndbg.radare2.r2pipe()
     except ImportError:
-        raise Exception('r2pipe not available, but required for r2->ghidra bridge')
+        raise Exception("r2pipe not available, but required for r2->ghidra bridge")
 
     # LD -> list supported decompilers (e cmd.pdc=?)
     # Outputs for example: pdc\npdg
     if "pdg" not in r2.cmd("LD").split("\n"):
-        raise Exception('radare2 plugin r2ghidra must be installed and available from r2')
+        raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
 
     if not func:
-        func = hex(pwndbg.regs[pwndbg.regs.current.pc]) if pwndbg.proc.alive else 'main'
+        func = hex(pwndbg.regs[pwndbg.regs.current.pc]) if pwndbg.proc.alive else "main"
 
     src = r2.cmdj("pdgj @" + func)
     if not src:
         raise Exception("Decompile command failed, check if '{}' is a valid target".format(func))
 
-    current_line_marker = '/*%%PWNDBG_CODE_MARKER%%*/'
+    current_line_marker = "/*%%PWNDBG_CODE_MARKER%%*/"
     source = src.get("code", "")
 
     # If not running there is no current pc to mark
@@ -45,16 +45,19 @@ def decompile(func=None):
         for off in (a.get("offset", 0) for a in src.get("annotations", [])):
             if abs(pc - closest) > abs(pc - off):
                 closest = off
-        pos_annotations = sorted([a for a in src.get("annotations", []) if a.get("offset") == closest], key=lambda a: a["start"])
+        pos_annotations = sorted(
+            [a for a in src.get("annotations", []) if a.get("offset") == closest],
+            key=lambda a: a["start"],
+        )
 
         # Append code prefix marker for the current line and replace it later
         if pos_annotations:
             curline = source.count("\n", 0, pos_annotations[0]["start"])
             source = source.split("\n")
             line = source[curline]
-            if line.startswith('    '):
-                line = line[min(4, len(pwndbg.config.code_prefix) + 1):]
-            source[curline] = current_line_marker + ' ' + line
+            if line.startswith("    "):
+                line = line[min(4, len(pwndbg.config.code_prefix) + 1) :]
+            source[curline] = current_line_marker + " " + line
             source = "\n".join(source)
 
     if pwndbg.config.syntax_highlight:

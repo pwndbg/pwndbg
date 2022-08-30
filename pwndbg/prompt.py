@@ -10,26 +10,37 @@ from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.tips import get_tip_of_the_day
 
-funcs_list_str = ', '.join(message.notice('$' + f.name) for f in pwndbg.gdbutils.functions.functions)
+funcs_list_str = ", ".join(
+    message.notice("$" + f.name) for f in pwndbg.gdbutils.functions.functions
+)
 
 hint_lines = (
-    'loaded %i commands. Type %s for a list.' % (len(pwndbg.commands.commands), message.notice('pwndbg [filter]')),
-    'created %s gdb functions (can be used with print/break)' % funcs_list_str
+    "loaded %i commands. Type %s for a list."
+    % (len(pwndbg.commands.commands), message.notice("pwndbg [filter]")),
+    "created %s gdb functions (can be used with print/break)" % funcs_list_str,
 )
 
 for line in hint_lines:
-    print(message.prompt('pwndbg: ') + message.system(line))
+    print(message.prompt("pwndbg: ") + message.system(line))
 
 # noinspection PyPackageRequirements
-show_tip = pwndbg.config.Parameter('show-tips', True, 'whether to display the tip of the day on startup')
+show_tip = pwndbg.config.Parameter(
+    "show-tips", True, "whether to display the tip of the day on startup"
+)
 
 cur = None
 
 
 def initial_hook(*a):
     if show_tip and not pwndbg.decorators.first_prompt:
-        colored_tip = re.sub('`(.*?)`', lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day())
-        print(message.prompt('------- tip of the day') + message.system(' (disable with %s)' % message.notice('set show-tips off')) + message.prompt(' -------'))
+        colored_tip = re.sub(
+            "`(.*?)`", lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day()
+        )
+        print(
+            message.prompt("------- tip of the day")
+            + message.system(" (disable with %s)" % message.notice("set show-tips off"))
+            + message.prompt(" -------")
+        )
         print((colored_tip))
     pwndbg.decorators.first_prompt = True
 
@@ -64,7 +75,7 @@ def set_prompt():
         prompt = message.prompt(prompt)
         prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
 
-    gdb.execute('set prompt %s' % prompt)
+    gdb.execute("set prompt %s" % prompt)
 
 
 if pwndbg.events.before_prompt_event.is_real_event:

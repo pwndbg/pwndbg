@@ -65,17 +65,20 @@ shellcmds = [
 pwncmds = filter(pwndbg.which.which, pwncmds)
 shellcmds = filter(pwndbg.which.which, shellcmds)
 
+
 def register_shell_function(cmd, deprecated=False):
     def handler(*a):
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()
-        print("This command is deprecated in Pwndbg. Please use the GDB's built-in syntax for running shell commands instead: !%s <args>" % cmd)
+        print(
+            "This command is deprecated in Pwndbg. Please use the GDB's built-in syntax for running shell commands instead: !%s <args>"
+            % cmd
+        )
 
-
-    doc = 'Invokes `{}` shell command'.format(cmd)
+    doc = "Invokes `{}` shell command".format(cmd)
     if deprecated:
-        doc += ' (deprecated)'
+        doc += " (deprecated)"
 
     handler.__name__ = str(cmd)
     handler.__doc__ = doc

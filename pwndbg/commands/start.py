@@ -24,10 +24,16 @@ def on_start():
         break_on_first_instruction = False
 
 
-parser = argparse.ArgumentParser(description="""
+parser = argparse.ArgumentParser(
+    description="""
     Set a breakpoint at a convenient location in the binary,
-    generally 'main', 'init', or the entry point.""")
-parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+    generally 'main', 'init', or the entry point."""
+)
+parser.add_argument(
+    "args", nargs="*", type=str, default=None, help="The arguments to run the binary with."
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def start(args=None):
     if args is None:
@@ -36,14 +42,9 @@ def start(args=None):
     Set a breakpoint at a convenient location in the binary,
     generally 'main', 'init', or the entry point.
     """
-    run = 'run ' + ' '.join(args)
+    run = "run " + " ".join(args)
 
-    symbols = ["main",
-                "_main",
-                "start",
-                "_start",
-                "init",
-                "_init"]
+    symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
         address = pwndbg.symbol.address(symbol, allow_unmapped=True)
@@ -59,11 +60,17 @@ def start(args=None):
     entry(args)
 
 
-parser = argparse.ArgumentParser(description="""
+parser = argparse.ArgumentParser(
+    description="""
     Set a breakpoint at the first instruction executed in
     the target binary.
-    """)
-parser.add_argument("args", nargs="*", type=str, default=None, help="The arguments to run the binary with.")
+    """
+)
+parser.add_argument(
+    "args", nargs="*", type=str, default=None, help="The arguments to run the binary with."
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWithFile
 def entry(args=None):
@@ -75,5 +82,5 @@ def entry(args=None):
     """
     global break_on_first_instruction
     break_on_first_instruction = True
-    run = 'run ' + ' '.join(map(quote, args))
+    run = "run " + " ".join(map(quote, args))
     gdb.execute(run, from_tty=False)

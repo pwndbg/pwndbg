@@ -8,12 +8,12 @@ import gdb
 import pwndbg.commands
 import pwndbg.vmmap
 
-parser = argparse.ArgumentParser(description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
-                                epilog="Example: rop --grep 'pop rdi' -- --nojop")
-parser.add_argument('--grep', type=str,
-                    help='String to grep the output for')
-parser.add_argument('argument', nargs='*', type=str,
-                    help='Arguments to pass to ROPgadget')
+parser = argparse.ArgumentParser(
+    description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
+    epilog="Example: rop --grep 'pop rdi' -- --nojop",
+)
+parser.add_argument("--grep", type=str, help="String to grep the output for")
+parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ROPgadget")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ropgadget"])
@@ -24,14 +24,12 @@ def rop(grep, argument):
         # If the process is running, dump a corefile so we get actual addresses.
         if pwndbg.proc.alive:
             filename = corefile.name
-            gdb.execute('gcore %s' % filename)
+            gdb.execute("gcore %s" % filename)
         else:
             filename = pwndbg.proc.exe
 
         # Build up the command line to run
-        cmd = ['ROPgadget',
-               '--binary',
-               filename]
+        cmd = ["ROPgadget", "--binary", filename]
         cmd += argument
 
         try:
@@ -42,7 +40,7 @@ def rop(grep, argument):
 
         (stdout, stderr) = io.communicate()
 
-        stdout = stdout.decode('latin-1')
+        stdout = stdout.decode("latin-1")
 
         if not grep:
             print(stdout)

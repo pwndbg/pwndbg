@@ -13,7 +13,6 @@ except Exception:
     from imp import reload as _reload
 
 
-
 def rreload(module, mdict=None):
     """Recursively reload modules."""
     name = module.__name__
@@ -21,7 +20,7 @@ def rreload(module, mdict=None):
     if mdict is None:
         mdict = []
 
-    for attribute_name in getattr(module, '__all__', []) or []:
+    for attribute_name in getattr(module, "__all__", []) or []:
         attribute = getattr(module, attribute_name, None)
         if isinstance(attribute, types.ModuleType) and attribute not in mdict:
             mdict.append(attribute)
@@ -38,6 +37,7 @@ def reload(*a):
     pwndbg.events.on_reload()
     rreload(pwndbg)
     pwndbg.events.after_reload()
+
 
 @pwndbg.commands.ArgparsedCommand("Makes pwndbg reinitialize all state.")
 def reinit_pwndbg():
