@@ -117,8 +117,25 @@ def get_disassembler(pc):
     )
 
 
+class SimpleInstruction:
+    def __init__(self, address):
+        self.address = address
+        ins = gdb.newest_frame().architecture().disassemble(address)[0]
+        asm = ins["asm"].split(None, 1)
+        self.mnemonic = asm[0].strip()
+        self.op_str = asm[1].strip() if len(asm) > 1 else ""
+        self.size = ins["length"]
+        self.next = self.address + self.size
+        self.target = self.next
+        self.groups = []
+        self.symbol = None
+        self.condition = False
+
+
 @pwndbg.memoize.reset_on_cont
 def get_one_instruction(address):
+    if pwndbg.arch.current not in CapstoneArch:
+        return SimpleInstruction(address)
     md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.arch.current, 4)
     data = pwndbg.memory.read(address, size, partial=True)

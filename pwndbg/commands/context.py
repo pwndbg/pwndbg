@@ -720,7 +720,8 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     for i in range(backtrace_lines - 1):
         try:
             candidate = oldest_frame.older()
-        except gdb.MemoryError:
+        # We catch gdb.error in case of a `gdb.error: PC not saved` case
+        except (gdb.MemoryError, gdb.error):
             break
 
         if not candidate:
