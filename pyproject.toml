@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 100
+extend-exclude = "gdb-pt-dump"
 
 [tool.isort]
 profile = "black"
-
