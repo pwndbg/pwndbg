@@ -29,7 +29,7 @@ def on_start():
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
     description="""
-Start the debugged program stopping at the first convenient location 
+Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
 You may specify arguments to give it.
 
