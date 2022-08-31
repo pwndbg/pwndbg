@@ -1,5 +1,6 @@
 import argparse
 import functools
+import io
 
 import gdb
 
@@ -321,13 +322,10 @@ class _ArgparsedCommand(Command):
         else:
             self.parser.prog = command_name
 
-        # TODO/FIXME: Can we also append the generated positional args?
-        # E.g. "-f --flag  This does something"
-        doc = self.parser.description.strip()
-        if self.parser.epilog:
-            doc += "\n" + self.parser.epilog
-
-        self.__doc__ = function.__doc__ = doc
+        file = io.StringIO()
+        self.parser.print_help(file)
+        file.seek(0)
+        self.__doc__ = file.read()
 
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
