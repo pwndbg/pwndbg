@@ -326,6 +326,8 @@ class _ArgparsedCommand(Command):
         self.parser.print_help(file)
         file.seek(0)
         self.__doc__ = file.read()
+        # Note: function.__doc__ is used in the `pwndbg [filter]` command display
+        function.__doc__ = self.parser.description.strip()
 
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
