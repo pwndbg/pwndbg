@@ -1,14 +1,15 @@
-import argparse
-import errno as _errno
+import gdb
 
-import pwndbg as _pwndbg
-import pwndbg.arch as _arch
+import argparse
+import errno
+
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.regs
 import pwndbg.symbol
 
-_errno.errorcode[0] = "OK"
+
+errno.errorcode[0] = "OK"
 
 parser = argparse.ArgumentParser(
     description="""
@@ -24,24 +25,25 @@ parser.add_argument(
 )
 
 
-@_pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, command_name="errno")
 @pwndbg.commands.OnlyWhenRunning
-def errno(err):
+def errno_(err):
     if err is None:
-        # Dont ask.
-        errno_location = pwndbg.symbol.get("__errno_location")
-        err = pwndbg.memory.int(errno_location)
-        # err = int(gdb.parse_and_eval('*((int *(*) (void)) __errno_location) ()'))
+        # Try to get the `errno` variable value
+        # if it does not exist, get the errno variable from its location
+        try:
+            err = int(gdb.parse_and_eval("errno"))
+        except gdb.error:
+            try:
+                err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
+            except gdb.error:
+                print(
+                    "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (was libc.so loaded already?)"
+                )
+                return
 
-    err = abs(int(err))
-
-    if err >> 63:
-        err -= 1 << 64
-    elif err >> 31:
-        err -= 1 << 32
-
-    msg = _errno.errorcode.get(int(err), "Unknown error code")
-    print("Errno %i: %s" % (err, msg))
+    msg = errno.errorcode.get(int(err), "Unknown error code")
+    print("Errno %s: %s" % (err, msg))
 
 
 parser = argparse.ArgumentParser(
@@ -58,8 +60,8 @@ parser.add_argument(
 )
 
 
-@_pwndbg.commands.ArgparsedCommand(parser)
-def pwndbg(filter_pattern):
+@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
+def pwndbg_(filter_pattern):
     for name, docs in list_and_filter_commands(filter_pattern):
         print("%-20s %s" % (name, docs))
 
@@ -69,19 +71,19 @@ parser.add_argument("a", type=int, help="The first address.")
 parser.add_argument("b", type=int, help="The second address.")
 
 
-@_pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser)
 def distance(a, b):
     """Print the distance between the two arguments"""
-    a = int(a) & _arch.ptrmask
-    b = int(b) & _arch.ptrmask
+    a = int(a) & pwndbg.arch.ptrmask
+    b = int(b) & pwndbg.arch.ptrmask
 
     distance = b - a
 
-    print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // _arch.ptrsize))
+    print("%#x->%#x is %#x bytes (%#x words)" % (a, b, distance, distance // pwndbg.arch.ptrsize))
 
 
 def list_and_filter_commands(filter_str):
-    sorted_commands = list(_pwndbg.commands.commands)
+    sorted_commands = list(pwndbg.commands.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
     if filter_str:

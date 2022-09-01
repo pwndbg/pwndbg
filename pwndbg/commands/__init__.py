@@ -339,7 +339,7 @@ class _ArgparsedCommand(Command):
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
-    def __init__(self, parser_or_desc, aliases=[]):
+    def __init__(self, parser_or_desc, aliases=[], command_name=None):
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
@@ -348,6 +348,8 @@ class ArgparsedCommand:
         else:
             self.parser = parser_or_desc
         self.aliases = aliases
+        self._command_name = command_name
+
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
@@ -360,8 +362,8 @@ class ArgparsedCommand:
 
     def __call__(self, function):
         for alias in self.aliases:
-            _ArgparsedCommand(self.parser, function, alias)
-        return _ArgparsedCommand(self.parser, function)
+            _ArgparsedCommand(self.parser, function, command_name=alias)
+        return _ArgparsedCommand(self.parser, function, command_name=self._command_name)
 
 
 # We use a 64-bit max value literal here instead of pwndbg.arch.current
