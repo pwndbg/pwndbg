@@ -1,13 +1,12 @@
-import gdb
-
 import argparse
 import errno
+
+import gdb
 
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.regs
 import pwndbg.symbol
-
 
 errno.errorcode[0] = "OK"
 
