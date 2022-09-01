@@ -2,7 +2,7 @@ import platform
 
 import gdb
 
-import pwndbg.arch
+import pwndbg.gdb.arch
 
 # Heap flags
 PREV_INUSE = 1

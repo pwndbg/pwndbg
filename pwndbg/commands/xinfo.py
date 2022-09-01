@@ -2,10 +2,10 @@ import argparse
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
+import pwndbg.gdb.arch
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.stack
@@ -51,7 +51,7 @@ def xinfo_stack(page, addr):
     if canary_value is not None:
         all_canaries = list(
             pwndbg.search.search(
-                pwndbg.arch.pack(canary_value), mappings=pwndbg.stack.stacks.values()
+                pwndbg.gdb.arch.pack(canary_value), mappings=pwndbg.stack.stacks.values()
             )
         )
         follow_canaries = sorted(filter(lambda a: a > addr, all_canaries))
@@ -108,9 +108,11 @@ def xinfo_default(page, addr):
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def xinfo(address=None):
-    address = address.cast(pwndbg.typeinfo.pvoid)  # Fixes issues with function ptrs (xinfo malloc)
+    address = address.cast(
+        pwndbg.gdb.typeinfo.pvoid
+    )  # Fixes issues with function ptrs (xinfo malloc)
     addr = int(address)
-    addr &= pwndbg.arch.ptrmask
+    addr &= pwndbg.gdb.arch.ptrmask
 
     page = pwndbg.vmmap.find(addr)
 

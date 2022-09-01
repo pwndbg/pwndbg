@@ -10,13 +10,13 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.elf
-import pwndbg.events
+import pwndbg.gdb.events
 import pwndbg.symbol
 
 break_on_first_instruction = False
 
 
-@pwndbg.events.start
+@pwndbg.gdb.events.start
 def on_start():
     global break_on_first_instruction
     if break_on_first_instruction:

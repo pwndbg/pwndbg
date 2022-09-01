@@ -9,8 +9,8 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 import gdb
 
 import pwndbg.elf
-import pwndbg.events
-import pwndbg.memoize
+import pwndbg.gdb.events
+import pwndbg.lib.memoize
 import pwndbg.memory
 
 # Dictionary of stack ranges.
@@ -47,8 +47,8 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
     return pwndbg.memory.find_upper_boundary(stack_ptr, max_pages)
 
 
-@pwndbg.events.stop
-@pwndbg.memoize.reset_on_stop
+@pwndbg.gdb.events.stop
+@pwndbg.lib.memoize.reset_on_stop
 def update():
     """
     For each running thread, updates the known address range
@@ -97,7 +97,7 @@ def update():
             curr_thread.switch()
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def current():
     """
     Returns the bounds for the stack for the current thread.
@@ -105,7 +105,7 @@ def current():
     return find(pwndbg.regs.sp)
 
 
-@pwndbg.events.exit
+@pwndbg.gdb.events.exit
 def clear():
     """
     Clears everything we know about any stack memory ranges.
@@ -117,8 +117,8 @@ def clear():
     nx = False
 
 
-@pwndbg.events.stop
-@pwndbg.memoize.reset_on_exit
+@pwndbg.gdb.events.stop
+@pwndbg.lib.memoize.reset_on_exit
 def is_executable():
     global nx
     nx = False

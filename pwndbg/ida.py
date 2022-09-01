@@ -13,12 +13,12 @@ import xmlrpc.client
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.config
 import pwndbg.decorators
 import pwndbg.elf
-import pwndbg.events
-import pwndbg.memoize
+import pwndbg.gdb.arch
+import pwndbg.gdb.events
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.regs
 from pwndbg.color import message
@@ -151,7 +151,7 @@ def returns_address(function):
     return wrapper
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def available():
     if not ida_enabled:
         return False
@@ -167,7 +167,7 @@ def l2r(addr):
     exe = pwndbg.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - int(exe.address) + base()) & pwndbg.arch.ptrmask
+    result = (addr - int(exe.address) + base()) & pwndbg.gdb.arch.ptrmask
     return result
 
 
@@ -175,7 +175,7 @@ def r2l(addr):
     exe = pwndbg.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - base() + int(exe.address)) & pwndbg.arch.ptrmask
+    result = (addr - base() + int(exe.address)) & pwndbg.gdb.arch.ptrmask
     return result
 
 
@@ -186,7 +186,7 @@ def remote(function):
     global variables."""
 
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def base():
     segaddr = _ida.get_next_seg(0)
 
@@ -203,14 +203,14 @@ def Comment(addr):
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def Name(addr):
     return _ida.get_name(addr, 0x1)  # GN_VISIBLE
 
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def GetFuncOffset(addr):
     rv = _ida.get_func_off_str(addr)
     return rv
@@ -218,7 +218,7 @@ def GetFuncOffset(addr):
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def GetType(addr):
     rv = _ida.get_type(addr)
     return rv
@@ -239,7 +239,7 @@ def Jump(addr):
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def Anterior(addr):
     hexrays_prefix = "\x01\x04; "
     lines = []
@@ -273,8 +273,8 @@ def GetBptEA(i):
 _breakpoints = []
 
 
-@pwndbg.events.cont
-@pwndbg.events.stop
+@pwndbg.gdb.events.cont
+@pwndbg.gdb.events.stop
 @withIDA
 def UpdateBreakpoints():
     # XXX: Remove breakpoints from IDA when the user removes them.
@@ -309,7 +309,7 @@ def SetColor(pc, color):
 colored_pc = None
 
 
-@pwndbg.events.stop
+@pwndbg.gdb.events.stop
 @withIDA
 def Auto_Color_PC():
     global colored_pc
@@ -317,7 +317,7 @@ def Auto_Color_PC():
     SetColor(colored_pc, 0x7F7FFF)
 
 
-@pwndbg.events.cont
+@pwndbg.gdb.events.cont
 @withIDA
 def Auto_UnColor_PC():
     global colored_pc
@@ -328,7 +328,7 @@ def Auto_UnColor_PC():
 
 @withIDA
 @returns_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def LocByName(name):
     return _ida.get_name_ea_simple(str(name))
 
@@ -336,7 +336,7 @@ def LocByName(name):
 @withIDA
 @takes_address
 @returns_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def PrevHead(addr):
     return _ida.prev_head(addr)
 
@@ -344,34 +344,34 @@ def PrevHead(addr):
 @withIDA
 @takes_address
 @returns_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def NextHead(addr):
     return _ida.next_head(addr)
 
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def GetFunctionName(addr):
     return _ida.get_func_name(addr)
 
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def GetFlags(addr):
     return _ida.get_full_flags(addr)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def isASCII(flags):
     return _ida.is_strlit(flags)
 
 
 @withIDA
 @takes_address
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def ArgCount(address):
     pass
 
@@ -387,87 +387,87 @@ def GetIdbPath():
 
 
 @takes_address
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def has_cached_cfunc(addr):
     return _ida.has_cached_cfunc(addr)
 
 
 @withHexrays
 @takes_address
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def decompile(addr):
     return _ida.decompile(addr)
 
 
 @withHexrays
 @takes_address
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def decompile_context(pc, context_lines):
     return _ida.decompile_context(pc, context_lines)
 
 
 @withIDA
-@pwndbg.memoize.forever
+@pwndbg.lib.memoize.forever
 def get_ida_versions():
     return _ida.versions()
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetStrucQty():
     return _ida.get_struc_qty()
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetStrucId(idx):
     return _ida.get_struc_by_idx(idx)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetStrucName(sid):
     return _ida.get_struc_name(sid)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetStrucSize(sid):
     return _ida.get_struc_size(sid)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetMemberQty(sid):
     return _ida.get_member_qty(sid)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetMemberSize(sid, offset):
     return _ida.get_member_size(sid, offset)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetMemberId(sid, offset):
     return _ida.get_member_id(sid, offset)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetMemberName(sid, offset):
     return _ida.get_member_name(sid, offset)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetMemberFlag(sid, offset):
     return _ida.get_member_flag(sid, offset)
 
 
 @withIDA
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def GetStrucNextOff(sid, offset):
     return _ida.get_next_offset(sid, offset)
 

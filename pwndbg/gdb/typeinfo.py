@@ -10,10 +10,10 @@ import sys
 
 import gdb
 
-import pwndbg.events
 import pwndbg.gcc
-import pwndbg.memoize
-import pwndbg.tempfile
+import pwndbg.gdb.events
+import pwndbg.lib.memoize
+import pwndbg.lib.tempfile
 
 module = sys.modules[__name__]
 
@@ -37,11 +37,7 @@ def lookup_types(*types):
     raise exc
 
 
-@pwndbg.events.new_objfile
-@pwndbg.events.start
-@pwndbg.events.stop
 def update():
-
     module.char = gdb.lookup_type("char")
     module.ulong = lookup_types("unsigned long", "uint", "u32", "uint32")
     module.long = lookup_types("long", "int", "i32", "int32")
@@ -54,7 +50,12 @@ def update():
     module.uint16 = module.ushort
     module.uint32 = module.uint
     module.uint64 = lookup_types("unsigned long long", "ulong", "u64", "uint64")
-    module.unsigned = {1: module.uint8, 2: module.uint16, 4: module.uint32, 8: module.uint64}
+    module.unsigned = {
+        1: module.uint8,
+        2: module.uint16,
+        4: module.uint32,
+        8: module.uint64,
+    }
 
     module.int8 = lookup_types("char", "i8", "int8")
     module.int16 = lookup_types("short", "i16", "int16")
@@ -81,6 +82,7 @@ def update():
     module.null = gdb.Value(0).cast(void)
 
 
+# TODO: Remove this global initialization, or move it somewhere else
 # Call it once so we load all of the types
 update()
 
@@ -153,7 +155,7 @@ def load(name):
     # s, _ = gdb.lookup_symbol(name)
 
     # Try to find an architecture-specific include path
-    arch = pwndbg.arch.current.split(":")[0]
+    arch = pwndbg.gdb.arch.current.split(":")[0]
 
     include_dir = glob.glob("/usr/%s*/include" % arch)
 
@@ -178,7 +180,11 @@ def load(name):
         **locals()
     )
 
-    filename = "%s/%s_%s.cc" % (pwndbg.tempfile.cachedir("typeinfo"), arch, "-".join(name.split()))
+    filename = "%s/%s_%s.cc" % (
+        pwndbg.lib.tempfile.cachedir("typeinfo"),
+        arch,
+        "-".join(name.split()),
+    )
 
     with open(filename, "w+") as f:
         f.write(source)
@@ -199,7 +205,7 @@ def compile(filename=None, address=0):
     objectname = os.path.splitext(filename)[0] + ".o"
 
     if not os.path.exists(objectname):
-        gcc = pwndbg.gcc.which()
+        gcc = pwndbg.lib.gcc.which()
         gcc += ["-w", "-c", "-g", filename, "-o", objectname]
         try:
             subprocess.check_output(gcc)
@@ -215,11 +221,15 @@ def add_symbol_file(filename=None, address=0):
         print("Specify a symbol file to add.")
         return
 
-    with pwndbg.events.Pause():
-        gdb.execute("add-symbol-file %s %s" % (filename, address), from_tty=False, to_string=True)
+    with pwndbg.gdb.events.Pause():
+        gdb.execute(
+            "add-symbol-file %s %s" % (filename, address),
+            from_tty=False,
+            to_string=True,
+        )
 
 
 def read_gdbvalue(type_name, addr):
     """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    gdb_type = pwndbg.typeinfo.load(type_name)
+    gdb_type = pwndbg.gdb.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()

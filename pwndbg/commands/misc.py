@@ -5,6 +5,7 @@ import gdb
 
 import pwndbg.auxv
 import pwndbg.commands
+import pwndbg.gdb.arch as _arch
 import pwndbg.regs
 import pwndbg.symbol
 

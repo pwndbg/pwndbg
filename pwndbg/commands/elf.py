@@ -74,7 +74,7 @@ def print_symbols_in_section(section_name, filter_text=""):
 
 def get_symbols_in_region(start, end, filter_text=""):
     symbols = []
-    ptr_size = pwndbg.typeinfo.pvoid.sizeof
+    ptr_size = pwndbg.gdb.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
         name = pwndbg.symbol.get(addr)

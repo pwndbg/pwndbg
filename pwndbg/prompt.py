@@ -3,9 +3,9 @@ import re
 import gdb
 
 import pwndbg.decorators
-import pwndbg.events
+import pwndbg.gdb.events
 import pwndbg.gdbutils
-import pwndbg.memoize
+import pwndbg.lib.memoize
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.tips import get_tip_of_the_day
@@ -54,14 +54,14 @@ def prompt_hook(*a):
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
     if cur != new:
-        pwndbg.events.after_reload(start=cur is None)
+        pwndbg.gdb.events.after_reload(start=cur is None)
         cur = new
 
     if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
         prompt_hook_on_stop(*a)
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
     pwndbg.commands.context.context()
 
@@ -78,13 +78,13 @@ def set_prompt():
     gdb.execute("set prompt %s" % prompt)
 
 
-if pwndbg.events.before_prompt_event.is_real_event:
+if pwndbg.gdb.events.before_prompt_event.is_real_event:
     gdb.prompt_hook = initial_hook
 
 else:
     # Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
     def extended_prompt_hook(*a):
-        pwndbg.events.before_prompt_event.invoke_callbacks()
+        pwndbg.gdb.events.before_prompt_event.invoke_callbacks()
         return prompt_hook(*a)
 
     gdb.prompt_hook = extended_prompt_hook

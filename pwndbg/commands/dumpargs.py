@@ -21,7 +21,7 @@ def dumpargs(force=False):
         print("Couldn't resolve call arguments from registers.")
         print(
             "Detected ABI: {} ({} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?".format(
-                pwndbg.arch.current, pwndbg.arch.ptrsize * 8
+                pwndbg.gdb.arch.current, pwndbg.gdb.arch.ptrsize * 8
             )
         )
 

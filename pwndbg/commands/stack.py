@@ -1,8 +1,8 @@
 import gdb
 
-import pwndbg.arch
 import pwndbg.chain
 import pwndbg.commands
+import pwndbg.gdb.arch
 import pwndbg.regs
 import pwndbg.vmmap
 
@@ -31,4 +31,4 @@ def retaddr():
             del addresses[:index]
             print(pwndbg.chain.format(sp))
 
-        sp += pwndbg.arch.ptrsize
+        sp += pwndbg.gdb.arch.ptrsize

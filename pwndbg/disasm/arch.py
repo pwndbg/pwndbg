@@ -1,7 +1,7 @@
 import gdb
 from capstone import *
 
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.symbol
 
 debug = False
@@ -37,7 +37,7 @@ class DisassemblyAssistant:
 
     @staticmethod
     def enhance(instruction):
-        enhancer = DisassemblyAssistant.assistants.get(pwndbg.arch.current, generic_assistant)
+        enhancer = DisassemblyAssistant.assistants.get(pwndbg.gdb.arch.current, generic_assistant)
         enhancer.enhance_operands(instruction)
         enhancer.enhance_symbol(instruction)
         enhancer.enhance_conditional(instruction)
@@ -99,7 +99,7 @@ class DisassemblyAssistant:
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
 
-        instruction.next = next_addr & pwndbg.arch.ptrmask
+        instruction.next = next_addr & pwndbg.gdb.arch.ptrmask
 
         if instruction.target is None:
             instruction.target = instruction.next
@@ -127,7 +127,7 @@ class DisassemblyAssistant:
         op = instruction.operands[0]
         addr = op.int
         if addr:
-            addr &= pwndbg.arch.ptrmask
+            addr &= pwndbg.gdb.arch.ptrmask
         if op.type == CS_OP_MEM:
             if addr is None:
                 addr = self.memory(instruction, op)
@@ -137,7 +137,7 @@ class DisassemblyAssistant:
                 try:
                     # fails with gdb.MemoryError if the dereferenced address
                     # doesn't belong to any of process memory maps
-                    addr = int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, addr))
+                    addr = int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, addr))
                 except gdb.MemoryError:
                     return None
         if op.type == CS_OP_REG:
@@ -191,7 +191,7 @@ class DisassemblyAssistant:
 
             op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
             if op.int:
-                op.int &= pwndbg.arch.ptrmask
+                op.int &= pwndbg.gdb.arch.ptrmask
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if op.int:

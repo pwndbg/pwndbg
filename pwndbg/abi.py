@@ -2,8 +2,8 @@ import functools
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.color.message as M
+import pwndbg.gdb.arch
 
 
 class ABI:
@@ -44,7 +44,7 @@ class ABI:
             (32, "mips", "linux"): linux_mips,
             (32, "powerpc", "linux"): linux_ppc,
             (64, "powerpc", "linux"): linux_ppc64,
-        }[(8 * pwndbg.arch.ptrsize, pwndbg.arch.current, "linux")]
+        }[(8 * pwndbg.gdb.arch.ptrsize, pwndbg.gdb.arch.current, "linux")]
 
     @staticmethod
     def syscall():
@@ -57,7 +57,7 @@ class ABI:
             (32, "mips", "linux"): linux_mips_syscall,
             (32, "powerpc", "linux"): linux_ppc_syscall,
             (64, "powerpc", "linux"): linux_ppc64_syscall,
-        }[(8 * pwndbg.arch.ptrsize, pwndbg.arch.current, "linux")]
+        }[(8 * pwndbg.gdb.arch.ptrsize, pwndbg.gdb.arch.current, "linux")]
 
     @staticmethod
     def sigreturn():
@@ -66,7 +66,7 @@ class ABI:
             (64, "x86-64", "linux"): linux_amd64_sigreturn,
             (32, "arm", "linux"): linux_arm_sigreturn,
             (32, "thumb", "linux"): linux_arm_sigreturn,
-        }[(8 * pwndbg.arch.ptrsize, pwndbg.arch.current, "linux")]
+        }[(8 * pwndbg.gdb.arch.ptrsize, pwndbg.gdb.arch.current, "linux")]
 
 
 class SyscallABI(ABI):
@@ -116,7 +116,7 @@ linux_amd64_srop = ABI(["rax"], 4, 0)
 linux_arm_srop = ABI(["r7"], 4, 0)
 
 
-@pwndbg.events.start
+@pwndbg.gdb.events.start
 def update():
     global abi
     global linux

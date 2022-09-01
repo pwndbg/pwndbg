@@ -14,7 +14,7 @@ from pwndbg.gdbutils.functions import GdbFunction
 
 @pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB")
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.events.stop
+@pwndbg.gdb.events.stop
 @pwndbg.ida.withIDA
 def j(*args):
     """

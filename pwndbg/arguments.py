@@ -7,18 +7,18 @@ from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.abi
-import pwndbg.arch
 import pwndbg.chain
 import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.funcparser
 import pwndbg.functions
+import pwndbg.gdb.arch
+import pwndbg.gdb.typeinfo
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.symbol
-import pwndbg.typeinfo
 
 ida_replacements = {
     "__int64": "signed long long int",
@@ -183,9 +183,9 @@ def argument(n, abi=None):
 
     n -= len(regs)
 
-    sp = pwndbg.regs.sp + (n * pwndbg.arch.ptrsize)
+    sp = pwndbg.regs.sp + (n * pwndbg.gdb.arch.ptrsize)
 
-    return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, sp))
+    return int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, sp))
 
 
 def arguments(abi=None):

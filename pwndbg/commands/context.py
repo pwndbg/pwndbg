@@ -19,7 +19,7 @@ import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
 import pwndbg.config
 import pwndbg.disasm
-import pwndbg.events
+import pwndbg.gdb.events
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.regs
@@ -315,7 +315,7 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
         return banner + [message.error(e)]
 
 
-# @pwndbg.events.stop
+# @pwndbg.gdb.events.stop
 
 parser = argparse.ArgumentParser()
 parser.description = "Print out the current register, instruction, and stack context."
@@ -564,7 +564,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
-        pwndbg.memoize.reset()
+        pwndbg.lib.memoize.reset()
 
     banner = [pwndbg.ui.banner("disasm", target=target, width=width)]
     emulate = bool(pwndbg.config.emulate)
@@ -585,7 +585,7 @@ source_code_lines = pwndbg.config.Parameter(
 theme.Parameter("code-prefix", "►", "prefix marker for 'context code' command")
 
 
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_start
 def get_highlight_source(filename):
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
@@ -826,7 +826,7 @@ context_sections = {
 }
 
 
-@pwndbg.memoize.forever
+@pwndbg.lib.memoize.forever
 def _is_rr_present():
     """
     Checks whether rr project is present (so someone launched e.g. `rr replay <some-recording>`)

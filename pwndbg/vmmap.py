@@ -13,16 +13,16 @@ import gdb
 
 import pwndbg.abi
 import pwndbg.elf
-import pwndbg.events
 import pwndbg.file
-import pwndbg.memoize
+import pwndbg.gdb.events
+import pwndbg.gdb.typeinfo
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.qemu
 import pwndbg.regs
 import pwndbg.remote
 import pwndbg.stack
-import pwndbg.typeinfo
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -39,14 +39,14 @@ kernel_vmmap_via_pt = pwndbg.config.Parameter(
 )
 
 
-@pwndbg.memoize.reset_on_objfile
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_start
 def is_corefile():
     return gdb.execute("info target", to_string=True).startswith("Local core dump file")
 
 
-@pwndbg.memoize.reset_on_start
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_stop
 def get():
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.proc.alive:
@@ -57,7 +57,7 @@ def get():
     if (
         not pages
         and pwndbg.qemu.is_qemu_kernel()
-        and pwndbg.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+        and pwndbg.gdb.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
     ):
         if kernel_vmmap_via_pt:
             pages.extend(kernel_vmmap_via_page_tables())
@@ -82,7 +82,7 @@ def get():
             pages.extend(info_sharedlibrary())
         else:
             if pwndbg.qemu.is_qemu():
-                return (pwndbg.memory.Page(0, pwndbg.arch.ptrmask, 7, 0, "[qemu]"),)
+                return (pwndbg.memory.Page(0, pwndbg.gdb.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
@@ -93,7 +93,7 @@ def get():
     return tuple(pages)
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def find(address):
     if address is None:
         return None
@@ -145,13 +145,13 @@ def explore(address_maybe):
 
 
 # Automatically ensure that all registers are explored on each stop
-# @pwndbg.events.stop
+# @pwndbg.gdb.events.stop
 def explore_registers():
     for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
 
 
-# @pwndbg.events.exit
+# @pwndbg.gdb.events.exit
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
@@ -163,7 +163,7 @@ def add_custom_page(page):
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.memoize.reset()
+    pwndbg.lib.memoize.reset()
 
 
 def clear_custom_page():
@@ -173,11 +173,11 @@ def clear_custom_page():
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.memoize.reset()
+    pwndbg.lib.memoize.reset()
 
 
-@pwndbg.memoize.reset_on_objfile
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_start
 def coredump_maps():
     """
     Parses `info proc mappings` and `maintenance info sections`
@@ -268,8 +268,8 @@ def coredump_maps():
     return tuple(pages)
 
 
-@pwndbg.memoize.reset_on_start
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_stop
 def proc_pid_maps():
     """
     Parse the contents of /proc/$PID/maps on the server.
@@ -351,7 +351,7 @@ def proc_pid_maps():
     return tuple(pages)
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def kernel_vmmap_via_page_tables():
     import pt
 
@@ -429,7 +429,7 @@ def kernel_vmmap_via_monitor_info_mem():
     return tuple(pages)
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def info_sharedlibrary():
     """
     Parses the output of `info sharedlibrary`.
@@ -476,7 +476,7 @@ def info_sharedlibrary():
     return tuple(sorted(pages))
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def info_files():
 
     example_info_files_linues = """
@@ -536,7 +536,7 @@ def info_files():
     return tuple(pages)
 
 
-@pwndbg.memoize.reset_on_exit
+@pwndbg.lib.memoize.reset_on_exit
 def info_auxv(skip_exe=False):
     """
     Extracts the name of the executable from the output of the command
@@ -624,7 +624,7 @@ def check_aslr():
     return ("is off." in output), "show disable-randomization"
 
 
-@pwndbg.events.cont
+@pwndbg.gdb.events.cont
 def mark_pc_as_executable():
     mapping = find(pwndbg.regs.pc)
     if mapping and not mapping.execute:

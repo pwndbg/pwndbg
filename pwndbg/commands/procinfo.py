@@ -5,7 +5,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.file
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.net
 import pwndbg.proc
 
@@ -83,14 +83,14 @@ class Process:
         self.status
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def selinux(self):
         path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
         raw = pwndbg.file.get(path)
         return raw.decode().rstrip("\x00").strip()
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def status(self):
         raw = pwndbg.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
@@ -146,7 +146,7 @@ class Process:
         return status
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def open_files(self):
         fds = {}
 
@@ -159,7 +159,7 @@ class Process:
         return fds
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def connections(self):
         # Connections look something like this:
         # socket:[102422]

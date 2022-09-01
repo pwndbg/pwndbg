@@ -1,5 +1,5 @@
-:mod:`pwndbg.typeinfo` --- pwndbg.typeinfo
+:mod:`pwndbg.gdb.typeinfo` --- pwndbg.gdb.typeinfo
 =============================================
 
-.. automodule:: pwndbg.typeinfo
+.. automodule:: pwndbg.gdb.typeinfo
     :members:

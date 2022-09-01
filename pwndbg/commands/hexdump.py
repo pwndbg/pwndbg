@@ -2,9 +2,9 @@ import argparse
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.commands
 import pwndbg.config
+import pwndbg.gdb.arch
 import pwndbg.hexdump
 import pwndbg.memory
 import pwndbg.regs
@@ -65,13 +65,13 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
         hexdump.offset = 0
 
     address = int(address)
-    address &= pwndbg.arch.ptrmask
+    address &= pwndbg.gdb.arch.ptrmask
     count = max(int(count), 0)
     width = int(pwndbg.config.hexdump_width)
     group_width = int(pwndbg.config.hexdump_group_width)
-    group_width = pwndbg.typeinfo.ptrsize if group_width == -1 else group_width
+    group_width = pwndbg.gdb.typeinfo.ptrsize if group_width == -1 else group_width
     flip_group_endianess = (
-        pwndbg.config.hexdump_group_use_big_endian and pwndbg.arch.endian == "little"
+        pwndbg.config.hexdump_group_use_big_endian and pwndbg.gdb.arch.endian == "little"
     )
 
     if count > address > 0x10000:

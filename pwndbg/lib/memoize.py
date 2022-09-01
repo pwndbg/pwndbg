@@ -7,10 +7,6 @@ new library/objfile are loaded, etc.
 import functools
 import sys
 
-import gdb
-
-import pwndbg.events
-
 try:
     # Python >= 3.10
     from collections.abc import Hashable
@@ -90,9 +86,6 @@ class reset_on_stop(memoize):
     kind = "stop"
 
     @staticmethod
-    @pwndbg.events.stop
-    @pwndbg.events.mem_changed
-    @pwndbg.events.reg_changed
     def __reset_on_stop():
         for obj in reset_on_stop.caches:
             obj.cache.clear()
@@ -105,7 +98,6 @@ class reset_on_prompt(memoize):
     kind = "prompt"
 
     @staticmethod
-    @pwndbg.events.before_prompt
     def __reset_on_prompt():
         for obj in reset_on_prompt.caches:
             obj.cache.clear()
@@ -118,7 +110,6 @@ class reset_on_exit(memoize):
     kind = "exit"
 
     @staticmethod
-    @pwndbg.events.exit
     def __reset_on_exit():
         for obj in reset_on_exit.caches:
             obj.clear()
@@ -131,7 +122,6 @@ class reset_on_objfile(memoize):
     kind = "objfile"
 
     @staticmethod
-    @pwndbg.events.new_objfile
     def __reset_on_objfile():
         for obj in reset_on_objfile.caches:
             obj.clear()
@@ -144,7 +134,6 @@ class reset_on_start(memoize):
     kind = "start"
 
     @staticmethod
-    @pwndbg.events.start
     def __reset_on_start():
         for obj in reset_on_start.caches:
             obj.clear()
@@ -157,7 +146,6 @@ class reset_on_cont(memoize):
     kind = "cont"
 
     @staticmethod
-    @pwndbg.events.cont
     def __reset_on_cont():
         for obj in reset_on_cont.caches:
             obj.clear()
@@ -171,12 +159,10 @@ class while_running(memoize):
     caching = False
 
     @staticmethod
-    @pwndbg.events.start
-    def __start_caching():
+    def _start_caching():
         while_running.caching = True
 
     @staticmethod
-    @pwndbg.events.exit
     def __reset_while_running():
         for obj in while_running.caches:
             obj.clear()

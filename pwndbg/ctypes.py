@@ -11,18 +11,18 @@ Structure type, and incurring a performance penalty for foreign-endianness targe
 import ctypes
 import sys
 
-import pwndbg.arch
-import pwndbg.events
+import pwndbg.gdb.arch
+import pwndbg.gdb.events
 
 module = sys.modules[__name__]
 
 
-@pwndbg.events.start
-@pwndbg.events.new_objfile
+@pwndbg.gdb.events.start
+@pwndbg.gdb.events.new_objfile
 def update():
     global module
 
-    if pwndbg.arch.endian == "little":
+    if pwndbg.gdb.arch.endian == "little":
         Structure = ctypes.LittleEndianStructure
     else:
         Structure = ctypes.BigEndianStructure

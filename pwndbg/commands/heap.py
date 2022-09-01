@@ -8,8 +8,8 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
+import pwndbg.gdb.typeinfo
 import pwndbg.glibc
-import pwndbg.typeinfo
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import extend_value_with_default
@@ -27,7 +27,7 @@ def read_chunk(addr):
         "mchunk_prev_size": "prev_size",
     }
     if not pwndbg.config.resolve_heap_via_heuristic:
-        val = pwndbg.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+        val = pwndbg.gdb.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
     return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
@@ -149,7 +149,7 @@ def heap(addr=None, verbose=False, simple=False):
             cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
 
     # i686 alignment heuristic
-    first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+    first_chunk_size = pwndbg.gdb.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
     if first_chunk_size == 0:
         cursor += ptr_size * 2
 
@@ -571,7 +571,7 @@ parser.add_argument("size", nargs="?", type=int, default=None, help="Size of fak
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def find_fake_fast(addr, size=None):
     """Find candidate fake fast chunks overlapping the specified address."""
-    psize = pwndbg.arch.ptrsize
+    psize = pwndbg.gdb.arch.ptrsize
     allocator = pwndbg.heap.current
     align = allocator.malloc_alignment
     min_fast = allocator.min_chunk_size
@@ -587,7 +587,7 @@ def find_fake_fast(addr, size=None):
         start = 0  # TODO, maybe some better way to handle case when global_max_fast is overwritten with something large
     mem = pwndbg.memory.read(start, max_fast - psize, partial=True)
 
-    fmt = {"little": "<", "big": ">"}[pwndbg.arch.endian] + {4: "I", 8: "Q"}[psize]
+    fmt = {"little": "<", "big": ">"}[pwndbg.gdb.arch.endian] + {4: "I", 8: "Q"}[psize]
 
     if size is None:
         sizes = range(min_fast, max_fast + 1, align)
@@ -653,7 +653,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
     # Check if there is an alignment at the start of the heap, adjust if necessary.
     if not addr:
-        first_chunk_size = pwndbg.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
+        first_chunk_size = pwndbg.gdb.arch.unpack(pwndbg.memory.read(cursor + ptr_size, ptr_size))
         if first_chunk_size == 0:
             cursor += ptr_size * 2
 
@@ -720,7 +720,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = pwndbg.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
+            cell = pwndbg.gdb.arch.unpack(pwndbg.memory.read(cursor, ptr_size))
             cell_hex = "\t0x{:0{n}x}".format(cell, n=ptr_size * 2)
 
             out += color_func(cell_hex)
@@ -820,7 +820,7 @@ def try_free(addr):
     malloc_align_mask = allocator.malloc_align_mask
     chunk_minsize = allocator.minsize
 
-    ptr_size = pwndbg.arch.ptrsize
+    ptr_size = pwndbg.gdb.arch.ptrsize
 
     def unsigned_size(size):
         # read_chunk()['size'] is signed in pwndbg ;/

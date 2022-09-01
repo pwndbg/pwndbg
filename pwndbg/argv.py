@@ -1,8 +1,8 @@
 import gdb
 
 import pwndbg.abi
-import pwndbg.arch
-import pwndbg.events
+import pwndbg.gdb.arch
+import pwndbg.gdb.events
 import pwndbg.memory
 import pwndbg.regs
 
@@ -19,7 +19,7 @@ envp = None
 envc = None
 
 
-@pwndbg.events.start
+@pwndbg.gdb.events.start
 @pwndbg.abi.LinuxOnly()
 def update():
     global argc
@@ -27,10 +27,10 @@ def update():
     global envp
     global envc
 
-    pwndbg.arch.update()  # :-(
+    pwndbg.gdb.arch_mod.update()  # :-(
 
     sp = pwndbg.regs.sp
-    ptrsize = pwndbg.arch.ptrsize
+    ptrsize = pwndbg.gdb.arch.ptrsize
     ptrbits = 8 * ptrsize
 
     try:

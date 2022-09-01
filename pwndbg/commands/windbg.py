@@ -10,20 +10,20 @@ from builtins import str
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.commands
+import pwndbg.gdb.arch
+import pwndbg.gdb.typeinfo
 import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
-import pwndbg.typeinfo
 
 
 def get_type(size):
     return {
-        1: pwndbg.typeinfo.uint8,
-        2: pwndbg.typeinfo.uint16,
-        4: pwndbg.typeinfo.uint32,
-        8: pwndbg.typeinfo.uint64,
+        1: pwndbg.gdb.typeinfo.uint8,
+        2: pwndbg.gdb.typeinfo.uint16,
+        4: pwndbg.gdb.typeinfo.uint32,
+        8: pwndbg.gdb.typeinfo.uint64,
     }[size]
 
 
@@ -148,7 +148,7 @@ def dX(size, address, count, to_string=False, repeat=False):
         count = dX.last_count
         address = dX.last_address
     else:
-        address = int(address) & pwndbg.arch.ptrmask
+        address = int(address) & pwndbg.gdb.arch.ptrmask
         count = int(count)
 
     type = get_type(size)
@@ -175,7 +175,7 @@ def dX(size, address, count, to_string=False, repeat=False):
     for i, row in enumerate(rows):
         if not row:
             continue
-        line = [enhex(pwndbg.arch.ptrsize, address + (i * 16)), "   "]
+        line = [enhex(pwndbg.gdb.arch.ptrsize, address + (i * 16)), "   "]
         for value in row:
             line.append(enhex(size, value))
         lines.append(" ".join(line))
@@ -326,7 +326,7 @@ def eX(size, address, data, hex=True):
         else:
             data = string
 
-        if pwndbg.arch.endian == "little":
+        if pwndbg.gdb.arch.endian == "little":
             data = data[::-1]
 
         try:

@@ -17,7 +17,7 @@ jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, ca
 interrupts = set((capstone.CS_GRP_INT,))
 
 
-@pwndbg.events.exit
+@pwndbg.gdb.events.exit
 def clear_temp_breaks():
     if not pwndbg.proc.alive:
         breakpoints = gdb.breakpoints()

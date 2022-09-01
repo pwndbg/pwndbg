@@ -1,10 +1,10 @@
 from capstone import *
 from capstone.x86 import *
 
-import pwndbg.arch
+import pwndbg.gdb.arch
+import pwndbg.gdb.typeinfo
 import pwndbg.memory
 import pwndbg.regs
-import pwndbg.typeinfo
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
@@ -111,10 +111,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.operands:
             pop = instruction.operands[0].int
 
-        address = (pwndbg.regs.sp) + (pwndbg.arch.ptrsize * pop)
+        address = (pwndbg.regs.sp) + (pwndbg.gdb.arch.ptrsize * pop)
 
         if pwndbg.memory.peek(address):
-            return int(pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address))
+            return int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, address))
 
     def condition(self, instruction):
         # JMP is unconditional

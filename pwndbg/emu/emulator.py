@@ -9,9 +9,9 @@ import capstone as C
 import gdb
 import unicorn as U
 
-import pwndbg.arch
 import pwndbg.disasm
 import pwndbg.emu.emulator
+import pwndbg.gdb.arch
 import pwndbg.memory
 import pwndbg.regs
 
@@ -100,7 +100,7 @@ e.until_jump()
 
 class Emulator:
     def __init__(self):
-        self.arch = pwndbg.arch.current
+        self.arch = pwndbg.gdb.arch.current
 
         if self.arch not in arch_to_UC:
             raise NotImplementedError("Cannot emulate code for %s" % self.arch)
@@ -186,7 +186,7 @@ class Emulator:
         """
         Retrieve the mode used by Unicorn for the current architecture.
         """
-        arch = pwndbg.arch.current
+        arch = pwndbg.gdb.arch.current
         mode = 0
 
         if arch == "armcm":
@@ -203,9 +203,9 @@ class Emulator:
             mode |= U.UC_MODE_MIPS32R6
 
         else:
-            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.arch.ptrsize]
+            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.gdb.arch.ptrsize]
 
-        if pwndbg.arch.endian == "little":
+        if pwndbg.gdb.arch.endian == "little":
             mode |= U.UC_MODE_LITTLE_ENDIAN
         else:
             mode |= U.UC_MODE_BIG_ENDIAN

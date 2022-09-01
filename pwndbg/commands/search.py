@@ -4,11 +4,11 @@ import codecs
 import os
 import struct
 
-import pwndbg.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.enhance
+import pwndbg.gdb.arch
 import pwndbg.search
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -142,7 +142,7 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
 
     # Adjust pointer sizes to the local architecture
     if type == "pointer":
-        type = {4: "dword", 8: "qword"}[pwndbg.arch.ptrsize]
+        type = {4: "dword", 8: "qword"}[pwndbg.gdb.arch.ptrsize]
 
     if save is None:
         save = bool(pwndbg.config.auto_save_search)
@@ -157,8 +157,8 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
     # Convert to an integer if needed, and pack to bytes
     if type not in ("string", "bytes"):
         value = pwndbg.commands.fix_int(value)
-        value &= pwndbg.arch.ptrmask
-        fmt = {"little": "<", "big": ">"}[pwndbg.arch.endian] + {
+        value &= pwndbg.gdb.arch.ptrmask
+        fmt = {"little": "<", "big": ">"}[pwndbg.gdb.arch.endian] + {
             "byte": "B",
             "short": "H",
             "word": "H",
