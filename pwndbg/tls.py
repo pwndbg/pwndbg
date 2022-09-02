@@ -49,14 +49,9 @@ class module(ModuleType):
                     if instr.mnemonic == "mov":
                         # base offset is from the first `add eax` after `call __x86.get_pc_thunk.bx`
                         base_offset_instr = next(
-                            instr
-                            for instr in __errno_location_instr
-                            if instr.mnemonic == "add"
+                            instr for instr in __errno_location_instr if instr.mnemonic == "add"
                         )
-                        base_offset = (
-                            base_offset_instr.address
-                            + base_offset_instr.operands[1].int
-                        )
+                        base_offset = base_offset_instr.address + base_offset_instr.operands[1].int
                         self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
                         break
             elif pwndbg.arch.current == "arm":
@@ -66,12 +61,8 @@ class module(ModuleType):
                         ldr_instr = instr
                     elif ldr_instr and instr.mnemonic == "add":
                         offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.memory.s32(
-                            (ldr_instr.address + 4 & -4) + offset
-                        )
-                        self._errno_offset = pwndbg.memory.s32(
-                            instr.address + 4 + offset
-                        )
+                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                        self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
                         break
         if not self._errno_offset:
             raise OSError("Can not find tls base")
@@ -99,8 +90,7 @@ class module(ModuleType):
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
         is_valid_tls_base = (
-            pwndbg.vmmap.find(tls_base) is not None
-            and tls_base % pwndbg.arch.ptrsize == 0
+            pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.arch.ptrsize == 0
         )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 

@@ -134,9 +134,7 @@ class CStruct2GDB:
         """
         Returns a tuple of (field name, field value) pairs.
         """
-        return tuple(
-            (field[0], getattr(self, field[0])) for field in self._c_struct._fields_
-        )
+        return tuple((field[0], getattr(self, field[0])) for field in self._c_struct._fields_)
 
 
 class c_malloc_state_2_26(ctypes.LittleEndianStructure):

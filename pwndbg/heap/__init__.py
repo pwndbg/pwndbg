@@ -5,13 +5,9 @@ import pwndbg.symbol
 
 current = None
 
-main_arena = pwndbg.config.Parameter(
-    "main_arena", "0", "&main_arena for heuristics", "heap"
-)
+main_arena = pwndbg.config.Parameter("main_arena", "0", "&main_arena for heuristics", "heap")
 
-thread_arena = pwndbg.config.Parameter(
-    "thread_arena", "0", "*thread_arena for heuristics", "heap"
-)
+thread_arena = pwndbg.config.Parameter("thread_arena", "0", "*thread_arena for heuristics", "heap")
 
 mp_ = pwndbg.config.Parameter("mp_", "0", "&mp_ for heuristics", "heap")
 

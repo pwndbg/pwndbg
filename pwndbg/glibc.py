@@ -19,9 +19,7 @@ safe_lnk = pwndbg.config.Parameter(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
 )
 
-glibc_version = pwndbg.config.Parameter(
-    "glibc", "", "GLIBC version for heuristics", scope="heap"
-)
+glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
 
 
 @pwndbg.proc.OnlyWhenRunning
