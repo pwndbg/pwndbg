@@ -29,11 +29,11 @@ def test_command_errno(start_binary):
     result = gdb.execute("errno", to_string=True)
     assert result == "Errno 0: OK\n"
 
-    gdb.execute("set errno=11")
+    gdb.execute("set *(int*)&errno=11")
     result = gdb.execute("errno", to_string=True)
     assert result == "Errno 11: EAGAIN\n"
 
-    gdb.execute("set errno=111")
+    gdb.execute("set *(int*)&errno=111")
     result = gdb.execute("errno", to_string=True)
     assert result == "Errno 111: ECONNREFUSED\n"
 
