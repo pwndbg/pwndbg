@@ -27,26 +27,31 @@ def pages_filter(gdbval_or_str):
         return lambda page: addr in page
 
     else:
-        raise argparse.ArgumentTypeError('Unknown vmmap argument type.')
+        raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
 parser = argparse.ArgumentParser()
-parser.description = '''Print virtual memory map pages. Results can be filtered by providing address/module name.
+parser.description = """Print virtual memory map pages. Results can be filtered by providing address/module name.
 
 Memory pages on QEMU targets may be inaccurate. This is because:
 - for QEMU kernel on X86/X64 we fetch memory pages via `monitor info mem` and it doesn't inform if memory page is executable
 - for QEMU user emulation we detected memory pages through AUXV (sometimes by finding AUXV on the stack first)
 - for others, we create mempages by exploring current register values (this is least correct)
 
-Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands.'''
-parser.formatter_class=argparse.RawDescriptionHelpFormatter
-parser.add_argument('gdbval_or_str', type=pwndbg.commands.sloppy_gdb_parse, nargs='?', default=None,
-                    help='Address or module name.')
-parser.add_argument('-w', '--writable', action='store_true', help='Display writable maps only')
-parser.add_argument('-x', '--executable', action='store_true', help='Display executable maps only')
+Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands."""
+parser.formatter_class = argparse.RawDescriptionHelpFormatter
+parser.add_argument(
+    "gdbval_or_str",
+    type=pwndbg.commands.sloppy_gdb_parse,
+    nargs="?",
+    default=None,
+    help="Address or module name.",
+)
+parser.add_argument("-w", "--writable", action="store_true", help="Display writable maps only")
+parser.add_argument("-x", "--executable", action="store_true", help="Display executable maps only")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=['lm', 'address', 'vprot'])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["lm", "address", "vprot"])
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(gdbval_or_str=None, writable=False, executable=False):
     pages = pwndbg.vmmap.get()
@@ -55,14 +60,14 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False):
         pages = list(filter(pages_filter(gdbval_or_str), pages))
 
     if not pages:
-        print('There are no mappings for specified address or module.')
+        print("There are no mappings for specified address or module.")
         return
 
     print(M.legend())
 
     if len(pages) == 1 and isinstance(gdbval_or_str, integer_types):
         page = pages[0]
-        print(M.get(page.vaddr, text=str(page) + ' +0x%x' % (int(gdbval_or_str) - page.vaddr)))
+        print(M.get(page.vaddr, text=str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)))
     else:
         for page in pages:
             if (executable and not page.execute) or (writable and not page.write):
@@ -74,18 +79,26 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = 'Add Print virtual memory map page.'
-parser.add_argument('start', help='Starting virtual address')
-parser.add_argument('size', help='Size of the address space, in bytes')
-parser.add_argument('flags', nargs='?', type=str, default='', help='Flags set by the ELF file, see PF_X, PF_R, PF_W')
-parser.add_argument('offset', nargs='?', default=0, help='Offset into the original ELF file that the data is loaded from')
+parser.description = "Add Print virtual memory map page."
+parser.add_argument("start", help="Starting virtual address")
+parser.add_argument("size", help="Size of the address space, in bytes")
+parser.add_argument(
+    "flags", nargs="?", type=str, default="", help="Flags set by the ELF file, see PF_X, PF_R, PF_W"
+)
+parser.add_argument(
+    "offset",
+    nargs="?",
+    default=0,
+    help="Offset into the original ELF file that the data is loaded from",
+)
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_add(start, size, flags, offset):
     page_flags = {
-        'r': pwndbg.elf.PF_R,
-        'w': pwndbg.elf.PF_W,
-        'x': pwndbg.elf.PF_X,
+        "r": pwndbg.elf.PF_R,
+        "w": pwndbg.elf.PF_W,
+        "x": pwndbg.elf.PF_X,
     }
     perm = 0
     for flag in flags:
@@ -98,17 +111,20 @@ def vmmap_add(start, size, flags, offset):
     page = pwndbg.memory.Page(start, size, perm, offset)
     pwndbg.vmmap.add_custom_page(page)
 
-    print('%r added' % page)
+    print("%r added" % page)
 
 
-@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.") #TODO is this accurate?
+@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
 def vmmap_clear():
     pwndbg.vmmap.clear_custom_page()
 
 
 parser = argparse.ArgumentParser()
-parser.description = 'Load virtual memory map pages from ELF file.'
-parser.add_argument('filename', nargs='?', type=str, help='ELF filename, by default uses current loaded filename.')
+parser.description = "Load virtual memory map pages from ELF file."
+parser.add_argument(
+    "filename", nargs="?", type=str, help="ELF filename, by default uses current loaded filename."
+)
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):
@@ -125,14 +141,14 @@ def vmmap_load(filename):
     # In most of case, link will create a segment and starts from 0x0.
     # This cause all values less than 0x8000 be considered as a valid pointer.
     pages = []
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         elffile = ELFFile(f)
 
         for section in elffile.iter_sections():
-            vaddr = section['sh_addr']
-            memsz = section['sh_size']
-            sh_flags = section['sh_flags']
-            offset = section['sh_offset']
+            vaddr = section["sh_addr"]
+            memsz = section["sh_size"]
+            sh_flags = section["sh_flags"]
+            offset = section["sh_offset"]
 
             # Don't add the sections that aren't mapped into memory
             if not sh_flags & SH_FLAGS.SHF_ALLOC:
@@ -150,4 +166,4 @@ def vmmap_load(filename):
 
     for page in pages:
         pwndbg.vmmap.add_custom_page(page)
-        print('%r added' % page)
+        print("%r added" % page)

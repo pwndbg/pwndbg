@@ -18,6 +18,7 @@ envp = None
 #: Total number of environment variables
 envc = None
 
+
 @pwndbg.events.start
 @pwndbg.abi.LinuxOnly()
 def update():
@@ -26,15 +27,15 @@ def update():
     global envp
     global envc
 
-    pwndbg.arch.update() # :-(
+    pwndbg.arch.update()  # :-(
 
     sp = pwndbg.regs.sp
     ptrsize = pwndbg.arch.ptrsize
-    ptrbits  = 8 * ptrsize
+    ptrbits = 8 * ptrsize
 
     try:
         argc = pwndbg.memory.u(sp, ptrbits)
-    except:
+    except Exception:
         return
 
     sp += ptrsize

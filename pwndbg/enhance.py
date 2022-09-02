@@ -23,32 +23,27 @@ import pwndbg.symbol
 import pwndbg.typeinfo
 from pwndbg.color.syntax_highlight import syntax_highlight
 
-bad_instrs = [
-'.byte',
-'.long',
-'rex.R',
-'rex.XB',
-'.inst',
-'(bad)'
-]
+bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
+
 
 def good_instr(i):
     return not any(bad in i for bad in bad_instrs)
 
+
 def int_str(value):
-    retval = '%#x' % int(value & pwndbg.arch.ptrmask)
+    retval = "%#x" % int(value & pwndbg.arch.ptrmask)
 
     # Try to unpack the value as a string
     packed = pwndbg.arch.pack(int(value))
-    if all(c in string.printable.encode('utf-8') for c in packed):
+    if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
-            retval = '%s (%r)' % (retval, str(packed.decode('ascii', 'ignore')))
+            retval = "%s (%r)" % (retval, str(packed.decode("ascii", "ignore")))
 
     return retval
 
 
 # @pwndbg.memoize.reset_on_stop
-def enhance(value, code = True, safe_linking = False):
+def enhance(value, code=True, safe_linking=False):
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -72,7 +67,7 @@ def enhance(value, code = True, safe_linking = False):
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not page or None == pwndbg.memory.peek(value):
+    if not page or None is pwndbg.memory.peek(value):
         can_read = False
 
     if not can_read:
@@ -80,13 +75,13 @@ def enhance(value, code = True, safe_linking = False):
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
-    instr  = None
-    exe    = page and page.execute
-    rwx    = page and page.rwx
+    instr = None
+    exe = page and page.execute
+    rwx = page and page.rwx
 
     # For the purpose of following pointers, don't display
     # anything on the stack or heap as 'code'
-    if '[stack' in page.objfile or '[heap' in page.objfile:
+    if "[stack" in page.objfile or "[heap" in page.objfile:
         rwx = exe = False
 
     # If IDA doesn't think it's in a function, don't display it as code.
@@ -109,14 +104,14 @@ def enhance(value, code = True, safe_linking = False):
     if value + pwndbg.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval  = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
+    intval = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
         intval = E.integer(str(intval))
     else:
-        intval = E.integer('%#x' % int(intval & pwndbg.arch.ptrmask))
+        intval = E.integer("%#x" % int(intval & pwndbg.arch.ptrmask))
 
     retval = []
 
@@ -125,10 +120,8 @@ def enhance(value, code = True, safe_linking = False):
         instr = None
 
     # If it's on the stack, don't display it as code in a chain.
-    if instr and 'stack' in page.objfile:
+    if instr and "stack" in page.objfile:
         retval = [intval, szval]
-
-
 
     # If it's RWX but a small value, don't display it as code in a chain.
     elif instr and rwx and intval0 < 0x1000:
@@ -163,4 +156,4 @@ def enhance(value, code = True, safe_linking = False):
     if len(retval) == 1:
         return retval[0]
 
-    return retval[0] + E.comment(color.strip(' /* {} */'.format('; '.join(retval[1:]))))
+    return retval[0] + E.comment(color.strip(" /* {} */".format("; ".join(retval[1:]))))

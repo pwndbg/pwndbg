@@ -1,4 +1,3 @@
-
 import gdb
 
 import pwndbg.arch
@@ -8,7 +7,7 @@ import pwndbg.regs
 import pwndbg.vmmap
 
 
-@pwndbg.commands.ArgparsedCommand('Print out the stack addresses that contain return addresses.')
+@pwndbg.commands.ArgparsedCommand("Print out the stack addresses that contain return addresses.")
 @pwndbg.commands.OnlyWhenRunning
 def retaddr():
     sp = pwndbg.regs.sp

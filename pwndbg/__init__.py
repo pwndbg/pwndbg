@@ -44,6 +44,7 @@ import pwndbg.commands.rop
 import pwndbg.commands.ropper
 import pwndbg.commands.search
 import pwndbg.commands.segments
+import pwndbg.commands.shell
 import pwndbg.commands.stack
 import pwndbg.commands.start
 import pwndbg.commands.telescope
@@ -90,41 +91,41 @@ try:
     import unicorn
 
     import pwndbg.emu
-except:
+except Exception:
     pass
 
 __all__ = [
-'arch',
-'auxv',
-'chain',
-'color',
-'disasm',
-'dt',
-'elf',
-'enhance',
-'events',
-'file',
-'function',
-'heap',
-'hexdump',
-'ida',
-'info',
-'leakfind',
-'linkmap',
-'malloc',
-'memoize',
-'memory',
-'p2p',
-'proc',
-'regs',
-'remote',
-'search',
-'stack',
-'strings',
-'symbol',
-'typeinfo',
-'ui',
-'vmmap'
+    "arch",
+    "auxv",
+    "chain",
+    "color",
+    "disasm",
+    "dt",
+    "elf",
+    "enhance",
+    "events",
+    "file",
+    "function",
+    "heap",
+    "hexdump",
+    "ida",
+    "info",
+    "leakfind",
+    "linkmap",
+    "malloc",
+    "memoize",
+    "memory",
+    "p2p",
+    "proc",
+    "regs",
+    "remote",
+    "search",
+    "stack",
+    "strings",
+    "symbol",
+    "typeinfo",
+    "ui",
+    "vmmap",
 ]
 
 pwndbg.prompt.set_prompt()
@@ -145,7 +146,9 @@ handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
-""".strip() % (pwndbg.ui.get_window_size()[1])
+""".strip() % (
+    pwndbg.ui.get_window_size()[1]
+)
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)
@@ -157,14 +160,17 @@ except gdb.error:
     pass
 
 # handle resize event to align width and completion
-signal.signal(signal.SIGWINCH, lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]))
+signal.signal(
+    signal.SIGWINCH,
+    lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
+)
 
 # Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
 # More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946
 # As stated on GDB's bugzilla that makes remote target search slower.
 # After GDB gets the fix, we should disable this only for bugged GDB versions.
 if 1:
-    gdb.execute('set remote search-memory-packet off')
+    gdb.execute("set remote search-memory-packet off")
 
 # Reading Comment file
 pwndbg.commands.comments.init()

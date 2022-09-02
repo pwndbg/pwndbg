@@ -291,7 +291,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         chunk_keys = [renames[key] if key in renames else key for key in val.keys()]
         try:
             return chunk_keys.index(key) * pwndbg.arch.ptrsize
-        except:
+        except Exception:
             return None
 
     @property
@@ -1432,27 +1432,25 @@ class HeuristicHeap(Heap):
         if not self._mp_addr or pwndbg.vmmap.find(self._mp_addr) is None:
             libc_page = pwndbg.vmmap.find(pwndbg.symbol.address("_IO_list_all"))
 
-            # try to find sbrk_base via main_arena or vmmap
-            # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
-            arena = self.main_arena
-            if self._main_arena_addr:
-                region = self.get_region(arena["top"])
-            else:
-                # If we can't find main_arena via heuristics, try to find it via vmmap
-                region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
-            possible_sbrk_base = region.start
+                # try to find sbrk_base via main_arena or vmmap
+                # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
+                arena = self.main_arena
+                if self._main_arena_addr:
+                    region = self.get_region(arena["top"])
+                else:
+                    # If we can't find main_arena via heuristics, try to find it via vmmap
+                    region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
+                possible_sbrk_base = region.start
 
-            sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
-            # try to search sbrk_base in a part of libc page
-            result = pwndbg.search.search(
-                pwndbg.arch.pack(possible_sbrk_base),
-                start=libc_page.start,
-                end=libc_page.end,
-            )
-            try:
-                self._mp_addr = next(result) - sbrk_offset
-            except StopIteration:
-                pass
+                sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
+                # try to search sbrk_base in a part of libc page
+                result = pwndbg.search.search(
+                    pwndbg.arch.pack(possible_sbrk_base), start=libc_page.start, end=libc_page.end
+                )
+                try:
+                    self._mp_addr = next(result) - sbrk_offset
+                except StopIteration:
+                    pass
 
         if self._mp_addr and pwndbg.vmmap.find(self._mp_addr) is not None:
             self._mp = self.malloc_par(self._mp_addr)

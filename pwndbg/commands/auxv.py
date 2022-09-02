@@ -3,7 +3,7 @@ import pwndbg.chain
 import pwndbg.commands
 
 
-@pwndbg.commands.ArgparsedCommand('Print information from the Auxiliary ELF Vector.')
+@pwndbg.commands.ArgparsedCommand("Print information from the Auxiliary ELF Vector.")
 @pwndbg.commands.OnlyWhenRunning
 def auxv():
     for k, v in pwndbg.auxv.get().items():

@@ -9,8 +9,8 @@ import pwndbg.regs
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def memory_sz(self, instruction, op):
-        segment = ''
-        parts   = []
+        segment = ""
+        parts = []
 
         if op.mem.base != 0:
             parts.append(instruction.reg_name(op.mem.base))
@@ -23,10 +23,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             scale = op.mem.scale
             parts.append("%s*%#x" % (index, scale))
 
-        return "[%s]" % (', '.join(parts))
+        return "[%s]" % (", ".join(parts))
 
     def immediate_sz(self, instruction, operand):
-        return '#' + super(DisassemblyAssistant, self).immediate_sz(instruction, operand)
+        return "#" + super(DisassemblyAssistant, self).immediate_sz(instruction, operand)
 
     def condition(self, instruction):
 
@@ -37,12 +37,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.address != pwndbg.regs.pc:
             return False
 
-        value = pwndbg.regs.cpsr if pwndbg.arch.current == 'arm' else pwndbg.regs.xpsr
+        value = pwndbg.regs.cpsr if pwndbg.arch.current == "arm" else pwndbg.regs.xpsr
 
-        N = value & (1<<31)
-        Z = value & (1<<30)
-        C = value & (1<<29)
-        V = value & (1<<28)
+        N = value & (1 << 31)
+        Z = value & (1 << 30)
+        C = value & (1 << 29)
+        V = value & (1 << 28)
 
         cc = {
             ARM_CC_EQ: Z,
@@ -57,10 +57,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LS: Z or not C,
             ARM_CC_GE: N == V,
             ARM_CC_LT: N != V,
-            ARM_CC_GT: not Z and (N==V),
+            ARM_CC_GT: not Z and (N == V),
             ARM_CC_LE: Z or (N != V),
         }.get(instruction.cc, None)
 
         return cc
 
-assistant = DisassemblyAssistant('arm')
+
+assistant = DisassemblyAssistant("arm")

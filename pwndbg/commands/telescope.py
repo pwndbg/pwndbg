@@ -18,32 +18,61 @@ import pwndbg.memory
 import pwndbg.regs
 import pwndbg.typeinfo
 
-telescope_lines = pwndbg.config.Parameter('telescope-lines', 8, 'number of lines to printed by the telescope command')
-skip_repeating_values = pwndbg.config.Parameter('telescope-skip-repeating-val', True,
-                                                'whether to skip repeating values of the telescope command')
-skip_repeating_values_minimum = pwndbg.config.Parameter('telescope-skip-repeating-val-minimum', 3,
-                                                        'minimum amount of repeated values before skipping lines')
+telescope_lines = pwndbg.config.Parameter(
+    "telescope-lines", 8, "number of lines to printed by the telescope command"
+)
+skip_repeating_values = pwndbg.config.Parameter(
+    "telescope-skip-repeating-val",
+    True,
+    "whether to skip repeating values of the telescope command",
+)
+skip_repeating_values_minimum = pwndbg.config.Parameter(
+    "telescope-skip-repeating-val-minimum",
+    3,
+    "minimum amount of repeated values before skipping lines",
+)
 
-offset_separator = theme.Parameter('telescope-offset-separator', '│', 'offset separator of the telescope command')
-offset_delimiter = theme.Parameter('telescope-offset-delimiter', ':', 'offset delimiter of the telescope command')
-repeating_marker = theme.Parameter('telescope-repeating-marker', '... ↓',
-                                   'repeating values marker of the telescope command')
+offset_separator = theme.Parameter(
+    "telescope-offset-separator", "│", "offset separator of the telescope command"
+)
+offset_delimiter = theme.Parameter(
+    "telescope-offset-delimiter", ":", "offset delimiter of the telescope command"
+)
+repeating_marker = theme.Parameter(
+    "telescope-repeating-marker", "... ↓", "repeating values marker of the telescope command"
+)
 
 
-parser = argparse.ArgumentParser(description="""
+parser = argparse.ArgumentParser(
+    description="""
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
-    """)
-parser.add_argument("address", nargs="?", default=None, type=int, help="The address to telescope at.")
-parser.add_argument("count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show.")
+    """
+)
+parser.add_argument(
+    "address", nargs="?", default=None, type=int, help="The address to telescope at."
+)
+parser.add_argument(
+    "count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show."
+)
+parser.add_argument(
+    "-r",
+    "--reverse",
+    dest="reverse",
+    action="store_true",
+    default=False,
+    help="Show <count> previous addresses instead of next ones",
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False):
+def telescope(address=None, count=telescope_lines, to_string=False, reverse=False):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
     """
-    ptrsize   = pwndbg.typeinfo.ptrsize
+    ptrsize = pwndbg.typeinfo.ptrsize
     if telescope.repeat:
         address = telescope.last_address + ptrsize
         telescope.offset += 1
@@ -51,13 +80,17 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         telescope.offset = 0
 
     address = int(address if address else pwndbg.regs.sp) & pwndbg.arch.ptrmask
-    count   = max(int(count), 1) & pwndbg.arch.ptrmask
+    count = max(int(count), 1) & pwndbg.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
 
+    # Allow invocation of telescope -r to dump previous addresses
+    if reverse:
+        address -= (count - 1) * ptrsize
+
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
-        count   = address
+        count = address
         address = pwndbg.regs.sp
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
@@ -73,8 +106,8 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     # address    = pwndbg.memory.poi(pwndbg.typeinfo.ppvoid, address)
 
     start = address
-    stop  = address + (count*ptrsize)
-    step  = ptrsize
+    stop = address + (count * ptrsize)
+    step = ptrsize
 
     # Find all registers which show up in the trace
     regs = {}
@@ -82,9 +115,9 @@ def telescope(address=None, count=telescope_lines, to_string=False):
         values = list(reg_values[i])
 
         for width in range(1, pwndbg.arch.ptrsize):
-            values.extend('%s-%i' % (r,width) for r in reg_values[i+width])
+            values.extend("%s-%i" % (r, width) for r in reg_values[i + width])
 
-        regs[i] = ' '.join(values)
+        regs[i] = " ".join(values)
 
     # Find the longest set of register information
     if regs:
@@ -96,13 +129,27 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     result = []
     last = None
     collapse_buffer = []
-    skipped_padding = 2 + len(offset_delimiter) + 4 + len(offset_separator) + 1 + longest_regs + 1 - len(repeating_marker)
+    skipped_padding = (
+        2
+        + len(offset_delimiter)
+        + 4
+        + len(offset_separator)
+        + 1
+        + longest_regs
+        + 1
+        - len(repeating_marker)
+    )
 
     # Collapse repeating values exceeding minimum delta.
     def collapse_repeating_values():
         # The first line was already printed, hence increment by 1
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
-            result.append(T.repeating_marker('%s%s%i skipped' % (repeating_marker, ' ' * skipped_padding, len(collapse_buffer))))
+            result.append(
+                T.repeating_marker(
+                    "%s%s%i skipped"
+                    % (repeating_marker, " " * skipped_padding, len(collapse_buffer))
+                )
+            )
         else:
             result.extend(collapse_buffer)
         collapse_buffer.clear()
@@ -113,10 +160,21 @@ def telescope(address=None, count=telescope_lines, to_string=False):
             result.append("<Could not read memory at %#x>" % addr)
             break
 
-        line = ' '.join((T.offset("%02x%s%04x%s" % (i + telescope.offset, delimiter,
-                                                    addr - start + (telescope.offset * ptrsize), separator)),
-                         T.register(regs[addr].ljust(longest_regs)),
-                         pwndbg.chain.format(addr)))
+        line = " ".join(
+            (
+                T.offset(
+                    "%02x%s%04x%s"
+                    % (
+                        i + telescope.offset,
+                        delimiter,
+                        addr - start + (telescope.offset * ptrsize),
+                        separator,
+                    )
+                ),
+                T.register(regs[addr].ljust(longest_regs)),
+                pwndbg.chain.format(addr),
+            )
+        )
 
         # Buffer repeating values.
         if skip_repeating_values:
@@ -134,16 +192,22 @@ def telescope(address=None, count=telescope_lines, to_string=False):
     telescope.last_address = addr
 
     if not to_string:
-        print('\n'.join(result))
+        print("\n".join(result))
 
     return result
 
 
-parser = argparse.ArgumentParser(description='dereferences on stack data with specified count and offset.')
-parser.add_argument('count', nargs='?', default=8, type=int,
-                    help='number of element to dump')
-parser.add_argument('offset', nargs='?', default=0, type=int,
-                    help='Element offset from $sp (support negative offset)')
+parser = argparse.ArgumentParser(
+    description="dereferences on stack data with specified count and offset."
+)
+parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
+parser.add_argument(
+    "offset",
+    nargs="?",
+    default=0,
+    type=int,
+    help="Element offset from $sp (support negative offset)",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)

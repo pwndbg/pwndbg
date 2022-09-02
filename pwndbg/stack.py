@@ -20,7 +20,7 @@ stacks = {}
 
 # Whether the stack is protected by NX.
 # This is updated automatically by is_executable.
-nx     = False
+nx = False
 
 
 def find(address):
@@ -65,7 +65,7 @@ def update():
             if not sp:
                 continue
 
-            sp_low = sp & ~(0xfff)
+            sp_low = sp & ~(0xFFF)
             sp_low -= 0x1000
 
             # If we don't already know about this thread, create
@@ -73,23 +73,25 @@ def update():
             page = stacks.get(thread.ptid, None)
             if page is None:
                 start = sp_low
-                stop  = find_upper_stack_boundary(sp)
-                page  = pwndbg.memory.Page(start, stop-start, 6 if not is_executable() else 7, 0, '[stack]')
+                stop = find_upper_stack_boundary(sp)
+                page = pwndbg.memory.Page(
+                    start, stop - start, 6 if not is_executable() else 7, 0, "[stack]"
+                )
                 stacks[thread.ptid] = page
                 continue
             elif page.objfile is None:
                 pid, tid, _ = thread.ptid
                 if pid == tid:
-                    page.objfile = '[stack]'
+                    page.objfile = "[stack]"
                 else:
-                    page.objfile = '[stack:%i]' % tid
+                    page.objfile = "[stack:%i]" % tid
 
             # If we *DO* already know about this thread, just
             # update the lower boundary if it got any lower.
             low = min(page.vaddr, sp_low)
             if low != page.vaddr:
-                page.memsz  += (page.vaddr - low)
-                page.vaddr   = low
+                page.memsz += page.vaddr - low
+                page.vaddr = low
     finally:
         if curr_thread:
             curr_thread.switch()
@@ -121,8 +123,8 @@ def is_executable():
     global nx
     nx = False
 
-    PT_GNU_STACK = 0x6474e551
-    ehdr         = pwndbg.elf.exe()
+    PT_GNU_STACK = 0x6474E551
+    ehdr = pwndbg.elf.exe()
 
     for phdr in pwndbg.elf.iter_phdrs(ehdr):
         if phdr.p_type == PT_GNU_STACK:

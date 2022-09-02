@@ -1,3 +1,5 @@
+ZIGCC		=	  $(ZIGPATH)/zig cc
+
 CC              =	   gcc
 DEBUG           =	   1
 CFLAGS         +=	   -Wall
@@ -29,7 +31,8 @@ CFLAGS		  +=	  -O1
 endif
 
 PWD=$(shell pwd)
-GLIBC=/glibc_versions/2.29/tcache_x64
+# Apparently we don't have this version? :(
+#GLIBC=/glibc_versions/2.29/tcache_x64
 GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
@@ -59,27 +62,38 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 	@GOARCH=amd64 $(GO) build $?
 	@# Not stripped on purpose
 
-heap_bugs: heap_bugs.c
-	${CC} \
-	-Wl,-rpath=${GLIBC}:\
-	${GLIBC}/math:\
-	${GLIBC}/elf:\
-	${GLIBC}/dlfcn:\
-	${GLIBC}/nss:\
-	${GLIBC}/nis:\
-	${GLIBC}/rt:\
-	${GLIBC}/resolv:\
-	${GLIBC}/crypt:\
-	${GLIBC}/nptl_db:\
-	${GLIBC}/nptl:\
-	-Wl,--dynamic-linker=${GLIBC}/elf/ld.so \
+heap_bugs.out: heap_bugs.c
+	@echo "[+] Building heap_bugs.out"
+	${ZIGCC} \
+	-target native-native-gnu.2.33 \
+	-Wl,-rpath=${GLIBC_2_33}:\
+	${GLIBC_2_33}/math:\
+	${GLIBC_2_33}/elf:\
+	${GLIBC_2_33}/dlfcn:\
+	${GLIBC_2_33}/nss:\
+	${GLIBC_2_33}/nis:\
+	${GLIBC_2_33}/rt:\
+	${GLIBC_2_33}/resolv:\
+	${GLIBC_2_33}/crypt:\
+	${GLIBC_2_33}/nptl_db:\
+	${GLIBC_2_33}/nptl:\
+	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 	-g -o heap_bugs.out heap_bugs.c
 
-heap_bins: heap_bins.c
-	${CC} \
-	-Wl,-rpath=${GLIBC_2_33} \
-	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
-	-g -O0 -o heap_bins.out heap_bins.c
+# TODO/FIXME: We should probably force this to 2.29? a version with tcache?
+#heap_bins.out: heap_bins.c
+#	@echo "[+] Building heap_bins.out"
+#	${ZIGCC} \
+#	-target native-native-gnu.2.33 \
+#	-Wl,-rpath=${GLIBC_2_33} \
+#	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
+#	-g -O0 -o heap_bins.out heap_bins.c
+
+# Note: we use -pthread -lpthread because we hit this bug on CI builds:
+# https://sourceware.org/bugzilla/show_bug.cgi?id=24548
+heap_vis.out: heap_vis.c
+	@echo "[+] Building heap_vis.out"
+	${CC} -g -O0 -Wno-nonnull -o heap_vis.out heap_vis.c -pthread -lpthread
 
 clean :
 	@echo "[+] Cleaning stuff"

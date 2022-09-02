@@ -21,9 +21,13 @@ jobs:
     - name: Install linters
       run: |
         pip install isort
+        pip install black
+        pip install flake8
 
-    - name: Run tests
+    - name: Run linters
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
         isort --check-only --diff pwndbg tests
-        python3   -m py_compile               $(git ls-files 'pwndbg/*.py')
+        black --diff --check pwndbg tests
+        flake8 --show-source pwndbg/ tests
+        python3 -m py_compile $(git ls-files 'pwndbg/*.py')

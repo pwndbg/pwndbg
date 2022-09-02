@@ -34,7 +34,7 @@ class _GdbFunction(gdb.Function):
         if self.only_when_running and not pwndbg.proc.alive:
             # Returning empty string is a workaround that we can't stop e.g. `break *$rebase(offset)`
             # Thx to that, gdb will print out 'evaluation of this expression requires the target program to be active'
-            return ''
+            return ""
 
         return self.func(*args)
 

@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 100
+extend-exclude = "gdb-pt-dump"
+
+[tool.isort]
+profile = "black"
+force_single_line = true
+known_third_party = ["capstone", "unicorn", "six", "psutil", "pycparser", "gdb"]
+extend_skip_glob = ["gdb-pt-dump/*"]

@@ -18,35 +18,29 @@ import pwndbg.symbol
 
 try:
     import pwndbg.emu.emulator
-except:
+except Exception:
     pwndbg.emu = None
 
 CapstoneArch = {
-    'arm': CS_ARCH_ARM,
-    'armcm': CS_ARCH_ARM,
-    'aarch64': CS_ARCH_ARM64,
-    'i386': CS_ARCH_X86,
-    'i8086': CS_ARCH_X86,
-    'x86-64': CS_ARCH_X86,
-    'powerpc': CS_ARCH_PPC,
-    'mips': CS_ARCH_MIPS,
-    'sparc': CS_ARCH_SPARC,
+    "arm": CS_ARCH_ARM,
+    "armcm": CS_ARCH_ARM,
+    "aarch64": CS_ARCH_ARM64,
+    "i386": CS_ARCH_X86,
+    "i8086": CS_ARCH_X86,
+    "x86-64": CS_ARCH_X86,
+    "powerpc": CS_ARCH_PPC,
+    "mips": CS_ARCH_MIPS,
+    "sparc": CS_ARCH_SPARC,
 }
 
 CapstoneEndian = {
-    'little': CS_MODE_LITTLE_ENDIAN,
-    'big': CS_MODE_BIG_ENDIAN,
+    "little": CS_MODE_LITTLE_ENDIAN,
+    "big": CS_MODE_BIG_ENDIAN,
 }
 
-CapstoneMode = {
-    4: CS_MODE_32,
-    8: CS_MODE_64
-}
+CapstoneMode = {4: CS_MODE_32, 8: CS_MODE_64}
 
-CapstoneSyntax = {
-    'intel': CS_OPT_SYNTAX_INTEL,
-    'att': CS_OPT_SYNTAX_ATT
-}
+CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 
 # For variable-instruction-width architectures
 # (x86 and amd64), we keep a cache of instruction
@@ -54,13 +48,14 @@ CapstoneSyntax = {
 #
 # This allows us to consistently disassemble backward.
 VariableInstructionSizeMax = {
-    'i386':   16,
-    'x86-64': 16,
-    'i8086':  16,
-    'mips':   8,
+    "i386": 16,
+    "x86-64": 16,
+    "i8086": 16,
+    "mips": 8,
 }
 
 backward_cache = collections.defaultdict(lambda: None)
+
 
 @pwndbg.memoize.reset_on_objfile
 def get_disassembler_cached(arch, ptrsize, endian, extra=None):
@@ -74,10 +69,10 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     mode |= CapstoneEndian[endian]
 
     try:
-        flavor = gdb.execute('show disassembly-flavor', to_string=True).lower().split('"')[1]
+        flavor = gdb.execute("show disassembly-flavor", to_string=True).lower().split('"')[1]
     except gdb.error as e:
         if str(e).find("disassembly-flavor") > -1:
-            flavor = 'intel'
+            flavor = "intel"
         else:
             raise
 
@@ -86,47 +81,68 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
         cs.syntax = CapstoneSyntax[flavor]
     except CsError as ex:
         pass
-    except:
+    except Exception:
         raise
     cs.detail = True
     return cs
 
+
 def get_disassembler(pc):
-    if pwndbg.arch.current == 'armcm':
-        extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if (pwndbg.regs.xpsr & (1<<24)) else CS_MODE_MCLASS
+    if pwndbg.arch.current == "armcm":
+        extra = (
+            (CS_MODE_MCLASS | CS_MODE_THUMB) if (pwndbg.regs.xpsr & (1 << 24)) else CS_MODE_MCLASS
+        )
 
-    elif pwndbg.arch.current in ('arm', 'aarch64'):
-        extra = CS_MODE_THUMB if (pwndbg.regs.cpsr & (1<<5)) else CS_MODE_ARM
+    elif pwndbg.arch.current in ("arm", "aarch64"):
+        extra = CS_MODE_THUMB if (pwndbg.regs.cpsr & (1 << 5)) else CS_MODE_ARM
 
-    elif pwndbg.arch.current == 'sparc':
-        if 'v9' in gdb.newest_frame().architecture().name():
+    elif pwndbg.arch.current == "sparc":
+        if "v9" in gdb.newest_frame().architecture().name():
             extra = CS_MODE_V9
         else:
             # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
-            extra = 0 
-            
-    elif pwndbg.arch.current == 'i8086':
+            extra = 0
+
+    elif pwndbg.arch.current == "i8086":
         extra = CS_MODE_16
 
-    elif pwndbg.arch.current == 'mips' and 'isa32r6' in gdb.newest_frame().architecture().name():
+    elif pwndbg.arch.current == "mips" and "isa32r6" in gdb.newest_frame().architecture().name():
         extra = CS_MODE_MIPS32R6
-    
+
     else:
         extra = None
 
-    return get_disassembler_cached(pwndbg.arch.current,
-                                   pwndbg.arch.ptrsize,
-                                   pwndbg.arch.endian,
-                                   extra)
+    return get_disassembler_cached(
+        pwndbg.arch.current, pwndbg.arch.ptrsize, pwndbg.arch.endian, extra
+    )
+
+
+class SimpleInstruction:
+    def __init__(self, address):
+        self.address = address
+        ins = gdb.newest_frame().architecture().disassemble(address)[0]
+        asm = ins["asm"].split(None, 1)
+        self.mnemonic = asm[0].strip()
+        self.op_str = asm[1].strip() if len(asm) > 1 else ""
+        self.size = ins["length"]
+        self.next = self.address + self.size
+        self.target = self.next
+        self.groups = []
+        self.symbol = None
+        self.condition = False
+
 
 @pwndbg.memoize.reset_on_cont
 def get_one_instruction(address):
-    md   = get_disassembler(address)
+    if pwndbg.arch.current not in CapstoneArch:
+        return SimpleInstruction(address)
+    md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.arch.current, 4)
     data = pwndbg.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
         pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
+
 
 def one(address=None):
     if address is None:
@@ -137,12 +153,14 @@ def one(address=None):
         backward_cache[insn.next] = insn.address
         return insn
 
+
 def fix(i):
     for op in i.operands:
         if op.type == CS_OP_IMM and op.va:
             i.op_str = i.op_str.replace()
 
     return i
+
 
 def get(address, instructions=1):
     address = int(address)
@@ -171,11 +189,10 @@ DO_NOT_EMULATE = {
     capstone.CS_GRP_INT,
     capstone.CS_GRP_INVALID,
     capstone.CS_GRP_IRET,
-
     # Note that we explicitly do not include the PRIVILEGE category, since
     # we may be in kernel code, and privileged instructions are just fine
     # in that case.
-    #capstone.CS_GRP_PRIVILEGE,
+    # capstone.CS_GRP_PRIVILEGE,
 }
 
 
@@ -200,7 +217,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # before, which were followed by this one.
     if show_prev_insns:
         cached = backward_cache[current.address]
-        insn   = one(cached) if cached else None
+        insn = one(cached) if cached else None
         while insn is not None and len(insns) < instructions:
             insns.append(insn)
             cached = backward_cache[insn.address]
@@ -227,7 +244,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
     insn = current
-    total_instructions = 1 + (2*instructions)
+    total_instructions = 1 + (2 * instructions)
 
     while insn and len(insns) < total_instructions:
         target = insn.target
@@ -263,4 +280,3 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         del insns[-1]
 
     return insns
-

@@ -22,12 +22,13 @@ def r2pipe():
     """
     filename = gdb.current_progspace().filename
     if not filename:
-        raise Exception('Could not find objfile to create a r2pipe for')
+        raise Exception("Could not find objfile to create a r2pipe for")
 
     import r2pipe
-    flags = ['-e', 'io.cache=true']
+
+    flags = ["-e", "io.cache=true"]
     if pwndbg.elf.get_elf_info(filename).is_pie and pwndbg.elf.exe():
-        flags.extend(['-B', hex(pwndbg.elf.exe().address)])
+        flags.extend(["-B", hex(pwndbg.elf.exe().address)])
     r2 = r2pipe.open(filename, flags=flags)
     r2.cmd("aaaa")
     return r2

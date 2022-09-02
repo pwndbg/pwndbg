@@ -37,27 +37,31 @@ def get_directory():
     separated list of directories which GDB will look in to find the binaries
     currently loaded.
     """
-    result = gdb.execute('show debug-file-directory', to_string=True, from_tty=False)
-    expr   = r'The directory where separate debug symbols are searched for is "(.*)".\n'
+    result = gdb.execute("show debug-file-directory", to_string=True, from_tty=False)
+    expr = r'The directory where separate debug symbols are searched for is "(.*)".\n'
 
     match = re.search(expr, result)
 
     if match:
         return match.group(1)
-    return ''
+    return ""
+
 
 def set_directory(d):
-    gdb.execute('set debug-file-directory %s' % d, to_string=True, from_tty=False)
+    gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
+
 
 def add_directory(d):
     current = get_directory()
     if current:
-        set_directory('%s:%s' % (current, d))
+        set_directory("%s:%s" % (current, d))
     else:
         set_directory(d)
 
+
 remote_files = {}
 remote_files_dir = None
+
 
 @pwndbg.events.exit
 def reset_remote_files():
@@ -68,10 +72,10 @@ def reset_remote_files():
         shutil.rmtree(remote_files_dir)
         remote_files_dir = None
 
+
 @pwndbg.events.new_objfile
 def autofetch():
-    """
-    """
+    """ """
     global remote_files_dir
     if not pwndbg.remote.is_remote():
         return
@@ -92,7 +96,7 @@ def autofetch():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
-        if not objfile.startswith('/'):
+        if not objfile.startswith("/"):
             continue
 
         # Don't re-download things that we have already downloaded
@@ -100,20 +104,20 @@ def autofetch():
             continue
 
         msg = "Downloading %r from the remote server" % objfile
-        print(msg, end='')
+        print(msg, end="")
 
         try:
             data = pwndbg.file.get(objfile)
-            print('\r' + msg + ': OK')
+            print("\r" + msg + ": OK")
         except OSError:
             # The file could not be downloaded :(
-            print('\r' + msg + ': Failed')
+            print("\r" + msg + ": Failed")
             return
 
         filename = os.path.basename(objfile)
         local_path = os.path.join(remote_files_dir, filename)
 
-        with open(local_path, 'wb+') as f:
+        with open(local_path, "wb+") as f:
             f.write(data)
 
         remote_files[objfile] = local_path
@@ -132,20 +136,21 @@ def autofetch():
         base = base.vaddr
 
         try:
-            elf = elftools.elf.elffile.ELFFile(open(local_path, 'rb'))
+            elf = elftools.elf.elffile.ELFFile(open(local_path, "rb"))
         except elftools.common.exceptions.ELFError:
             continue
 
-        gdb_command = ['add-symbol-file', local_path, hex(int(base))]
+        gdb_command = ["add-symbol-file", local_path, hex(int(base))]
         for section in elf.iter_sections():
-            name = section.name #.decode('latin-1')
+            name = section.name  # .decode('latin-1')
             section = section.header
             if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
                 continue
-            gdb_command += ['-s', name, hex(int(base + section.sh_addr))]
+            gdb_command += ["-s", name, hex(int(base + section.sh_addr))]
 
-        print(' '.join(gdb_command))
+        print(" ".join(gdb_command))
         # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
+
 
 @pwndbg.memoize.reset_on_objfile
 def get(address, gdb_only=False):
@@ -153,24 +158,24 @@ def get(address, gdb_only=False):
     Retrieve the textual name for a symbol
     """
     # Fast path
-    if address < pwndbg.memory.MMAP_MIN_ADDR or address >= ((1 << 64)-1):
-        return ''
+    if address < pwndbg.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
+        return ""
 
     # Don't look up stack addresses
     if pwndbg.stack.find(address):
-        return ''
+        return ""
 
     # This sucks, but there's not a GDB API for this.
-    result = gdb.execute('info symbol %#x' % int(address), to_string=True, from_tty=False)
+    result = gdb.execute("info symbol %#x" % int(address), to_string=True, from_tty=False)
 
-    if not gdb_only and result.startswith('No symbol'):
+    if not gdb_only and result.startswith("No symbol"):
         address = int(address)
-        exe     = pwndbg.elf.exe()
+        exe = pwndbg.elf.exe()
         if exe:
             exe_map = pwndbg.vmmap.find(exe.address)
             if exe_map and address in exe_map:
-                res =  pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
-                return res or ''
+                res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
+                return res or ""
 
     # Expected format looks like this:
     # main in section .text of /bin/bash
@@ -179,13 +184,13 @@ def get(address, gdb_only=False):
     # No symbol matches system-1.
     a, b, c, _ = result.split(None, 3)
 
-
-    if b == '+':
+    if b == "+":
         return "%s+%s" % (a, c)
-    if b == 'in':
+    if b == "in":
         return a
 
-    return ''
+    return ""
+
 
 @pwndbg.memoize.reset_on_objfile
 def address(symbol, allow_unmapped=False):
@@ -194,7 +199,7 @@ def address(symbol, allow_unmapped=False):
 
     try:
         return int(symbol, 0)
-    except:
+    except Exception:
         pass
 
     try:
@@ -205,8 +210,8 @@ def address(symbol, allow_unmapped=False):
         pass
 
     try:
-        result = gdb.execute('info address %s' % symbol, to_string=True, from_tty=False)
-        address = int(re.search('0x[0-9a-fA-F]+', result).group(), 0)
+        result = gdb.execute("info address %s" % symbol, to_string=True, from_tty=False)
+        address = int(re.search("0x[0-9a-fA-F]+", result).group(), 0)
 
         # The address found should lie in one of the memory maps
         # There are cases when GDB shows offsets e.g.:
@@ -228,6 +233,7 @@ def address(symbol, allow_unmapped=False):
     except Exception:
         pass
 
+
 @pwndbg.events.stop
 @pwndbg.memoize.reset_on_start
 def add_main_exe_to_symbols():
@@ -237,7 +243,7 @@ def add_main_exe_to_symbols():
     if pwndbg.android.is_android():
         return
 
-    exe  = pwndbg.elf.exe()
+    exe = pwndbg.elf.exe()
 
     if not exe:
         return
@@ -256,7 +262,7 @@ def add_main_exe_to_symbols():
     path = mmap.objfile
     if path and (pwndbg.arch.endian == pwndbg.arch.native_endian):
         try:
-            gdb.execute('add-symbol-file %s' % (path,), from_tty=False, to_string=True)
+            gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
         except gdb.error:
             pass
 
@@ -288,5 +294,5 @@ def selected_frame_source_absolute_filename():
     return symtab.fullname()
 
 
-if '/usr/lib/debug' not in get_directory():
-    set_directory(get_directory() + ':/usr/lib/debug')
+if "/usr/lib/debug" not in get_directory():
+    set_directory(get_directory() + ":/usr/lib/debug")

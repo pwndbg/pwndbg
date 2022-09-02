@@ -13,6 +13,8 @@ WORKDIR /pwndbg
 
 ENV LANG en_US.utf8
 ENV TZ=America/New_York
+ENV ZIGPATH=/opt/zig
+
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     apt-get update && \

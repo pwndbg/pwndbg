@@ -13,7 +13,7 @@ def tempdir():
     """
     Returns a safe and unpredictable temporary directory with pwndbg prefix.
     """
-    return tempfile.mkdtemp(prefix='pwndbg-')
+    return tempfile.mkdtemp(prefix="pwndbg-")
 
 
 @pwndbg.memoize.forever
@@ -24,10 +24,10 @@ def cachedir(namespace=None):
 
     Optionally creates a sub namespace inside the pwndbg cache folder.
     """
-    cachehome = os.getenv('XDG_CACHE_HOME')
+    cachehome = os.getenv("XDG_CACHE_HOME")
     if not cachehome:
-        cachehome = os.path.join(os.getenv('HOME'), '.cache')
-    cachedir = os.path.join(cachehome, 'pwndbg')
+        cachehome = os.path.join(os.getenv("HOME"), ".cache")
+    cachedir = os.path.join(cachehome, "pwndbg")
     if namespace:
         cachedir = os.path.join(cachedir, namespace)
     os.makedirs(cachedir, exist_ok=True)

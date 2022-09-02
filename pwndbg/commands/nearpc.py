@@ -26,19 +26,42 @@ def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
 
-nearpc_branch_marker = pwndbg.color.theme.Parameter('nearpc-branch-marker', '    ↓', 'branch marker line for nearpc command')
-nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter('nearpc-branch-marker-contiguous', ' ', 'contiguous branch marker line for nearpc command')
-pwndbg.color.theme.Parameter('highlight-pc', True, 'whether to highlight the current instruction')
-pwndbg.color.theme.Parameter('nearpc-prefix', '►', 'prefix marker for nearpc command')
-pwndbg.config.Parameter('left-pad-disasm', True, 'whether to left-pad disassembly')
-nearpc_lines = pwndbg.config.Parameter('nearpc-lines', 10, 'number of additional lines to print for the nearpc command')
-show_args = pwndbg.config.Parameter('nearpc-show-args', True, 'show call arguments below instruction')
 
-parser = argparse.ArgumentParser(description='''Disassemble near a specified address.''')
+nearpc_branch_marker = pwndbg.color.theme.Parameter(
+    "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
+)
+nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter(
+    "nearpc-branch-marker-contiguous", " ", "contiguous branch marker line for nearpc command"
+)
+pwndbg.color.theme.Parameter("highlight-pc", True, "whether to highlight the current instruction")
+pwndbg.color.theme.Parameter("nearpc-prefix", "►", "prefix marker for nearpc command")
+pwndbg.config.Parameter("left-pad-disasm", True, "whether to left-pad disassembly")
+nearpc_lines = pwndbg.config.Parameter(
+    "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
+)
+show_args = pwndbg.config.Parameter(
+    "nearpc-show-args", True, "show call arguments below instruction"
+)
+
+parser = argparse.ArgumentParser(description="""Disassemble near a specified address.""")
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
-parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
-#parser.add_argument("to_string", type=bool, nargs="?", default=False, help="Whether to print it or not.") #TODO make sure this should not be exposed
-parser.add_argument("emulate", type=bool, nargs="?", default=False, help="Whether to emulate instructions to find the next ones or just linearly disassemble.")
+parser.add_argument(
+    "lines",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Number of lines to show on either side of the address.",
+)
+# parser.add_argument("to_string", type=bool, nargs="?", default=False, help="Whether to print it or not.") #TODO make sure this should not be exposed
+parser.add_argument(
+    "emulate",
+    type=bool,
+    nargs="?",
+    default=False,
+    help="Whether to emulate instructions to find the next ones or just linearly disassemble.",
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False, emulate=False):
@@ -60,7 +83,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # it's a small value.
     if lines is None and (pc is None or int(pc) < 0x100):
         lines = pc
-        pc    = None
+        pc = None
 
     if pc is None:
         pc = pwndbg.regs.pc
@@ -68,12 +91,12 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     if lines is None:
         lines = nearpc_lines // 2
 
-    pc    = int(pc)
+    pc = int(pc)
     lines = int(lines)
 
     # Check whether we can even read this address
     if not pwndbg.memory.peek(pc):
-        result.append(message.error('Invalid address %#x' % pc))
+        result.append(message.error("Invalid address %#x" % pc))
 
     # # Load source data if it's available
     # pc_to_linenos = collections.defaultdict(lambda: [])
@@ -93,7 +116,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     instructions = pwndbg.disasm.near(pc, lines, emulate=emulate, show_prev_insns=not nearpc.repeat)
 
     if pwndbg.memory.peek(pc) and not instructions:
-        result.append(message.error('Invalid instructions at %#x' % pc))
+        result.append(message.error("Invalid instructions at %#x" % pc))
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
@@ -101,16 +124,16 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Gather all addresses and symbols for each instruction
     symbols = [pwndbg.symbol.get(i.address) for i in instructions]
-    addresses = ['%#x' % i.address for i in instructions]
+    addresses = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 
     # Format the symbol name for each instruction
-    symbols = ['<%s> ' % sym if sym else '' for sym in symbols]
+    symbols = ["<%s> " % sym if sym else "" for sym in symbols]
 
     # Pad out all of the symbols and addresses
     if pwndbg.config.left_pad_disasm and not nearpc.repeat:
-        symbols   = ljust_padding(symbols)
+        symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
     prev = None
@@ -119,13 +142,13 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
-        asm    = D.instruction(instr)
-        prefix_sign  = pwndbg.config.nearpc_prefix
+        asm = D.instruction(instr)
+        prefix_sign = pwndbg.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
         show_prefix = instr.address == pc and not nearpc.repeat and first_pc
-        prefix = ' %s' % (prefix_sign if show_prefix else ' ' * len(prefix_sign))
+        prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
         prefix = N.prefix(prefix)
 
         pre = pwndbg.ida.Anterior(instr.address)
@@ -143,29 +166,31 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
             symbol = C.highlight(symbol)
             first_pc = False
 
-        line   = ' '.join((prefix, address_str, symbol, asm))
+        line = " ".join((prefix, address_str, symbol, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
         if prev and prev.address + prev.size != instr.address:
-            result.append(N.branch_marker('%s' % nearpc_branch_marker))
+            result.append(N.branch_marker("%s" % nearpc_branch_marker))
 
         # Otherwise if it's a branch and it *is* contiguous, just put
         # and empty line.
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            if len('%s' % nearpc_branch_marker_contiguous) > 0:
-                result.append('%s' % nearpc_branch_marker_contiguous)
+            if len("%s" % nearpc_branch_marker_contiguous) > 0:
+                result.append("%s" % nearpc_branch_marker_contiguous)
 
         # For syscall instructions, put the name on the side
         if instr.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(instr)
             if syscall_name:
-                line += ' <%s>' % N.syscall_name('SYS_' + syscall_name)
+                line += " <%s>" % N.syscall_name("SYS_" + syscall_name)
 
         # For Comment Function
         try:
-            line += " "*10 + C.comment(pwndbg.commands.comments.file_lists[pwndbg.proc.exe][hex(instr.address)])
-        except:
+            line += " " * 10 + C.comment(
+                pwndbg.commands.comments.file_lists[pwndbg.proc.exe][hex(instr.address)]
+            )
+        except Exception:
             pass
 
         result.append(line)
@@ -173,19 +198,31 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
         if show_args:
-            result.extend(('%8s%s' % ('', arg) for arg in pwndbg.arguments.format_args(instruction=instr)))
+            result.extend(
+                ("%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr))
+            )
 
         prev = instr
 
     if not to_string:
-        print('\n'.join(result))
+        print("\n".join(result))
 
     return result
 
 
-parser = argparse.ArgumentParser(description='''Like nearpc, but will emulate instructions from the current $PC forward.''')
+parser = argparse.ArgumentParser(
+    description="""Like nearpc, but will emulate instructions from the current $PC forward."""
+)
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to emulate near.")
-parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+parser.add_argument(
+    "lines",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Number of lines to show on either side of the address.",
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def emulate(pc=None, lines=None, to_string=False, emulate=True):
@@ -199,9 +236,17 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
 emulate_command = emulate
 
 
-parser = argparse.ArgumentParser(description='''Compatibility layer for PEDA's pdisass command.''')
+parser = argparse.ArgumentParser(description="""Compatibility layer for PEDA's pdisass command.""")
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
-parser.add_argument("lines", type=int, nargs="?", default=None, help="Number of lines to show on either side of the address.")
+parser.add_argument(
+    "lines",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Number of lines to show on either side of the address.",
+)
+
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def pdisass(pc=None, lines=None, to_string=False):

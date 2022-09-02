@@ -10,8 +10,7 @@ import pwndbg.typeinfo
 import pwndbg.vmmap
 
 
-def search(searchfor, mappings=None, start=None, end=None, 
-           executable=False, writable=False):
+def search(searchfor, mappings=None, start=None, end=None, executable=False, writable=False):
     """Search inferior memory for a byte sequence.
 
     Arguments:
@@ -29,14 +28,14 @@ def search(searchfor, mappings=None, start=None, end=None,
     i = gdb.selected_inferior()
 
     maps = mappings or pwndbg.vmmap.get()
-    
+
     if end and start:
-        assert start < end, 'Last address to search must be greater then first address'
-        maps = [m for m in maps if start in m or (end-1) in m]
+        assert start < end, "Last address to search must be greater then first address"
+        maps = [m for m in maps if start in m or (end - 1) in m]
     elif start:
         maps = [m for m in maps if start in m]
     elif end:
-        maps = [m for m in maps if (end-1) in m]
+        maps = [m for m in maps if (end - 1) in m]
 
     if executable:
         maps = [m for m in maps if m.execute]
@@ -46,7 +45,7 @@ def search(searchfor, mappings=None, start=None, end=None,
 
     for vmmap in maps:
         start = vmmap.start
-        end   = vmmap.end
+        end = vmmap.end
 
         while True:
             # No point in searching if we can't read the memory
@@ -64,7 +63,7 @@ def search(searchfor, mappings=None, start=None, end=None,
 
             # Fix bug: In kernel mode, search_memory may return a negative address,
             # e.g. -1073733344, which supposed to be 0xffffffffc0002120 in kernel.
-            start &= 0xffffffffffffffff
+            start &= 0xFFFFFFFFFFFFFFFF
 
             # For some reason, search_memory will return a positive hit
             # when it's unable to read memory.

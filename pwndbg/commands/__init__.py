@@ -1,5 +1,6 @@
 import argparse
 import functools
+import io
 
 import gdb
 
@@ -17,40 +18,55 @@ import pwndbg.ui
 commands = []
 command_names = set()
 
-def list_current_commands():
-    current_pagination = gdb.execute('show pagination', to_string=True)
-    current_pagination = current_pagination.split()[-1].rstrip('.')  # Take last word and skip period
 
-    gdb.execute('set pagination off')
-    command_list = gdb.execute('help all', to_string=True).strip().split('\n')
+def list_current_commands():
+    current_pagination = gdb.execute("show pagination", to_string=True)
+    current_pagination = current_pagination.split()[-1].rstrip(
+        "."
+    )  # Take last word and skip period
+
+    gdb.execute("set pagination off")
+    command_list = gdb.execute("help all", to_string=True).strip().split("\n")
     existing_commands = set()
     for line in command_list:
         line = line.strip()
         # Skip non-command entries
-        if len(line) == 0 or line.startswith('Command class:') or line.startswith('Unclassified commands'):
+        if (
+            len(line) == 0
+            or line.startswith("Command class:")
+            or line.startswith("Unclassified commands")
+        ):
             continue
         command = line.split()[0]
         existing_commands.add(command)
-    gdb.execute('set pagination %s' % current_pagination) # Restore original setting
+    gdb.execute("set pagination %s" % current_pagination)  # Restore original setting
     return existing_commands
+
 
 GDB_BUILTIN_COMMANDS = list_current_commands()
 
+
 class Command(gdb.Command):
     """Generic command wrapper"""
-    builtin_override_whitelist = {'up', 'down', 'search', 'pwd', 'start'}
+
+    builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
     history = {}
 
     def __init__(self, function, prefix=False, command_name=None):
         if command_name is None:
             command_name = function.__name__
 
-        super(Command, self).__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        super(Command, self).__init__(
+            command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
+        )
         self.function = function
 
         if command_name in command_names:
-            raise Exception('Cannot add command %s: already exists.' % command_name)
-        if command_name in GDB_BUILTIN_COMMANDS and command_name not in self.builtin_override_whitelist:
+            raise Exception("Cannot add command %s: already exists." % command_name)
+        if (
+            command_name in GDB_BUILTIN_COMMANDS
+            and command_name not in self.builtin_override_whitelist
+        ):
             raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
         command_names.add(command_name)
@@ -97,7 +113,7 @@ class Command(gdb.Command):
         if not from_tty:
             return False
 
-        lines = gdb.execute('show commands', from_tty=False, to_string=True)
+        lines = gdb.execute("show commands", from_tty=False, to_string=True)
         lines = lines.splitlines()
 
         # No history
@@ -128,8 +144,7 @@ class Command(gdb.Command):
         try:
             return self.function(*args, **kwargs)
         except TypeError as te:
-            print('%r: %s' % (self.function.__name__.strip(),
-                              self.function.__doc__.strip()))
+            print("%r: %s" % (self.function.__name__.strip(), self.function.__doc__.strip()))
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
@@ -140,7 +155,7 @@ class ParsedCommand(Command):
     sloppy = False
 
     #: Whether to hide errors during parsing
-    quiet  = False
+    quiet = False
 
     def split_args(self, argument):
         # sys.stdout.write(repr(argument) + '\n')
@@ -196,7 +211,8 @@ def fix(arg, sloppy=False, quiet=True, reraise=False):
 
 
 def fix_int(*a, **kw):
-    return int(fix(*a,**kw))
+    return int(fix(*a, **kw))
+
 
 def fix_int_reraise(*a, **kw):
     return fix(*a, reraise=True, **kw)
@@ -223,7 +239,9 @@ def OnlyWhenRunning(function):
             return function(*a, **kw)
         else:
             print("%s: The program is not being run." % function.__name__)
+
     return _OnlyWhenRunning
+
 
 def OnlyWithTcache(function):
     @functools.wraps(function)
@@ -231,8 +249,13 @@ def OnlyWithTcache(function):
         if pwndbg.heap.current.has_tcache():
             return function(*a, **kw)
         else:
-            print("%s: This version of GLIBC was not compiled with tcache support." % function.__name__)
+            print(
+                "%s: This version of GLIBC was not compiled with tcache support."
+                % function.__name__
+            )
+
     return _OnlyWithTcache
+
 
 def OnlyWhenHeapIsInitialized(function):
     @functools.wraps(function)
@@ -241,18 +264,22 @@ def OnlyWhenHeapIsInitialized(function):
             return function(*a, **kw)
         else:
             print("%s: Heap is not initialized yet." % function.__name__)
+
     return _OnlyWhenHeapIsInitialized
 
+
 def OnlyAmd64(function):
-    """Decorates function to work only when pwndbg.arch.current == \"x86-64\".
-    """
+    """Decorates function to work only when pwndbg.arch.current == \"x86-64\"."""
+
     @functools.wraps(function)
     def _OnlyAmd64(*a, **kw):
         if pwndbg.arch.current == "x86-64":
             return function(*a, **kw)
         else:
-            print("%s: Only works with \"x86-64\" arch." % function.__name__)
+            print('%s: Only works with "x86-64" arch.' % function.__name__)
+
     return _OnlyAmd64
+
 
 def OnlyWithResolvedHeapSyms(function):
     @functools.wraps(function)
@@ -260,7 +287,8 @@ def OnlyWithResolvedHeapSyms(function):
         if pwndbg.heap.current.libc_has_debug_syms() or pwndbg.config.resolve_heap_via_heuristic:
             return function(*a, **kw)
         else:
-            print('''%s: This command only works with libc debug symbols.
+            print(
+                """%s: This command only works with libc debug symbols.
 They can probably be installed via the package manager of your choice.
 See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
 
@@ -268,17 +296,22 @@ E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 3
 sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
-''' % function.__name__)
-            print(message.warn('pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`.'))
-            print(message.warn('You can show your current config about heap by `heap_config`.'))
-            print(message.warn("Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."))
-    return _OnlyWithResolvedHeapSyms
+"""
+                % function.__name__
+            )
+            print(
+                message.warn(
+                    "pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`."
+                )
+            )
+            print(message.warn("You can show your current config about heap by `heap_config`."))
+            print(
+                message.warn(
+                    "Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."
+                )
+            )
 
-class QuietSloppyParsedCommand(ParsedCommand):
-    def __init__(self, *a, **kw):
-        super(QuietSloppyParsedCommand, self).__init__(*a, **kw)
-        self.quiet = True
-        self.sloppy = True
+    return _OnlyWithResolvedHeapSyms
 
 
 class _ArgparsedCommand(Command):
@@ -288,14 +321,13 @@ class _ArgparsedCommand(Command):
             self.parser.prog = function.__name__
         else:
             self.parser.prog = command_name
-        
-        # TODO/FIXME: Can we also append the generated positional args?
-        # E.g. "-f --flag  This does something"
-        doc = self.parser.description.strip()
-        if self.parser.epilog:
-            doc += '\n' + self.parser.epilog
 
-        self.__doc__ = function.__doc__ = doc
+        file = io.StringIO()
+        self.parser.print_help(file)
+        file.seek(0)
+        self.__doc__ = file.read()
+        # Note: function.__doc__ is used in the `pwndbg [filter]` command display
+        function.__doc__ = self.parser.description.strip()
 
         super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
 
@@ -306,6 +338,7 @@ class _ArgparsedCommand(Command):
 
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
+
     def __init__(self, parser_or_desc, aliases=[]):
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -318,23 +351,25 @@ class ArgparsedCommand:
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
-            if action.dest == 'help':
+            if action.dest == "help":
                 continue
             if action.type in (int, None):
                 action.type = fix_int_reraise
             if action.default is not None:
-                action.help += ' (default: %(default)s)'
+                action.help += " (default: %(default)s)"
 
     def __call__(self, function):
         for alias in self.aliases:
             _ArgparsedCommand(self.parser, function, alias)
         return _ArgparsedCommand(self.parser, function)
 
+
 # We use a 64-bit max value literal here instead of pwndbg.arch.current
 # as realistically its ok to pull off the biggest possible type here
 # We cache its GDB value type which is 'unsigned long long'
-_mask = 0xffffffffFFFFFFFF
+_mask = 0xFFFFFFFFFFFFFFFF
 _mask_val_type = gdb.Value(_mask).type
+
 
 def sloppy_gdb_parse(s):
     """
@@ -358,6 +393,7 @@ def sloppy_gdb_parse(s):
     except (TypeError, gdb.error):
         return s
 
+
 def AddressExpr(s):
     """
     Parses an address expression. Returns an int.
@@ -365,9 +401,10 @@ def AddressExpr(s):
     val = sloppy_gdb_parse(s)
 
     if not isinstance(val, int):
-        raise argparse.ArgumentError('Incorrect address (or GDB expression): %s' % s)
+        raise argparse.ArgumentError("Incorrect address (or GDB expression): %s" % s)
 
     return val
+
 
 def HexOrAddressExpr(s):
     """
