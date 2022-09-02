@@ -16,6 +16,7 @@ def start_binary():
 
     def _start_binary(path, *args):
         gdb.execute("file " + path)
+        gdb.execute("set exception-verbose on")
         gdb.execute("starti " + " ".join(args))
 
         global _start_binary_called

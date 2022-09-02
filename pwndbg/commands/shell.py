@@ -10,7 +10,7 @@ import pwndbg.commands
 import pwndbg.which
 
 pwncmds = ["asm", "constgrep", "cyclic", "disasm", "pwn", "unhex"]
-shellcmds = [
+shellcmd_names = [
     "awk",
     "bash",
     "cat",
@@ -63,7 +63,7 @@ shellcmds = [
 ]
 
 pwncmds = filter(pwndbg.which.which, pwncmds)
-shellcmds = filter(pwndbg.which.which, shellcmds)
+shellcmds = filter(pwndbg.which.which, shellcmd_names)
 
 
 def register_shell_function(cmd, deprecated=False):
