@@ -26,6 +26,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 
 ADD ./setup.sh /pwndbg/
 ADD ./requirements.txt /pwndbg/
+ADD ./dev-requirements.txt /pwndbg/
 # The `git submodule` is commented because it refreshes all the sub-modules in the project
 # but at this time we only need the essentials for the set up. It will execute at the end.
 RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
