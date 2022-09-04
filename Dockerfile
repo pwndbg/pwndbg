@@ -2,10 +2,10 @@
 #
 # Build as:             docker build -t pwndbg .
 #
-# For testing use:      docker run --rm -it --cap-add=SYS_PTRACE pwndbg bash
+# For testing use:      docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pwndbg bash
 #
 # For development, mount the directory so the host changes are reflected into container:
-#   docker run -it --cap-add=SYS_PTRACE -v `pwd`:/pwndbg pwndbg bash
+#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 FROM ubuntu:20.04
 
