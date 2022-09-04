@@ -25,7 +25,7 @@ CFLAGS		  +=	  -m32
 endif
 
 ifeq ($(DEBUG), 1)
-CFLAGS		  +=	  -DDEBUG=1 -ggdb -O0
+CFLAGS		  +=	  -DDEBUG=1 -ggdb -O0 -gdwarf-4
 else
 CFLAGS		  +=	  -O1
 endif
@@ -78,7 +78,7 @@ heap_bugs.out: heap_bugs.c
 	${GLIBC_2_33}/nptl_db:\
 	${GLIBC_2_33}/nptl:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
-	-g -o heap_bugs.out heap_bugs.c
+	${CFLAGS} -o heap_bugs.out heap_bugs.c
 
 # TODO/FIXME: We should probably force this to 2.29? a version with tcache?
 #heap_bins.out: heap_bins.c
