@@ -1,0 +1,15 @@
+name: Docker build
+on: [push, pull_request]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build the Docker image
+      run: docker-compose build main
+
+    - name: Run the tests in Docker
+      run: docker-compose run main ./tests.sh
