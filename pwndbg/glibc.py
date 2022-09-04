@@ -19,10 +19,27 @@ safe_lnk = pwndbg.config.Parameter(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
 )
 
+glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
+
 
 @pwndbg.proc.OnlyWhenRunning
-@pwndbg.memoize.reset_on_objfile
 def get_version():
+    if glibc_version.value:
+        ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+        if ret:
+            return tuple(int(_) for _ in ret.groups())
+        else:
+            raise ValueError(
+                "Invalid GLIBC version: `%s`, you should provide something like: 2.31 or 2.34"
+                % glibc_version.value
+            )
+    return _get_version()
+
+
+@pwndbg.proc.OnlyWhenRunning
+@pwndbg.memoize.reset_on_start
+@pwndbg.memoize.reset_on_objfile
+def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.symbol.address(b"__libc_version")
         if addr is not None:

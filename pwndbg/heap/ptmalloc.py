@@ -11,6 +11,7 @@ import pwndbg.events
 import pwndbg.glibc
 import pwndbg.search
 import pwndbg.symbol
+import pwndbg.tls
 import pwndbg.typeinfo
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -344,7 +345,10 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         for i in range(num_fastbins):
             size += pwndbg.arch.ptrsize * 2
             chain = pwndbg.chain.get(
-                int(fastbinsY[i]), offset=fd_offset, limit=heap_chain_limit, safe_linking=safe_lnk
+                int(fastbinsY[i]),
+                offset=fd_offset,
+                limit=heap_chain_limit,
+                safe_linking=safe_lnk,
             )
 
             result[size] = chain
@@ -643,12 +647,11 @@ class DebugSymsHeap(Heap):
 
             return self.main_arena
 
-        try:
-            next(i for i in pwndbg.vmmap.get() if arena_addr in i)
-            return pwndbg.memory.poi(self.malloc_state, arena_addr)
-        except (gdb.MemoryError, StopIteration):
-            # print(message.warn('Bad arena address {}'.format(arena_addr.address)))
-            return None
+        return (
+            None
+            if pwndbg.vmmap.find(arena_addr) is None
+            else pwndbg.memory.poi(self.malloc_state, arena_addr)
+        )
 
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
@@ -707,7 +710,21 @@ def initialize_structs(method):
     def wrapper(self, *args, **kwargs):
         # If structs module for HeuristicHeap is None, try to initialize it.
         if self._structs_module is None:
-            self._structs_module = importlib.reload(importlib.import_module("pwndbg.heap.structs"))
+            try:
+                self._structs_module = importlib.reload(
+                    importlib.import_module("pwndbg.heap.structs")
+                )
+            except TypeError as e:
+                # If there's a TypeError, maybe it's because `pwndbg.glibc.get_version()` return a `None`.
+                print(
+                    message.hint(
+                        "We failed to import the structs for the heap heuristic.\n"
+                        "Maybe it's because we can't find the GLIBC version\n"
+                        "Try `set glibc <version>` to set it manually (e.g. set glibc 2.31 )\n"
+                        "Use `heap_config` to show the current config about heap heuristics.\n"
+                    )
+                )
+                raise e
         return method(self, *args, **kwargs)
 
     return wrapper
@@ -719,13 +736,28 @@ class HeuristicHeap(Heap):
         self._thread_arena_offset = None
         self._thread_cache_offset = None
         self._structs_module = None
-        self._errno_offset = None
+
+    def is_glibc_static_symbol(self, addr):
+        # Check `addr` is greater than `_IO_list_all` address and in the same region as `_IO_list_all`.
+        # We use this to avoid false positive for the symbol we found by `pwndbg.symbol.address`.
+        # (Because if user also defined the symbol with same name, we will get the wrong address)
+        # Note: This might fail if there is an another symbol also call `_IO_list_all`...
+        # TODO/FIXME: Find a better way to check if `addr` is a static symbol of GLIBC.
+        _IO_list_all_addr = pwndbg.symbol.address("_IO_list_all")
+        return (
+            addr is not None
+            and addr in pwndbg.vmmap.find(_IO_list_all_addr)
+            and addr > _IO_list_all_addr
+        )
 
     @property
     def main_arena(self):
         main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
+        main_arena_via_symbol = pwndbg.symbol.address("main_arena")
         if main_arena_via_config > 0:
-            return self.malloc_state(main_arena_via_config)
+            self._main_arena_addr = main_arena_via_config
+        elif self.is_glibc_static_symbol(main_arena_via_symbol):
+            self._main_arena_addr = main_arena_via_symbol
         # TODO/FIXME: These are quite dirty, we should find a better way to do this
         if not self._main_arena_addr:
             if pwndbg.glibc.get_version() < (2, 34) and pwndbg.arch.current != "arm":
@@ -743,7 +775,7 @@ class HeuristicHeap(Heap):
                         malloc_hook_addr - pwndbg.arch.ptrsize * 2 - self.malloc_state.sizeof
                     )
             # If we can not find the main_arena via offset trick, we try to find its reference
-            if not self._main_arena_addr:
+            else:
                 # try to find `mstate ar_ptr = &main_arena;` in malloc_trim instructions
                 malloc_trim_instructions = pwndbg.disasm.near(
                     pwndbg.symbol.address("malloc_trim"), 10, show_prev_insns=False
@@ -786,36 +818,43 @@ class HeuristicHeap(Heap):
                                 offset = pwndbg.memory.s32((ldrw_instr.address + 4 & -4) + offset)
                                 # add reg, pc
                                 self._main_arena_addr = offset + instr.address + 4
-                else:
-                    inform_report_issue("main_arena")
-                    raise OSError("Cannot find the symbol via heuristics")
-            # try to search main_arena in .data of libc if we can't find it via above trick
-            if not self._main_arena_addr:
-                _IO_2_1_stdin_addr = pwndbg.symbol.address("_IO_2_1_stdin_")
-                _IO_list_all_addr = pwndbg.symbol.address("_IO_list_all")
-                # main_arena is between _IO_2_1_stdin and _IO_list_all
-                for addr in range(_IO_2_1_stdin_addr, _IO_list_all_addr, pwndbg.arch.ptrsize):
-                    tmp_arena = self.malloc_state(addr)
-                    if tmp_arena["next"] == addr:
-                        self._main_arena_addr = addr
+
+            # Try to search main_arena in .data of libc if we can't find it via above trick
+            if not self._main_arena_addr or pwndbg.vmmap.find(self._main_arena_addr) is None:
+                start = pwndbg.symbol.address("_IO_2_1_stdin_")
+                end = pwndbg.symbol.address("_IO_list_all") - self.malloc_state.sizeof
+                while start < end:
+                    start += pwndbg.arch.ptrsize
+                    if not pwndbg.symbol.get(start).startswith("_IO"):
                         break
-                if not self._main_arena_addr:
-                    # there are more than one arena, try to find by main_arena.top and main_arena.max_system_mem
-                    heap_page = next(x for x in pwndbg.vmmap.get() if "heap]" in x.objfile)
-                    for addr in range(_IO_2_1_stdin_addr, _IO_list_all_addr, pwndbg.arch.ptrsize):
-                        tmp_arena = self.malloc_state(addr)
-                        if heap_page.start <= tmp_arena["top"] <= heap_page.end:
-                            if tmp_arena["max_system_mem"] != 0:
-                                self._main_arena_addr = addr
-                                break
+                # main_arena is between _IO_2_1_stdin and _IO_list_all
+                for addr in range(start, end, pwndbg.arch.ptrsize):
+                    found = False
+                    tmp_arena = self.malloc_state(addr)
+                    tmp_next = int(tmp_arena["next"])
+                    # check if the `next` pointer of tmp_arena will point to the same address we guess
+                    # e.g. when our process is single-threaded, &tmp_arena->next == &main_arena
+                    # when our process is multi-threaded, &tmp_arena->next->...->next == &main_arena
+                    while tmp_next > 0:
+                        if tmp_next == addr:
+                            self._main_arena_addr = addr
+                            found = True
+                            break
+                        tmp_arena = self.malloc_state(tmp_next)
+                        try:
+                            tmp_next = int(tmp_arena["next"])
+                        except gdb.MemoryError:
+                            # tmp_arena->next is not valid, break
+                            break
+                    if found:
+                        break
 
-        if self._main_arena_addr:
+        if self._main_arena_addr and pwndbg.vmmap.find(self._main_arena_addr):
             self._main_arena = self.malloc_state(self._main_arena_addr)
-        else:
-            inform_report_issue("main_arena")
-            raise OSError("Cannot find the symbol via heuristics")
+            return self._main_arena
 
-        return self._main_arena
+        inform_report_issue("main_arena")
+        raise OSError("Cannot find the symbol via heuristics")
 
     def has_tcache(self):
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
@@ -823,50 +862,31 @@ class HeuristicHeap(Heap):
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
 
-    def get_tls_base_via_errno_location(self):
-        assert pwndbg.arch.current in ("x86-64", "i386", "arm")
-        # TODO/FIXME: Need a better way to find tls
-        already_lock = gdb.parameter("scheduler-locking") == "on"
-        if not already_lock:
-            gdb.execute("set scheduler-locking on")
-        errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
-        if not already_lock:
-            gdb.execute("set scheduler-locking off")
-        if not self._errno_offset:
-            __errno_location_instr = pwndbg.disasm.near(
-                pwndbg.symbol.address("__errno_location"), 5, show_prev_insns=False
-            )
-            if pwndbg.arch.current == "x86-64":
-                for instr in __errno_location_instr:
-                    # Find something like: mov rax, qword ptr [rip + disp]
-                    if instr.mnemonic == "mov":
-                        self._errno_offset = pwndbg.memory.s64(instr.next + instr.disp)
-            elif pwndbg.arch.current == "i386":
-                for instr in __errno_location_instr:
-                    # Find something like: mov eax, dword ptr [eax + disp]
-                    # (disp is a negative value, and eax comes from one of the page address of libc)
-                    if instr.mnemonic == "mov":
-                        base_offset = pwndbg.vmmap.find(pwndbg.symbol.address("_IO_list_all")).start
-                        self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
-            elif pwndbg.arch.current == "arm":
-                ldr_instr = None
-                for instr in __errno_location_instr:
-                    if not ldr_instr and instr.mnemonic == "ldr":
-                        ldr_instr = instr
-                    elif ldr_instr and instr.mnemonic == "add":
-                        offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                        self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
-                        break
-        if not self._errno_offset:
-            raise OSError("Can not find tls base")
-        return errno_addr - self._errno_offset
-
     @property
     def thread_arena(self):
         thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
+        thread_arena_via_symbol = pwndbg.symbol.address("thread_arena")
         if thread_arena_via_config > 0:
             return thread_arena_via_config
+        elif thread_arena_via_symbol:
+            # Check &thread_arena is nearby TLS base or not to avoid false positive.
+            tls_base = pwndbg.tls.address
+            if tls_base:
+                if pwndbg.arch.current in ("x86-64", "i386"):
+                    is_valid_address = 0 < tls_base - thread_arena_via_symbol < 0x250
+                else:  # elif pwndbg.arch.current in ("aarch64", "arm"):
+                    is_valid_address = 0 < thread_arena_via_symbol - tls_base < 0x250
+
+                is_valid_address = (
+                    is_valid_address and thread_arena_via_symbol in pwndbg.vmmap.find(tls_base)
+                )
+
+                if is_valid_address:
+                    thread_arena_struct_addr = pwndbg.memory.u(thread_arena_via_symbol)
+                    # Check &thread_arena is a valid address or not to avoid false positive.
+                    if pwndbg.vmmap.find(thread_arena_struct_addr):
+                        return thread_arena_struct_addr
+
         if not self._thread_arena_offset:
             # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
             __libc_calloc_instruction = pwndbg.disasm.near(
@@ -922,26 +942,42 @@ class HeuristicHeap(Heap):
                 # and before the branch, the flow of assembly code will like:
                 # `mrs reg1, tpidr_el;
                 # adrp reg2, #base_offset;
-                # /* branch to arena_get or use main_arena */;
+                # ldr reg2, [reg2, #offset]
+                # /* branch(cbnz) to arena_get or use main_arena */;
+                # /* if branch to thread_arena*/;
+                # ldr reg3, [reg1, reg2]`
+                # Or:
+                # `adrp	reg1, #base_offset;
+                # ldr reg1, [reg1, #offset];
+                # mrs reg2, tpidr_el;
+                # /* branch(cbnz) to arena_get or use main_arena */;
                 # /* if branch to thread_arena*/;
                 # ldr reg2, [reg1, reg2]`
-                # , then reg2 will be &thread_arena
-                found_mrs = False
-                first_adrp = None
-                for instr in __libc_calloc_instruction:
-                    if not found_mrs:
-                        found_mrs = instr.mnemonic == "mrs"
-                    else:
-                        if not first_adrp:
-                            if instr.mnemonic == "adrp":
-                                first_adrp = instr
-                        else:
-                            if instr.mnemonic == "ldr":
-                                base_offset = first_adrp.operands[1].int
-                                self._thread_arena_offset = pwndbg.memory.s64(
-                                    base_offset + instr.operands[1].mem.disp
-                                )
-                                break
+                # , then reg3 or reg2 will be &thread_arena
+                mrs_instr = next(
+                    instr for instr in __libc_calloc_instruction if instr.mnemonic == "mrs"
+                )
+                min_adrp_distance = 0x1000  # just a big enough number
+                nearest_adrp = None
+                nearest_adrp_idx = 0
+                for i, instr in enumerate(__libc_calloc_instruction):
+                    if (
+                        instr.mnemonic == "adrp"
+                        and abs(mrs_instr.address - instr.address) < min_adrp_distance
+                    ):
+                        reg = instr.operands[0].str
+                        nearest_adrp = instr
+                        nearest_adrp_idx = i
+                        min_adrp_distance = abs(mrs_instr.address - instr.address)
+                    if instr.address - mrs_instr.address > min_adrp_distance:
+                        break
+                for instr in __libc_calloc_instruction[nearest_adrp_idx + 1 :]:
+                    if instr.mnemonic == "ldr":
+                        base_offset = nearest_adrp.operands[1].int
+                        offset = instr.operands[1].mem.disp
+                        self._thread_arena_offset = pwndbg.memory.s64(base_offset + offset)
+                        break
+
             elif pwndbg.arch.current == "arm":
                 # We need to find something near the first `mrc 15, ......`
                 # The flow of assembly code will like:
@@ -968,47 +1004,51 @@ class HeuristicHeap(Heap):
                                 instr.address + 4 + offset
                             )
                             break
-            else:
-                inform_report_issue("thread_arena")
-                raise OSError("Cannot find the symbol via heuristics")
 
         if self._thread_arena_offset:
-            # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of
-            # pwndbg.regs.fsbase/gsbase
-            # If fsbase/gsbase not work, we use get_tls_base_via_errno_location() as a fallback
-            if pwndbg.arch.current == "x86-64":
-                # fs:[rax]
-                tls_base = pwndbg.regs.fsbase
-                tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                if tls_base:
-                    return pwndbg.memory.pvoid(tls_base + self._thread_arena_offset)
-            elif pwndbg.arch.current == "i386":
-                # reg+eax or gs:[eax] (value of reg is gs:[0x0])
-                tls_base = pwndbg.regs.gsbase
-                tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                if tls_base:
-                    return pwndbg.memory.pvoid(tls_base + self._thread_arena_offset)
-            elif pwndbg.arch.current == "aarch64":
-                # [reg1, reg2]
-                return pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_arena_offset)
-            elif pwndbg.arch.current == "arm":
-                # reg1, reg2
-                return pwndbg.memory.pvoid(
-                    self.get_tls_base_via_errno_location() + self._thread_arena_offset
-                )
+            tls_base = pwndbg.tls.address
+            if tls_base:
+                thread_arena_struct_addr = tls_base + self._thread_arena_offset
+                if pwndbg.vmmap.find(thread_arena_struct_addr):
+                    return pwndbg.memory.pvoid(thread_arena_struct_addr)
 
         inform_report_issue("thread_arena")
         raise OSError("Cannot find the symbol via heuristics")
 
     @property
     def thread_cache(self):
-        """Locate a thread's tcache struct. If it doesn't have one, use the main
-        thread's tcache.
+        """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
+        and if that fails, we guess it's at the first chunk of the heap.
         """
         thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
+        thread_cache_via_symbol = pwndbg.symbol.address("tcache")
         if thread_cache_via_config > 0:
-            return self.tcache_perthread_struct(thread_cache_via_config)
+            self._thread_cache = self.tcache_perthread_struct(thread_cache_via_config)
+            return self._thread_cache
+        elif thread_cache_via_symbol:
+            # Check &tcache is nearby TLS base or not to avoid false positive.
+            tls_base = pwndbg.tls.address
+            if tls_base:
+                if pwndbg.arch.current in ("x86-64", "i386"):
+                    is_valid_address = 0 < tls_base - thread_cache_via_symbol < 0x250
+                else:  # elif pwndbg.arch.current in ("aarch64", "arm"):
+                    is_valid_address = 0 < thread_cache_via_symbol - tls_base < 0x250
+
+                is_valid_address = (
+                    is_valid_address and thread_cache_via_symbol in pwndbg.vmmap.find(tls_base)
+                )
+
+                if is_valid_address:
+                    thread_cache_struct_addr = pwndbg.memory.u(thread_cache_via_symbol)
+                    # Check *tcache is in the heap region or not to avoid false positive.
+                    if thread_cache_struct_addr in self.get_heap_boundaries():
+                        self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
+                        return self._thread_cache
+
         if self.has_tcache():
+            # Each thread has a tcache struct, and the address of the tcache struct is stored in the TLS.
+
+            # Try to find tcache in TLS, so first we need to find the offset of tcache to TLS base
             if not self._thread_cache_offset:
                 # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
                 __libc_malloc_instruction = pwndbg.disasm.near(
@@ -1073,24 +1113,37 @@ class HeuristicHeap(Heap):
                     # ...
                     # add reg3, reg1, reg2;
                     # ldr reg3, [reg3, #8]`
-                    # , then reg3 will be tcache address
-                    found_mrs = False
-                    first_adrp = None
-                    for instr in __libc_malloc_instruction:
-                        if not found_mrs:
-                            found_mrs = instr.mnemonic == "mrs"
-                        else:
-                            if not first_adrp:
-                                if instr.mnemonic == "adrp":
-                                    first_adrp = instr
-                            else:
-                                if instr.mnemonic == "ldr":
-                                    base_offset = first_adrp.operands[1].int
-                                    self._thread_cache_offset = (
-                                        pwndbg.memory.s64(base_offset + instr.operands[1].mem.disp)
-                                        + 8
-                                    )
-                                    break
+                    # Or:
+                    # `adrp reg2, #base_offset;
+                    # mrs reg1, tpidr_el0;
+                    # ldr reg2, [reg2, #offset]
+                    # ...
+                    # add reg3, reg1, reg2;
+                    # ldr reg3, [reg3, #8]`
+                    # , then reg3 will be &tcache
+                    mrs_instr = next(
+                        instr for instr in __libc_malloc_instruction if instr.mnemonic == "mrs"
+                    )
+                    min_adrp_distance = 0x1000  # just a big enough number
+                    nearest_adrp = None
+                    nearest_adrp_idx = 0
+                    for i, instr in enumerate(__libc_malloc_instruction):
+                        if (
+                            instr.mnemonic == "adrp"
+                            and abs(mrs_instr.address - instr.address) < min_adrp_distance
+                        ):
+                            reg = instr.operands[0].str
+                            nearest_adrp = instr
+                            nearest_adrp_idx = i
+                            min_adrp_distance = abs(mrs_instr.address - instr.address)
+                        if instr.address - mrs_instr.address > min_adrp_distance:
+                            break
+                    for instr in __libc_malloc_instruction[nearest_adrp_idx + 1 :]:
+                        if instr.mnemonic == "ldr":
+                            base_offset = nearest_adrp.operands[1].int
+                            offset = instr.operands[1].mem.disp
+                            self._thread_cache_offset = pwndbg.memory.s64(base_offset + offset) + 8
+                            break
                 elif pwndbg.arch.current == "arm":
                     # We need to find something near the first `mrc 15, ......`
                     # The flow of assembly code will like:
@@ -1122,46 +1175,46 @@ class HeuristicHeap(Heap):
                                     pwndbg.memory.s32(instr.address + 4 + offset) + 4
                                 )
                                 break
-                else:
-                    inform_report_issue("tcache")
-                    raise OSError("Cannot find the symbol via heuristics")
 
-            # The offset to tls should be a negative integer for x86/x64, but it can't be too small
-            # If it is too small, we find a wrong value
-            if self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0:
-                # Note: fsbase/gsbase will not 100% work for remote debugging, see the implementations of
-                # pwndbg.regs.fsbase/gsbase
-                # If fsbase/gsbase not work, we use get_tls_base_via_errno_location() as a fallback
-                if pwndbg.arch.current == "x86-64":
-                    tls_base = pwndbg.regs.fsbase
-                    tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                    if tls_base:
-                        return self.tcache_perthread_struct(
-                            pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
-                        )
-                elif pwndbg.arch.current == "i386":
-                    tls_base = pwndbg.regs.gsbase
-                    tls_base = tls_base if tls_base else self.get_tls_base_via_errno_location()
-                    if tls_base:
-                        return self.tcache_perthread_struct(
-                            pwndbg.memory.pvoid(tls_base + self._thread_cache_offset)
-                        )
-            # The offset to tls should be a positive integer for aarch64, but it can't be too big
-            # If it is too big, we find a wrong value
-            elif self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250:
-                if pwndbg.arch.current == "aarch64":
-                    return self.tcache_perthread_struct(
-                        pwndbg.memory.pvoid(pwndbg.regs.TPIDR_EL0 + self._thread_cache_offset)
+            # Validate the the offset we found
+            is_offset_valid = False
+
+            if pwndbg.arch.current in ("x86-64", "i386"):
+                # The offset to tls should be a negative integer for x86/x64, but it can't be too small
+                # If it is too small, we find a wrong value
+                is_offset_valid = (
+                    self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0
+                )
+            elif pwndbg.arch.current in ("aarch64", "arm"):
+                # The offset to tls should be a positive integer for aarch64, but it can't be too big
+                # If it is too big, we find a wrong value
+                is_offset_valid = (
+                    self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250
+                )
+
+            is_offset_valid = (
+                is_offset_valid and self._thread_cache_offset % pwndbg.arch.ptrsize == 0
+            )
+
+            # If the offset is valid, we add the offset to TLS base to locate the tcache struct
+            # Note: We do a lot of checks here to make sure the offset and address we found is valid,
+            # so we can use our fallback if they're invalid
+            if is_offset_valid:
+                tls_base = pwndbg.tls.address
+                if tls_base:
+                    thread_cache_struct_addr = pwndbg.memory.pvoid(
+                        tls_base + self._thread_cache_offset
                     )
-                elif pwndbg.arch.current == "arm":
-                    return self.tcache_perthread_struct(
-                        pwndbg.memory.pvoid(
-                            self.get_tls_base_via_errno_location() + self._thread_cache_offset
-                        )
-                    )
+                    if (
+                        pwndbg.vmmap.find(thread_cache_struct_addr)
+                        and thread_cache_struct_addr in self.get_heap_boundaries()
+                    ):
+                        self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
+                        return self._thread_cache
 
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
-            # TODO/FIXME: This might fail if the arena is being shared by multiple threads
+            # Note: The result might be wrong if the arena is being shared by multiple threads
+            # And that's why we need to find the tcache address in TLS first
             arena = self.get_arena()
             heap_region = self.get_heap_boundaries()
             ptr_size = pwndbg.arch.ptrsize
@@ -1184,15 +1237,18 @@ class HeuristicHeap(Heap):
 
             return self._thread_cache
 
-        else:
-            print(message.warn("This version of GLIBC was not compiled with tcache support."))
-            return None
+        print(message.warn("This version of GLIBC was not compiled with tcache support."))
+        return None
 
     @property
     def mp(self):
         mp_via_config = int(str(pwndbg.config.mp_), 0)
+        mp_via_symbol = pwndbg.symbol.address("mp_")
         if mp_via_config > 0:
-            return self.malloc_par(mp_via_config)
+            self._mp_addr = mp_via_config
+        elif self.is_glibc_static_symbol(mp_via_symbol):
+            # Check mp_ is in the same region as _IO_list_all to avoid false positive
+            self._mp_addr = mp_via_symbol
         if not self._mp_addr:
             # try to find mp_ referenced in __libc_free
             # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
@@ -1286,47 +1342,47 @@ class HeuristicHeap(Heap):
                                 ldr[reg] = instr
                     elif instr.mnemonic == "ldr" and "[pc," in instr.op_str:
                         regs[instr.operands[0].str] = instr
+
+        # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
+        if not self._mp_addr or pwndbg.vmmap.find(self._mp_addr) is None:
+            libc_page = pwndbg.vmmap.find(pwndbg.symbol.address("_IO_list_all"))
+
+            # try to find sbrk_base via main_arena or vmmap
+            # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
+            arena = self.main_arena
+            if self._main_arena_addr:
+                region = self.get_region(arena["top"])
             else:
-                inform_report_issue("mp_")
-                raise OSError("Cannot find the symbol via heuristics")
+                # If we can't find main_arena via heuristics, try to find it via vmmap
+                region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
+            possible_sbrk_base = region.start
 
-            # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
-            if not self._mp_addr:
-                libc_page = pwndbg.vmmap.find(pwndbg.symbol.address("_IO_list_all"))
+            sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
+            # try to search sbrk_base in a part of libc page
+            result = pwndbg.search.search(
+                pwndbg.arch.pack(possible_sbrk_base), start=libc_page.start, end=libc_page.end
+            )
+            try:
+                self._mp_addr = next(result) - sbrk_offset
+            except StopIteration:
+                pass
 
-                # try to find sbrk_base via main_arena or vmmap
-                # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
-                arena = self.main_arena
-                if self._main_arena_addr:
-                    region = self.get_region(arena["top"])
-                else:
-                    # If we can't find main_arena via heuristics, try to find it via vmmap
-                    region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
-                possible_sbrk_base = region.start
-
-                sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
-                # try to search sbrk_base in a part of libc page
-                result = pwndbg.search.search(
-                    pwndbg.arch.pack(possible_sbrk_base), start=libc_page.start, end=libc_page.end
-                )
-                try:
-                    self._mp_addr = next(result) - sbrk_offset
-                except StopIteration:
-                    pass
-
-        if self._mp_addr:
+        if self._mp_addr and pwndbg.vmmap.find(self._mp_addr) is not None:
             self._mp = self.malloc_par(self._mp_addr)
-        else:
-            inform_report_issue("mp_")
-            raise OSError("Cannot find the symbol via heuristics")
+            return self._mp
 
-        return self._mp
+        inform_report_issue("mp_")
+        raise OSError("Cannot find the symbol via heuristics")
 
     @property
     def global_max_fast(self):
         global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
+        global_max_fast_via_symbol = pwndbg.symbol.address("global_max_fast")
         if global_max_fast_via_config > 0:
-            return pwndbg.memory.u(global_max_fast_via_config)
+            self._global_max_fast_addr = global_max_fast_via_config
+        elif self.is_glibc_static_symbol(global_max_fast_via_symbol):
+            # Check global_max_fast is in the same region as _IO_list_all to avoid false positive
+            self._global_max_fast_addr = global_max_fast_via_symbol
         # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
         if not self._global_max_fast_addr:
             # `__libc_malloc` will call `_int_malloc`, so we try to find the reference to `_int_malloc`
@@ -1395,10 +1451,19 @@ class HeuristicHeap(Heap):
                     # add reg2, reg1, #offset;
                     # ldr reg2, [reg2, #8];
                     # cmp reg2, #0x1f;`
-                    # So global_max_fast address is `base_offset+offset+8`
-                    if reg and instr.mnemonic == "add" and reg + ", #" in instr.op_str:
-                        self._global_max_fast_addr = base_offset + instr.operands[2].int + 8
-                        break
+                    # Or:
+                    # `adrp reg, #base_offset;
+                    # ...
+                    # ldr reg2, [reg, #offset];
+                    # cmp reg3, reg2; (reg3 stored 0x1f)`
+                    # So global_max_fast address is `base_offset+offset+8` or `base_offset+offset`
+                    if reg:
+                        if instr.mnemonic == "add" and reg + ", #" in instr.op_str:
+                            self._global_max_fast_addr = base_offset + instr.operands[2].int + 8
+                            break
+                        elif instr.mnemonic == "ldr" and reg + ", #" in instr.op_str:
+                            self._global_max_fast_addr = base_offset + instr.operands[1].mem.disp
+                            break
                     elif instr.mnemonic == "adrp" and instr.operands[1].int == base_offset:
                         reg = instr.operands[0].str
             elif pwndbg.arch.current == "arm":
@@ -1432,14 +1497,13 @@ class HeuristicHeap(Heap):
                         break
                     elif instr.mnemonic == "ldr" and "[pc" in instr.op_str:
                         ldr_instr = instr
-            else:
-                inform_report_issue("global_max_fast")
-                raise OSError("Cannot find the symbol via heuristics")
 
-        if self._global_max_fast_addr:
+        if self._global_max_fast_addr and pwndbg.vmmap.find(self._global_max_fast_addr):
             self._global_max_fast = pwndbg.memory.u(self._global_max_fast_addr)
+            return self._global_max_fast
 
-        return self._global_max_fast
+        inform_report_issue("global_max_fast")
+        raise OSError("Cannot find the symbol via heuristics")
 
     @property
     @pwndbg.memoize.reset_on_objfile

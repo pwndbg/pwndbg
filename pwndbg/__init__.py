@@ -49,6 +49,7 @@ import pwndbg.commands.stack
 import pwndbg.commands.start
 import pwndbg.commands.telescope
 import pwndbg.commands.theme
+import pwndbg.commands.tls
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
@@ -74,6 +75,7 @@ import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
 import pwndbg.tempfile
+import pwndbg.tls
 import pwndbg.typeinfo
 import pwndbg.ui
 import pwndbg.version

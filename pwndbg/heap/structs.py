@@ -403,7 +403,10 @@ class c_tcache_perthread_struct_2_29(ctypes.LittleEndianStructure):
     } tcache_perthread_struct;
     """
 
-    _fields_ = [("counts", ctypes.c_char * TCACHE_MAX_BINS), ("entries", c_pvoid * TCACHE_MAX_BINS)]
+    _fields_ = [
+        ("counts", ctypes.c_char * TCACHE_MAX_BINS),
+        ("entries", c_pvoid * TCACHE_MAX_BINS),
+    ]
 
 
 class c_tcache_perthread_struct_2_30(ctypes.LittleEndianStructure):
