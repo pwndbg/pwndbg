@@ -11,13 +11,13 @@ import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 import pwndbg.memory
-import pwndbg.regs
 import pwndbg.symbol
 
 ida_replacements = {
@@ -60,7 +60,7 @@ def get_syscall_name(instruction):
         if not (mnemonic == "syscall" or (mnemonic == "int" and instruction.op_str == "0x80")):
             return None
 
-    syscall_number = getattr(pwndbg.regs, syscall_register)
+    syscall_number = getattr(pwndbg.gdblib.regs, syscall_register)
     return pwndbg.constants.syscall(syscall_number) or "<unk_%d>" % syscall_number
 
 
@@ -76,7 +76,7 @@ def get(instruction):
     if instruction is None:
         return []
 
-    if instruction.address != pwndbg.regs.pc:
+    if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
     if CS_GRP_CALL in instruction.groups:
@@ -181,11 +181,11 @@ def argument(n, abi=None):
     regs = abi.register_arguments
 
     if n < len(regs):
-        return getattr(pwndbg.regs, regs[n])
+        return getattr(pwndbg.gdblib.regs, regs[n])
 
     n -= len(regs)
 
-    sp = pwndbg.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
+    sp = pwndbg.gdblib.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
 
     return int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
 

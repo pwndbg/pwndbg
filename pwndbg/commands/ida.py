@@ -7,8 +7,8 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.commands.context
+import pwndbg.gdblib.regs
 import pwndbg.ida
-import pwndbg.regs
 from pwndbg.gdbutils.functions import GdbFunction
 
 

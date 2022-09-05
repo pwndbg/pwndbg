@@ -5,9 +5,9 @@ import gdb
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.hexdump
 import pwndbg.memory
-import pwndbg.regs
 
 pwndbg.config.Parameter("hexdump-width", 16, "line width of hexdump command")
 pwndbg.config.Parameter("hexdump-bytes", 64, "number of bytes printed by hexdump command")

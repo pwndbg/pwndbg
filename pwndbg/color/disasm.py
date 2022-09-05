@@ -33,7 +33,7 @@ def instruction(ins):
     is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
-    if pwndbg.config.highlight_pc and ins.address == pwndbg.regs.pc:
+    if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
     # tl;dr is a branch?

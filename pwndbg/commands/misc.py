@@ -6,7 +6,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.gdblib.arch as _arch
-import pwndbg.regs
+import pwndbg.gdblib.regs
 import pwndbg.symbol
 
 errno.errorcode[0] = "OK"

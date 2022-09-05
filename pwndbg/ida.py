@@ -18,9 +18,9 @@ import pwndbg.decorators
 import pwndbg.elf
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.regs
 import pwndbg.lib.memoize
 import pwndbg.memory
-import pwndbg.regs
 from pwndbg.color import message
 
 ida_rpc_host = pwndbg.config.Parameter("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
@@ -313,7 +313,7 @@ colored_pc = None
 @withIDA
 def Auto_Color_PC():
     global colored_pc
-    colored_pc = pwndbg.regs.pc
+    colored_pc = pwndbg.gdblib.regs.pc
     SetColor(colored_pc, 0x7F7FFF)
 
 

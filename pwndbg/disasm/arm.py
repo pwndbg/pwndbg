@@ -3,8 +3,8 @@ from capstone.arm import *
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.memory
-import pwndbg.regs
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
@@ -19,7 +19,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             parts.append("%#x" % op.value.mem.disp)
 
         if op.mem.index != 0:
-            index = pwndbg.regs[instruction.reg_name(op.mem.index)]
+            index = pwndbg.gdblib.regs[instruction.reg_name(op.mem.index)]
             scale = op.mem.scale
             parts.append("%s*%#x" % (index, scale))
 
@@ -34,10 +34,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.cc == ARM_CC_AL:
             return None
 
-        if instruction.address != pwndbg.regs.pc:
+        if instruction.address != pwndbg.gdblib.regs.pc:
             return False
 
-        value = pwndbg.regs.cpsr if pwndbg.gdblib.arch.current == "arm" else pwndbg.regs.xpsr
+        value = (
+            pwndbg.gdblib.regs.cpsr
+            if pwndbg.gdblib.arch.current == "arm"
+            else pwndbg.gdblib.regs.xpsr
+        )
 
         N = value & (1 << 31)
         Z = value & (1 << 30)

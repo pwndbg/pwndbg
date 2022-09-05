@@ -4,8 +4,8 @@ import gdb
 
 import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
+import pwndbg.gdblib.regs
 import pwndbg.radare2
-import pwndbg.regs
 
 
 def decompile(func=None):
@@ -28,7 +28,9 @@ def decompile(func=None):
         raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
 
     if not func:
-        func = hex(pwndbg.regs[pwndbg.regs.current.pc]) if pwndbg.proc.alive else "main"
+        func = (
+            hex(pwndbg.gdblib.regs[pwndbg.gdblib.regs.current.pc]) if pwndbg.proc.alive else "main"
+        )
 
     src = r2.cmdj("pdgj @" + func)
     if not src:
@@ -39,7 +41,7 @@ def decompile(func=None):
 
     # If not running there is no current pc to mark
     if pwndbg.proc.alive:
-        pc = pwndbg.regs[pwndbg.regs.current.pc]
+        pc = pwndbg.gdblib.regs[pwndbg.gdblib.regs.current.pc]
 
         closest = 0
         for off in (a.get("offset", 0) for a in src.get("annotations", [])):

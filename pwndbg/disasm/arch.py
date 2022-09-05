@@ -211,7 +211,7 @@ class DisassemblyAssistant:
         return "%#x" % value
 
     def register(self, instruction, operand):
-        if instruction.address != pwndbg.regs.pc:
+        if instruction.address != pwndbg.gdblib.regs.pc:
             return None
 
         # # Don't care about registers which are only overwritten
@@ -221,7 +221,7 @@ class DisassemblyAssistant:
         reg = operand.value.reg
         name = instruction.reg_name(reg)
 
-        return pwndbg.regs[name]
+        return pwndbg.gdblib.regs[name]
 
     def register_sz(self, instruction, operand):
         reg = operand.value.reg

@@ -46,11 +46,11 @@ def prot_str_to_val(protstr):
 @pwndbg.commands.OnlyAmd64
 def mprotect(addr, length, prot):
     """Only x86_64."""
-    saved_rax = pwndbg.regs.rax
-    saved_rbx = pwndbg.regs.rbx
-    saved_rcx = pwndbg.regs.rcx
-    saved_rdx = pwndbg.regs.rdx
-    saved_rip = pwndbg.regs.rip
+    saved_rax = pwndbg.gdblib.regs.rax
+    saved_rbx = pwndbg.gdblib.regs.rbx
+    saved_rcx = pwndbg.gdblib.regs.rcx
+    saved_rdx = pwndbg.gdblib.regs.rdx
+    saved_rip = pwndbg.gdblib.regs.rip
 
     prot_int = prot_str_to_val(prot)
     gdb.execute("set $rax={}".format(SYS_MPROTECT))
@@ -58,15 +58,15 @@ def mprotect(addr, length, prot):
     gdb.execute("set $rcx={}".format(length))
     gdb.execute("set $rdx={}".format(prot_int))
 
-    saved_instruction_2bytes = pwndbg.memory.read(pwndbg.regs.rip, 2)
+    saved_instruction_2bytes = pwndbg.memory.read(pwndbg.gdblib.regs.rip, 2)
 
     # int 0x80
-    pwndbg.memory.write(pwndbg.regs.rip, b"\xcd\x80")
+    pwndbg.memory.write(pwndbg.gdblib.regs.rip, b"\xcd\x80")
 
     # execute syscall
     gdb.execute("stepi")
 
-    print("mprotect returned {}".format(pwndbg.regs.rax))
+    print("mprotect returned {}".format(pwndbg.gdblib.regs.rax))
 
     # restore registers and memory
     pwndbg.memory.write(saved_rip, saved_instruction_2bytes)
@@ -77,8 +77,8 @@ def mprotect(addr, length, prot):
     gdb.execute("set $rdx={}".format(saved_rdx))
     gdb.execute("set $rip={}".format(saved_rip))
 
-    pwndbg.regs.rax = saved_rax
-    pwndbg.regs.rbx = saved_rbx
-    pwndbg.regs.rcx = saved_rcx
-    pwndbg.regs.rdx = saved_rdx
-    pwndbg.regs.rip = saved_rip
+    pwndbg.gdblib.regs.rax = saved_rax
+    pwndbg.gdblib.regs.rbx = saved_rbx
+    pwndbg.gdblib.regs.rcx = saved_rcx
+    pwndbg.gdblib.regs.rdx = saved_rdx
+    pwndbg.gdblib.regs.rip = saved_rip

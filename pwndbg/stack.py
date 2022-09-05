@@ -58,7 +58,7 @@ def update():
     try:
         for thread in gdb.selected_inferior().threads():
             thread.switch()
-            sp = pwndbg.regs.sp
+            sp = pwndbg.gdblib.regs.sp
 
             # Skip if sp is None or 0
             # (it might be 0 if we debug a qemu kernel)
@@ -102,7 +102,7 @@ def current():
     """
     Returns the bounds for the stack for the current thread.
     """
-    return find(pwndbg.regs.sp)
+    return find(pwndbg.gdblib.regs.sp)
 
 
 @pwndbg.gdblib.events.exit

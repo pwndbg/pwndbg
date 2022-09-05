@@ -17,7 +17,7 @@ def is_jump_taken(instruction):
     """
     if CS_GRP_JUMP not in instruction.groups:
         return False
-    if pwndbg.regs.pc != instruction.address:
+    if pwndbg.gdblib.regs.pc != instruction.address:
         return False
 
     return {

@@ -484,7 +484,7 @@ def u(where=None, n=5, to_string=False):
     N instructions (default 5).
     """
     if where is None:
-        where = pwndbg.regs.pc
+        where = pwndbg.gdblib.regs.pc
     return pwndbg.commands.nearpc.nearpc(where, n, to_string)
 
 
@@ -510,7 +510,7 @@ def ln(value=None):
     List the symbols nearest to the provided value.
     """
     if value is None:
-        value = pwndbg.regs.pc
+        value = pwndbg.gdblib.regs.pc
     value = int(value)
     x = pwndbg.symbol.get(value)
     if x:

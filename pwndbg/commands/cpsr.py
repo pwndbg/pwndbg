@@ -1,6 +1,6 @@
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.regs
+import pwndbg.gdblib.regs
 from pwndbg.color import context
 from pwndbg.color import message
 
@@ -23,4 +23,10 @@ def arm_print_psr():
         return
 
     reg = "cpsr" if pwndbg.gdblib.arch.current == "arm" else "xpsr"
-    print("%s %s" % (reg, context.format_flags(getattr(pwndbg.regs, reg), pwndbg.regs.flags[reg])))
+    print(
+        "%s %s"
+        % (
+            reg,
+            context.format_flags(getattr(pwndbg.gdblib.regs, reg), pwndbg.gdblib.regs.flags[reg]),
+        )
+    )

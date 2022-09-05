@@ -287,7 +287,7 @@ def test_windbg_eX_commands(start_binary):
     ### Test write & output on partial write
     #########################################
     # e.g. when we make a write to the last stack address
-    stack_ea = pwndbg.regs[pwndbg.regs.stack]
+    stack_ea = pwndbg.gdblib.regs[pwndbg.gdblib.regs.stack]
     stack_page = pwndbg.vmmap.find(stack_ea)
 
     # Last possible address on stack where we can perform an 8-byte write
@@ -311,57 +311,57 @@ def test_windbg_commands_x86(start_binary):
     start_binary(X86_BINARY)
 
     # Prepare memory
-    pwndbg.memory.write(pwndbg.regs.esp, b"1234567890abcdef_")
-    pwndbg.memory.write(pwndbg.regs.esp + 16, b"\x00" * 16)
-    pwndbg.memory.write(pwndbg.regs.esp + 32, bytes(range(16)))
-    pwndbg.memory.write(pwndbg.regs.esp + 48, b"Z" * 16)
+    pwndbg.memory.write(pwndbg.gdblib.regs.esp, b"1234567890abcdef_")
+    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 16, b"\x00" * 16)
+    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 32, bytes(range(16)))
+    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 48, b"Z" * 16)
 
     #################################################
     #### dX command tests
     #################################################
     db = gdb.execute("db $esp", to_string=True).splitlines()
     assert db == [
-        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % pwndbg.regs.esp,
-        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (pwndbg.regs.esp + 16),
-        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (pwndbg.regs.esp + 32),
-        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (pwndbg.regs.esp + 48),
+        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % pwndbg.gdblib.regs.esp,
+        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (pwndbg.gdblib.regs.esp + 16),
+        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (pwndbg.gdblib.regs.esp + 32),
+        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (pwndbg.gdblib.regs.esp + 48),
     ]
 
     dw = gdb.execute("dw $esp", to_string=True).splitlines()
     assert dw == [
-        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % pwndbg.regs.esp,
-        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (pwndbg.regs.esp + 16),
-        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (pwndbg.regs.esp + 32),
-        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (pwndbg.regs.esp + 48),
+        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % pwndbg.gdblib.regs.esp,
+        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (pwndbg.gdblib.regs.esp + 16),
+        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (pwndbg.gdblib.regs.esp + 32),
+        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (pwndbg.gdblib.regs.esp + 48),
     ]
 
     dd = gdb.execute("dd $esp", to_string=True).splitlines()
     assert dd == [
-        "%x     34333231 38373635 62613039 66656463" % pwndbg.regs.esp,
-        "%x     00000000 00000000 00000000 00000000" % (pwndbg.regs.esp + 16),
-        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (pwndbg.regs.esp + 32),
-        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (pwndbg.regs.esp + 48),
+        "%x     34333231 38373635 62613039 66656463" % pwndbg.gdblib.regs.esp,
+        "%x     00000000 00000000 00000000 00000000" % (pwndbg.gdblib.regs.esp + 16),
+        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (pwndbg.gdblib.regs.esp + 32),
+        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (pwndbg.gdblib.regs.esp + 48),
     ]
 
     dq = gdb.execute("dq $esp", to_string=True).splitlines()
     assert dq == [
-        "%x     3837363534333231 6665646362613039" % pwndbg.regs.esp,
-        "%x     0000000000000000 0000000000000000" % (pwndbg.regs.esp + 16),
-        "%x     0706050403020100 0f0e0d0c0b0a0908" % (pwndbg.regs.esp + 32),
-        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (pwndbg.regs.esp + 48),
+        "%x     3837363534333231 6665646362613039" % pwndbg.gdblib.regs.esp,
+        "%x     0000000000000000 0000000000000000" % (pwndbg.gdblib.regs.esp + 16),
+        "%x     0706050403020100 0f0e0d0c0b0a0908" % (pwndbg.gdblib.regs.esp + 32),
+        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (pwndbg.gdblib.regs.esp + 48),
     ]
 
     #################################################
     #### eX command tests
     #################################################
     gdb.execute("eb $esp 00")
-    assert pwndbg.memory.read(pwndbg.regs.esp, 1) == b"\x00"
+    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 1) == b"\x00"
 
     gdb.execute("ew $esp 4141")
-    assert pwndbg.memory.read(pwndbg.regs.esp, 2) == b"\x41\x41"
+    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 2) == b"\x41\x41"
 
     gdb.execute("ed $esp 5252525252")
-    assert pwndbg.memory.read(pwndbg.regs.esp, 4) == b"\x52" * 4
+    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 4) == b"\x52" * 4
 
     gdb.execute("eq $esp 1122334455667788")
-    assert pwndbg.memory.read(pwndbg.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"

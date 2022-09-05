@@ -7,11 +7,11 @@ import gdb
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.info
 import pwndbg.memory
 import pwndbg.qemu
-import pwndbg.regs
 import pwndbg.stack
 
 example_info_auxv_linux = """
@@ -168,7 +168,7 @@ def walk_stack():
 
 
 def walk_stack2(offset=0):
-    sp = pwndbg.regs.sp
+    sp = pwndbg.gdblib.regs.sp
 
     if not sp:
         return AUXV()
@@ -244,7 +244,7 @@ def walk_stack2(offset=0):
 
 def _get_execfn():
     # If the stack is not sane, this won't work
-    if not pwndbg.memory.peek(pwndbg.regs.sp):
+    if not pwndbg.memory.peek(pwndbg.gdblib.regs.sp):
         return
 
     # QEMU does not put AT_EXECFN in the Auxiliary Vector
@@ -257,7 +257,7 @@ def _get_execfn():
     # 32e:1970|      0x7fffffffeff0 <-- 0x6f732e646c2f67 /* 'g/ld.so' */
     # 32f:1978|      0x7fffffffeff8 <-- 0
     # 330:1980|      0x7ffffffff000
-    addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.regs.sp)
+    addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.gdblib.regs.sp)
 
     while pwndbg.memory.byte(addr - 1) == 0:
         addr -= 1

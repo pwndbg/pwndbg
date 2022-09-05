@@ -2,9 +2,9 @@ import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.regs
 import pwndbg.lib.abi
 import pwndbg.memory
-import pwndbg.regs
 
 #: Total number of arguments
 argc = None
@@ -29,7 +29,7 @@ def update():
 
     pwndbg.gdblib.arch_mod.update()  # :-(
 
-    sp = pwndbg.regs.sp
+    sp = pwndbg.gdblib.regs.sp
     ptrsize = pwndbg.gdblib.arch.ptrsize
     ptrbits = 8 * ptrsize
 

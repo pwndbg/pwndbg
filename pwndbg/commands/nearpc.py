@@ -12,9 +12,9 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.config
 import pwndbg.disasm
+import pwndbg.gdblib.regs
 import pwndbg.ida
 import pwndbg.lib.functions
-import pwndbg.regs
 import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
@@ -86,7 +86,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         pc = None
 
     if pc is None:
-        pc = pwndbg.regs.pc
+        pc = pwndbg.gdblib.regs.pc
 
     if lines is None:
         lines = nearpc_lines // 2

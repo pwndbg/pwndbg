@@ -12,8 +12,8 @@ import unicorn as U
 import pwndbg.disasm
 import pwndbg.emu.emulator
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.memory
-import pwndbg.regs
 
 
 def parse_consts(u_consts):
@@ -119,7 +119,7 @@ class Emulator:
         debug("# Instantiating Unicorn for %s", self.arch)
         debug("uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
-        self.regs = pwndbg.regs.current
+        self.regs = pwndbg.gdblib.regs.current
 
         # Jump tracking state
         self._prev = None
@@ -142,7 +142,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug("Skipping blacklisted register %r", reg)
                 continue
-            value = getattr(pwndbg.regs, reg)
+            value = getattr(pwndbg.gdblib.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug("# Could not set register %r", reg)
@@ -163,7 +163,7 @@ class Emulator:
         self.hook_add(U.UC_HOOK_INTR, self.hook_intr)
 
         # Map in the page that $pc is on
-        self.map_page(pwndbg.regs.pc)
+        self.map_page(pwndbg.gdblib.regs.pc)
 
         # Instruction tracing
         if DEBUG:
@@ -179,7 +179,7 @@ class Emulator:
 
     def update_pc(self, pc=None):
         if pc is None:
-            pc = pwndbg.regs.pc
+            pc = pwndbg.gdblib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
 
     def get_uc_mode(self):
@@ -192,12 +192,12 @@ class Emulator:
         if arch == "armcm":
             mode |= (
                 (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.regs.xpsr & (1 << 24))
+                if (pwndbg.gdblib.regs.xpsr & (1 << 24))
                 else U.UC_MODE_MCLASS
             )
 
         elif arch in ("arm", "aarch64"):
-            mode |= U.UC_MODE_THUMB if (pwndbg.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
+            mode |= U.UC_MODE_THUMB if (pwndbg.gdblib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
 
         elif arch == "mips" and "isa32r6" in gdb.newest_frame().architecture().name():
             mode |= U.UC_MODE_MIPS32R6
