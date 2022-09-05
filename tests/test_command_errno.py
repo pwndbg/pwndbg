@@ -21,7 +21,7 @@ def test_command_errno(start_binary):
     result = "".join(gdb.execute("errno", to_string=True).splitlines())
     assert (
         result
-        == "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (was libc.so loaded already?)"
+        == "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
     )
 
     gdb.execute("break main")
