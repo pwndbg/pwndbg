@@ -35,10 +35,18 @@ def errno_(err):
             err = int(gdb.parse_and_eval("errno"))
         except gdb.error:
             try:
-                err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
+                # We can't simply call __errno_location because its .plt.got entry may be uninitialized
+                # (e.g. if the binary was just started with `starti` command)
+                # So we have to check the got.plt entry first before calling it
+                errno_loc_gotplt = pwndbg.symbol.address('__errno_location@got.plt')
+                if pwndbg.vmmap.find(pwndbg.memory.pvoid(errno_loc_gotplt)):
+                    err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
+                else:
+                    print("Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)")
+                    return
             except gdb.error:
                 print(
-                    "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (was libc.so loaded already?)"
+                    "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
                 )
                 return
 
