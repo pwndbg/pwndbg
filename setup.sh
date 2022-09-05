@@ -22,7 +22,7 @@ install_apt() {
     sudo apt-get update || true
     sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep x86_64 >/dev/null; then
         sudo dpkg --add-architecture i386 || true
         sudo apt-get update || true
         sudo apt-get install -y libc6-dbg:i386 || true
@@ -51,7 +51,7 @@ install_zypper() {
     sudo zypper refresh || true
     sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep x86_64 >/dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
     fi
 }
@@ -141,7 +141,7 @@ git submodule update --init --recursive
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
 PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 if ! osx; then
-PYTHON+="${PYVER}"
+    PYTHON+="${PYVER}"
 fi
 
 # Find the Python site-packages that we need to use so that
@@ -164,5 +164,5 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
 # Load Pwndbg into GDB on every launch.
 if ! grep pwndbg ~/.gdbinit &>/dev/null; then
-    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
+    echo "source $PWD/gdbinit.py" >>~/.gdbinit
 fi

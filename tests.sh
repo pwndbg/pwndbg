@@ -19,7 +19,7 @@ TEST_NAME_FILTER=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -p|--pdb)
+        -p | --pdb)
             USE_PDB=1
             echo "Will run tests with Python debugger"
             shift
@@ -34,14 +34,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-
 if [[ -z "$ZIGPATH" ]]; then
     # If ZIGPATH is not set, set it to $pwd/.zig
     # In Docker environment this should by default be set to /opt/zig
     export ZIGPATH="$ROOT_DIR/.zig"
 fi
 echo "ZIGPATH set to $ZIGPATH"
-
 
 cd ./tests/binaries || exit 1
 make clean && make all || exit 2
@@ -76,9 +74,9 @@ for test_case in ${TESTS_LIST}; do
 
     exit_status=$?
     if [ ${exit_status} -eq 0 ]; then
-        (( ++tests_passed_or_skipped ))
+        ((++tests_passed_or_skipped))
     else
-        (( ++tests_failed ))
+        ((++tests_failed))
     fi
 done
 

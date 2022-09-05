@@ -23,6 +23,7 @@ jobs:
         pip install isort
         pip install black
         pip install flake8
+        sudo snap install shfmt
 
     - name: Run linters
       run: |
