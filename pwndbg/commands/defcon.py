@@ -51,7 +51,7 @@ def heap_freebins(addr=0x0602558):
         in_use = size & 1
         size &= ~3
 
-        linkedlist = (addr + 8 + size - 0x10) & pwndbg.arch.ptrmask
+        linkedlist = (addr + 8 + size - 0x10) & pwndbg.gdblib.arch.ptrmask
 
         try:
             bk = pwndbg.memory.u64(linkedlist)
@@ -86,7 +86,7 @@ def heap_allocations(addr, free):
         if not in_use or addr in free:
             print(message.hint("%#016x - usersize=%#x - [FREE %i]" % (addr, size, flags)))
 
-            linkedlist = (addr + 8 + size - 0x10) & pwndbg.arch.ptrmask
+            linkedlist = (addr + 8 + size - 0x10) & pwndbg.gdblib.arch.ptrmask
 
             if not pwndbg.memory.peek(linkedlist):
                 print("Corrupted? (%#x)" % linkedlist)

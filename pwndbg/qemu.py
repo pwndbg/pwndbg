@@ -7,11 +7,11 @@ import os
 import gdb
 import psutil
 
-import pwndbg.events
+import pwndbg.gdblib.events
 import pwndbg.remote
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def is_qemu():
     if not pwndbg.remote.is_remote():
         return False
@@ -25,7 +25,7 @@ def is_qemu():
     return "ENABLE=" in response
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def is_usermode():
     if not pwndbg.remote.is_remote():
         return False
@@ -40,7 +40,7 @@ def is_usermode():
     return "Text=" in response
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def is_qemu_usermode():
     """Returns ``True`` if the target remote is being run under
     QEMU usermode emulation."""
@@ -48,20 +48,20 @@ def is_qemu_usermode():
     return is_qemu() and is_usermode()
 
 
-@pwndbg.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_stop
 def is_qemu_kernel():
     return is_qemu() and not is_usermode()
 
 
-@pwndbg.events.start
-@pwndbg.memoize.reset_on_stop
+# @pwndbg.gdblib.events.start
+@pwndbg.lib.memoize.reset_on_stop
 def root():
     global binfmt_root
 
     if not is_qemu_usermode():
         return
 
-    binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.arch.qemu
+    binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdblib.arch.qemu
 
     if not os.path.isdir(binfmt_root):
         return
@@ -71,7 +71,7 @@ def root():
     return binfmt_root
 
 
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_start
 def pid():
     """Find the PID of the qemu usermode binary which we are
     talking to.

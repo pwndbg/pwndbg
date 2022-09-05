@@ -6,8 +6,8 @@ remote debugging sessions.
 import binascii
 import socket
 
-import pwndbg.arch
 import pwndbg.file
+import pwndbg.gdblib.arch
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {
@@ -123,7 +123,7 @@ def tcp():
             host, port = hostport.split(":")
             host = binascii.unhexlify(host)
 
-            if pwndbg.arch.endian == "little":
+            if pwndbg.gdblib.arch.endian == "little":
                 host = host[::-1]
 
             host = socket.inet_ntop(socket.AF_INET, host)

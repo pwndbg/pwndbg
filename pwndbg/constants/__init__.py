@@ -1,4 +1,4 @@
-import pwndbg.arch
+import pwndbg.gdblib.arch
 
 from . import aarch64
 from . import amd64
@@ -15,7 +15,7 @@ def syscall(value):
     Given a value for a syscall number (e.g. execve == 11), return
     the *name* of the syscall.
     """
-    arch = arches.get(pwndbg.arch.current, None)
+    arch = arches.get(pwndbg.gdblib.arch.current, None)
 
     if not arch:
         return None

@@ -16,12 +16,12 @@ from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.abi
-import pwndbg.arch
 import pwndbg.auxv
 import pwndbg.elftypes
-import pwndbg.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.info
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
@@ -48,12 +48,12 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
         return self.is_pic
 
 
-@pwndbg.events.start
-@pwndbg.events.new_objfile
+@pwndbg.gdblib.events.start
+@pwndbg.gdblib.events.new_objfile
 def update():
     importlib.reload(pwndbg.elftypes)
 
-    if pwndbg.arch.ptrsize == 4:
+    if pwndbg.gdblib.arch.ptrsize == 4:
         Ehdr = pwndbg.elftypes.Elf32_Ehdr
         Phdr = pwndbg.elftypes.Elf32_Phdr
     else:
@@ -80,7 +80,7 @@ def read(typ, address, blob=None):
     return obj
 
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def get_elf_info(filepath):
     """
     Parse and return ELFInfo.
@@ -114,7 +114,7 @@ def get_elf_info(filepath):
         return ELFInfo(header, sections, segments)
 
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def get_elf_info_rebased(filepath, vaddr):
     """
     Parse and return ELFInfo with all virtual addresses rebased to vaddr
@@ -172,7 +172,7 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
 
 
 @pwndbg.proc.OnlyWhenRunning
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_start
 def exe():
     """
     Return a loaded ELF header object pointing to the Ehdr of the
@@ -184,7 +184,7 @@ def exe():
 
 
 @pwndbg.proc.OnlyWhenRunning
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_start
 def entry():
     """
     Return the address of the entry point for the main executable.
@@ -224,7 +224,7 @@ def load(pointer):
 ehdr_type_loaded = 0
 
 
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_start
 def reset_ehdr_type_loaded():
     global ehdr_type_loaded
     ehdr_type_loaded = 0

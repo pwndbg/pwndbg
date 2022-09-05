@@ -10,9 +10,9 @@ from types import ModuleType
 
 import gdb
 
-import pwndbg.arch
-import pwndbg.events
-import pwndbg.memoize
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
+import pwndbg.lib.memoize
 import pwndbg.proc
 import pwndbg.remote
 
@@ -631,31 +631,33 @@ ARCH_GET_GS = 0x1004
 class module(ModuleType):
     last = {}
 
-    @pwndbg.memoize.reset_on_stop
-    @pwndbg.memoize.reset_on_prompt
+    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_prompt
     def __getattr__(self, attr):
         attr = attr.lstrip("$")
         try:
             # Seriously, gdb? Only accepts uint32.
             if "eflags" in attr or "cpsr" in attr:
                 value = gdb77_get_register(attr)
-                value = value.cast(pwndbg.typeinfo.uint32)
+                value = value.cast(pwndbg.gdblib.typeinfo.uint32)
             else:
                 value = get_register(attr)
                 if value is None and attr.lower() == "xpsr":
                     value = get_register("xPSR")
-                size = pwndbg.typeinfo.unsigned.get(value.type.sizeof, pwndbg.typeinfo.ulong)
+                size = pwndbg.gdblib.typeinfo.unsigned.get(
+                    value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
+                )
                 value = value.cast(size)
-                if attr.lower() == "pc" and pwndbg.arch.current == "i8086":
+                if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
                     value += self.cs * 16
 
             value = int(value)
-            return value & pwndbg.arch.ptrmask
+            return value & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
-    @pwndbg.memoize.reset_on_stop
-    @pwndbg.memoize.reset_on_prompt
+    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_prompt
     def __getitem__(self, item):
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
@@ -671,50 +673,50 @@ class module(ModuleType):
         item = getattr(self, item.lower())
 
         if isinstance(item, int):
-            return int(item) & pwndbg.arch.ptrmask
+            return int(item) & pwndbg.gdblib.arch.ptrmask
 
         return item
 
     def __iter__(self):
-        regs = set(arch_to_regs[pwndbg.arch.current]) | {"pc", "sp"}
+        regs = set(arch_to_regs[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
         for item in regs:
             yield item
 
     @property
     def current(self):
-        return arch_to_regs[pwndbg.arch.current]
+        return arch_to_regs[pwndbg.gdblib.arch.current]
 
     @property
     def gpr(self):
-        return arch_to_regs[pwndbg.arch.current].gpr
+        return arch_to_regs[pwndbg.gdblib.arch.current].gpr
 
     @property
     def common(self):
-        return arch_to_regs[pwndbg.arch.current].common
+        return arch_to_regs[pwndbg.gdblib.arch.current].common
 
     @property
     def frame(self):
-        return arch_to_regs[pwndbg.arch.current].frame
+        return arch_to_regs[pwndbg.gdblib.arch.current].frame
 
     @property
     def retaddr(self):
-        return arch_to_regs[pwndbg.arch.current].retaddr
+        return arch_to_regs[pwndbg.gdblib.arch.current].retaddr
 
     @property
     def flags(self):
-        return arch_to_regs[pwndbg.arch.current].flags
+        return arch_to_regs[pwndbg.gdblib.arch.current].flags
 
     @property
     def stack(self):
-        return arch_to_regs[pwndbg.arch.current].stack
+        return arch_to_regs[pwndbg.gdblib.arch.current].stack
 
     @property
     def retval(self):
-        return arch_to_regs[pwndbg.arch.current].retval
+        return arch_to_regs[pwndbg.gdblib.arch.current].retval
 
     @property
     def all(self):
-        regs = arch_to_regs[pwndbg.arch.current]
+        regs = arch_to_regs[pwndbg.gdblib.arch.current]
         retval = []
         for regset in (
             regs.pc,
@@ -755,23 +757,23 @@ class module(ModuleType):
         return delta
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def fsbase(self):
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
 
     @property
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def gsbase(self):
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
-    @pwndbg.memoize.reset_on_stop
+    @pwndbg.lib.memoize.reset_on_stop
     def _fs_gs_helper(self, regname, which):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directly for GDB < 8."""
 
         # For GDB >= 8.x we can use get_register directly if the current arch is x86-64
         # Elsewhere we have to get the register via ptrace
-        if pwndbg.arch.current == "x86-64":
+        if pwndbg.gdblib.arch.current == "x86-64":
             if get_register == gdb79_get_register:
                 return get_register(regname)
 
@@ -791,7 +793,7 @@ class module(ModuleType):
         result = libc.ptrace(PTRACE_ARCH_PRCTL, lwpid, value, which)
 
         if result == 0:
-            return (value.contents.value or 0) & pwndbg.arch.ptrmask
+            return (value.contents.value or 0) & pwndbg.gdblib.arch.ptrmask
 
         return 0
 
@@ -804,8 +806,8 @@ tether = sys.modules[__name__]
 sys.modules[__name__] = module(__name__, "")
 
 
-@pwndbg.events.cont
-@pwndbg.events.stop
+@pwndbg.gdblib.events.cont
+@pwndbg.gdblib.events.stop
 def update_last():
     M = sys.modules[__name__]
     M.previous = M.last

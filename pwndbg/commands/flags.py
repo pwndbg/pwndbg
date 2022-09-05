@@ -39,7 +39,7 @@ def setflag(flag, value):
         print("can only set flag bit to 0 or 1")
         return
 
-    register_set = pwndbg.regs.arch_to_regs[pwndbg.arch.current]
+    register_set = pwndbg.regs.arch_to_regs[pwndbg.gdblib.arch.current]
 
     flag = flag.upper()
     for flag_reg, flags in register_set.flags.items():

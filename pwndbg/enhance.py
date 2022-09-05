@@ -11,16 +11,16 @@ import string
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.color as color
 import pwndbg.color.enhance as E
 import pwndbg.config
 import pwndbg.disasm
-import pwndbg.memoize
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
-import pwndbg.typeinfo
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
@@ -31,10 +31,10 @@ def good_instr(i):
 
 
 def int_str(value):
-    retval = "%#x" % int(value & pwndbg.arch.ptrmask)
+    retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
 
     # Try to unpack the value as a string
-    packed = pwndbg.arch.pack(int(value))
+    packed = pwndbg.gdblib.arch.pack(int(value))
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
             retval = "%s (%r)" % (retval, str(packed.decode("ascii", "ignore")))
@@ -42,7 +42,7 @@ def int_str(value):
     return retval
 
 
-# @pwndbg.memoize.reset_on_stop
+# @pwndbg.lib.memoize.reset_on_stop
 def enhance(value, code=True, safe_linking=False):
     """
     Given the last pointer in a chain, attempt to characterize
@@ -101,17 +101,17 @@ def enhance(value, code=True, safe_linking=False):
         szval = E.string(repr(szval))
 
     # Fix for case when we can't read the end address anyway (#946)
-    if value + pwndbg.arch.ptrsize > page.end:
+    if value + pwndbg.gdblib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.memory.poi(pwndbg.typeinfo.pvoid, value))
+    intval = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
         intval = E.integer(str(intval))
     else:
-        intval = E.integer("%#x" % int(intval & pwndbg.arch.ptrmask))
+        intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
 
     retval = []
 
@@ -139,7 +139,7 @@ def enhance(value, code=True, safe_linking=False):
 
     # Otherwise strings have preference
     elif szval:
-        if len(szval0) < pwndbg.arch.ptrsize:
+        if len(szval0) < pwndbg.gdblib.arch.ptrsize:
             retval = [intval, szval]
         else:
             retval = [szval]

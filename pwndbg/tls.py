@@ -6,8 +6,8 @@ from types import ModuleType
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.disasm
+import pwndbg.gdblib.arch
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.symbol
@@ -21,7 +21,7 @@ class module(ModuleType):
 
     def get_tls_base_via_errno_location(self) -> int:
         """Heuristically determine the base address of the TLS."""
-        if pwndbg.arch.current not in ("x86-64", "i386", "arm"):
+        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
             # Note: We doesn't implement this for aarch64 because its TPIDR_EL0 register seems always work
             # If oneday we can't get TLS base via TPIDR_EL0, we should implement this for aarch64
             return 0
@@ -36,13 +36,13 @@ class module(ModuleType):
             __errno_location_instr = pwndbg.disasm.near(
                 pwndbg.symbol.address("__errno_location"), 5, show_prev_insns=False
             )
-            if pwndbg.arch.current == "x86-64":
+            if pwndbg.gdblib.arch.current == "x86-64":
                 for instr in __errno_location_instr:
                     # Find something like: mov rax, qword ptr [rip + disp]
                     if instr.mnemonic == "mov":
                         self._errno_offset = pwndbg.memory.s64(instr.next + instr.disp)
                         break
-            elif pwndbg.arch.current == "i386":
+            elif pwndbg.gdblib.arch.current == "i386":
                 for instr in __errno_location_instr:
                     # Find something like: mov eax, dword ptr [eax + disp]
                     # (disp is a negative value)
@@ -54,7 +54,7 @@ class module(ModuleType):
                         base_offset = base_offset_instr.address + base_offset_instr.operands[1].int
                         self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
                         break
-            elif pwndbg.arch.current == "arm":
+            elif pwndbg.gdblib.arch.current == "arm":
                 ldr_instr = None
                 for instr in __errno_location_instr:
                     if not ldr_instr and instr.mnemonic == "ldr":
@@ -71,17 +71,17 @@ class module(ModuleType):
     @property
     def address(self) -> int:
         """Get the base address of TLS."""
-        if pwndbg.arch.current not in ("x86-64", "i386", "aarch64", "arm"):
+        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "aarch64", "arm"):
             # Not supported yet
             return 0
 
         tls_base = 0
 
-        if pwndbg.arch.current == "x86-64":
+        if pwndbg.gdblib.arch.current == "x86-64":
             tls_base = int(pwndbg.regs.fsbase)
-        elif pwndbg.arch.current == "i386":
+        elif pwndbg.gdblib.arch.current == "i386":
             tls_base = int(pwndbg.regs.gsbase)
-        elif pwndbg.arch.current == "aarch64":
+        elif pwndbg.gdblib.arch.current == "aarch64":
             tls_base = int(pwndbg.regs.TPIDR_EL0)
 
         # Sometimes, we need to get TLS base via errno location for the following reason:
@@ -90,12 +90,12 @@ class module(ModuleType):
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
         is_valid_tls_base = (
-            pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.arch.ptrsize == 0
+            pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.gdblib.arch.ptrsize == 0
         )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 
 
-@pwndbg.events.exit
+@pwndbg.gdblib.events.exit
 def reset():
     # We should reset the offset when we attach to a new process or something
     pwndbg.tls._errno_offset = None

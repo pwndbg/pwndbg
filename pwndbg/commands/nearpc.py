@@ -77,7 +77,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     result = []
 
     if pc is not None:
-        pc = gdb.Value(pc).cast(pwndbg.typeinfo.pvoid)
+        pc = gdb.Value(pc).cast(pwndbg.gdblib.typeinfo.pvoid)
 
     # Fix the case where we only have one argument, and
     # it's a small value.

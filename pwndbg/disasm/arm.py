@@ -1,8 +1,8 @@
 from capstone import *
 from capstone.arm import *
 
-import pwndbg.arch
 import pwndbg.disasm.arch
+import pwndbg.gdblib.arch
 import pwndbg.memory
 import pwndbg.regs
 
@@ -37,7 +37,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.address != pwndbg.regs.pc:
             return False
 
-        value = pwndbg.regs.cpsr if pwndbg.arch.current == "arm" else pwndbg.regs.xpsr
+        value = pwndbg.regs.cpsr if pwndbg.gdblib.arch.current == "arm" else pwndbg.regs.xpsr
 
         N = value & (1 << 31)
         Z = value & (1 << 30)

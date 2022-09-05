@@ -9,7 +9,7 @@ import gdb
 
 import pwndbg.config
 import pwndbg.heap
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.search
@@ -37,8 +37,8 @@ def get_version():
 
 
 @pwndbg.proc.OnlyWhenRunning
-@pwndbg.memoize.reset_on_start
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.symbol.address(b"__libc_version")

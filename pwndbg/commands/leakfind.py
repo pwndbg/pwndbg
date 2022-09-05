@@ -144,7 +144,7 @@ def leakfind(
             cur_start_addr - negative_offset, cur_start_addr + max_offset, stride
         ):
             try:
-                cur_addr &= pwndbg.arch.ptrmask
+                cur_addr &= pwndbg.gdblib.arch.ptrmask
                 result = int(pwndbg.memory.pvoid(cur_addr))
                 if result in visited_map or result in visited_set:
                     continue

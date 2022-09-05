@@ -10,7 +10,7 @@ from types import ModuleType
 
 import gdb
 
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.qemu
 
 

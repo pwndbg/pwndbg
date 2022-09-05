@@ -2,9 +2,9 @@ import argparse
 
 import gdb
 
-import pwndbg.arch
 import pwndbg.color
 import pwndbg.commands
+import pwndbg.gdblib.arch
 import pwndbg.memory
 
 ts = pwndbg.commands.telescope.telescope
@@ -56,7 +56,7 @@ def address_range(section):
     global parser
 
     if section == "*" or section == "any":
-        return (0, pwndbg.arch.ptrmask)
+        return (0, pwndbg.gdblib.arch.ptrmask)
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
     # TODO: handle page names that contains ':'.

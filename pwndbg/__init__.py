@@ -3,7 +3,6 @@ import signal
 import gdb
 
 import pwndbg.android
-import pwndbg.arch
 import pwndbg.arguments
 import pwndbg.argv
 import pwndbg.color
@@ -66,6 +65,10 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
+import pwndbg.gdblib.hooks
+import pwndbg.gdblib.typeinfo
 import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.memory
@@ -74,9 +77,7 @@ import pwndbg.proc
 import pwndbg.prompt
 import pwndbg.regs
 import pwndbg.stack
-import pwndbg.tempfile
 import pwndbg.tls
-import pwndbg.typeinfo
 import pwndbg.ui
 import pwndbg.version
 import pwndbg.vmmap
@@ -164,13 +165,6 @@ signal.signal(
     signal.SIGWINCH,
     lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
 )
-
-# Workaround for gdb bug described in #321 ( https://github.com/pwndbg/pwndbg/issues/321 )
-# More info: https://sourceware.org/bugzilla/show_bug.cgi?id=21946
-# As stated on GDB's bugzilla that makes remote target search slower.
-# After GDB gets the fix, we should disable this only for bugged GDB versions.
-if 1:
-    gdb.execute("set remote search-memory-packet off")
 
 # Reading Comment file
 pwndbg.commands.comments.init()

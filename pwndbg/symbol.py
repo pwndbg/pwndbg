@@ -16,12 +16,12 @@ import elftools.elf.elffile
 import elftools.elf.segments
 import gdb
 
-import pwndbg.arch
 import pwndbg.elf
-import pwndbg.events
 import pwndbg.file
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.ida
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.qemu
 import pwndbg.remote
@@ -63,7 +63,7 @@ remote_files = {}
 remote_files_dir = None
 
 
-@pwndbg.events.exit
+@pwndbg.gdblib.events.exit
 def reset_remote_files():
     global remote_files
     global remote_files_dir
@@ -73,7 +73,7 @@ def reset_remote_files():
         remote_files_dir = None
 
 
-@pwndbg.events.new_objfile
+@pwndbg.gdblib.events.new_objfile
 def autofetch():
     """ """
     global remote_files_dir
@@ -152,7 +152,7 @@ def autofetch():
         # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
 
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def get(address, gdb_only=False):
     """
     Retrieve the textual name for a symbol
@@ -192,7 +192,7 @@ def get(address, gdb_only=False):
     return ""
 
 
-@pwndbg.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_objfile
 def address(symbol, allow_unmapped=False):
     if isinstance(symbol, int):
         return symbol
@@ -234,8 +234,8 @@ def address(symbol, allow_unmapped=False):
         pass
 
 
-@pwndbg.events.stop
-@pwndbg.memoize.reset_on_start
+@pwndbg.gdblib.events.stop
+@pwndbg.lib.memoize.reset_on_start
 def add_main_exe_to_symbols():
     if not pwndbg.remote.is_remote():
         return
@@ -260,15 +260,15 @@ def add_main_exe_to_symbols():
         return
 
     path = mmap.objfile
-    if path and (pwndbg.arch.endian == pwndbg.arch.native_endian):
+    if path and (pwndbg.gdblib.arch.endian == pwndbg.gdblib.arch.native_endian):
         try:
             gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
         except gdb.error:
             pass
 
 
-@pwndbg.memoize.reset_on_stop
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.memoize.reset_on_start
 def selected_frame_source_absolute_filename():
     """
     Retrieve the symbol table’s source absolute file name from the selected frame.

@@ -1,15 +1,15 @@
 import gdb
 
 import pwndbg.color.message as message
-import pwndbg.events
 import pwndbg.file
-import pwndbg.memoize
+import pwndbg.gdblib.events
+import pwndbg.lib.memoize
 import pwndbg.qemu
 import pwndbg.remote
 
 
-@pwndbg.memoize.reset_on_start
-@pwndbg.memoize.reset_on_exit
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_exit
 def is_android():
     if pwndbg.qemu.is_qemu():
         return False
@@ -23,7 +23,7 @@ def is_android():
     return False
 
 
-@pwndbg.events.start
+@pwndbg.gdblib.events.start
 def sysroot():
     cmd = "set sysroot remote:/"
     if is_android():

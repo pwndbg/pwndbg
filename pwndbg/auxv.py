@@ -5,14 +5,14 @@ import sys
 import gdb
 
 import pwndbg.abi
-import pwndbg.arch
-import pwndbg.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
+import pwndbg.gdblib.typeinfo
 import pwndbg.info
 import pwndbg.memory
 import pwndbg.qemu
 import pwndbg.regs
 import pwndbg.stack
-import pwndbg.typeinfo
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
@@ -83,7 +83,7 @@ class AUXV(dict):
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
             try:
                 value = gdb.Value(value)
-                value = value.cast(pwndbg.typeinfo.pchar)
+                value = value.cast(pwndbg.gdblib.typeinfo.pchar)
                 value = value.string()
             except Exception:
                 value = "couldnt read AUXV!"
@@ -97,8 +97,8 @@ class AUXV(dict):
         return str({k: v for k, v in self.items() if v is not None})
 
 
-@pwndbg.memoize.reset_on_objfile
-@pwndbg.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_start
 def get():
     return use_info_auxv() or walk_stack() or AUXV()
 
@@ -186,7 +186,7 @@ def walk_stack2(offset=0):
     # 5) Vacuum up between the two.
     #
     end = find_stack_boundary(sp)
-    p = gdb.Value(end).cast(pwndbg.typeinfo.ulong.pointer())
+    p = gdb.Value(end).cast(pwndbg.gdblib.typeinfo.ulong.pointer())
 
     p -= offset
 
@@ -230,8 +230,8 @@ def walk_stack2(offset=0):
     # Scan them into our structure
     auxv = AUXV()
     while True:
-        const = int((p + 0).dereference()) & pwndbg.arch.ptrmask
-        value = int((p + 1).dereference()) & pwndbg.arch.ptrmask
+        const = int((p + 0).dereference()) & pwndbg.gdblib.arch.ptrmask
+        value = int((p + 1).dereference()) & pwndbg.gdblib.arch.ptrmask
 
         if const == AT_NULL:
             break

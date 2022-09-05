@@ -7,7 +7,7 @@ import gdb
 
 import pwndbg.color.message as message
 import pwndbg.config
-import pwndbg.memoize
+import pwndbg.lib.memoize
 import pwndbg.stdio
 
 try:
@@ -25,7 +25,7 @@ debug = pwndbg.config.Parameter(
 )
 
 
-@pwndbg.memoize.forever
+@pwndbg.lib.memoize.forever
 def inform_report_issue(exception_msg):
     """
     Informs user that he can report an issue.
