@@ -7,23 +7,13 @@ import glob
 import os
 import platform
 
-import gdb
+from pwndbg.lib.arch import Arch
 
-import pwndbg.gdblib.arch
-
-
-def flags():
-
-    if pwndbg.gdblib.arch.current == "i386":
-        return ["-m32"]
-    if pwndbg.gdblib.arch.current.endswith("x86-64"):
-        return ["-m64"]
-
-    return []
+printed_message = False
 
 
-def which():
-    gcc = which_binutils("g++")
+def which(arch: Arch):
+    gcc = _which_binutils("g++", arch)
 
     if not gcc:
         global printed_message
@@ -31,40 +21,38 @@ def which():
             printed_message = True
             print("Can't find appropriate GCC, using default version")
 
-        if pwndbg.gdblib.arch.ptrsize == 32:
+        if ptrsize == 32:
             return ["g++", "-m32"]
-        elif pwndbg.gdblib.arch.ptrsize == 64:
+        elif ptrsize == 64:
             return ["g++", "-m32"]
 
-    return [gcc] + flags()
+    return [gcc] + _flags(arch.name)
 
 
-printed_message = False
-
-
-def which_binutils(util, **kwargs):
+def _which_binutils(util, arch, **kwargs):
     ###############################
     # Borrowed from pwntools' code
     ###############################
-    arch = pwndbg.gdblib.arch.current
-    bits = pwndbg.gdblib.arch.ptrsize
+
+    arch_name = arch.name
+    bits = arch.ptrsize
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.
-    arches = [arch] + {
+    arches = [arch_name] + {
         "thumb": ["arm", "armcm", "aarch64"],
         "i386": ["x86_64", "amd64"],
         "i686": ["x86_64", "amd64"],
         "i386:x86-64": ["x86_64", "amd64"],
         "amd64": ["x86_64", "i386"],
-    }.get(arch, [])
+    }.get(arch_name, [])
 
     # If one of the candidate architectures matches the native
     # architecture, use that as a last resort.
     machine = platform.machine()
     machine = "i386" if machine == "i686" else machine
 
-    if arch in arches:
+    if arch_name in arches:
         arches.append(None)
 
     for arch in arches:
@@ -82,3 +70,12 @@ def which_binutils(util, **kwargs):
                 res = sorted(glob.glob(os.path.join(dir, pattern)))
                 if res:
                     return res[0]
+
+
+def _flags(arch_name):
+    if arch_name == "i386":
+        return ["-m32"]
+    if arch_name.endswith("x86-64"):
+        return ["-m64"]
+
+    return []
