@@ -8,6 +8,8 @@ import gdb
 
 import pwndbg.lib.memoize
 
+# TODO: Add sharedlibrary, address, breakpoints, symbol, target, threads
+
 
 @pwndbg.lib.memoize.reset_on_exit
 def proc_mapping():
@@ -21,9 +23,6 @@ def proc_mapping():
 def auxv():
     try:
         return gdb.execute("info auxv", to_string=True)
-    # The gdb.error may be one of:
-    # - "The program has no auxiliary information now."
-    # - "No auxiliary vector found, or failed reading it."
     except gdb.error:
         return ""
 

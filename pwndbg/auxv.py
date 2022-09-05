@@ -7,9 +7,9 @@ import gdb
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.info
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-import pwndbg.info
 import pwndbg.memory
 import pwndbg.qemu
 import pwndbg.stack
@@ -104,7 +104,7 @@ def get():
 
 
 def use_info_auxv():
-    lines = pwndbg.info.auxv().splitlines()
+    lines = pwndbg.gdblib.info.auxv().splitlines()
 
     if not lines:
         return None

@@ -68,6 +68,7 @@ import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.hooks
+import pwndbg.gdblib.prompt
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdbutils.functions
@@ -76,7 +77,6 @@ import pwndbg.lib.version
 import pwndbg.memory
 import pwndbg.net
 import pwndbg.proc
-import pwndbg.prompt
 import pwndbg.stack
 import pwndbg.tls
 import pwndbg.ui
@@ -129,7 +129,7 @@ __all__ = [
     "vmmap",
 ]
 
-pwndbg.prompt.set_prompt()
+pwndbg.gdblib.prompt.set_prompt()
 
 pre_commands = """
 set confirm off

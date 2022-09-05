@@ -1,5 +1,5 @@
-:mod:`pwndbg.prompt` --- pwndbg.prompt
+:mod:`pwndbg.gdblib.prompt` --- pwndbg.gdblib.prompt
 =============================================
 
-.. automodule:: pwndbg.prompt
+.. automodule:: pwndbg.gdblib.prompt
     :members:

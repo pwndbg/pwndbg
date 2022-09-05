@@ -20,7 +20,7 @@ import pwndbg.elftypes
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
-import pwndbg.info
+import pwndbg.gdblib.info
 import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
@@ -195,7 +195,7 @@ def entry():
 
     # Looking for this line:
     # Entry point: 0x400090
-    for line in pwndbg.info.files().splitlines():
+    for line in pwndbg.gdblib.info.files().splitlines():
         if "Entry point" in line:
             entry_point = int(line.split()[-1], 16)
 
