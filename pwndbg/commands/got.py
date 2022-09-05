@@ -4,7 +4,7 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.file
-import pwndbg.which
+import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
