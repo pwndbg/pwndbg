@@ -3,7 +3,7 @@ import subprocess
 from subprocess import STDOUT
 
 import pwndbg.commands
-import pwndbg.which
+import pwndbg.lib.which
 
 
 class OnlyWithCommand:
@@ -11,7 +11,7 @@ class OnlyWithCommand:
         self.all_cmds = list(map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands))
         for command in commands:
             self.cmd = command if isinstance(command, list) else [command]
-            self.cmd_path = pwndbg.which.which(self.cmd[0])
+            self.cmd_path = pwndbg.lib.which.which(self.cmd[0])
             if self.cmd_path:
                 break
 

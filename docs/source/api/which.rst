@@ -1,5 +1,5 @@
-:mod:`pwndbg.which` --- pwndbg.which
+:mod:`pwndbg.lib.which` --- pwndbg.lib.which
 =============================================
 
-.. automodule:: pwndbg.which
+.. automodule:: pwndbg.lib.which
     :members:
