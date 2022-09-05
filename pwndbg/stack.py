@@ -41,7 +41,7 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
     # so we return current page as a walkaround.
-    if not pwndbg.abi.linux:
+    if not pwndbg.gdblib.abi.linux:
         return stack_ptr + pwndbg.memory.PAGE_SIZE
 
     return pwndbg.memory.find_upper_boundary(stack_ptr, max_pages)
