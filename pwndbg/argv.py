@@ -1,8 +1,8 @@
 import gdb
 
-import pwndbg.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.lib.abi
 import pwndbg.memory
 import pwndbg.regs
 
@@ -20,7 +20,7 @@ envc = None
 
 
 @pwndbg.gdblib.events.start
-@pwndbg.abi.LinuxOnly()
+@pwndbg.gdblib.abi.LinuxOnly()
 def update():
     global argc
     global argv

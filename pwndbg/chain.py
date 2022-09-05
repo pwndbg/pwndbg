@@ -1,10 +1,10 @@
 import gdb
 
-import pwndbg.abi
 import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.theme as theme
 import pwndbg.enhance
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 import pwndbg.symbol
@@ -56,7 +56,7 @@ def get(
 
             # Avoid redundant dereferences in bare metal mode by checking
             # if address is in any of vmmap pages
-            if not pwndbg.abi.linux and not pwndbg.vmmap.find(address):
+            if not pwndbg.gdblib.abi.linux and not pwndbg.vmmap.find(address):
                 break
 
             next_address = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))

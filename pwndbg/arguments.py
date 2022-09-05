@@ -6,7 +6,6 @@ import gdb
 from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
-import pwndbg.abi
 import pwndbg.chain
 import pwndbg.color.nearpc as N
 import pwndbg.constants
@@ -14,6 +13,7 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
+import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 import pwndbg.memory
@@ -52,7 +52,7 @@ def get_syscall_name(instruction):
     if CS_GRP_INT not in instruction.groups:
         return None
 
-    syscall_register = pwndbg.abi.ABI.syscall().syscall_register
+    syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
 
     # If we are on x86/x64, return no syscall name for other instructions than syscall and int 0x80
     if syscall_register in ("eax", "rax"):
@@ -81,7 +81,7 @@ def get(instruction):
 
     if CS_GRP_CALL in instruction.groups:
         try:
-            abi = pwndbg.abi.ABI.default()
+            abi = pwndbg.lib.abi.ABI.default()
         except KeyError:
             return []
 
@@ -100,7 +100,7 @@ def get(instruction):
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
         name = get_syscall_name(instruction)
-        abi = pwndbg.abi.ABI.syscall()
+        abi = pwndbg.lib.abi.ABI.syscall()
         target = None
 
         if name is None:
@@ -162,7 +162,7 @@ def get(instruction):
 
 
 def argname(n, abi=None):
-    abi = abi or pwndbg.abi.ABI.default()
+    abi = abi or pwndbg.lib.abi.ABI.default()
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -177,7 +177,7 @@ def argument(n, abi=None):
     instruction.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.abi.ABI.default()
+    abi = abi or pwndbg.lib.abi.ABI.default()
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -195,7 +195,7 @@ def arguments(abi=None):
     Yields (arg_name, arg_value) tuples for arguments from a given ABI.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.abi.ABI.default()
+    abi = abi or pwndbg.lib.abi.ABI.default()
     regs = abi.register_arguments
 
     for i in range(len(regs)):

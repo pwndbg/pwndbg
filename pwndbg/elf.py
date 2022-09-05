@@ -15,9 +15,9 @@ import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
-import pwndbg.abi
 import pwndbg.auxv
 import pwndbg.elftypes
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.info
@@ -266,7 +266,7 @@ def get_ehdr(pointer):
 
     if base is None:
         # For non linux ABI, the ELF header may not exist at all
-        if pwndbg.abi.linux:
+        if pwndbg.gdblib.abi.linux:
             print("ERROR: Could not find ELF base!")
         return None, None
 

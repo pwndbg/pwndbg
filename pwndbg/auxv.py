@@ -4,7 +4,7 @@ import sys
 
 import gdb
 
-import pwndbg.abi
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.typeinfo
@@ -146,7 +146,7 @@ def find_stack_boundary(addr):
 
 
 def walk_stack():
-    if not pwndbg.abi.linux:
+    if not pwndbg.gdblib.abi.linux:
         return None
     if pwndbg.qemu.is_qemu_kernel():
         return None

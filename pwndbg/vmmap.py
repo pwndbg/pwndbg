@@ -11,9 +11,9 @@ import sys
 
 import gdb
 
-import pwndbg.abi
 import pwndbg.elf
 import pwndbg.file
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
@@ -107,7 +107,7 @@ def find(address):
     return explore(address)
 
 
-@pwndbg.abi.LinuxOnly()
+@pwndbg.gdblib.abi.LinuxOnly()
 def explore(address_maybe):
     """
     Given a potential address, check to see what permissions it has.
