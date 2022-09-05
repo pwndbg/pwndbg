@@ -71,6 +71,7 @@ import pwndbg.gdblib.hooks
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdbutils.functions
 import pwndbg.heap
+import pwndbg.lib.version
 import pwndbg.memory
 import pwndbg.net
 import pwndbg.proc
@@ -79,13 +80,12 @@ import pwndbg.regs
 import pwndbg.stack
 import pwndbg.tls
 import pwndbg.ui
-import pwndbg.version
 import pwndbg.vmmap
 import pwndbg.wrappers
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 
-__version__ = pwndbg.version.__version__
+__version__ = pwndbg.lib.version.__version__
 version = __version__
 
 try:

@@ -8,7 +8,7 @@ import pwndbg.gdbutils
 import pwndbg.lib.memoize
 from pwndbg.color import disable_colors
 from pwndbg.color import message
-from pwndbg.tips import get_tip_of_the_day
+from pwndbg.lib.tips import get_tip_of_the_day
 
 funcs_list_str = ", ".join(
     message.notice("$" + f.name) for f in pwndbg.gdbutils.functions.functions

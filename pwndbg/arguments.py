@@ -11,11 +11,11 @@ import pwndbg.chain
 import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
-import pwndbg.funcparser
-import pwndbg.functions
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
+import pwndbg.lib.funcparser
+import pwndbg.lib.functions
 import pwndbg.memory
 import pwndbg.regs
 import pwndbg.symbol
@@ -118,11 +118,11 @@ def get(instruction):
     # If we have particular `XXX_chk` function in our database, we use it.
     # Otherwise, we show args for its unchecked version.
     # We also lstrip `_` in here, as e.g. `__printf_chk` needs the underscores.
-    if name not in pwndbg.functions.functions:
+    if name not in pwndbg.lib.functions.functions:
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = pwndbg.functions.functions.get(name, None)
+    func = pwndbg.lib.functions.functions.get(name, None)
 
     # Try to extract the data from GDB.
     # Note that this is currently broken, pending acceptance of
@@ -146,12 +146,14 @@ def get(instruction):
             for k, v in ida_replacements.items():
                 typename = typename.replace(k, v)
 
-            func = pwndbg.funcparser.ExtractFuncDeclFromSource(typename + ";")
+            func = pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
 
     if func:
         args = func.args
     else:
-        args = (pwndbg.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default))
+        args = (
+            pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
+        )
 
     for i, arg in enumerate(args):
         result.append((arg, argument(i, abi)))
