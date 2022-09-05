@@ -5,7 +5,8 @@ import pwndbg.memory
 import pwndbg.regs
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+# We use the heap_vis binary as it enforces pthreads and so will have TLS on all distros
+REFERENCE_BINARY = tests.binaries.get("heap_vis.out")
 
 
 def test_command_errno(start_binary):
