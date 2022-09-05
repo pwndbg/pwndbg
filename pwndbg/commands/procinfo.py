@@ -223,14 +223,14 @@ def procinfo():
 
     print("%-10s %s" % ("ppid", proc.ppid))
 
-    if not pwndbg.android.is_android():
+    if not pwndbg.lib.android.is_android():
         print("%-10s %s" % ("uid", proc.uid))
         print("%-10s %s" % ("gid", proc.gid))
         print("%-10s %s" % ("groups", proc.groups))
     else:
-        print("%-10s %s" % ("uid", list(map(pwndbg.android.aid_name, proc.uid))))
-        print("%-10s %s" % ("gid", list(map(pwndbg.android.aid_name, proc.gid))))
-        print("%-10s %s" % ("groups", list(map(pwndbg.android.aid_name, proc.groups))))
+        print("%-10s %s" % ("uid", list(map(pwndbg.lib.android.aid_name, proc.uid))))
+        print("%-10s %s" % ("gid", list(map(pwndbg.lib.android.aid_name, proc.gid))))
+        print("%-10s %s" % ("groups", list(map(pwndbg.lib.android.aid_name, proc.groups))))
 
     for fd, path in files.items():
         if not set(path) < set(string.printable):
