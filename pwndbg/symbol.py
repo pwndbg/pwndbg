@@ -18,6 +18,7 @@ import gdb
 
 import pwndbg.elf
 import pwndbg.file
+import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.ida
@@ -83,7 +84,7 @@ def autofetch():
     if pwndbg.qemu.is_qemu_usermode():
         return
 
-    if pwndbg.android.is_android():
+    if pwndbg.gdblib.android.is_android():
         return
 
     if not remote_files_dir:
@@ -240,7 +241,7 @@ def add_main_exe_to_symbols():
     if not pwndbg.remote.is_remote():
         return
 
-    if pwndbg.android.is_android():
+    if pwndbg.gdblib.android.is_android():
         return
 
     exe = pwndbg.elf.exe()

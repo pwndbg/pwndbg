@@ -2,7 +2,6 @@ import signal
 
 import gdb
 
-import pwndbg.android
 import pwndbg.arguments
 import pwndbg.argv
 import pwndbg.color
@@ -65,6 +64,7 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
+import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.hooks
