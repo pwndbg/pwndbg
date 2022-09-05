@@ -12,8 +12,8 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.config
 import pwndbg.disasm
-import pwndbg.functions
 import pwndbg.ida
+import pwndbg.lib.functions
 import pwndbg.regs
 import pwndbg.strings
 import pwndbg.symbol
