@@ -1,5 +1,5 @@
 import pwndbg.commands
-import pwndbg.gdb.arch
+import pwndbg.gdblib.arch
 import pwndbg.regs
 from pwndbg.color import context
 from pwndbg.color import message
@@ -18,9 +18,9 @@ def xpsr():
 
 
 def arm_print_psr():
-    if pwndbg.gdb.arch.current not in ("arm", "armcm"):
+    if pwndbg.gdblib.arch.current not in ("arm", "armcm"):
         print(message.warn("This is only available on ARM"))
         return
 
-    reg = "cpsr" if pwndbg.gdb.arch.current == "arm" else "xpsr"
+    reg = "cpsr" if pwndbg.gdblib.arch.current == "arm" else "xpsr"
     print("%s %s" % (reg, context.format_flags(getattr(pwndbg.regs, reg), pwndbg.regs.flags[reg])))

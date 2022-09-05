@@ -13,8 +13,8 @@ import pwndbg.color.telescope as T
 import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.config
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 import pwndbg.regs
 
@@ -72,15 +72,15 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
     """
-    ptrsize = pwndbg.gdb.typeinfo.ptrsize
+    ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     if telescope.repeat:
         address = telescope.last_address + ptrsize
         telescope.offset += 1
     else:
         telescope.offset = 0
 
-    address = int(address if address else pwndbg.regs.sp) & pwndbg.gdb.arch.ptrmask
-    count = max(int(count), 1) & pwndbg.gdb.arch.ptrmask
+    address = int(address if address else pwndbg.regs.sp) & pwndbg.gdblib.arch.ptrmask
+    count = max(int(count), 1) & pwndbg.gdblib.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
 
@@ -103,7 +103,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     reg_values = collections.defaultdict(lambda: [])
     for reg in pwndbg.regs.common:
         reg_values[pwndbg.regs[reg]].append(reg)
-    # address    = pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, address)
+    # address    = pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
 
     start = address
     stop = address + (count * ptrsize)
@@ -114,7 +114,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     for i in range(start, stop, step):
         values = list(reg_values[i])
 
-        for width in range(1, pwndbg.gdb.arch.ptrsize):
+        for width in range(1, pwndbg.gdblib.arch.ptrsize):
             values.extend("%s-%i" % (r, width) for r in reg_values[i + width])
 
         regs[i] = " ".join(values)
@@ -213,7 +213,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset):
-    ptrsize = pwndbg.gdb.typeinfo.ptrsize
+    ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
     telescope(address=pwndbg.regs.sp + offset * ptrsize, count=count)
 

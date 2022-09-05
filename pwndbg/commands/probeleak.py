@@ -8,7 +8,7 @@ import pwndbg.color.memory as M
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.elf
-import pwndbg.gdb.arch
+import pwndbg.gdblib.arch
 import pwndbg.vmmap
 
 
@@ -83,8 +83,8 @@ parser.add_argument(
 def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None):
 
     address = int(address)
-    address &= pwndbg.gdb.arch.ptrmask
-    ptrsize = pwndbg.gdb.arch.ptrsize
+    address &= pwndbg.gdblib.arch.ptrmask
+    ptrsize = pwndbg.gdblib.arch.ptrsize
     count = max(int(count), ptrsize)
     off_zeros = int(math.ceil(math.log(count, 2) / 4))
     if flags is not None:
@@ -116,7 +116,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
     found = False
     find_cnt = 0
     for i in range(0, len(data) - ptrsize + 1):
-        p = pwndbg.gdb.arch.unpack(data[i : i + ptrsize])
+        p = pwndbg.gdblib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:
             if point_to is not None and point_to not in page.objfile:

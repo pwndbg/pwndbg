@@ -1,7 +1,6 @@
 import signal
 
-# We can't just `import gdb` because then `pwndbg.gdb` will reference this GDB module
-import gdb as gdb_
+import gdb
 
 import pwndbg.android
 import pwndbg.arguments
@@ -66,11 +65,10 @@ import pwndbg.disasm.x86
 import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
-import pwndbg.gdb
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
-import pwndbg.gdb.hooks
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
+import pwndbg.gdblib.hooks
+import pwndbg.gdblib.typeinfo
 import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.memory
@@ -154,18 +152,18 @@ handle SIGSEGV stop   print nopass
 )
 
 for line in pre_commands.strip().splitlines():
-    gdb_.execute(line)
+    gdb.execute(line)
 
 # This may throw an exception, see pwndbg/pwndbg#27
 try:
-    gdb_.execute("set disassembly-flavor intel")
-except gdb_.error:
+    gdb.execute("set disassembly-flavor intel")
+except gdb.error:
     pass
 
 # handle resize event to align width and completion
 signal.signal(
     signal.SIGWINCH,
-    lambda signum, frame: gdb_.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
+    lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
 )
 
 # Reading Comment file

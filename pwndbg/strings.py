@@ -7,14 +7,14 @@ import string
 
 import gdb
 
-import pwndbg.gdb.events
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.events
+import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 
 length = 15
 
 
-@pwndbg.gdb.events.stop
+@pwndbg.gdblib.events.stop
 def update_length():
     r"""
     Unfortunately there's not a better way to get at this info.

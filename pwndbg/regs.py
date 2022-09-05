@@ -10,8 +10,8 @@ from types import ModuleType
 
 import gdb
 
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.lib.memoize
 import pwndbg.proc
 import pwndbg.remote
@@ -639,20 +639,20 @@ class module(ModuleType):
             # Seriously, gdb? Only accepts uint32.
             if "eflags" in attr or "cpsr" in attr:
                 value = gdb77_get_register(attr)
-                value = value.cast(pwndbg.gdb.typeinfo.uint32)
+                value = value.cast(pwndbg.gdblib.typeinfo.uint32)
             else:
                 value = get_register(attr)
                 if value is None and attr.lower() == "xpsr":
                     value = get_register("xPSR")
-                size = pwndbg.gdb.typeinfo.unsigned.get(
-                    value.type.sizeof, pwndbg.gdb.typeinfo.ulong
+                size = pwndbg.gdblib.typeinfo.unsigned.get(
+                    value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
                 )
                 value = value.cast(size)
-                if attr.lower() == "pc" and pwndbg.gdb.arch.current == "i8086":
+                if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
                     value += self.cs * 16
 
             value = int(value)
-            return value & pwndbg.gdb.arch.ptrmask
+            return value & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
@@ -673,50 +673,50 @@ class module(ModuleType):
         item = getattr(self, item.lower())
 
         if isinstance(item, int):
-            return int(item) & pwndbg.gdb.arch.ptrmask
+            return int(item) & pwndbg.gdblib.arch.ptrmask
 
         return item
 
     def __iter__(self):
-        regs = set(arch_to_regs[pwndbg.gdb.arch.current]) | {"pc", "sp"}
+        regs = set(arch_to_regs[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
         for item in regs:
             yield item
 
     @property
     def current(self):
-        return arch_to_regs[pwndbg.gdb.arch.current]
+        return arch_to_regs[pwndbg.gdblib.arch.current]
 
     @property
     def gpr(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].gpr
+        return arch_to_regs[pwndbg.gdblib.arch.current].gpr
 
     @property
     def common(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].common
+        return arch_to_regs[pwndbg.gdblib.arch.current].common
 
     @property
     def frame(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].frame
+        return arch_to_regs[pwndbg.gdblib.arch.current].frame
 
     @property
     def retaddr(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].retaddr
+        return arch_to_regs[pwndbg.gdblib.arch.current].retaddr
 
     @property
     def flags(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].flags
+        return arch_to_regs[pwndbg.gdblib.arch.current].flags
 
     @property
     def stack(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].stack
+        return arch_to_regs[pwndbg.gdblib.arch.current].stack
 
     @property
     def retval(self):
-        return arch_to_regs[pwndbg.gdb.arch.current].retval
+        return arch_to_regs[pwndbg.gdblib.arch.current].retval
 
     @property
     def all(self):
-        regs = arch_to_regs[pwndbg.gdb.arch.current]
+        regs = arch_to_regs[pwndbg.gdblib.arch.current]
         retval = []
         for regset in (
             regs.pc,
@@ -773,7 +773,7 @@ class module(ModuleType):
 
         # For GDB >= 8.x we can use get_register directly if the current arch is x86-64
         # Elsewhere we have to get the register via ptrace
-        if pwndbg.gdb.arch.current == "x86-64":
+        if pwndbg.gdblib.arch.current == "x86-64":
             if get_register == gdb79_get_register:
                 return get_register(regname)
 
@@ -793,7 +793,7 @@ class module(ModuleType):
         result = libc.ptrace(PTRACE_ARCH_PRCTL, lwpid, value, which)
 
         if result == 0:
-            return (value.contents.value or 0) & pwndbg.gdb.arch.ptrmask
+            return (value.contents.value or 0) & pwndbg.gdblib.arch.ptrmask
 
         return 0
 
@@ -806,8 +806,8 @@ tether = sys.modules[__name__]
 sys.modules[__name__] = module(__name__, "")
 
 
-@pwndbg.gdb.events.cont
-@pwndbg.gdb.events.stop
+@pwndbg.gdblib.events.cont
+@pwndbg.gdblib.events.stop
 def update_last():
     M = sys.modules[__name__]
     M.previous = M.last

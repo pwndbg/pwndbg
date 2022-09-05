@@ -16,8 +16,8 @@ import gdb
 import pwndbg.config
 import pwndbg.decorators
 import pwndbg.elf
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.regs
@@ -167,7 +167,7 @@ def l2r(addr):
     exe = pwndbg.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - int(exe.address) + base()) & pwndbg.gdb.arch.ptrmask
+    result = (addr - int(exe.address) + base()) & pwndbg.gdblib.arch.ptrmask
     return result
 
 
@@ -175,7 +175,7 @@ def r2l(addr):
     exe = pwndbg.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - base() + int(exe.address)) & pwndbg.gdb.arch.ptrmask
+    result = (addr - base() + int(exe.address)) & pwndbg.gdblib.arch.ptrmask
     return result
 
 
@@ -273,8 +273,8 @@ def GetBptEA(i):
 _breakpoints = []
 
 
-@pwndbg.gdb.events.cont
-@pwndbg.gdb.events.stop
+@pwndbg.gdblib.events.cont
+@pwndbg.gdblib.events.stop
 @withIDA
 def UpdateBreakpoints():
     # XXX: Remove breakpoints from IDA when the user removes them.
@@ -309,7 +309,7 @@ def SetColor(pc, color):
 colored_pc = None
 
 
-@pwndbg.gdb.events.stop
+@pwndbg.gdblib.events.stop
 @withIDA
 def Auto_Color_PC():
     global colored_pc
@@ -317,7 +317,7 @@ def Auto_Color_PC():
     SetColor(colored_pc, 0x7F7FFF)
 
 
-@pwndbg.gdb.events.cont
+@pwndbg.gdblib.events.cont
 @withIDA
 def Auto_UnColor_PC():
     global colored_pc

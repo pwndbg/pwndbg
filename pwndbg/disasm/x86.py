@@ -1,8 +1,8 @@
 from capstone import *
 from capstone.x86 import *
 
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 import pwndbg.regs
 
@@ -111,10 +111,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if instruction.operands:
             pop = instruction.operands[0].int
 
-        address = (pwndbg.regs.sp) + (pwndbg.gdb.arch.ptrsize * pop)
+        address = (pwndbg.regs.sp) + (pwndbg.gdblib.arch.ptrsize * pop)
 
         if pwndbg.memory.peek(address):
-            return int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, address))
+            return int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
 
     def condition(self, instruction):
         # JMP is unconditional

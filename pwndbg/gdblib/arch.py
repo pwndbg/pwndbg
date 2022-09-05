@@ -1,7 +1,7 @@
 import gdb
 
 import pwndbg.proc
-from pwndbg.gdb import typeinfo
+from pwndbg.gdblib import typeinfo
 from pwndbg.lib.arch import Arch
 
 # TODO: x86-64 needs to come before i386 in the current implementation, make

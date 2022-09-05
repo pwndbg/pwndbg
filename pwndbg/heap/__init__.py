@@ -31,12 +31,12 @@ resolve_heap_via_heuristic = pwndbg.config.Parameter(
 )
 
 
-@pwndbg.gdb.events.start
+@pwndbg.gdblib.events.start
 def update():
     resolve_heap(is_first_run=True)
 
 
-@pwndbg.gdb.events.exit
+@pwndbg.gdblib.events.exit
 def reset():
     global current
     # Re-initialize the heap

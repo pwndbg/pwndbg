@@ -15,8 +15,8 @@ import pwndbg.color as color
 import pwndbg.color.enhance as E
 import pwndbg.config
 import pwndbg.disasm
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.strings
@@ -31,10 +31,10 @@ def good_instr(i):
 
 
 def int_str(value):
-    retval = "%#x" % int(value & pwndbg.gdb.arch.ptrmask)
+    retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
 
     # Try to unpack the value as a string
-    packed = pwndbg.gdb.arch.pack(int(value))
+    packed = pwndbg.gdblib.arch.pack(int(value))
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
             retval = "%s (%r)" % (retval, str(packed.decode("ascii", "ignore")))
@@ -101,17 +101,17 @@ def enhance(value, code=True, safe_linking=False):
         szval = E.string(repr(szval))
 
     # Fix for case when we can't read the end address anyway (#946)
-    if value + pwndbg.gdb.arch.ptrsize > page.end:
+    if value + pwndbg.gdblib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.pvoid, value))
+    intval = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
         intval = E.integer(str(intval))
     else:
-        intval = E.integer("%#x" % int(intval & pwndbg.gdb.arch.ptrmask))
+        intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
 
     retval = []
 
@@ -139,7 +139,7 @@ def enhance(value, code=True, safe_linking=False):
 
     # Otherwise strings have preference
     elif szval:
-        if len(szval0) < pwndbg.gdb.arch.ptrsize:
+        if len(szval0) < pwndbg.gdblib.arch.ptrsize:
             retval = [intval, szval]
         else:
             retval = [szval]

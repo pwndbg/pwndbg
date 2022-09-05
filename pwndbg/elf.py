@@ -18,8 +18,8 @@ from elftools.elf.elffile import ELFFile
 import pwndbg.abi
 import pwndbg.auxv
 import pwndbg.elftypes
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.info
 import pwndbg.lib.memoize
 import pwndbg.memory
@@ -48,12 +48,12 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
         return self.is_pic
 
 
-@pwndbg.gdb.events.start
-@pwndbg.gdb.events.new_objfile
+@pwndbg.gdblib.events.start
+@pwndbg.gdblib.events.new_objfile
 def update():
     importlib.reload(pwndbg.elftypes)
 
-    if pwndbg.gdb.arch.ptrsize == 4:
+    if pwndbg.gdblib.arch.ptrsize == 4:
         Ehdr = pwndbg.elftypes.Elf32_Ehdr
         Phdr = pwndbg.elftypes.Elf32_Phdr
     else:

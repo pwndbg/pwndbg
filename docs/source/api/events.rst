@@ -1,5 +1,5 @@
-:mod:`pwndbg.gdb.events` --- pwndbg.gdb.events
+:mod:`pwndbg.gdblib.events` --- pwndbg.gdblib.events
 =============================================
 
-.. automodule:: pwndbg.gdb.events
+.. automodule:: pwndbg.gdblib.events
     :members:

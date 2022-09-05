@@ -4,8 +4,8 @@ Search the address space for byte patterns.
 
 import gdb
 
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 import pwndbg.vmmap
 

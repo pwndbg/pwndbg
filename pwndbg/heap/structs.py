@@ -2,8 +2,8 @@ import ctypes
 
 import gdb
 
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 import pwndbg.memory
 
@@ -15,20 +15,20 @@ def request2size(req):
 
 
 def fastbin_index(size):
-    if pwndbg.gdb.arch.ptrsize == 8:
+    if pwndbg.gdblib.arch.ptrsize == 8:
         return (size >> 4) - 2
     else:
         return (size >> 3) - 2
 
 
-SIZE_SZ = pwndbg.gdb.arch.ptrsize
-MINSIZE = pwndbg.gdb.arch.ptrsize * 4
+SIZE_SZ = pwndbg.gdblib.arch.ptrsize
+MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
 # i386 will override it to 16.
 # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
 MALLOC_ALIGN = (
     16
-    if pwndbg.gdb.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
-    else pwndbg.gdb.arch.ptrsize * 2
+    if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
+    else pwndbg.gdblib.arch.ptrsize * 2
 )
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
@@ -37,7 +37,7 @@ BINMAPSIZE = 4
 TCACHE_MAX_BINS = 64
 NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
-if pwndbg.gdb.arch.ptrsize == 4:
+if pwndbg.gdblib.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
     SIZE_T = ctypes.c_uint32
 else:
@@ -58,17 +58,17 @@ class c_size_t(SIZE_T):
 
 
 C2GDB_MAPPING = {
-    ctypes.c_char: pwndbg.gdb.typeinfo.char,
-    ctypes.c_int8: pwndbg.gdb.typeinfo.int8,
-    ctypes.c_int16: pwndbg.gdb.typeinfo.int16,
-    ctypes.c_int32: pwndbg.gdb.typeinfo.int32,
-    ctypes.c_int64: pwndbg.gdb.typeinfo.int64,
-    ctypes.c_uint8: pwndbg.gdb.typeinfo.uint8,
-    ctypes.c_uint16: pwndbg.gdb.typeinfo.uint16,
-    ctypes.c_uint32: pwndbg.gdb.typeinfo.uint32,
-    ctypes.c_uint64: pwndbg.gdb.typeinfo.uint64,
-    c_pvoid: pwndbg.gdb.typeinfo.pvoid,
-    c_size_t: pwndbg.gdb.typeinfo.size_t,
+    ctypes.c_char: pwndbg.gdblib.typeinfo.char,
+    ctypes.c_int8: pwndbg.gdblib.typeinfo.int8,
+    ctypes.c_int16: pwndbg.gdblib.typeinfo.int16,
+    ctypes.c_int32: pwndbg.gdblib.typeinfo.int32,
+    ctypes.c_int64: pwndbg.gdblib.typeinfo.int64,
+    ctypes.c_uint8: pwndbg.gdblib.typeinfo.uint8,
+    ctypes.c_uint16: pwndbg.gdblib.typeinfo.uint16,
+    ctypes.c_uint32: pwndbg.gdblib.typeinfo.uint32,
+    ctypes.c_uint64: pwndbg.gdblib.typeinfo.uint64,
+    c_pvoid: pwndbg.gdblib.typeinfo.pvoid,
+    c_size_t: pwndbg.gdblib.typeinfo.size_t,
 }
 
 

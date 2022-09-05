@@ -16,7 +16,7 @@ def canary_value():
     global_canary = pwndbg.memory.pvoid(at_random)
 
     # masking canary value as canaries on the stack has last byte = 0
-    global_canary &= pwndbg.gdb.arch.ptrmask ^ 0xFF
+    global_canary &= pwndbg.gdblib.arch.ptrmask ^ 0xFF
 
     return global_canary, at_random
 
@@ -37,7 +37,7 @@ def canary():
 
     stack_canaries = list(
         pwndbg.search.search(
-            pwndbg.gdb.arch.pack(global_canary), mappings=pwndbg.stack.stacks.values()
+            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.stack.stacks.values()
         )
     )
 

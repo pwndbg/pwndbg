@@ -19,7 +19,7 @@ import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
 import pwndbg.config
 import pwndbg.disasm
-import pwndbg.gdb.events
+import pwndbg.gdblib.events
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.regs
@@ -315,7 +315,7 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
         return banner + [message.error(e)]
 
 
-# @pwndbg.gdb.events.stop
+# @pwndbg.gdblib.events.stop
 
 parser = argparse.ArgumentParser()
 parser.description = "Print out the current register, instruction, and stack context."

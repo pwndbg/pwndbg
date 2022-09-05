@@ -11,7 +11,7 @@ import sys
 import gdb
 
 import pwndbg.gcc
-import pwndbg.gdb.events
+import pwndbg.gdblib.events
 import pwndbg.lib.memoize
 import pwndbg.lib.tempfile
 
@@ -155,7 +155,7 @@ def load(name):
     # s, _ = gdb.lookup_symbol(name)
 
     # Try to find an architecture-specific include path
-    arch = pwndbg.gdb.arch.current.split(":")[0]
+    arch = pwndbg.gdblib.arch.current.split(":")[0]
 
     include_dir = glob.glob("/usr/%s*/include" % arch)
 
@@ -221,7 +221,7 @@ def add_symbol_file(filename=None, address=0):
         print("Specify a symbol file to add.")
         return
 
-    with pwndbg.gdb.events.Pause():
+    with pwndbg.gdblib.events.Pause():
         gdb.execute(
             "add-symbol-file %s %s" % (filename, address),
             from_tty=False,
@@ -231,5 +231,5 @@ def add_symbol_file(filename=None, address=0):
 
 def read_gdbvalue(type_name, addr):
     """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    gdb_type = pwndbg.gdb.typeinfo.load(type_name)
+    gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()

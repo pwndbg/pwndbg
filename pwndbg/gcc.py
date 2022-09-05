@@ -9,14 +9,14 @@ import platform
 
 import gdb
 
-import pwndbg.gdb.arch
+import pwndbg.gdblib.arch
 
 
 def flags():
 
-    if pwndbg.gdb.arch.current == "i386":
+    if pwndbg.gdblib.arch.current == "i386":
         return ["-m32"]
-    if pwndbg.gdb.arch.current.endswith("x86-64"):
+    if pwndbg.gdblib.arch.current.endswith("x86-64"):
         return ["-m64"]
 
     return []
@@ -31,9 +31,9 @@ def which():
             printed_message = True
             print("Can't find appropriate GCC, using default version")
 
-        if pwndbg.gdb.arch.ptrsize == 32:
+        if pwndbg.gdblib.arch.ptrsize == 32:
             return ["g++", "-m32"]
-        elif pwndbg.gdb.arch.ptrsize == 64:
+        elif pwndbg.gdblib.arch.ptrsize == 64:
             return ["g++", "-m32"]
 
     return [gcc] + flags()
@@ -46,8 +46,8 @@ def which_binutils(util, **kwargs):
     ###############################
     # Borrowed from pwntools' code
     ###############################
-    arch = pwndbg.gdb.arch.current
-    bits = pwndbg.gdb.arch.ptrsize
+    arch = pwndbg.gdblib.arch.current
+    bits = pwndbg.gdblib.arch.ptrsize
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.

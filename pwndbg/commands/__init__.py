@@ -269,11 +269,11 @@ def OnlyWhenHeapIsInitialized(function):
 
 
 def OnlyAmd64(function):
-    """Decorates function to work only when pwndbg.gdb.arch.current == \"x86-64\"."""
+    """Decorates function to work only when pwndbg.gdblib.arch.current == \"x86-64\"."""
 
     @functools.wraps(function)
     def _OnlyAmd64(*a, **kw):
-        if pwndbg.gdb.arch.current == "x86-64":
+        if pwndbg.gdblib.arch.current == "x86-64":
             return function(*a, **kw)
         else:
             print('%s: Only works with "x86-64" arch.' % function.__name__)
@@ -366,7 +366,7 @@ class ArgparsedCommand:
         return _ArgparsedCommand(self.parser, function, command_name=self._command_name)
 
 
-# We use a 64-bit max value literal here instead of pwndbg.gdb.arch.current
+# We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
 # as realistically its ok to pull off the biggest possible type here
 # We cache its GDB value type which is 'unsigned long long'
 _mask = 0xFFFFFFFFFFFFFFFF

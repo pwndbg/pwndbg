@@ -18,8 +18,8 @@ import gdb
 
 import pwndbg.elf
 import pwndbg.file
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.ida
 import pwndbg.lib.memoize
 import pwndbg.memory
@@ -63,7 +63,7 @@ remote_files = {}
 remote_files_dir = None
 
 
-@pwndbg.gdb.events.exit
+@pwndbg.gdblib.events.exit
 def reset_remote_files():
     global remote_files
     global remote_files_dir
@@ -73,7 +73,7 @@ def reset_remote_files():
         remote_files_dir = None
 
 
-@pwndbg.gdb.events.new_objfile
+@pwndbg.gdblib.events.new_objfile
 def autofetch():
     """ """
     global remote_files_dir
@@ -234,7 +234,7 @@ def address(symbol, allow_unmapped=False):
         pass
 
 
-@pwndbg.gdb.events.stop
+@pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
 def add_main_exe_to_symbols():
     if not pwndbg.remote.is_remote():
@@ -260,7 +260,7 @@ def add_main_exe_to_symbols():
         return
 
     path = mmap.objfile
-    if path and (pwndbg.gdb.arch.endian == pwndbg.gdb.arch.native_endian):
+    if path and (pwndbg.gdblib.arch.endian == pwndbg.gdblib.arch.native_endian):
         try:
             gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
         except gdb.error:

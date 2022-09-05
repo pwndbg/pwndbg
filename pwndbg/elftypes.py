@@ -30,8 +30,8 @@
 import ctypes
 
 import pwndbg.ctypes
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16

@@ -1,5 +1,5 @@
-:mod:`pwndbg.gdb.arch` --- pwndbg.gdb.arch
+:mod:`pwndbg.gdblib.arch` --- pwndbg.gdblib.arch
 =============================================
 
-.. automodule:: pwndbg.gdb.arch
+.. automodule:: pwndbg.gdblib.arch
     :members:

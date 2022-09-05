@@ -9,7 +9,7 @@ import sys
 import termios
 
 import pwndbg.color.context as C
-import pwndbg.gdb.arch
+import pwndbg.gdblib.arch
 from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
@@ -59,8 +59,8 @@ def banner(title, target=sys.stdin, width=None):
 
 
 def addrsz(address):
-    address = int(address) & pwndbg.gdb.arch.ptrmask
-    return "%#{}x".format(2 * pwndbg.gdb.arch.ptrsize) % address
+    address = int(address) & pwndbg.gdblib.arch.ptrmask
+    return "%#{}x".format(2 * pwndbg.gdblib.arch.ptrsize) % address
 
 
 def get_window_size(target=sys.stdin):

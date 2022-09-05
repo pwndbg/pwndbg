@@ -14,8 +14,8 @@ import gdb
 import pwndbg.abi
 import pwndbg.elf
 import pwndbg.file
-import pwndbg.gdb.events
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.events
+import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
@@ -57,7 +57,7 @@ def get():
     if (
         not pages
         and pwndbg.qemu.is_qemu_kernel()
-        and pwndbg.gdb.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+        and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
     ):
         if kernel_vmmap_via_pt:
             pages.extend(kernel_vmmap_via_page_tables())
@@ -82,7 +82,7 @@ def get():
             pages.extend(info_sharedlibrary())
         else:
             if pwndbg.qemu.is_qemu():
-                return (pwndbg.memory.Page(0, pwndbg.gdb.arch.ptrmask, 7, 0, "[qemu]"),)
+                return (pwndbg.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
@@ -145,13 +145,13 @@ def explore(address_maybe):
 
 
 # Automatically ensure that all registers are explored on each stop
-# @pwndbg.gdb.events.stop
+# @pwndbg.gdblib.events.stop
 def explore_registers():
     for regname in pwndbg.regs.common:
         find(pwndbg.regs[regname])
 
 
-# @pwndbg.gdb.events.exit
+# @pwndbg.gdblib.events.exit
 def clear_explored_pages():
     while explored_pages:
         explored_pages.pop()
@@ -624,7 +624,7 @@ def check_aslr():
     return ("is off." in output), "show disable-randomization"
 
 
-@pwndbg.gdb.events.cont
+@pwndbg.gdblib.events.cont
 def mark_pc_as_executable():
     mapping = find(pwndbg.regs.pc)
     if mapping and not mapping.execute:

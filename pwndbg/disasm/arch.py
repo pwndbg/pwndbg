@@ -37,7 +37,9 @@ class DisassemblyAssistant:
 
     @staticmethod
     def enhance(instruction):
-        enhancer = DisassemblyAssistant.assistants.get(pwndbg.gdb.arch.current, generic_assistant)
+        enhancer = DisassemblyAssistant.assistants.get(
+            pwndbg.gdblib.arch.current, generic_assistant
+        )
         enhancer.enhance_operands(instruction)
         enhancer.enhance_symbol(instruction)
         enhancer.enhance_conditional(instruction)
@@ -99,7 +101,7 @@ class DisassemblyAssistant:
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
 
-        instruction.next = next_addr & pwndbg.gdb.arch.ptrmask
+        instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
         if instruction.target is None:
             instruction.target = instruction.next
@@ -127,7 +129,7 @@ class DisassemblyAssistant:
         op = instruction.operands[0]
         addr = op.int
         if addr:
-            addr &= pwndbg.gdb.arch.ptrmask
+            addr &= pwndbg.gdblib.arch.ptrmask
         if op.type == CS_OP_MEM:
             if addr is None:
                 addr = self.memory(instruction, op)
@@ -137,7 +139,7 @@ class DisassemblyAssistant:
                 try:
                     # fails with gdb.MemoryError if the dereferenced address
                     # doesn't belong to any of process memory maps
-                    addr = int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, addr))
+                    addr = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
                 except gdb.MemoryError:
                     return None
         if op.type == CS_OP_REG:
@@ -191,7 +193,7 @@ class DisassemblyAssistant:
 
             op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
             if op.int:
-                op.int &= pwndbg.gdb.arch.ptrmask
+                op.int &= pwndbg.gdblib.arch.ptrmask
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if op.int:

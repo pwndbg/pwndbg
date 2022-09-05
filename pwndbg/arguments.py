@@ -13,8 +13,8 @@ import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.funcparser
 import pwndbg.functions
-import pwndbg.gdb.arch
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.typeinfo
 import pwndbg.ida
 import pwndbg.memory
 import pwndbg.regs
@@ -183,9 +183,9 @@ def argument(n, abi=None):
 
     n -= len(regs)
 
-    sp = pwndbg.regs.sp + (n * pwndbg.gdb.arch.ptrsize)
+    sp = pwndbg.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
 
-    return int(pwndbg.memory.poi(pwndbg.gdb.typeinfo.ppvoid, sp))
+    return int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
 
 
 def arguments(abi=None):

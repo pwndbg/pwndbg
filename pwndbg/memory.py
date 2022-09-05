@@ -7,9 +7,9 @@ from builtins import bytes
 
 import gdb
 
-import pwndbg.gdb.arch
-import pwndbg.gdb.events
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
+import pwndbg.gdblib.typeinfo
 import pwndbg.qemu
 
 PAGE_SIZE = 0x1000
@@ -163,7 +163,7 @@ def byte(addr):
 
     Read one byte at the specified address
     """
-    return readtype(pwndbg.gdb.typeinfo.uchar, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uchar, addr)
 
 
 def uchar(addr):
@@ -171,7 +171,7 @@ def uchar(addr):
 
     Read one ``unsigned char`` at the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uchar, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uchar, addr)
 
 
 def ushort(addr):
@@ -179,7 +179,7 @@ def ushort(addr):
 
     Read one ``unisgned short`` at the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.ushort, addr)
+    return readtype(pwndbg.gdblib.typeinfo.ushort, addr)
 
 
 def uint(addr):
@@ -187,7 +187,7 @@ def uint(addr):
 
     Read one ``unsigned int`` at the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uint, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uint, addr)
 
 
 def pvoid(addr):
@@ -195,7 +195,7 @@ def pvoid(addr):
 
     Read one pointer from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.pvoid, addr)
+    return readtype(pwndbg.gdblib.typeinfo.pvoid, addr)
 
 
 def u8(addr):
@@ -203,7 +203,7 @@ def u8(addr):
 
     Read one ``uint8_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uint8, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uint8, addr)
 
 
 def u16(addr):
@@ -211,7 +211,7 @@ def u16(addr):
 
     Read one ``uint16_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uint16, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uint16, addr)
 
 
 def u32(addr):
@@ -219,7 +219,7 @@ def u32(addr):
 
     Read one ``uint32_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uint32, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uint32, addr)
 
 
 def u64(addr):
@@ -227,7 +227,7 @@ def u64(addr):
 
     Read one ``uint64_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.uint64, addr)
+    return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
 def u(addr, size=None):
@@ -238,7 +238,7 @@ def u(addr, size=None):
     to the pointer width.
     """
     if size is None:
-        size = pwndbg.gdb.arch.ptrsize * 8
+        size = pwndbg.gdblib.arch.ptrsize * 8
     return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 
@@ -247,7 +247,7 @@ def s8(addr):
 
     Read one ``int8_t`` from the specified address
     """
-    return readtype(pwndbg.gdb.typeinfo.int8, addr)
+    return readtype(pwndbg.gdblib.typeinfo.int8, addr)
 
 
 def s16(addr):
@@ -255,7 +255,7 @@ def s16(addr):
 
     Read one ``int16_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.int16, addr)
+    return readtype(pwndbg.gdblib.typeinfo.int16, addr)
 
 
 def s32(addr):
@@ -263,7 +263,7 @@ def s32(addr):
 
     Read one ``int32_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.int32, addr)
+    return readtype(pwndbg.gdblib.typeinfo.int32, addr)
 
 
 def s64(addr):
@@ -271,7 +271,7 @@ def s64(addr):
 
     Read one ``int64_t`` from the specified address.
     """
-    return readtype(pwndbg.gdb.typeinfo.int64, addr)
+    return readtype(pwndbg.gdblib.typeinfo.int64, addr)
 
 
 def poi(type, addr):
@@ -341,8 +341,8 @@ def find_upper_boundary(addr, max_pages=1024):
             # Sanity check in case a custom GDB server/stub
             # incorrectly returns a result from read
             # (this is most likely redundant, but its ok to keep it?)
-            if addr > pwndbg.gdb.arch.ptrmask:
-                return pwndbg.gdb.arch.ptrmask
+            if addr > pwndbg.gdblib.arch.ptrmask:
+                return pwndbg.gdblib.arch.ptrmask
     except gdb.MemoryError:
         pass
     return addr
@@ -449,7 +449,7 @@ class Page:
         )
 
     def __str__(self):
-        width = 2 + 2 * pwndbg.gdb.typeinfo.ptrsize
+        width = 2 + 2 * pwndbg.gdblib.typeinfo.ptrsize
         fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
         fmt_string = fmt_string.format(width, width)
         return fmt_string % (
@@ -477,7 +477,7 @@ class Page:
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
 
 
-@pwndbg.gdb.events.start
+@pwndbg.gdblib.events.start
 def update_min_addr():
     global MMAP_MIN_ADDR
     if pwndbg.qemu.is_qemu_kernel():

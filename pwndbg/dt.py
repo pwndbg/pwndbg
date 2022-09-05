@@ -6,7 +6,7 @@ import re
 
 import gdb
 
-import pwndbg.gdb.typeinfo
+import pwndbg.gdblib.typeinfo
 import pwndbg.memory
 
 
@@ -88,7 +88,7 @@ def dt(name="", addr=None, obj=None):
 
     # Lookup the type name specified by the user
     else:
-        t = pwndbg.gdb.typeinfo.load(name)
+        t = pwndbg.gdblib.typeinfo.load(name)
 
     # If it's not a struct (e.g. int or char*), bail
     if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF, gdb.TYPE_CODE_UNION):
@@ -124,7 +124,7 @@ def dt(name="", addr=None, obj=None):
                 v = hex(int(v))
             if (
                 ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY)
-                and ftype.target() == pwndbg.gdb.typeinfo.uchar
+                and ftype.target() == pwndbg.gdblib.typeinfo.uchar
             ):
                 data = pwndbg.memory.read(v.address, ftype.sizeof)
                 v = " ".join("%02x" % b for b in data)

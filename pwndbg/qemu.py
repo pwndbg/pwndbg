@@ -7,7 +7,7 @@ import os
 import gdb
 import psutil
 
-import pwndbg.gdb.events
+import pwndbg.gdblib.events
 import pwndbg.remote
 
 
@@ -53,7 +53,7 @@ def is_qemu_kernel():
     return is_qemu() and not is_usermode()
 
 
-# @pwndbg.gdb.events.start
+# @pwndbg.gdblib.events.start
 @pwndbg.lib.memoize.reset_on_stop
 def root():
     global binfmt_root
@@ -61,7 +61,7 @@ def root():
     if not is_qemu_usermode():
         return
 
-    binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdb.arch.qemu
+    binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdblib.arch.qemu
 
     if not os.path.isdir(binfmt_root):
         return
