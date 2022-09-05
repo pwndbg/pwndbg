@@ -39,13 +39,13 @@ def setflag(flag, value):
         print("can only set flag bit to 0 or 1")
         return
 
-    register_set = pwndbg.regs.arch_to_regs[pwndbg.gdblib.arch.current]
+    register_set = pwndbg.gdblib.regs.reg_sets[pwndbg.gdblib.arch.current]
 
     flag = flag.upper()
     for flag_reg, flags in register_set.flags.items():
         for (flag_name, flag_bit) in flags.items():
             if flag_name == flag:
-                old_flags_reg_value = pwndbg.regs[flag_reg]
+                old_flags_reg_value = pwndbg.gdblib.regs[flag_reg]
                 bit_value = 1 << flag_bit
 
                 if value == 1:
@@ -53,7 +53,7 @@ def setflag(flag, value):
                 else:
                     new_flags_reg_value = old_flags_reg_value & ~bit_value
 
-                setattr(pwndbg.regs, flag_reg, new_flags_reg_value)
+                setattr(pwndbg.gdblib.regs, flag_reg, new_flags_reg_value)
                 print(
                     "Set flag %s=%d in flag register %s (old val=%#x, new val=%#x)"
                     % (flag, value, flag_reg, old_flags_reg_value, new_flags_reg_value)

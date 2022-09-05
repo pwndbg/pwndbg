@@ -9,7 +9,7 @@ import capstone
 import gdb
 
 import pwndbg.disasm
-import pwndbg.regs
+import pwndbg.gdblib.regs
 from pwndbg.color import message
 
 jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET))
@@ -37,7 +37,7 @@ def next_int(address=None):
     Otherwise, return None.
     """
     if address is None:
-        ins = pwndbg.disasm.one(pwndbg.regs.pc)
+        ins = pwndbg.disasm.one(pwndbg.gdblib.regs.pc)
         if not ins:
             return None
         address = ins.next
@@ -55,7 +55,7 @@ def next_int(address=None):
 
 def next_branch(address=None):
     if address is None:
-        ins = pwndbg.disasm.one(pwndbg.regs.pc)
+        ins = pwndbg.disasm.one(pwndbg.gdblib.regs.pc)
         if not ins:
             return None
         address = ins.next
@@ -131,14 +131,14 @@ def break_on_program_code():
     start = mp.start
     end = mp.end
 
-    if start <= pwndbg.regs.pc < end:
+    if start <= pwndbg.gdblib.regs.pc < end:
         print(message.error("The pc is already at the binary objfile code. Not stepping."))
         return False
 
     while pwndbg.proc.alive:
         gdb.execute("si", from_tty=False, to_string=False)
 
-        addr = pwndbg.regs.pc
+        addr = pwndbg.gdblib.regs.pc
         if start <= addr < end:
             return True
 
@@ -146,7 +146,7 @@ def break_on_program_code():
 
 
 def break_on_next(address=None):
-    address = address or pwndbg.regs.pc
+    address = address or pwndbg.gdblib.regs.pc
     ins = pwndbg.disasm.one(address)
 
     gdb.Breakpoint("*%#x" % (ins.address + ins.size), temporary=True)

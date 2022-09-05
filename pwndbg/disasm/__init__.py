@@ -90,11 +90,13 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
 def get_disassembler(pc):
     if pwndbg.gdblib.arch.current == "armcm":
         extra = (
-            (CS_MODE_MCLASS | CS_MODE_THUMB) if (pwndbg.regs.xpsr & (1 << 24)) else CS_MODE_MCLASS
+            (CS_MODE_MCLASS | CS_MODE_THUMB)
+            if (pwndbg.gdblib.regs.xpsr & (1 << 24))
+            else CS_MODE_MCLASS
         )
 
     elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
-        extra = CS_MODE_THUMB if (pwndbg.regs.cpsr & (1 << 5)) else CS_MODE_ARM
+        extra = CS_MODE_THUMB if (pwndbg.gdblib.regs.cpsr & (1 << 5)) else CS_MODE_ARM
 
     elif pwndbg.gdblib.arch.current == "sparc":
         if "v9" in gdb.newest_frame().architecture().name():
@@ -149,7 +151,7 @@ def get_one_instruction(address):
 
 def one(address=None):
     if address is None:
-        address = pwndbg.regs.pc
+        address = pwndbg.gdblib.regs.pc
     if not pwndbg.memory.peek(address):
         return None
     for insn in get(address, 1):
@@ -209,7 +211,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
     current = one(address)
 
-    pc = pwndbg.regs.pc
+    pc = pwndbg.gdblib.regs.pc
 
     if current is None or not pwndbg.memory.peek(address):
         return []

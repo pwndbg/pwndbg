@@ -8,8 +8,8 @@ import gdb
 
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.memory
-import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.vmmap
 
@@ -78,11 +78,11 @@ class module(ModuleType):
         tls_base = 0
 
         if pwndbg.gdblib.arch.current == "x86-64":
-            tls_base = int(pwndbg.regs.fsbase)
+            tls_base = int(pwndbg.gdblib.regs.fsbase)
         elif pwndbg.gdblib.arch.current == "i386":
-            tls_base = int(pwndbg.regs.gsbase)
+            tls_base = int(pwndbg.gdblib.regs.gsbase)
         elif pwndbg.gdblib.arch.current == "aarch64":
-            tls_base = int(pwndbg.regs.TPIDR_EL0)
+            tls_base = int(pwndbg.gdblib.regs.TPIDR_EL0)
 
         # Sometimes, we need to get TLS base via errno location for the following reason:
         # For x86-64, fsbase might be 0 if we are remotely debugging and the GDB version <= 8.X

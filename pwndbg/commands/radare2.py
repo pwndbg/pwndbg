@@ -24,7 +24,7 @@ def r2(arguments, no_seek=False, no_rebase=False):
     cmd = ["radare2"]
     flags = ["-e", "io.cache=true"]
     if pwndbg.proc.alive:
-        addr = pwndbg.regs.pc
+        addr = pwndbg.gdblib.regs.pc
         if pwndbg.elf.get_elf_info(filename).is_pie:
             if no_rebase:
                 addr -= pwndbg.elf.exe().address

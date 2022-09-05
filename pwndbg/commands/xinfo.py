@@ -6,8 +6,8 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.memory
-import pwndbg.regs
 import pwndbg.stack
 import pwndbg.vmmap
 import pwndbg.wrappers
@@ -35,8 +35,8 @@ def xinfo_stack(page, addr):
     # If it's a stack address, print offsets to top and bottom of stack, as
     # well as offsets to current stack and base pointer (if used by debuggee)
 
-    sp = pwndbg.regs.sp
-    frame = pwndbg.regs[pwndbg.regs.frame]
+    sp = pwndbg.gdblib.regs.sp
+    frame = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
     frame_mapping = pwndbg.vmmap.find(frame)
 
     print_line("Stack Top", addr, page.vaddr, addr - page.vaddr, "+")

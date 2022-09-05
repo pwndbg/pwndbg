@@ -1,8 +1,8 @@
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.gdblib.regs
 import pwndbg.memory
-import pwndbg.regs
 import pwndbg.search
 from pwndbg.color import message
 

@@ -16,7 +16,7 @@ file_lists = {}  # This saves all comments.
 @pwndbg.commands.OnlyWhenRunning
 def comm(addr=None, comment=None):
     if addr is None:
-        addr = hex(pwndbg.regs.pc)
+        addr = hex(pwndbg.gdblib.regs.pc)
     try:
         with open(".gdb_comments", "a+") as f:
             target = int(addr, 0)

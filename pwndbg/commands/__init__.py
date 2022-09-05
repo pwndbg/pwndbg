@@ -9,9 +9,9 @@ import pwndbg.color
 import pwndbg.color.message as message
 import pwndbg.enhance
 import pwndbg.exception
+import pwndbg.gdblib.regs
 import pwndbg.hexdump
 import pwndbg.memory
-import pwndbg.regs
 import pwndbg.symbol
 import pwndbg.ui
 
@@ -195,7 +195,7 @@ def fix(arg, sloppy=False, quiet=True, reraise=False):
         pass
 
     try:
-        arg = pwndbg.regs.fix(arg)
+        arg = pwndbg.gdblib.regs.fix(arg)
         return gdb.parse_and_eval(arg)
     except Exception as e:
         if not quiet:

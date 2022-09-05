@@ -15,12 +15,12 @@ import pwndbg.elf
 import pwndbg.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
+import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
 import pwndbg.memory
 import pwndbg.proc
 import pwndbg.qemu
-import pwndbg.regs
 import pwndbg.remote
 import pwndbg.stack
 
@@ -147,8 +147,8 @@ def explore(address_maybe):
 # Automatically ensure that all registers are explored on each stop
 # @pwndbg.gdblib.events.stop
 def explore_registers():
-    for regname in pwndbg.regs.common:
-        find(pwndbg.regs[regname])
+    for regname in pwndbg.gdblib.regs.common:
+        find(pwndbg.gdblib.regs[regname])
 
 
 # @pwndbg.gdblib.events.exit
@@ -626,6 +626,6 @@ def check_aslr():
 
 @pwndbg.gdblib.events.cont
 def mark_pc_as_executable():
-    mapping = find(pwndbg.regs.pc)
+    mapping = find(pwndbg.gdblib.regs.pc)
     if mapping and not mapping.execute:
         mapping.flags |= os.X_OK

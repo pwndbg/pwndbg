@@ -14,9 +14,9 @@ import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.memory
-import pwndbg.regs
 
 telescope_lines = pwndbg.config.Parameter(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
@@ -79,7 +79,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     else:
         telescope.offset = 0
 
-    address = int(address if address else pwndbg.regs.sp) & pwndbg.gdblib.arch.ptrmask
+    address = int(address if address else pwndbg.gdblib.regs.sp) & pwndbg.gdblib.arch.ptrmask
     count = max(int(count), 1) & pwndbg.gdblib.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
@@ -91,7 +91,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
         count = address
-        address = pwndbg.regs.sp
+        address = pwndbg.gdblib.regs.sp
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
     if int(address) <= int(count):
@@ -101,8 +101,8 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         count = max(math.ceil(count / ptrsize), 1)
 
     reg_values = collections.defaultdict(lambda: [])
-    for reg in pwndbg.regs.common:
-        reg_values[pwndbg.regs[reg]].append(reg)
+    for reg in pwndbg.gdblib.regs.common:
+        reg_values[pwndbg.gdblib.regs[reg]].append(reg)
     # address    = pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
 
     start = address
@@ -215,7 +215,7 @@ parser.add_argument(
 def stack(count, offset):
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
-    telescope(address=pwndbg.regs.sp + offset * ptrsize, count=count)
+    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count)
 
 
 telescope.last_address = 0
