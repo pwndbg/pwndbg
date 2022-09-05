@@ -29,8 +29,8 @@
 #
 import ctypes
 
-import pwndbg.ctypes
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.ctypes
 import pwndbg.gdblib.events
 
 Elf32_Addr = ctypes.c_uint32
@@ -255,7 +255,7 @@ class constants:
     AT_L3_CACHESHAPE = 37
 
 
-class Elf32_Ehdr(pwndbg.ctypes.Structure):
+class Elf32_Ehdr(pwndbg.gdblib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf32_Half),
@@ -274,7 +274,7 @@ class Elf32_Ehdr(pwndbg.ctypes.Structure):
     ]
 
 
-class Elf64_Ehdr(pwndbg.ctypes.Structure):
+class Elf64_Ehdr(pwndbg.gdblib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf64_Half),
@@ -293,7 +293,7 @@ class Elf64_Ehdr(pwndbg.ctypes.Structure):
     ]
 
 
-class Elf32_Phdr(pwndbg.ctypes.Structure):
+class Elf32_Phdr(pwndbg.gdblib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf32_Word),
         ("p_offset", Elf32_Off),
@@ -306,7 +306,7 @@ class Elf32_Phdr(pwndbg.ctypes.Structure):
     ]
 
 
-class Elf64_Phdr(pwndbg.ctypes.Structure):
+class Elf64_Phdr(pwndbg.gdblib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf64_Word),
         ("p_flags", Elf64_Word),

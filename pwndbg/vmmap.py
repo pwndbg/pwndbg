@@ -249,7 +249,7 @@ def coredump_maps():
     stack_addr = None
 
     # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
-    auxv = pwndbg.info.auxv().splitlines()
+    auxv = pwndbg.gdblib.info.auxv().splitlines()
     for line in auxv:
         if "AT_EXECFN" in line:
             try:

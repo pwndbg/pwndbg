@@ -9,7 +9,9 @@ import capstone
 import gdb
 
 import pwndbg.disasm
+import pwndbg.gdblib.events
 import pwndbg.gdblib.regs
+import pwndbg.proc
 from pwndbg.color import message
 
 jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET))
