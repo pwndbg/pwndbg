@@ -27,7 +27,4 @@ jobs:
     - name: Run linters
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
-        isort --check-only --diff pwndbg tests
-        black --diff --check pwndbg tests
-        flake8 --show-source pwndbg/ tests
-        python3 -m py_compile $(git ls-files 'pwndbg/*.py')
+        ./lint.sh
