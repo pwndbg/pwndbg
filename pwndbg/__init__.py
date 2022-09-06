@@ -61,11 +61,11 @@ import pwndbg.disasm.mips
 import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
-import pwndbg.dt
 import pwndbg.elf
 import pwndbg.exception
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.dt
 import pwndbg.gdblib.events
 import pwndbg.gdblib.hooks
 import pwndbg.gdblib.memory

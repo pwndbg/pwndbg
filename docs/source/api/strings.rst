@@ -1,5 +1,5 @@
-:mod:`pwndbg.strings` --- pwndbg.strings
+:mod:`pwndbg.gdblib.strings` --- pwndbg.gdblib.strings
 =============================================
 
-.. automodule:: pwndbg.strings
+.. automodule:: pwndbg.gdblib.strings
     :members:

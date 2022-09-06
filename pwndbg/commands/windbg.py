@@ -13,8 +13,8 @@ import gdb
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
-import pwndbg.strings
 import pwndbg.symbol
 
 
@@ -363,7 +363,7 @@ da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum st
 @pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max):
-    print("%x" % address, repr(pwndbg.strings.get(address, max)))
+    print("%x" % address, repr(pwndbg.gdblib.strings.get(address, max)))
 
 
 ds_parser = argparse.ArgumentParser()
@@ -382,7 +382,7 @@ def ds(address, max):
         print("Max str len of %d too low, changing to 256" % max)
         max = 256
 
-    string = pwndbg.strings.get(address, max, maxread=4096)
+    string = pwndbg.gdblib.strings.get(address, max, maxread=4096)
     if string:
         print("%x %r" % (address, string))
     else:
