@@ -11,8 +11,8 @@ import tempfile
 import gdb
 
 import pwndbg.color.message as message
-import pwndbg.qemu
-import pwndbg.remote
+import pwndbg.gdblib.qemu
+import pwndbg.gdblib.remote
 import pwndbg.symbol
 
 
@@ -33,13 +33,13 @@ def get_file(path):
         path = path[7:]  # len('target:') == 7
 
     local_path = path
-    qemu_root = pwndbg.qemu.root()
+    qemu_root = pwndbg.gdblib.qemu.root()
 
     if qemu_root:
         return os.path.join(qemu_root, path)
 
-    elif pwndbg.remote.is_remote():
-        if not pwndbg.qemu.is_qemu():
+    elif pwndbg.gdblib.remote.is_remote():
+        if not pwndbg.gdblib.qemu.is_qemu():
             local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
             error = None
             try:
@@ -84,13 +84,13 @@ def readlink(path):
 
     Handles local, qemu-usermode, and remote debugging cases.
     """
-    is_qemu = pwndbg.qemu.is_qemu_usermode()
+    is_qemu = pwndbg.gdblib.qemu.is_qemu_usermode()
 
     if is_qemu:
         if not os.path.exists(path):
-            path = os.path.join(pwndbg.qemu.root(), path)
+            path = os.path.join(pwndbg.gdblib.qemu.root(), path)
 
-    if is_qemu or not pwndbg.remote.is_remote():
+    if is_qemu or not pwndbg.gdblib.remote.is_remote():
         try:
             return os.readlink(path)
         except Exception:

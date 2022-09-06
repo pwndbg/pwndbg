@@ -224,7 +224,7 @@ def OnlyWithFile(function):
         if pwndbg.proc.exe:
             return function(*a, **kw)
         else:
-            if pwndbg.qemu.is_qemu():
+            if pwndbg.gdblib.qemu.is_qemu():
                 print(message.error("Could not determine the target binary on QEMU."))
             else:
                 print(message.error("%s: There is no file loaded." % function.__name__))

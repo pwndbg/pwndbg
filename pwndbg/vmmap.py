@@ -16,12 +16,12 @@ import pwndbg.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.remote
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
 import pwndbg.proc
-import pwndbg.qemu
-import pwndbg.remote
 import pwndbg.stack
 
 # List of manually-explored pages which were discovered
@@ -56,7 +56,7 @@ def get():
 
     if (
         not pages
-        and pwndbg.qemu.is_qemu_kernel()
+        and pwndbg.gdblib.qemu.is_qemu_kernel()
         and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
     ):
         if kernel_vmmap_via_pt:
@@ -81,7 +81,7 @@ def get():
         if pages:
             pages.extend(info_sharedlibrary())
         else:
-            if pwndbg.qemu.is_qemu():
+            if pwndbg.gdblib.qemu.is_qemu():
                 return (pwndbg.lib.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
@@ -280,7 +280,7 @@ def proc_pid_maps():
 
     # If we debug remotely a qemu-user or qemu-system target,
     # there is no point of hitting things further
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         return tuple()
 
     # Example /proc/$pid/maps
@@ -594,7 +594,7 @@ def check_aslr():
     None is returned when we can't detect ASLR.
     """
     # QEMU does not support this concept.
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         return None, "Could not detect ASLR on QEMU targets"
 
     # Systemwide ASLR is disabled

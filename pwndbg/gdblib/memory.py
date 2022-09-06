@@ -8,8 +8,8 @@ import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
-import pwndbg.qemu
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
 
@@ -334,5 +334,5 @@ def find_lower_boundary(addr, max_pages=1024):
 @pwndbg.gdblib.events.start
 def update_min_addr():
     global MMAP_MIN_ADDR
-    if pwndbg.qemu.is_qemu_kernel():
+    if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0

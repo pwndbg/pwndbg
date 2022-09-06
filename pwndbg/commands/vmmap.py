@@ -74,7 +74,7 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False):
                 continue
             print(M.get(page.vaddr, text=str(page)))
 
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
 
 

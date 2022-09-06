@@ -1,5 +1,5 @@
-:mod:`pwndbg.remote` --- pwndbg.remote
+:mod:`pwndbg.gdblib.remote` --- pwndbg.gdblib.remote
 =============================================
 
-.. automodule:: pwndbg.remote
+.. automodule:: pwndbg.gdblib.remote
     :members:

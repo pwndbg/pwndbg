@@ -7,13 +7,15 @@ import os
 import gdb
 import psutil
 
-import pwndbg.gdblib.events
-import pwndbg.remote
+import pwndbg.gdblib.remote
+
+# TODO: `import pwndbg.gdblib.events` leads to a circular import
+from pwndbg.gdblib.events import start
 
 
 @pwndbg.lib.memoize.reset_on_stop
 def is_qemu():
-    if not pwndbg.remote.is_remote():
+    if not pwndbg.gdblib.remote.is_remote():
         return False
 
     # Example:
@@ -27,7 +29,7 @@ def is_qemu():
 
 @pwndbg.lib.memoize.reset_on_stop
 def is_usermode():
-    if not pwndbg.remote.is_remote():
+    if not pwndbg.gdblib.remote.is_remote():
         return False
 
     # There is also 'qAttached' - maybe we can use it too?
@@ -53,7 +55,7 @@ def is_qemu_kernel():
     return is_qemu() and not is_usermode()
 
 
-# @pwndbg.gdblib.events.start
+@start
 @pwndbg.lib.memoize.reset_on_stop
 def root():
     global binfmt_root

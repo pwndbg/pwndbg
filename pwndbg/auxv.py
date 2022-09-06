@@ -9,9 +9,9 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-import pwndbg.qemu
 import pwndbg.stack
 
 example_info_auxv_linux = """
@@ -148,7 +148,7 @@ def find_stack_boundary(addr):
 def walk_stack():
     if not pwndbg.gdblib.abi.linux:
         return None
-    if pwndbg.qemu.is_qemu_kernel():
+    if pwndbg.gdblib.qemu.is_qemu_kernel():
         return None
 
     auxv = walk_stack2(0)
