@@ -518,8 +518,10 @@ def get_regs(*regs):
 
         value = pwndbg.gdblib.regs[reg]
 
-        # Make the register stand out
+        # Make the register stand out and give a color if changed
         regname = C.register(reg.ljust(4).upper())
+        if reg in changed:
+            regname = pwndbg.color.red(regname)
 
         # Show a dot next to the register if it changed
         change_marker = "%s" % C.config_register_changed_marker
@@ -534,7 +536,6 @@ def get_regs(*regs):
             desc = pwndbg.chain.format(value)
 
         result.append("%s%s %s" % (m, regname, desc))
-
     return result
 
 
