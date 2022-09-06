@@ -8,8 +8,8 @@ import string
 import gdb
 
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 
 length = 15
 
@@ -46,7 +46,7 @@ def get(address, maxlen=None, maxread=None):
         maxread = length
 
     try:
-        sz = pwndbg.memory.string(address, maxread)
+        sz = pwndbg.gdblib.memory.string(address, maxread)
     except gdb.error:  # should not happen, but sanity check?
         return None
 

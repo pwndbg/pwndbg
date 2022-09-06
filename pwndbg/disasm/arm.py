@@ -3,8 +3,8 @@ from capstone.arm import *
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):

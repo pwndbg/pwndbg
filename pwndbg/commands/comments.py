@@ -21,7 +21,7 @@ def comm(addr=None, comment=None):
         with open(".gdb_comments", "a+") as f:
             target = int(addr, 0)
 
-            if not pwndbg.memory.peek(target):
+            if not pwndbg.gdblib.memory.peek(target):
                 print(message.error("Invalid Address %#x" % target))
 
             else:

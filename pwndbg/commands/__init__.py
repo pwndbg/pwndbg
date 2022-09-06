@@ -9,9 +9,9 @@ import pwndbg.color
 import pwndbg.color.message as message
 import pwndbg.enhance
 import pwndbg.exception
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
-import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.ui
 

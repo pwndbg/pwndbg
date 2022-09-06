@@ -10,12 +10,12 @@ import gdb
 
 import pwndbg.elf
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
-import pwndbg.memory
 
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
-# Value is a pwndbg.memory.Page object
+# Value is a pwndbg.lib.memory.Page object
 stacks = {}
 
 # Whether the stack is protected by NX.
@@ -25,7 +25,7 @@ nx = False
 
 def find(address):
     """
-    Returns a pwndbg.memory.Page object which corresponds to the
+    Returns a pwndbg.lib.memory.Page object which corresponds to the
     currently-loaded stack.
     """
     if not stacks:
@@ -37,14 +37,14 @@ def find(address):
 
 
 def find_upper_stack_boundary(stack_ptr, max_pages=1024):
-    stack_ptr = pwndbg.memory.page_align(int(stack_ptr))
+    stack_ptr = pwndbg.lib.memory.page_align(int(stack_ptr))
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
     # so we return current page as a walkaround.
     if not pwndbg.gdblib.abi.linux:
-        return stack_ptr + pwndbg.memory.PAGE_SIZE
+        return stack_ptr + pwndbg.lib.memory.PAGE_SIZE
 
-    return pwndbg.memory.find_upper_boundary(stack_ptr, max_pages)
+    return pwndbg.gdblib.memory.find_upper_boundary(stack_ptr, max_pages)
 
 
 @pwndbg.gdblib.events.stop
@@ -74,7 +74,7 @@ def update():
             if page is None:
                 start = sp_low
                 stop = find_upper_stack_boundary(sp)
-                page = pwndbg.memory.Page(
+                page = pwndbg.lib.memory.Page(
                     start, stop - start, 6 if not is_executable() else 7, 0, "[stack]"
                 )
                 stacks[thread.ptid] = page

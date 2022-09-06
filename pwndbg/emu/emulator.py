@@ -12,8 +12,8 @@ import unicorn as U
 import pwndbg.disasm
 import pwndbg.emu.emulator
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 
 
 def parse_consts(u_consts):
@@ -213,13 +213,13 @@ class Emulator:
         return mode
 
     def map_page(self, page):
-        page = pwndbg.memory.page_align(page)
-        size = pwndbg.memory.PAGE_SIZE
+        page = pwndbg.lib.memory.page_align(page)
+        size = pwndbg.lib.memory.PAGE_SIZE
 
         debug("# Mapping %#x-%#x", (page, page + size))
 
         try:
-            data = pwndbg.memory.read(page, size)
+            data = pwndbg.gdblib.memory.read(page, size)
             data = bytes(data)
         except gdb.MemoryError:
             debug("Could not map page %#x during emulation! [exception]", page)
@@ -242,12 +242,12 @@ class Emulator:
         debug("# Invalid access at %#x", address)
 
         # Page-align the start address
-        start = pwndbg.memory.page_align(address)
-        size = pwndbg.memory.page_size_align(address + size - start)
+        start = pwndbg.lib.memory.page_align(address)
+        size = pwndbg.lib.memory.page_size_align(address + size - start)
         stop = start + size
 
         # Map each page with the permissions that we think it has.
-        for page in range(start, stop, pwndbg.memory.PAGE_SIZE):
+        for page in range(start, stop, pwndbg.lib.memory.PAGE_SIZE):
             if not self.map_page(page):
                 return False
 

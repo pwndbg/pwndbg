@@ -8,8 +8,8 @@ import gdb
 
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.vmmap
 
@@ -40,7 +40,7 @@ class module(ModuleType):
                 for instr in __errno_location_instr:
                     # Find something like: mov rax, qword ptr [rip + disp]
                     if instr.mnemonic == "mov":
-                        self._errno_offset = pwndbg.memory.s64(instr.next + instr.disp)
+                        self._errno_offset = pwndbg.gdblib.memory.s64(instr.next + instr.disp)
                         break
             elif pwndbg.gdblib.arch.current == "i386":
                 for instr in __errno_location_instr:
@@ -52,7 +52,7 @@ class module(ModuleType):
                             instr for instr in __errno_location_instr if instr.mnemonic == "add"
                         )
                         base_offset = base_offset_instr.address + base_offset_instr.operands[1].int
-                        self._errno_offset = pwndbg.memory.s32(base_offset + instr.disp)
+                        self._errno_offset = pwndbg.gdblib.memory.s32(base_offset + instr.disp)
                         break
             elif pwndbg.gdblib.arch.current == "arm":
                 ldr_instr = None
@@ -61,8 +61,8 @@ class module(ModuleType):
                         ldr_instr = instr
                     elif ldr_instr and instr.mnemonic == "add":
                         offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                        self._errno_offset = pwndbg.memory.s32(instr.address + 4 + offset)
+                        offset = pwndbg.gdblib.memory.s32((ldr_instr.address + 4 & -4) + offset)
+                        self._errno_offset = pwndbg.gdblib.memory.s32(instr.address + 4 + offset)
                         break
         if not self._errno_offset:
             raise OSError("Can not find tls base")

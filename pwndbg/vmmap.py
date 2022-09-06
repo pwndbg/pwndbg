@@ -15,10 +15,10 @@ import pwndbg.elf
 import pwndbg.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.proc
 import pwndbg.qemu
 import pwndbg.remote
@@ -82,7 +82,7 @@ def get():
             pages.extend(info_sharedlibrary())
         else:
             if pwndbg.qemu.is_qemu():
-                return (pwndbg.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
+                return (pwndbg.lib.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
         pages.extend(pwndbg.stack.stacks.values())
@@ -125,14 +125,14 @@ def explore(address_maybe):
     if proc_pid_maps():
         return None
 
-    address_maybe = pwndbg.memory.page_align(address_maybe)
+    address_maybe = pwndbg.lib.memory.page_align(address_maybe)
 
-    flags = 4 if pwndbg.memory.peek(address_maybe) else 0
+    flags = 4 if pwndbg.gdblib.memory.peek(address_maybe) else 0
 
     if not flags:
         return None
 
-    flags |= 2 if pwndbg.memory.poke(address_maybe) else 0
+    flags |= 2 if pwndbg.gdblib.memory.poke(address_maybe) else 0
     flags |= 1 if not pwndbg.stack.nx else 0
 
     page = find_boundaries(address_maybe)
@@ -201,7 +201,7 @@ def coredump_maps():
             continue
 
         # Note: we set flags=0 because we do not have this information here
-        pages.append(pwndbg.memory.Page(start, size, 0, offset, objfile))
+        pages.append(pwndbg.lib.memory.Page(start, size, 0, offset, objfile))
 
     for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
         # We look for lines like:
@@ -235,7 +235,7 @@ def coredump_maps():
         if known_page:
             continue
 
-        pages.append(pwndbg.memory.Page(start, end - start, flags, offset, name))
+        pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, name))
 
     if not pages:
         return tuple()
@@ -275,7 +275,7 @@ def proc_pid_maps():
     Parse the contents of /proc/$PID/maps on the server.
 
     Returns:
-        A list of pwndbg.memory.Page objects.
+        A list of pwndbg.lib.memory.Page objects.
     """
 
     # If we debug remotely a qemu-user or qemu-system target,
@@ -345,7 +345,7 @@ def proc_pid_maps():
         if "x" in perm:
             flags |= 1
 
-        page = pwndbg.memory.Page(start, size, flags, offset, objfile)
+        page = pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
         pages.append(page)
 
     return tuple(pages)
@@ -369,7 +369,7 @@ def kernel_vmmap_via_page_tables():
             flags |= 2
         if page.pwndbg_is_executable():
             flags |= 1
-        retpages.append(pwndbg.memory.Page(start, size, flags, 0, "<pt>"))
+        retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<pt>"))
     return tuple(retpages)
 
 
@@ -424,7 +424,7 @@ def kernel_vmmap_via_monitor_info_mem():
         # if 'x' in perm: flags |= 1
         flags |= 1
 
-        pages.append(pwndbg.memory.Page(start, size, flags, 0, "<qemu>"))
+        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
 
@@ -441,7 +441,7 @@ def info_sharedlibrary():
     page permissions for every mapped page in the ELF.
 
     Returns:
-        A list of pwndbg.memory.Page objects.
+        A list of pwndbg.lib.memory.Page objects.
     """
 
     exmaple_info_sharedlibrary_freebsd = """
@@ -547,7 +547,7 @@ def info_auxv(skip_exe=False):
         skip_exe(bool): Do not return any mappings that belong to the exe.
 
     Returns:
-        A list of pwndbg.memory.Page objects.
+        A list of pwndbg.lib.memory.Page objects.
     """
     auxv = pwndbg.auxv.get()
 
@@ -578,13 +578,13 @@ def find_boundaries(addr, name="", min=0):
     Given a single address, find all contiguous pages
     which are mapped.
     """
-    start = pwndbg.memory.find_lower_boundary(addr)
-    end = pwndbg.memory.find_upper_boundary(addr)
+    start = pwndbg.gdblib.memory.find_lower_boundary(addr)
+    end = pwndbg.gdblib.memory.find_upper_boundary(addr)
 
     if start < min:
         start = min
 
-    return pwndbg.memory.Page(start, end - start, 4, 0, name)
+    return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
 
 
 def check_aslr():

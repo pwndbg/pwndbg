@@ -6,8 +6,8 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 import pwndbg.stack
 import pwndbg.vmmap
 import pwndbg.wrappers

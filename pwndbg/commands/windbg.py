@@ -12,8 +12,8 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
 
@@ -155,7 +155,7 @@ def dX(size, address, count, to_string=False, repeat=False):
 
     for i in range(count):
         try:
-            gval = pwndbg.memory.poi(type, address + i * size)
+            gval = pwndbg.gdblib.memory.poi(type, address + i * size)
             # print(str(gval))
             values.append(int(gval))
         except gdb.MemoryError:
@@ -330,7 +330,7 @@ def eX(size, address, data, hex=True):
             data = data[::-1]
 
         try:
-            pwndbg.memory.write(address + (i * size), data)
+            pwndbg.gdblib.memory.write(address + (i * size), data)
             writes += 1
         except gdb.error:
             print("Cannot access memory at address %#x" % address)

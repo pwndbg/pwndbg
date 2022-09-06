@@ -3,14 +3,14 @@ import argparse
 import gdb
 
 import pwndbg.commands
-import pwndbg.memory
+import pwndbg.gdblib.memory
 
 
 def xor_memory(address, key, count):
     """
     Helper function for xorring memory in gdb
     """
-    mem = pwndbg.memory.read(address, count, partial=True)
+    mem = pwndbg.gdblib.memory.read(address, count, partial=True)
 
     for index, byte in enumerate(mem):
         key_index = index % len(key)
@@ -32,7 +32,7 @@ parser.add_argument("count", type=int, help="The number of bytes to xor.")
 def xor(address, key, count):
     try:
         xorred_memory = xor_memory(address, key, count)
-        pwndbg.memory.write(address, xorred_memory)
+        pwndbg.gdblib.memory.write(address, xorred_memory)
     except gdb.error as e:
         print(e)
 

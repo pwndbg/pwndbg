@@ -3,9 +3,9 @@ import ctypes
 import gdb
 
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
-import pwndbg.memory
 
 
 def request2size(req):
@@ -114,8 +114,8 @@ class CStruct2GDB:
         field_type = next((f for f in self._c_struct._fields_ if f[0] == field))[1]
         if hasattr(field_type, "_length_"):  # f is a ctypes Array
             t = C2GDB_MAPPING[field_type._type_]
-            return pwndbg.memory.poi(t.array(field_type._length_ - 1), field_address)
-        return pwndbg.memory.poi(C2GDB_MAPPING[field_type], field_address)
+            return pwndbg.gdblib.memory.poi(t.array(field_type._length_ - 1), field_address)
+        return pwndbg.gdblib.memory.poi(C2GDB_MAPPING[field_type], field_address)
 
     @property
     def type(self):

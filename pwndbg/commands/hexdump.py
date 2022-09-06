@@ -5,9 +5,9 @@ import gdb
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
-import pwndbg.memory
 
 pwndbg.config.Parameter("hexdump-width", 16, "line width of hexdump command")
 pwndbg.config.Parameter("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -78,7 +78,7 @@ def hexdump(address=None, count=pwndbg.config.hexdump_bytes):
         count -= address
 
     try:
-        data = pwndbg.memory.read(address, count, partial=True)
+        data = pwndbg.gdblib.memory.read(address, count, partial=True)
         hexdump.last_address = address + count
     except gdb.error as e:
         print(e)

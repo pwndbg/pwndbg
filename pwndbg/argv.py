@@ -2,9 +2,9 @@ import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.lib.abi
-import pwndbg.memory
 
 #: Total number of arguments
 argc = None
@@ -34,7 +34,7 @@ def update():
     ptrbits = 8 * ptrsize
 
     try:
-        argc = pwndbg.memory.u(sp, ptrbits)
+        argc = pwndbg.gdblib.memory.u(sp, ptrbits)
     except Exception:
         return
 
@@ -42,7 +42,7 @@ def update():
 
     argv = sp
 
-    while pwndbg.memory.u(sp, ptrbits):
+    while pwndbg.gdblib.memory.u(sp, ptrbits):
         sp += ptrsize
 
     sp += ptrsize
@@ -51,7 +51,7 @@ def update():
 
     envc = 0
     try:
-        while pwndbg.memory.u(sp, ptrbits):
+        while pwndbg.gdblib.memory.u(sp, ptrbits):
             sp += ptrsize
             envc += 1
     except gdb.MemoryError:

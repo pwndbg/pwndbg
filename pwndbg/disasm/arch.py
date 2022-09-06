@@ -139,7 +139,7 @@ class DisassemblyAssistant:
                 try:
                     # fails with gdb.MemoryError if the dereferenced address
                     # doesn't belong to any of process memory maps
-                    addr = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
+                    addr = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
                 except gdb.MemoryError:
                     return None
         if op.type == CS_OP_REG:

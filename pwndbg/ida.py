@@ -18,9 +18,9 @@ import pwndbg.decorators
 import pwndbg.elf
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.lib.memoize
-import pwndbg.memory
 from pwndbg.color import message
 
 ida_rpc_host = pwndbg.config.Parameter("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
@@ -292,7 +292,7 @@ def UpdateBreakpoints():
         _breakpoints.remove(bp)
 
     for bp in want - current:
-        if not pwndbg.memory.peek(bp):
+        if not pwndbg.gdblib.memory.peek(bp):
             continue
 
         bp = gdb.Breakpoint("*" + hex(int(bp)))

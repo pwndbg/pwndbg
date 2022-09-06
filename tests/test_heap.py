@@ -229,7 +229,7 @@ def test_vis_heap_chunk_command(start_binary):
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
     heap_page = next(page for page in pwndbg.vmmap.get() if page.objfile == "[heap]")
 
-    first_chunk_size = pwndbg.memory.u64(heap_page.start + pwndbg.gdblib.arch.ptrsize)
+    first_chunk_size = pwndbg.gdblib.memory.u64(heap_page.start + pwndbg.gdblib.arch.ptrsize)
 
     # Just a sanity check...
     assert (heap_page.start & 0xFFF) == 0
@@ -263,7 +263,7 @@ def test_vis_heap_chunk_command(start_binary):
         hexdump = hexdump_16B(addr)
 
         nonlocal dq2
-        dq1, dq2 = map(pwndbg.memory.u64, (addr, addr + 8))
+        dq1, dq2 = map(pwndbg.gdblib.memory.u64, (addr, addr + 8))
 
         formatted = "%#x\t%#018x\t%#018x\t%s" % (addr, dq1, dq2, hexdump)
         formatted += suffix

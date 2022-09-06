@@ -24,7 +24,7 @@ def retaddr():
     start = stack.vaddr
     stop = start + stack.memsz
     while addresses and start < sp < stop:
-        value = pwndbg.memory.u(sp)
+        value = pwndbg.gdblib.memory.u(sp)
 
         if value in addresses:
             index = addresses.index(value)
