@@ -5,7 +5,7 @@ import gdb
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.memory
+import pwndbg.gdblib.memory
 
 ts = pwndbg.commands.telescope.telescope
 
@@ -82,7 +82,7 @@ parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mappin
 
 def maybe_points_to_ranges(ptr: int, rs: [AddrRange]):
     try:
-        pointee = pwndbg.memory.pvoid(ptr)
+        pointee = pwndbg.gdblib.memory.pvoid(ptr)
     except Exception:
         return None
 

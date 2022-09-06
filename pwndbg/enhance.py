@@ -16,9 +16,9 @@ import pwndbg.color.enhance as E
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.strings
 import pwndbg.symbol
 from pwndbg.color.syntax_highlight import syntax_highlight
@@ -67,7 +67,7 @@ def enhance(value, code=True, safe_linking=False):
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not page or None is pwndbg.memory.peek(value):
+    if not page or None is pwndbg.gdblib.memory.peek(value):
         can_read = False
 
     if not can_read:
@@ -104,7 +104,7 @@ def enhance(value, code=True, safe_linking=False):
     if value + pwndbg.gdblib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
+    intval = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval

@@ -106,7 +106,7 @@ def leakfind(
     if not foundPages:
         raise argparse.ArgumentTypeError("Starting address is not mapped.")
 
-    if not pwndbg.memory.peek(address):
+    if not pwndbg.gdblib.memory.peek(address):
         raise argparse.ArgumentTypeError("Unable to read from starting address.")
 
     max_depth = int(max_depth)
@@ -132,8 +132,8 @@ def leakfind(
     time_to_depth_increase = 0
 
     # Run a bfs
-    # TODO look into performance gain from checking if an address is mapped before calling pwndbg.memory.pvoid()
-    # TODO also check using pwndbg.memory.read for possible performance boosts.
+    # TODO look into performance gain from checking if an address is mapped before calling pwndbg.gdblib.memory.pvoid()
+    # TODO also check using pwndbg.gdblib.memory.read for possible performance boosts.
     while address_queue.qsize() > 0 and depth < max_depth:
         if time_to_depth_increase == 0:
             depth = depth + 1
@@ -145,7 +145,7 @@ def leakfind(
         ):
             try:
                 cur_addr &= pwndbg.gdblib.arch.ptrmask
-                result = int(pwndbg.memory.pvoid(cur_addr))
+                result = int(pwndbg.gdblib.memory.pvoid(cur_addr))
                 if result in visited_map or result in visited_set:
                     continue
                 visited_map[result] = (

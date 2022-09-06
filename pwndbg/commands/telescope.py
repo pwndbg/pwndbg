@@ -14,9 +14,9 @@ import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 
 telescope_lines = pwndbg.config.Parameter(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
@@ -89,7 +89,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         address -= (count - 1) * ptrsize
 
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
-    if address < pwndbg.memory.MMAP_MIN_ADDR and not pwndbg.memory.peek(address):
+    if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR and not pwndbg.gdblib.memory.peek(address):
         count = address
         address = pwndbg.gdblib.regs.sp
 
@@ -103,7 +103,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     reg_values = collections.defaultdict(lambda: [])
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
-    # address    = pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
+    # address    = pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
 
     start = address
     stop = address + (count * ptrsize)
@@ -155,7 +155,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         collapse_buffer.clear()
 
     for i, addr in enumerate(range(start, stop, step)):
-        if not pwndbg.memory.peek(addr):
+        if not pwndbg.gdblib.memory.peek(addr):
             collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
@@ -178,7 +178,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
         # Buffer repeating values.
         if skip_repeating_values:
-            value = pwndbg.memory.pvoid(addr)
+            value = pwndbg.gdblib.memory.pvoid(addr)
             if last == value:
                 collapse_buffer.append(line)
                 continue

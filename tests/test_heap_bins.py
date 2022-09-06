@@ -1,7 +1,7 @@
 import gdb
 
+import pwndbg.gdblib.memory
 import pwndbg.heap
-import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.vmmap
 import tests
@@ -22,21 +22,21 @@ def test_heap_bins(start_binary):
     allocator = pwndbg.heap.current
 
     addr = pwndbg.symbol.address("tcache_size")
-    tcache_size = allocator._request2size(pwndbg.memory.u64(addr))
+    tcache_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
     addr = pwndbg.symbol.address("tcache_count")
-    tcache_count = pwndbg.memory.u64(addr)
+    tcache_count = pwndbg.gdblib.memory.u64(addr)
     addr = pwndbg.symbol.address("fastbin_size")
-    fastbin_size = allocator._request2size(pwndbg.memory.u64(addr))
+    fastbin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
     addr = pwndbg.symbol.address("fastbin_count")
-    fastbin_count = pwndbg.memory.u64(addr)
+    fastbin_count = pwndbg.gdblib.memory.u64(addr)
     addr = pwndbg.symbol.address("smallbin_size")
-    smallbin_size = allocator._request2size(pwndbg.memory.u64(addr))
+    smallbin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
     addr = pwndbg.symbol.address("smallbin_count")
-    smallbin_count = pwndbg.memory.u64(addr)
+    smallbin_count = pwndbg.gdblib.memory.u64(addr)
     addr = pwndbg.symbol.address("largebin_size")
-    largebin_size = allocator._request2size(pwndbg.memory.u64(addr))
+    largebin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
     addr = pwndbg.symbol.address("largebin_count")
-    largebin_count = pwndbg.memory.u64(addr)
+    largebin_count = pwndbg.gdblib.memory.u64(addr)
 
     result = allocator.tcachebins()
     assert result["type"] == "tcachebins"

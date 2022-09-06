@@ -11,13 +11,13 @@ import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-import pwndbg.memory
 import pwndbg.symbol
 
 ida_replacements = {
@@ -187,7 +187,7 @@ def argument(n, abi=None):
 
     sp = pwndbg.gdblib.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
 
-    return int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
+    return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
 
 
 def arguments(abi=None):

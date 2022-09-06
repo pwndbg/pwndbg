@@ -100,7 +100,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
         count -= address
 
     try:
-        data = pwndbg.memory.read(address, count, partial=True)
+        data = pwndbg.gdblib.memory.read(address, count, partial=True)
     except gdb.error as e:
         print(message.error(str(e)))
         return

@@ -95,7 +95,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     lines = int(lines)
 
     # Check whether we can even read this address
-    if not pwndbg.memory.peek(pc):
+    if not pwndbg.gdblib.memory.peek(pc):
         result.append(message.error("Invalid address %#x" % pc))
 
     # # Load source data if it's available
@@ -115,7 +115,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     #             pc_to_linenos[line.pc].append(line.line)
     instructions = pwndbg.disasm.near(pc, lines, emulate=emulate, show_prev_insns=not nearpc.repeat)
 
-    if pwndbg.memory.peek(pc) and not instructions:
+    if pwndbg.gdblib.memory.peek(pc) and not instructions:
         result.append(message.error("Invalid instructions at %#x" % pc))
 
     # In case $pc is in a new map we don't know about,

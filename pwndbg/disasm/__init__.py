@@ -11,9 +11,9 @@ from capstone import *
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.symbol
 
 try:
@@ -143,7 +143,7 @@ def get_one_instruction(address):
         return SimpleInstruction(address)
     md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.gdblib.arch.current, 4)
-    data = pwndbg.memory.read(address, size, partial=True)
+    data = pwndbg.gdblib.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
         pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
         return ins
@@ -152,7 +152,7 @@ def get_one_instruction(address):
 def one(address=None):
     if address is None:
         address = pwndbg.gdblib.regs.pc
-    if not pwndbg.memory.peek(address):
+    if not pwndbg.gdblib.memory.peek(address):
         return None
     for insn in get(address, 1):
         backward_cache[insn.next] = insn.address
@@ -171,7 +171,7 @@ def get(address, instructions=1):
     address = int(address)
 
     # Dont disassemble if there's no memory
-    if not pwndbg.memory.peek(address):
+    if not pwndbg.gdblib.memory.peek(address):
         return []
 
     retval = []
@@ -213,7 +213,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
     pc = pwndbg.gdblib.regs.pc
 
-    if current is None or not pwndbg.memory.peek(address):
+    if current is None or not pwndbg.gdblib.memory.peek(address):
         return []
 
     insns = []

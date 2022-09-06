@@ -8,9 +8,9 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 import pwndbg.qemu
 import pwndbg.stack
 
@@ -123,7 +123,7 @@ def use_info_auxv():
 
 
 def find_stack_boundary(addr):
-    # For real binaries, we can just use pwndbg.memory.find_upper_boundary
+    # For real binaries, we can just use pwndbg.gdblib.memory.find_upper_boundary
     # to search forward until we walk off the end of the stack.
     #
     # Unfortunately, qemu-user emulation likes to paste the stack right
@@ -134,12 +134,12 @@ def find_stack_boundary(addr):
     #
     # 1) We get a page fault, and stop
     # 2) We find an ELF header, and stop
-    addr = pwndbg.memory.page_align(int(addr))
+    addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         while True:
-            if b"\x7fELF" == pwndbg.memory.read(addr, 4):
+            if b"\x7fELF" == pwndbg.gdblib.memory.read(addr, 4):
                 break
-            addr += pwndbg.memory.PAGE_SIZE
+            addr += pwndbg.lib.memory.PAGE_SIZE
     except gdb.MemoryError:
         pass
     return addr
@@ -244,7 +244,7 @@ def walk_stack2(offset=0):
 
 def _get_execfn():
     # If the stack is not sane, this won't work
-    if not pwndbg.memory.peek(pwndbg.gdblib.regs.sp):
+    if not pwndbg.gdblib.memory.peek(pwndbg.gdblib.regs.sp):
         return
 
     # QEMU does not put AT_EXECFN in the Auxiliary Vector
@@ -259,10 +259,10 @@ def _get_execfn():
     # 330:1980|      0x7ffffffff000
     addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.gdblib.regs.sp)
 
-    while pwndbg.memory.byte(addr - 1) == 0:
+    while pwndbg.gdblib.memory.byte(addr - 1) == 0:
         addr -= 1
 
-    while pwndbg.memory.byte(addr - 1) != 0:
+    while pwndbg.gdblib.memory.byte(addr - 1) != 0:
         addr -= 1
 
     v = pwndbg.strings.get(addr, 1024)

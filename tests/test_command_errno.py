@@ -1,8 +1,8 @@
 import gdb
 
 import pwndbg
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 import tests
 
 # We use the heap_vis binary as it enforces pthreads and so will have TLS on all distros

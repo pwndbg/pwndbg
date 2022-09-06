@@ -58,10 +58,10 @@ def mprotect(addr, length, prot):
     gdb.execute("set $rcx={}".format(length))
     gdb.execute("set $rdx={}".format(prot_int))
 
-    saved_instruction_2bytes = pwndbg.memory.read(pwndbg.gdblib.regs.rip, 2)
+    saved_instruction_2bytes = pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.rip, 2)
 
     # int 0x80
-    pwndbg.memory.write(pwndbg.gdblib.regs.rip, b"\xcd\x80")
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rip, b"\xcd\x80")
 
     # execute syscall
     gdb.execute("stepi")
@@ -69,7 +69,7 @@ def mprotect(addr, length, prot):
     print("mprotect returned {}".format(pwndbg.gdblib.regs.rax))
 
     # restore registers and memory
-    pwndbg.memory.write(saved_rip, saved_instruction_2bytes)
+    pwndbg.gdblib.memory.write(saved_rip, saved_instruction_2bytes)
 
     gdb.execute("set $rax={}".format(saved_rax))
     gdb.execute("set $rbx={}".format(saved_rbx))

@@ -68,13 +68,13 @@ import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.hooks
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.prompt
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.lib.version
-import pwndbg.memory
 import pwndbg.net
 import pwndbg.proc
 import pwndbg.stack

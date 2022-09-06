@@ -300,7 +300,7 @@ def test_windbg_eX_commands(start_binary):
     assert gdb_result[1] == "(Made 1 writes to memory; skipping further writes)"
 
     # Check if the write actually occurred
-    assert pwndbg.memory.read(stack_last_qword_ea, 8) == b"\xef\xbe\xad\xde\xbe\xba\xfe\xca"
+    assert pwndbg.gdblib.memory.read(stack_last_qword_ea, 8) == b"\xef\xbe\xad\xde\xbe\xba\xfe\xca"
 
 
 def test_windbg_commands_x86(start_binary):
@@ -311,10 +311,10 @@ def test_windbg_commands_x86(start_binary):
     start_binary(X86_BINARY)
 
     # Prepare memory
-    pwndbg.memory.write(pwndbg.gdblib.regs.esp, b"1234567890abcdef_")
-    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 16, b"\x00" * 16)
-    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 32, bytes(range(16)))
-    pwndbg.memory.write(pwndbg.gdblib.regs.esp + 48, b"Z" * 16)
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.esp, b"1234567890abcdef_")
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.esp + 16, b"\x00" * 16)
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.esp + 32, bytes(range(16)))
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.esp + 48, b"Z" * 16)
 
     #################################################
     #### dX command tests
@@ -355,13 +355,15 @@ def test_windbg_commands_x86(start_binary):
     #### eX command tests
     #################################################
     gdb.execute("eb $esp 00")
-    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 1) == b"\x00"
+    assert pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.esp, 1) == b"\x00"
 
     gdb.execute("ew $esp 4141")
-    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 2) == b"\x41\x41"
+    assert pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.esp, 2) == b"\x41\x41"
 
     gdb.execute("ed $esp 5252525252")
-    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 4) == b"\x52" * 4
+    assert pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.esp, 4) == b"\x52" * 4
 
     gdb.execute("eq $esp 1122334455667788")
-    assert pwndbg.memory.read(pwndbg.gdblib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    assert (
+        pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    )

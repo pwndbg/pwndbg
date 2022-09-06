@@ -21,8 +21,8 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
+import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.proc
 import pwndbg.stack
 
@@ -70,7 +70,7 @@ def read(typ, address, blob=None):
     size = ctypes.sizeof(typ)
 
     if not blob:
-        data = pwndbg.memory.read(address, size)
+        data = pwndbg.gdblib.memory.read(address, size)
     else:
         data = blob[address : address + size]
 
@@ -250,7 +250,7 @@ def get_ehdr(pointer):
         return None, None
 
     # We first check if the beginning of the page contains the ELF magic
-    if pwndbg.memory.read(vmmap.start, 4) == b"\x7fELF":
+    if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
         base = vmmap.start
 
     # The page did not have ELF magic; it may be that .text and binary start are split
@@ -261,7 +261,7 @@ def get_ehdr(pointer):
                 vmmap = v
                 break
 
-        if pwndbg.memory.read(vmmap.start, 4) == b"\x7fELF":
+        if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
             base = vmmap.start
 
     if base is None:
@@ -271,7 +271,7 @@ def get_ehdr(pointer):
         return None, None
 
     # Determine whether it's 32- or 64-bit
-    ei_class = pwndbg.memory.byte(base + 4)
+    ei_class = pwndbg.gdblib.memory.byte(base + 4)
 
     # Find out where the section headers start
     Elfhdr = read(Ehdr, base)
@@ -321,7 +321,7 @@ def map(pointer, objfile=""):
     sections in the ELF.
 
     Returns:
-        A sorted list of pwndbg.memory.Page objects
+        A sorted list of pwndbg.lib.memory.Page objects
 
     Example:
 
@@ -364,13 +364,13 @@ def map_inner(ei_class, ehdr, objfile):
         flags = int(phdr.p_flags)
         ptype = int(phdr.p_type)
 
-        memsz += pwndbg.memory.page_offset(vaddr)
-        memsz = pwndbg.memory.page_size_align(memsz)
-        vaddr = pwndbg.memory.page_align(vaddr)
-        offset = pwndbg.memory.page_align(offset)
+        memsz += pwndbg.lib.memory.page_offset(vaddr)
+        memsz = pwndbg.lib.memory.page_size_align(memsz)
+        vaddr = pwndbg.lib.memory.page_align(vaddr)
+        offset = pwndbg.lib.memory.page_align(offset)
 
         # For each page described by this program header
-        for page_addr in range(vaddr, vaddr + memsz, pwndbg.memory.PAGE_SIZE):
+        for page_addr in range(vaddr, vaddr + memsz, pwndbg.lib.memory.PAGE_SIZE):
             if page_addr in pages:
                 page = pages[pages.index(page_addr)]
 
@@ -381,8 +381,8 @@ def map_inner(ei_class, ehdr, objfile):
                     flags |= PF_X
                 page.flags = flags
             else:
-                page = pwndbg.memory.Page(
-                    page_addr, pwndbg.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr)
+                page = pwndbg.lib.memory.Page(
+                    page_addr, pwndbg.lib.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr)
                 )
                 pages.append(page)
 
@@ -410,7 +410,7 @@ def map_inner(ei_class, ehdr, objfile):
         a_end = a.vaddr + a.memsz
         b_begin = b.vaddr
         if a_end != b_begin:
-            gaps.append(pwndbg.memory.Page(a_end, b_begin - a_end, 0, b.offset))
+            gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset))
 
     pages.extend(gaps)
 

@@ -196,7 +196,7 @@ def search(type, hex, string, executable, writable, value, mapping_name, save, n
         i = 0
         for addr in saved:
             try:
-                val = pwndbg.memory.read(addr, val_len)
+                val = pwndbg.gdblib.memory.read(addr, val_len)
             except Exception:
                 continue
             if val == value:

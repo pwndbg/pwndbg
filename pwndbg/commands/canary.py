@@ -1,8 +1,8 @@
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.memory
 import pwndbg.search
 from pwndbg.color import message
 
@@ -13,7 +13,7 @@ def canary_value():
     if at_random is None:
         return None, None
 
-    global_canary = pwndbg.memory.pvoid(at_random)
+    global_canary = pwndbg.gdblib.memory.pvoid(at_random)
 
     # masking canary value as canaries on the stack has last byte = 0
     global_canary &= pwndbg.gdblib.arch.ptrmask ^ 0xFF

@@ -21,9 +21,9 @@ import pwndbg.file
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.qemu
 import pwndbg.remote
 import pwndbg.stack
@@ -159,7 +159,7 @@ def get(address, gdb_only=False):
     Retrieve the textual name for a symbol
     """
     # Fast path
-    if address < pwndbg.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
+    if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
         return ""
 
     # Don't look up stack addresses

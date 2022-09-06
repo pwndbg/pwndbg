@@ -5,8 +5,8 @@ import pwndbg.color.memory as M
 import pwndbg.color.theme as theme
 import pwndbg.enhance
 import pwndbg.gdblib.abi
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 import pwndbg.symbol
 import pwndbg.vmmap
 
@@ -59,7 +59,7 @@ def get(
             if not pwndbg.gdblib.abi.linux and not pwndbg.vmmap.find(address):
                 break
 
-            next_address = int(pwndbg.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+            next_address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.gdblib.arch.ptrmask
             result.append(address)

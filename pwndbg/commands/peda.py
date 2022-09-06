@@ -31,7 +31,7 @@ def xuntil(target):
     try:
         addr = int(target, 0)
 
-        if not pwndbg.memory.peek(addr):
+        if not pwndbg.gdblib.memory.peek(addr):
             print(message.error("Invalid address %#x" % addr))
             return
 

@@ -8,9 +8,9 @@ import re
 import gdb
 
 import pwndbg.config
+import pwndbg.gdblib.memory
 import pwndbg.heap
 import pwndbg.lib.memoize
-import pwndbg.memory
 import pwndbg.proc
 import pwndbg.search
 import pwndbg.symbol
@@ -43,10 +43,10 @@ def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.symbol.address(b"__libc_version")
         if addr is not None:
-            ver = pwndbg.memory.string(addr)
+            ver = pwndbg.gdblib.memory.string(addr)
             return tuple([int(_) for _ in ver.split(b".")])
     for addr in pwndbg.search.search(b"GNU C Library"):
-        banner = pwndbg.memory.string(addr)
+        banner = pwndbg.gdblib.memory.string(addr)
         ret = re.search(rb"release version (\d+)\.(\d+)", banner)
         if ret:
             return tuple(int(_) for _ in ret.groups())

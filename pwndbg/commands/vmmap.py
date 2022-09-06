@@ -108,7 +108,7 @@ def vmmap_add(start, size, flags, offset):
             return
         perm |= flag_val
 
-    page = pwndbg.memory.Page(start, size, perm, offset)
+    page = pwndbg.lib.memory.Page(start, size, perm, offset)
     pwndbg.vmmap.add_custom_page(page)
 
     print("%r added" % page)
@@ -161,7 +161,7 @@ def vmmap_load(filename):
             if sh_flags & SH_FLAGS.SHF_EXECINSTR:
                 flags |= pwndbg.elf.PF_X
 
-            page = pwndbg.memory.Page(vaddr, memsz, flags, offset, filename)
+            page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
             pages.append(page)
 
     for page in pages:

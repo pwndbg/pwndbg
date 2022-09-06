@@ -6,8 +6,8 @@ import re
 
 import gdb
 
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
-import pwndbg.memory
 
 
 def get_type(v):
@@ -97,7 +97,7 @@ def dt(name="", addr=None, obj=None):
     # If an address was specified, create a Value of the
     # specified type at that address.
     if addr is not None:
-        obj = pwndbg.memory.poi(t, addr)
+        obj = pwndbg.gdblib.memory.poi(t, addr)
 
     # Header, optionally include the name
     header = name
@@ -126,7 +126,7 @@ def dt(name="", addr=None, obj=None):
                 ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY)
                 and ftype.target() == pwndbg.gdblib.typeinfo.uchar
             ):
-                data = pwndbg.memory.read(v.address, ftype.sizeof)
+                data = pwndbg.gdblib.memory.read(v.address, ftype.sizeof)
                 v = " ".join("%02x" % b for b in data)
 
             extra = v
