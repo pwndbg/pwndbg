@@ -205,7 +205,7 @@ def compile(filename=None, address=0):
     objectname = os.path.splitext(filename)[0] + ".o"
 
     if not os.path.exists(objectname):
-        gcc = pwndbg.lib.gcc.which(pwndbg.gdb.arch)
+        gcc = pwndbg.lib.gcc.which(pwndbg.gdblib.arch)
         gcc += ["-w", "-c", "-g", filename, "-o", objectname]
         try:
             subprocess.check_output(gcc)
