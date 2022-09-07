@@ -8,7 +8,7 @@ import gdb
 import pwndbg.color.message as message
 import pwndbg.config
 import pwndbg.lib.memoize
-import pwndbg.stdio
+import pwndbg.lib.stdio
 
 try:
     import ipdb as pdb
@@ -79,7 +79,7 @@ def handle(name="Error"):
 
     # Break into the interactive debugger
     if debug:
-        with pwndbg.stdio.stdio:
+        with pwndbg.lib.stdio.stdio:
             pdb.post_mortem()
 
 
@@ -87,7 +87,7 @@ def handle(name="Error"):
 def set_trace():
     """Enable sane debugging in Pwndbg by switching to the "real" stdio."""
     debugger = pdb.Pdb(
-        stdin=sys.__stdin__, stdout=sys.__stdout__, skip=["pwndbg.stdio", "pwndbg.exception"]
+        stdin=sys.__stdin__, stdout=sys.__stdout__, skip=["pwndbg.lib.stdio", "pwndbg.exception"]
     )
     debugger.set_trace()
 
