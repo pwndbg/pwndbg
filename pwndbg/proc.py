@@ -10,8 +10,8 @@ from types import ModuleType
 
 import gdb
 
+import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
-import pwndbg.qemu
 
 
 class module(ModuleType):
@@ -19,8 +19,8 @@ class module(ModuleType):
     def pid(self):
         # QEMU usermode emualtion always returns 42000 for some reason.
         # In any case, we can't use the info.
-        if pwndbg.qemu.is_qemu_usermode():
-            return pwndbg.qemu.pid()
+        if pwndbg.gdblib.qemu.is_qemu_usermode():
+            return pwndbg.gdblib.qemu.pid()
 
         i = gdb.selected_inferior()
         if i is not None:
@@ -29,8 +29,8 @@ class module(ModuleType):
 
     @property
     def tid(self):
-        if pwndbg.qemu.is_qemu_usermode():
-            return pwndbg.qemu.pid()
+        if pwndbg.gdblib.qemu.is_qemu_usermode():
+            return pwndbg.gdblib.qemu.pid()
 
         i = gdb.selected_thread()
         if i is not None:

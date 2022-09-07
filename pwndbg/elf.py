@@ -238,7 +238,7 @@ def get_ehdr(pointer):
     """
 
     # This just does not work :(
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         return None, None
 
     vmmap = pwndbg.vmmap.find(pointer)

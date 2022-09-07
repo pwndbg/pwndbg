@@ -12,9 +12,9 @@ import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.remote
 import pwndbg.lib.memoize
 import pwndbg.proc
-import pwndbg.remote
 from pwndbg.lib.regs import reg_sets
 
 
@@ -191,7 +191,7 @@ class module(ModuleType):
             return get_register(regname)
 
         # We can't really do anything if the process is remote.
-        if pwndbg.remote.is_remote():
+        if pwndbg.gdblib.remote.is_remote():
             return 0
 
         # Use the lightweight process ID

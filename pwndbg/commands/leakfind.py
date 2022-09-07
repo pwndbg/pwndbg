@@ -184,5 +184,5 @@ def leakfind(
         for line in output_map[chain_length]:
             print(line)
 
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         print("\n[QEMU target detected - leakfind result might not be accurate; see `help vmmap`]")

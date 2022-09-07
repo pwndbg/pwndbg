@@ -22,10 +22,10 @@ import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.qemu
+import pwndbg.gdblib.remote
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.qemu
-import pwndbg.remote
 import pwndbg.stack
 import pwndbg.vmmap
 
@@ -78,10 +78,10 @@ def reset_remote_files():
 def autofetch():
     """ """
     global remote_files_dir
-    if not pwndbg.remote.is_remote():
+    if not pwndbg.gdblib.remote.is_remote():
         return
 
-    if pwndbg.qemu.is_qemu_usermode():
+    if pwndbg.gdblib.qemu.is_qemu_usermode():
         return
 
     if pwndbg.gdblib.android.is_android():
@@ -238,7 +238,7 @@ def address(symbol, allow_unmapped=False):
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
 def add_main_exe_to_symbols():
-    if not pwndbg.remote.is_remote():
+    if not pwndbg.gdblib.remote.is_remote():
         return
 
     if pwndbg.gdblib.android.is_android():

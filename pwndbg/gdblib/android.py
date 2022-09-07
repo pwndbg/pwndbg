@@ -3,14 +3,14 @@ import gdb
 import pwndbg.color.message as message
 import pwndbg.file
 import pwndbg.gdblib.events
+import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
-import pwndbg.qemu
 
 
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_exit
 def is_android():
-    if pwndbg.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu():
         return False
 
     try:
