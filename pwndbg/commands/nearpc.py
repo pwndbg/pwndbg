@@ -13,9 +13,9 @@ import pwndbg.commands.comments
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.strings
 import pwndbg.ida
 import pwndbg.lib.functions
-import pwndbg.strings
 import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap

@@ -265,6 +265,6 @@ def _get_execfn():
     while pwndbg.gdblib.memory.byte(addr - 1) != 0:
         addr -= 1
 
-    v = pwndbg.strings.get(addr, 1024)
+    v = pwndbg.gdblib.strings.get(addr, 1024)
     if v:
         return os.path.abspath(v)

@@ -9,7 +9,6 @@ import gdb
 
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
 
 length = 15
 
