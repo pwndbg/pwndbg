@@ -16,12 +16,12 @@ from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.auxv
-import pwndbg.elftypes
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
+import pwndbg.lib.elftypes
 import pwndbg.lib.memoize
 import pwndbg.proc
 import pwndbg.stack
@@ -51,14 +51,14 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
 def update():
-    importlib.reload(pwndbg.elftypes)
+    importlib.reload(pwndbg.lib.elftypes)
 
     if pwndbg.gdblib.arch.ptrsize == 4:
-        Ehdr = pwndbg.elftypes.Elf32_Ehdr
-        Phdr = pwndbg.elftypes.Elf32_Phdr
+        Ehdr = pwndbg.lib.elftypes.Elf32_Ehdr
+        Phdr = pwndbg.lib.elftypes.Elf32_Phdr
     else:
-        Ehdr = pwndbg.elftypes.Elf64_Ehdr
-        Phdr = pwndbg.elftypes.Elf64_Phdr
+        Ehdr = pwndbg.lib.elftypes.Elf64_Ehdr
+        Phdr = pwndbg.lib.elftypes.Elf64_Phdr
 
     module.__dict__.update(locals())
 
