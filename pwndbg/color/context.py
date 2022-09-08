@@ -1,40 +1,40 @@
 import pwndbg.color.theme as theme
-import pwndbg.config as config
+import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
 
-config_prefix_color = theme.ColoredParameter(
+config_prefix_color = theme.add_color_param(
     "code-prefix-color", "none", "color for 'context code' command (prefix marker)"
 )
-config_highlight_color = theme.ColoredParameter(
+config_highlight_color = theme.add_color_param(
     "highlight-color", "green,bold", "color added to highlights like source/pc"
 )
-config_register_color = theme.ColoredParameter(
+config_register_color = theme.add_color_param(
     "context-register-color", "bold", "color for registers label"
 )
-config_flag_value_color = theme.ColoredParameter(
+config_flag_value_color = theme.add_color_param(
     "context-flag-value-color", "none", "color for flags register (register value)"
 )
-config_flag_bracket_color = theme.ColoredParameter(
+config_flag_bracket_color = theme.add_color_param(
     "context-flag-bracket-color", "none", "color for flags register (bracket)"
 )
-config_flag_set_color = theme.ColoredParameter(
+config_flag_set_color = theme.add_color_param(
     "context-flag-set-color", "green,bold", "color for flags register (flag set)"
 )
-config_flag_unset_color = theme.ColoredParameter(
+config_flag_unset_color = theme.add_color_param(
     "context-flag-unset-color", "red", "color for flags register (flag unset)"
 )
-config_flag_changed_color = theme.ColoredParameter(
+config_flag_changed_color = theme.add_color_param(
     "context-flag-changed-color", "underline", "color for flags register (flag changed)"
 )
-config_banner_color = theme.ColoredParameter("banner-color", "blue", "color for banner line")
-config_banner_title = theme.ColoredParameter("banner-title-color", "none", "color for banner title")
-config_register_changed_color = theme.ColoredParameter(
+config_banner_color = theme.add_color_param("banner-color", "blue", "color for banner line")
+config_banner_title = theme.add_color_param("banner-title-color", "none", "color for banner title")
+config_register_changed_color = theme.add_color_param(
     "context-register-changed-color", "red", "color for registers label (change marker)"
 )
-config_register_changed_marker = theme.Parameter(
+config_register_changed_marker = theme.add_param(
     "context-register-changed-marker", "*", "change marker for registers label"
 )
-config_comment = theme.ColoredParameter("comment-color", "gray", "color for comment")
+config_comment = theme.add_color_param("comment-color", "gray", "color for comment")
 
 
 def prefix(x):

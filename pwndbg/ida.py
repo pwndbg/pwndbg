@@ -13,9 +13,9 @@ import xmlrpc.client
 
 import gdb
 
-import pwndbg.config
 import pwndbg.decorators
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.config
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
@@ -23,10 +23,16 @@ import pwndbg.gdblib.regs
 import pwndbg.lib.memoize
 from pwndbg.color import message
 
-ida_rpc_host = pwndbg.config.Parameter("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
-ida_rpc_port = pwndbg.config.Parameter("ida-rpc-port", 31337, "ida xmlrpc server port")
-ida_enabled = pwndbg.config.Parameter("ida-enabled", True, "whether to enable ida integration")
-ida_timeout = pwndbg.config.Parameter("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
+ida_rpc_host = pwndbg.gdblib.config.add_param(
+    "ida-rpc-host", "127.0.0.1", "ida xmlrpc server address"
+)
+ida_rpc_port = pwndbg.gdblib.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
+ida_enabled = pwndbg.gdblib.config.add_param(
+    "ida-enabled", True, "whether to enable ida integration"
+)
+ida_timeout = pwndbg.gdblib.config.add_param(
+    "ida-timeout", 2, "time to wait for ida xmlrpc in seconds"
+)
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -42,7 +48,7 @@ _ida_last_connection_check = 0
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.config.Trigger([ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout])
+@pwndbg.gdblib.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
 def init_ida_rpc_client():
     global _ida, _ida_last_exception, _ida_last_connection_check
 
@@ -78,7 +84,10 @@ def init_ida_rpc_client():
             not isinstance(_ida_last_exception, exception[0])
             or _ida_last_exception.args != exception[1].args
         ):
-            if hasattr(pwndbg.config, "exception_verbose") and pwndbg.config.exception_verbose:
+            if (
+                hasattr(pwndbg.gdblib.config, "exception_verbose")
+                and pwndbg.gdblib.config.exception_verbose
+            ):
                 print(message.error("[!] Ida Pro xmlrpc error"))
                 traceback.print_exception(*exception)
             else:

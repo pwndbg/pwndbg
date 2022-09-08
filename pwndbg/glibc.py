@@ -7,7 +7,7 @@ import re
 
 import gdb
 
-import pwndbg.config
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
@@ -15,11 +15,13 @@ import pwndbg.heap
 import pwndbg.lib.memoize
 import pwndbg.search
 
-safe_lnk = pwndbg.config.Parameter(
+safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
 )
 
-glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
+glibc_version = pwndbg.gdblib.config.add_param(
+    "glibc", "", "GLIBC version for heuristics", scope="heap"
+)
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning

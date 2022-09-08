@@ -11,9 +11,9 @@ import string
 
 import pwndbg.color as color
 import pwndbg.color.enhance as E
-import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
@@ -90,7 +90,7 @@ def enhance(value, code=True, safe_linking=False):
         instr = pwndbg.disasm.one(value)
         if instr:
             instr = "%-6s %s" % (instr.mnemonic, instr.op_str)
-            if pwndbg.config.syntax_highlight:
+            if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
     szval = pwndbg.gdblib.strings.get(value) or None

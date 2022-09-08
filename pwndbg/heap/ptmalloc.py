@@ -4,8 +4,8 @@ from collections import OrderedDict
 import gdb
 
 import pwndbg.color.memory as M
-import pwndbg.config
 import pwndbg.disasm
+import pwndbg.gdblib.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
@@ -981,7 +981,7 @@ class HeuristicHeap(Heap):
 
     @property
     def main_arena(self):
-        main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
+        main_arena_via_config = int(str(pwndbg.gdblib.config.main_arena), 0)
         main_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "main_arena"
         ) or pwndbg.gdblib.symbol.address("main_arena")
@@ -1114,7 +1114,7 @@ class HeuristicHeap(Heap):
 
     @property
     def thread_arena(self):
-        thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
+        thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
         thread_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "thread_arena"
         ) or pwndbg.gdblib.symbol.address("thread_arena")
@@ -1274,7 +1274,7 @@ class HeuristicHeap(Heap):
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
-        thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
+        thread_cache_via_config = int(str(pwndbg.gdblib.config.tcache), 0)
         thread_cache_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "tcache"
         ) or pwndbg.gdblib.symbol.address("tcache")
@@ -1509,7 +1509,7 @@ class HeuristicHeap(Heap):
 
     @property
     def mp(self):
-        mp_via_config = int(str(pwndbg.config.mp_), 0)
+        mp_via_config = int(str(pwndbg.gdblib.config.mp_), 0)
         mp_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
@@ -1656,7 +1656,7 @@ class HeuristicHeap(Heap):
 
     @property
     def global_max_fast(self):
-        global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
+        global_max_fast_via_config = int(str(pwndbg.gdblib.config.global_max_fast), 0)
         global_max_fast_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "global_max_fast"
         ) or pwndbg.gdblib.symbol.address("global_max_fast")

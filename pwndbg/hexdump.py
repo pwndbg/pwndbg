@@ -7,7 +7,7 @@ import string
 
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
-import pwndbg.config
+import pwndbg.gdblib.config
 
 color_scheme = None
 printable = None
@@ -21,21 +21,21 @@ def groupby(array, count, fill=None):
         yield array[i : i + count]
 
 
-config_colorize_ascii = theme.Parameter(
+config_colorize_ascii = theme.add_param(
     "hexdump-colorize-ascii", True, "whether to colorize the hexdump command ascii section"
 )
-config_separator = theme.Parameter(
+config_separator = theme.add_param(
     "hexdump-ascii-block-separator", "│", "block separator char of the hexdump command"
 )
-config_byte_separator = theme.Parameter(
+config_byte_separator = theme.add_param(
     "hexdump-byte-separator",
     " ",
     "separator of single bytes in hexdump (does NOT affect group separator)",
 )
 
 
-@pwndbg.config.Trigger(
-    [H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii]
+@pwndbg.gdblib.config.trigger(
+    H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii
 )
 def load_color_scheme():
     global color_scheme, printable
@@ -51,16 +51,18 @@ def load_color_scheme():
     ):
         color_scheme[c] = H.printable("%02x" % c)
         printable[c] = (
-            H.printable("%s" % chr(c)) if pwndbg.config.hexdump_colorize_ascii else "%s" % chr(c)
+            H.printable("%s" % chr(c))
+            if pwndbg.gdblib.config.hexdump_colorize_ascii
+            else "%s" % chr(c)
         )
 
     for c in bytearray(b"\x00"):
         color_scheme[c] = H.zero("%02x" % c)
-        printable[c] = H.zero(".") if pwndbg.config.hexdump_colorize_ascii else "."
+        printable[c] = H.zero(".") if pwndbg.gdblib.config.hexdump_colorize_ascii else "."
 
     for c in bytearray(b"\xff\x7f\x80"):
         color_scheme[c] = H.special("%02x" % c)
-        printable[c] = H.special(".") if pwndbg.config.hexdump_colorize_ascii else "."
+        printable[c] = H.special(".") if pwndbg.gdblib.config.hexdump_colorize_ascii else "."
 
     color_scheme[-1] = "  "
     printable[-1] = " "
