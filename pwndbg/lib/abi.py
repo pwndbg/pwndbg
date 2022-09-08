@@ -1,3 +1,5 @@
+from typing import *
+
 import pwndbg.gdblib.arch
 
 
@@ -8,7 +10,7 @@ class ABI:
 
     #: List or registers which should be filled with arguments before
     #: spilling onto the stack.
-    register_arguments = []
+    register_arguments = []  # type: List[str]
 
     #: Minimum alignment of the stack.
     #: The value used is min(context.bytes, stack_alignment)

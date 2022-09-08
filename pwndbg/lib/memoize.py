@@ -6,13 +6,14 @@ new library/objfile are loaded, etc.
 
 import functools
 import sys
+from typing import *
 
 try:
     # Python >= 3.10
     from collections.abc import Hashable
 except ImportError:
     # Python < 3.10
-    from collections import Hashable
+    from collections import Hashable  # type: ignore
 
 debug = False
 
@@ -73,7 +74,7 @@ class forever(memoize):
     Memoizes forever - for a pwndbg session or until `_reset` is called explicitly.
     """
 
-    caches = []
+    caches = []  # type: List[forever]
 
     @staticmethod
     def _reset():
@@ -82,7 +83,7 @@ class forever(memoize):
 
 
 class reset_on_stop(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_stop]
     kind = "stop"
 
     @staticmethod
@@ -94,7 +95,7 @@ class reset_on_stop(memoize):
 
 
 class reset_on_prompt(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_prompt]
     kind = "prompt"
 
     @staticmethod
@@ -106,7 +107,7 @@ class reset_on_prompt(memoize):
 
 
 class reset_on_exit(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_exit]
     kind = "exit"
 
     @staticmethod
@@ -118,7 +119,7 @@ class reset_on_exit(memoize):
 
 
 class reset_on_objfile(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_objfile]
     kind = "objfile"
 
     @staticmethod
@@ -130,7 +131,7 @@ class reset_on_objfile(memoize):
 
 
 class reset_on_start(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_start]
     kind = "start"
 
     @staticmethod
@@ -142,7 +143,7 @@ class reset_on_start(memoize):
 
 
 class reset_on_cont(memoize):
-    caches = []
+    caches = []  # type: List[reset_on_cont]
     kind = "cont"
 
     @staticmethod
@@ -154,7 +155,7 @@ class reset_on_cont(memoize):
 
 
 class while_running(memoize):
-    caches = []
+    caches = []  # type: List[while_running]
     kind = "running"
     caching = False
 

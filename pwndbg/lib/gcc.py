@@ -21,9 +21,9 @@ def which(arch: Arch):
             printed_message = True
             print("Can't find appropriate GCC, using default version")
 
-        if ptrsize == 32:
+        if arch.ptrsize == 32:
             return ["g++", "-m32"]
-        elif ptrsize == 64:
+        elif arch.ptrsize == 64:
             return ["g++", "-m32"]
 
     return [gcc] + _flags(arch.name)
