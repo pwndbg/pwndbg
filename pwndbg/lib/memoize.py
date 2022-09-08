@@ -6,6 +6,8 @@ new library/objfile are loaded, etc.
 
 import functools
 import sys
+from typing import Any
+from typing import Callable
 
 try:
     # Python >= 3.10
@@ -24,13 +26,13 @@ class memoize:
 
     caching = True
 
-    def __init__(self, func):
+    def __init__(self, func: Callable) -> None:
         self.func = func
         self.cache = {}
         self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> int:
         how = None
 
         if not isinstance(args, Hashable):
@@ -59,10 +61,10 @@ class memoize:
         funcname = self.func.__module__ + "." + self.func.__name__
         return "<%s-memoized function %s>" % (self.kind, funcname)
 
-    def __get__(self, obj, objtype):
+    def __get__(self, obj, objtype: type) -> Callable:
         return functools.partial(self.__call__, obj)
 
-    def clear(self):
+    def clear(self) -> None:
         if debug:
             print("Clearing %s %r" % (self, self.cache))
         self.cache.clear()
@@ -86,7 +88,7 @@ class reset_on_stop(memoize):
     kind = "stop"
 
     @staticmethod
-    def __reset_on_stop():
+    def __reset_on_stop() -> None:
         for obj in reset_on_stop.caches:
             obj.cache.clear()
 
@@ -110,7 +112,7 @@ class reset_on_exit(memoize):
     kind = "exit"
 
     @staticmethod
-    def __reset_on_exit():
+    def __reset_on_exit() -> None:
         for obj in reset_on_exit.caches:
             obj.clear()
 
@@ -122,7 +124,7 @@ class reset_on_objfile(memoize):
     kind = "objfile"
 
     @staticmethod
-    def __reset_on_objfile():
+    def __reset_on_objfile() -> None:
         for obj in reset_on_objfile.caches:
             obj.clear()
 
@@ -134,7 +136,7 @@ class reset_on_start(memoize):
     kind = "start"
 
     @staticmethod
-    def __reset_on_start():
+    def __reset_on_start() -> None:
         for obj in reset_on_start.caches:
             obj.clear()
 
@@ -146,7 +148,7 @@ class reset_on_cont(memoize):
     kind = "cont"
 
     @staticmethod
-    def __reset_on_cont():
+    def __reset_on_cont() -> None:
         for obj in reset_on_cont.caches:
             obj.clear()
 
@@ -159,11 +161,11 @@ class while_running(memoize):
     caching = False
 
     @staticmethod
-    def _start_caching():
+    def _start_caching() -> None:
         while_running.caching = True
 
     @staticmethod
-    def __reset_while_running():
+    def __reset_while_running() -> None:
         for obj in while_running.caches:
             obj.clear()
         while_running.caching = False
