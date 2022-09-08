@@ -1,6 +1,6 @@
 import collections
 
-from pycparser import CParser
+from pycparser import CParser  # type: ignore
 from pycparser import c_ast
 
 

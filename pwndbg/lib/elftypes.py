@@ -28,6 +28,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 import ctypes
+from typing import *
 
 import pwndbg.gdblib.ctypes
 
@@ -81,7 +82,7 @@ AT_CONSTANTS = {
     35: "AT_L1D_CACHESHAPE",
     36: "AT_L2_CACHESHAPE",
     37: "AT_L3_CACHESHAPE",
-}
+}  # type: Dict[int,str]
 
 
 class constants:

@@ -1,5 +1,6 @@
 import struct
 import sys
+from typing import *
 
 
 class Arch:
@@ -29,14 +30,14 @@ class Arch:
 
         self.native_endian = str(sys.byteorder)
 
-    def pack(self, integer):
+    def pack(self, integer):  # type: (int) -> bytes
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data):
+    def unpack(self, data):  # type: (bytes) -> int
         return struct.unpack(self.fmt, data)[0]
 
-    def signed(self, integer):
-        return self.unpack(self.pack(integer), signed=True)
+    def signed(self, integer):  # type: (int) -> int
+        return self.unpack(self.pack(integer), signed=True)  # type: ignore
 
-    def unsigned(integer):
+    def unsigned(self, integer):  # type: (int) -> int
         return self.unpack(self.pack(integer))

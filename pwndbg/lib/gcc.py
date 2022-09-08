@@ -6,13 +6,14 @@ GCC and any flags it should be executed with.
 import glob
 import os
 import platform
+from typing import *
 
 from pwndbg.lib.arch import Arch
 
 printed_message = False
 
 
-def which(arch: Arch):
+def which(arch):  # type: (Arch) -> List[str]
     gcc = _which_binutils("g++", arch)
 
     if not gcc:
@@ -72,7 +73,7 @@ def _which_binutils(util, arch, **kwargs):
                     return res[0]
 
 
-def _flags(arch_name):
+def _flags(arch_name):  # type: (str) -> List[str]
     if arch_name == "i386":
         return ["-m32"]
     if arch_name.endswith("x86-64"):

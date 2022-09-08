@@ -8,7 +8,7 @@ from typing import *
 
 
 class Stdio:
-    queue = []  # type: List[Tuple[TextIO,TextIO,TextIO]]
+    queue = []  # type: List[Tuple[TextIO, TextIO, TextIO]]
 
     def __enter__(self, *a, **kw):
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))

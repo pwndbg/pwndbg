@@ -12,7 +12,7 @@ PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
 
 
-def round_down(address, align):
+def round_down(address, align):  # type: (int,int) -> int
     """round_down(address, align) -> int
 
     Round down ``address`` to the nearest increment of ``align``.
@@ -20,7 +20,7 @@ def round_down(address, align):
     return address & ~(align - 1)
 
 
-def round_up(address, align):
+def round_up(address, align):  # type: (int,int) -> int
     """round_up(address, align) -> int
 
     Round up ``address`` to the nearest increment of ``align``.
@@ -32,7 +32,7 @@ align_down = round_down
 align_up = round_up
 
 
-def page_align(address):
+def page_align(address):  # type: (int) -> int
     """page_align(address) -> int
 
     Round down ``address`` to the nearest page boundary.
@@ -40,11 +40,11 @@ def page_align(address):
     return round_down(address, PAGE_SIZE)
 
 
-def page_size_align(address):
+def page_size_align(address):  # type: (int) -> int
     return round_up(address, PAGE_SIZE)
 
 
-def page_offset(address):
+def page_offset(address):  # type: (int) -> int
     return address & (PAGE_SIZE - 1)
 
 
@@ -65,7 +65,9 @@ class Page:
     offset = 0  #: Offset into the original ELF file that the data is loaded from
     objfile = ""  #: Path to the ELF on disk
 
-    def __init__(self, start, size, flags, offset, objfile=""):
+    def __init__(
+        self, start, size, flags, offset, objfile=""
+    ):  # type: (int,int,int,int,str) -> None
         self.vaddr = start
         self.memsz = size
         self.flags = flags
@@ -76,14 +78,14 @@ class Page:
         # self.flags = self.flags ^ 1
 
     @property
-    def start(self):
+    def start(self):  # type: () -> int
         """
         Mapping start address.
         """
         return self.vaddr
 
     @property
-    def end(self):
+    def end(self):  # type: () -> int
         """
         Address beyond mapping. So the last effective address is self.end-1
         It is the same as displayed in /proc/<pid>/maps
