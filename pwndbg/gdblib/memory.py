@@ -2,7 +2,6 @@
 Reading, writing, and describing memory.
 """
 
-import os
 
 import gdb
 

@@ -70,4 +70,4 @@ if encoding != "UTF-8":
     print("Make sure that en_US.UTF-8 is activated in /etc/locale.gen and you called locale-gen")
     print("******")
 
-import pwndbg
+import pwndbg  # noqa: F401

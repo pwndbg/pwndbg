@@ -1,7 +1,5 @@
 import argparse
 
-import gdb
-
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.dt

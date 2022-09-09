@@ -1,7 +1,5 @@
 import argparse
 
-import gdb
-
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.symbol
@@ -25,13 +23,11 @@ def defcon_heap(addr=0x2AAAAAAD5000):
         free = heap_freebins()
     except Exception as e:
         print(e)
-        pass
 
     try:
         heap_allocations(addr, free)
     except Exception as e:
         print(e)
-        pass
 
 
 def heap_freebins(addr=0x0602558):

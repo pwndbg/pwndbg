@@ -1,9 +1,3 @@
-import platform
-
-import gdb
-
-import pwndbg.gdblib.arch
-
 # Heap flags
 PREV_INUSE = 1
 IS_MMAPPED = 2

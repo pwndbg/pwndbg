@@ -5,7 +5,6 @@ Compatibility functionality for Windbg users.
 import argparse
 import codecs
 import math
-import sys
 from builtins import str
 
 import gdb

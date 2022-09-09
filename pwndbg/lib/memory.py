@@ -4,8 +4,6 @@ Reading, writing, and describing memory.
 
 import os
 
-import gdb
-
 import pwndbg.gdblib.arch
 
 PAGE_SIZE = 0x1000

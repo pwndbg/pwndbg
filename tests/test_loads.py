@@ -1,12 +1,9 @@
 import os
 import re
 
-import pytest
-
 import tests
 
 from .utils import compile_binary
-from .utils import launched_locally
 from .utils import run_gdb_with_script
 
 HELLO = [
