@@ -1,6 +1,7 @@
 import os
-import pytest
 import sys
+
+import pytest
 
 use_pdb = os.environ.get("USE_PDB") == "1"
 

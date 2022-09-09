@@ -1,5 +1,5 @@
-from capstone import *
-from capstone.x86 import *
+from capstone import *  # noqa: F403
+from capstone.x86 import *  # noqa: F403
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
