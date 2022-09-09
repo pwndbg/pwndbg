@@ -1,8 +1,8 @@
 import glob
 import locale
 import sys
-from os import path, environ
-
+from os import environ
+from os import path
 
 # Allow users to use packages from a virtualenv
 # That's not 100% supported, but they do it on their own,
@@ -70,4 +70,4 @@ if encoding != "UTF-8":
     print("Make sure that en_US.UTF-8 is activated in /etc/locale.gen and you called locale-gen")
     print("******")
 
-import pwndbg  # isort:skip
+import pwndbg

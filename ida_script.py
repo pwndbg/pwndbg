@@ -5,8 +5,8 @@ from __future__ import print_function
 import datetime
 import threading
 import xmlrpc.client as xmlclient
-from xmlrpc.server import SimpleXMLRPCServer
 from xml.sax.saxutils import escape
+from xmlrpc.server import SimpleXMLRPCServer
 
 import idaapi
 import idc
