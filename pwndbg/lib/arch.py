@@ -3,7 +3,7 @@ import sys
 
 
 class Arch:
-    def __init__(self, arch_name, ptrsize, endian):
+    def __init__(self, arch_name: str, ptrsize: int, endian: str) -> None:
         self.name = arch_name
         # TODO: `current` is the old name for the arch name, and it's now an
         # alias for `name`. It's used throughout the codebase, do we want to
@@ -29,10 +29,10 @@ class Arch:
 
         self.native_endian = str(sys.byteorder)
 
-    def pack(self, integer):
+    def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data):
+    def unpack(self, data: bytearray) -> int:
         return struct.unpack(self.fmt, data)[0]
 
     def signed(self, integer):

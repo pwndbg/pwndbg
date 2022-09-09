@@ -12,7 +12,7 @@ PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
 
 
-def round_down(address, align):
+def round_down(address: int, align: int) -> int:
     """round_down(address, align) -> int
 
     Round down ``address`` to the nearest increment of ``align``.
@@ -20,7 +20,7 @@ def round_down(address, align):
     return address & ~(align - 1)
 
 
-def round_up(address, align):
+def round_up(address: int, align: int) -> int:
     """round_up(address, align) -> int
 
     Round up ``address`` to the nearest increment of ``align``.
@@ -32,7 +32,7 @@ align_down = round_down
 align_up = round_up
 
 
-def page_align(address):
+def page_align(address: int) -> int:
     """page_align(address) -> int
 
     Round down ``address`` to the nearest page boundary.
@@ -40,7 +40,7 @@ def page_align(address):
     return round_down(address, PAGE_SIZE)
 
 
-def page_size_align(address):
+def page_size_align(address: int) -> int:
     return round_up(address, PAGE_SIZE)
 
 
@@ -65,7 +65,7 @@ class Page:
     offset = 0  #: Offset into the original ELF file that the data is loaded from
     objfile = ""  #: Path to the ELF on disk
 
-    def __init__(self, start, size, flags, offset, objfile=""):
+    def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "") -> None:
         self.vaddr = start
         self.memsz = size
         self.flags = flags
@@ -76,14 +76,14 @@ class Page:
         # self.flags = self.flags ^ 1
 
     @property
-    def start(self):
+    def start(self) -> int:
         """
         Mapping start address.
         """
         return self.vaddr
 
     @property
-    def end(self):
+    def end(self) -> int:
         """
         Address beyond mapping. So the last effective address is self.end-1
         It is the same as displayed in /proc/<pid>/maps
@@ -99,15 +99,15 @@ class Page:
         return len(self.objfile) > 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
 
     @property
-    def read(self):
+    def read(self) -> bool:
         return bool(self.flags & 4)
 
     @property
-    def write(self):
+    def write(self) -> bool:
         return bool(self.flags & 2)
 
     @property
-    def execute(self):
+    def execute(self) -> bool:
         return bool(self.flags & 1)
 
     @property
@@ -115,7 +115,7 @@ class Page:
         return self.read and self.write
 
     @property
-    def rwx(self):
+    def rwx(self) -> bool:
         return self.read and self.write and self.execute
 
     @property
@@ -146,13 +146,13 @@ class Page:
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
 
-    def __contains__(self, addr):
+    def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.vaddr == getattr(other, "vaddr", other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.vaddr < getattr(other, "vaddr", other)
 
     def __hash__(self):
