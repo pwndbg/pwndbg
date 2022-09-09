@@ -1,7 +1,6 @@
 import pwndbg.gdblib.events
 import pwndbg.gdblib.typeinfo
 from pwndbg.gdblib import arch_mod
-from pwndbg.lib.memoize import forever
 from pwndbg.lib.memoize import reset_on_cont
 from pwndbg.lib.memoize import reset_on_exit
 from pwndbg.lib.memoize import reset_on_objfile

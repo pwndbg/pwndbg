@@ -5,8 +5,6 @@ Get information about the GLibc
 import functools
 import re
 
-import gdb
-
 import pwndbg.config
 import pwndbg.gdblib.memory
 import pwndbg.heap

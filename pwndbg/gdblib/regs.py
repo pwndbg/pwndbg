@@ -2,7 +2,6 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
-import collections
 import ctypes
 import re
 import sys

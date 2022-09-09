@@ -1,7 +1,5 @@
 import types
 
-import gdb
-
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events

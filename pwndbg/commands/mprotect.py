@@ -9,7 +9,6 @@ import pwndbg.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
-from pwndbg.color import message
 
 parser = argparse.ArgumentParser(description="Calls mprotect. x86_64 only.")
 parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)

@@ -1,7 +1,6 @@
 """
 Command to print the information of the current Thread Local Storage (TLS).
 """
-import argparse
 
 import pwndbg.commands
 import pwndbg.tls

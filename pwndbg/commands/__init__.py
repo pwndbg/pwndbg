@@ -202,7 +202,6 @@ def fix(arg, sloppy=False, quiet=True, reraise=False):
             print(e)
         if reraise:
             raise e
-        pass
 
     if sloppy:
         return arg

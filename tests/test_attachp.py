@@ -1,12 +1,8 @@
-import codecs
 import os
 import re
 import subprocess
 
-import gdb
 import pytest
-
-import tests
 
 from .utils import run_gdb_with_script
 

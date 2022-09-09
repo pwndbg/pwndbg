@@ -9,8 +9,6 @@ supplemental information sources (e.g. active IDA Pro connection).
 
 import string
 
-import gdb
-
 import pwndbg.color as color
 import pwndbg.color.enhance as E
 import pwndbg.config
