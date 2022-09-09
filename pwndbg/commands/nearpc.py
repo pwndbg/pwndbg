@@ -1,7 +1,7 @@
 import argparse
 
 import gdb
-from capstone import *
+from capstone import *  # noqa: F403
 
 import pwndbg.arguments
 import pwndbg.color

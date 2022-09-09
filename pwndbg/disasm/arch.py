@@ -1,5 +1,5 @@
 import gdb
-from capstone import *
+from capstone import *  # noqa: F403
 
 import pwndbg.lib.memoize
 import pwndbg.symbol
