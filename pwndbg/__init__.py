@@ -3,7 +3,6 @@ import signal
 import gdb
 
 import pwndbg.arguments
-import pwndbg.argv
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.argv
@@ -65,6 +64,7 @@ import pwndbg.elf
 import pwndbg.exception
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.argv
 import pwndbg.gdblib.dt
 import pwndbg.gdblib.events
 import pwndbg.gdblib.hooks
