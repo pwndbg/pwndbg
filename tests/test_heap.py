@@ -1,5 +1,4 @@
 import os
-import stat
 import tempfile
 
 import gdb

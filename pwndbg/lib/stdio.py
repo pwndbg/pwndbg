@@ -4,7 +4,7 @@ which prevent output from appearing on-screen inside of certain event handlers.
 """
 
 import sys
-from typing import *
+from typing import *  # noqa note: TextIO is not abaliable in low python version
 
 
 class Stdio:

@@ -1,4 +1,4 @@
-from typing import *
+from typing import List
 
 import pwndbg.gdblib.arch
 

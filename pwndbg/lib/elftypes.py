@@ -28,7 +28,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 import ctypes
-from typing import *
+from typing import Dict
 
 import pwndbg.gdblib.ctypes
 

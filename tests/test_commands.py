@@ -3,7 +3,6 @@ import pytest
 
 import tests
 from pwndbg.commands import command_names
-from pwndbg.commands import commands
 from pwndbg.commands.shell import shellcmd_names
 
 BINARY = tests.binaries.get("heap_bins.out")

@@ -1,7 +1,5 @@
 import string
 
-import gdb
-
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.file

@@ -4,8 +4,6 @@ Wrapper for shell commands.
 
 import os
 
-import gdb
-
 import pwndbg.commands
 import pwndbg.lib.which
 

@@ -7,7 +7,6 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
 import os
-import sys
 
 import gdb
 
@@ -604,7 +603,6 @@ def check_aslr():
             return False, "kernel.randomize_va_space == 0"
     except Exception as e:
         print("Could not check ASLR: can't read randomize_va_space")
-        pass
 
     # Check the personality of the process
     if pwndbg.proc.alive:
@@ -614,7 +612,6 @@ def check_aslr():
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:
             print("Could not check ASLR: can't read process' personality")
-            pass
 
     # Just go with whatever GDB says it did.
     #

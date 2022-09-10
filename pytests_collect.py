@@ -3,7 +3,6 @@ import sys
 
 import pytest
 
-
 TESTS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tests")
 
 

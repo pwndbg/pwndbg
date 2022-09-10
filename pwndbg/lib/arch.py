@@ -1,10 +1,9 @@
 import struct
 import sys
-from typing import *
 
 
 class Arch:
-    def __init__(self, arch_name, ptrsize, endian):
+    def __init__(self, arch_name: str, ptrsize: int, endian: str) -> None:
         self.name = arch_name
         # TODO: `current` is the old name for the arch name, and it's now an
         # alias for `name`. It's used throughout the codebase, do we want to
@@ -30,14 +29,14 @@ class Arch:
 
         self.native_endian = str(sys.byteorder)
 
-    def pack(self, integer):  # type: (int) -> bytes
+    def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data):  # type: (bytes) -> int
+    def unpack(self, data: bytearray) -> int:
         return struct.unpack(self.fmt, data)[0]
 
-    def signed(self, integer):  # type: (int) -> int
+    def signed(self, integer: int) -> int:
         return self.unpack(self.pack(integer), signed=True)  # type: ignore
 
-    def unsigned(self, integer):  # type: (int) -> int
+    def unsigned(self, integer: int) -> int:
         return self.unpack(self.pack(integer))

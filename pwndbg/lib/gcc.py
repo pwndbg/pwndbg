@@ -6,7 +6,7 @@ GCC and any flags it should be executed with.
 import glob
 import os
 import platform
-from typing import *
+from typing import List
 
 from pwndbg.lib.arch import Arch
 

@@ -7,7 +7,7 @@ import collections
 
 import capstone
 import gdb
-from capstone import *
+from capstone import *  # noqa: F403
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
