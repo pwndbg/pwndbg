@@ -1,4 +1,5 @@
 from random import choice
+from typing import List
 
 TIPS = [
     # GDB hints
@@ -22,7 +23,7 @@ TIPS = [
     "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
-]
+]  # type: List[str]
 
 
 def get_tip_of_the_day() -> str:

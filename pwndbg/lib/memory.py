@@ -42,7 +42,7 @@ def page_size_align(address: int) -> int:
     return round_up(address, PAGE_SIZE)
 
 
-def page_offset(address):
+def page_offset(address: int) -> int:
     return address & (PAGE_SIZE - 1)
 
 

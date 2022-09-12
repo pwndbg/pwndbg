@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def build_id():
+def build_id():  # type: () -> str
     """
     Returns pwndbg commit id if git is available.
     """
