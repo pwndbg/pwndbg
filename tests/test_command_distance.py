@@ -1,9 +1,7 @@
 import gdb
 
-import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import tests
-from pwndbg.commands.xor import memfrob
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
 
