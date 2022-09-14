@@ -307,7 +307,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         chunk = pwndbg.commands.heap.read_chunk(addr)
         _, _, nm = self.chunk_flags(chunk["size"])
         if nm:
-            r = self.get_arena(arena_addr=self.get_heap(addr)["ar_ptr"])
+            h = self.get_heap(addr)
+            r = self.get_arena(h["ar_ptr"]) if h else None
         else:
             r = self.main_arena
         return r
@@ -634,7 +635,13 @@ class DebugSymsHeap(Heap):
 
     def get_heap(self, addr):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
+        try:
+            r = pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
+            r.fetch_lazy()
+        except gdb.MemoryError:
+            r = None
+
+        return r
 
     def get_arena(self, arena_addr=None):
         """Read a malloc_state struct from the specified address, default to
