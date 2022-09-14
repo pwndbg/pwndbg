@@ -29,7 +29,7 @@ config_flag_changed_color = theme.ColoredParameter(
 config_banner_color = theme.ColoredParameter("banner-color", "blue", "color for banner line")
 config_banner_title = theme.ColoredParameter("banner-title-color", "none", "color for banner title")
 config_register_changed_color = theme.ColoredParameter(
-    "context-register-changed-color", "normal", "color for registers label (change marker)"
+    "context-register-changed-color", "red", "color for registers label (change marker)"
 )
 config_register_changed_marker = theme.Parameter(
     "context-register-changed-marker", "*", "change marker for registers label"
