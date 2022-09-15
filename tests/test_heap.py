@@ -415,4 +415,3 @@ def test_find_fake_fast_command(start_binary):
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145
     gdb.execute("find_fake_fast (void*)&fake_chunk+0x70")
-
