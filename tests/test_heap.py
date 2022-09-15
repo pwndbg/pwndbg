@@ -12,6 +12,7 @@ HEAP_CODE = tests.binaries.get("heap_bugs.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 HEAP_VIS = tests.binaries.get("heap_vis.out")
+HEAP_FIND_FAKE_FAST = tests.binaries.get("heap_find_fake_fast.out")
 
 
 def binary_parse_breakpoints(binary_code):
@@ -399,3 +400,19 @@ def test_vis_heap_chunk_command(start_binary):
     expected_all3.append(vis_heap_line(suffix="\t <-- Top chunk"))
 
     assert result_all3 == expected_all3
+
+
+# Ensure find_fake_fast command doesn't error when fake chunk's heap_info
+# struct isn't mapped.
+def test_find_fake_fast_command(start_binary):
+    start_binary(HEAP_FIND_FAKE_FAST)
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    # Ensure memory at fake_chunk's heap_info struct isn't mapped.
+    unmapped_heap_info = pwndbg.heap.ptmalloc.heap_for_ptr(pwndbg.symbol.address("fake_chunk"))
+    assert pwndbg.gdblib.memory.peek(unmapped_heap_info) is None
+
+    # A gdb.MemoryError raised here indicates a regression from PR #1145
+    gdb.execute("find_fake_fast (void*)&fake_chunk+0x70")
+
