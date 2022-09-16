@@ -41,7 +41,18 @@ kernel_vmmap_via_pt = pwndbg.config.Parameter(
 @pwndbg.lib.memoize.reset_on_objfile
 @pwndbg.lib.memoize.reset_on_start
 def is_corefile():
-    return gdb.execute("info target", to_string=True).startswith("Local core dump file")
+    """
+    For example output use:
+        gdb ./tests/binaries/crash_simple.out -ex run -ex 'generate-core-file ./core' -ex 'quit'
+
+    And then use:
+        gdb ./tests/binaries/crash_simple.out -core ./core -ex 'info target'
+    And:
+        gdb -core ./core
+
+    As the two differ in output slighty.
+    """
+    return "Local core dump file:\n" in gdb.execute("info target", to_string=True)
 
 
 @pwndbg.lib.memoize.reset_on_start
@@ -207,9 +218,16 @@ def coredump_maps():
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
-            _idx, start_end, _at, offset, name, *flags_list = line.split()
+            _idx, start_end, _at_str, _at, name, *flags_list = line.split()
             start, end = map(lambda v: int(v, 16), start_end.split("->"))
-            offset = int(offset[:-1], 16)
+
+            # Skip pages with start=0x0, this is unlikely this is valid vmmap
+            if start == 0:
+                continue
+
+            # Tried taking this from the 'at 0x...' value
+            # but it turns out to be invalid, so keep it 0 until we find better way
+            offset = 0
         except (IndexError, ValueError):
             continue
 
@@ -243,6 +261,7 @@ def coredump_maps():
     vsyscall_page = pages[-1]
     if vsyscall_page.start > 0xFFFFFFFFFF000000 and vsyscall_page.flags & 1:
         vsyscall_page.objfile = "[vsyscall]"
+        vsyscall_page.offset = 0
 
     # Detect stack based on addresses in AUXV from stack memory
     stack_addr = None
@@ -262,6 +281,7 @@ def coredump_maps():
             if stack_addr in page:
                 page.objfile = "[stack]"
                 page.flags |= 6
+                page.offset = 0
                 break
 
     return tuple(pages)
