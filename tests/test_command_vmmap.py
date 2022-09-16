@@ -30,7 +30,7 @@ def get_proc_maps():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
             start, end = map(lambda v: "0x" + v, addrs.split("-"))
             offset = offset.lstrip("0")
-            size = int(end, 16) - int(end, start)
+            size = int(end, 16) - int(start, 16)
             maps.append([start, end, perms, offset, size, objfile])
 
     return maps
