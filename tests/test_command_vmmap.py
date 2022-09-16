@@ -27,12 +27,13 @@ def get_proc_maps():
     with open("/proc/%d/maps" % pwndbg.proc.pid, "rb") as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
-            start, end = map(lambda v: int(v, 16), addrs.split('-'))
-            offset = offset.lstrip('0')
+            start, end = map(lambda v: int(v, 16), addrs.split("-"))
+            offset = offset.lstrip("0")
             size = hex(int(size))[2:]
             maps.append([start, end, perms, offset, size, objfile])
 
     return maps
+
 
 def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     """
