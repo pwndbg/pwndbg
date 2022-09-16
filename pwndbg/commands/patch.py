@@ -2,22 +2,19 @@
 # -*- coding: utf-8 -*-
 import argparse
 
+from pwnlib.asm import asm
+from pwnlib.asm import disasm
+
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
-
-import pwndbg.color.message as message
-
-from pwnlib.asm import asm, disasm
-
 
 # Keep old patches made so we can revert them
 patches = {}
 
 
-parser = argparse.ArgumentParser(
-    description="Patches given instruction with given code or bytes"
-)
+parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes")
 parser.add_argument("address", type=int, help="The address to patch")
 parser.add_argument("ins", type=str, help="instruction[s]")
 

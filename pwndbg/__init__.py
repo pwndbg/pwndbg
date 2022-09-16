@@ -30,8 +30,8 @@ import pwndbg.commands.memoize
 import pwndbg.commands.misc
 import pwndbg.commands.mprotect
 import pwndbg.commands.next
-import pwndbg.commands.patch
 import pwndbg.commands.p2p
+import pwndbg.commands.patch
 import pwndbg.commands.peda
 import pwndbg.commands.pie
 import pwndbg.commands.probeleak
