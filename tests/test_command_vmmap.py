@@ -109,11 +109,25 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
             # command returns different results on the two.
             # It may be a result of different test binary compilation or
             # just a difference between GDB versions
+            #
+            # Another difference may occur for the vsyscall memory page:
+            # on Ubuntu 22.04, while vsyscall is ---xp during debugging
+            # it becomes r-xp and can be readable when we target the coredump
+            # Likely, this is because on x86/x64 you can't set memory to be
+            # eXecute only, and maybe generate-core-file was able to dump it?
+            if vmmap[-1] == expected_map[-1] == '[vsyscall]':
+
+                # Assert start, end
+                assert vmmap[:2] == expected_map[:2]
+                assert vmmap[3] == expected_map[3] or vmmap[3] in ('r-xp', '--xp')
+                assert vmmap[4:] == expected_map[4:]
+
             assert vmmap[:-1] == expected_map[:-1]
             if vmmap[-1].startswith("load"):
                 continue
+            assert vmmap[-1] == expected_map[-1]
 
-        assert vmmap[-1] == expected_map[-1]
+
 
     assert_maps()
 
