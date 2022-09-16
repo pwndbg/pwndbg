@@ -1,6 +1,5 @@
 import gdb
 
-import pwndbg
 import tests
 
 CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out")
