@@ -33,6 +33,8 @@ def get_proc_maps():
             size = end - start
             maps.append([hex(start), hex(end), perms, hex(size)[2:], offset, objfile])
 
+    maps.sort()
+
     return maps
 
 
