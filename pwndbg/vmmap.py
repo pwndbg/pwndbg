@@ -213,7 +213,13 @@ def coredump_maps():
         # Note: we set flags=0 because we do not have this information here
         pages.append(pwndbg.lib.memory.Page(start, size, 0, offset, objfile))
 
+    started_sections = False
     for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
+        if not started_sections:
+            if 'Core file:' in line:
+                started_sections = True
+            continue
+
         # We look for lines like:
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
