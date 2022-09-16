@@ -33,12 +33,20 @@ def pages_filter(gdbval_or_str):
 parser = argparse.ArgumentParser()
 parser.description = """Print virtual memory map pages. Results can be filtered by providing address/module name.
 
-Memory pages on QEMU targets may be inaccurate. This is because:
-- for QEMU kernel on X86/X64 we fetch memory pages via `monitor info mem` and it doesn't inform if memory page is executable
-- for QEMU user emulation we detected memory pages through AUXV (sometimes by finding AUXV on the stack first)
-- for others, we create mempages by exploring current register values (this is least correct)
+Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address. This is useful for filtering with `vmmap` or `search` commands.
 
-Memory pages can also be added manually, see vmmap_add, vmmap_clear and vmmap_load commands."""
+Known issues with vmmap:
+For QEMU user targets, the QEMU's gdbstub does not provide memory maps information to GDB until [0] is finished & merged. We try to deal with it without parsing the QEMU process' /proc/$pid/maps file, but if our approach fails, we simply create a [0, 0xffff...] vmmap which is not great and may result in lack of proper colors or inability to search memory with the `search` command.
+
+For QEMU kernel, we use gdb-pt-dump that parses page tables from the guest by reading /proc/$pid/mem of QEMU process. If this does not work for you, use `set kernel-vmmap-via-page-tables off` to refer to our old method of reading vmmap info from `monitor info mem` command exposed by QEMU. Note that the latter may be slower and will not give full vmmaps permission information.
+
+For coredump debugging, GDB also lacks all vmmap info but we do our best to get it back by using the `info proc mappings` and `maintenance info sections` commands.
+
+As a last resort, we sometimes try to explore the addresses in CPU registers and if they are readable by GDB, we determine their bounds and create an "<explored>" vmmap. However, this method is slow and is not used on each GDB stop.
+
+Memory pages can also be added manually with the use of vmmap_add, vmmap_clear and vmmap_load commands. This may be useful for bare metal debugging.
+
+[0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/"""
 parser.formatter_class = argparse.RawDescriptionHelpFormatter
 parser.add_argument(
     "gdbval_or_str",
