@@ -115,9 +115,9 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
             # it becomes r-xp and can be readable when we target the coredump
             # Likely, this is because on x86/x64 you can't set memory to be
             # eXecute only, and maybe generate-core-file was able to dump it?
-            if vmmap[-1] == expected_map[-1] == '[vsyscall]':
+            if vmmap[-1] == expected_map[-1] == "[vsyscall]":
                 assert vmmap[:2] == expected_map[:2]  # start, end
-                assert vmmap[3] == expected_map[3] or vmmap[3] in ('r-xp', '--xp')
+                assert vmmap[3] == expected_map[3] or vmmap[3] in ("r-xp", "--xp")
                 assert vmmap[4:] == expected_map[4:]
                 continue
 
@@ -125,8 +125,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
             if vmmap[-1].startswith("load"):
                 continue
             assert vmmap[-1] == expected_map[-1]
-
-
 
     assert_maps()
 
