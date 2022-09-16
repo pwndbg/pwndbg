@@ -69,17 +69,18 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     # Trigger binary crash
     gdb.execute("continue")
 
+    expected_maps = info_proc_mappings_to_vmmap_with_perms(["r-xp", "r--p", "r-xp", "rwxp", "r-xp"])
+
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Basic asserts
-    assert len(vmmaps) == 6
+    assert len(vmmaps) == len(expected_maps) + 1
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
 
     # Split vmmaps
     vmmaps = [i.split() for i in vmmaps[1:]]
 
-    expected_maps = info_proc_mappings_to_vmmap_with_perms(["r-xp", "r--p", "r-xp", "rwxp", "r-xp"])
-    assert len(expected_maps) == 5  # <-- just a sanity check
+
 
     # Assert that vmmap output matches expected one
     assert vmmaps == expected_maps
@@ -92,10 +93,11 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     # Now, let's load the generated core file
     gdb.execute("core-file %s" % core)
 
+    old_len_vmmaps = len(vmmaps)
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Note: we will now see one less vmmap page as [vvar] will be missing
-    assert len(vmmaps) == 5
+    assert len(vmmaps) == old_len_vmmaps - 1
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
     vmmaps = [i.split() for i in vmmaps[1:]]
 
