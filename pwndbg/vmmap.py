@@ -63,7 +63,7 @@ def get():
         else:
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
-    if not pages:
+    if not pages and is_corefile():
         pages.extend(coredump_maps())
 
     # TODO/FIXME: Do we still need it after coredump_maps()?
