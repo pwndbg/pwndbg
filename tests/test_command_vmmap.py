@@ -28,10 +28,10 @@ def get_proc_maps():
     with open("/proc/%d/maps" % pwndbg.proc.pid, "r") as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
-            start, end = map(lambda v: "0x" + v, addrs.split("-"))
-            offset = offset.lstrip("0")
-            size = int(end, 16) - int(start, 16)
-            maps.append([start, end, perms, offset, size, objfile])
+            start, end = map(lambda v: int(v, 16), addrs.split("-"))
+            offset = offset.lstrip("0") or "0"
+            size = end - start
+            maps.append([hex(start), hex(end), perms, hex(size)[2:], offset, objfile])
 
     return maps
 
@@ -88,9 +88,9 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Note: we will now see one less vmmap page as [vvar] will be missing
-    assert len(vmmaps) == old_len_vmmaps - 1
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
     vmmaps = [i.split() for i in vmmaps[1:]]
+    assert len(vmmaps) == old_len_vmmaps - 1
 
     # Fix up expected maps
     expected_maps[2][-1] = "load2"  # [vdso] new/unknown name
