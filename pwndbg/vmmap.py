@@ -216,7 +216,7 @@ def coredump_maps():
     started_sections = False
     for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
         if not started_sections:
-            if 'Core file:' in line:
+            if "Core file:" in line:
                 started_sections = True
             continue
 

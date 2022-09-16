@@ -110,7 +110,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
             # It may be a result of different test binary compilation or
             # just a difference between GDB versions
             assert vmmap[:-1] == expected_map[:-1]
-            if vmmap[-1].startswith('load'):
+            if vmmap[-1].startswith("load"):
                 continue
 
         assert vmmap[-1] == expected_map[-1]
