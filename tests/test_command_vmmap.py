@@ -5,7 +5,7 @@ import tests
 CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out")
 
 
-def info_proc_mappings_to_vmmap_with_perms(perms=None):
+def get_proc_maps():
     """
         Example info proc mappings:
 
@@ -20,28 +20,19 @@ def info_proc_mappings_to_vmmap_with_perms(perms=None):
           0x7ffffffde000     0x7ffffffff000    0x21000        0x0 [stack]
       0xffffffffff600000 0xffffffffff601000     0x1000        0x0 [vsyscall]
     """
+    maps = []
+
     # Note: info proc mappings may not have permissions information,
     # so we get it here and fill from `perms`
-    maps = gdb.execute("info proc mappings", to_string=True).splitlines()
-    maps = maps[4:]  # Skip all the header info
-
-    # Split all fields
-    maps = [i.split() for i in maps]
-
-    # Strip 0x prefix from Size and Offset to match vmmap's output
-    for map_ in maps:
-        map_[2] = map_[2][2:]
-        map_[3] = map_[3][2:]
-
-    # If provided, insert permissions on index 2
-    # We may not want to do it for all tests, since
-    # permissions vs maps order may differ for different binaries
-    if perms:
-        for perm, map_ in zip(perms, maps):
-            map_.insert(2, perm)
+    with open("/proc/%d/maps" % pwndbg.proc.pid, "rb") as f:
+        for line in f.read().splitlines():
+            addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
+            start, end = map(lambda v: int(v, 16), addrs.split('-'))
+            offset = offset.lstrip('0')
+            size = hex(int(size))[2:]
+            maps.append([start, end, perms, offset, size, objfile])
 
     return maps
-
 
 def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     """
@@ -69,7 +60,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     # Trigger binary crash
     gdb.execute("continue")
 
-    expected_maps = info_proc_mappings_to_vmmap_with_perms(["r-xp", "r--p", "r-xp", "rwxp", "r-xp"])
+    expected_maps = get_proc_maps()
 
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
@@ -79,8 +70,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
 
     # Split vmmaps
     vmmaps = [i.split() for i in vmmaps[1:]]
-
-
 
     # Assert that vmmap output matches expected one
     assert vmmaps == expected_maps
