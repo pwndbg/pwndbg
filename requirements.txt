@@ -21,3 +21,4 @@ tomli==2.0.1; python_version >= '3.7'
 tomli==1.2.3; python_version < '3.7'
 unicorn==2.0.0; python_version >= '3.7'
 unicorn==2.0.0rc7; python_version < '3.7'
+pwntools==4.8.0
