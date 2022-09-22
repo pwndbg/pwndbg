@@ -67,9 +67,7 @@ def stepret():
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextproginstr():
-    """Breaks at the next instruction that belongs to the running program"""
-    if pwndbg.gdblib.next.break_on_program_code():
-        pwndbg.commands.context.context()
+    pwndbg.gdblib.next.break_on_program_code()
 
 
 parser = argparse.ArgumentParser(
