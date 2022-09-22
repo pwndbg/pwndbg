@@ -96,6 +96,43 @@ def format_bin(bins, verbose=False, offset=None):
 
 
 parser = argparse.ArgumentParser()
+parser.description = ("Template heap command. You can ignore this.")
+parser.add_argument("addr", type=int, help="Address of a chunk header.")
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def template_heap_command(addr):
+    """Template heap command with example uses of pwndbg's heap classes."""
+
+    # `addr` is a gdb.Value of one of several types, depending on how the user invoked this command
+    # e.g. template_heap_command <address> vs. template_heap_command <symbol>
+
+    # The `Chunk` class abstracts away many heap & gdb module internals.
+    chunk = pwndbg.heap.ptmalloc.Chunk(addr)
+
+    print(f"chunk.address: 0x{chunk.address:02x}")
+
+    # Be aware that if a chunk field is unreadable (e.g. a fake chunk straddling an unmapped page boundary) it will be None, always check.
+    if chunk.prev_size is not None:
+        print(f"chunk.prev_size: 0x{chunk.prev_size:02x}")
+
+    if chunk.size is not None:
+        print(f"chunk.size: 0x{chunk.size:02x}")
+
+    if chunk.flags is not None:
+        print(f"chunk.flags: {chunk.flags}")
+
+    if chunk.fd is not None:
+        print(f"chunk.fd: 0x{chunk.fd:02x}")
+
+    if chunk.bk is not None:
+        print(f"chunk.bk: 0x{chunk.bk:02x}")
+
+
+parser = argparse.ArgumentParser()
 parser.description = (
     "Iteratively print chunks on a heap, default to the current thread's active heap."
 )

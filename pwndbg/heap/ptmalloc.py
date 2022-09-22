@@ -32,6 +32,83 @@ def heap_for_ptr(ptr):
     return ptr & ~(HEAP_MAX_SIZE - 1)
 
 
+class Chunk:
+    def __init__(self, addr):
+        self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+        self.address = int(self._gdbValue.address)
+        self._prev_size = None
+        self._size = None
+        self._flags = None
+        self._fd = None
+        self._bk = None
+        # TODO fd_nextsize, bk_nextsize, key, REVEAL_PTR etc.
+
+    @property
+    def prev_size(self):
+        if self._prev_size is None:
+            if "mchunk_prev_size" in (field.name for field in self._gdbValue.type.fields()):
+                prev_size_field_name = "mchunk_prev_size"
+            else:
+                prev_size_field_name = "prev_size"
+
+            try:
+                self._prev_size = int(self._gdbValue[prev_size_field_name])
+            except gdb.MemoryError:
+                pass
+
+        return self._prev_size
+
+    @property
+    def size(self):
+        if self._size is None:
+            if "mchunk_size" in (field.name for field in self._gdbValue.type.fields()):
+                size_field_name = "mchunk_size"
+            else:
+                size_field_name = "size"
+
+            try:
+                self._size = int(self._gdbValue[size_field_name])
+            except gdb.MemoryError:
+                pass
+
+        return self._size
+
+    @property
+    def flags(self):
+        if self._flags is None:
+            sz = self.size
+            if sz is not None:
+                self._flags = {
+                    "non_main_arena": bool(sz & ptmalloc.NON_MAIN_ARENA),
+                    "is_mmapped": bool(sz & ptmalloc.IS_MMAPPED),
+                    "prev_inuse": bool(sz & ptmalloc.PREV_INUSE),
+                }
+
+        return self._flags
+
+    @property
+    def fd(self):
+        if self._fd is None:
+            try:
+                self._fd = int(self._gdbValue["fd"])
+            except gdb.MemoryError:
+                pass
+
+        return self._fd
+
+    @property
+    def bk(self):
+        if self._bk is None:
+            try:
+                self._bk = int(self._gdbValue["bk"])
+            except gdb.MemoryError:
+                pass
+
+        return self._bk
+
+    # TODO Other useful methods e.g. next_chunk(), __iter__, __str__
+
+
 class Arena:
     def __init__(self, addr, heaps):
         self.addr = addr
