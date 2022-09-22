@@ -24,9 +24,9 @@ while [[ $# -gt 0 ]]; do
             echo "Will run tests with Python debugger"
             shift
             ;;
-	-h | --help)
-	    help_and_exit
-	    ;;
+        -h | --help)
+            help_and_exit
+            ;;
         *)
             if [[ ! -z "${TEST_NAME_FILTER}" ]]; then
                 help_and_exit
