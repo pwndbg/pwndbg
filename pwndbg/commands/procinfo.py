@@ -221,7 +221,7 @@ def procinfo():
 
     print("%-10s %s" % ("ppid", proc.ppid))
 
-    if not pwndbg.lib.android.is_android():
+    if not pwndbg.gdblib.android.is_android():
         print("%-10s %s" % ("uid", proc.uid))
         print("%-10s %s" % ("gid", proc.gid))
         print("%-10s %s" % ("groups", proc.groups))
