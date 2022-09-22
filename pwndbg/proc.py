@@ -69,10 +69,6 @@ class module(ModuleType):
         """
         return gdb.current_progspace().filename
 
-    @property
-    def mem_page(self):
-        return next(p for p in pwndbg.vmmap.get() if p.objfile == self.exe)
-
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)
         def wrapper(*a, **kw):

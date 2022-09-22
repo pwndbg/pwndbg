@@ -129,20 +129,24 @@ def break_on_program_code():
     Breaks on next instruction that belongs to process' objfile code.
     :return: True for success, False when process ended or when pc is at the code.
     """
-    mp = pwndbg.proc.mem_page
-    start = mp.start
-    end = mp.end
+    exe = pwndbg.proc.exe
+    binary_exec_page_ranges = [
+        (p.start, p.end) for p in pwndbg.vmmap.get() if p.objfile == exe and p.execute
+    ]
 
-    if start <= pwndbg.gdblib.regs.pc < end:
-        print(message.error("The pc is already at the binary objfile code. Not stepping."))
-        return False
+    pc = pwndbg.gdblib.regs.pc
+    for start, end in binary_exec_page_ranges:
+        if start <= pc < end:
+            print(message.error("The pc is already at the binary objfile code. Not stepping."))
+            return False
 
     while pwndbg.proc.alive:
         gdb.execute("si", from_tty=False, to_string=False)
 
-        addr = pwndbg.gdblib.regs.pc
-        if start <= addr < end:
-            return True
+        pc = pwndbg.gdblib.regs.pc
+        for start, end in binary_exec_page_ranges:
+            if start <= pc < end:
+                return True
 
     return False
 
