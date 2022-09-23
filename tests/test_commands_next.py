@@ -29,8 +29,7 @@ def test_command_nextproginstr(start_binary):
     gdb.execute("continue")
 
     # Sanity check that we are in libc
-    libc = "libc.so.6"
-    assert pwndbg.vmmap.find(pwndbg.gdblib.regs.rip).objfile.endswith(libc)
+    assert "libc" in pwndbg.vmmap.find(pwndbg.gdblib.regs.rip).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     gdb.execute("nextproginstr")
