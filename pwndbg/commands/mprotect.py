@@ -1,5 +1,9 @@
 import argparse
+
 import gdb
+import pwnlib
+from pwnlib import asm
+
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
@@ -7,8 +11,6 @@ import pwndbg.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
-import pwnlib
-from pwnlib import asm
 
 parser = argparse.ArgumentParser(description="Calls mprotect. x86_64 only.")
 parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)
@@ -51,7 +53,6 @@ def mprotect(addr, length, prot):
     saved_rdx = pwndbg.gdblib.regs.rdx
     saved_rip = pwndbg.gdblib.regs.rip
 
-
     prot_int = prot_str_to_val(prot)
 
     shellcode_asm = pwnlib.shellcraft.syscall("SYS_mprotect", int(addr), int(length), int(prot_int))
@@ -60,7 +61,7 @@ def mprotect(addr, length, prot):
     saved_instruction_bytes = pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.rip, len(shellcode))
 
     pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rip, shellcode)
-   
+
     # execute syscall
     gdb.execute("nextsyscall")
     gdb.execute("stepi")

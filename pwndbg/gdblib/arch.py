@@ -1,9 +1,10 @@
 import gdb
+import pwnlib
 
 import pwndbg.proc
 from pwndbg.gdblib import typeinfo
 from pwndbg.lib.arch import Arch
-import pwnlib
+
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
 ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm")
