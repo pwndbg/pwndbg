@@ -96,7 +96,7 @@ def format_bin(bins, verbose=False, offset=None):
 
 
 parser = argparse.ArgumentParser()
-parser.description = ("Template heap command. You can ignore this.")
+parser.description = "Template heap command. You can ignore this."
 parser.add_argument("addr", type=int, help="Address of a chunk header.")
 
 
