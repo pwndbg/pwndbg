@@ -38,7 +38,7 @@ def check_title_position():
         title_position.revert_default()
 
 
-def banner(title, target=sys.stdin, width=None, extra=''):
+def banner(title, target=sys.stdin, width=None, extra=""):
     title = title.upper()
     if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
         _height, width = get_window_size(target=target if target != sys.stdout else sys.stdin)

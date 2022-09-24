@@ -572,7 +572,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     arch = pwndbg.gdblib.arch.current
     emulate = bool(pwndbg.config.emulate)
 
-    info = ' / %s / set emulate %s' % (arch, 'on' if emulate else 'off')
+    info = " / %s / set emulate %s" % (arch, "on" if emulate else "off")
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
     result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
 
