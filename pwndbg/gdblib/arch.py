@@ -3,10 +3,21 @@ import gdb
 import pwndbg.proc
 from pwndbg.gdblib import typeinfo
 from pwndbg.lib.arch import Arch
-
+import pwnlib
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
 ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm")
+
+# mapping between gdb and pwntools arch names
+pwnlib_archs_mapping = {
+    "x86-64": "amd64",
+    "i386": "i386",
+    "aarch64": "aarch64",
+    "mips": "mips",
+    "powerpc": "powerpc",
+    "sparc": "sparc",
+    "arm": "arm",
+}
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
 
@@ -45,3 +56,5 @@ def update():
     # object. Instead, we call `__init__` again with the new args
     arch_name, ptrsize, endian = _get_arch(typeinfo.ptrsize)
     arch.__init__(arch_name, ptrsize, endian)
+    pwnlib.context.context.arch = pwnlib_archs_mapping[arch_name]
+    pwnlib.context.context.bits = ptrsize * 8
