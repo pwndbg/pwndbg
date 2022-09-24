@@ -1,7 +1,5 @@
 import argparse
-
 import gdb
-
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
@@ -9,6 +7,8 @@ import pwndbg.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
+import pwnlib
+from pwnlib import asm
 
 parser = argparse.ArgumentParser(description="Calls mprotect. x86_64 only.")
 parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)
@@ -51,24 +51,22 @@ def mprotect(addr, length, prot):
     saved_rdx = pwndbg.gdblib.regs.rdx
     saved_rip = pwndbg.gdblib.regs.rip
 
+
     prot_int = prot_str_to_val(prot)
-    gdb.execute("set $rax={}".format(SYS_MPROTECT))
-    gdb.execute("set $rbx={}".format(addr))
-    gdb.execute("set $rcx={}".format(length))
-    gdb.execute("set $rdx={}".format(prot_int))
 
-    saved_instruction_2bytes = pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.rip, 2)
+    shellcode_asm = pwnlib.shellcraft.syscall("SYS_mprotect", int(addr), int(length), int(prot_int))
+    shellcode = asm.asm(shellcode_asm)
 
-    # int 0x80
-    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rip, b"\xcd\x80")
+    saved_instruction_bytes = pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.rip, len(shellcode))
 
+    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rip, shellcode)
+   
     # execute syscall
+    gdb.execute("nextsyscall")
     gdb.execute("stepi")
 
-    print("mprotect returned {}".format(pwndbg.gdblib.regs.rax))
-
     # restore registers and memory
-    pwndbg.gdblib.memory.write(saved_rip, saved_instruction_2bytes)
+    pwndbg.gdblib.memory.write(saved_rip, saved_instruction_bytes)
 
     gdb.execute("set $rax={}".format(saved_rax))
     gdb.execute("set $rbx={}".format(saved_rbx))
