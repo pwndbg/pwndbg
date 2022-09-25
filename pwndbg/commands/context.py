@@ -33,9 +33,24 @@ from pwndbg.color import theme
 def clear_screen(out=sys.stdout):
     """
     Clear the screen by moving the cursor to top-left corner and
-    clear the content
+    clearing the content. Different terminals may act differently
     """
-    out.write("\x1b[H\x1b[J")
+    ## The ANSI escape codes we use here are described e.g. on:
+    # https://en.wikipedia.org/wiki/ANSI_escape_code#CSIsection
+    #
+    ## To sum up the escape codes used below:
+    # \x1b - Escape | Starts all the escape sequences
+    # [ - Control Sequence Introducer | Starts most of the useful sequences
+    # H - Cursor Position | Moves the cursor to row n, column m (default=1)
+    # \x1b - Escape | Starts all the escape sequences
+    # <n> J - Erase in Display | Clears part of the screen.
+    # If n is 0 (or missing), clear from cursor to end of screen.
+    # If n is 1, clear from cursor to beginning of the screen.
+    # If n is 2, clear entire screen (and moves cursor to upper left on DOS ANSI.SYS).
+    # If n is 3, clear entire screen and delete all lines saved in the
+    # scrollback buffer (this feature was added for xterm and is supported
+    # by other terminal applications
+    out.write("\x1b[H\x1b[2J")
 
 
 config_clear_screen = pwndbg.config.Parameter(
