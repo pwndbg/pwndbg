@@ -2,11 +2,13 @@ import gdb
 
 import pwndbg
 import tests
+from pwndbg.gdblib import arch_mod
 
 MPROTECT_BINARY = tests.binaries.get("mprotect.out")
 
 
 def test_mprotect(start_binary):
+    arch_mod.update()
     """
     Tests mprotect command
     It will mark some memory as executable, then this binary will print "mprotect_ok"
@@ -43,6 +45,11 @@ def test_mprotect(start_binary):
 
     # continue execution
     gdb.execute("continue")
+
+    # check if the process exited with 0
+    # since we inject a shellcode to call mprotect, we need to check if it is removed afterwards,
+    # and the program can continue running normally
+    assert gdb.execute("print $_exitcode", to_string=True).splitlines()[-1] == "$1 = 0"
 
 
 def test_cannot_run_mprotect_when_not_running(start_binary):

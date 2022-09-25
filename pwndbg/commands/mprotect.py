@@ -11,8 +11,9 @@ import pwndbg.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
+from pwndbg.lib.regs import reg_sets
 
-parser = argparse.ArgumentParser(description="Calls mprotect. x86_64 only.")
+parser = argparse.ArgumentParser(description="Calls mprotect.")
 parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)
 parser.add_argument(
     "length",
@@ -44,39 +45,37 @@ def prot_str_to_val(protstr):
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyAmd64
 def mprotect(addr, length, prot):
-    """Only x86_64."""
-    saved_rax = pwndbg.gdblib.regs.rax
-    saved_rbx = pwndbg.gdblib.regs.rbx
-    saved_rcx = pwndbg.gdblib.regs.rcx
-    saved_rdx = pwndbg.gdblib.regs.rdx
-    saved_rip = pwndbg.gdblib.regs.rip
 
     prot_int = prot_str_to_val(prot)
 
+    # generate a shellcode that executes the mprotect syscall
     shellcode_asm = pwnlib.shellcraft.syscall("SYS_mprotect", int(addr), int(length), int(prot_int))
     shellcode = asm.asm(shellcode_asm)
 
-    saved_instruction_bytes = pwndbg.gdblib.memory.read(pwndbg.gdblib.regs.rip, len(shellcode))
+    # obtain the registers that need to be saved for the current platform
+    # we save the registers that are used for arguments, return value and the program counter
+    current_regs = reg_sets[pwndbg.gdblib.arch.current]
+    regs_to_save = current_regs.args + (current_regs.retval, current_regs.pc)
 
-    pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rip, shellcode)
+    # save the registers
+    saved_registers = {}
+    for reg in regs_to_save:
+        saved_registers[reg] = pwndbg.gdblib.regs[reg]
+
+    # save the memory which will be overwritten by the shellcode
+    saved_instruction_bytes = pwndbg.gdblib.memory.read(
+        saved_registers[current_regs.pc], len(shellcode)
+    )
+    pwndbg.gdblib.memory.write(saved_registers[current_regs.pc], shellcode)
 
     # execute syscall
     gdb.execute("nextsyscall")
     gdb.execute("stepi")
 
     # restore registers and memory
-    pwndbg.gdblib.memory.write(saved_rip, saved_instruction_bytes)
+    pwndbg.gdblib.memory.write(saved_registers[current_regs.pc], saved_instruction_bytes)
 
-    gdb.execute("set $rax={}".format(saved_rax))
-    gdb.execute("set $rbx={}".format(saved_rbx))
-    gdb.execute("set $rcx={}".format(saved_rcx))
-    gdb.execute("set $rdx={}".format(saved_rdx))
-    gdb.execute("set $rip={}".format(saved_rip))
-
-    pwndbg.gdblib.regs.rax = saved_rax
-    pwndbg.gdblib.regs.rbx = saved_rbx
-    pwndbg.gdblib.regs.rcx = saved_rcx
-    pwndbg.gdblib.regs.rdx = saved_rdx
-    pwndbg.gdblib.regs.rip = saved_rip
+    # restore the registers
+    for reg in regs_to_save:
+        gdb.execute("set ${}={}".format(reg, saved_registers[reg]))
