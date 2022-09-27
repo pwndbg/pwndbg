@@ -65,18 +65,9 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 heap_bugs.out: heap_bugs.c
 	@echo "[+] Building heap_bugs.out"
 	${ZIGCC} \
+    -Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
 	-target native-native-gnu.2.33 \
 	-Wl,-rpath=${GLIBC_2_33}:\
-	${GLIBC_2_33}/math:\
-	${GLIBC_2_33}/elf:\
-	${GLIBC_2_33}/dlfcn:\
-	${GLIBC_2_33}/nss:\
-	${GLIBC_2_33}/nis:\
-	${GLIBC_2_33}/rt:\
-	${GLIBC_2_33}/resolv:\
-	${GLIBC_2_33}/crypt:\
-	${GLIBC_2_33}/nptl_db:\
-	${GLIBC_2_33}/nptl:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 	${CFLAGS} -o heap_bugs.out heap_bugs.c
 
