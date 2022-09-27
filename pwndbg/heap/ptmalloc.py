@@ -39,6 +39,9 @@ class Chunk:
         self._prev_size = None
         self._size = None
         self._flags = None
+        self._non_main_arena = None
+        self._is_mmapped = None
+        self._prev_inuse = None
         self._fd = None
         self._bk = None
         # TODO fd_nextsize, bk_nextsize, key, REVEAL_PTR etc.
@@ -79,12 +82,39 @@ class Chunk:
             sz = self.size
             if sz is not None:
                 self._flags = {
-                    "non_main_arena": bool(sz & ptmalloc.NON_MAIN_ARENA),
-                    "is_mmapped": bool(sz & ptmalloc.IS_MMAPPED),
-                    "prev_inuse": bool(sz & ptmalloc.PREV_INUSE),
+                    "non_main_arena": self.non_main_arena,
+                    "is_mmapped": self.is_mmapped,
+                    "prev_inuse": self.prev_inuse,
                 }
 
         return self._flags
+
+    @property
+    def non_main_arena(self):
+        if self._non_main_arena is None:
+            sz = self.size
+            if sz is not None:
+                self._non_main_arena = bool(sz & ptmalloc.NON_MAIN_ARENA)
+
+        return self._non_main_arena
+
+    @property
+    def is_mmapped(self):
+        if self._is_mmapped is None:
+            sz = self.size
+            if sz is not None:
+                self._is_mmapped = bool(sz & ptmalloc.IS_MMAPPED)
+
+        return self._is_mmapped
+
+    @property
+    def prev_inuse(self):
+        if self._prev_inuse is None:
+            sz = self.size
+            if sz is not None:
+                self._prev_inuse = bool(sz & ptmalloc.PREV_INUSE)
+
+        return self._prev_inuse
 
     @property
     def fd(self):

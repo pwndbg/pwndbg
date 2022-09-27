@@ -122,6 +122,16 @@ def template_heap_command(addr):
     if chunk.size is not None:
         print(f"chunk.size: 0x{chunk.size:02x}")
 
+    # Flags may be retrieved individually or as a dictionary of all 3.
+    if chunk.non_main_arena is not None:
+        print(f"chunk.non_main_arena: {chunk.non_main_arena}")
+
+    if chunk.is_mmapped is not None:
+        print(f"chunk.is_mmapped: {chunk.is_mmapped}")
+
+    if chunk.prev_inuse is not None:
+        print(f"chunk.prev_inuse: {chunk.prev_inuse}")
+
     if chunk.flags is not None:
         print(f"chunk.flags: {chunk.flags}")
 
