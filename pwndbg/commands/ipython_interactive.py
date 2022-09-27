@@ -32,7 +32,9 @@ def ipi():
     with switch_to_ipython_env():
         # Use `gdb.execute` to embed IPython into GDB's variable scope
         code4ipython = """import IPython
+import jedi
 import pwn
+jedi.Interpreter._allow_descriptor_getattr_default = False
 IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False)
 """.strip().replace(
             "\n", ";"
