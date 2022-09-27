@@ -13,12 +13,9 @@ class Arch:
         self.ptrmask = (1 << 8 * ptrsize) - 1
         self.endian = endian
 
-        self.fmt = {
-            (4, "little"): "<I",
-            (4, "big"): ">I",
-            (8, "little"): "<Q",
-            (8, "big"): ">Q",
-        }.get((self.ptrsize, self.endian))
+        self.fmt = {(4, "little"): "<I", (4, "big"): ">I", (8, "little"): "<Q", (8, "big"): ">Q",}[
+            (self.ptrsize, self.endian)
+        ]  # type: str
 
         if self.name == "arm" and self.endian == "big":
             self.qemu = "armeb"
@@ -39,4 +36,4 @@ class Arch:
         return self.unpack(self.pack(integer), signed=True)  # type: ignore
 
     def unsigned(self, integer: int) -> int:
-        return self.unpack(self.pack(integer))
+        return self.unpack(self.pack(integer))  # type: ignore
