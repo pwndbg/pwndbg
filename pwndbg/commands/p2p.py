@@ -1,4 +1,6 @@
 import argparse
+from typing import List
+from typing import Optional
 
 import pwndbg.color
 import pwndbg.commands
@@ -78,7 +80,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
 
 
-def maybe_points_to_ranges(ptr: int, rs: [AddrRange]):
+def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
     try:
         pointee = pwndbg.gdblib.memory.pvoid(ptr)
     except Exception:
@@ -110,7 +112,7 @@ def p2p_walk(addr, ranges, current_level):
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: [] = None):
+def p2p(mapping_names: Optional[List] = None):
 
     if not mapping_names:
         return

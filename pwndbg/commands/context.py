@@ -4,6 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from io import open
+from typing import Dict
 
 import gdb
 
@@ -66,7 +67,7 @@ config_context_sections = pwndbg.config.Parameter(
 )
 
 # Storing output configuration per section
-outputs = {}
+outputs = {}  # type: Dict[str,str]
 output_settings = {}
 
 

@@ -7,6 +7,8 @@ related information.
 import functools
 import sys
 from types import ModuleType
+from typing import Any
+from typing import Callable
 
 import gdb
 
@@ -78,6 +80,7 @@ class module(ModuleType):
         return wrapper
 
 
+OnlyWhenRunning: Callable[[Any], Any]
 # To prevent garbage collection
 tether = sys.modules[__name__]
 

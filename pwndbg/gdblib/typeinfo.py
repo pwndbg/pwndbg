@@ -13,6 +13,7 @@ import pwndbg.lib.memoize
 import pwndbg.lib.tempfile
 
 module = sys.modules[__name__]
+ptrsize: int
 
 
 def lookup_types(*types):
