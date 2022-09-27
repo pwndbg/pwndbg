@@ -44,18 +44,27 @@ class Chunk:
         self._prev_inuse = None
         self._fd = None
         self._bk = None
+
         # TODO fd_nextsize, bk_nextsize, key, REVEAL_PTR etc.
+
+    # Some chunk fields were renamed in GLIBC 2.25 master branch.
+    def __match_renamed_field(self, field):
+        field_renames = {
+            "size": ["size", "mchunk_size"],
+            "prev_size": ["prev_size", "mchunk_prev_size"],
+        }
+
+        for field_name in field_renames[field]:
+            if field_name in (f.name for f in self._gdbValue.type.fields()):
+                return field_name
+
+        raise ValueError(f"Chunk field name did not match any of {field_renames[field]}.")
 
     @property
     def prev_size(self):
         if self._prev_size is None:
-            if "mchunk_prev_size" in (field.name for field in self._gdbValue.type.fields()):
-                prev_size_field_name = "mchunk_prev_size"
-            else:
-                prev_size_field_name = "prev_size"
-
             try:
-                self._prev_size = int(self._gdbValue[prev_size_field_name])
+                self._prev_size = int(self._gdbValue[self.__match_renamed_field("prev_size")])
             except gdb.MemoryError:
                 pass
 
@@ -64,13 +73,8 @@ class Chunk:
     @property
     def size(self):
         if self._size is None:
-            if "mchunk_size" in (field.name for field in self._gdbValue.type.fields()):
-                size_field_name = "mchunk_size"
-            else:
-                size_field_name = "size"
-
             try:
-                self._size = int(self._gdbValue[size_field_name])
+                self._size = int(self._gdbValue[self.__match_renamed_field("size")])
             except gdb.MemoryError:
                 pass
 
