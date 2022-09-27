@@ -29,11 +29,11 @@ class Arch:
     def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data: bytearray) -> int:
+    def unpack(self, data: bytes) -> int:
         return struct.unpack(self.fmt, data)[0]
 
     def signed(self, integer: int) -> int:
         return self.unpack(self.pack(integer), signed=True)  # type: ignore
 
     def unsigned(self, integer: int) -> int:
-        return self.unpack(self.pack(integer))  # type: ignore
+        return self.unpack(self.pack(integer))
