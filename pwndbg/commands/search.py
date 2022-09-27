@@ -3,6 +3,7 @@ import binascii
 import codecs
 import os
 import struct
+from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -13,7 +14,7 @@ import pwndbg.search
 import pwndbg.vmmap
 from pwndbg.color import message
 
-saved = set()
+saved = set()  # type:Set[int]
 
 
 def print_search_hit(address):

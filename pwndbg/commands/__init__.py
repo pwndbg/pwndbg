@@ -1,6 +1,8 @@
 import argparse
 import functools
 import io
+from typing import Dict
+from typing import List
 
 import gdb
 
@@ -15,7 +17,7 @@ import pwndbg.hexdump
 import pwndbg.symbol
 import pwndbg.ui
 
-commands = []
+commands = []  # type: List[Command]
 command_names = set()
 
 
@@ -50,7 +52,7 @@ class Command(gdb.Command):
     """Generic command wrapper"""
 
     builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
-    history = {}
+    history = {}  # type: Dict[int,str]
 
     def __init__(self, function, prefix=False, command_name=None):
         if command_name is None:

@@ -915,11 +915,11 @@ def try_free(addr):
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
         if tc_idx < allocator.mp["tcache_bins"]:
             print(message.notice("Tcache checks"))
-            e = addr + 2 * size_sz
-            e += allocator.tcache_entry.keys().index("key") * ptr_size
-            e = pwndbg.gdblib.memory.pvoid(e)
+            e_addr = addr + 2 * size_sz
+            e_addr += allocator.tcache_entry.keys().index("key") * ptr_size
+            e_addr = pwndbg.gdblib.memory.pvoid(e)
             tcache_addr = int(allocator.thread_cache.address)
-            if e == tcache_addr:
+            if e_addr == tcache_addr:
                 # todo, actually do checks
                 print(
                     message.error(

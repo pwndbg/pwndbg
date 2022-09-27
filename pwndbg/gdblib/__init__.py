@@ -3,4 +3,4 @@
 from pwndbg.gdblib import arch as arch_mod
 from pwndbg.gdblib.arch import arch
 
-from . import ctypes
+__all__ = ["ctypes", "memory", "typeinfo"]

@@ -26,6 +26,23 @@ import gdb
 
 import pwndbg.decorators
 
+main_arena: int
+thread_arena: int
+mp_: int
+tcache: int
+debug_events: int
+syntax_highlight: int
+hexdump_width: int
+hexdump_bytes: int
+show_compact_regs_min_width: int
+show_flags: bool
+show_retaddr_reg: bool
+left_pad_disasm: bool
+ida_rpc_host: str
+ida_rpc_port: int
+ida_enabled: bool
+ida_timeout: int
+glibc: str
 TYPES = collections.OrderedDict()
 
 # The value is a plain boolean.
@@ -226,7 +243,7 @@ class Parameter(gdb.Parameter):
         return self.value // other
 
     def __pow__(self, other):
-        return self.value**other
+        return self.value ** other
 
     def __mod__(self, other):
         return self.value % other

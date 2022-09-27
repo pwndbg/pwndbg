@@ -7,6 +7,8 @@ by using a decorator.
 import sys
 from functools import partial
 from functools import wraps
+from typing import Callable
+from typing import List
 
 import gdb
 
