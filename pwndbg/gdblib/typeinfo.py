@@ -171,7 +171,7 @@ def load(name):
         for path in glob.glob(os.path.join(dirname, "*.h")):
             if any(b in path for b in blacklist):
                 continue
-            print(path)
+            # print(path)
             source += '#include "%s"\n' % path
 
     source += """
@@ -208,7 +208,7 @@ def compile(filename=None, address=0):
         gcc = pwndbg.lib.gcc.which(pwndbg.gdblib.arch)
         gcc += ["-w", "-c", "-g", filename, "-o", objectname]
         try:
-            subprocess.check_output(gcc)
+            subprocess.check_output(gcc, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             return
 
