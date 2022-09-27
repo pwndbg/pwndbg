@@ -538,7 +538,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         raise NotImplementedError()
 
     def libc_has_debug_syms(self):
-        return pwndbg.symbol.address("global_max_fast") is not None
+        """
+        The `struct malloc_chunk` comes from debugging symbols and it will not be there
+        for statically linked binaries
+        """
+        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.symbol.address(
+            "global_max_fast"
+        )
 
 
 class DebugSymsHeap(Heap):
