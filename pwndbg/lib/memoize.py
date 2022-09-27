@@ -8,6 +8,7 @@ import functools
 import sys
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
 
 try:
@@ -15,7 +16,7 @@ try:
     from collections.abc import Hashable
 except ImportError:
     # Python < 3.10
-    from collections import Hashable
+    from collections import Hashable  # type: ignore
 
 debug = False
 
@@ -29,7 +30,7 @@ class memoize:
 
     def __init__(self, func: Callable) -> None:
         self.func = func
-        self.cache = {}
+        self.cache = {}  # type: Dict[Any,Any]
         self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
 

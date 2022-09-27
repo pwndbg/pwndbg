@@ -57,18 +57,15 @@ def happy(typename):
     if "unsigned" in typename:
         prefix = "u"
         typename = typename.replace("unsigned ", "")
-    return (
-        prefix
-        + {
-            "char": "char",
-            "short int": "short",
-            "long int": "long",
-            "int": "int",
-            "long long": "longlong",
-            "float": "float",
-            "double": "double",
-        }[typename]
-    )
+    return prefix + {
+        "char": "char",
+        "short int": "short",
+        "long int": "long",
+        "int": "int",
+        "long long": "longlong",
+        "float": "float",
+        "double": "double",
+    }[typename]
 
 
 def dt(name="", addr=None, obj=None):
