@@ -15,6 +15,7 @@ def switch_to_ipython_env():
     # Save GDB's stdout and stderr
     saved_stdout = sys.stdout
     saved_stderr = sys.stderr
+    saved_excepthook = sys.excepthook
     # Use Python's default stdout and stderr
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
@@ -22,9 +23,10 @@ def switch_to_ipython_env():
     # Restore GDB's stdout and stderr
     sys.stdout = saved_stdout
     sys.stderr = saved_stderr
-    # Restore Python's default ps1 and ps2 for GDB's `pi` command
+    # Restore Python's default ps1, ps2, and excepthook for GDB's `pi` command
     sys.ps1 = ">>> "
     sys.ps2 = "... "
+    sys.excepthook = saved_excepthook
 
 
 @pwndbg.commands.ArgparsedCommand("Start an interactive IPython prompt.")
