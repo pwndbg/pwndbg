@@ -37,8 +37,8 @@ class Chunk:
         self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
         self.address = int(self._gdbValue.address)
         self._prev_size = None
-        self._size_field = None
         self._size = None
+        self._real_size = None
         self._flags = None
         self._non_main_arena = None
         self._is_mmapped = None
@@ -74,32 +74,32 @@ class Chunk:
         return self._prev_size
 
     @property
-    def size_field(self):
-        if self._size_field is None:
-            try:
-                self._size_field = int(self._gdbValue[self.__match_renamed_field("size")])
-            except gdb.MemoryError:
-                pass
-
-        return self._size_field
-
-    @property
     def size(self):
         if self._size is None:
             try:
-                self._size = int(
-                    self._gdbValue[self.__match_renamed_field("size")]
-                    & ~(ptmalloc.NON_MAIN_ARENA | ptmalloc.IS_MMAPPED | ptmalloc.PREV_INUSE)
-                )
+                self._size = int(self._gdbValue[self.__match_renamed_field("size")])
             except gdb.MemoryError:
                 pass
 
         return self._size
 
     @property
+    def real_size(self):
+        if self._real_size is None:
+            try:
+                self._real_size = int(
+                    self._gdbValue[self.__match_renamed_field("size")]
+                    & ~(ptmalloc.NON_MAIN_ARENA | ptmalloc.IS_MMAPPED | ptmalloc.PREV_INUSE)
+                )
+            except gdb.MemoryError:
+                pass
+
+        return self._real_size
+
+    @property
     def flags(self):
         if self._flags is None:
-            if self.size_field is not None:
+            if self.size is not None:
                 self._flags = {
                     "non_main_arena": self.non_main_arena,
                     "is_mmapped": self.is_mmapped,
@@ -111,7 +111,7 @@ class Chunk:
     @property
     def non_main_arena(self):
         if self._non_main_arena is None:
-            sz = self.size_field
+            sz = self.size
             if sz is not None:
                 self._non_main_arena = bool(sz & ptmalloc.NON_MAIN_ARENA)
 
@@ -120,7 +120,7 @@ class Chunk:
     @property
     def is_mmapped(self):
         if self._is_mmapped is None:
-            sz = self.size_field
+            sz = self.size
             if sz is not None:
                 self._is_mmapped = bool(sz & ptmalloc.IS_MMAPPED)
 
@@ -129,7 +129,7 @@ class Chunk:
     @property
     def prev_inuse(self):
         if self._prev_inuse is None:
-            sz = self.size_field
+            sz = self.size
             if sz is not None:
                 self._prev_inuse = bool(sz & ptmalloc.PREV_INUSE)
 
