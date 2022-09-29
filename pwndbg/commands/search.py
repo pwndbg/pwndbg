@@ -100,7 +100,6 @@ parser.add_argument(
 parser.add_argument(
     "-x", "--hex", action="store_true", help="Target is a hex-encoded (for bytes/strings)"
 )
-parser.add_argument("-s", "--string", action="store_true", help="Target is a raw string")
 parser.add_argument(
     "-e", "--executable", action="store_true", help="Search executable segments only"
 )
@@ -131,7 +130,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping_name, save, next, trunc_out):
+def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out):
     global saved
     if next and not saved:
         print(
