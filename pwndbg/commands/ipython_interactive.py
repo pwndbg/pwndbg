@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 import gdb
 
+import pwndbg.color.message as M
 import pwndbg.commands
 
 
@@ -33,12 +34,20 @@ def switch_to_ipython_env():
 def ipi():
     with switch_to_ipython_env():
         # Use `gdb.execute` to embed IPython into GDB's variable scope
-        code4ipython = """import IPython
-import jedi
+        try:
+            gdb.execute("pi import IPython")
+        except gdb.error:
+            print(
+                M.warn(
+                    "Cannot import IPython.\n"
+                    "You need to install IPython if you want to use this command.\n"
+                    "Maybe you can try `pip install ipython` first."
+                )
+            )
+            return
+        code4ipython = """import jedi
 import pwn
 jedi.Interpreter._allow_descriptor_getattr_default = False
 IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False)
-""".strip().replace(
-            "\n", ";"
-        )
-        gdb.execute(f"pi {code4ipython}")
+"""
+        gdb.execute(f"py\n{code4ipython}")
