@@ -38,6 +38,7 @@ class Chunk:
         self.address = int(self._gdbValue.address)
         self._prev_size = None
         self._size_field = None
+        self._size = None
         self._flags = None
         self._non_main_arena = None
         self._is_mmapped = None
@@ -79,6 +80,19 @@ class Chunk:
                 pass
 
         return self._size_field
+
+    @property
+    def size(self):
+        if self._size is None:
+            try:
+                self._size = int(
+                    self._gdbValue[self.__match_renamed_field("size")]
+                    & ~(ptmalloc.NON_MAIN_ARENA | ptmalloc.IS_MMAPPED | ptmalloc.PREV_INUSE)
+                )
+            except gdb.MemoryError:
+                pass
+
+        return self._size
 
     @property
     def flags(self):
