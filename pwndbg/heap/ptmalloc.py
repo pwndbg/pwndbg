@@ -83,8 +83,7 @@ class Chunk:
     @property
     def flags(self):
         if self._flags is None:
-            sz = self.size
-            if sz is not None:
+            if self.size is not None:
                 self._flags = {
                     "non_main_arena": self.non_main_arena,
                     "is_mmapped": self.is_mmapped,
