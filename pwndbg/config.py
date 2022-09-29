@@ -243,7 +243,7 @@ class Parameter(gdb.Parameter):
         return self.value // other
 
     def __pow__(self, other):
-        return self.value ** other
+        return self.value**other
 
     def __mod__(self, other):
         return self.value % other
