@@ -45,8 +45,9 @@ class Chunk:
         self._prev_inuse = None
         self._fd = None
         self._bk = None
+        self._fd_nextsize = None
 
-        # TODO fd_nextsize, bk_nextsize, key, REVEAL_PTR etc.
+        # TODO bk_nextsize, key, REVEAL_PTR
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
     def __match_renamed_field(self, field):
@@ -152,6 +153,16 @@ class Chunk:
                 pass
 
         return self._bk
+
+    @property
+    def fd_nextsize(self):
+        if self._fd_nextsize is None:
+            try:
+                self._fd_nextsize = int(self._gdbValue["fd_nextsize"])
+            except gdb.MemoryError:
+                pass
+
+        return self._fd_nextsize
 
     # TODO Other useful methods e.g. next_chunk(), __iter__, __str__
 
