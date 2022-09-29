@@ -10,10 +10,11 @@ import pwndbg.config
 import pwndbg.lib.memoize
 import pwndbg.lib.stdio
 
-try:
-    import ipdb as pdb
-except ImportError:
-    pass
+with pwndbg.lib.stdio.stdio:
+    try:
+        import ipdb as pdb
+    except ImportError:
+        pass
 
 verbose = pwndbg.config.Parameter(
     "exception-verbose",
