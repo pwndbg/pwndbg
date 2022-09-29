@@ -8,22 +8,17 @@ import gdb
 
 import pwndbg.color.message as M
 import pwndbg.commands
+import pwndbg.lib.stdio
 
 
 @contextmanager
 def switch_to_ipython_env():
     """We need to change stdout/stderr to the default ones, otherwise we can't use tab or autocomplete"""
-    # Save GDB's stdout and stderr
-    saved_stdout = sys.stdout
-    saved_stderr = sys.stderr
+    # Save GDB's excepthook
     saved_excepthook = sys.excepthook
-    # Use Python's default stdout and stderr
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__
-    yield
-    # Restore GDB's stdout and stderr
-    sys.stdout = saved_stdout
-    sys.stderr = saved_stderr
+    # Switch to default stdout/stderr
+    with pwndbg.lib.stdio.stdio:
+        yield
     # Restore Python's default ps1, ps2, and excepthook for GDB's `pi` command
     sys.ps1 = ">>> "
     sys.ps2 = "... "
