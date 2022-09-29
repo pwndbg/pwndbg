@@ -317,20 +317,22 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
             if allocator.has_tcache():
                 tcachebins = allocator.tcachebins(None)
 
-            if chunk.size in fastbins.keys() and chunk.address in fastbins[chunk.size]:
+            if chunk.real_size in fastbins.keys() and chunk.address in fastbins[chunk.real_size]:
                 headers_to_print.append(message.on("Free chunk (fastbins)"))
                 if not verbose:
                     fields_to_print.add("fd")
 
-            elif chunk.size in smallbins.keys() and chunk.address in bin_addrs(
-                smallbins[chunk.size], "smallbins"
+            elif chunk.real_size in smallbins.keys() and chunk.address in bin_addrs(
+                smallbins[chunk.real_size], "smallbins"
             ):
                 headers_to_print.append(message.on("Free chunk (smallbins)"))
                 if not verbose:
                     fields_to_print.update(["fd", "bk"])
 
-            elif chunk.size >= list(largebins.items())[0][0] and chunk.address in bin_addrs(
-                largebins[(list(largebins.items())[allocator.largebin_index(chunk.size) - 64][0])],
+            elif chunk.real_size >= list(largebins.items())[0][0] and chunk.address in bin_addrs(
+                largebins[
+                    (list(largebins.items())[allocator.largebin_index(chunk.real_size) - 64][0])
+                ],
                 "largebins",
             ):
                 headers_to_print.append(message.on("Free chunk (largebins)"))
@@ -344,8 +346,9 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
 
             elif (
                 allocator.has_tcache()
-                and chunk.size in tcachebins.keys()
-                and chunk.address + ptr_size * 2 in bin_addrs(tcachebins[chunk.size], "tcachebins")
+                and chunk.real_size in tcachebins.keys()
+                and chunk.address + ptr_size * 2
+                in bin_addrs(tcachebins[chunk.real_size], "tcachebins")
             ):
                 headers_to_print.append(message.on("Free chunk (tcache)"))
                 if not verbose:
@@ -357,9 +360,9 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
     else:
-        out_fields += "Size: 0x{:02x}\n".format(chunk.size_field)
+        out_fields += "Size: 0x{:02x}\n".format(chunk.size)
 
-    prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size_field)
+    prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
         headers_to_print.append(message.hint("PREV_INUSE"))
     if is_mmapped:
