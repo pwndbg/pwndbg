@@ -150,28 +150,6 @@ class Command(gdb.Command):
             pwndbg.exception.handle(self.function.__name__)
 
 
-class ParsedCommand(Command):
-    #: Whether to return the string 'arg' if parsing fails.
-    sloppy = False
-
-    #: Whether to hide errors during parsing
-    quiet = False
-
-    def split_args(self, argument):
-        # sys.stdout.write(repr(argument) + '\n')
-        argv, _ = super(ParsedCommand, self).split_args(argument)
-        # sys.stdout.write(repr(argv) + '\n')
-        return list(filter(lambda x: x is not None, map(self.fix, argv))), {}
-
-    def fix(self, arg):
-        return fix(arg, self.sloppy, self.quiet)
-
-
-class ParsedCommandPrefix(ParsedCommand):
-    def __init__(self, function, prefix=True):
-        super(ParsedCommand, self).__init__(function, prefix)
-
-
 def fix(arg, sloppy=False, quiet=True, reraise=False):
     """Fix a single command-line argument coming from the GDB CLI.
 

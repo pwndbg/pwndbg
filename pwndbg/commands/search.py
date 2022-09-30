@@ -112,7 +112,8 @@ parser.add_argument(
     "--save",
     action="store_true",
     default=None,
-    help="Save results for --resume.  Default comes from config %r" % auto_save.name,
+    help="Save results for further searches with --next. Default comes from config %r"
+    % auto_save.name,
 )
 parser.add_argument(
     "--no-save", action="store_false", default=None, dest="save", help="Invert --save"
