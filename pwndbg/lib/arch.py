@@ -13,7 +13,7 @@ class Arch:
         self.ptrmask = (1 << 8 * ptrsize) - 1
         self.endian = endian
 
-        self.fmt = {(4, "little"): "<I", (4, "big"): ">I", (8, "little"): "<Q", (8, "big"): ">Q",}[
+        self.fmt = {(4, "little"): "<I", (4, "big"): ">I", (8, "little"): "<Q", (8, "big"): ">Q"}[
             (self.ptrsize, self.endian)
         ]  # type: str
 
