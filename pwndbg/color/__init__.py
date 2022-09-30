@@ -131,7 +131,12 @@ def generateColorFunctionInner(old, new):
 
 
 def generateColorFunction(config):
-    function = lambda x: x
+    # the `x` here may be a config Parameter object
+    # and if we run with disable_colors or if the config value
+    # is empty, we need to ensure we cast it to string
+    # so it can be properly formatted e.g. with:
+    # "{config_param:5}".format(config_param=some_config_parameter)
+    function = lambda x: str(x)
 
     if disable_colors:
         return function
