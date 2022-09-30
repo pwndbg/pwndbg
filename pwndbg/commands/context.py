@@ -654,7 +654,7 @@ def get_filename_and_formatted_source():
     source = source[start:end]
 
     # Compute the prefix_sign length
-    prefix_sign = pwndbg.config.code_prefix
+    prefix_sign = C.prefix(str(pwndbg.config.code_prefix))
     prefix_width = len(prefix_sign)
 
     # Format the output
@@ -665,7 +665,7 @@ def get_filename_and_formatted_source():
             fmt = C.highlight(fmt)
 
         line = fmt.format(
-            prefix_sign=C.prefix(prefix_sign) if line_number == closest_line else "",
+            prefix_sign=prefix_sign if line_number == closest_line else "",
             prefix_width=prefix_width,
             line_number=line_number,
             num_width=num_width,
