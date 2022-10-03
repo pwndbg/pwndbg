@@ -9,7 +9,8 @@ TIPS = [
     "Use GDB's `pi` command to run an interactive Python console where you can use Pwndbg APIs like `pwndbg.gdblib.memory.read(addr, len)`, `pwndbg.gdblib.memory.write(addr, data)`, `pwndbg.gdb.vmmap.get()` and so on!",
     "GDB's `set directories <path>` parameter can be used to debug e.g. glibc sources like the malloc/free functions!",
     # Pwndbg hints
-    "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`.",
+    "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
+    "The `set show-flags on` setting will display CPU flags register in the regs context panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param> <value>` GDB commands",
     "Use Pwndbg's `config` and `theme` commands to tune its configuration and theme colors!",
     "Pwndbg mirrors some of Windbg commands like `eq`, `ew`, `ed`, `eb`, `es`, `dq`, `dw`, `dd`, `db`, `ds` for writing and reading memory",
