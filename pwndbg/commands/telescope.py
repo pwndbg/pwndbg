@@ -50,18 +50,20 @@ parser = argparse.ArgumentParser(
     """
 )
 parser.add_argument(
-    "address", nargs="?", default=None, type=int, help="The address to telescope at."
-)
-parser.add_argument(
-    "count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show."
-)
-parser.add_argument(
     "-r",
     "--reverse",
     dest="reverse",
     action="store_true",
     default=False,
     help="Show <count> previous addresses instead of next ones",
+)
+
+parser.add_argument(
+    "address", nargs="?", default=None, type=int, help="The address to telescope at."
+)
+
+parser.add_argument(
+    "count", nargs="?", default=telescope_lines, type=int, help="The number of lines to show."
 )
 
 
@@ -84,14 +86,14 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
 
-    # Allow invocation of telescope -r to dump previous addresses
-    if reverse:
-        address -= (count - 1) * ptrsize
-
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR and not pwndbg.gdblib.memory.peek(address):
         count = address
         address = pwndbg.gdblib.regs.sp
+
+    # Allow invocation of telescope -r to dump previous addresses
+    if reverse:
+        address -= (count - 1) * ptrsize
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
     if int(address) <= int(count):
@@ -103,7 +105,6 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     reg_values = collections.defaultdict(lambda: [])
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
-    # address    = pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
 
     start = address
     stop = address + (count * ptrsize)

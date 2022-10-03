@@ -1,5 +1,8 @@
+import re
+
 import gdb
 
+import pwndbg.gdblib
 import tests
 
 TELESCOPE_BINARY = tests.binaries.get("telescope_binary.out")
@@ -55,5 +58,27 @@ def test_command_telescope_n_records(start_binary):
 
     n = 3
     gdb.execute("entry")
-    result_str = gdb.execute("telescope $rsp {}".format(n), to_string=True)
-    assert len(result_str.strip("\n").split("\n")) == n
+    result = gdb.execute("telescope $rsp {}".format(n), to_string=True).strip().splitlines()
+    assert len(result) == n
+
+
+def test_telescope_command_with_address_as_count(start_binary):
+    start_binary(TELESCOPE_BINARY)
+
+    out = gdb.execute("telescope 2", to_string=True).splitlines()
+    rsp = pwndbg.gdblib.regs.rsp
+
+    assert len(out) == 2
+    assert out[0] == "00:0000│ rsp %#x ◂— 0x1" % rsp
+
+    expected = r"01:0008│     %#x —▸ 0x[0-9a-f]+ ◂— '%s'" % (rsp + 8, pwndbg.proc.exe)
+    assert re.search(expected, out[1])
+
+
+def test_telescope_command_with_address_as_count_and_reversed_flag(start_binary):
+    start_binary(TELESCOPE_BINARY)
+
+    out = gdb.execute("telescope -r 2", to_string=True).splitlines()
+    rsp = pwndbg.gdblib.regs.rsp
+
+    assert out == ["00:0000│     %#x ◂— 0x0" % (rsp - 8), "01:0008│ rsp %#x ◂— 0x1" % rsp]
