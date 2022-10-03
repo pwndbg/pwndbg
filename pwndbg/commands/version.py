@@ -113,7 +113,9 @@ please provide the smallest C code that reproduces the issue.
 -->
 
 Gdb session history:
+```
 {gdb_history}
+```
 
 ### My setup
 
@@ -132,7 +134,9 @@ If it is somehow unavailable, use:
 * pwndbg version/git commit id
 -->
 
-{setup}"""
+```
+{setup}
+```"""
 
     gdb_config = gdb.execute("show configuration", to_string=True).split("\n")
     all_info = all_versions()
