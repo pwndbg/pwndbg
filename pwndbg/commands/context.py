@@ -482,7 +482,11 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     if pwndbg.config.show_compact_regs:
         regs = compact_regs(regs, target=target, width=width)
 
-    banner = [pwndbg.ui.banner("registers", target=target, width=width)]
+    info = " / show-flags %s / show-compact-regs %s" % (
+        "on" if pwndbg.config.show_flags else "off",
+        "on" if pwndbg.config.show_compact_regs else "off",
+    )
+    banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
 
 
