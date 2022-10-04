@@ -34,7 +34,10 @@ def heap_for_ptr(ptr):
 
 class Chunk:
     def __init__(self, addr):
-        self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+        if type(pwndbg.heap.current.malloc_chunk) == gdb.Type:
+            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+        else:
+            self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
         self._prev_size = None
         self._size = None
