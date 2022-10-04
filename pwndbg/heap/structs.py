@@ -72,8 +72,39 @@ C2GDB_MAPPING = {
 }
 
 
+class FakeGDBField:
+    """
+    Fake gdb.Field for compatibility
+    """
+
+    def __init__(
+        self,
+        bitpos,
+        name,
+        type,
+        parent_type,
+        enumval=None,
+        artificial=False,
+        is_base_class=False,
+        bitsize=0,
+    ):
+        # Note: pwndbg only uses `name` currently
+        self.bitpos = bitpos
+        self.name = name
+        self.type = type
+        self.parent_type = parent_type
+        if enumval:
+            self.enumval = enumval
+        self.artificial = artificial
+        self.is_base_class = is_base_class
+        self.bitsize = bitsize
+
+
 class CStruct2GDB:
     _c_struct = None
+
+    def __init__(self, address: int) -> None:
+        self.address = address
 
     def __int__(self) -> int:
         """
@@ -120,9 +151,34 @@ class CStruct2GDB:
     @property
     def type(self):
         """
-        Returns self to make it compatible with the `gdb.Value` interface.
+        Returns type(self) to make it compatible with the `gdb.Value` interface.
         """
-        return self
+        return type(self)
+
+    @classmethod
+    def fields(cls):
+        """
+        Return fields of the struct to make it compatible with the `gdb.Type` interface.
+        """
+        fake_gdb_fields = []
+        for f in cls._c_struct._fields_:
+            field_name = f[0]
+            field_type = f[1]
+            bitpos = getattr(cls._c_struct, field_name).offset * 8
+            if hasattr(field_type, "_length_"):  # f is a ctypes Array
+                t = C2GDB_MAPPING[field_type._type_]
+                _type = t.array(field_type._length_ - 1)
+            else:
+                _type = C2GDB_MAPPING[field_type]
+            fake_gdb_fields.append(FakeGDBField(bitpos, field_name, _type, cls))
+        return fake_gdb_fields
+
+    @classmethod
+    def keys(cls) -> list:
+        """
+        Return a list of the names of the fields in the struct to make it compatible with the `gdb.Type` interface.
+        """
+        return [f[0] for f in cls._c_struct._fields_]
 
     def get_field_address(self, field: str) -> int:
         """
@@ -280,18 +336,6 @@ class MallocState(CStruct2GDB):
         _c_struct = c_malloc_state_2_26
     sizeof = ctypes.sizeof(_c_struct)
 
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        if pwndbg.glibc.get_version() >= (2, 27):
-            return tuple(field[0] for field in c_malloc_state_2_27._fields_)
-        return tuple(field[0] for field in c_malloc_state_2_26._fields_)
-
 
 class c_heap_info(ctypes.LittleEndianStructure):
     """
@@ -329,16 +373,6 @@ class HeapInfo(CStruct2GDB):
 
     _c_struct = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
-
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        return tuple(field[0] for field in c_heap_info._fields_)
 
 
 class c_malloc_chunk(ctypes.LittleEndianStructure):
@@ -378,16 +412,6 @@ class MallocChunk(CStruct2GDB):
 
     _c_struct = c_malloc_chunk
     sizeof = ctypes.sizeof(_c_struct)
-
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        return tuple(field[0] for field in c_malloc_chunk._fields_)
 
 
 class c_tcache_perthread_struct_2_29(ctypes.LittleEndianStructure):
@@ -439,18 +463,6 @@ class TcachePerthreadStruct(CStruct2GDB):
         _c_struct = c_tcache_perthread_struct_2_29
     sizeof = ctypes.sizeof(_c_struct)
 
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        if pwndbg.glibc.get_version() >= (2, 30):
-            return tuple(field[0] for field in c_tcache_perthread_struct_2_30._fields_)
-        return tuple(field[0] for field in c_tcache_perthread_struct_2_29._fields_)
-
 
 class c_tcache_entry_2_28(ctypes.LittleEndianStructure):
     """
@@ -484,7 +496,7 @@ class c_tcache_entry_2_29(ctypes.LittleEndianStructure):
     _fields_ = [("next", c_pvoid), ("key", c_pvoid)]
 
 
-class TcacheEntry:
+class TcacheEntry(CStruct2GDB):
     """
     This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
     """
@@ -494,18 +506,6 @@ class TcacheEntry:
     else:
         _c_struct = c_tcache_entry_2_28
     sizeof = ctypes.sizeof(_c_struct)
-
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        if pwndbg.glibc.get_version() >= (2, 29):
-            return tuple(field[0] for field in c_tcache_entry_2_29._fields_)
-        return tuple(field[0] for field in c_tcache_entry_2_28._fields_)
 
 
 class c_malloc_par_2_25(ctypes.LittleEndianStructure):
@@ -631,15 +631,3 @@ class MallocPar(CStruct2GDB):
     else:
         _c_struct = c_malloc_par_2_25
     sizeof = ctypes.sizeof(_c_struct)
-
-    def __init__(self, address: int) -> None:
-        self.address = address
-
-    @staticmethod
-    def keys() -> tuple:
-        """
-        Return a tuple of the names of the fields in the struct.
-        """
-        if pwndbg.glibc.get_version() >= (2, 26):
-            return tuple(field[0] for field in c_malloc_par_2_26._fields_)
-        return tuple(field[0] for field in c_malloc_par_2_25._fields_)
