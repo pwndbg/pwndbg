@@ -43,6 +43,6 @@ def ipi():
         code4ipython = """import jedi
 import pwn
 jedi.Interpreter._allow_descriptor_getattr_default = False
-IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False)
+IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=globals())
 """
         gdb.execute(f"py\n{code4ipython}")
