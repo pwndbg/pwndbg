@@ -4,6 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from io import open
+from typing import Dict
 
 import gdb
 
@@ -33,9 +34,24 @@ from pwndbg.color import theme
 def clear_screen(out=sys.stdout):
     """
     Clear the screen by moving the cursor to top-left corner and
-    clear the content
+    clearing the content. Different terminals may act differently
     """
-    out.write("\x1b[H\x1b[J")
+    ## The ANSI escape codes we use here are described e.g. on:
+    # https://en.wikipedia.org/wiki/ANSI_escape_code#CSIsection
+    #
+    ## To sum up the escape codes used below:
+    # \x1b - Escape | Starts all the escape sequences
+    # [ - Control Sequence Introducer | Starts most of the useful sequences
+    # H - Cursor Position | Moves the cursor to row n, column m (default=1)
+    # \x1b - Escape | Starts all the escape sequences
+    # <n> J - Erase in Display | Clears part of the screen.
+    # If n is 0 (or missing), clear from cursor to end of screen.
+    # If n is 1, clear from cursor to beginning of the screen.
+    # If n is 2, clear entire screen (and moves cursor to upper left on DOS ANSI.SYS).
+    # If n is 3, clear entire screen and delete all lines saved in the
+    # scrollback buffer (this feature was added for xterm and is supported
+    # by other terminal applications
+    out.write("\x1b[H\x1b[2J")
 
 
 config_clear_screen = pwndbg.config.Parameter(
@@ -51,7 +67,7 @@ config_context_sections = pwndbg.config.Parameter(
 )
 
 # Storing output configuration per section
-outputs = {}
+outputs = {}  # type: Dict[str,str]
 output_settings = {}
 
 
@@ -466,7 +482,11 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     if pwndbg.config.show_compact_regs:
         regs = compact_regs(regs, target=target, width=width)
 
-    banner = [pwndbg.ui.banner("registers", target=target, width=width)]
+    info = " / show-flags %s / show-compact-regs %s" % (
+        "on" if pwndbg.config.show_flags else "off",
+        "on" if pwndbg.config.show_compact_regs else "off",
+    )
+    banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
 
 
@@ -639,7 +659,7 @@ def get_filename_and_formatted_source():
     source = source[start:end]
 
     # Compute the prefix_sign length
-    prefix_sign = pwndbg.config.code_prefix
+    prefix_sign = C.prefix(str(pwndbg.config.code_prefix))
     prefix_width = len(prefix_sign)
 
     # Format the output
@@ -650,7 +670,7 @@ def get_filename_and_formatted_source():
             fmt = C.highlight(fmt)
 
         line = fmt.format(
-            prefix_sign=C.prefix(prefix_sign) if line_number == closest_line else "",
+            prefix_sign=prefix_sign if line_number == closest_line else "",
             prefix_width=prefix_width,
             line_number=line_number,
             num_width=num_width,

@@ -32,6 +32,155 @@ def heap_for_ptr(ptr):
     return ptr & ~(HEAP_MAX_SIZE - 1)
 
 
+class Chunk:
+    def __init__(self, addr):
+        if type(pwndbg.heap.current.malloc_chunk) == gdb.Type:
+            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+        else:
+            self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
+        self.address = int(self._gdbValue.address)
+        self._prev_size = None
+        self._size = None
+        self._real_size = None
+        self._flags = None
+        self._non_main_arena = None
+        self._is_mmapped = None
+        self._prev_inuse = None
+        self._fd = None
+        self._bk = None
+        self._fd_nextsize = None
+        self._bk_nextsize = None
+
+        # TODO key, REVEAL_PTR
+
+    # Some chunk fields were renamed in GLIBC 2.25 master branch.
+    def __match_renamed_field(self, field):
+        field_renames = {
+            "size": ["size", "mchunk_size"],
+            "prev_size": ["prev_size", "mchunk_prev_size"],
+        }
+
+        for field_name in field_renames[field]:
+            if field_name in (f.name for f in self._gdbValue.type.fields()):
+                return field_name
+
+        raise ValueError(f"Chunk field name did not match any of {field_renames[field]}.")
+
+    @property
+    def prev_size(self):
+        if self._prev_size is None:
+            try:
+                self._prev_size = int(self._gdbValue[self.__match_renamed_field("prev_size")])
+            except gdb.MemoryError:
+                pass
+
+        return self._prev_size
+
+    @property
+    def size(self):
+        if self._size is None:
+            try:
+                self._size = int(self._gdbValue[self.__match_renamed_field("size")])
+            except gdb.MemoryError:
+                pass
+
+        return self._size
+
+    @property
+    def real_size(self):
+        if self._real_size is None:
+            try:
+                self._real_size = int(
+                    self._gdbValue[self.__match_renamed_field("size")]
+                    & ~(ptmalloc.NON_MAIN_ARENA | ptmalloc.IS_MMAPPED | ptmalloc.PREV_INUSE)
+                )
+            except gdb.MemoryError:
+                pass
+
+        return self._real_size
+
+    @property
+    def flags(self):
+        if self._flags is None:
+            if self.size is not None:
+                self._flags = {
+                    "non_main_arena": self.non_main_arena,
+                    "is_mmapped": self.is_mmapped,
+                    "prev_inuse": self.prev_inuse,
+                }
+
+        return self._flags
+
+    @property
+    def non_main_arena(self):
+        if self._non_main_arena is None:
+            sz = self.size
+            if sz is not None:
+                self._non_main_arena = bool(sz & ptmalloc.NON_MAIN_ARENA)
+
+        return self._non_main_arena
+
+    @property
+    def is_mmapped(self):
+        if self._is_mmapped is None:
+            sz = self.size
+            if sz is not None:
+                self._is_mmapped = bool(sz & ptmalloc.IS_MMAPPED)
+
+        return self._is_mmapped
+
+    @property
+    def prev_inuse(self):
+        if self._prev_inuse is None:
+            sz = self.size
+            if sz is not None:
+                self._prev_inuse = bool(sz & ptmalloc.PREV_INUSE)
+
+        return self._prev_inuse
+
+    @property
+    def fd(self):
+        if self._fd is None:
+            try:
+                self._fd = int(self._gdbValue["fd"])
+            except gdb.MemoryError:
+                pass
+
+        return self._fd
+
+    @property
+    def bk(self):
+        if self._bk is None:
+            try:
+                self._bk = int(self._gdbValue["bk"])
+            except gdb.MemoryError:
+                pass
+
+        return self._bk
+
+    @property
+    def fd_nextsize(self):
+        if self._fd_nextsize is None:
+            try:
+                self._fd_nextsize = int(self._gdbValue["fd_nextsize"])
+            except gdb.MemoryError:
+                pass
+
+        return self._fd_nextsize
+
+    @property
+    def bk_nextsize(self):
+        if self._bk_nextsize is None:
+            try:
+                self._bk_nextsize = int(self._gdbValue["bk_nextsize"])
+            except gdb.MemoryError:
+                pass
+
+        return self._bk_nextsize
+
+    # TODO Other useful methods e.g. next_chunk(), __iter__, __str__
+
+
 class Arena:
     def __init__(self, addr, heaps):
         self.addr = addr
@@ -538,7 +687,13 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         raise NotImplementedError()
 
     def libc_has_debug_syms(self):
-        return pwndbg.symbol.address("global_max_fast") is not None
+        """
+        The `struct malloc_chunk` comes from debugging symbols and it will not be there
+        for statically linked binaries
+        """
+        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.symbol.address(
+            "global_max_fast"
+        )
 
 
 class DebugSymsHeap(Heap):

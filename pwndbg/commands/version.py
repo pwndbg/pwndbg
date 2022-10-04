@@ -108,21 +108,21 @@ Briefly describe the problem you are having in a few paragraphs.
 
 <!--
 What do we have to do to reproduce the problem?
-If this is connected to particular C/asm code,
-please provide the smallest C code that reproduces the issue.
+If this is connected to particular C/asm code or a binary,
+please provide the binary or if possible, a smallest C code that reproduces the issue.
 -->
 
 Gdb session history:
+```
 {gdb_history}
+```
 
 ### My setup
 
 <!--
 Show us your gdb/python/pwndbg/OS/IDA Pro version (depending on your case).
 
-NOTE: We are currently supporting only Ubuntu installations.
-It is known that pwndbg is not fully working e.g. on Arch Linux (the heap stuff is not working there).
-If you would like to change this situation - help us improving pwndbg and supporting other distros!
+NOTE: We are currently testing Pwndbg only on Ubuntu installations but it should work fine on other distros as well.
 
 This can be displayed in pwndbg through `version` command.
 
@@ -132,7 +132,9 @@ If it is somehow unavailable, use:
 * pwndbg version/git commit id
 -->
 
-{setup}"""
+```
+{setup}
+```"""
 
     gdb_config = gdb.execute("show configuration", to_string=True).split("\n")
     all_info = all_versions()

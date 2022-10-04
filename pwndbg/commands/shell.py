@@ -60,8 +60,8 @@ shellcmd_names = [
     "zsh",
 ]
 
-pwncmds = filter(pwndbg.lib.which.which, pwncmds)
-shellcmds = filter(pwndbg.lib.which.which, shellcmd_names)
+pwncmds = list(filter(pwndbg.lib.which.which, pwncmds))
+shellcmds = list(filter(pwndbg.lib.which.which, shellcmd_names))
 
 
 def register_shell_function(cmd, deprecated=False):

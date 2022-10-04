@@ -25,6 +25,7 @@ import pwndbg.commands.got
 import pwndbg.commands.heap
 import pwndbg.commands.hexdump
 import pwndbg.commands.ida
+import pwndbg.commands.ipython_interactive
 import pwndbg.commands.leakfind
 import pwndbg.commands.memoize
 import pwndbg.commands.misc

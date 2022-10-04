@@ -3,6 +3,7 @@ import binascii
 import codecs
 import os
 import struct
+from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -13,7 +14,7 @@ import pwndbg.search
 import pwndbg.vmmap
 from pwndbg.color import message
 
-saved = set()
+saved = set()  # type:Set[int]
 
 
 def print_search_hit(address):
@@ -100,7 +101,6 @@ parser.add_argument(
 parser.add_argument(
     "-x", "--hex", action="store_true", help="Target is a hex-encoded (for bytes/strings)"
 )
-parser.add_argument("-s", "--string", action="store_true", help="Target is a raw string")
 parser.add_argument(
     "-e", "--executable", action="store_true", help="Search executable segments only"
 )
@@ -113,7 +113,8 @@ parser.add_argument(
     "--save",
     action="store_true",
     default=None,
-    help="Save results for --resume.  Default comes from config %r" % auto_save.name,
+    help="Save results for further searches with --next. Default comes from config %r"
+    % auto_save.name,
 )
 parser.add_argument(
     "--no-save", action="store_false", default=None, dest="save", help="Invert --save"
@@ -131,7 +132,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, string, executable, writable, value, mapping_name, save, next, trunc_out):
+def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out):
     global saved
     if next and not saved:
         print(

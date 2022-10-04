@@ -8,7 +8,7 @@ import pwndbg.commands
 import pwndbg.gdblib.regs
 import pwndbg.symbol
 
-errno.errorcode[0] = "OK"
+errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
 parser = argparse.ArgumentParser(
     description="""

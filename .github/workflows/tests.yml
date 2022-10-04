@@ -10,9 +10,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache for pip
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
@@ -38,12 +38,14 @@ jobs:
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo --preserve-env ./tests.sh
 
     - name: Process coverage data
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         coverage combine
         coverage xml
 
     - name: "Upload coverage to Codecov"
-      uses: codecov/codecov-action@v2
+      if: matrix.os == 'ubuntu-22.04'
+      uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: true
 

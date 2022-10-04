@@ -1,4 +1,5 @@
 import argparse
+from typing import Dict
 
 import pwndbg.commands
 from pwndbg.color import message
@@ -9,7 +10,7 @@ parser.add_argument(
 )
 parser.add_argument("comment", type=str, default=None, help="The text you want to comment")
 
-file_lists = {}  # This saves all comments.
+file_lists = {}  # type:Dict[str,str] #This saves all comments.
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
