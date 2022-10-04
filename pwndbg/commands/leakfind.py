@@ -60,7 +60,9 @@ that point to a section in filename which begin near $rsp, are never 0x48 bytes 
 and are a maximum length of 6.
 """
 parser.formatter_class = argparse.RawDescriptionHelpFormatter
-parser.add_argument("address", nargs="?", default="$sp", help="Starting address to find a leak chain from")
+parser.add_argument(
+    "address", nargs="?", default="$sp", help="Starting address to find a leak chain from"
+)
 parser.add_argument(
     "-p",
     "--page_name",
