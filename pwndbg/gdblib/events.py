@@ -12,8 +12,7 @@ import gdb
 
 import pwndbg.config
 
-debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
-pause = 0
+debug = pwndbg.config.Parameter("debug-events", True, "display internal event debugging info")
 
 
 # There is no GDB way to get a notification when the binary itself
@@ -117,16 +116,6 @@ try:
     registered[gdb.events.register_changed] = []
 except (NameError, AttributeError):
     pass
-
-
-class Pause:
-    def __enter__(self, *a, **kw):
-        global pause
-        pause += 1
-
-    def __exit__(self, *a, **kw):
-        global pause
-        pause -= 1
 
 
 # When performing remote debugging, gdbserver is very noisy about which
