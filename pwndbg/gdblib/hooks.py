@@ -1,3 +1,5 @@
+import gdb
+
 import pwndbg.gdblib.events
 import pwndbg.gdblib.typeinfo
 from pwndbg.gdblib import arch_mod
@@ -27,10 +29,33 @@ def update_arch():
 
 
 @pwndbg.gdblib.events.stop
-@pwndbg.gdblib.events.mem_changed
 @pwndbg.gdblib.events.reg_changed
-def memoize_on_stop():
+@pwndbg.gdblib.events.mem_changed
+def memoize_on_stop(*args):
+    """
+    Reset all caches from pwndbg.lib.memoize.reset_on_stop decorators
+
+    Note that we have a `prompt_hook_on_stop` cached this way which
+    is called in a prompt hook which displays context.
+    """
+    if not args:
+        reset_on_stop._reset()
+        return
+
+    # This should never happen e.g. on stop event without further code changes to this function
+    assert isinstance(args[0], (gdb.RegisterChangedEvent, gdb.MemoryChangedEvent))
+    # On reg/mem changed events we skip clearing of cache of `prompt_hook_on_stop` function
+    # if we don't do it, the prompt hook that calls it will display context after
+    # a register or memory is set by the user which we do not want
+    saved_caches = reset_on_stop.caches[:]
+    prompt_hook_func = next(func for func in saved_caches if func.__name__ == "prompt_hook_on_stop")
+
+    # Actually reset caches, except of the prompt_hook_func
+    reset_on_stop.caches.remove(prompt_hook_func)
     reset_on_stop._reset()
+
+    # Bring back all stop caches
+    reset_on_stop.caches = saved_caches
 
 
 @pwndbg.gdblib.events.before_prompt

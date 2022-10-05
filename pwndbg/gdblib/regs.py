@@ -220,7 +220,10 @@ sys.modules[__name__] = module(__name__, "")
 
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
-def update_last():
+@pwndbg.gdblib.events.reg_changed
+def update_last(*arg):
+    # TODO/FIXME: arg is passed only on reg changed and we know which reg changed
+    # Could we use that info here?
     M = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}

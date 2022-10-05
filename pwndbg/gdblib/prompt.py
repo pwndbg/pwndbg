@@ -63,6 +63,14 @@ def prompt_hook(*a):
 
 @pwndbg.lib.memoize.reset_on_stop
 def prompt_hook_on_stop(*a):
+    """
+    Displays context. We cache it so that it will be executed
+    if and only if the reset_on_stop cache was cleared and that
+    occurs whenever the stop event is triggered - through the
+    `memoize_on_stop` hook. This way, we properly display context
+    only on prompt hooks and only when the program state actually
+    advanced.
+    """
     pwndbg.commands.context.context()
 
 

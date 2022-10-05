@@ -136,7 +136,7 @@ class Pause:
 objfile_cache = dict()
 
 
-def connect(func, event_handler, name=""):
+def connect(func, event_handler, name="", receive_args=False):
     if debug:
         print("Connecting", func.__name__, event_handler)
 
@@ -161,7 +161,10 @@ def connect(func, event_handler, name=""):
             return
 
         try:
-            func()
+            if not receive_args:
+                func()
+            else:
+                func(*a)
         except Exception as e:
             import pwndbg.exception
 
@@ -197,15 +200,25 @@ before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="b
 
 
 def reg_changed(func):
+    """
+    Executed when registers are changed by GDB commands
+
+    Does not trigger when the debugged program execution changes registers
+    """
     try:
-        return connect(func, gdb.events.register_changed, "reg_changed")
+        return connect(func, gdb.events.register_changed, "reg_changed", receive_args=True)
     except AttributeError:
         return func
 
 
 def mem_changed(func):
+    """
+    Executed when memory is changed by GDB commands
+
+    Does not trigger when the debugged program execution changes memory
+    """
     try:
-        return connect(func, gdb.events.memory_changed, "mem_changed")
+        return connect(func, gdb.events.memory_changed, "mem_changed", receive_args=True)
     except AttributeError:
         return func
 
