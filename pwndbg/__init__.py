@@ -138,7 +138,7 @@ set confirm off
 set verbose off
 set pagination off
 set height 0
-set history expansion on
+set history expansion off
 set history save on
 set follow-fork-mode child
 set backtrace past-main on
