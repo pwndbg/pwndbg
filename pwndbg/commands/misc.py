@@ -81,14 +81,16 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
 def pwndbg_(filter_pattern, shell, all_):
     if all_:
-        shell = True
-        non_shell = True
+        shell_cmds = True
+        pwndbg_cmds = True
     elif shell:
-        non_shell = False
+        shell_cmds = True
+        pwndbg_cmds = False
     else:
-        non_shell = True
+        shell_cmds = False
+        pwndbg_cmds = True
 
-    for name, docs in list_and_filter_commands(filter_pattern, non_shell, shell):
+    for name, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
         print("%-20s %s" % (name, docs))
 
 
@@ -111,7 +113,7 @@ def distance(a, b):
     )
 
 
-def list_and_filter_commands(filter_str, non_shell=True, shell=False):
+def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
     sorted_commands = list(pwndbg.commands.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
@@ -122,11 +124,11 @@ def list_and_filter_commands(filter_str, non_shell=True, shell=False):
 
     for c in sorted_commands:
         # If this is a shell command and we didn't ask for shell commands, skip it
-        if c.shell and not shell:
+        if c.shell and not shell_cmds:
             continue
 
         # If this is a normal command and we didn't ask for normal commands, skip it
-        if not c.shell and not non_shell:
+        if not c.shell and not pwndbg_cmds:
             continue
 
         name = c.__name__
