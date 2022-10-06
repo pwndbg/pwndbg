@@ -18,11 +18,10 @@ jobs:
       with:
         python-version: 3.8
 
-    - name: Install linters
+    - name: Install dependencies
       run: |
-        pip install isort
-        pip install black
-        pip install flake8
+        ./setup.sh --user
+        ./setup-test-tools.sh --user
         sudo snap install shfmt
 
     - name: Run linters
