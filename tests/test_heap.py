@@ -1,6 +1,6 @@
-from cmath import exp
 import os
 import tempfile
+from cmath import exp
 
 import gdb
 import pytest
