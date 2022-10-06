@@ -507,3 +507,87 @@ def test_malloc_chunk_command(start_binary):
     assert small_result == small_expected
     assert large_result == large_expected
     assert unsorted_result == unsorted_expected
+
+
+def test_malloc_chunk_command_heuristic(start_binary):
+    start_binary(HEAP_MALLOC_CHUNK)
+    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    allocated_chunk = pwndbg.heap.current.malloc_chunk(
+        gdb.lookup_symbol("allocated_chunk")[0].value()
+    )
+    tcache_chunk = pwndbg.heap.current.malloc_chunk(gdb.lookup_symbol("tcache_chunk")[0].value())
+    fast_chunk = pwndbg.heap.current.malloc_chunk(gdb.lookup_symbol("fast_chunk")[0].value())
+    small_chunk = pwndbg.heap.current.malloc_chunk(gdb.lookup_symbol("small_chunk")[0].value())
+    large_chunk = pwndbg.heap.current.malloc_chunk(gdb.lookup_symbol("large_chunk")[0].value())
+    unsorted_chunk = pwndbg.heap.current.malloc_chunk(
+        gdb.lookup_symbol("unsorted_chunk")[0].value()
+    )
+
+    allocated_result = gdb.execute("malloc_chunk allocated_chunk", to_string=True).splitlines()
+    tcache_result = gdb.execute("malloc_chunk tcache_chunk", to_string=True).splitlines()
+    fast_result = gdb.execute("malloc_chunk fast_chunk", to_string=True).splitlines()
+    small_result = gdb.execute("malloc_chunk small_chunk", to_string=True).splitlines()
+    large_result = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    unsorted_result = gdb.execute("malloc_chunk unsorted_chunk", to_string=True).splitlines()
+
+    allocated_expected = [
+        "Allocated chunk | PREV_INUSE",
+        f"Addr: {allocated_chunk.address}",
+        f"Size: 0x{int(allocated_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in allocated_chunk.type.fields()) else 'size']):02x}",
+        "",
+    ]
+
+    tcache_expected = [
+        f"Free chunk ({'tcache' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
+        f"Addr: {tcache_chunk.address}",
+        f"Size: 0x{int(tcache_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in tcache_chunk.type.fields()) else 'size']):02x}",
+        f"fd: 0x{int(tcache_chunk['fd']):02x}",
+        "",
+    ]
+
+    fast_expected = [
+        "Free chunk (fastbins) | PREV_INUSE",
+        f"Addr: {fast_chunk.address}",
+        f"Size: 0x{int(fast_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in fast_chunk.type.fields()) else 'size']):02x}",
+        f"fd: 0x{int(fast_chunk['fd']):02x}",
+        "",
+    ]
+
+    small_expected = [
+        "Free chunk (smallbins) | PREV_INUSE",
+        f"Addr: {small_chunk.address}",
+        f"Size: 0x{int(small_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in small_chunk.type.fields()) else 'size']):02x}",
+        f"fd: 0x{int(small_chunk['fd']):02x}",
+        f"bk: 0x{int(small_chunk['bk']):02x}",
+        "",
+    ]
+
+    large_expected = [
+        "Free chunk (largebins) | PREV_INUSE",
+        f"Addr: {large_chunk.address}",
+        f"Size: 0x{int(large_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in large_chunk.type.fields()) else 'size']):02x}",
+        f"fd: 0x{int(large_chunk['fd']):02x}",
+        f"bk: 0x{int(large_chunk['bk']):02x}",
+        f"fd_nextsize: 0x{int(large_chunk['fd_nextsize']):02x}",
+        f"bk_nextsize: 0x{int(large_chunk['bk_nextsize']):02x}",
+        "",
+    ]
+
+    unsorted_expected = [
+        "Free chunk (unsortedbin) | PREV_INUSE",
+        f"Addr: {unsorted_chunk.address}",
+        f"Size: 0x{int(unsorted_chunk['mchunk_size' if 'mchunk_size' in (f.name for f in unsorted_chunk.type.fields()) else 'size']):02x}",
+        f"fd: 0x{int(unsorted_chunk['fd']):02x}",
+        f"bk: 0x{int(unsorted_chunk['bk']):02x}",
+        "",
+    ]
+
+    assert allocated_result == allocated_expected
+    assert tcache_result == tcache_expected
+    assert fast_result == fast_expected
+    assert small_result == small_expected
+    assert large_result == large_expected
+    assert unsorted_result == unsorted_expected
