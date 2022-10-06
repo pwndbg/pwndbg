@@ -16,6 +16,7 @@ import pwndbg.gdblib.regs
 import pwndbg.hexdump
 import pwndbg.symbol
 import pwndbg.ui
+from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
 command_names = set()
@@ -271,27 +272,35 @@ def _is_statically_linked():
 def OnlyWithResolvedHeapSyms(function):
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a, **kw):
-        if pwndbg.heap.current.libc_has_debug_syms() or pwndbg.config.resolve_heap_via_heuristic:
-            return function(*a, **kw)
-        else:
-            e = lambda s: print(message.error(s))
-            w = lambda s: print(message.warn(s))
-
-            if _is_statically_linked():
-                e(
-                    f"{function.__name__}: Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
-                )
+        e = lambda s: print(message.error(s))
+        w = lambda s: print(message.warn(s))
+        if pwndbg.heap.current.can_be_resolved():
+            try:
+                return function(*a, **kw)
+            except SymbolUnresolvableError as err:
+                e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
                 w(
-                    """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
+                    f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
+                )
+        else:
+            print(message.error(f"{function.__name__}: "), end="")
+            if not pwndbg.config.resolve_heap_via_heuristic:
+                if _is_statically_linked():
+                    e(
+                        "Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
+                    )
+                    w(
+                        """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
 Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command.
 If this does not work, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."""
-                )
-                gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
-                return
+                    )
+                    gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
+                    return
 
-            else:
-                print(
-                    """%s: This command only works with libc debug symbols which are missing.
+                else:
+
+                    print(
+                        """This command only works with libc debug symbols which are missing.
 
 They can probably be installed via the package manager of your choice.
 See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
@@ -301,19 +310,19 @@ sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
 """
-                    % function.__name__
-                )
-                print(
-                    message.warn(
-                        "pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`."
                     )
-                )
-                print(message.warn("You can show your current config about heap by `heap_config`."))
-                print(
-                    message.warn(
+                    w(
+                        "pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`.\n"
+                        "You can show your current config about heap by `heap_config`.\n"
                         "Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."
                     )
+            elif pwndbg.glibc.get_version() is None:
+                e("Can't resolve the heap since the GLIBC version is not set.")
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
                 )
+            else:
+                e("An unknown error occurred when resolved the heap.")
 
     return _OnlyWithResolvedHeapSyms
 
