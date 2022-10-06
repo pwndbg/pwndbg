@@ -12,7 +12,7 @@ import gdb
 
 import pwndbg.config
 
-debug = pwndbg.config.Parameter("debug-events", True, "display internal event debugging info")
+debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
 
 
 # There is no GDB way to get a notification when the binary itself
