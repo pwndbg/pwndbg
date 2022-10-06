@@ -54,7 +54,9 @@ class Command(gdb.Command):
     builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
     history = {}  # type: Dict[int,str]
 
-    def __init__(self, function, prefix=False, command_name=None):
+    def __init__(self, function, prefix=False, command_name=None, shell=False):
+        self.shell = shell
+
         if command_name is None:
             command_name = function.__name__
 

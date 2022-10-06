@@ -40,7 +40,11 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
 
     # The pwndbg banner shows number of loaded commands, it might differ between
     # testing environments, so lets change it to ###
-    output = re.sub(r"loaded [0-9]+ commands", r"loaded ### commands", output)
+    output = re.sub(
+        r"loaded [0-9]+ pwndbg commands and [0-9]+ shell commands",
+        r"loaded ### pwndbg commands and ### shell commands",
+        output,
+    )
 
     return output
 
