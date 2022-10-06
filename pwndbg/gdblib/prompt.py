@@ -50,8 +50,10 @@ def initial_hook(*a):
     gdb.prompt_hook = prompt_hook
 
 
+context_shown = False
+
 def prompt_hook(*a):
-    global cur
+    global cur, context_shown
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
@@ -59,13 +61,16 @@ def prompt_hook(*a):
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
-        prompt_hook_on_stop(*a)
+    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped and not context_shown:
+        pwndbg.commands.context.context()
+        context_shown = True
 
 
-@pwndbg.lib.memoize.reset_on_stop
-def prompt_hook_on_stop(*a):
-    pwndbg.commands.context.context()
+@pwndbg.gdblib.events.cont
+def reset_context_shown(*a):
+    global context_shown
+    context_shown = False
+
 
 
 @pwndbg.config.Trigger([message.config_prompt_color, disable_colors])
