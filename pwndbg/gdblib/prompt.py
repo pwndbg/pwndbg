@@ -52,6 +52,7 @@ def initial_hook(*a):
 
 context_shown = False
 
+
 def prompt_hook(*a):
     global cur, context_shown
 
@@ -70,7 +71,6 @@ def prompt_hook(*a):
 def reset_context_shown(*a):
     global context_shown
     context_shown = False
-
 
 
 @pwndbg.config.Trigger([message.config_prompt_color, disable_colors])
