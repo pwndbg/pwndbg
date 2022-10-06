@@ -146,9 +146,6 @@ def connect(func, event_handler, name=""):
             dispatched.add(handler)
             objfile_cache[path] = dispatched
 
-        if pause:
-            return
-
         try:
             func()
         except Exception as e:
