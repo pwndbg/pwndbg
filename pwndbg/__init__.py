@@ -49,6 +49,7 @@ import pwndbg.commands.start
 import pwndbg.commands.telescope
 import pwndbg.commands.theme
 import pwndbg.commands.tls
+import pwndbg.commands.unstrip
 import pwndbg.commands.version
 import pwndbg.commands.vmmap
 import pwndbg.commands.windbg
