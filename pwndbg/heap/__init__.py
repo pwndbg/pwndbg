@@ -17,7 +17,7 @@ global_max_fast = pwndbg.config.Parameter(
     "global_max_fast", "0", "&global_max_fast for heuristics", "heap"
 )
 
-symbol_list = pwndbg.config.get_params("heap")
+symbol_list = [local for local in locals().values() if isinstance(local, pwndbg.config.Parameter)]
 
 heap_chain_limit = pwndbg.config.Parameter(
     "heap-dereference-limit", 8, "number of bins to dereference", "heap"
