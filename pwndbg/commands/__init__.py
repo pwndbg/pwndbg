@@ -421,3 +421,55 @@ def HexOrAddressExpr(s):
         return int(s, 16)
     except ValueError:
         return AddressExpr(s)
+
+
+def load_commands():
+    import pwndbg.commands.argv
+    import pwndbg.commands.aslr
+    import pwndbg.commands.attachp
+    import pwndbg.commands.auxv
+    import pwndbg.commands.canary
+    import pwndbg.commands.checksec
+    import pwndbg.commands.comments
+    import pwndbg.commands.config
+    import pwndbg.commands.context
+    import pwndbg.commands.cpsr
+    import pwndbg.commands.dt
+    import pwndbg.commands.dumpargs
+    import pwndbg.commands.elf
+    import pwndbg.commands.flags
+    import pwndbg.commands.gdbinit
+    import pwndbg.commands.ghidra
+    import pwndbg.commands.got
+    import pwndbg.commands.heap
+    import pwndbg.commands.hexdump
+    import pwndbg.commands.ida
+    import pwndbg.commands.ipython_interactive
+    import pwndbg.commands.leakfind
+    import pwndbg.commands.memoize
+    import pwndbg.commands.misc
+    import pwndbg.commands.mprotect
+    import pwndbg.commands.next
+    import pwndbg.commands.p2p
+    import pwndbg.commands.patch
+    import pwndbg.commands.peda
+    import pwndbg.commands.pie
+    import pwndbg.commands.probeleak
+    import pwndbg.commands.procinfo
+    import pwndbg.commands.radare2
+    import pwndbg.commands.reload
+    import pwndbg.commands.rop
+    import pwndbg.commands.ropper
+    import pwndbg.commands.search
+    import pwndbg.commands.segments
+    import pwndbg.commands.shell
+    import pwndbg.commands.stack
+    import pwndbg.commands.start
+    import pwndbg.commands.telescope
+    import pwndbg.commands.theme
+    import pwndbg.commands.tls
+    import pwndbg.commands.version
+    import pwndbg.commands.vmmap
+    import pwndbg.commands.windbg
+    import pwndbg.commands.xinfo
+    import pwndbg.commands.xor
