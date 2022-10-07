@@ -24,7 +24,6 @@ import pwndbg.gdblib.memory
 import pwndbg.lib.elftypes
 import pwndbg.lib.memoize
 import pwndbg.proc
-import pwndbg.stack
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
