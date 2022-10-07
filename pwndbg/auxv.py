@@ -11,8 +11,8 @@ import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
-import pwndbg.stack
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
@@ -257,7 +257,7 @@ def _get_execfn():
     # 32e:1970|      0x7fffffffeff0 <-- 0x6f732e646c2f67 /* 'g/ld.so' */
     # 32f:1978|      0x7fffffffeff8 <-- 0
     # 330:1980|      0x7ffffffff000
-    addr = pwndbg.stack.find_upper_stack_boundary(pwndbg.gdblib.regs.sp)
+    addr = pwndbg.gdblib.stack.find_upper_stack_boundary(pwndbg.gdblib.regs.sp)
 
     while pwndbg.gdblib.memory.byte(addr - 1) == 0:
         addr -= 1

@@ -18,10 +18,10 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.remote
+import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
 import pwndbg.proc
-import pwndbg.stack
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -95,7 +95,7 @@ def get():
                 return (pwndbg.lib.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
-        pages.extend(pwndbg.stack.stacks.values())
+        pages.extend(pwndbg.gdblib.stack.stacks.values())
 
     pages.extend(explored_pages)
     pages.extend(custom_pages)
@@ -143,7 +143,7 @@ def explore(address_maybe):
         return None
 
     flags |= 2 if pwndbg.gdblib.memory.poke(address_maybe) else 0
-    flags |= 1 if not pwndbg.stack.nx else 0
+    flags |= 1 if not pwndbg.gdblib.stack.nx else 0
 
     page = find_boundaries(address_maybe)
     page.objfile = "<explored>"
