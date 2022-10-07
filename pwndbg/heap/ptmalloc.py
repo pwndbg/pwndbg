@@ -8,11 +8,11 @@ import pwndbg.color.memory as M
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.events
+import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 import pwndbg.search
 import pwndbg.symbol
-import pwndbg.tls
 import pwndbg.vmmap
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc
@@ -1036,7 +1036,7 @@ class HeuristicHeap(Heap):
             return thread_arena_via_config
         elif thread_arena_via_symbol:
             # Check &thread_arena is nearby TLS base or not to avoid false positive.
-            tls_base = pwndbg.tls.address
+            tls_base = pwndbg.gdblib.tls.address
             if tls_base:
                 if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
                     is_valid_address = 0 < tls_base - thread_arena_via_symbol < 0x250
@@ -1172,7 +1172,7 @@ class HeuristicHeap(Heap):
                             break
 
         if self._thread_arena_offset:
-            tls_base = pwndbg.tls.address
+            tls_base = pwndbg.gdblib.tls.address
             if tls_base:
                 thread_arena_struct_addr = tls_base + self._thread_arena_offset
                 if pwndbg.vmmap.find(thread_arena_struct_addr):
@@ -1193,7 +1193,7 @@ class HeuristicHeap(Heap):
             return self._thread_cache
         elif thread_cache_via_symbol:
             # Check &tcache is nearby TLS base or not to avoid false positive.
-            tls_base = pwndbg.tls.address
+            tls_base = pwndbg.gdblib.tls.address
             if tls_base:
                 if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
                     is_valid_address = 0 < tls_base - thread_cache_via_symbol < 0x250
@@ -1370,7 +1370,7 @@ class HeuristicHeap(Heap):
             # Note: We do a lot of checks here to make sure the offset and address we found is valid,
             # so we can use our fallback if they're invalid
             if is_offset_valid:
-                tls_base = pwndbg.tls.address
+                tls_base = pwndbg.gdblib.tls.address
                 if tls_base:
                     thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(
                         tls_base + self._thread_cache_offset
