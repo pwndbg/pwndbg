@@ -7,8 +7,6 @@ information available.
 """
 import os
 import re
-import shutil
-import tempfile
 
 import elftools.common.exceptions
 import elftools.elf.constants
@@ -61,23 +59,17 @@ def add_directory(d):
 
 
 remote_files = {}
-remote_files_dir = None
 
 
 @pwndbg.gdblib.events.exit
 def reset_remote_files():
     global remote_files
-    global remote_files_dir
     remote_files = {}
-    if remote_files_dir is not None:
-        shutil.rmtree(remote_files_dir)
-        remote_files_dir = None
 
 
 @pwndbg.gdblib.events.new_objfile
 def autofetch():
     """ """
-    global remote_files_dir
     if not pwndbg.gdblib.remote.is_remote():
         return
 
@@ -87,11 +79,9 @@ def autofetch():
     if pwndbg.gdblib.android.is_android():
         return
 
-    if not remote_files_dir:
-        remote_files_dir = tempfile.mkdtemp()
+    remote_files_dir = pwndbg.file.remote_files_dir()
+    if remote_files_dir not in get_directory().split(":"):
         add_directory(remote_files_dir)
-
-    searchpath = get_directory()
 
     for mapping in pwndbg.vmmap.get():
         objfile = mapping.objfile
