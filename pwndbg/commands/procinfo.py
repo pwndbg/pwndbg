@@ -4,7 +4,7 @@ import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.file
 import pwndbg.lib.memoize
-import pwndbg.net
+import pwndbg.lib.net
 import pwndbg.proc
 
 try:
@@ -165,7 +165,7 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [pwndbg.net.tcp, pwndbg.net.unix, pwndbg.net.netlink]
+        functions = [pwndbg.lib.net.tcp, pwndbg.lib.net.unix, pwndbg.lib.net.netlink]
 
         for fd, path in fds.items():
             if socket not in path:

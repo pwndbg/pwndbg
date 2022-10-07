@@ -23,7 +23,6 @@ import pwndbg.exception
 import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.lib.version
-import pwndbg.net
 import pwndbg.proc
 import pwndbg.ui
 import pwndbg.vmmap
