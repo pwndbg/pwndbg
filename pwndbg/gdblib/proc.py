@@ -19,7 +19,7 @@ import pwndbg.lib.memoize
 class module(ModuleType):
     @property
     def pid(self):
-        # QEMU usermode emualtion always returns 42000 for some reason.
+        # QEMU usermode emulation always returns 42000 for some reason.
         # In any case, we can't use the info.
         if pwndbg.gdblib.qemu.is_qemu_usermode():
             return pwndbg.gdblib.qemu.pid()

@@ -11,18 +11,18 @@ import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
 import pwndbg.lib.memoize
-import pwndbg.proc
 from pwndbg.lib.regs import reg_sets
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb77_get_register(name):
     return gdb.parse_and_eval("$" + name)
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
 

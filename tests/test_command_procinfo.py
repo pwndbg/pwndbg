@@ -8,8 +8,8 @@ REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
 def test_command_procinfo(start_binary):
     start_binary(REFERENCE_BINARY)
 
-    bin_path = gdb.execute("pi pwndbg.proc.exe", to_string=True).strip("\n")
-    pid = gdb.execute("pi pwndbg.proc.pid", to_string=True).strip("\n")
+    bin_path = gdb.execute("pi pwndbg.gdblib.proc.exe", to_string=True).strip("\n")
+    pid = gdb.execute("pi pwndbg.gdblib.proc.pid", to_string=True).strip("\n")
     result = gdb.execute("procinfo", to_string=True)
     res_list = result.split("\n")
 

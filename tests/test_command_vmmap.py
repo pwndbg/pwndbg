@@ -25,7 +25,7 @@ def get_proc_maps():
 
     # Note: info proc mappings may not have permissions information,
     # so we get it here and fill from `perms`
-    with open("/proc/%d/maps" % pwndbg.proc.pid, "r") as f:
+    with open("/proc/%d/maps" % pwndbg.gdblib.proc.pid, "r") as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
             start, end = map(lambda v: int(v, 16), addrs.split("-"))

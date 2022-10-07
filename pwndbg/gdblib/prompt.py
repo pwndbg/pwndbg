@@ -60,7 +60,7 @@ def prompt_hook(*a):
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped and not context_shown:
+    if pwndbg.gdblib.proc.alive and pwndbg.gdblib.proc.thread_is_stopped and not context_shown:
         pwndbg.commands.context.context()
         context_shown = True
 
