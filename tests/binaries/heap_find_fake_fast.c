@@ -71,7 +71,7 @@ int main(void) {
     setup_mem(0x80, 0x78);
     break_here();
 
-    // A valid unaligned fastbin chunk just in range of the target address
+    /* // A valid unaligned fastbin chunk just in range of the target address */
     /* setup_mem(0x80, 0x7F); */
     /* break_here(); */
 
