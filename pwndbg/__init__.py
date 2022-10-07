@@ -25,7 +25,6 @@ import pwndbg.heap
 import pwndbg.lib.version
 import pwndbg.net
 import pwndbg.proc
-import pwndbg.tls
 import pwndbg.ui
 import pwndbg.vmmap
 import pwndbg.wrappers

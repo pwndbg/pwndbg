@@ -98,7 +98,7 @@ class module(ModuleType):
 @pwndbg.gdblib.events.exit
 def reset():
     # We should reset the offset when we attach to a new process or something
-    pwndbg.tls._errno_offset = None
+    pwndbg.gdblib.tls._errno_offset = None
 
 
 # To prevent garbage collection
