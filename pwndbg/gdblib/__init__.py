@@ -8,11 +8,14 @@ __all__ = ["ctypes", "memory", "typeinfo"]
 
 # TODO: should the imports above be moved here?
 def load_gdblib():
+    """
+    Import all gdblib modules that need to run code on import
+    """
+    import pwndbg.gdblib.abi
     import pwndbg.gdblib.android
     import pwndbg.gdblib.arch
     import pwndbg.gdblib.argv
     import pwndbg.gdblib.ctypes
-    import pwndbg.gdblib.dt
     import pwndbg.gdblib.events
     import pwndbg.gdblib.hooks
     import pwndbg.gdblib.memory
