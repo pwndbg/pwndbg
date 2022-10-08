@@ -707,7 +707,9 @@ class DebugSymsHeap(Heap):
 
     @property
     def main_arena(self):
-        self._main_arena_addr = pwndbg.symbol.address("main_arena")
+        self._main_arena_addr = pwndbg.symbol.static_linkage_symbol_address(
+            "main_arena"
+        ) or pwndbg.symbol.address("main_arena")
         if self._main_arena_addr is not None:
             self._main_arena = pwndbg.gdblib.memory.poi(self.malloc_state, self._main_arena_addr)
 
@@ -724,7 +726,10 @@ class DebugSymsHeap(Heap):
         if self.has_tcache():
             tcache = self.mp["sbrk_base"] + 0x10
             if self.multithreaded:
-                tcache_addr = pwndbg.gdblib.memory.pvoid(pwndbg.symbol.address("tcache"))
+                tcache_addr = pwndbg.gdblib.memory.pvoid(
+                    pwndbg.symbol.static_linkage_symbol_address("tcache")
+                    or pwndbg.symbol.address("tcache")
+                )
                 if tcache_addr != 0:
                     tcache = tcache_addr
 
@@ -747,7 +752,9 @@ class DebugSymsHeap(Heap):
 
     @property
     def mp(self):
-        self._mp_addr = pwndbg.symbol.address("mp_")
+        self._mp_addr = pwndbg.symbol.static_linkage_symbol_address("mp_") or pwndbg.symbol.address(
+            "mp_"
+        )
         if self._mp_addr is not None:
             self._mp = pwndbg.gdblib.memory.poi(self.malloc_par, self._mp_addr)
 
@@ -755,7 +762,9 @@ class DebugSymsHeap(Heap):
 
     @property
     def global_max_fast(self):
-        self._global_max_fast_addr = pwndbg.symbol.address("global_max_fast")
+        self._global_max_fast_addr = pwndbg.symbol.static_linkage_symbol_address(
+            "global_max_fast"
+        ) or pwndbg.symbol.address("global_max_fast")
         if self._global_max_fast_addr is not None:
             self._global_max_fast = pwndbg.gdblib.memory.u(self._global_max_fast_addr)
 
@@ -813,7 +822,10 @@ class DebugSymsHeap(Heap):
         """
         if arena_addr is None:
             if self.multithreaded:
-                arena_addr = pwndbg.gdblib.memory.u(pwndbg.symbol.address("thread_arena"))
+                arena_addr = pwndbg.gdblib.memory.u(
+                    pwndbg.symbol.static_linkage_symbol_address("thread_arena")
+                    or pwndbg.symbol.address("thread_arena")
+                )
                 if arena_addr > 0:
                     return pwndbg.gdblib.memory.poi(self.malloc_state, arena_addr)
 
@@ -899,29 +911,28 @@ class HeuristicHeap(Heap):
     def can_be_resolved(self):
         return self.struct_module is not None
 
-    def is_glibc_static_symbol(self, addr):
-        # Check `addr` is greater than `_IO_list_all` address and in the same region as `_IO_list_all`.
-        # We use this to avoid false positive for the symbol we found by `pwndbg.symbol.address`.
-        # (Because if user also defined the symbol with same name, we will get the wrong address)
-        # Note: This might fail if there is an another symbol also call `_IO_list_all`...
-        # TODO/FIXME: Find a better way to check if `addr` is a static symbol of GLIBC.
+    def is_glibc_symbol(self, addr):
+        # If addr is in the same region as `_IO_list_all` and its address is greater than it, we trust it is a symbol of glibc.
+        # Note: We should only use this when we can not find the symbol via `pwndbg.symbol.static_linkage_symbol_address()`.
+        if addr is None:
+            return False
         _IO_list_all_addr = pwndbg.symbol.address("_IO_list_all")
         if _IO_list_all_addr:
-            return (
-                addr is not None
-                and addr in pwndbg.vmmap.find(_IO_list_all_addr)
-                and addr > _IO_list_all_addr
-            )
+            return addr in pwndbg.vmmap.find(_IO_list_all_addr) and addr > _IO_list_all_addr
         # We trust that symbol is from GLIBC :)
         return True
 
     @property
     def main_arena(self):
         main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
-        main_arena_via_symbol = pwndbg.symbol.address("main_arena")
+        main_arena_via_symbol = pwndbg.symbol.static_linkage_symbol_address(
+            "main_arena"
+        ) or pwndbg.symbol.address("main_arena")
         if main_arena_via_config > 0:
             self._main_arena_addr = main_arena_via_config
-        elif self.is_glibc_static_symbol(main_arena_via_symbol):
+        elif pwndbg.symbol.static_linkage_symbol_address("main_arena") or self.is_glibc_symbol(
+            main_arena_via_symbol
+        ):
             self._main_arena_addr = main_arena_via_symbol
         # TODO/FIXME: These are quite dirty, we should find a better way to do this
         if not self._main_arena_addr:
@@ -1041,10 +1052,15 @@ class HeuristicHeap(Heap):
     @property
     def thread_arena(self):
         thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
-        thread_arena_via_symbol = pwndbg.symbol.address("thread_arena")
+        thread_arena_via_symbol = pwndbg.symbol.static_linkage_symbol_address(
+            "thread_arena"
+        ) or pwndbg.symbol.address("thread_arena")
         if thread_arena_via_config > 0:
             return thread_arena_via_config
         elif thread_arena_via_symbol:
+            if pwndbg.symbol.static_linkage_symbol_address("thread_arena"):
+                # If the symbol is static-linkage symbol, we trust it.
+                return pwndbg.gdblib.memory.u(thread_arena_via_symbol)
             # Check &thread_arena is nearby TLS base or not to avoid false positive.
             tls_base = pwndbg.tls.address
             if tls_base:
@@ -1196,11 +1212,17 @@ class HeuristicHeap(Heap):
         and if that fails, we guess it's at the first chunk of the heap.
         """
         thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
-        thread_cache_via_symbol = pwndbg.symbol.address("tcache")
+        thread_cache_via_symbol = pwndbg.symbol.static_linkage_symbol_address(
+            "tcache"
+        ) or pwndbg.symbol.address("tcache")
         if thread_cache_via_config > 0:
             self._thread_cache = self.tcache_perthread_struct(thread_cache_via_config)
             return self._thread_cache
         elif thread_cache_via_symbol:
+            if pwndbg.symbol.static_linkage_symbol_address("tcache"):
+                # If the symbol is static-linkage symbol, we trust it.
+                self._thread_cache = self.tcache_perthread_struct(thread_cache_via_symbol)
+                return self._thread_cache
             # Check &tcache is nearby TLS base or not to avoid false positive.
             tls_base = pwndbg.tls.address
             if tls_base:
@@ -1424,11 +1446,14 @@ class HeuristicHeap(Heap):
     @property
     def mp(self):
         mp_via_config = int(str(pwndbg.config.mp_), 0)
-        mp_via_symbol = pwndbg.symbol.address("mp_")
+        mp_via_symbol = pwndbg.symbol.static_linkage_symbol_address("mp_") or pwndbg.symbol.address(
+            "mp_"
+        )
         if mp_via_config > 0:
             self._mp_addr = mp_via_config
-        elif self.is_glibc_static_symbol(mp_via_symbol):
-            # Check mp_ is in the same region as _IO_list_all to avoid false positive
+        elif pwndbg.symbol.static_linkage_symbol_address("mp_") or self.is_glibc_symbol(
+            mp_via_symbol
+        ):
             self._mp_addr = mp_via_symbol
         if not self._mp_addr and pwndbg.symbol.address("__libc_free"):
             # try to find mp_ referenced in __libc_free
@@ -1568,11 +1593,14 @@ class HeuristicHeap(Heap):
     @property
     def global_max_fast(self):
         global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
-        global_max_fast_via_symbol = pwndbg.symbol.address("global_max_fast")
+        global_max_fast_via_symbol = pwndbg.symbol.static_linkage_symbol_address(
+            "global_max_fast"
+        ) or pwndbg.symbol.address("global_max_fast")
         if global_max_fast_via_config > 0:
             self._global_max_fast_addr = global_max_fast_via_config
-        elif self.is_glibc_static_symbol(global_max_fast_via_symbol):
-            # Check global_max_fast is in the same region as _IO_list_all to avoid false positive
+        elif pwndbg.symbol.static_linkage_symbol_address("global_max_fast") or self.is_glibc_symbol(
+            global_max_fast_via_symbol
+        ):
             self._global_max_fast_addr = global_max_fast_via_symbol
         # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
         if not self._global_max_fast_addr and pwndbg.symbol.address("__libc_malloc"):
