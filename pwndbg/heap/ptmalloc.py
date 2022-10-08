@@ -703,8 +703,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
 
 class DebugSymsHeap(Heap):
-    def can_be_resolved(self):
-        return self.libc_has_debug_syms()
+    can_be_resolved = Heap.libc_has_debug_syms
 
     @property
     def main_arena(self):
