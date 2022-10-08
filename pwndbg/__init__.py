@@ -2,7 +2,6 @@ import signal
 
 import gdb
 
-import pwndbg.arguments
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib
@@ -10,7 +9,6 @@ import pwndbg.gdblib
 pwndbg.commands.load_commands()
 pwndbg.gdblib.load_gdblib()
 
-import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.disasm.arm
 import pwndbg.disasm.jump
@@ -23,22 +21,11 @@ import pwndbg.exception
 import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.lib.version
-import pwndbg.proc
 import pwndbg.ui
 import pwndbg.vmmap
-import pwndbg.wrappers
-import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 
 __version__ = pwndbg.lib.version.__version__
 version = __version__
-
-try:
-    import unicorn
-
-    import pwndbg.emu
-except Exception:
-    pass
 
 __all__ = [
     "arch",
