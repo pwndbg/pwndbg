@@ -21,21 +21,16 @@ class module(ModuleType):
 
     def get_tls_base_via_errno_location(self) -> int:
         """Heuristically determine the base address of the TLS."""
-        if not pwndbg.symbol.address("__errno_location") or pwndbg.gdblib.arch.current not in (
-            "x86-64",
-            "i386",
-            "arm",
-        ):
+        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
             # Note: We doesn't implement this for aarch64 because its TPIDR_EL0 register seems always work
             # If oneday we can't get TLS base via TPIDR_EL0, we should implement this for aarch64
             return 0
         already_lock = gdb.parameter("scheduler-locking") == "on"
-        old_config = gdb.parameter("scheduler-locking")
         if not already_lock:
             gdb.execute("set scheduler-locking on")
         errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
         if not already_lock:
-            gdb.execute("set scheduler-locking %s" % old_config)
+            gdb.execute("set scheduler-locking off")
 
         if not self._errno_offset:
             __errno_location_instr = pwndbg.disasm.near(
