@@ -6,6 +6,7 @@ debugging a remote process over SSH or similar, where e.g.
 
 import binascii
 import os
+import shutil
 import tempfile
 
 import gdb
@@ -13,7 +14,26 @@ import gdb
 import pwndbg.color.message as message
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
-import pwndbg.symbol
+
+_remote_files_dir = None
+
+
+@pwndbg.gdblib.events.exit
+def reset_remote_files():
+    global _remote_files_dir
+
+    if _remote_files_dir is not None:
+        shutil.rmtree(_remote_files_dir)
+        remote_files_dir = None
+
+
+def remote_files_dir():
+    global _remote_files_dir
+
+    if _remote_files_dir is None:
+        _remote_files_dir = tempfile.mkdtemp()
+
+    return _remote_files_dir
 
 
 def get_file(path):
@@ -40,7 +60,7 @@ def get_file(path):
 
     elif pwndbg.gdblib.remote.is_remote():
         if not pwndbg.gdblib.qemu.is_qemu():
-            local_path = tempfile.mktemp(dir=pwndbg.symbol.remote_files_dir)
+            local_path = tempfile.mktemp(dir=remote_files_dir())
             error = None
             try:
                 error = gdb.execute('remote get "%s" "%s"' % (path, local_path), to_string=True)
