@@ -21,9 +21,9 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
 import pwndbg.lib.elftypes
 import pwndbg.lib.memoize
-import pwndbg.proc
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -170,7 +170,7 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
     return sections
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 def exe():
     """
@@ -182,7 +182,7 @@ def exe():
         return load(e)
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 def entry():
     """

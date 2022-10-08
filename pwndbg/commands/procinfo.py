@@ -3,9 +3,9 @@ import string
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.file
+import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
 import pwndbg.lib.net
-import pwndbg.proc
 
 """
 PEDA prints it out like this:
@@ -64,9 +64,9 @@ capabilities = {
 class Process:
     def __init__(self, pid=None, tid=None):
         if pid is None:
-            pid = pwndbg.proc.pid
+            pid = pwndbg.gdblib.proc.pid
         if tid is None:
-            tid = pwndbg.proc.tid
+            tid = pwndbg.gdblib.proc.tid
         if not tid:
             tid = pid
         self.pid = pid
@@ -144,7 +144,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.file.readlink("/proc/%i/fd/%i" % (pwndbg.proc.pid, i))
+            link = pwndbg.file.readlink("/proc/%i/fd/%i" % (pwndbg.gdblib.proc.pid, i))
 
             if link:
                 fds[i] = link
@@ -181,7 +181,7 @@ class Process:
 @pwndbg.commands.ArgparsedCommand("Gets the pid.")
 @pwndbg.commands.OnlyWhenRunning
 def pid():
-    print(pwndbg.proc.pid)
+    print(pwndbg.gdblib.proc.pid)
 
 
 @pwndbg.commands.ArgparsedCommand("Display information about the running process.")

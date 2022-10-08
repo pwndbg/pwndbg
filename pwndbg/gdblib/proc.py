@@ -19,7 +19,7 @@ import pwndbg.lib.memoize
 class module(ModuleType):
     @property
     def pid(self):
-        # QEMU usermode emualtion always returns 42000 for some reason.
+        # QEMU usermode emulation always returns 42000 for some reason.
         # In any case, we can't use the info.
         if pwndbg.gdblib.qemu.is_qemu_usermode():
             return pwndbg.gdblib.qemu.pid()
@@ -64,10 +64,10 @@ class module(ModuleType):
         On remote targets, this may be prefixed with "target:" string.
         See this by executing those in two terminals:
         1. gdbserver 127.0.0.1:1234 /bin/ls
-        2. gdb -ex "target remote :1234" -ex "pi pwndbg.proc.exe"
+        2. gdb -ex "target remote :1234" -ex "pi pwndbg.gdblib.proc.exe"
 
         If you need to process the debugged file use:
-            `pwndbg.file.get_file(pwndbg.proc.exe)`
+            `pwndbg.file.get_file(pwndbg.gdblib.proc.exe)`
         """
         return gdb.current_progspace().filename
 

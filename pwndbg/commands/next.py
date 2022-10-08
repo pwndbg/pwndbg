@@ -49,7 +49,7 @@ def nextret():
 def stepret():
     """Breaks at next return-like instruction by 'stepping' to it"""
     while (
-        pwndbg.proc.alive
+        pwndbg.gdblib.proc.alive
         and not pwndbg.gdblib.next.break_next_ret()
         and pwndbg.gdblib.next.break_next_branch()
     ):
@@ -58,7 +58,7 @@ def stepret():
         gdb.execute("si")
         continue
 
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         pwndbg.commands.context.context()
 
 
@@ -92,13 +92,13 @@ def nextsyscall():
     Breaks at the next syscall not taking branches.
     """
     while (
-        pwndbg.proc.alive
+        pwndbg.gdblib.proc.alive
         and not pwndbg.gdblib.next.break_next_interrupt()
         and pwndbg.gdblib.next.break_next_branch()
     ):
         continue
 
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         pwndbg.commands.context.context()
 
 
@@ -111,7 +111,7 @@ def stepsyscall():
     Breaks at the next syscall by taking branches.
     """
     while (
-        pwndbg.proc.alive
+        pwndbg.gdblib.proc.alive
         and not pwndbg.gdblib.next.break_next_interrupt()
         and pwndbg.gdblib.next.break_next_branch()
     ):
@@ -120,5 +120,5 @@ def stepsyscall():
         gdb.execute("si")
         continue
 
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         pwndbg.commands.context.context()

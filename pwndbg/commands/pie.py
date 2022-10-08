@@ -37,7 +37,7 @@ def get_exe_name():
         # We want just 'a.out'
         return os.path.normpath(real_path)
 
-    return pwndbg.proc.exe
+    return pwndbg.gdblib.proc.exe
 
 
 def translate_addr(offset, module):

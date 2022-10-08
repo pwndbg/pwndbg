@@ -137,7 +137,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):
     if filename is None:
-        filename = pwndbg.file.get_file(pwndbg.proc.exe)
+        filename = pwndbg.file.get_file(pwndbg.gdblib.proc.exe)
 
     print('Load "%s" ...' % filename)
 

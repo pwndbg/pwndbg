@@ -15,13 +15,13 @@ import pwndbg.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.proc
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -59,7 +59,7 @@ def is_corefile():
 @pwndbg.lib.memoize.reset_on_stop
 def get():
     # Note: debugging a coredump does still show proc.alive == True
-    if not pwndbg.proc.alive:
+    if not pwndbg.gdblib.proc.alive:
         return tuple()
     pages = []
     pages.extend(proc_pid_maps())
@@ -329,7 +329,7 @@ def proc_pid_maps():
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    pid = pwndbg.proc.pid
+    pid = pwndbg.gdblib.proc.pid
     locations = [
         "/proc/%s/maps" % pid,
         "/proc/%s/map" % pid,
@@ -631,9 +631,9 @@ def check_aslr():
         print("Could not check ASLR: can't read randomize_va_space")
 
     # Check the personality of the process
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         try:
-            data = pwndbg.file.get("/proc/%i/personality" % pwndbg.proc.pid)
+            data = pwndbg.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.pid)
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:

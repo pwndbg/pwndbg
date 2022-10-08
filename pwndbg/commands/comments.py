@@ -26,11 +26,11 @@ def comm(addr=None, comment=None):
                 print(message.error("Invalid Address %#x" % target))
 
             else:
-                f.write("file:%s=" % pwndbg.proc.exe)
+                f.write("file:%s=" % pwndbg.gdblib.proc.exe)
                 f.write("%#x:%s\n" % (target, comment))
-                if pwndbg.proc.exe not in file_lists.keys():
-                    file_lists[pwndbg.proc.exe] = {}
-                file_lists[pwndbg.proc.exe][hex(target)] = comment
+                if pwndbg.gdblib.proc.exe not in file_lists.keys():
+                    file_lists[pwndbg.gdblib.proc.exe] = {}
+                file_lists[pwndbg.gdblib.proc.exe][hex(target)] = comment
     except Exception:
         print(message.error("Permission denied to create file"))
 

@@ -21,7 +21,9 @@ def test_command_nextproginstr(start_binary):
     assert out == "The pc is already at the binary objfile code. Not stepping.\n"
 
     # Sanity check
-    exec_bin_pages = [p for p in pwndbg.vmmap.get() if p.objfile == pwndbg.proc.exe and p.execute]
+    exec_bin_pages = [
+        p for p in pwndbg.vmmap.get() if p.objfile == pwndbg.gdblib.proc.exe and p.execute
+    ]
     assert any(pwndbg.gdblib.regs.pc in p for p in exec_bin_pages)
     main_page = pwndbg.vmmap.find(pwndbg.gdblib.regs.pc)
 
