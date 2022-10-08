@@ -7,11 +7,6 @@ import pwndbg.lib.memoize
 import pwndbg.lib.net
 import pwndbg.proc
 
-try:
-    import psutil
-except Exception:
-    psutil = None
-
 """
 PEDA prints it out like this:
 
@@ -195,10 +190,6 @@ def procinfo():
     """
     Display information about the running process.
     """
-    if not psutil:
-        print("psutil required but not installed")
-        return
-
     exe = str(pwndbg.auxv.get()["AT_EXECFN"])
     print("%-10s %r" % ("exe", exe))
 
