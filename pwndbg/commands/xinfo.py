@@ -6,7 +6,7 @@ import pwndbg.config
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.stack
+import pwndbg.gdblib.stack
 import pwndbg.vmmap
 import pwndbg.wrappers
 
@@ -49,7 +49,7 @@ def xinfo_stack(page, addr):
     if canary_value is not None:
         all_canaries = list(
             pwndbg.search.search(
-                pwndbg.gdblib.arch.pack(canary_value), mappings=pwndbg.stack.stacks.values()
+                pwndbg.gdblib.arch.pack(canary_value), mappings=pwndbg.gdblib.stack.stacks.values()
             )
         )
         follow_canaries = sorted(filter(lambda a: a > addr, all_canaries))

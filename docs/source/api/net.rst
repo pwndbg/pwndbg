@@ -1,5 +1,5 @@
-:mod:`pwndbg.net` --- pwndbg.net
+:mod:`pwndbg.lib.net` --- pwndbg.lib.net
 =============================================
 
-.. automodule:: pwndbg.net
+.. automodule:: pwndbg.lib.net
     :members:

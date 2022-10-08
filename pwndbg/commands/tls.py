@@ -3,7 +3,7 @@ Command to print the information of the current Thread Local Storage (TLS).
 """
 
 import pwndbg.commands
-import pwndbg.tls
+import pwndbg.gdblib.tls
 from pwndbg.color import message
 
 
@@ -12,7 +12,7 @@ from pwndbg.color import message
 )
 @pwndbg.commands.OnlyWhenRunning
 def tls():
-    tls_base = pwndbg.tls.address
+    tls_base = pwndbg.gdblib.tls.address
     if tls_base:
         print(message.success("Thread Local Storage (TLS) base: %#x" % tls_base))
     else:

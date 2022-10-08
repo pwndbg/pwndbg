@@ -9,6 +9,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 import gdb
 
 import pwndbg.elf
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
@@ -42,7 +43,7 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
     # We can't get the stack size from stack layout and page fault on bare metal mode,
     # so we return current page as a walkaround.
     if not pwndbg.gdblib.abi.linux:
-        return stack_ptr + pwndbg.lib.memory.PAGE_SIZE
+        return stack_ptr + pwndbg.gdblib.memory.PAGE_SIZE
 
     return pwndbg.gdblib.memory.find_upper_boundary(stack_ptr, max_pages)
 

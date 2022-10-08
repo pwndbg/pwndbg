@@ -13,7 +13,6 @@ import gdb
 import pwndbg.config
 
 debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
-pause = 0
 
 
 # There is no GDB way to get a notification when the binary itself
@@ -119,16 +118,6 @@ except (NameError, AttributeError):
     pass
 
 
-class Pause:
-    def __enter__(self, *a, **kw):
-        global pause
-        pause += 1
-
-    def __exit__(self, *a, **kw):
-        global pause
-        pause -= 1
-
-
 # When performing remote debugging, gdbserver is very noisy about which
 # objects are loaded.  This greatly slows down the debugging session.
 # In order to combat this, we keep track of which objfiles have been loaded
@@ -156,9 +145,6 @@ def connect(func, event_handler, name=""):
 
             dispatched.add(handler)
             objfile_cache[path] = dispatched
-
-        if pause:
-            return
 
         try:
             func()

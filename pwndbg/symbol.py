@@ -24,9 +24,9 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
+import pwndbg.gdblib.stack
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.stack
 import pwndbg.vmmap
 
 
@@ -163,7 +163,7 @@ def get(address, gdb_only=False):
         return ""
 
     # Don't look up stack addresses
-    if pwndbg.stack.find(address):
+    if pwndbg.gdblib.stack.find(address):
         return ""
 
     # This sucks, but there's not a GDB API for this.
