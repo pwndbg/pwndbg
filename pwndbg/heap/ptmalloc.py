@@ -1221,7 +1221,8 @@ class HeuristicHeap(Heap):
         elif thread_cache_via_symbol:
             if pwndbg.symbol.static_linkage_symbol_address("tcache"):
                 # If the symbol is static-linkage symbol, we trust it.
-                self._thread_cache = self.tcache_perthread_struct(thread_cache_via_symbol)
+                thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
+                self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                 return self._thread_cache
             # Check &tcache is nearby TLS base or not to avoid false positive.
             tls_base = pwndbg.gdblib.tls.address
