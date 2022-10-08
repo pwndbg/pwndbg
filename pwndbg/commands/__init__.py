@@ -282,6 +282,14 @@ def OnlyWithResolvedHeapSyms(function):
                 w(
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
+            except Exception as err:
+                e(f"{function.__name__}: Unknown error: `{err}` when running this symbols.")
+                if pwndbg.config.resolve_heap_via_heuristic:
+                    w(
+                        "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+                    )
+                else:
+                    w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
         else:
             print(message.error(f"{function.__name__}: "), end="")
             if not pwndbg.config.resolve_heap_via_heuristic:
@@ -299,7 +307,7 @@ If this does not work, the only thing left is to determine the libc symbols addr
 
                 else:
 
-                    print(
+                    w(
                         """This command only works with libc debug symbols which are missing.
 
 They can probably be installed via the package manager of your choice.
@@ -312,9 +320,8 @@ sudo apt-get install libc-dbg:i386
 """
                     )
                     w(
-                        "pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`.\n"
-                        "You can show your current config about heap by `heap_config`.\n"
-                        "Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."
+                        "pwndbg can still try to use this command without debug symbols after you `set resolve-heap-via-heuristic on`, but the results of those commands may be incorrect in some cases.\n"
+                        "If the output of the heap command is still wrong or gives you erros, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
                     )
             elif pwndbg.glibc.get_version() is None:
                 e("Can't resolve the heap since the GLIBC version is not set.")
@@ -323,6 +330,9 @@ sudo apt-get install libc-dbg:i386
                 )
             else:
                 e("An unknown error occurred when resolved the heap.")
+                pwndbg.exception.inform_report_issue(
+                    "An unknown error occurred when resolved the heap"
+                )
 
     return _OnlyWithResolvedHeapSyms
 
