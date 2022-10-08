@@ -17,6 +17,7 @@ def load_gdblib():
     import pwndbg.gdblib.argv
     import pwndbg.gdblib.ctypes
     import pwndbg.gdblib.events
+    import pwndbg.gdblib.functions
     import pwndbg.gdblib.hooks
     import pwndbg.gdblib.memory
     import pwndbg.gdblib.prompt
