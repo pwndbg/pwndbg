@@ -1,5 +1,4 @@
 import functools
-import pdb
 import sys
 import traceback
 
@@ -14,7 +13,7 @@ with pwndbg.lib.stdio.stdio:
     try:
         import ipdb as pdb
     except ImportError:
-        pass
+        import pdb
 
 verbose = pwndbg.config.Parameter(
     "exception-verbose",

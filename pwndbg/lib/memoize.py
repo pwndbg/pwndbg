@@ -6,17 +6,11 @@ new library/objfile are loaded, etc.
 
 import functools
 import sys
+from collections.abc import Hashable
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-
-try:
-    # Python >= 3.10
-    from collections.abc import Hashable
-except ImportError:
-    # Python < 3.10
-    from collections import Hashable  # type: ignore
 
 debug = False
 

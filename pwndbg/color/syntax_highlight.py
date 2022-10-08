@@ -1,19 +1,15 @@
 import os.path
 import re
 
+import pygments
+import pygments.formatters
+import pygments.lexers
+
 import pwndbg.config
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
-
-try:
-    import pygments
-    import pygments.formatters
-    import pygments.lexers
-
-    from pwndbg.color.lexer import PwntoolsLexer
-except ImportError:
-    pygments = None
+from pwndbg.color.lexer import PwntoolsLexer
 
 pwndbg.config.Parameter("syntax-highlight", True, "Source code / assembly syntax highlight")
 style = theme.Parameter(
@@ -48,7 +44,7 @@ def check_style():
 
 def syntax_highlight(code, filename=".asm"):
     # No syntax highlight if pygment is not installed
-    if not pygments or disable_colors:
+    if disable_colors:
         return code
 
     filename = os.path.basename(filename)
