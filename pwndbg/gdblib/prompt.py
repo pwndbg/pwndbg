@@ -4,15 +4,13 @@ import gdb
 
 import pwndbg.decorators
 import pwndbg.gdblib.events
-import pwndbg.gdbutils
+import pwndbg.gdblib.functions
 import pwndbg.lib.memoize
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.lib.tips import get_tip_of_the_day
 
-funcs_list_str = ", ".join(
-    message.notice("$" + f.name) for f in pwndbg.gdbutils.functions.functions
-)
+funcs_list_str = ", ".join(message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions)
 
 num_pwndbg_cmds = sum(1 for _ in filter(lambda c: not c.shell, pwndbg.commands.commands))
 num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
@@ -62,7 +60,7 @@ def prompt_hook(*a):
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped and not context_shown:
+    if pwndbg.gdblib.proc.alive and pwndbg.gdblib.proc.thread_is_stopped and not context_shown:
         pwndbg.commands.context.context()
         context_shown = True
 

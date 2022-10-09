@@ -29,7 +29,9 @@ def decompile(func=None):
 
     if not func:
         func = (
-            hex(pwndbg.gdblib.regs[pwndbg.gdblib.regs.current.pc]) if pwndbg.proc.alive else "main"
+            hex(pwndbg.gdblib.regs[pwndbg.gdblib.regs.current.pc])
+            if pwndbg.gdblib.proc.alive
+            else "main"
         )
 
     src = r2.cmdj("pdgj @" + func)
@@ -40,7 +42,7 @@ def decompile(func=None):
     source = src.get("code", "")
 
     # If not running there is no current pc to mark
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         pc = pwndbg.gdblib.regs[pwndbg.gdblib.regs.current.pc]
 
         closest = 0

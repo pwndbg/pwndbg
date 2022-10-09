@@ -9,9 +9,9 @@ import gdb
 
 import pwndbg.config
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
 import pwndbg.heap
 import pwndbg.lib.memoize
-import pwndbg.proc
 import pwndbg.search
 import pwndbg.symbol
 
@@ -22,7 +22,7 @@ safe_lnk = pwndbg.config.Parameter(
 glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def get_version():
     if glibc_version.value:
         ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
@@ -36,7 +36,7 @@ def get_version():
     return _get_version()
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def _get_version():

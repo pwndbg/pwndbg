@@ -7,7 +7,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.proc
+import pwndbg.gdblib.proc
 
 
 @pwndbg.commands.ArgparsedCommand("Gets the current file.")
@@ -19,7 +19,7 @@ def getfile():
 @pwndbg.commands.ArgparsedCommand("Get the pid.")
 @pwndbg.commands.OnlyWhenRunning
 def getpid():
-    print(pwndbg.proc.pid)
+    print(pwndbg.gdblib.proc.pid)
 
 
 parser = argparse.ArgumentParser(description="Continue execution until an address or function.")
@@ -46,7 +46,7 @@ def xuntil(target):
         spec = target
 
     b = gdb.Breakpoint(spec, temporary=True)
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)

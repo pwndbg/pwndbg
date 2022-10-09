@@ -3,7 +3,7 @@ import argparse
 import gdb
 
 import pwndbg.commands
-import pwndbg.proc
+import pwndbg.gdblib.proc
 import pwndbg.vmmap
 from pwndbg.color import message
 
@@ -30,7 +30,7 @@ def aslr(state=None):
     if state:
         gdb.execute("set disable-randomization %s" % options[state], from_tty=False, to_string=True)
 
-        if pwndbg.proc.alive:
+        if pwndbg.gdblib.proc.alive:
             print("Change will take effect when the process restarts")
 
     aslr, method = pwndbg.vmmap.check_aslr()

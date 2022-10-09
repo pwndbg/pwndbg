@@ -22,7 +22,7 @@ Feel free to update the list below!
 
 * Memory accesses should be done through `pwndbg/memory.py` functions
 
-* Process properties can be retrieved thx to `pwndbg/proc.py` - e.g. using `pwndbg.proc.pid` will give us current process pid
+* Process properties can be retrieved thx to `pwndbg/gdblib/proc.py` - e.g. using `pwndbg.gdblib.proc.pid` will give us current process pid
 
 * We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
 

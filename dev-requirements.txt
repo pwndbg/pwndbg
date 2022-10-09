@@ -2,6 +2,7 @@ black==22.8.0
 coverage==6.2; python_version < '3.7'
 coverage==6.4.4; python_version >= '3.7'
 flake8==5.0.4
+flake8-builtins==2.0.0
 testresources==2.0.1
 isort==5.10.1
 pytest==7.0.1; python_version < '3.7'

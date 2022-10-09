@@ -8,7 +8,7 @@ import functools
 
 import gdb
 
-import pwndbg.proc
+import pwndbg.gdblib.proc
 
 functions = []
 
@@ -31,7 +31,7 @@ class _GdbFunction(gdb.Function):
         self.__doc__ = func.__doc__
 
     def invoke(self, *args):
-        if self.only_when_running and not pwndbg.proc.alive:
+        if self.only_when_running and not pwndbg.gdblib.proc.alive:
             # Returning empty string is a workaround that we can't stop e.g. `break *$rebase(offset)`
             # Thx to that, gdb will print out 'evaluation of this expression requires the target program to be active'
             return ""

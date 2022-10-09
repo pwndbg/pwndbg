@@ -53,7 +53,7 @@ def resolve_heap(is_first_run=False):
     global current
     if resolve_heap_via_heuristic:
         current = pwndbg.heap.ptmalloc.HeuristicHeap()
-        if not is_first_run and pwndbg.proc.alive and current.libc_has_debug_syms():
+        if not is_first_run and pwndbg.gdblib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
                     "You are going to resolve the heap via heuristic even though you have libc debug symbols."

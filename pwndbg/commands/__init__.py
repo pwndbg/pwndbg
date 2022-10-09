@@ -203,7 +203,7 @@ def fix_int_reraise(*a, **kw):
 def OnlyWithFile(function):
     @functools.wraps(function)
     def _OnlyWithFile(*a, **kw):
-        if pwndbg.proc.exe:
+        if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
             if pwndbg.gdblib.qemu.is_qemu():
@@ -217,7 +217,7 @@ def OnlyWithFile(function):
 def OnlyWhenRunning(function):
     @functools.wraps(function)
     def _OnlyWhenRunning(*a, **kw):
-        if pwndbg.proc.alive:
+        if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
             print("%s: The program is not being run." % function.__name__)

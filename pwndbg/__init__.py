@@ -18,7 +18,6 @@ import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
 import pwndbg.elf
 import pwndbg.exception
-import pwndbg.gdbutils.functions
 import pwndbg.heap
 import pwndbg.lib.version
 import pwndbg.ui

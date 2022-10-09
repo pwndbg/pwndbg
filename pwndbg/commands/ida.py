@@ -9,7 +9,7 @@ import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.gdblib.regs
 import pwndbg.ida
-from pwndbg.gdbutils.functions import GdbFunction
+from pwndbg.gdblib.functions import GdbFunction
 
 
 @pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB")

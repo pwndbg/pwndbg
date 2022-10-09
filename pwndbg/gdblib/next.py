@@ -10,8 +10,8 @@ import gdb
 
 import pwndbg.disasm
 import pwndbg.gdblib.events
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
-import pwndbg.proc
 from pwndbg.color import message
 
 jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET))
@@ -21,7 +21,7 @@ interrupts = set((capstone.CS_GRP_INT,))
 
 @pwndbg.gdblib.events.exit
 def clear_temp_breaks():
-    if not pwndbg.proc.alive:
+    if not pwndbg.gdblib.proc.alive:
         breakpoints = gdb.breakpoints()
         if breakpoints:
             for bp in breakpoints:
@@ -90,7 +90,7 @@ def break_next_interrupt(address=None):
 
 
 def break_next_call(symbol_regex=None):
-    while pwndbg.proc.alive:
+    while pwndbg.gdblib.proc.alive:
         ins = break_next_branch()
 
         if not ins:
@@ -114,7 +114,7 @@ def break_next_call(symbol_regex=None):
 
 
 def break_next_ret(address=None):
-    while pwndbg.proc.alive:
+    while pwndbg.gdblib.proc.alive:
         ins = break_next_branch(address)
 
         if not ins:
@@ -129,7 +129,7 @@ def break_on_program_code():
     Breaks on next instruction that belongs to process' objfile code.
     :return: True for success, False when process ended or when pc is at the code.
     """
-    exe = pwndbg.proc.exe
+    exe = pwndbg.gdblib.proc.exe
     binary_exec_page_ranges = [
         (p.start, p.end) for p in pwndbg.vmmap.get() if p.objfile == exe and p.execute
     ]
@@ -140,7 +140,7 @@ def break_on_program_code():
             print(message.error("The pc is already at the binary objfile code. Not stepping."))
             return False
 
-    while pwndbg.proc.alive:
+    while pwndbg.gdblib.proc.alive:
         gdb.execute("si", from_tty=False, to_string=False)
 
         pc = pwndbg.gdblib.regs.pc
