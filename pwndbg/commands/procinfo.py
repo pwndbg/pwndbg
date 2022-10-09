@@ -3,9 +3,9 @@ import string
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.gdblib.file
+import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
-import pwndbg.gdblib.net
 
 """
 PEDA prints it out like this:

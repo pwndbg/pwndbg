@@ -6,8 +6,8 @@ remote debugging sessions.
 import binascii
 import socket
 
-import pwndbg.gdblib.file
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.file
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {

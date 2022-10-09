@@ -1,8 +1,8 @@
 import gdb
 
 import pwndbg.color.message as message
-import pwndbg.gdblib.file
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
 

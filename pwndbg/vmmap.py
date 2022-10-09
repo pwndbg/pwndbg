@@ -11,9 +11,9 @@ import os
 import gdb
 
 import pwndbg.elf
-import pwndbg.gdblib.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu

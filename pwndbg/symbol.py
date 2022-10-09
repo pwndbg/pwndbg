@@ -15,10 +15,10 @@ import elftools.elf.segments
 import gdb
 
 import pwndbg.elf
-import pwndbg.gdblib.file
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote

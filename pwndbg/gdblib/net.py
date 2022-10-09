@@ -1,7 +1,8 @@
 import pwndbg.gdblib.file
 import pwndbg.lib.net
 
-def tcp(data):
+
+def tcp():
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -16,6 +17,7 @@ def tcp(data):
 def unix():
     data = pwndbg.gdblib.file.get("/proc/net/unix").decode()
     return pwndbg.lib.net.unix(data)
+
 
 def netlink():
     data = pwndbg.gdblib.file.get("/proc/net/netlink").decode()
