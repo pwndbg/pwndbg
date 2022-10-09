@@ -41,7 +41,7 @@ def get_version():
 @pwndbg.lib.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
-        addr = pwndbg.gdblib.symbol.address(b"__libc_version")
+        addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
             ver = pwndbg.gdblib.memory.string(addr)
             return tuple([int(_) for _ in ver.split(b".")])

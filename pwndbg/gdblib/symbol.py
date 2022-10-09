@@ -58,6 +58,10 @@ def _add_debug_file_directory(d):
         _set_debug_file_directory(d)
 
 
+if "/usr/lib/debug" not in _get_debug_file_directory():
+    _add_debug_file_directory("/usr/lib/debug")
+
+
 _remote_files = {}
 
 
@@ -81,7 +85,7 @@ def _autofetch():
 
     remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
     if remote_files_dir not in _get_debug_file_directory().split(":"):
-        add_debug_file_directory(remote_files_dir)
+        _add_debug_file_directory(remote_files_dir)
 
     for mapping in pwndbg.vmmap.get():
         objfile = mapping.objfile
@@ -144,9 +148,9 @@ def _autofetch():
 
 
 @pwndbg.lib.memoize.reset_on_objfile
-def get(address, gdb_only=False):
+def get(address: int, gdb_only=False) -> str:
     """
-    Retrieve the textual name for a symbol
+    Retrieve the name for the symbol located at `address`
     """
     # Fast path
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
@@ -184,25 +188,24 @@ def get(address, gdb_only=False):
 
 
 @pwndbg.lib.memoize.reset_on_objfile
-def address(symbol, allow_unmapped=False):
-    if isinstance(symbol, int):
-        return symbol
-
-    try:
-        return int(symbol, 0)
-    except Exception:
-        pass
-
+def address(symbol: str, allow_unmapped=False) -> int:
+    """
+    Get the address for `symbol`
+    """
     try:
         symbol_obj = gdb.lookup_symbol(symbol)[0]
         if symbol_obj:
             return int(symbol_obj.value().address)
-    except Exception:
-        pass
+    except gdb.error as e:
+        # TODO: `gdb.lookup_symbol` can sometimes throw an error with the
+        # message "No frame selected", we should check why this is happening and
+        # whether we want to explicitly check for this with `gdb.selected_frame()`
+        if 'No frame selected' not in str(e):
+            raise e
 
     try:
         result = gdb.execute("info address %s" % symbol, to_string=True, from_tty=False)
-        address = int(re.search("0x[0-9a-fA-F]+", result).group(), 0)
+        address = int(re.search(r"0x[0-9a-fA-F]+", result).group(), 0)
 
         # The address found should lie in one of the memory maps
         # There are cases when GDB shows offsets e.g.:
@@ -218,6 +221,7 @@ def address(symbol, allow_unmapped=False):
         return None
 
     try:
+        # TODO: We should properly check if we have a connection to the IDA server first
         address = pwndbg.ida.LocByName(symbol)
         if address:
             return address
@@ -300,7 +304,3 @@ def selected_frame_source_absolute_filename():
         return None
 
     return symtab.fullname()
-
-
-if "/usr/lib/debug" not in _get_debug_file_directory():
-    _set_debug_file_directory(_get_debug_file_directory() + ":/usr/lib/debug")
