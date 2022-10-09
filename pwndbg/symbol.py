@@ -247,7 +247,7 @@ def static_linkage_symbol_address(symbol):
 
     try:
         symbol_obj = gdb.lookup_static_symbol(symbol)
-        return int(symbol_obj.value().address)
+        return int(symbol_obj.value().address) if symbol_obj else None
     except gdb.error:
         return None
 
