@@ -23,4 +23,5 @@ def load_gdblib():
     import pwndbg.gdblib.memory
     import pwndbg.gdblib.prompt
     import pwndbg.gdblib.regs
+    import pwndbg.gdblib.symbol
     import pwndbg.gdblib.typeinfo

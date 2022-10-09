@@ -6,7 +6,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.gdblib.regs
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
@@ -37,7 +37,7 @@ def errno_(err):
                 # We can't simply call __errno_location because its .plt.got entry may be uninitialized
                 # (e.g. if the binary was just started with `starti` command)
                 # So we have to check the got.plt entry first before calling it
-                errno_loc_gotplt = pwndbg.symbol.address("__errno_location@got.plt")
+                errno_loc_gotplt = pwndbg.gdblib.symbol.address("__errno_location@got.plt")
 
                 # If the got.plt entry is not there (is None), it means the symbol is not used by the binary
                 if errno_loc_gotplt is None or pwndbg.vmmap.find(

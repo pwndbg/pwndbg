@@ -15,7 +15,7 @@ import pwndbg.exception
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 import pwndbg.ui
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 

@@ -14,7 +14,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 try:
     import pwndbg.emu.emulator

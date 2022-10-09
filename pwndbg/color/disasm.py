@@ -38,7 +38,7 @@ def instruction(ins):
 
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
-        sym = pwndbg.symbol.get(ins.target) or None
+        sym = pwndbg.gdblib.symbol.get(ins.target) or None
         target = M.get(ins.target)
         const = ins.target_const
         hextarget = hex(ins.target)

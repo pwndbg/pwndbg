@@ -77,7 +77,7 @@ def get_symbols_in_region(start, end, filter_text=""):
     ptr_size = pwndbg.gdblib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
-        name = pwndbg.symbol.get(addr)
+        name = pwndbg.gdblib.symbol.get(addr)
         if name != "" and "+" not in name and filter_text in name:
             symbols.append((name, addr))
         addr += ptr_size

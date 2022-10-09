@@ -11,7 +11,7 @@ import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 import pwndbg.search
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 import pwndbg.vmmap
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc
@@ -377,7 +377,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
     @pwndbg.lib.memoize.reset_on_objfile
     def multithreaded(self):
         """Is malloc operating within a multithreaded environment."""
-        addr = pwndbg.symbol.address("__libc_multiple_threads")
+        addr = pwndbg.gdblib.symbol.address("__libc_multiple_threads")
         if addr:
             return pwndbg.gdblib.memory.s32(addr) > 0
         return len(gdb.execute("info threads", to_string=True).split("\n")) > 3
@@ -697,7 +697,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
         """
-        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.symbol.address(
+        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.gdblib.symbol.address(
             "global_max_fast"
         )
 
@@ -707,9 +707,9 @@ class DebugSymsHeap(Heap):
 
     @property
     def main_arena(self):
-        self._main_arena_addr = pwndbg.symbol.static_linkage_symbol_address(
+        self._main_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "main_arena"
-        ) or pwndbg.symbol.address("main_arena")
+        ) or pwndbg.gdblib.symbol.address("main_arena")
         if self._main_arena_addr is not None:
             self._main_arena = pwndbg.gdblib.memory.poi(self.malloc_state, self._main_arena_addr)
 
@@ -727,8 +727,8 @@ class DebugSymsHeap(Heap):
             tcache = self.mp["sbrk_base"] + 0x10
             if self.multithreaded:
                 tcache_addr = pwndbg.gdblib.memory.pvoid(
-                    pwndbg.symbol.static_linkage_symbol_address("tcache")
-                    or pwndbg.symbol.address("tcache")
+                    pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
+                    or pwndbg.gdblib.symbol.address("tcache")
                 )
                 if tcache_addr != 0:
                     tcache = tcache_addr
@@ -862,9 +862,9 @@ class DebugSymsHeap(Heap):
         return region
 
     def is_initialized(self):
-        addr = pwndbg.symbol.address("__libc_malloc_initialized")
+        addr = pwndbg.gdblib.symbol.address("__libc_malloc_initialized")
         if addr is None:
-            addr = pwndbg.symbol.address("__malloc_initialized")
+            addr = pwndbg.gdblib.symbol.address("__malloc_initialized")
         return pwndbg.gdblib.memory.s32(addr) > 0
 
 
@@ -958,7 +958,7 @@ class HeuristicHeap(Heap):
             elif pwndbg.symbol.address("malloc_trim"):
                 # try to find `mstate ar_ptr = &main_arena;` in malloc_trim instructions
                 malloc_trim_instructions = pwndbg.disasm.near(
-                    pwndbg.symbol.address("malloc_trim"), 10, show_prev_insns=False
+                    pwndbg.gdblib.symbol.address("malloc_trim"), 10, show_prev_insns=False
                 )
                 if pwndbg.gdblib.arch.current == "x86-64":
                     for instr in malloc_trim_instructions:
@@ -1082,7 +1082,7 @@ class HeuristicHeap(Heap):
         if not self._thread_arena_offset and pwndbg.symbol.address("__libc_calloc"):
             # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
             __libc_calloc_instruction = pwndbg.disasm.near(
-                pwndbg.symbol.address("__libc_calloc"), 100, show_prev_insns=False
+                pwndbg.gdblib.symbol.address("__libc_calloc"), 100, show_prev_insns=False
             )
             # try to find the reference to thread_arena in arena_get in __libc_calloc ( ptr = thread_arena; )
             if pwndbg.gdblib.arch.current == "x86-64":
@@ -1250,7 +1250,7 @@ class HeuristicHeap(Heap):
             if not self._thread_cache_offset and pwndbg.symbol.address("__libc_malloc"):
                 # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
                 __libc_malloc_instruction = pwndbg.disasm.near(
-                    pwndbg.symbol.address("__libc_malloc"), 100, show_prev_insns=False
+                    pwndbg.gdblib.symbol.address("__libc_malloc"), 100, show_prev_insns=False
                 )[10:]
                 # Try to find the reference to tcache in __libc_malloc, the target C code is like this:
                 # `if (tc_idx < mp_.tcache_bins && tcache && ......`
@@ -1460,7 +1460,7 @@ class HeuristicHeap(Heap):
             # try to find mp_ referenced in __libc_free
             # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
             __libc_free_instructions = pwndbg.disasm.near(
-                pwndbg.symbol.address("__libc_free"), 100, show_prev_insns=False
+                pwndbg.gdblib.symbol.address("__libc_free"), 100, show_prev_insns=False
             )
             if pwndbg.gdblib.arch.current == "x86-64":
                 iter_possible_match = (
@@ -1609,7 +1609,7 @@ class HeuristicHeap(Heap):
             # because there is a reference to global_max_fast in _int_malloc, which is:
             # `if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))`
             __libc_malloc_instructions = pwndbg.disasm.near(
-                pwndbg.symbol.address("__libc_malloc"), 25, show_prev_insns=False
+                pwndbg.gdblib.symbol.address("__libc_malloc"), 25, show_prev_insns=False
             )
             if pwndbg.gdblib.arch.current == "x86-64":
                 _int_malloc_addr = (

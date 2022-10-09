@@ -13,7 +13,7 @@ import pwndbg.gdblib.proc
 import pwndbg.heap
 import pwndbg.lib.memoize
 import pwndbg.search
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 safe_lnk = pwndbg.config.Parameter(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
@@ -41,7 +41,7 @@ def get_version():
 @pwndbg.lib.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
-        addr = pwndbg.symbol.address(b"__libc_version")
+        addr = pwndbg.gdblib.symbol.address(b"__libc_version")
         if addr is not None:
             ver = pwndbg.gdblib.memory.string(addr)
             return tuple([int(_) for _ in ver.split(b".")])

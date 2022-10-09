@@ -11,7 +11,7 @@ import gdb
 import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 break_on_first_instruction = False
 
@@ -61,7 +61,7 @@ def start(args=None):
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.symbol.address(symbol, allow_unmapped=True)
+        address = pwndbg.gdblib.symbol.address(symbol, allow_unmapped=True)
 
         if not address:
             continue

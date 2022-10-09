@@ -18,7 +18,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
@@ -59,7 +59,7 @@ def enhance(value, code=True, safe_linking=False):
     """
     value = int(value)
 
-    name = pwndbg.symbol.get(value) or None
+    name = pwndbg.gdblib.symbol.get(value) or None
     page = pwndbg.vmmap.find(value)
 
     # If it's not in a page we know about, try to dereference

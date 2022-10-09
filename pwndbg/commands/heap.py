@@ -791,7 +791,7 @@ def try_free(addr):
     addr = int(addr)
 
     # check hook
-    free_hook = pwndbg.symbol.address("__free_hook")
+    free_hook = pwndbg.gdblib.symbol.address("__free_hook")
     if free_hook is not None:
         if pwndbg.gdblib.memory.pvoid(free_hook) != 0:
             print(message.success("__libc_free: will execute __free_hook"))

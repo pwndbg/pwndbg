@@ -16,7 +16,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.ida
 import pwndbg.lib.functions
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -123,7 +123,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     pwndbg.vmmap.find(pc)
 
     # Gather all addresses and symbols for each instruction
-    symbols = [pwndbg.symbol.get(i.address) for i in instructions]
+    symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]
     addresses = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0

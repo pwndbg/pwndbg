@@ -14,7 +14,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 
 def get_type(size):
@@ -511,7 +511,7 @@ def ln(value=None):
     if value is None:
         value = pwndbg.gdblib.regs.pc
     value = int(value)
-    x = pwndbg.symbol.get(value)
+    x = pwndbg.gdblib.symbol.get(value)
     if x:
         result = "(%#x)   %s" % (value, x)
         print(result)

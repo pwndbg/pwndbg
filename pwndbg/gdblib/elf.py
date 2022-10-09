@@ -208,7 +208,7 @@ def entry():
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return pwndbg.symbol.address(name)
+            return pwndbg.gdblib.symbol.address(name)
         except gdb.error:
             pass
 
