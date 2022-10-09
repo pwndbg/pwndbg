@@ -5,6 +5,8 @@ Get information about the GLibc
 import functools
 import re
 
+import gdb
+
 import pwndbg.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
@@ -49,6 +51,26 @@ def _get_version():
         if ret:
             return tuple(int(_) for _ in ret.groups())
     return None
+
+
+@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+def get_got_plt_address():
+    libc_filename = next(
+        (
+            objfile.filename
+            for objfile in gdb.objfiles()
+            if re.search(r"^libc(\.|-.+\.)so", objfile.filename.split("/")[-1])
+        ),
+        None,
+    )
+    if libc_filename:
+        out = gdb.execute("info files", to_string=True)
+        for line in out.splitlines():
+            if libc_filename in line and ".got.plt" in line:
+                return int(line.strip().split()[0], 16)
+    return 0
 
 
 def OnlyWhenGlibcLoaded(function):

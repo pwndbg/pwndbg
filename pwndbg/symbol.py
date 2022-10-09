@@ -225,6 +225,23 @@ def address(symbol, allow_unmapped=False):
         pass
 
 
+@pwndbg.lib.memoize.reset_on_objfile
+def static_linkage_symbol_address(symbol):
+    if isinstance(symbol, int):
+        return symbol
+
+    try:
+        return int(symbol, 0)
+    except Exception:
+        pass
+
+    try:
+        symbol_obj = gdb.lookup_static_symbol(symbol)
+        return int(symbol_obj.value().address) if symbol_obj else None
+    except gdb.error:
+        return None
+
+
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
 def add_main_exe_to_symbols():
