@@ -6,8 +6,8 @@ import pwndbg.color.theme as theme
 import pwndbg.enhance
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.typeinfo
 import pwndbg.vmmap
 
 LIMIT = pwndbg.config.Parameter(

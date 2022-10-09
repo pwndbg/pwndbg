@@ -7,11 +7,11 @@ import pwndbg.color.memory as M
 import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.events
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 import pwndbg.search
-import pwndbg.gdblib.symbol
 import pwndbg.vmmap
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc

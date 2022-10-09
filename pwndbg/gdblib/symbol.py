@@ -200,7 +200,7 @@ def address(symbol: str, allow_unmapped=False) -> int:
         # TODO: `gdb.lookup_symbol` can sometimes throw an error with the
         # message "No frame selected", we should check why this is happening and
         # whether we want to explicitly check for this with `gdb.selected_frame()`
-        if 'No frame selected' not in str(e):
+        if "No frame selected" not in str(e):
             raise e
 
     try:

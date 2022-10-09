@@ -1,8 +1,8 @@
 import gdb
 from capstone import *  # noqa: F403
 
-import pwndbg.lib.memoize
 import pwndbg.gdblib.symbol
+import pwndbg.lib.memoize
 
 debug = False
 

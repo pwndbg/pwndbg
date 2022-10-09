@@ -1,8 +1,8 @@
 import gdb
 
 import pwndbg.gdblib.memory
-import pwndbg.heap
 import pwndbg.gdblib.symbol
+import pwndbg.heap
 import pwndbg.vmmap
 import tests
 

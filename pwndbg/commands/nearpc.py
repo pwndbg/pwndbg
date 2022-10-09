@@ -14,9 +14,9 @@ import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
+import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.functions
-import pwndbg.gdblib.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 from pwndbg.color import message

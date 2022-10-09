@@ -13,12 +13,12 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-import pwndbg.gdblib.symbol
 
 ida_replacements = {
     "__int64": "signed long long int",

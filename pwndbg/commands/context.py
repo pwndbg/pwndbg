@@ -22,9 +22,9 @@ import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
 import pwndbg.ghidra
 import pwndbg.ida
-import pwndbg.gdblib.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 from pwndbg.color import message

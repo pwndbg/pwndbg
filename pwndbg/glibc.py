@@ -10,10 +10,10 @@ import gdb
 import pwndbg.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.symbol
 import pwndbg.heap
 import pwndbg.lib.memoize
 import pwndbg.search
-import pwndbg.gdblib.symbol
 
 safe_lnk = pwndbg.config.Parameter(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"

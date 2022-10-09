@@ -13,8 +13,8 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
-import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.typeinfo
 
 
 def get_type(size):

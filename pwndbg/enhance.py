@@ -16,9 +16,9 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.gdblib.symbol
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]

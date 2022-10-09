@@ -12,9 +12,9 @@ from capstone import *  # noqa: F403
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.gdblib.symbol
 
 try:
     import pwndbg.emu.emulator
