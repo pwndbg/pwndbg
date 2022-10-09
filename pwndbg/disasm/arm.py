@@ -1,4 +1,3 @@
-from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 
 import pwndbg.disasm.arch

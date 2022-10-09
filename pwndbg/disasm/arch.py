@@ -1,11 +1,12 @@
+import capstone as C
 import gdb
-from capstone import *  # noqa: F403
 
 import pwndbg.gdblib.symbol
 import pwndbg.lib.memoize
 
 debug = False
 
+# TODO: Do these need to change to 'C.CS_'?
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
 access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
@@ -25,15 +26,15 @@ class DisassemblyAssistant:
             self.assistants[architecture] = self
 
         self.op_handlers = {
-            CS_OP_IMM: self.immediate,
-            CS_OP_REG: self.register,
-            CS_OP_MEM: self.memory,
+            C.CS_OP_IMM: self.immediate,
+            C.CS_OP_REG: self.register,
+            C.CS_OP_MEM: self.memory,
         }
 
         self.op_names = {
-            CS_OP_IMM: self.immediate_sz,
-            CS_OP_REG: self.register_sz,
-            CS_OP_MEM: self.memory_sz,
+            C.CS_OP_IMM: self.immediate_sz,
+            C.CS_OP_REG: self.register_sz,
+            C.CS_OP_MEM: self.memory_sz,
         }
 
     @staticmethod
@@ -114,11 +115,11 @@ class DisassemblyAssistant:
         """
         Architecture-specific hook point for enhance_next.
         """
-        if CS_GRP_CALL in instruction.groups:
+        if C.CS_GRP_CALL in instruction.groups:
             if not call:
                 return None
 
-        elif CS_GRP_JUMP not in instruction.groups:
+        elif C.CS_GRP_JUMP not in instruction.groups:
             return None
 
         # At this point, all operands have been resolved.
@@ -131,7 +132,7 @@ class DisassemblyAssistant:
         addr = op.int
         if addr:
             addr &= pwndbg.gdblib.arch.ptrmask
-        if op.type == CS_OP_MEM:
+        if op.type == C.CS_OP_MEM:
             if addr is None:
                 addr = self.memory(instruction, op)
 
@@ -143,7 +144,7 @@ class DisassemblyAssistant:
                     addr = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
                 except gdb.MemoryError:
                     return None
-        if op.type == CS_OP_REG:
+        if op.type == C.CS_OP_REG:
             addr = self.register(instruction, op)
 
         # Evidently this can happen?

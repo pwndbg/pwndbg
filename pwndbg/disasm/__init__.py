@@ -1,13 +1,12 @@
 """
-Functionality for disassmebling code at an address, or at an
+Functionality for disassembling code at an address, or at an
 address +/- a few instructions.
 """
 
 import collections
 
-import capstone
+import capstone as C
 import gdb
-from capstone import *  # noqa: F403
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
@@ -22,25 +21,25 @@ except Exception:
     pwndbg.emu = None
 
 CapstoneArch = {
-    "arm": CS_ARCH_ARM,
-    "armcm": CS_ARCH_ARM,
-    "aarch64": CS_ARCH_ARM64,
-    "i386": CS_ARCH_X86,
-    "i8086": CS_ARCH_X86,
-    "x86-64": CS_ARCH_X86,
-    "powerpc": CS_ARCH_PPC,
-    "mips": CS_ARCH_MIPS,
-    "sparc": CS_ARCH_SPARC,
+    "arm": C.CS_ARCH_ARM,
+    "armcm": C.CS_ARCH_ARM,
+    "aarch64": C.CS_ARCH_ARM64,
+    "i386": C.CS_ARCH_X86,
+    "i8086": C.CS_ARCH_X86,
+    "x86-64": C.CS_ARCH_X86,
+    "powerpc": C.CS_ARCH_PPC,
+    "mips": C.CS_ARCH_MIPS,
+    "sparc": C.CS_ARCH_SPARC,
 }
 
 CapstoneEndian = {
-    "little": CS_MODE_LITTLE_ENDIAN,
-    "big": CS_MODE_BIG_ENDIAN,
+    "little": C.CS_MODE_LITTLE_ENDIAN,
+    "big": C.CS_MODE_BIG_ENDIAN,
 }
 
-CapstoneMode = {4: CS_MODE_32, 8: CS_MODE_64}
+CapstoneMode = {4: C.CS_MODE_32, 8: C.CS_MODE_64}
 
-CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
+CapstoneSyntax = {"intel": C.CS_OPT_SYNTAX_INTEL, "att": C.CS_OPT_SYNTAX_ATT}
 
 # For variable-instruction-width architectures
 # (x86 and amd64), we keep a cache of instruction
@@ -76,10 +75,10 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
         else:
             raise
 
-    cs = Cs(arch, mode)
+    cs = C.Cs(arch, mode)
     try:
         cs.syntax = CapstoneSyntax[flavor]
-    except CsError as ex:
+    except C.CsError as ex:
         pass
     except Exception:
         raise
@@ -91,29 +90,29 @@ def get_disassembler(pc):
     if pwndbg.gdblib.arch.current == "armcm":
         # novermin
         extra = (
-            (CS_MODE_MCLASS | CS_MODE_THUMB)
+            (C.CS_MODE_MCLASS | C.CS_MODE_THUMB)
             if (pwndbg.gdblib.regs.xpsr & (1 << 24))
-            else CS_MODE_MCLASS
+            else C.CS_MODE_MCLASS
         )
 
     elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
-        extra = CS_MODE_THUMB if (pwndbg.gdblib.regs.cpsr & (1 << 5)) else CS_MODE_ARM
+        extra = C.CS_MODE_THUMB if (pwndbg.gdblib.regs.cpsr & (1 << 5)) else C.CS_MODE_ARM
 
     elif pwndbg.gdblib.arch.current == "sparc":
         if "v9" in gdb.newest_frame().architecture().name():
-            extra = CS_MODE_V9
+            extra = C.CS_MODE_V9
         else:
-            # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
+            # The ptrsize base modes cause capstone.CsError: Invalid mode (C.CS_ERR_MODE)
             extra = 0
 
     elif pwndbg.gdblib.arch.current == "i8086":
-        extra = CS_MODE_16
+        extra = C.CS_MODE_16
 
     elif (
         pwndbg.gdblib.arch.current == "mips"
         and "isa32r6" in gdb.newest_frame().architecture().name()
     ):
-        extra = CS_MODE_MIPS32R6
+        extra = C.CS_MODE_MIPS32R6
 
     else:
         extra = None
@@ -162,7 +161,7 @@ def one(address=None):
 
 def fix(i):
     for op in i.operands:
-        if op.type == CS_OP_IMM and op.va:
+        if op.type == C.CS_OP_IMM and op.va:
             i.op_str = i.op_str.replace()
 
     return i
@@ -191,10 +190,10 @@ def get(address, instructions=1):
 # or because they may take a long time (call, etc.), or because they
 # change privilege levels.
 DO_NOT_EMULATE = {
-    capstone.CS_GRP_CALL,
-    capstone.CS_GRP_INT,
-    capstone.CS_GRP_INVALID,
-    capstone.CS_GRP_IRET,
+    C.CS_GRP_CALL,
+    C.CS_GRP_INT,
+    C.CS_GRP_INVALID,
+    C.CS_GRP_IRET,
     # Note that we explicitly do not include the PRIVILEGE category, since
     # we may be in kernel code, and privileged instructions are just fine
     # in that case.

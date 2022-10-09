@@ -1,4 +1,3 @@
-from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
 
 import pwndbg.gdblib.arch
@@ -9,6 +8,8 @@ import pwndbg.gdblib.typeinfo
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
 regs = {v: k for k, v in globals().items() if k.startswith("X86_REG_")}
+
+# TODO: Does this require the capstone import?
 access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
 pc = X86_REG_RSP
