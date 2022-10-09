@@ -45,5 +45,5 @@ class _GdbFunction(gdb.Function):
 @GdbFunction(only_when_running=True)
 def rebase(addr):
     """Return rebased address."""
-    base = pwndbg.elf.exe().address
+    base = pwndbg.gdblib.elf.exe().address
     return base + int(addr)

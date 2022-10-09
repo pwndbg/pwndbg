@@ -73,7 +73,7 @@ def xinfo_mmap_file(page, addr):
     # find possible LOAD segments that designate memory and file backings
     containing_loads = [
         seg
-        for seg in pwndbg.elf.get_containing_segments(file_name, first.vaddr, addr)
+        for seg in pwndbg.gdblib.elf.get_containing_segments(file_name, first.vaddr, addr)
         if seg["p_type"] == "PT_LOAD"
     ]
 
@@ -91,7 +91,7 @@ def xinfo_mmap_file(page, addr):
     else:
         print("{} {} = [not file backed]".format("File (Disk)".rjust(20), M.get(addr)))
 
-    containing_sections = pwndbg.elf.get_containing_sections(file_name, first.vaddr, addr)
+    containing_sections = pwndbg.gdblib.elf.get_containing_sections(file_name, first.vaddr, addr)
     if len(containing_sections) > 0:
         print("\n Containing ELF sections:")
         for sec in containing_sections:

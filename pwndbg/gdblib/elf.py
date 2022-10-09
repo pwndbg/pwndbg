@@ -324,11 +324,11 @@ def map(pointer, objfile=""):
 
     Example:
 
-        >>> pwndbg.elf.load(pwndbg.gdblib.regs.pc)
+        >>> pwndbg.gdblib.elf.load(pwndbg.gdblib.regs.pc)
         [Page('400000-4ef000 r-xp 0'),
          Page('6ef000-6f0000 r--p ef000'),
          Page('6f0000-6ff000 rw-p f0000')]
-        >>> pwndbg.elf.load(0x7ffff77a2000)
+        >>> pwndbg.gdblib.elf.load(0x7ffff77a2000)
         [Page('7ffff75e7000-7ffff77a2000 r-xp 0x1bb000 0'),
          Page('7ffff77a2000-7ffff79a2000 ---p 0x200000 1bb000'),
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),

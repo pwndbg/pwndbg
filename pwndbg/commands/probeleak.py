@@ -7,8 +7,8 @@ import gdb
 import pwndbg.color.memory as M
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.elf
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.elf
 import pwndbg.vmmap
 
 

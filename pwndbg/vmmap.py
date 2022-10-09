@@ -10,8 +10,8 @@ import os
 
 import gdb
 
-import pwndbg.elf
 import pwndbg.gdblib.abi
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
@@ -496,7 +496,7 @@ def info_sharedlibrary():
         text = int(tokens[0], 16)
         obj = tokens[-1]
 
-        pages.extend(pwndbg.elf.map(text, obj))
+        pages.extend(pwndbg.gdblib.elf.map(text, obj))
 
     return tuple(sorted(pages))
 
@@ -556,7 +556,7 @@ def info_files():
         else:
             seen_files.add(objfile)
 
-        pages.extend(pwndbg.elf.map(vaddr, objfile))
+        pages.extend(pwndbg.gdblib.elf.map(vaddr, objfile))
 
     return tuple(pages)
 
@@ -587,13 +587,13 @@ def info_auxv(skip_exe=False):
     phdr = auxv.AT_PHDR
 
     if not skip_exe and (entry or phdr):
-        pages.extend(pwndbg.elf.map(entry or phdr, exe_name))
+        pages.extend(pwndbg.gdblib.elf.map(entry or phdr, exe_name))
 
     if base:
-        pages.extend(pwndbg.elf.map(base, "[linker]"))
+        pages.extend(pwndbg.gdblib.elf.map(base, "[linker]"))
 
     if vdso:
-        pages.extend(pwndbg.elf.map(vdso, "[vdso]"))
+        pages.extend(pwndbg.gdblib.elf.map(vdso, "[vdso]"))
 
     return tuple(sorted(pages))
 

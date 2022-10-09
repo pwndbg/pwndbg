@@ -1,5 +1,5 @@
-:mod:`pwndbg.elf` --- pwndbg.elf
+:mod:`pwndbg.gdblib.elf` --- pwndbg.gdblib.elf
 =============================================
 
-.. automodule:: pwndbg.elf
+.. automodule:: pwndbg.gdblib.elf
     :members:

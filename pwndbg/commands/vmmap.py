@@ -9,7 +9,7 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.elf
+import pwndbg.gdblib.elf
 import pwndbg.vmmap
 
 integer_types = (int, gdb.Value)
@@ -104,9 +104,9 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_add(start, size, flags, offset):
     page_flags = {
-        "r": pwndbg.elf.PF_R,
-        "w": pwndbg.elf.PF_W,
-        "x": pwndbg.elf.PF_X,
+        "r": pwndbg.gdblib.elf.PF_R,
+        "w": pwndbg.gdblib.elf.PF_W,
+        "x": pwndbg.gdblib.elf.PF_X,
     }
     perm = 0
     for flag in flags:
@@ -163,11 +163,11 @@ def vmmap_load(filename):
                 continue
 
             # Guess the segment flags from section flags
-            flags = pwndbg.elf.PF_R
+            flags = pwndbg.gdblib.elf.PF_R
             if sh_flags & SH_FLAGS.SHF_WRITE:
-                flags |= pwndbg.elf.PF_W
+                flags |= pwndbg.gdblib.elf.PF_W
             if sh_flags & SH_FLAGS.SHF_EXECINSTR:
-                flags |= pwndbg.elf.PF_X
+                flags |= pwndbg.gdblib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
             pages.append(page)
