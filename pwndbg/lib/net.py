@@ -65,7 +65,7 @@ class UnixSocket(inode):
         return "UnixSocket(%s)" % self
 
 
-def tcp():
+def tcp(data: str):
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -73,7 +73,6 @@ def tcp():
     TCP connections. A typical entry of /proc/net/tcp would look like this (split
     up into 3 parts because of the length of the line):
     """
-    data = pwndbg.gdblib.file.get("/proc/net/tcp").decode()
     if not data:
         return []
 
@@ -142,8 +141,7 @@ def tcp():
     return result
 
 
-def unix():
-    data = pwndbg.gdblib.file.get("/proc/net/unix").decode()
+def unix(data: str):
     if not data:
         return []
 
@@ -199,8 +197,7 @@ class Netlink(inode):
         return "Netlink(%s)" % self
 
 
-def netlink():
-    data = pwndbg.gdblib.file.get("/proc/net/netlink").decode()
+def netlink(data: str):
     if not data:
         return []
 

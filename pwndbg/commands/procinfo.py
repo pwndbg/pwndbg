@@ -5,7 +5,7 @@ import pwndbg.commands
 import pwndbg.gdblib.file
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
-import pwndbg.lib.net
+import pwndbg.gdblib.net
 
 """
 PEDA prints it out like this:
@@ -160,7 +160,7 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [pwndbg.lib.net.tcp, pwndbg.lib.net.unix, pwndbg.lib.net.netlink]
+        functions = [pwndbg.gdblib.net.tcp, pwndbg.gdblib.net.unix, pwndbg.gdblib.net.netlink]
 
         for fd, path in fds.items():
             if socket not in path:
