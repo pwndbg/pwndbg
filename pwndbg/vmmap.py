@@ -11,7 +11,7 @@ import os
 import gdb
 
 import pwndbg.elf
-import pwndbg.file
+import pwndbg.gdblib.file
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
@@ -338,7 +338,7 @@ def proc_pid_maps():
 
     for location in locations:
         try:
-            data = pwndbg.file.get(location).decode()
+            data = pwndbg.gdblib.file.get(location).decode()
             break
         except (OSError, gdb.error):
             continue
@@ -624,7 +624,7 @@ def check_aslr():
 
     # Systemwide ASLR is disabled
     try:
-        data = pwndbg.file.get("/proc/sys/kernel/randomize_va_space")
+        data = pwndbg.gdblib.file.get("/proc/sys/kernel/randomize_va_space")
         if b"0" in data:
             return False, "kernel.randomize_va_space == 0"
     except Exception as e:
@@ -633,7 +633,7 @@ def check_aslr():
     # Check the personality of the process
     if pwndbg.gdblib.proc.alive:
         try:
-            data = pwndbg.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.pid)
+            data = pwndbg.gdblib.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.pid)
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:

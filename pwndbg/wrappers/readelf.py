@@ -5,7 +5,7 @@ cmd_name = "readelf"
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 def get_jmpslots():
-    local_path = pwndbg.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
     cmd = get_jmpslots.cmd + ["--relocs", local_path]
     readelf_out = pwndbg.wrappers.call_cmd(cmd)
 

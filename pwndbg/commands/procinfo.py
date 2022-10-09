@@ -2,7 +2,7 @@ import string
 
 import pwndbg.auxv
 import pwndbg.commands
-import pwndbg.file
+import pwndbg.gdblib.file
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
 import pwndbg.lib.net
@@ -79,13 +79,13 @@ class Process:
     @pwndbg.lib.memoize.reset_on_stop
     def selinux(self):
         path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
-        raw = pwndbg.file.get(path)
+        raw = pwndbg.gdblib.file.get(path)
         return raw.decode().rstrip("\x00").strip()
 
     @property
     @pwndbg.lib.memoize.reset_on_stop
     def status(self):
-        raw = pwndbg.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
+        raw = pwndbg.gdblib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
         status = {}
         for line in raw.splitlines():
@@ -144,7 +144,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.file.readlink("/proc/%i/fd/%i" % (pwndbg.gdblib.proc.pid, i))
+            link = pwndbg.gdblib.file.readlink("/proc/%i/fd/%i" % (pwndbg.gdblib.proc.pid, i))
 
             if link:
                 fds[i] = link

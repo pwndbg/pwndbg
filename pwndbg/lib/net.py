@@ -6,7 +6,7 @@ remote debugging sessions.
 import binascii
 import socket
 
-import pwndbg.file
+import pwndbg.gdblib.file
 import pwndbg.gdblib.arch
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
@@ -73,7 +73,7 @@ def tcp():
     TCP connections. A typical entry of /proc/net/tcp would look like this (split
     up into 3 parts because of the length of the line):
     """
-    data = pwndbg.file.get("/proc/net/tcp").decode()
+    data = pwndbg.gdblib.file.get("/proc/net/tcp").decode()
     if not data:
         return []
 
@@ -143,7 +143,7 @@ def tcp():
 
 
 def unix():
-    data = pwndbg.file.get("/proc/net/unix").decode()
+    data = pwndbg.gdblib.file.get("/proc/net/unix").decode()
     if not data:
         return []
 
@@ -200,7 +200,7 @@ class Netlink(inode):
 
 
 def netlink():
-    data = pwndbg.file.get("/proc/net/netlink").decode()
+    data = pwndbg.gdblib.file.get("/proc/net/netlink").decode()
     if not data:
         return []
 

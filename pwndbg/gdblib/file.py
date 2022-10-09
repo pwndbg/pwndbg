@@ -72,7 +72,7 @@ def get_file(path):
         else:
             print(
                 message.warn(
-                    "pwndbg.file.get(%s) returns local path as we can't download file from QEMU"
+                    "pwndbg.gdblib.file.get(%s) returns local path as we can't download file from QEMU"
                     % path
                 )
             )

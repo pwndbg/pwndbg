@@ -3,7 +3,7 @@ import argparse
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.file
+import pwndbg.gdblib.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf

@@ -18,7 +18,7 @@ parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["radare2"])
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False):
-    filename = pwndbg.file.get_file(pwndbg.gdblib.proc.exe)
+    filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     # Build up the command line to run
     cmd = ["radare2"]
