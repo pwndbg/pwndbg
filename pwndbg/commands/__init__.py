@@ -9,6 +9,7 @@ import gdb
 import pwndbg.chain
 import pwndbg.color
 import pwndbg.color.message as message
+import pwndbg.config
 import pwndbg.enhance
 import pwndbg.exception
 import pwndbg.gdblib.memory

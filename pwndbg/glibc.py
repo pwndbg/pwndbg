@@ -53,7 +53,7 @@ def _get_version():
     return None
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def get_got_plt_address():
