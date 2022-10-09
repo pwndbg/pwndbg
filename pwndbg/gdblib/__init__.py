@@ -16,6 +16,7 @@ def load_gdblib():
     import pwndbg.gdblib.arch
     import pwndbg.gdblib.argv
     import pwndbg.gdblib.ctypes
+    import pwndbg.gdblib.elf
     import pwndbg.gdblib.events
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.hooks

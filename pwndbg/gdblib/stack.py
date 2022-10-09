@@ -8,8 +8,8 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 import gdb
 
-import pwndbg.elf
 import pwndbg.gdblib.abi
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
@@ -125,9 +125,9 @@ def is_executable():
     nx = False
 
     PT_GNU_STACK = 0x6474E551
-    ehdr = pwndbg.elf.exe()
+    ehdr = pwndbg.gdblib.elf.exe()
 
-    for phdr in pwndbg.elf.iter_phdrs(ehdr):
+    for phdr in pwndbg.gdblib.elf.iter_phdrs(ehdr):
         if phdr.p_type == PT_GNU_STACK:
             nx = True
 

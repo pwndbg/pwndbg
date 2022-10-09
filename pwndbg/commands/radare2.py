@@ -25,11 +25,11 @@ def r2(arguments, no_seek=False, no_rebase=False):
     flags = ["-e", "io.cache=true"]
     if pwndbg.gdblib.proc.alive:
         addr = pwndbg.gdblib.regs.pc
-        if pwndbg.elf.get_elf_info(filename).is_pie:
+        if pwndbg.gdblib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
-                addr -= pwndbg.elf.exe().address
+                addr -= pwndbg.gdblib.elf.exe().address
             else:
-                flags.extend(["-B", hex(pwndbg.elf.exe().address)])
+                flags.extend(["-B", hex(pwndbg.gdblib.elf.exe().address)])
         if not no_seek:
             cmd.extend(["-s", hex(addr)])
     cmd.extend(flags)

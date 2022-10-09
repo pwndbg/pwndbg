@@ -16,7 +16,6 @@ import pwndbg.disasm.mips
 import pwndbg.disasm.ppc
 import pwndbg.disasm.sparc
 import pwndbg.disasm.x86
-import pwndbg.elf
 import pwndbg.exception
 import pwndbg.heap
 import pwndbg.lib.version

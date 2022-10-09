@@ -15,8 +15,8 @@ import gdb
 
 import pwndbg.config
 import pwndbg.decorators
-import pwndbg.elf
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
@@ -164,7 +164,7 @@ def can_connect():
 
 
 def l2r(addr):
-    exe = pwndbg.elf.exe()
+    exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
     result = (addr - int(exe.address) + base()) & pwndbg.gdblib.arch.ptrmask
@@ -172,7 +172,7 @@ def l2r(addr):
 
 
 def r2l(addr):
-    exe = pwndbg.elf.exe()
+    exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
     result = (addr - base() + int(exe.address)) & pwndbg.gdblib.arch.ptrmask

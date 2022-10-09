@@ -14,9 +14,9 @@ import elftools.elf.elffile
 import elftools.elf.segments
 import gdb
 
-import pwndbg.elf
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
@@ -161,7 +161,7 @@ def get(address, gdb_only=False):
 
     if not gdb_only and result.startswith("No symbol"):
         address = int(address)
-        exe = pwndbg.elf.exe()
+        exe = pwndbg.gdblib.elf.exe()
         if exe:
             exe_map = pwndbg.vmmap.find(exe.address)
             if exe_map and address in exe_map:
@@ -234,7 +234,7 @@ def add_main_exe_to_symbols():
     if pwndbg.gdblib.android.is_android():
         return
 
-    exe = pwndbg.elf.exe()
+    exe = pwndbg.gdblib.elf.exe()
 
     if not exe:
         return

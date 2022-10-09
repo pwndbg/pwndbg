@@ -1,5 +1,5 @@
-:mod:`pwndbg.elftypes` --- pwndbg.elftypes
+:mod:`pwndbg.gdblib.elftypes` --- pwndbg.gdblib.elftypes
 =============================================
 
-.. automodule:: pwndbg.elftypes
+.. automodule:: pwndbg.gdblib.elftypes
     :members:
