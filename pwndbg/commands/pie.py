@@ -26,7 +26,7 @@ def get_exe_name():
     # On the other hand, the vmmap, if taken from /proc/pid/maps will contain
     # the absolute and real path of the binary (after symlinks).
     # And so we have to read this path here.
-    real_path = pwndbg.file.readlink(path)
+    real_path = pwndbg.gdblib.file.readlink(path)
 
     if real_path == "":  # the `path` was not a symlink
         real_path = path
@@ -84,7 +84,7 @@ parser.add_argument(
 def piebase(offset=None, module=None):
     offset = int(offset)
     if not module:
-        # Note: we do not use `pwndbg.file.get_file(module)` here as it is not needed.
+        # Note: we do not use `pwndbg.gdblib.file.get_file(module)` here as it is not needed.
         # (as we do need the actual path that is in vmmap, not the file itself)
         module = get_exe_name()
 
@@ -113,7 +113,7 @@ parser.add_argument(
 def breakrva(offset=0, module=None):
     offset = int(offset)
     if not module:
-        # Note: we do not use `pwndbg.file.get_file(module)` here as it is not needed.
+        # Note: we do not use `pwndbg.gdblib.file.get_file(module)` here as it is not needed.
         # (as we do need the actual path that is in vmmap, not the file itself)
         module = get_exe_name()
     addr = translate_addr(offset, module)

@@ -7,7 +7,7 @@ from pwndbg.color import message
 @pwndbg.commands.ArgparsedCommand("Prints the section mappings contained in the ELF header.")
 @pwndbg.commands.OnlyWithFile
 def elfheader():
-    local_path = pwndbg.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -41,7 +41,7 @@ def plt():
 
 
 def get_section_bounds(section_name):
-    local_path = pwndbg.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)

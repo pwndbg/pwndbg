@@ -87,7 +87,7 @@ def get_elf_info(filepath):
     Adds various calculated properties to the ELF header, segments and sections.
     Such added properties are those with prefix 'x_' in the returned dicts.
     """
-    local_path = pwndbg.file.get_file(filepath)
+    local_path = pwndbg.gdblib.file.get_file(filepath)
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
         header = dict(elffile.header)

@@ -67,7 +67,7 @@ class module(ModuleType):
         2. gdb -ex "target remote :1234" -ex "pi pwndbg.gdblib.proc.exe"
 
         If you need to process the debugged file use:
-            `pwndbg.file.get_file(pwndbg.gdblib.proc.exe)`
+            `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)`
         """
         return gdb.current_progspace().filename
 

@@ -15,10 +15,10 @@ import elftools.elf.segments
 import gdb
 
 import pwndbg.elf
-import pwndbg.file
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
@@ -79,7 +79,7 @@ def autofetch():
     if pwndbg.gdblib.android.is_android():
         return
 
-    remote_files_dir = pwndbg.file.remote_files_dir()
+    remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
     if remote_files_dir not in get_directory().split(":"):
         add_directory(remote_files_dir)
 
@@ -98,7 +98,7 @@ def autofetch():
         print(msg, end="")
 
         try:
-            data = pwndbg.file.get(objfile)
+            data = pwndbg.gdblib.file.get(objfile)
             print("\r" + msg + ": OK")
         except OSError:
             # The file could not be downloaded :(
