@@ -28,7 +28,7 @@ import pwndbg.lib.memoize
 import pwndbg.vmmap
 
 
-def get_directory():
+def _get_debug_file_directory():
     """
     Retrieve the debug file directory path.
 
@@ -46,29 +46,29 @@ def get_directory():
     return ""
 
 
-def set_directory(d):
+def _set_debug_file_directory(d):
     gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
 
 
-def add_directory(d):
-    current = get_directory()
+def _add_debug_file_directory(d):
+    current = _get_debug_file_directory()
     if current:
-        set_directory("%s:%s" % (current, d))
+        _set_debug_file_directory("%s:%s" % (current, d))
     else:
-        set_directory(d)
+        _set_debug_file_directory(d)
 
 
-remote_files = {}
+_remote_files = {}
 
 
 @pwndbg.gdblib.events.exit
-def reset_remote_files():
-    global remote_files
-    remote_files = {}
+def _reset_remote_files():
+    global _remote_files
+    _remote_files = {}
 
 
 @pwndbg.gdblib.events.new_objfile
-def autofetch():
+def _autofetch():
     """ """
     if not pwndbg.gdblib.remote.is_remote():
         return
@@ -80,8 +80,8 @@ def autofetch():
         return
 
     remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
-    if remote_files_dir not in get_directory().split(":"):
-        add_directory(remote_files_dir)
+    if remote_files_dir not in _get_debug_file_directory().split(":"):
+        add_debug_file_directory(remote_files_dir)
 
     for mapping in pwndbg.vmmap.get():
         objfile = mapping.objfile
@@ -91,7 +91,7 @@ def autofetch():
             continue
 
         # Don't re-download things that we have already downloaded
-        if not objfile or objfile in remote_files:
+        if not objfile or objfile in _remote_files:
             continue
 
         msg = "Downloading %r from the remote server" % objfile
@@ -111,7 +111,7 @@ def autofetch():
         with open(local_path, "wb+") as f:
             f.write(data)
 
-        remote_files[objfile] = local_path
+        _remote_files[objfile] = local_path
 
         base = None
         for mapping in pwndbg.vmmap.get():
@@ -244,7 +244,7 @@ def static_linkage_symbol_address(symbol):
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
-def add_main_exe_to_symbols():
+def _add_main_exe_to_symbols():
     if not pwndbg.gdblib.remote.is_remote():
         return
 
@@ -302,5 +302,5 @@ def selected_frame_source_absolute_filename():
     return symtab.fullname()
 
 
-if "/usr/lib/debug" not in get_directory():
-    set_directory(get_directory() + ":/usr/lib/debug")
+if "/usr/lib/debug" not in _get_debug_file_directory():
+    _set_debug_file_directory(_get_debug_file_directory() + ":/usr/lib/debug")
