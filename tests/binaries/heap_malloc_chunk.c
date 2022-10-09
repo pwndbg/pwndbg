@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <pthread.h>
 
 #define INTERNAL_SIZE_T size_t
 #define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
@@ -68,4 +69,10 @@ int main(void)
     unsorted_chunk = mem2chunk(unsorted);
 
     break_here();
+
+    // Required for CI build to retrieve TLS variables.
+    // See:
+    // - https://github.com/pwndbg/pwndbg/pull/1086
+    // - https://sourceware.org/bugzilla/show_bug.cgi?id=24548
+    pthread_create(0,0,0,0);
 }
