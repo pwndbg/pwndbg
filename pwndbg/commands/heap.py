@@ -299,21 +299,16 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
         out_fields = ""
         verbose = True
     else:
-        arena = allocator.get_arena_for_chunk(chunk.address)
-        arena_address = None
-        is_top = False
+        arena = chunk.arena
         if not fake and arena:
-            arena_address = arena.address
-            top_chunk = arena["top"]
-            if chunk.address == top_chunk:
+            if chunk.is_top_chunk:
                 headers_to_print.append(message.off("Top chunk"))
-                is_top = True
 
-        if not is_top:
-            fastbins = allocator.fastbins(arena_address) or {}
-            smallbins = allocator.smallbins(arena_address) or {}
-            largebins = allocator.largebins(arena_address) or {}
-            unsortedbin = allocator.unsortedbin(arena_address) or {}
+        if not chunk.is_top_chunk:
+            fastbins = allocator.fastbins(arena.address) or {}
+            smallbins = allocator.smallbins(arena.address) or {}
+            largebins = allocator.largebins(arena.address) or {}
+            unsortedbin = allocator.unsortedbin(arena.address) or {}
             if allocator.has_tcache():
                 tcachebins = allocator.tcachebins(None)
 
