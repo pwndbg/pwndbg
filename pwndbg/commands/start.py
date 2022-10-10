@@ -61,7 +61,7 @@ def start(args=None):
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.gdblib.symbol.address(symbol, allow_unmapped=True)
+        address = pwndbg.gdblib.symbol.address(symbol)
 
         if not address:
             continue

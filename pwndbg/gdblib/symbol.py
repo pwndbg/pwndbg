@@ -188,7 +188,7 @@ def get(address: int, gdb_only=False) -> str:
 
 
 @pwndbg.lib.memoize.reset_on_objfile
-def address(symbol: str, allow_unmapped=False) -> int:
+def address(symbol: str) -> int:
     """
     Get the address for `symbol`
     """
@@ -215,23 +215,6 @@ def address(symbol: str, allow_unmapped=False) -> int:
 
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
-
-    try:
-        result = gdb.execute("info address %s" % symbol, to_string=True, from_tty=False)
-        address = int(re.search(r"0x[0-9a-fA-F]+", result).group(), 0)
-
-        # The address found should lie in one of the memory maps
-        # There are cases when GDB shows offsets e.g.:
-        # pwndbg> info address tcache
-        # Symbol "tcache" is a thread-local variable at offset 0x40
-        # in the thread-local storage for `/lib/x86_64-linux-gnu/libc.so.6'.
-        if not allow_unmapped and not pwndbg.vmmap.find(address):
-            return None
-
-        return address
-
-    except gdb.error:
-        return None
 
     try:
         # TODO: We should properly check if we have a connection to the IDA server first
