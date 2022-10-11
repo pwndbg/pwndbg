@@ -1,9 +1,11 @@
 import gdb
 
+import pytest
 import pwndbg.gdblib.regs
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
 
 
 def test_command_nextproginstr_binary_not_running():
@@ -40,3 +42,19 @@ def test_command_nextproginstr(start_binary):
     # Ensure that nextproginstr won't jump now
     out = gdb.execute("nextproginstr", to_string=True)
     assert out == "The pc is already at the binary objfile code. Not stepping.\n"
+
+
+@pytest.mark.parametrize(
+    "command",
+    ("nextcall", "nextjump", "nextproginstr", "nextret", "nextsyscall", "stepret", "stepsyscall")
+)
+def test_next_command_doesnt_freeze_crashed_binary(start_binary, command):
+    start_binary(REFERENCE_BINARY)
+
+    # The nextproginstr won't step if we are already on the binary address
+    # and interestingly, other commands won't step if the address can't be disassemblied
+    if command == "nextproginstr":
+        pwndbg.gdblib.regs.pc = 0x1234
+
+    # This should not halt/freeze the program
+    gdb.execute(command, to_string=True)
