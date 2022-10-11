@@ -1,6 +1,6 @@
 import gdb
-
 import pytest
+
 import pwndbg.gdblib.regs
 import tests
 
@@ -46,7 +46,7 @@ def test_command_nextproginstr(start_binary):
 
 @pytest.mark.parametrize(
     "command",
-    ("nextcall", "nextjump", "nextproginstr", "nextret", "nextsyscall", "stepret", "stepsyscall")
+    ("nextcall", "nextjump", "nextproginstr", "nextret", "nextsyscall", "stepret", "stepsyscall"),
 )
 def test_next_command_doesnt_freeze_crashed_binary(start_binary, command):
     start_binary(REFERENCE_BINARY)
