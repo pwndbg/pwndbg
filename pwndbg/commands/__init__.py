@@ -15,6 +15,7 @@ import pwndbg.exception
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
+import pwndbg.heap
 import pwndbg.hexdump
 import pwndbg.ui
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
@@ -276,6 +277,9 @@ def OnlyWithResolvedHeapSyms(function):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if pwndbg.heap.current.can_be_resolved():
+            # We don't catch the error for developers, only catch for users.
+            if gdb.parameter("exception-verbose") or gdb.parameter("exception-debugger"):
+                return function(*a, **kw)
             try:
                 return function(*a, **kw)
             except SymbolUnresolvableError as err:
@@ -284,7 +288,7 @@ def OnlyWithResolvedHeapSyms(function):
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
             except Exception as err:
-                e(f"{function.__name__}: Unknown error: `{err}` when running this symbols.")
+                e(f"{function.__name__}: An unknown error occurred when running this command.")
                 if pwndbg.config.resolve_heap_via_heuristic:
                     w(
                         "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
