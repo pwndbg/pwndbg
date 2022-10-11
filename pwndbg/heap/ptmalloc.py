@@ -32,6 +32,24 @@ def heap_for_ptr(ptr):
 
 
 class Chunk:
+    __slots__ = (
+        "_gdbValue",
+        "address",
+        "_prev_size",
+        "_size",
+        "_real_size",
+        "_flags",
+        "_non_main_arena",
+        "_is_mmapped",
+        "_prev_inuse",
+        "_fd",
+        "_bk",
+        "_fd_nextsize",
+        "_bk_nextsize",
+        "_arena",
+        "_is_top_chunk",
+    )
+
     def __init__(self, addr, arena=None):
         if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
@@ -51,7 +69,6 @@ class Chunk:
         self._bk_nextsize = None
         self._arena = arena
         self._is_top_chunk = None
-
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
     def __match_renamed_field(self, field):
@@ -206,6 +223,8 @@ class Chunk:
 
 
 class Arena:
+    __slots__ = ("_gdbValue", "address", "is_main_arena", "_top", "heaps")
+
     def __init__(self, addr, heaps=None):
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
