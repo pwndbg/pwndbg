@@ -69,12 +69,6 @@ def mprotect(addr, length, prot):
     # restore registers and memory
     pwndbg.gdblib.memory.write(saved_rip, saved_instruction_bytes)
 
-    gdb.execute("set $rax={}".format(saved_rax))
-    gdb.execute("set $rbx={}".format(saved_rbx))
-    gdb.execute("set $rcx={}".format(saved_rcx))
-    gdb.execute("set $rdx={}".format(saved_rdx))
-    gdb.execute("set $rip={}".format(saved_rip))
-
     pwndbg.gdblib.regs.rax = saved_rax
     pwndbg.gdblib.regs.rbx = saved_rbx
     pwndbg.gdblib.regs.rcx = saved_rcx
