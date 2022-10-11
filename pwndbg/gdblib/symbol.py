@@ -211,7 +211,7 @@ def address(symbol: str) -> int:
         # If we try to look up a TLS variable when there is no TLS, this
         # exception occurs. Ideally we should come up with a way to check for
         # this case before calling `gdb.lookup_symbol`
-        skipped_exceptions.append("Cannot find thread-local variables")
+        skipped_exceptions.append("Cannot find thread-local")
 
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
