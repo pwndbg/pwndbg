@@ -52,7 +52,6 @@ class Chunk:
         self._arena = arena
         self._is_top_chunk = None
 
-        # TODO key, REVEAL_PTR
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
     def __match_renamed_field(self, field):
@@ -204,8 +203,6 @@ class Chunk:
                 self._is_top_chunk = False
 
         return self._is_top_chunk
-
-    # TODO Other useful methods e.g. next_chunk(), __iter__, __str__
 
 
 class Arena:
