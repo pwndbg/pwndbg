@@ -22,7 +22,7 @@ parser.add_argument("ins", type=str, help="instruction[s]")
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def patch(address, ins):
-    new_mem = asm(ins, arch=pwndbg.gdblib.arch.current)
+    new_mem = asm(ins)
 
     old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
 
@@ -68,8 +68,8 @@ def patch_list():
 
     print(message.hint("Patches:"))
     for addr, (old, new) in patches.items():
-        old_insns = disasm(old, arch=pwndbg.gdblib.arch.current)
-        new_insns = disasm(new, arch=pwndbg.gdblib.arch.current)
+        old_insns = disasm(old)
+        new_insns = disasm(new)
 
         print(
             message.hint("Patch at"),
