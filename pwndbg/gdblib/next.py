@@ -91,6 +91,10 @@ def break_next_interrupt(address=None):
 
 def break_next_call(symbol_regex=None):
     while pwndbg.gdblib.proc.alive:
+        # Break on signal as it may be a segfault
+        if pwndbg.gdblib.proc.stopped_with_signal:
+            return
+
         ins = break_next_branch()
 
         if not ins:
@@ -115,6 +119,10 @@ def break_next_call(symbol_regex=None):
 
 def break_next_ret(address=None):
     while pwndbg.gdblib.proc.alive:
+        # Break on signal as it may be a segfault
+        if pwndbg.gdblib.proc.stopped_with_signal:
+            return
+
         ins = break_next_branch(address)
 
         if not ins:
@@ -126,13 +134,14 @@ def break_next_ret(address=None):
 
 def break_on_program_code():
     """
-    Breaks on next instruction that belongs to process' objfile code.
-    :return: True for success, False when process ended or when pc is at the code.
+    Breaks on next instruction that belongs to process' objfile code
+
+    :return: True for success, False when process ended or when pc is not at the code or if a signal occurred
     """
     exe = pwndbg.gdblib.proc.exe
-    binary_exec_page_ranges = [
+    binary_exec_page_ranges = tuple(
         (p.start, p.end) for p in pwndbg.vmmap.get() if p.objfile == exe and p.execute
-    ]
+    )
 
     pc = pwndbg.gdblib.regs.pc
     for start, end in binary_exec_page_ranges:
@@ -140,12 +149,18 @@ def break_on_program_code():
             print(message.error("The pc is already at the binary objfile code. Not stepping."))
             return False
 
-    while pwndbg.gdblib.proc.alive:
-        gdb.execute("si", from_tty=False, to_string=False)
+    proc = pwndbg.gdblib.proc
+    regs = pwndbg.gdblib.regs
 
-        pc = pwndbg.gdblib.regs.pc
+    while proc.alive:
+        # Break on signal as it may be a segfault
+        if proc.stopped_with_signal:
+            return False
+
+        o = gdb.execute("si", from_tty=False, to_string=True)
+
         for start, end in binary_exec_page_ranges:
-            if start <= pc < end:
+            if start <= regs.pc < end:
                 return True
 
     return False

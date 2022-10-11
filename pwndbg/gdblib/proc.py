@@ -42,6 +42,11 @@ class module(ModuleType):
 
     @property
     def alive(self):
+        """
+        Informs whether the process has a thread. However, note that it will
+        still return True for a segfaulted thread. To detect that, consider
+        using the `stopped_with_signal` method.
+        """
         return gdb.selected_thread() is not None
 
     @property
@@ -55,6 +60,15 @@ class module(ModuleType):
         :return: Whether gdb executes commands attached to bp with `command` command.
         """
         return gdb.selected_thread().is_stopped()
+
+    @property
+    def stopped_with_signal(self) -> bool:
+        """
+        Returns whether the program has stopped with a signal
+
+        Can be used to detect segfaults (but will also detect other signals)
+        """
+        return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @property
     def exe(self):
