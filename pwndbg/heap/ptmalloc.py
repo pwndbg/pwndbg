@@ -33,7 +33,7 @@ def heap_for_ptr(ptr):
 
 class Chunk:
     def __init__(self, addr, arena=None):
-        if type(pwndbg.heap.current.malloc_chunk) == gdb.Type:
+        if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
@@ -207,7 +207,7 @@ class Chunk:
 
 class Arena:
     def __init__(self, addr, heaps=None):
-        if type(pwndbg.heap.current.malloc_state) == gdb.Type:
+        if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
