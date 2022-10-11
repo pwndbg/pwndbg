@@ -6,8 +6,8 @@ import pwndbg.color.theme as theme
 import pwndbg.enhance
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.symbol
 import pwndbg.vmmap
 
 LIMIT = pwndbg.config.Parameter(
@@ -108,7 +108,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     # Colorize the chain
     rest = []
     for link in chain:
-        symbol = pwndbg.symbol.get(link) or None
+        symbol = pwndbg.gdblib.symbol.get(link) or None
         if symbol:
             symbol = "%#x (%s)" % (link, symbol)
         rest.append(M.get(link, symbol))

@@ -10,7 +10,7 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 import pwndbg.vmmap
 
 
@@ -39,7 +39,7 @@ class module(ModuleType):
 
         if not self._errno_offset:
             __errno_location_instr = pwndbg.disasm.near(
-                pwndbg.symbol.address("__errno_location"), 5, show_prev_insns=False
+                pwndbg.gdblib.symbol.address("__errno_location"), 5, show_prev_insns=False
             )
             if pwndbg.gdblib.arch.current == "x86-64":
                 for instr in __errno_location_instr:

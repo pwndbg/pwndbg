@@ -66,7 +66,7 @@ def decompile(func=None):
 
     if pwndbg.config.syntax_highlight:
         # highlighting depends on the file extension to guess the language, so try to get one...
-        src_filename = pwndbg.symbol.selected_frame_source_absolute_filename()
+        src_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
         if not src_filename:
             filename = gdb.current_progspace().filename
             src_filename = filename + ".c" if os.path.basename(filename).find(".") < 0 else filename

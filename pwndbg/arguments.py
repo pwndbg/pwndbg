@@ -13,12 +13,12 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-import pwndbg.symbol
 
 ida_replacements = {
     "__int64": "signed long long int",
@@ -94,7 +94,7 @@ def get(instruction):
         if not target:
             return []
 
-        name = pwndbg.symbol.get(target)
+        name = pwndbg.gdblib.symbol.get(target)
         if not name:
             return []
     elif CS_GRP_INT in instruction.groups:

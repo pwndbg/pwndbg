@@ -22,9 +22,9 @@ import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
 import pwndbg.ghidra
 import pwndbg.ida
-import pwndbg.symbol
 import pwndbg.ui
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -321,7 +321,7 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
         return []
 
     if config_context_ghidra == "if-no-source":
-        source_filename = pwndbg.symbol.selected_frame_source_absolute_filename()
+        source_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
         if source_filename and os.path.exists(source_filename):
             return []
 
@@ -768,7 +768,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = " %s" % B.prefix(prefix)
         addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = B.symbol(pwndbg.symbol.get(frame.pc()))
+        symbol = B.symbol(pwndbg.gdblib.symbol.get(frame.pc()))
         if symbol:
             addrsz = addrsz + " " + symbol
         line = map(str, (prefix, B.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))

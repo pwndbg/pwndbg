@@ -1,7 +1,7 @@
 import pwndbg.color.message as message
 import pwndbg.config
+import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
-import pwndbg.symbol
 
 current = None
 
