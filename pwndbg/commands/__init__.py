@@ -277,9 +277,7 @@ def OnlyWithResolvedHeapSyms(function):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if pwndbg.heap.current.can_be_resolved():
-            # We don't catch the error for developers, only catch for users.
-            if gdb.parameter("exception-verbose") or gdb.parameter("exception-debugger"):
-                return function(*a, **kw)
+            # Note: We will still raise the error for developers when exception-* is set to "on"
             try:
                 return function(*a, **kw)
             except SymbolUnresolvableError as err:
@@ -287,6 +285,8 @@ def OnlyWithResolvedHeapSyms(function):
                 w(
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
+                if pwndbg.config.exception_verbose.value or pwndbg.config.exception_debugger.value:
+                    raise err
             except Exception as err:
                 e(f"{function.__name__}: An unknown error occurred when running this command.")
                 if pwndbg.config.resolve_heap_via_heuristic:
@@ -295,6 +295,8 @@ def OnlyWithResolvedHeapSyms(function):
                     )
                 else:
                     w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
+                if pwndbg.config.exception_verbose.value or pwndbg.config.exception_debugger.value:
+                    raise err
         else:
             print(message.error(f"{function.__name__}: "), end="")
             if not pwndbg.config.resolve_heap_via_heuristic:
