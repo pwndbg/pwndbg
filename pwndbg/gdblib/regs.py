@@ -68,6 +68,14 @@ class module(ModuleType):
         except (ValueError, gdb.error):
             return None
 
+    def __setattr__(self, attr, val):
+        if attr == "last" or attr == "previous":
+            return super().__setattr__(attr, val)
+        else:
+            # Not catching potential gdb.error as this should never
+            # be called in a case when this can throw
+            gdb.execute(f"set ${attr} = {val}")
+
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
     def __getitem__(self, item):
