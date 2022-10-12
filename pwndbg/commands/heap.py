@@ -589,6 +589,12 @@ def find_fake_fast(addr, size=None):
                     malloc_chunk(start + offset - psize, fake=True)
 
 
+pwndbg.config.Parameter(
+    "max-visualize-chunk-size",
+    0,
+    "max display size for heap chunks visualization (0 for display all)",
+)
+
 parser = argparse.ArgumentParser()
 parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
 parser.add_argument(
@@ -606,13 +612,20 @@ parser.add_argument(
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
+parser.add_argument(
+    "--display_all",
+    "-a",
+    action="store_true",
+    default=False,
+    help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None):
+def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
@@ -699,10 +712,35 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
     cursor = cursor_backup
 
+    has_huge_chunk = False
+    # round up to align with 4*ptr_size and get half
+    half_max_size = (
+        pwndbg.lib.memory.round_up(pwndbg.config.max_visualize_chunk_size, ptr_size << 2) >> 1
+    )
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
+        if stop - cursor > 0x10000:
+            has_huge_chunk = True
+        first_cut = True
+        # round down to align with 2*ptr_size
+        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
+        end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
+
         while cursor != stop:
+            # skip the middle part of a huge chunk
+            if (
+                not display_all
+                and half_max_size > 0
+                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
+            ):
+                if first_cut:
+                    out += "\n" + "." * len(hex(cursor))
+                    first_cut = False
+                cursor += ptr_size
+                continue
+
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
@@ -727,6 +765,13 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
             cursor += ptr_size
 
     print(out)
+
+    if has_huge_chunk and max_visualize_chunk_size == 0:
+        print(
+            message.warn(
+                "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"
+            )
+        )
 
 
 def bin_ascii(bs):
