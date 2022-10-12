@@ -15,6 +15,7 @@ import pwndbg.exception
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
+import pwndbg.heap
 import pwndbg.hexdump
 import pwndbg.ui
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
@@ -276,6 +277,7 @@ def OnlyWithResolvedHeapSyms(function):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if pwndbg.heap.current.can_be_resolved():
+            # Note: We will still raise the error for developers when exception-* is set to "on"
             try:
                 return function(*a, **kw)
             except SymbolUnresolvableError as err:
@@ -283,14 +285,18 @@ def OnlyWithResolvedHeapSyms(function):
                 w(
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
+                if pwndbg.config.exception_verbose.value or pwndbg.config.exception_debugger.value:
+                    raise err
             except Exception as err:
-                e(f"{function.__name__}: Unknown error: `{err}` when running this symbols.")
+                e(f"{function.__name__}: An unknown error occurred when running this command.")
                 if pwndbg.config.resolve_heap_via_heuristic:
                     w(
                         "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
                     )
                 else:
                     w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
+                if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
+                    raise err
         else:
             print(message.error(f"{function.__name__}: "), end="")
             if not pwndbg.config.resolve_heap_via_heuristic:
