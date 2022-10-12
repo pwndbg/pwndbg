@@ -2,8 +2,9 @@
 Hexdump implementation, ~= stolen from pwntools.
 """
 
-import copy
 import string
+
+import pwnlib.util.lists
 
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
@@ -13,12 +14,8 @@ color_scheme = None
 printable = None
 
 
-def groupby(array, count, fill=None):
-    array = copy.copy(array)
-    while fill and len(array) % count:
-        array.append(fill)
-    for i in range(0, len(array), count):
-        yield array[i : i + count]
+def groupby(width, array, fill=None):
+    return pwnlib.util.lists.group(width, array, underfull_action="fill", fill_value=fill)
 
 
 config_colorize_ascii = theme.add_param(
@@ -41,7 +38,7 @@ def load_color_scheme():
     global color_scheme, printable
     #
     # We want to colorize the hex characters and only print out
-    # printable values on the righ hand side.
+    # printable values on the right hand side.
     #
     color_scheme = {i: H.normal("%02x" % i) for i in range(256)}
     printable = {i: H.normal(".") for i in range(256)}
@@ -73,32 +70,37 @@ def hexdump(
 ):
     if not color_scheme or not printable:
         load_color_scheme()
+
+    # If there's nothing to print, just print the offset and address and return
+    if len(data) == 0:
+        yield H.offset("+%04x " % len(data)) + H.address("%#08x  " % (address + len(data)))
+
+        # Don't allow iterating over this generator again
+        return
+
     data = list(bytearray(data))
-    base = address
     last_line = None
     skipping = False
-    for i, line in enumerate(groupby(data, width, -1)):
+    for i, line in enumerate(groupby(width, data, fill=-1)):
         if skip and line == last_line:
-            if not skipping:
-                skipping = True
-                yield "..."
-            continue
+            if skipping:
+                continue
+
+            skipping = True
+            yield "..."
         else:
             skipping = False
             last_line = line
 
         hexline = []
 
-        if address:
-            hexline.append(H.offset("+%04x " % ((i + offset) * width)))
+        hexline.append(H.offset("+%04x " % ((i + offset) * width)))
+        hexline.append(H.address("%#08x  " % (address + (i * width))))
 
-        hexline.append(H.address("%#08x  " % (base + (i * width))))
-
-        for group in groupby(line, group_width):
-            group_length = len(group)
+        for group in groupby(group_width, line):
             group = reversed(group) if flip_group_endianess else group
             for idx, char in enumerate(group):
-                if flip_group_endianess and idx == group_length - 1:
+                if flip_group_endianess and idx == group_width - 1:
                     hexline.append(H.highlight_group_lsb(color_scheme[char]))
                 else:
                     hexline.append(color_scheme[char])
@@ -106,22 +108,9 @@ def hexdump(
             hexline.append(" ")
 
         hexline.append(H.separator("%s" % config_separator))
-        for group in groupby(line, group_width):
+        for group in groupby(group_width, line):
             for char in group:
                 hexline.append(printable[char])
             hexline.append(H.separator("%s" % config_separator))
 
-        yield ("".join(hexline))
-
-    # skip empty footer if we printed something
-    if last_line:
-        return
-
-    hexline = []
-
-    if address:
-        hexline.append(H.offset("+%04x " % len(data)))
-
-    hexline.append(H.address("%#08x  " % (base + len(data))))
-
-    yield "".join(hexline)
+        yield "".join(hexline)
