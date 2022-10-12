@@ -1031,7 +1031,7 @@ class HeuristicHeap(Heap):
                             tmp_arena = self.malloc_state(tmp_next)
                             try:
                                 tmp_next = int(tmp_arena["next"])
-                            except gdb.MemoryError:
+                            except (gdb.MemoryError, gdb.error, OverflowError):
                                 # tmp_arena->next is not valid, break
                                 break
                         if found:
@@ -1558,7 +1558,7 @@ class HeuristicHeap(Heap):
             or pwndbg.vmmap.find(self._mp_addr) is None
             and self.possible_page_of_symbols
         ):
-            libc_page = self.possible_page_of_symbols.vaddr
+            libc_page = self.possible_page_of_symbols
 
             # try to find sbrk_base via main_arena or vmmap
             # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
