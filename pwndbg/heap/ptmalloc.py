@@ -1032,7 +1032,13 @@ class HeuristicHeap(Heap):
                             try:
                                 tmp_next = int(tmp_arena["next"])
                             except (gdb.MemoryError, gdb.error, OverflowError):
-                                # tmp_arena->next is not valid, break
+                                # Since we are just guessing the correct address by reading every possible address, it has high possibility to get the following errors when reading an invalid address:
+                                # 1) If we try to read unmapped memory, we will get `gdb.MemoryError`
+                                # 2) `tmp_arena["next"]` will try to use `gdb.Value(tmp_next+offset)` during `pwndbg.gdblib.memory.poi`, but if `tmp_next+offset` >= 2 ** 64 which is too big for GDB, it will raise `OverflowError: int too big to convert`
+                                # 3) Since GDB's Python API is buggy sometimes, to catch some weird things we missed, we also catch the `gdb.error` here :)
+                                # (So `gdb.error` is not necessary, this can be removed if we are sure the above first two cases can cover all possible errors)
+
+                                # if `&tmp_arena->next` is not valid, the linked list is broken, break this while loop and try `addr+pwndbg.gdblib.arch.ptrsize` again
                                 break
                         if found:
                             break
