@@ -32,8 +32,26 @@ def heap_for_ptr(ptr):
 
 
 class Chunk:
-    def __init__(self, addr):
-        if type(pwndbg.heap.current.malloc_chunk) == gdb.Type:
+    __slots__ = (
+        "_gdbValue",
+        "address",
+        "_prev_size",
+        "_size",
+        "_real_size",
+        "_flags",
+        "_non_main_arena",
+        "_is_mmapped",
+        "_prev_inuse",
+        "_fd",
+        "_bk",
+        "_fd_nextsize",
+        "_bk_nextsize",
+        "_arena",
+        "_is_top_chunk",
+    )
+
+    def __init__(self, addr, arena=None):
+        if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
@@ -49,8 +67,8 @@ class Chunk:
         self._bk = None
         self._fd_nextsize = None
         self._bk_nextsize = None
-
-        # TODO key, REVEAL_PTR
+        self._arena = arena
+        self._is_top_chunk = None
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
     def __match_renamed_field(self, field):
@@ -60,7 +78,7 @@ class Chunk:
         }
 
         for field_name in field_renames[field]:
-            if field_name in (f.name for f in self._gdbValue.type.fields()):
+            if gdb.types.has_field(self._gdbValue.type, field_name):
                 return field_name
 
         raise ValueError(f"Chunk field name did not match any of {field_renames[field]}.")
@@ -177,22 +195,61 @@ class Chunk:
 
         return self._bk_nextsize
 
-    # TODO Other useful methods e.g. next_chunk(), __iter__, __str__
+    @property
+    def arena(self):
+        if self._arena is None:
+            try:
+                ar_ptr = pwndbg.heap.current.get_heap(self.address)["ar_ptr"]
+                ar_ptr.fetch_lazy()
+            except Exception:
+                ar_ptr = None
+            if ar_ptr is not None and ar_ptr in (ar.address for ar in pwndbg.heap.current.arenas):
+                self._arena = Arena(ar_ptr)
+            else:
+                self._arena = Arena(pwndbg.heap.current.main_arena.address)
+
+        return self._arena
+
+    @property
+    def is_top_chunk(self):
+        if self._is_top_chunk is None:
+            ar = self.arena
+            if ar is not None and self.address == ar.top:
+                self._is_top_chunk = True
+            else:
+                self._is_top_chunk = False
+
+        return self._is_top_chunk
 
 
 class Arena:
-    def __init__(self, addr, heaps):
-        self.addr = addr
+    __slots__ = ("_gdbValue", "address", "is_main_arena", "_top", "heaps")
+
+    def __init__(self, addr, heaps=None):
+        if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
+            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
+        else:
+            self._gdbValue = pwndbg.heap.current.malloc_state(addr)
+        self.address = int(self._gdbValue.address)
+        self.is_main_arena = self.address == pwndbg.heap.current.main_arena.address
+        self._top = None
         self.heaps = heaps
 
+    @property
+    def top(self):
+        if self._top is None:
+            try:
+                self._top = int(self._gdbValue["top"])
+            except gdb.MemoryError:
+                pass
+
+        return self._top
+
     def __str__(self):
-        res = []
         prefix = "[%%%ds]    " % (pwndbg.gdblib.arch.ptrsize * 2)
         prefix_len = len(prefix % (""))
-        arena_name = (
-            hex(self.addr) if self.addr != pwndbg.heap.current.main_arena.address else "main"
-        )
-        res.append(message.hint(prefix % (arena_name)) + str(self.heaps[0]))
+        arena_name = "main" if self.is_main_arena else hex(self.address)
+        res = [message.hint(prefix % (arena_name)) + str(self.heaps[0])]
         for h in self.heaps[1:]:
             res.append(" " * prefix_len + str(h))
 
