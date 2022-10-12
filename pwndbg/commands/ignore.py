@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("bpnum", type=int, default=None, nargs="?", help="The breakpoint number N.")
 parser.add_argument("count", type=int, help="The number to set COUNT.")
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 def ignore(bpnum, count):
     if bpnum is None:
