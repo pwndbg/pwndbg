@@ -295,7 +295,7 @@ def OnlyWithResolvedHeapSyms(function):
                     )
                 else:
                     w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
-                if pwndbg.config.exception_verbose.value or pwndbg.config.exception_debugger.value:
+                if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
                     raise err
         else:
             print(message.error(f"{function.__name__}: "), end="")
