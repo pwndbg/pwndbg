@@ -54,7 +54,7 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 class Command(gdb.Command):
     """Generic command wrapper"""
 
-    builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
+    builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
     history = {}  # type: Dict[int,str]
 
     def __init__(self, function, prefix=False, command_name=None, shell=False):
@@ -470,6 +470,7 @@ def load_commands():
     import pwndbg.commands.heap
     import pwndbg.commands.hexdump
     import pwndbg.commands.ida
+    import pwndbg.commands.ignore
     import pwndbg.commands.ipython_interactive
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
