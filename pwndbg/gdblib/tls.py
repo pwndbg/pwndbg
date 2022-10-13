@@ -21,7 +21,9 @@ class module(ModuleType):
 
     def get_tls_base_via_errno_location(self) -> int:
         """Heuristically determine the base address of the TLS."""
-        if pwndbg.symbol.address("__errno_location") is None or pwndbg.gdblib.arch.current not in (
+        if pwndbg.gdblib.symbol.address(
+            "__errno_location"
+        ) is None or pwndbg.gdblib.arch.current not in (
             "x86-64",
             "i386",
             "arm",

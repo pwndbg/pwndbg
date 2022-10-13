@@ -1,5 +1,7 @@
 import os.path
 import re
+from typing import Any
+from typing import Dict
 
 import pygments
 import pygments.formatters
@@ -20,7 +22,7 @@ style = theme.Parameter(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache = {}
+lexer_cache: Dict[str, Any] = {}
 
 
 @pwndbg.config.Trigger([style])

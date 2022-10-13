@@ -7,6 +7,11 @@ by using a decorator.
 import sys
 from functools import partial
 from functools import wraps
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Set
 
 import gdb
 
@@ -101,7 +106,7 @@ gdb.events.before_prompt = before_prompt_event
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered = {
+registered: Dict[Any, List[Callable]] = {
     gdb.events.exited: [],
     gdb.events.cont: [],
     gdb.events.new_objfile: [],
@@ -122,7 +127,7 @@ except (NameError, AttributeError):
 # objects are loaded.  This greatly slows down the debugging session.
 # In order to combat this, we keep track of which objfiles have been loaded
 # this session, and only emit objfile events for each *new* file.
-objfile_cache = dict()
+objfile_cache: Dict[str, Set[str]] = {}
 
 
 def connect(func, event_handler, name=""):
