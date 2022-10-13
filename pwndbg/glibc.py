@@ -8,6 +8,7 @@ import re
 import gdb
 
 import pwndbg.gdblib.config
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
@@ -68,8 +69,7 @@ def get_got_plt_address():
         None,
     )
     if libc_filename:
-        out = gdb.execute("info files", to_string=True)
-        for line in out.splitlines():
+        for line in pwndbg.gdblib.info.files().splitlines():
             if libc_filename in line and ".got.plt" in line:
                 return int(line.strip().split()[0], 16)
     return 0
