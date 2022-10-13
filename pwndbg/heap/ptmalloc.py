@@ -1681,11 +1681,11 @@ class HeuristicHeap(Heap):
                 _int_malloc_instructions = pwndbg.disasm.near(
                     _int_malloc_addr, 25, show_prev_insns=False
                 )
-                # cmp qword ptr [rip + global_max_fast_offset], 0x1f
+                # find first `cmp` instruction like: `cmp something, qword ptr [rip + disp]`
                 global_max_fast_ref = next(
                     instr
                     for instr in _int_malloc_instructions
-                    if instr.mnemonic == "cmp" and instr.op_str.startswith("qword ptr [rip +")
+                    if instr.mnemonic == "cmp" and "qword ptr [rip +" in instr.op_str
                 )
                 self._global_max_fast_addr = global_max_fast_ref.next + global_max_fast_ref.disp
             elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
