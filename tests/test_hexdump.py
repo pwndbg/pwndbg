@@ -1,7 +1,7 @@
 import gdb
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.config
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.vmmap
@@ -11,7 +11,7 @@ BINARY = tests.binaries.get("reference-binary.out")
 
 
 def run_tests(stack, use_big_endian, expected):
-    pwndbg.config.hexdump_group_use_big_endian = use_big_endian
+    pwndbg.gdblib.config.hexdump_group_use_big_endian = use_big_endian
 
     # Put some data onto the stack
     pwndbg.gdblib.memory.write(stack, cyclic(0x100))
@@ -33,7 +33,7 @@ def run_tests(stack, use_big_endian, expected):
 
 def test_hexdump(start_binary):
     start_binary(BINARY)
-    pwndbg.config.hexdump_group_width = -1
+    pwndbg.gdblib.config.hexdump_group_width = -1
 
     # TODO: Setting theme options with Python isn't working
     gdb.execute("set hexdump-byte-separator")

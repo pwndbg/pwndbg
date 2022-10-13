@@ -10,7 +10,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.vmmap
 
-LIMIT = pwndbg.config.Parameter(
+LIMIT = pwndbg.gdblib.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 
@@ -69,9 +69,9 @@ def get(
     return result
 
 
-config_arrow_left = theme.Parameter("chain-arrow-left", "◂—", "left arrow of chain formatting")
-config_arrow_right = theme.Parameter("chain-arrow-right", "—▸", "right arrow of chain formatting")
-config_contiguous = theme.Parameter(
+config_arrow_left = theme.add_param("chain-arrow-left", "◂—", "left arrow of chain formatting")
+config_arrow_right = theme.add_param("chain-arrow-right", "—▸", "right arrow of chain formatting")
+config_contiguous = theme.add_param(
     "chain-contiguous-marker", "...", "contiguous marker of chain formatting"
 )
 

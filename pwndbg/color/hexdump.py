@@ -1,29 +1,29 @@
 import pwndbg.color.theme as theme
-import pwndbg.config as config
+import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
 
-config_normal = theme.ColoredParameter(
+config_normal = theme.add_color_param(
     "hexdump-normal-color", "none", "color for hexdump command (normal bytes)"
 )
-config_printable = theme.ColoredParameter(
+config_printable = theme.add_color_param(
     "hexdump-printable-color", "bold", "color for hexdump command (printable characters)"
 )
-config_zero = theme.ColoredParameter(
+config_zero = theme.add_color_param(
     "hexdump-zero-color", "red", "color for hexdump command (zero bytes)"
 )
-config_special = theme.ColoredParameter(
+config_special = theme.add_color_param(
     "hexdump-special-color", "yellow", "color for hexdump command (special bytes)"
 )
-config_offset = theme.ColoredParameter(
+config_offset = theme.add_color_param(
     "hexdump-offset-color", "none", "color for hexdump command (offset label)"
 )
-config_address = theme.ColoredParameter(
+config_address = theme.add_color_param(
     "hexdump-address-color", "none", "color for hexdump command (address label)"
 )
-config_separator = theme.ColoredParameter(
+config_separator = theme.add_color_param(
     "hexdump-separator-color", "none", "color for hexdump command (group separator)"
 )
-config_highlight_group_lsb = theme.Parameter(
+config_highlight_group_lsb = theme.add_param(
     "hexdump-highlight-group-lsb",
     "underline",
     "highlight LSB of each group. Applies only if hexdump-adjust-group-endianess"

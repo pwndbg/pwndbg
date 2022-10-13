@@ -31,7 +31,7 @@ explored_pages = []
 custom_pages = []
 
 
-kernel_vmmap_via_pt = pwndbg.config.Parameter(
+kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
     "kernel-vmmap-via-page-tables",
     True,
     "When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel's `monitor info mem` command",

@@ -6,7 +6,7 @@ import argparse
 
 import pwndbg.color.theme
 import pwndbg.commands
-import pwndbg.config
+import pwndbg.gdblib.config
 from pwndbg.color import generateColorFunction
 from pwndbg.color.message import hint
 from pwndbg.commands.config import extend_value_with_default
@@ -41,7 +41,7 @@ def theme(filter_pattern):
     header = print_row("Name", "Value", "Def", "Documentation", longest_optname, longest_value)
     print("-" * (len(header)))
     for v in sorted(values):
-        if isinstance(v, pwndbg.color.theme.ColoredParameter):
+        if isinstance(v, pwndbg.color.theme.add_color_param):
             value = generateColorFunction(v.value)(v.value)
             default = generateColorFunction(v.default)(v.default)
         elif isinstance(v.value, str):

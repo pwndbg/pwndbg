@@ -15,9 +15,9 @@ from typing import Set
 
 import gdb
 
-import pwndbg.config
+from pwndbg.gdblib.config import config
 
-debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
+debug = config.add_param("debug-events", False, "display internal event debugging info")
 
 
 # There is no GDB way to get a notification when the binary itself

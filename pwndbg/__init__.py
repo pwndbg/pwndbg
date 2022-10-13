@@ -98,3 +98,7 @@ signal.signal(
 
 # Reading Comment file
 pwndbg.commands.comments.init()
+
+from pwndbg.gdblib import config_mod
+
+config_mod.init_params()

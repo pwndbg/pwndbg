@@ -7,7 +7,7 @@ import gdb
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
+import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 from pwndbg.color import generateColorFunction
@@ -27,7 +27,7 @@ def read_chunk(addr):
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if not pwndbg.config.resolve_heap_via_heuristic:
+    if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
         val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
@@ -589,7 +589,7 @@ def find_fake_fast(addr, size=None):
                     malloc_chunk(start + offset - psize, fake=True)
 
 
-pwndbg.config.Parameter(
+pwndbg.gdblib.config.add_param(
     "max-visualize-chunk-size",
     0,
     "max display size for heap chunks visualization (0 for display all)",
@@ -715,7 +715,8 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
-        pwndbg.lib.memory.round_up(pwndbg.config.max_visualize_chunk_size, ptr_size << 2) >> 1
+        pwndbg.lib.memory.round_up(pwndbg.gdblib.config.max_visualize_chunk_size, ptr_size << 2)
+        >> 1
     )
 
     for c, stop in enumerate(chunk_delims):

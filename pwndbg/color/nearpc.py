@@ -1,26 +1,26 @@
 import pwndbg.color.theme as theme
-import pwndbg.config as config
+import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
 
-config_symbol = theme.ColoredParameter(
+config_symbol = theme.add_color_param(
     "nearpc-symbol-color", "normal", "color for nearpc command (symbol)"
 )
-config_address = theme.ColoredParameter(
+config_address = theme.add_color_param(
     "nearpc-address-color", "normal", "color for nearpc command (address)"
 )
-config_prefix = theme.ColoredParameter(
+config_prefix = theme.add_color_param(
     "nearpc-prefix-color", "none", "color for nearpc command (prefix marker)"
 )
-config_syscall_name = theme.ColoredParameter(
+config_syscall_name = theme.add_color_param(
     "nearpc-syscall-name-color", "red", "color for nearpc command (resolved syscall name)"
 )
-config_argument = theme.ColoredParameter(
+config_argument = theme.add_color_param(
     "nearpc-argument-color", "bold", "color for nearpc command (target argument)"
 )
-config_ida_anterior = theme.ColoredParameter(
+config_ida_anterior = theme.add_color_param(
     "nearpc-ida-anterior-color", "bold", "color for nearpc command (IDA anterior)"
 )
-config_branch_marker = theme.ColoredParameter(
+config_branch_marker = theme.add_color_param(
     "nearpc-branch-marker-color", "normal", "color for nearpc command (branch marker line)"
 )
 

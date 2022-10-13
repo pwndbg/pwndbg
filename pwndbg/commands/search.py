@@ -7,9 +7,9 @@ from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.enhance
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.config
 import pwndbg.search
 import pwndbg.vmmap
 from pwndbg.color import message
@@ -40,7 +40,7 @@ def print_search_hit(address):
     print(region, addr, display)
 
 
-auto_save = pwndbg.config.Parameter(
+auto_save = pwndbg.gdblib.config.add_param(
     "auto-save-search", False, 'automatically pass --save to "search" command'
 )
 
@@ -146,7 +146,7 @@ def search(type, hex, executable, writable, value, mapping_name, save, next, tru
         type = {4: "dword", 8: "qword"}[pwndbg.gdblib.arch.ptrsize]
 
     if save is None:
-        save = bool(pwndbg.config.auto_save_search)
+        save = bool(pwndbg.gdblib.config.auto_save_search)
 
     if hex:
         try:

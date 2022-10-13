@@ -115,7 +115,7 @@ def colorize(x, color):
     return color + terminateWith(str(x), color) + NORMAL
 
 
-disable_colors = theme.Parameter(
+disable_colors = theme.add_param(
     "disable-colors",
     bool(os.environ.get("PWNDBG_DISABLE_COLORS")),
     "whether to color the output or not",
@@ -142,7 +142,8 @@ def generateColorFunction(config):
         return function
 
     for color in config.split(","):
-        function = generateColorFunctionInner(function, globals()[color.lower().replace("-", "_")])
+        func_name = color.lower().replace("-", "_")
+        function = generateColorFunctionInner(function, globals()[func_name])
     return function
 
 

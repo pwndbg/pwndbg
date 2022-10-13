@@ -1,5 +1,5 @@
-:mod:`pwndbg.config` --- pwndbg.config
+:mod:`pwndbg.gdblib.config` --- pwndbg.gdblib.config
 =============================================
 
-.. automodule:: pwndbg.config
+.. automodule:: pwndbg.gdblib.config
     :members:

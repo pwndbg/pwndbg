@@ -5,7 +5,7 @@ import traceback
 import gdb
 
 import pwndbg.color.message as message
-import pwndbg.config
+import pwndbg.gdblib.config
 import pwndbg.lib.memoize
 import pwndbg.lib.stdio
 
@@ -15,12 +15,12 @@ with pwndbg.lib.stdio.stdio:
     except ImportError:
         import pdb
 
-verbose = pwndbg.config.Parameter(
+verbose = pwndbg.gdblib.config.add_param(
     "exception-verbose",
     False,
     "whether to print a full stacktrace for exceptions raised in Pwndbg commands",
 )
-debug = pwndbg.config.Parameter(
+debug = pwndbg.gdblib.config.add_param(
     "exception-debugger", False, "whether to debug exceptions raised in Pwndbg commands"
 )
 
@@ -95,7 +95,7 @@ def set_trace():
 pdb.set_trace = set_trace
 
 
-@pwndbg.config.Trigger([verbose, debug])
+@pwndbg.gdblib.config.trigger(verbose, debug)
 def update():
     if verbose or debug:
         command = "set python print-stack full"
