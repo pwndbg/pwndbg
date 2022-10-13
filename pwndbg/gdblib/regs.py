@@ -6,6 +6,7 @@ import ctypes
 import re
 import sys
 from types import ModuleType
+from typing import Dict
 
 import gdb
 
@@ -41,7 +42,7 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
-    last = {}
+    last: Dict[str, int] = {}
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt

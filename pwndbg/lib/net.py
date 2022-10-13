@@ -189,6 +189,7 @@ NETLINK_TYPES = {
 
 class Netlink(inode):
     eth = 0
+    pid = None
 
     def __str__(self):
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")

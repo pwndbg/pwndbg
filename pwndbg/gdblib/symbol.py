@@ -224,6 +224,8 @@ def address(symbol: str) -> int:
     except Exception:
         pass
 
+    return None
+
 
 @pwndbg.lib.memoize.reset_on_objfile
 def static_linkage_symbol_address(symbol):
