@@ -140,7 +140,7 @@ def break_on_program_code():
     """
     exe = pwndbg.gdblib.proc.exe
     binary_exec_page_ranges = tuple(
-        (p.start, p.end) for p in pwndbg.vmmap.get() if p.objfile == exe and p.execute
+        (p.start, p.end) for p in pwndbg.gdblib.vmmap.get() if p.objfile == exe and p.execute
     )
 
     pc = pwndbg.gdblib.regs.pc

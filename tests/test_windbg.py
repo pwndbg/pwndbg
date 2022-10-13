@@ -287,7 +287,7 @@ def test_windbg_eX_commands(start_binary):
     #########################################
     # e.g. when we make a write to the last stack address
     stack_ea = pwndbg.gdblib.regs[pwndbg.gdblib.regs.stack]
-    stack_page = pwndbg.vmmap.find(stack_ea)
+    stack_page = pwndbg.gdblib.vmmap.find(stack_ea)
 
     # Last possible address on stack where we can perform an 8-byte write
     stack_last_qword_ea = stack_page.end - 8

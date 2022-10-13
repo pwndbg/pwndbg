@@ -23,10 +23,10 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.ui
-import pwndbg.vmmap
 from pwndbg.color import message
 from pwndbg.color import theme
 

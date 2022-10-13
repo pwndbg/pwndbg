@@ -6,7 +6,7 @@ import tempfile
 import gdb
 
 import pwndbg.commands
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 parser = argparse.ArgumentParser(
     description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",

@@ -5,7 +5,7 @@ import tempfile
 import gdb
 
 import pwndbg.commands
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 parser = argparse.ArgumentParser(
     description="ROP gadget search with ropper.",

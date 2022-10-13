@@ -4,7 +4,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.proc
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 from pwndbg.color import message
 
 options = {"on": "off", "off": "on"}
@@ -33,7 +33,7 @@ def aslr(state=None):
         if pwndbg.gdblib.proc.alive:
             print("Change will take effect when the process restarts")
 
-    aslr, method = pwndbg.vmmap.check_aslr()
+    aslr, method = pwndbg.gdblib.vmmap.check_aslr()
 
     if aslr is True:
         status = message.on("ON")

@@ -13,7 +13,7 @@ def test_vis_heap_chunk_command(start_binary):
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
-    heap_page = next(page for page in pwndbg.vmmap.get() if page.objfile == "[heap]")
+    heap_page = next(page for page in pwndbg.gdblib.vmmap.get() if page.objfile == "[heap]")
 
     first_chunk_size = pwndbg.gdblib.memory.u64(heap_page.start + pwndbg.gdblib.arch.ptrsize)
 

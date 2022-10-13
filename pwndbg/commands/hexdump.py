@@ -28,7 +28,7 @@ def address_or_module_name(s):
     gdbval_or_str = pwndbg.commands.sloppy_gdb_parse(s)
     if isinstance(gdbval_or_str, str):
         module_name = gdbval_or_str
-        pages = list(filter(lambda page: module_name in page.objfile, pwndbg.vmmap.get()))
+        pages = list(filter(lambda page: module_name in page.objfile, pwndbg.gdblib.vmmap.get()))
         if pages:
             return pages[0].vaddr
         else:

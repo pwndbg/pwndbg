@@ -60,7 +60,7 @@ def enhance(value, code=True, safe_linking=False):
     value = int(value)
 
     name = pwndbg.gdblib.symbol.get(value) or None
-    page = pwndbg.vmmap.find(value)
+    page = pwndbg.gdblib.vmmap.find(value)
 
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.

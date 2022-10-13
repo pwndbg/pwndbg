@@ -4,14 +4,14 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 
 @pwndbg.commands.ArgparsedCommand("Print out the stack addresses that contain return addresses.")
 @pwndbg.commands.OnlyWhenRunning
 def retaddr():
     sp = pwndbg.gdblib.regs.sp
-    stack = pwndbg.vmmap.find(sp)
+    stack = pwndbg.gdblib.vmmap.find(sp)
 
     # Enumerate all return addresses
     frame = gdb.newest_frame()
