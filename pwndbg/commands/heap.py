@@ -767,7 +767,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
 
     print(out)
 
-    if has_huge_chunk and pwndbg.config.max_visualize_chunk_size == 0:
+    if has_huge_chunk and pwndbg.gdblib.config.max_visualize_chunk_size == 0:
         print(
             message.warn(
                 "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"
