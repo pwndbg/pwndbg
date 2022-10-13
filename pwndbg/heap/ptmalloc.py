@@ -1503,7 +1503,7 @@ class HeuristicHeap(Heap):
 
     @property
     def mp(self):
-        mp_via_config = int(str(pwndbg.gdblib.config.mp_), 0)
+        mp_via_config = int(str(pwndbg.gdblib.config.mp), 0)
         mp_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
