@@ -8,13 +8,13 @@ import gdb
 
 import pwndbg.lib.memoize
 
-# TODO: Add sharedlibrary, address, breakpoints, symbol, target, threads
+# TODO: Add address, symbol, threads, dll, program
 
 
 @pwndbg.lib.memoize.reset_on_exit
-def proc_mapping():
+def proc_mappings():
     try:
-        return gdb.execute("info proc mapping", to_string=True)
+        return gdb.execute("info proc mappings", to_string=True)
     except gdb.error:
         return ""
 
@@ -31,5 +31,19 @@ def auxv():
 def files():
     try:
         return gdb.execute("info files", to_string=True)
+    except gdb.error:
+        return ""
+
+
+def target():
+    try:
+        return gdb.execute("info target", to_string=True)
+    except gdb.error:
+        return ""
+
+
+def sharedlibrary():
+    try:
+        return gdb.execute("info sharedlibrary", to_string=True)
     except gdb.error:
         return ""

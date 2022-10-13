@@ -14,6 +14,7 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
@@ -52,7 +53,7 @@ def is_corefile():
 
     As the two differ in output slighty.
     """
-    return "Local core dump file:\n" in gdb.execute("info target", to_string=True)
+    return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
 @pwndbg.lib.memoize.reset_on_start
@@ -196,7 +197,7 @@ def coredump_maps():
     pages = []
 
     try:
-        info_proc_mappings = gdb.execute("info proc mappings", to_string=True).splitlines()
+        info_proc_mappings = pwndbg.gdblib.info.proc_mappings().splitlines()
     except gdb.error:
         # On qemu user emulation, we may get: gdb.error: Not supported on this target.
         info_proc_mappings = []
@@ -487,7 +488,7 @@ def info_sharedlibrary():
 
     pages = []
 
-    for line in gdb.execute("info sharedlibrary", to_string=True).splitlines():
+    for line in pwndbg.gdblib.info.sharedlibrary().splitlines():
         if not line.startswith("0x"):
             continue
 
@@ -523,7 +524,7 @@ def info_files():
     pages = list()
     main_exe = ""
 
-    for line in gdb.execute("info files", to_string=True).splitlines():
+    for line in pwndbg.gdblib.info.files().splitlines():
         line = line.strip()
 
         # The name of the main executable
