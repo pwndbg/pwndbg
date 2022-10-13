@@ -432,6 +432,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     @property
     @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.memoize.reset_on_thread
     def multithreaded(self):
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.gdblib.symbol.address("__libc_multiple_threads")
