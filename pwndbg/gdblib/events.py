@@ -107,6 +107,7 @@ registered = {
     gdb.events.new_objfile: [],
     gdb.events.stop: [],
     gdb.events.start: [],
+    gdb.events.new_thread: [],
     gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
 }
 
@@ -177,6 +178,10 @@ def stop(func):
 
 def start(func):
     return connect(func, gdb.events.start, "start")
+
+
+def thread(func):
+    return connect(func, gdb.events.new_thread, "thread")
 
 
 before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")

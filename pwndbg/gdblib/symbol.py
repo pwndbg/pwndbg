@@ -226,6 +226,7 @@ def address(symbol: str) -> int:
 
 
 @pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_thread
 def static_linkage_symbol_address(symbol):
     if isinstance(symbol, int):
         return symbol
