@@ -24,16 +24,16 @@ def test_command_nextproginstr(start_binary):
 
     # Sanity check
     exec_bin_pages = [
-        p for p in pwndbg.vmmap.get() if p.objfile == pwndbg.gdblib.proc.exe and p.execute
+        p for p in pwndbg.gdblib.vmmap.get() if p.objfile == pwndbg.gdblib.proc.exe and p.execute
     ]
     assert any(pwndbg.gdblib.regs.pc in p for p in exec_bin_pages)
-    main_page = pwndbg.vmmap.find(pwndbg.gdblib.regs.pc)
+    main_page = pwndbg.gdblib.vmmap.find(pwndbg.gdblib.regs.pc)
 
     gdb.execute("break puts")
     gdb.execute("continue")
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.vmmap.find(pwndbg.gdblib.regs.rip).objfile
+    assert "libc" in pwndbg.gdblib.vmmap.find(pwndbg.gdblib.regs.rip).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     gdb.execute("nextproginstr")

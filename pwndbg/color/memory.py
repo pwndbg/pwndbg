@@ -1,6 +1,6 @@
 import pwndbg.color.theme as theme
 import pwndbg.gdblib.config as config
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 from pwndbg.color import generateColorFunction
 from pwndbg.color import normal
 
@@ -51,7 +51,7 @@ def get(address, text=None):
     """
     address = int(address)
 
-    page = pwndbg.vmmap.find(int(address))
+    page = pwndbg.gdblib.vmmap.find(int(address))
 
     if page is None:
         color = normal

@@ -3,7 +3,7 @@ import argparse
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.dt
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 parser = argparse.ArgumentParser()
 parser.description = """

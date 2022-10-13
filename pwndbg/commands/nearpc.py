@@ -15,10 +15,10 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.functions
 import pwndbg.ui
-import pwndbg.vmmap
 from pwndbg.color import message
 
 
@@ -120,7 +120,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
-    pwndbg.vmmap.find(pc)
+    pwndbg.gdblib.vmmap.find(pc)
 
     # Gather all addresses and symbols for each instruction
     symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]

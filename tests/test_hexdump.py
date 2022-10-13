@@ -4,7 +4,7 @@ from pwnlib.util.cyclic import cyclic
 import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 import tests
 
 BINARY = tests.binaries.get("reference-binary.out")

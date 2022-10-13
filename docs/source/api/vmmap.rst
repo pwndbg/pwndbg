@@ -1,5 +1,5 @@
-:mod:`pwndbg.vmmap` --- pwndbg.vmmap
+:mod:`pwndbg.gdblib.vmmap` --- pwndbg.gdblib.vmmap
 =============================================
 
-.. automodule:: pwndbg.vmmap
+.. automodule:: pwndbg.gdblib.vmmap
     :members:

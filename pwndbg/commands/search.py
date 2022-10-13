@@ -10,8 +10,8 @@ import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
+import pwndbg.gdblib.vmmap
 import pwndbg.search
-import pwndbg.vmmap
 from pwndbg.color import message
 
 saved = set()  # type:Set[int]
@@ -26,7 +26,7 @@ def print_search_hit(address):
     if not address:
         return
 
-    vmmap = pwndbg.vmmap.find(address)
+    vmmap = pwndbg.gdblib.vmmap.find(address)
     if vmmap:
         region = os.path.basename(vmmap.objfile)
     else:
@@ -179,7 +179,7 @@ def search(type, hex, executable, writable, value, mapping_name, save, next, tru
         value += b"\x00"
 
     # Find the mappings that we're looking for
-    mappings = pwndbg.vmmap.get()
+    mappings = pwndbg.gdblib.vmmap.get()
 
     if mapping_name:
         mappings = [m for m in mappings if mapping_name in m.objfile]

@@ -7,7 +7,7 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.stack
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 import pwndbg.wrappers
 
 parser = argparse.ArgumentParser(
@@ -35,7 +35,7 @@ def xinfo_stack(page, addr):
 
     sp = pwndbg.gdblib.regs.sp
     frame = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
-    frame_mapping = pwndbg.vmmap.find(frame)
+    frame_mapping = pwndbg.gdblib.vmmap.find(frame)
 
     print_line("Stack Top", addr, page.vaddr, addr - page.vaddr, "+")
     print_line("Stack End", addr, page.end, page.end - addr, "-")
@@ -63,7 +63,7 @@ def xinfo_mmap_file(page, addr):
     # to beginning of file in memory and on disk
 
     file_name = page.objfile
-    objpages = filter(lambda p: p.objfile == file_name, pwndbg.vmmap.get())
+    objpages = filter(lambda p: p.objfile == file_name, pwndbg.gdblib.vmmap.get())
     first = sorted(objpages, key=lambda p: p.vaddr)[0]
 
     # print offset from ELF base load address
@@ -112,7 +112,7 @@ def xinfo(address=None):
     addr = int(address)
     addr &= pwndbg.gdblib.arch.ptrmask
 
-    page = pwndbg.vmmap.find(addr)
+    page = pwndbg.gdblib.vmmap.find(addr)
 
     if page is None:
         print("\n  Virtual address {:#x} is not mapped.".format(addr))
