@@ -139,6 +139,7 @@ def test_vis_heap_chunk_command(start_binary):
     assert result_all2 == expected4_b
 
     del result_all2
+    del expected4_b
 
     ## Continue, so that alloc[1] is freed
     gdb.execute("continue")
@@ -186,3 +187,37 @@ def test_vis_heap_chunk_command(start_binary):
     expected_all3.append(vis_heap_line(suffix="\t <-- Top chunk"))
 
     assert result_all3 == expected_all3
+
+    del result_all3
+    del expected_all3
+
+    # Continue, malloc two large chunks and free one
+    gdb.execute("continue")
+
+    # Get default result without max-visualize-chunk-size setting
+    default_result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    assert len(default_result) > 0x300
+
+    # Set max display size to 100 (no "0x" for misalignment)
+    gdb.execute("set max-visualize-chunk-size 100")
+
+    omitted_result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    assert len(omitted_result) < 0x30
+    for omitted_line in omitted_result:
+        assert omitted_line in default_result or set(omitted_line) == {"."}
+
+    display_all_result = gdb.execute("vis_heap_chunk -a", to_string=True).splitlines()
+    assert display_all_result == default_result
+
+    del default_result
+    del omitted_result
+    del display_all_result
+
+    # Continue, mock overflow changing the chunk size
+    gdb.execute("continue")
+
+    overflow_result = gdb.execute("vis_heap_chunk", to_string=True)
+    assert "\t0x0000000000000000\t0x4141414141414141\t........AAAAAAAA" in overflow_result
+    assert len(overflow_result.splitlines()) < 0x500
+
+    del overflow_result
