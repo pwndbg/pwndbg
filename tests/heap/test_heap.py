@@ -8,6 +8,7 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 import pwndbg.heap
 import tests
+from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
 
@@ -335,3 +336,30 @@ def test_thread_arena_heuristic(start_binary):
         assert pwndbg.gdblib.symbol.address("thread_arena") is None
         # Check the value of `thread_arena` is correct
         assert pwndbg.heap.current.thread_arena == thread_arena_via_debug_symbol
+
+
+def test_heuristic_fail_gracefully(start_binary):
+    # TODO: Support other architectures or different libc versions
+    start_binary(HEAP_MALLOC_CHUNK)
+    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    def _test_heuristic_fail_gracefully(name):
+        try:
+            getattr(pwndbg.heap.current, name)
+            raise AssertionError(
+                "The heuristic for pwndbg.heap.current.%s should fail with SymbolUnresolvableError"
+                % name
+            )
+        except SymbolUnresolvableError:
+            # That's the only exception we expect
+            pass
+
+    # Mock all address and mess up the memory
+    with mock_for_heuristic(mock_all=True, mess_up_memory=True):
+        _test_heuristic_fail_gracefully("main_arena")
+        _test_heuristic_fail_gracefully("mp")
+        _test_heuristic_fail_gracefully("global_max_fast")
+        _test_heuristic_fail_gracefully("thread_cache")
+        _test_heuristic_fail_gracefully("thread_arena")
