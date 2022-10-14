@@ -3,6 +3,7 @@ Get information about the GLibc
 """
 
 import functools
+import os
 import re
 
 import gdb
@@ -60,16 +61,14 @@ def _get_version():
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def get_got_plt_address():
-    libc_filename = next(
-        (
-            objfile.filename
-            for objfile in gdb.objfiles()
-            if re.search(r"^libc(\.|-.+\.)so", objfile.filename.split("/")[-1])
-        ),
-        None,
-    )
-    if libc_filename:
-        for line in pwndbg.gdblib.info.files().splitlines():
+    # Try every possible object file, to find which one has `.got.plt` section showed in `info files`
+    for libc_filename in (
+        objfile.filename
+        for objfile in gdb.objfiles()
+        if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
+    ):
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
             if libc_filename in line and ".got.plt" in line:
                 return int(line.strip().split()[0], 16)
     return 0
