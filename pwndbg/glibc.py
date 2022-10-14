@@ -14,7 +14,6 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap
-import pwndbg.gdblib.info
 import pwndbg.lib.memoize
 import pwndbg.search
 
