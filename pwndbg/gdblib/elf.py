@@ -240,7 +240,7 @@ def get_ehdr(pointer):
     if pwndbg.gdblib.qemu.is_qemu():
         return None, None
 
-    vmmap = pwndbg.vmmap.find(pointer)
+    vmmap = pwndbg.gdblib.vmmap.find(pointer)
     base = None
 
     # If there is no vmmap for the requested address, we can't do much
@@ -255,7 +255,7 @@ def get_ehdr(pointer):
     # The page did not have ELF magic; it may be that .text and binary start are split
     # into two pages, so let's get the first page from the pointer's page objfile
     else:
-        for v in pwndbg.vmmap.get():
+        for v in pwndbg.gdblib.vmmap.get():
             if v.objfile == vmmap.objfile:
                 vmmap = v
                 break

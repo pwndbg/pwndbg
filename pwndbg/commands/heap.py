@@ -143,7 +143,7 @@ def heap(addr=None, verbose=False, simple=False):
         cursor = heap_region.start
     else:
         cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
+        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
             # Round up to a 2-machine-word alignment after an arena to
             # compensate for the presence of the have_fastchunks variable
             # in GLIBC versions >= 2.27.
@@ -642,7 +642,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
         cursor = heap_region.start
     else:
         cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
+        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
             # Round up to a 2-machine-word alignment after an arena to
             # compensate for the presence of the have_fastchunks variable
             # in GLIBC versions >= 2.27.
@@ -767,7 +767,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
 
     print(out)
 
-    if has_huge_chunk and max_visualize_chunk_size == 0:
+    if has_huge_chunk and pwndbg.gdblib.config.max_visualize_chunk_size == 0:
         print(
             message.warn(
                 "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"

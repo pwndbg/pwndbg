@@ -10,9 +10,9 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.search
-import pwndbg.vmmap
 from pwndbg.color import message
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
@@ -264,7 +264,7 @@ class HeapInfo:
     def __str__(self):
         fmt = "[%%%ds]" % (pwndbg.gdblib.arch.ptrsize * 2)
         return message.hint(fmt % (hex(self.first_chunk))) + M.heap(
-            str(pwndbg.vmmap.find(self.addr))
+            str(pwndbg.gdblib.vmmap.find(self.addr))
         )
 
 
@@ -529,7 +529,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def get_region(self, addr):
         """Find the memory map containing 'addr'."""
-        return pwndbg.vmmap.find(addr)
+        return pwndbg.gdblib.vmmap.find(addr)
 
     def fastbin_index(self, size):
         if pwndbg.gdblib.arch.ptrsize == 8:
@@ -890,7 +890,7 @@ class DebugSymsHeap(Heap):
 
         return (
             None
-            if pwndbg.vmmap.find(arena_addr) is None
+            if pwndbg.gdblib.vmmap.find(arena_addr) is None
             else pwndbg.gdblib.memory.poi(self.malloc_state, arena_addr)
         )
 
@@ -956,11 +956,11 @@ class HeuristicHeap(Heap):
     def possible_page_of_symbols(self):
         if self._possible_page_of_symbols is None:
             if pwndbg.glibc.get_got_plt_address() > 0:
-                self._possible_page_of_symbols = pwndbg.vmmap.find(
+                self._possible_page_of_symbols = pwndbg.gdblib.vmmap.find(
                     pwndbg.glibc.get_got_plt_address()
                 )
             elif pwndbg.gdblib.symbol.address("_IO_list_all"):
-                self._possible_page_of_symbols = pwndbg.vmmap.find(
+                self._possible_page_of_symbols = pwndbg.gdblib.vmmap.find(
                     pwndbg.gdblib.symbol.address("_IO_list_all")
                 )
         return self._possible_page_of_symbols
@@ -975,7 +975,7 @@ class HeuristicHeap(Heap):
             return False
         _IO_list_all_addr = pwndbg.gdblib.symbol.address("_IO_list_all")
         if _IO_list_all_addr:
-            return addr in pwndbg.vmmap.find(_IO_list_all_addr) and addr > _IO_list_all_addr
+            return addr in pwndbg.gdblib.vmmap.find(_IO_list_all_addr) and addr > _IO_list_all_addr
         # We trust that symbol is from GLIBC :)
         return True
 
@@ -1059,7 +1059,7 @@ class HeuristicHeap(Heap):
                                 self._main_arena_addr = offset + instr.address + 4
 
             # Try to search main_arena in .data of libc if we can't find it via above trick
-            if not self._main_arena_addr or pwndbg.vmmap.find(self._main_arena_addr) is None:
+            if not self._main_arena_addr or pwndbg.gdblib.vmmap.find(self._main_arena_addr) is None:
                 start = pwndbg.gdblib.symbol.address("_IO_2_1_stdin_")
                 end = pwndbg.gdblib.symbol.address("_IO_list_all")
                 # If we didn't have these symbols, we try to find them in the possible page
@@ -1086,7 +1086,7 @@ class HeuristicHeap(Heap):
                                 found = True
                                 break
                             tmp_arena = self.malloc_state(tmp_next)
-                            if pwndbg.vmmap.find(tmp_arena.get_field_address("next")) is not None:
+                            if pwndbg.gdblib.vmmap.find(tmp_arena.get_field_address("next")) is not None:
                                 tmp_next = int(tmp_arena["next"])
                             else:
                                 # if `&tmp_arena->next` is not valid, the linked list is broken, break this while loop and try `addr+pwndbg.gdblib.arch.ptrsize` again
@@ -1094,7 +1094,7 @@ class HeuristicHeap(Heap):
                         if found:
                             break
 
-        if self._main_arena_addr and pwndbg.vmmap.find(self._main_arena_addr):
+        if self._main_arena_addr and pwndbg.gdblib.vmmap.find(self._main_arena_addr):
             self._main_arena = self.malloc_state(self._main_arena_addr)
             return self._main_arena
 
@@ -1127,13 +1127,14 @@ class HeuristicHeap(Heap):
                     is_valid_address = 0 < thread_arena_via_symbol - tls_base < 0x250
 
                 is_valid_address = (
-                    is_valid_address and thread_arena_via_symbol in pwndbg.vmmap.find(tls_base)
+                    is_valid_address
+                    and thread_arena_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
                 )
 
                 if is_valid_address:
                     thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
                     # Check &thread_arena is a valid address or not to avoid false positive.
-                    if pwndbg.vmmap.find(thread_arena_struct_addr):
+                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
                         return thread_arena_struct_addr
 
         if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
@@ -1258,7 +1259,7 @@ class HeuristicHeap(Heap):
             tls_base = pwndbg.gdblib.tls.address
             if tls_base:
                 thread_arena_struct_addr = tls_base + self._thread_arena_offset
-                if pwndbg.vmmap.find(thread_arena_struct_addr):
+                if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
                     return pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr)
 
         raise SymbolUnresolvableError("thread_arena")
@@ -1290,7 +1291,8 @@ class HeuristicHeap(Heap):
                     is_valid_address = 0 < thread_cache_via_symbol - tls_base < 0x250
 
                 is_valid_address = (
-                    is_valid_address and thread_cache_via_symbol in pwndbg.vmmap.find(tls_base)
+                    is_valid_address
+                    and thread_cache_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
                 )
 
                 if is_valid_address:
@@ -1465,7 +1467,7 @@ class HeuristicHeap(Heap):
                         tls_base + self._thread_cache_offset
                     )
                     if (
-                        pwndbg.vmmap.find(thread_cache_struct_addr)
+                        pwndbg.gdblib.vmmap.find(thread_cache_struct_addr)
                         and thread_cache_struct_addr in self.get_heap_boundaries()
                     ):
                         self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
@@ -1481,7 +1483,10 @@ class HeuristicHeap(Heap):
                 cursor = heap_region.start
             else:
                 cursor = heap_region.start + self.heap_info.sizeof
-                if pwndbg.vmmap.find(self.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
+                if (
+                    pwndbg.gdblib.vmmap.find(self.get_heap(heap_region.start)["ar_ptr"])
+                    == heap_region
+                ):
                     # Round up to a 2-machine-word alignment after an arena to
                     # compensate for the presence of the have_fastchunks variable
                     # in GLIBC versions >= 2.27.
@@ -1612,7 +1617,7 @@ class HeuristicHeap(Heap):
         # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
         if (
             not self._mp_addr
-            or pwndbg.vmmap.find(self._mp_addr) is None
+            or pwndbg.gdblib.vmmap.find(self._mp_addr) is None
             and self.possible_page_of_symbols
         ):
             libc_page = self.possible_page_of_symbols
@@ -1628,7 +1633,7 @@ class HeuristicHeap(Heap):
             if self._main_arena_addr and arena:
                 region = self.get_region(arena["top"])
             # If we can't use `main_arena` to find the heap region, try to find it via vmmap
-            region = region or next((p for p in pwndbg.vmmap.get() if "[heap]" == p.objfile), None)
+            region = region or next((p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None)
             if region is not None:
                 possible_sbrk_base = region.start
 
@@ -1644,7 +1649,7 @@ class HeuristicHeap(Heap):
                 except StopIteration:
                     pass
 
-        if self._mp_addr and pwndbg.vmmap.find(self._mp_addr) is not None:
+        if self._mp_addr and pwndbg.gdblib.vmmap.find(self._mp_addr) is not None:
             self._mp = self.malloc_par(self._mp_addr)
             return self._mp
 
@@ -1777,7 +1782,7 @@ class HeuristicHeap(Heap):
                     elif instr.mnemonic == "ldr" and "[pc" in instr.op_str:
                         ldr_instr = instr
 
-        if self._global_max_fast_addr and pwndbg.vmmap.find(self._global_max_fast_addr):
+        if self._global_max_fast_addr and pwndbg.gdblib.vmmap.find(self._global_max_fast_addr):
             self._global_max_fast = pwndbg.gdblib.memory.u(self._global_max_fast_addr)
             return self._global_max_fast
 
@@ -1854,7 +1859,7 @@ class HeuristicHeap(Heap):
             # Although `self.get_arena` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in main_arena's heuristics break this function :)
             pass
         # If we can't use arena to find the heap region, we use vmmap to find the heap region
-        region = next((p for p in pwndbg.vmmap.get() if "[heap]" == p.objfile), None)
+        region = next((p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None)
         if region is not None and addr is not None:
             region = None if addr not in region else region
 
@@ -1884,4 +1889,4 @@ class HeuristicHeap(Heap):
     def is_initialized(self):
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
-        return any("[heap]" == x.objfile for x in pwndbg.vmmap.get()) or self.main_arena["top"] != 0
+        return any("[heap]" == x.objfile for x in pwndbg.gdblib.vmmap.get()) or self.main_arena["top"] != 0

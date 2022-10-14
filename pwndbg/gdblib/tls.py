@@ -11,7 +11,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 
 class module(ModuleType):
@@ -97,7 +97,8 @@ class module(ModuleType):
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
         is_valid_tls_base = (
-            pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.gdblib.arch.ptrsize == 0
+            pwndbg.gdblib.vmmap.find(tls_base) is not None
+            and tls_base % pwndbg.gdblib.arch.ptrsize == 0
         )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 

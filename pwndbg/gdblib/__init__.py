@@ -27,3 +27,4 @@ def load_gdblib():
     import pwndbg.gdblib.regs
     import pwndbg.gdblib.symbol
     import pwndbg.gdblib.typeinfo
+    import pwndbg.gdblib.vmmap

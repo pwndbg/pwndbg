@@ -20,7 +20,6 @@ import pwndbg.exception
 import pwndbg.heap
 import pwndbg.lib.version
 import pwndbg.ui
-import pwndbg.vmmap
 
 __version__ = pwndbg.lib.version.__version__
 version = __version__

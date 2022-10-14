@@ -8,7 +8,7 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 LIMIT = pwndbg.gdblib.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
@@ -56,7 +56,7 @@ def get(
 
             # Avoid redundant dereferences in bare metal mode by checking
             # if address is in any of vmmap pages
-            if not pwndbg.gdblib.abi.linux and not pwndbg.vmmap.find(address):
+            if not pwndbg.gdblib.abi.linux and not pwndbg.gdblib.vmmap.find(address):
                 break
 
             next_address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))

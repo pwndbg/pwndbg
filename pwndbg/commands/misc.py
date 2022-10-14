@@ -40,7 +40,7 @@ def errno_(err):
                 errno_loc_gotplt = pwndbg.gdblib.symbol.address("__errno_location@got.plt")
 
                 # If the got.plt entry is not there (is None), it means the symbol is not used by the binary
-                if errno_loc_gotplt is None or pwndbg.vmmap.find(
+                if errno_loc_gotplt is None or pwndbg.gdblib.vmmap.find(
                     pwndbg.gdblib.memory.pvoid(errno_loc_gotplt)
                 ):
                     err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))

@@ -2,8 +2,8 @@ import gdb
 
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 import pwndbg.heap
-import pwndbg.vmmap
 import tests
 
 BINARY = tests.binaries.get("heap_bins.out")
@@ -76,7 +76,7 @@ def test_heap_bins(start_binary):
         result[tcache_size][1] == tcache_count and len(result[tcache_size][0]) == tcache_count + 1
     )
     for addr in result[tcache_size][0][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
 
     # check fastbin
     gdb.execute("continue")
@@ -85,7 +85,7 @@ def test_heap_bins(start_binary):
     assert result["type"] == "fastbins"
     assert (fastbin_size in result) and (len(result[fastbin_size]) == fastbin_count + 1)
     for addr in result[fastbin_size][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
 
     # check unsortedbin
     gdb.execute("continue")
@@ -97,9 +97,9 @@ def test_heap_bins(start_binary):
     )
     assert not result["all"][2]
     for addr in result["all"][0][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
     for addr in result["all"][1][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
 
     # check smallbins
     gdb.execute("continue")
@@ -112,9 +112,9 @@ def test_heap_bins(start_binary):
     )
     assert not result[smallbin_size][2]
     for addr in result[smallbin_size][0][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
     for addr in result[smallbin_size][1][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
 
     # check largebins
     gdb.execute("continue")
@@ -127,9 +127,9 @@ def test_heap_bins(start_binary):
     )
     assert not result[largebin_size][2]
     for addr in result[largebin_size][0][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
     for addr in result[largebin_size][1][:-1]:
-        assert pwndbg.vmmap.find(addr)
+        assert pwndbg.gdblib.vmmap.find(addr)
 
     # check corrupted
     gdb.execute("continue")

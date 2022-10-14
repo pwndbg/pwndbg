@@ -4,7 +4,7 @@ from pwnlib.util.cyclic import cyclic
 import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 import tests
 
 BINARY = tests.binaries.get("reference-binary.out")
@@ -18,7 +18,7 @@ def run_tests(stack, use_big_endian, expected):
 
     # Test empty hexdump
     result = gdb.execute("hexdump 0", to_string=True)
-    assert result == "0x000000  \n"
+    assert result == "+0000 0x000000  \n"
 
     results = []
     # TODO: Repetition is not working in tests

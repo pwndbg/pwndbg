@@ -9,10 +9,12 @@ import re
 import gdb
 
 import pwndbg.gdblib.config
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap
+import pwndbg.gdblib.info
 import pwndbg.lib.memoize
 import pwndbg.search
 
@@ -66,7 +68,7 @@ def get_got_plt_address():
         for objfile in gdb.objfiles()
         if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
     ):
-        out = gdb.execute("info files", to_string=True)
+        out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
             if libc_filename in line and ".got.plt" in line:
                 return int(line.strip().split()[0], 16)

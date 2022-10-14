@@ -9,17 +9,17 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 
 def find_module(addr, max_distance):
     mod_filter = lambda page: page.start <= addr < page.end
-    pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+    pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
     if not pages:
         if max_distance != 0:
             mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
-            pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+            pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
         if not pages:
             return None

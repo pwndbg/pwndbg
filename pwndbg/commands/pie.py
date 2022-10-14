@@ -6,7 +6,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 
 
 def get_exe_name():
@@ -42,7 +42,7 @@ def get_exe_name():
 
 def translate_addr(offset, module):
     mod_filter = lambda page: module in page.objfile
-    pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+    pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
     if not pages:
         print(

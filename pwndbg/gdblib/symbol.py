@@ -23,9 +23,9 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
+import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.vmmap
 
 
 def _get_debug_file_directory():
@@ -87,7 +87,7 @@ def _autofetch():
     if remote_files_dir not in _get_debug_file_directory().split(":"):
         _add_debug_file_directory(remote_files_dir)
 
-    for mapping in pwndbg.vmmap.get():
+    for mapping in pwndbg.gdblib.vmmap.get():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
@@ -118,7 +118,7 @@ def _autofetch():
         _remote_files[objfile] = local_path
 
         base = None
-        for mapping in pwndbg.vmmap.get():
+        for mapping in pwndbg.gdblib.vmmap.get():
             if mapping.objfile != objfile:
                 continue
 
@@ -167,7 +167,7 @@ def get(address: int, gdb_only=False) -> str:
         address = int(address)
         exe = pwndbg.gdblib.elf.exe()
         if exe:
-            exe_map = pwndbg.vmmap.find(exe.address)
+            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
             if exe_map and address in exe_map:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
@@ -265,7 +265,7 @@ def _add_main_exe_to_symbols():
 
     addr = int(addr)
 
-    mmap = pwndbg.vmmap.find(addr)
+    mmap = pwndbg.gdblib.vmmap.find(addr)
     if not mmap:
         return
 

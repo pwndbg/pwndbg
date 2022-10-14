@@ -11,7 +11,7 @@ import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.vmmap
+import pwndbg.gdblib.vmmap
 from pwndbg.chain import config_arrow_right
 
 
@@ -19,7 +19,7 @@ from pwndbg.chain import config_arrow_right
 # addr is a pointer. It is taken to be a child pointer.
 # visited_map is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr, visited_map):
-    page = pwndbg.vmmap.find(addr)
+    page = pwndbg.gdblib.vmmap.find(addr)
     arrow_right = C.arrow(" %s " % config_arrow_right)
 
     if page is not None:
@@ -103,7 +103,7 @@ def leakfind(
 ):
     if address is None:
         raise argparse.ArgumentTypeError("No starting address provided.")
-    foundPages = pwndbg.vmmap.find(address)
+    foundPages = pwndbg.gdblib.vmmap.find(address)
 
     if not foundPages:
         raise argparse.ArgumentTypeError("Starting address is not mapped.")
@@ -165,7 +165,7 @@ def leakfind(
     arrow_right = C.arrow(" %s " % config_arrow_right)
 
     for child in visited_map:
-        child_page = pwndbg.vmmap.find(child)
+        child_page = pwndbg.gdblib.vmmap.find(child)
         if child_page is not None:
             if page_name is not None and page_name not in child_page.objfile:
                 continue
