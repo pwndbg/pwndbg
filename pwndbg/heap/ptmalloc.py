@@ -1623,24 +1623,26 @@ class HeuristicHeap(Heap):
                 arena = self.main_arena
             except SymbolUnresolvableError:
                 arena = None
+            region = None
+            # Try to find heap region via `main_arena.top`
             if self._main_arena_addr and arena:
                 region = self.get_region(arena["top"])
-            else:
-                # If we can't find main_arena via heuristics, try to find it via vmmap
-                region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
-            possible_sbrk_base = region.start
+            # If we can't use `main_arena` to find the heap region, try to find it via vmmap
+            region = region or next((p for p in pwndbg.vmmap.get() if "[heap]" == p.objfile), None)
+            if region is not None:
+                possible_sbrk_base = region.start
 
-            sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
-            # try to search sbrk_base in a part of libc page
-            result = pwndbg.search.search(
-                pwndbg.gdblib.arch.pack(possible_sbrk_base),
-                start=libc_page.start,
-                end=libc_page.end,
-            )
-            try:
-                self._mp_addr = next(result) - sbrk_offset
-            except StopIteration:
-                pass
+                sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
+                # try to search sbrk_base in a part of libc page
+                result = pwndbg.search.search(
+                    pwndbg.gdblib.arch.pack(possible_sbrk_base),
+                    start=libc_page.start,
+                    end=libc_page.end,
+                )
+                try:
+                    self._mp_addr = next(result) - sbrk_offset
+                except StopIteration:
+                    pass
 
         if self._mp_addr and pwndbg.vmmap.find(self._mp_addr) is not None:
             self._mp = self.malloc_par(self._mp_addr)
@@ -1846,29 +1848,40 @@ class HeuristicHeap(Heap):
         """Find the boundaries of the heap containing `addr`, default to the
         boundaries of the heap containing the top chunk for the thread's arena.
         """
-        arena = self.get_arena(addr)
-        if arena is not None and arena.address > 0:
+        try:
             region = self.get_region(addr) if addr else self.get_region(self.get_arena()["top"])
-        else:
-            # If we can't find an arena via heuristics, try to find it via vmmap
-            region = next(p for p in pwndbg.vmmap.get() if "heap]" in p.objfile)
+        except Exception:
+            # Although `self.get_arena` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in main_arena's heuristics break this function :)
+            pass
+        # If we can't use arena to find the heap region, we use vmmap to find the heap region
+        region = next((p for p in pwndbg.vmmap.get() if "[heap]" == p.objfile), None)
+        if region is not None and addr is not None:
+            region = None if addr not in region else region
 
         # Occasionally, the [heap] vm region and the actual start of the heap are
         # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
         # Return an adjusted Page object if this is the case.
         if not self._mp_addr:
-            self.mp  # try to fetch the mp_ structure to make sure it's initialized
+            try:
+                self.mp  # try to fetch the mp_ structure to make sure it's initialized
+            except Exception:
+                # Although `self.mp` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in mp_'s heuristics break this function :)
+                pass
         if self._mp_addr:  # sometimes we can't find mp_ via heuristics
             page = pwndbg.lib.memory.Page(0, 0, 0, 0)
-            sbrk_base = int(self.mp["sbrk_base"])
-            if region == self.get_region(sbrk_base):
-                if sbrk_base != region.vaddr:
-                    page.vaddr = sbrk_base
-                    page.memsz = region.memsz - (sbrk_base - region.vaddr)
-                    return page
+            # make sure mp["sbrk_base"] is valid
+            if self.get_region(self.mp.get_field_address("sbrk_base")) and self.get_region(
+                self.mp["sbrk_base"]
+            ):
+                sbrk_base = int(self.mp["sbrk_base"])
+                if region == self.get_region(sbrk_base):
+                    if sbrk_base != region.vaddr:
+                        page.vaddr = sbrk_base
+                        page.memsz = region.memsz - (sbrk_base - region.vaddr)
+                        return page
         return region
 
     def is_initialized(self):
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
-        return any("heap]" in x.objfile for x in pwndbg.vmmap.get()) or self.main_arena["top"] != 0
+        return any("[heap]" == x.objfile for x in pwndbg.vmmap.get()) or self.main_arena["top"] != 0
