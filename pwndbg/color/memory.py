@@ -1,8 +1,8 @@
 import pwndbg.color.theme as theme
-import pwndbg.gdblib.config as config
 import pwndbg.gdblib.vmmap
 from pwndbg.color import generateColorFunction
 from pwndbg.color import normal
+from pwndbg.gdblib import config
 
 config_stack = theme.add_color_param("memory-stack-color", "yellow", "color for stack memory")
 config_heap = theme.add_color_param("memory-heap-color", "blue", "color for heap memory")

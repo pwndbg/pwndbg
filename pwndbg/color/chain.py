@@ -1,6 +1,6 @@
 import pwndbg.color.theme as theme
-import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
+from pwndbg.gdblib import config
 
 config_arrow_color = theme.add_color_param(
     "chain-arrow-color", "normal", "color of chain formatting (arrow)"

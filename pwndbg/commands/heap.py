@@ -1,6 +1,5 @@
 import argparse
 import ctypes
-import struct
 
 import gdb
 
@@ -10,6 +9,7 @@ import pwndbg.commands
 import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
+import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import extend_value_with_default
@@ -633,21 +633,8 @@ def find_fake_fast(addr, size=None, align=False):
 
     print(C.banner("FAKE CHUNKS"))
     step = malloc_alignment if align else 1
-    for i in range(0, len(mem), step):
-        candidate = mem[i : i + psize]
-        if len(candidate) == psize:
-            value = struct.unpack(fmt, candidate)[0]
-
-            # Clear any flags
-            value &= ~0xF
-
-            if value < min_fast:
-                continue
-
-            # The value must be less than or equal to the max size we're looking
-            # for, but still be able to reach the target address
-            if value <= size and i + value >= size:
-                malloc_chunk(start + i - psize, fake=True)
+    for offset in pwndbg.lib.heap.helpers.find_fastbin_size(mem, size, step):
+        malloc_chunk(start + offset, fake=True)
 
 
 pwndbg.gdblib.config.add_param(
