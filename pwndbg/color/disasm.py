@@ -6,10 +6,10 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.color.theme as theme
 import pwndbg.disasm.jump
-import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color.message import on
+from pwndbg.gdblib import config
 
 capstone_branch_groups = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP))
 

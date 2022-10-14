@@ -1,6 +1,6 @@
 import pwndbg.color.theme as theme
-import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
+from pwndbg.gdblib import config
 
 offset_color = theme.add_color_param(
     "telescope-offset-color", "normal", "color of the telescope command (offset prefix)"

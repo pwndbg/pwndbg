@@ -1,6 +1,6 @@
 import pwndbg.color.theme as theme
-import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
+from pwndbg.gdblib import config
 
 config_prefix = theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 config_prefix_color = theme.add_color_param(
