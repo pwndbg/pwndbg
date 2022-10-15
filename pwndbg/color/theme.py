@@ -1,11 +1,9 @@
-import pwndbg.config
+import pwndbg.gdblib.config
 
 
-class Parameter(pwndbg.config.Parameter):
-    def __init__(self, name, default, docstring):
-        super(Parameter, self).__init__(name, default, docstring, "theme")
+def add_param(name, default, docstring):
+    return pwndbg.gdblib.config.add_param(name, default, docstring, "theme")
 
 
-class ColoredParameter(Parameter):
-    def __init__(self, name, default, docstring):
-        super(ColoredParameter, self).__init__(name, default, docstring)
+def add_color_param(name, default, docstring):
+    return add_param(name, default, docstring)

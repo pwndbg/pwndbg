@@ -14,6 +14,7 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
@@ -31,7 +32,7 @@ explored_pages = []
 custom_pages = []
 
 
-kernel_vmmap_via_pt = pwndbg.config.Parameter(
+kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
     "kernel-vmmap-via-page-tables",
     True,
     "When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel's `monitor info mem` command",
@@ -52,7 +53,7 @@ def is_corefile():
 
     As the two differ in output slighty.
     """
-    return "Local core dump file:\n" in gdb.execute("info target", to_string=True)
+    return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
 @pwndbg.lib.memoize.reset_on_start
@@ -196,7 +197,7 @@ def coredump_maps():
     pages = []
 
     try:
-        info_proc_mappings = gdb.execute("info proc mappings", to_string=True).splitlines()
+        info_proc_mappings = pwndbg.gdblib.info.proc_mappings().splitlines()
     except gdb.error:
         # On qemu user emulation, we may get: gdb.error: Not supported on this target.
         info_proc_mappings = []
@@ -469,26 +470,25 @@ def info_sharedlibrary():
         A list of pwndbg.lib.memory.Page objects.
     """
 
-    exmaple_info_sharedlibrary_freebsd = """
-    From        To          Syms Read   Shared Object Library
-    0x280fbea0  0x2810e570  Yes (*)     /libexec/ld-elf.so.1
-    0x281260a0  0x281495c0  Yes (*)     /lib/libncurses.so.8
-    0x28158390  0x2815dcf0  Yes (*)     /usr/local/lib/libintl.so.9
-    0x28188b00  0x2828e060  Yes (*)     /lib/libc.so.7
-    (*): Shared library is missing debugging information.
-    """
+    # Example of `info sharedlibrary` on FreeBSD
+    # From        To          Syms Read   Shared Object Library
+    # 0x280fbea0  0x2810e570  Yes (*)     /libexec/ld-elf.so.1
+    # 0x281260a0  0x281495c0  Yes (*)     /lib/libncurses.so.8
+    # 0x28158390  0x2815dcf0  Yes (*)     /usr/local/lib/libintl.so.9
+    # 0x28188b00  0x2828e060  Yes (*)     /lib/libc.so.7
+    # (*): Shared library is missing debugging information.
 
-    exmaple_info_sharedlibrary_linux = """
-    From                To                  Syms Read   Shared Object Library
-    0x00007ffff7ddaae0  0x00007ffff7df54e0  Yes         /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7bbd3d0  0x00007ffff7bc9028  Yes (*)     /lib/x86_64-linux-gnu/libtinfo.so.5
-    0x00007ffff79aded0  0x00007ffff79ae9ce  Yes         /lib/x86_64-linux-gnu/libdl.so.2
-    0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
-    (*): Shared library is missing debugging information.
-    """
+    # Example of `info sharedlibrary` on Linux
+    # From                To                  Syms Read   Shared Object Library
+    # 0x00007ffff7ddaae0  0x00007ffff7df54e0  Yes         /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7bbd3d0  0x00007ffff7bc9028  Yes (*)     /lib/x86_64-linux-gnu/libtinfo.so.5
+    # 0x00007ffff79aded0  0x00007ffff79ae9ce  Yes         /lib/x86_64-linux-gnu/libdl.so.2
+    # 0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
+    # (*): Shared library is missing debugging information.
+
     pages = []
 
-    for line in gdb.execute("info sharedlibrary", to_string=True).splitlines():
+    for line in pwndbg.gdblib.info.sharedlibrary().splitlines():
         if not line.startswith("0x"):
             continue
 
@@ -503,30 +503,28 @@ def info_sharedlibrary():
 
 @pwndbg.lib.memoize.reset_on_stop
 def info_files():
-
-    example_info_files_linues = """
-    Symbols from "/bin/bash".
-    Unix child process:
-    Using the running image of child process 5903.
-    While running this, GDB does not access memory from...
-    Local exec file:
-    `/bin/bash', file type elf64-x86-64.
-    Entry point: 0x42020b
-    0x0000000000400238 - 0x0000000000400254 is .interp
-    0x0000000000400254 - 0x0000000000400274 is .note.ABI-tag
-    ...
-    0x00000000006f06c0 - 0x00000000006f8ca8 is .data
-    0x00000000006f8cc0 - 0x00000000006fe898 is .bss
-    0x00007ffff7dda1c8 - 0x00007ffff7dda1ec is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
-    0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
-    """
+    # Example of `info files` output:
+    # Symbols from "/bin/bash".
+    # Unix child process:
+    # Using the running image of child process 5903.
+    # While running this, GDB does not access memory from...
+    # Local exec file:
+    # `/bin/bash', file type elf64-x86-64.
+    # Entry point: 0x42020b
+    # 0x0000000000400238 - 0x0000000000400254 is .interp
+    # 0x0000000000400254 - 0x0000000000400274 is .note.ABI-tag
+    # ...
+    # 0x00000000006f06c0 - 0x00000000006f8ca8 is .data
+    # 0x00000000006f8cc0 - 0x00000000006fe898 is .bss
+    # 0x00007ffff7dda1c8 - 0x00007ffff7dda1ec is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
+    # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
     seen_files = set()
     pages = list()
     main_exe = ""
 
-    for line in gdb.execute("info files", to_string=True).splitlines():
+    for line in pwndbg.gdblib.info.files().splitlines():
         line = line.strip()
 
         # The name of the main executable

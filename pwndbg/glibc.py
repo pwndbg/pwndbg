@@ -3,11 +3,13 @@ Get information about the GLibc
 """
 
 import functools
+import os
 import re
 
 import gdb
 
-import pwndbg.config
+import pwndbg.gdblib.config
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
@@ -15,11 +17,13 @@ import pwndbg.heap
 import pwndbg.lib.memoize
 import pwndbg.search
 
-safe_lnk = pwndbg.config.Parameter(
+safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
 )
 
-glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
+glibc_version = pwndbg.gdblib.config.add_param(
+    "glibc", "", "GLIBC version for heuristics", scope="heap"
+)
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -57,16 +61,13 @@ def _get_version():
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def get_got_plt_address():
-    libc_filename = next(
-        (
-            objfile.filename
-            for objfile in gdb.objfiles()
-            if re.search(r"^libc(\.|-.+\.)so", objfile.filename.split("/")[-1])
-        ),
-        None,
-    )
-    if libc_filename:
-        out = gdb.execute("info files", to_string=True)
+    # Try every possible object file, to find which one has `.got.plt` section showed in `info files`
+    for libc_filename in (
+        objfile.filename
+        for objfile in gdb.objfiles()
+        if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
+    ):
+        out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
             if libc_filename in line and ".got.plt" in line:
                 return int(line.strip().split()[0], 16)

@@ -20,7 +20,6 @@ import pwndbg.exception
 import pwndbg.heap
 import pwndbg.lib.version
 import pwndbg.ui
-import pwndbg.vmmap
 
 __version__ = pwndbg.lib.version.__version__
 version = __version__
@@ -98,3 +97,7 @@ signal.signal(
 
 # Reading Comment file
 pwndbg.commands.comments.init()
+
+from pwndbg.gdblib import config_mod
+
+config_mod.init_params()

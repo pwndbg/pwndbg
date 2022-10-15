@@ -19,13 +19,14 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
+import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.vmmap
 
 
 def _get_debug_file_directory():
@@ -87,7 +88,7 @@ def _autofetch():
     if remote_files_dir not in _get_debug_file_directory().split(":"):
         _add_debug_file_directory(remote_files_dir)
 
-    for mapping in pwndbg.vmmap.get():
+    for mapping in pwndbg.gdblib.vmmap.get():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
@@ -118,7 +119,7 @@ def _autofetch():
         _remote_files[objfile] = local_path
 
         base = None
-        for mapping in pwndbg.vmmap.get():
+        for mapping in pwndbg.gdblib.vmmap.get():
             if mapping.objfile != objfile:
                 continue
 
@@ -167,7 +168,7 @@ def get(address: int, gdb_only=False) -> str:
         address = int(address)
         exe = pwndbg.gdblib.elf.exe()
         if exe:
-            exe_map = pwndbg.vmmap.find(exe.address)
+            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
             if exe_map and address in exe_map:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
@@ -217,12 +218,27 @@ def address(symbol: str) -> int:
             raise e
 
     try:
+        # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
+        # symbols, so we need to fallback to using `info address`. See
+        # https://sourceware.org/pipermail/gdb/2022-October/050362.html
+        address = pwndbg.gdblib.info.address(symbol)
+        if address is None or not pwndbg.gdblib.vmmap.find(address):
+            return None
+
+        return address
+
+    except gdb.error:
+        return None
+
+    try:
         # TODO: We should properly check if we have a connection to the IDA server first
         address = pwndbg.ida.LocByName(symbol)
         if address:
             return address
     except Exception:
         pass
+
+    return None
 
 
 @pwndbg.lib.memoize.reset_on_objfile
@@ -264,7 +280,7 @@ def _add_main_exe_to_symbols():
 
     addr = int(addr)
 
-    mmap = pwndbg.vmmap.find(addr)
+    mmap = pwndbg.gdblib.vmmap.find(addr)
     if not mmap:
         return
 

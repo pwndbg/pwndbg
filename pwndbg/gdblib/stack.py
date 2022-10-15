@@ -6,6 +6,8 @@ Generally not needed, except under qemu-user and for when
 binaries do things to remap the stack (e.g. pwnies' postit).
 """
 
+from typing import Dict
+
 import gdb
 
 import pwndbg.gdblib.abi
@@ -17,7 +19,7 @@ import pwndbg.lib.memoize
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
 # Value is a pwndbg.lib.memory.Page object
-stacks = {}
+stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
 # Whether the stack is protected by NX.
 # This is updated automatically by is_executable.

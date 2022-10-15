@@ -1,21 +1,19 @@
 import pwndbg.color.theme as theme
-import pwndbg.config as config
-import pwndbg.vmmap
+import pwndbg.gdblib.config as config
+import pwndbg.gdblib.vmmap
 from pwndbg.color import generateColorFunction
 from pwndbg.color import normal
 
-config_stack = theme.ColoredParameter("memory-stack-color", "yellow", "color for stack memory")
-config_heap = theme.ColoredParameter("memory-heap-color", "blue", "color for heap memory")
-config_code = theme.ColoredParameter("memory-code-color", "red", "color for executable memory")
-config_data = theme.ColoredParameter(
+config_stack = theme.add_color_param("memory-stack-color", "yellow", "color for stack memory")
+config_heap = theme.add_color_param("memory-heap-color", "blue", "color for heap memory")
+config_code = theme.add_color_param("memory-code-color", "red", "color for executable memory")
+config_data = theme.add_color_param(
     "memory-data-color", "purple", "color for all other writable memory"
 )
-config_rodata = theme.ColoredParameter(
+config_rodata = theme.add_color_param(
     "memory-rodata-color", "normal", "color for all read only memory"
 )
-config_rwx = theme.ColoredParameter(
-    "memory-rwx-color", "underline", "color added to all RWX memory"
-)
+config_rwx = theme.add_color_param("memory-rwx-color", "underline", "color added to all RWX memory")
 
 
 def stack(x):
@@ -53,7 +51,7 @@ def get(address, text=None):
     """
     address = int(address)
 
-    page = pwndbg.vmmap.find(int(address))
+    page = pwndbg.gdblib.vmmap.find(int(address))
 
     if page is None:
         color = normal

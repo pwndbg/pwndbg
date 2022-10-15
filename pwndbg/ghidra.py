@@ -60,11 +60,11 @@ def decompile(func=None):
             source = source.split("\n")
             line = source[curline]
             if line.startswith("    "):
-                line = line[min(4, len(pwndbg.config.code_prefix) + 1) :]
+                line = line[min(4, len(pwndbg.gdblib.config.code_prefix) + 1) :]
             source[curline] = current_line_marker + " " + line
             source = "\n".join(source)
 
-    if pwndbg.config.syntax_highlight:
+    if pwndbg.gdblib.config.syntax_highlight:
         # highlighting depends on the file extension to guess the language, so try to get one...
         src_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
         if not src_filename:
@@ -73,5 +73,5 @@ def decompile(func=None):
         source = H.syntax_highlight(source, src_filename)
 
     # Replace code prefix marker after syntax highlighting
-    source = source.replace(current_line_marker, C.prefix(pwndbg.config.code_prefix), 1)
+    source = source.replace(current_line_marker, C.prefix(pwndbg.gdblib.config.code_prefix), 1)
     return source

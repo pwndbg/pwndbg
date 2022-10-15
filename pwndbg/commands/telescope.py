@@ -12,33 +12,33 @@ import pwndbg.chain
 import pwndbg.color.telescope as T
 import pwndbg.color.theme as theme
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 
-telescope_lines = pwndbg.config.Parameter(
+telescope_lines = pwndbg.gdblib.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
 )
-skip_repeating_values = pwndbg.config.Parameter(
+skip_repeating_values = pwndbg.gdblib.config.add_param(
     "telescope-skip-repeating-val",
     True,
     "whether to skip repeating values of the telescope command",
 )
-skip_repeating_values_minimum = pwndbg.config.Parameter(
+skip_repeating_values_minimum = pwndbg.gdblib.config.add_param(
     "telescope-skip-repeating-val-minimum",
     3,
     "minimum amount of repeated values before skipping lines",
 )
 
-offset_separator = theme.Parameter(
+offset_separator = theme.add_param(
     "telescope-offset-separator", "│", "offset separator of the telescope command"
 )
-offset_delimiter = theme.Parameter(
+offset_delimiter = theme.add_param(
     "telescope-offset-delimiter", ":", "offset delimiter of the telescope command"
 )
-repeating_marker = theme.Parameter(
+repeating_marker = theme.add_param(
     "telescope-repeating-marker", "... ↓", "repeating values marker of the telescope command"
 )
 

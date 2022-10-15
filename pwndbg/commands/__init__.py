@@ -9,9 +9,9 @@ import gdb
 import pwndbg.chain
 import pwndbg.color
 import pwndbg.color.message as message
-import pwndbg.config
 import pwndbg.enhance
 import pwndbg.exception
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
@@ -54,7 +54,7 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 class Command(gdb.Command):
     """Generic command wrapper"""
 
-    builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
+    builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
     history = {}  # type: Dict[int,str]
 
     def __init__(self, function, prefix=False, command_name=None, shell=False):
@@ -285,21 +285,27 @@ def OnlyWithResolvedHeapSyms(function):
                 w(
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
-                if pwndbg.config.exception_verbose.value or pwndbg.config.exception_debugger.value:
+                if (
+                    pwndbg.gdblib.config.exception_verbose.value
+                    or pwndbg.gdblib.config.exception_debugger.value
+                ):
                     raise err
             except Exception as err:
                 e(f"{function.__name__}: An unknown error occurred when running this command.")
-                if pwndbg.config.resolve_heap_via_heuristic:
+                if pwndbg.gdblib.config.resolve_heap_via_heuristic:
                     w(
                         "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
                     )
                 else:
                     w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
-                if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
+                if (
+                    pwndbg.gdblib.config.exception_verbose
+                    or pwndbg.gdblib.config.exception_debugger
+                ):
                     raise err
         else:
             print(message.error(f"{function.__name__}: "), end="")
-            if not pwndbg.config.resolve_heap_via_heuristic:
+            if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
                 if _is_statically_linked():
                     e(
                         "Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
@@ -470,6 +476,7 @@ def load_commands():
     import pwndbg.commands.heap
     import pwndbg.commands.hexdump
     import pwndbg.commands.ida
+    import pwndbg.commands.ignore
     import pwndbg.commands.ipython_interactive
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize

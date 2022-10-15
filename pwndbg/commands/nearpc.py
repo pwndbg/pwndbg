@@ -10,15 +10,15 @@ import pwndbg.color.disasm as D
 import pwndbg.color.nearpc as N
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.config
 import pwndbg.disasm
+import pwndbg.gdblib.config
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.functions
 import pwndbg.ui
-import pwndbg.vmmap
 from pwndbg.color import message
 
 
@@ -27,19 +27,19 @@ def ljust_padding(lst):
     return [s.ljust(longest_len) for s in lst]
 
 
-nearpc_branch_marker = pwndbg.color.theme.Parameter(
+nearpc_branch_marker = pwndbg.color.theme.add_param(
     "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
 )
-nearpc_branch_marker_contiguous = pwndbg.color.theme.Parameter(
+nearpc_branch_marker_contiguous = pwndbg.color.theme.add_param(
     "nearpc-branch-marker-contiguous", " ", "contiguous branch marker line for nearpc command"
 )
-pwndbg.color.theme.Parameter("highlight-pc", True, "whether to highlight the current instruction")
-pwndbg.color.theme.Parameter("nearpc-prefix", "►", "prefix marker for nearpc command")
-pwndbg.config.Parameter("left-pad-disasm", True, "whether to left-pad disassembly")
-nearpc_lines = pwndbg.config.Parameter(
+pwndbg.color.theme.add_param("highlight-pc", True, "whether to highlight the current instruction")
+pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc command")
+pwndbg.gdblib.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
+nearpc_lines = pwndbg.gdblib.config.add_param(
     "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
 )
-show_args = pwndbg.config.Parameter(
+show_args = pwndbg.gdblib.config.add_param(
     "nearpc-show-args", True, "show call arguments below instruction"
 )
 
@@ -120,7 +120,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
-    pwndbg.vmmap.find(pc)
+    pwndbg.gdblib.vmmap.find(pc)
 
     # Gather all addresses and symbols for each instruction
     symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]
@@ -132,7 +132,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     symbols = ["<%s> " % sym if sym else "" for sym in symbols]
 
     # Pad out all of the symbols and addresses
-    if pwndbg.config.left_pad_disasm and not nearpc.repeat:
+    if pwndbg.gdblib.config.left_pad_disasm and not nearpc.repeat:
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
@@ -143,7 +143,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
         asm = D.instruction(instr)
-        prefix_sign = pwndbg.config.nearpc_prefix
+        prefix_sign = pwndbg.gdblib.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
@@ -157,10 +157,10 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
-        if instr.address != pc or not pwndbg.config.highlight_pc or nearpc.repeat:
+        if instr.address != pc or not pwndbg.gdblib.config.highlight_pc or nearpc.repeat:
             address_str = N.address(address_str)
             symbol = N.symbol(symbol)
-        elif pwndbg.config.highlight_pc and first_pc:
+        elif pwndbg.gdblib.config.highlight_pc and first_pc:
             prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)

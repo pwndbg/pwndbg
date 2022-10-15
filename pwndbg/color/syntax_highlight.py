@@ -1,18 +1,20 @@
 import os.path
 import re
+from typing import Any
+from typing import Dict
 
 import pygments
 import pygments.formatters
 import pygments.lexers
 
-import pwndbg.config
+import pwndbg.gdblib.config
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.color.lexer import PwntoolsLexer
 
-pwndbg.config.Parameter("syntax-highlight", True, "Source code / assembly syntax highlight")
-style = theme.Parameter(
+pwndbg.gdblib.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
+style = theme.add_param(
     "syntax-highlight-style",
     "monokai",
     "Source code / assembly syntax highlight stylename of pygments module",
@@ -20,10 +22,10 @@ style = theme.Parameter(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache = {}
+lexer_cache: Dict[str, Any] = {}
 
 
-@pwndbg.config.Trigger([style])
+@pwndbg.gdblib.config.trigger(style)
 def check_style():
     global formatter
     try:
