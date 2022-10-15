@@ -84,7 +84,7 @@ void configure_heap_layout(void)
 
 void* thread_func(void* args)
 {
-    // Initialize a 2nd arena
+    // Initialize a 2nd arena by allocating any size chunk.
     malloc(0x18);
     break_here();
 
