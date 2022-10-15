@@ -85,6 +85,7 @@ def test_malloc_chunk_command(start_binary):
     gdb.execute("continue")
 
     # Print main thread's chunk from another thread
+    assert gdb.selected_thread().num == 2
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
@@ -108,6 +109,7 @@ def test_malloc_chunk_command(start_binary):
 
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
+    assert gdb.selected_thread().num == 1
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
 
@@ -135,6 +137,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
     gdb.execute("continue")
 
     # Print main thread's chunk from another thread
+    assert gdb.selected_thread().num == 2
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
@@ -158,5 +161,6 @@ def test_malloc_chunk_command_heuristic(start_binary):
 
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
+    assert gdb.selected_thread().num == 1
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
