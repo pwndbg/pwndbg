@@ -21,10 +21,9 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
 import pwndbg.lib.elftypes
 import pwndbg.lib.memoize
-import pwndbg.proc
-import pwndbg.stack
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -88,7 +87,7 @@ def get_elf_info(filepath):
     Adds various calculated properties to the ELF header, segments and sections.
     Such added properties are those with prefix 'x_' in the returned dicts.
     """
-    local_path = pwndbg.file.get_file(filepath)
+    local_path = pwndbg.gdblib.file.get_file(filepath)
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
         header = dict(elffile.header)
@@ -171,7 +170,7 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
     return sections
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 def exe():
     """
@@ -183,7 +182,7 @@ def exe():
         return load(e)
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 def entry():
     """
@@ -209,7 +208,7 @@ def entry():
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return pwndbg.symbol.address(name)
+            return pwndbg.gdblib.symbol.address(name)
         except gdb.error:
             pass
 
@@ -241,7 +240,7 @@ def get_ehdr(pointer):
     if pwndbg.gdblib.qemu.is_qemu():
         return None, None
 
-    vmmap = pwndbg.vmmap.find(pointer)
+    vmmap = pwndbg.gdblib.vmmap.find(pointer)
     base = None
 
     # If there is no vmmap for the requested address, we can't do much
@@ -256,7 +255,7 @@ def get_ehdr(pointer):
     # The page did not have ELF magic; it may be that .text and binary start are split
     # into two pages, so let's get the first page from the pointer's page objfile
     else:
-        for v in pwndbg.vmmap.get():
+        for v in pwndbg.gdblib.vmmap.get():
             if v.objfile == vmmap.objfile:
                 vmmap = v
                 break
@@ -325,11 +324,11 @@ def map(pointer, objfile=""):
 
     Example:
 
-        >>> pwndbg.elf.load(pwndbg.gdblib.regs.pc)
+        >>> pwndbg.gdblib.elf.load(pwndbg.gdblib.regs.pc)
         [Page('400000-4ef000 r-xp 0'),
          Page('6ef000-6f0000 r--p ef000'),
          Page('6f0000-6ff000 rw-p f0000')]
-        >>> pwndbg.elf.load(0x7ffff77a2000)
+        >>> pwndbg.gdblib.elf.load(0x7ffff77a2000)
         [Page('7ffff75e7000-7ffff77a2000 r-xp 0x1bb000 0'),
          Page('7ffff77a2000-7ffff79a2000 ---p 0x200000 1bb000'),
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),

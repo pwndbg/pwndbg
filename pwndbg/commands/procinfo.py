@@ -2,15 +2,10 @@ import string
 
 import pwndbg.auxv
 import pwndbg.commands
-import pwndbg.file
+import pwndbg.gdblib.file
+import pwndbg.gdblib.net
+import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
-import pwndbg.net
-import pwndbg.proc
-
-try:
-    import psutil
-except Exception:
-    psutil = None
 
 """
 PEDA prints it out like this:
@@ -69,9 +64,9 @@ capabilities = {
 class Process:
     def __init__(self, pid=None, tid=None):
         if pid is None:
-            pid = pwndbg.proc.pid
+            pid = pwndbg.gdblib.proc.pid
         if tid is None:
-            tid = pwndbg.proc.tid
+            tid = pwndbg.gdblib.proc.tid
         if not tid:
             tid = pid
         self.pid = pid
@@ -84,13 +79,13 @@ class Process:
     @pwndbg.lib.memoize.reset_on_stop
     def selinux(self):
         path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
-        raw = pwndbg.file.get(path)
+        raw = pwndbg.gdblib.file.get(path)
         return raw.decode().rstrip("\x00").strip()
 
     @property
     @pwndbg.lib.memoize.reset_on_stop
     def status(self):
-        raw = pwndbg.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
+        raw = pwndbg.gdblib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
         status = {}
         for line in raw.splitlines():
@@ -149,7 +144,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.file.readlink("/proc/%i/fd/%i" % (pwndbg.proc.pid, i))
+            link = pwndbg.gdblib.file.readlink("/proc/%i/fd/%i" % (pwndbg.gdblib.proc.pid, i))
 
             if link:
                 fds[i] = link
@@ -165,7 +160,7 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [pwndbg.net.tcp, pwndbg.net.unix, pwndbg.net.netlink]
+        functions = [pwndbg.gdblib.net.tcp, pwndbg.gdblib.net.unix, pwndbg.gdblib.net.netlink]
 
         for fd, path in fds.items():
             if socket not in path:
@@ -186,7 +181,7 @@ class Process:
 @pwndbg.commands.ArgparsedCommand("Gets the pid.")
 @pwndbg.commands.OnlyWhenRunning
 def pid():
-    print(pwndbg.proc.pid)
+    print(pwndbg.gdblib.proc.pid)
 
 
 @pwndbg.commands.ArgparsedCommand("Display information about the running process.")
@@ -195,10 +190,6 @@ def procinfo():
     """
     Display information about the running process.
     """
-    if not psutil:
-        print("psutil required but not installed")
-        return
-
     exe = str(pwndbg.auxv.get()["AT_EXECFN"])
     print("%-10s %r" % ("exe", exe))
 

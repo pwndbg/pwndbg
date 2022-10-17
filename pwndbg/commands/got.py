@@ -3,7 +3,7 @@ import argparse
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.file
+import pwndbg.gdblib.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
@@ -27,7 +27,7 @@ def got(name_filter=""):
         return
 
     if "PIE enabled" in pie_status:
-        bin_base = pwndbg.elf.exe().address
+        bin_base = pwndbg.gdblib.elf.exe().address
 
     relro_color = message.off
     if "Partial" in relro_status:

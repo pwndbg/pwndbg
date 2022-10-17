@@ -1,24 +1,11 @@
-attrs==21.4.0
 capstone==4.0.2
-enum34==1.1.10
+# This can be removed after ida_script.py upgrades to Python 3
 future==0.18.2
-iniconfig==1.1.1
-isort==5.10.1
-packaging==21.3
-pbr==5.9.0
-pluggy==1.0.0
-psutil==5.9.1
-py==1.11.0
+psutil==5.9.2
+pwntools==4.8.0
 pycparser==2.21
-pyelftools==0.28
-Pygments==2.12.0
-pyparsing==3.0.9
-python-ptrace==0.9.8
-ROPGadget==6.8
-six==1.16.0
-testresources==2.0.1
-tomli==2.0.1; python_version >= '3.7'
-tomli==1.2.3; python_version < '3.7'
+pyelftools==0.29
+Pygments==2.13.0
+ROPGadget==7.1
 unicorn==2.0.0; python_version >= '3.7'
 unicorn==2.0.0rc7; python_version < '3.7'
-pwntools==4.8.0

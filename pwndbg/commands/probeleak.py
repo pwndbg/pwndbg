@@ -7,19 +7,19 @@ import gdb
 import pwndbg.color.memory as M
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.elf
 import pwndbg.gdblib.arch
-import pwndbg.vmmap
+import pwndbg.gdblib.elf
+import pwndbg.gdblib.vmmap
 
 
 def find_module(addr, max_distance):
     mod_filter = lambda page: page.start <= addr < page.end
-    pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+    pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
     if not pages:
         if max_distance != 0:
             mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
-            pages = list(filter(mod_filter, pwndbg.vmmap.get()))
+            pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
         if not pages:
             return None
@@ -151,7 +151,7 @@ def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptr
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
             text = "%s: %s = %s" % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text))
 
-            symbol = pwndbg.symbol.get(p)
+            symbol = pwndbg.gdblib.symbol.get(p)
             if symbol:
                 text += " (%s)" % symbol
             print(text)

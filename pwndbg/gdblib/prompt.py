@@ -4,19 +4,19 @@ import gdb
 
 import pwndbg.decorators
 import pwndbg.gdblib.events
-import pwndbg.gdbutils
+import pwndbg.gdblib.functions
 import pwndbg.lib.memoize
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.lib.tips import get_tip_of_the_day
 
-funcs_list_str = ", ".join(
-    message.notice("$" + f.name) for f in pwndbg.gdbutils.functions.functions
-)
+funcs_list_str = ", ".join(message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions)
 
+num_pwndbg_cmds = sum(1 for _ in filter(lambda c: not c.shell, pwndbg.commands.commands))
+num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
 hint_lines = (
-    "loaded %i commands. Type %s for a list."
-    % (len(pwndbg.commands.commands), message.notice("pwndbg [filter]")),
+    "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
+    % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
     "created %s gdb functions (can be used with print/break)" % funcs_list_str,
 )
 
@@ -24,7 +24,7 @@ for line in hint_lines:
     print(message.prompt("pwndbg: ") + message.system(line))
 
 # noinspection PyPackageRequirements
-show_tip = pwndbg.config.Parameter(
+show_tip = pwndbg.gdblib.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
@@ -48,8 +48,11 @@ def initial_hook(*a):
     gdb.prompt_hook = prompt_hook
 
 
+context_shown = False
+
+
 def prompt_hook(*a):
-    global cur
+    global cur, context_shown
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
@@ -57,16 +60,18 @@ def prompt_hook(*a):
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    if pwndbg.proc.alive and pwndbg.proc.thread_is_stopped:
-        prompt_hook_on_stop(*a)
+    if pwndbg.gdblib.proc.alive and pwndbg.gdblib.proc.thread_is_stopped and not context_shown:
+        pwndbg.commands.context.context()
+        context_shown = True
 
 
-@pwndbg.lib.memoize.reset_on_stop
-def prompt_hook_on_stop(*a):
-    pwndbg.commands.context.context()
+@pwndbg.gdblib.events.cont
+def reset_context_shown(*a):
+    global context_shown
+    context_shown = False
 
 
-@pwndbg.config.Trigger([message.config_prompt_color, disable_colors])
+@pwndbg.gdblib.config.trigger(message.config_prompt_color, disable_colors)
 def set_prompt():
     prompt = "pwndbg> "
 

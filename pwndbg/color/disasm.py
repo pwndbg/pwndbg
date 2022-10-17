@@ -5,15 +5,15 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.color.theme as theme
-import pwndbg.config as config
 import pwndbg.disasm.jump
+import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color.message import on
 
 capstone_branch_groups = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP))
 
-config_branch = theme.ColoredParameter(
+config_branch = theme.add_color_param(
     "disasm-branch-color", "bold", "color for disasm (branch/call instruction)"
 )
 
@@ -28,17 +28,17 @@ def syntax_highlight(ins):
 
 def instruction(ins):
     asm = "%-06s %s" % (ins.mnemonic, ins.op_str)
-    if pwndbg.config.syntax_highlight:
+    if pwndbg.gdblib.config.syntax_highlight:
         asm = syntax_highlight(asm)
     is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
-    if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
+    if pwndbg.gdblib.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
-        sym = pwndbg.symbol.get(ins.target) or None
+        sym = pwndbg.gdblib.symbol.get(ins.target) or None
         target = M.get(ins.target)
         const = ins.target_const
         hextarget = hex(ins.target)

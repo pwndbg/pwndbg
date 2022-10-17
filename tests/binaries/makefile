@@ -1,3 +1,4 @@
+ZIGPATH     ?=     ../../.zig
 ZIGCC		=	  $(ZIGPATH)/zig cc
 
 CC              =	   gcc
@@ -85,6 +86,10 @@ heap_bugs.out: heap_bugs.c
 heap_vis.out: heap_vis.c
 	@echo "[+] Building heap_vis.out"
 	${CC} -g -O0 -Wno-nonnull -o heap_vis.out heap_vis.c -pthread -lpthread
+
+heap_malloc_chunk.out: heap_malloc_chunk.c
+	@echo "[+] Building heap_malloc_chunk.out"
+	${CC} -g -O0 -Wno-nonnull -o heap_malloc_chunk.out heap_malloc_chunk.c -pthread -lpthread
 
 clean :
 	@echo "[+] Cleaning stuff"

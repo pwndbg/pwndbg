@@ -1,6 +1,6 @@
 import gdb
 
-import pwndbg.elf
+import pwndbg.gdblib.elf
 import pwndbg.lib.memoize
 
 
@@ -27,8 +27,8 @@ def r2pipe():
     import r2pipe
 
     flags = ["-e", "io.cache=true"]
-    if pwndbg.elf.get_elf_info(filename).is_pie and pwndbg.elf.exe():
-        flags.extend(["-B", hex(pwndbg.elf.exe().address)])
+    if pwndbg.gdblib.elf.get_elf_info(filename).is_pie and pwndbg.gdblib.elf.exe():
+        flags.extend(["-B", hex(pwndbg.gdblib.elf.exe().address)])
     r2 = r2pipe.open(filename, flags=flags)
     r2.cmd("aaaa")
     return r2

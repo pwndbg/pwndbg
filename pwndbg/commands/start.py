@@ -9,9 +9,9 @@ from shlex import quote
 import gdb
 
 import pwndbg.commands
-import pwndbg.elf
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 break_on_first_instruction = False
 
@@ -20,7 +20,7 @@ break_on_first_instruction = False
 def on_start():
     global break_on_first_instruction
     if break_on_first_instruction:
-        spec = "*%#x" % (int(pwndbg.elf.entry()))
+        spec = "*%#x" % (int(pwndbg.gdblib.elf.entry()))
         gdb.Breakpoint(spec, temporary=True)
         break_on_first_instruction = False
 
@@ -61,7 +61,7 @@ def start(args=None):
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.symbol.address(symbol, allow_unmapped=True)
+        address = pwndbg.gdblib.symbol.address(symbol)
 
         if not address:
             continue

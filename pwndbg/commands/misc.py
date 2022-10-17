@@ -6,7 +6,7 @@ import gdb
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.gdblib.regs
-import pwndbg.symbol
+import pwndbg.gdblib.symbol
 
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
@@ -37,10 +37,10 @@ def errno_(err):
                 # We can't simply call __errno_location because its .plt.got entry may be uninitialized
                 # (e.g. if the binary was just started with `starti` command)
                 # So we have to check the got.plt entry first before calling it
-                errno_loc_gotplt = pwndbg.symbol.address("__errno_location@got.plt")
+                errno_loc_gotplt = pwndbg.gdblib.symbol.address("__errno_location@got.plt")
 
                 # If the got.plt entry is not there (is None), it means the symbol is not used by the binary
-                if errno_loc_gotplt is None or pwndbg.vmmap.find(
+                if errno_loc_gotplt is None or pwndbg.gdblib.vmmap.find(
                     pwndbg.gdblib.memory.pvoid(errno_loc_gotplt)
                 ):
                     err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
@@ -64,6 +64,11 @@ parser = argparse.ArgumentParser(
 Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
 """
 )
+
+group = parser.add_mutually_exclusive_group()
+group.add_argument("--shell", action="store_true", help="Only display shell commands")
+group.add_argument("--all", dest="all_", action="store_true", help="Only display shell commands")
+
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -74,8 +79,18 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
-def pwndbg_(filter_pattern):
-    for name, docs in list_and_filter_commands(filter_pattern):
+def pwndbg_(filter_pattern, shell, all_):
+    if all_:
+        shell_cmds = True
+        pwndbg_cmds = True
+    elif shell:
+        shell_cmds = True
+        pwndbg_cmds = False
+    else:
+        shell_cmds = False
+        pwndbg_cmds = True
+
+    for name, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
         print("%-20s %s" % (name, docs))
 
 
@@ -98,7 +113,7 @@ def distance(a, b):
     )
 
 
-def list_and_filter_commands(filter_str):
+def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
     sorted_commands = list(pwndbg.commands.commands)
     sorted_commands.sort(key=lambda x: x.__name__)
 
@@ -108,6 +123,14 @@ def list_and_filter_commands(filter_str):
     results = []
 
     for c in sorted_commands:
+        # If this is a shell command and we didn't ask for shell commands, skip it
+        if c.shell and not shell_cmds:
+            continue
+
+        # If this is a normal command and we didn't ask for normal commands, skip it
+        if not c.shell and not pwndbg_cmds:
+            continue
+
         name = c.__name__
         docs = c.__doc__
 

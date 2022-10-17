@@ -1,22 +1,20 @@
 import os.path
 import re
+from typing import Any
+from typing import Dict
 
-import pwndbg.config
+import pygments
+import pygments.formatters
+import pygments.lexers
+
+import pwndbg.gdblib.config
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
+from pwndbg.color.lexer import PwntoolsLexer
 
-try:
-    import pygments
-    import pygments.formatters
-    import pygments.lexers
-
-    from pwndbg.color.lexer import PwntoolsLexer
-except ImportError:
-    pygments = None
-
-pwndbg.config.Parameter("syntax-highlight", True, "Source code / assembly syntax highlight")
-style = theme.Parameter(
+pwndbg.gdblib.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
+style = theme.add_param(
     "syntax-highlight-style",
     "monokai",
     "Source code / assembly syntax highlight stylename of pygments module",
@@ -24,10 +22,10 @@ style = theme.Parameter(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache = {}
+lexer_cache: Dict[str, Any] = {}
 
 
-@pwndbg.config.Trigger([style])
+@pwndbg.gdblib.config.trigger(style)
 def check_style():
     global formatter
     try:
@@ -48,7 +46,7 @@ def check_style():
 
 def syntax_highlight(code, filename=".asm"):
     # No syntax highlight if pygment is not installed
-    if not pygments or disable_colors:
+    if disable_colors:
         return code
 
     filename = os.path.basename(filename)

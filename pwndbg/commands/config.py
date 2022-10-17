@@ -5,7 +5,7 @@ Dumps all pwndbg-specific configuration points.
 import argparse
 
 import pwndbg.commands
-import pwndbg.config
+import pwndbg.gdblib.config
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
@@ -29,8 +29,8 @@ def extend_value_with_default(value, default):
 def get_config_parameters(scope, filter_pattern):
     values = [
         v
-        for k, v in pwndbg.config.__dict__.items()
-        if isinstance(v, pwndbg.config.Parameter) and v.scope == scope
+        for k, v in pwndbg.gdblib.config.__dict__.items()
+        if isinstance(v, pwndbg.lib.config.Parameter) and v.scope == scope
     ]
 
     if filter_pattern:
@@ -113,7 +113,7 @@ def themefile(show_all=False):
 
 
 def configfile_print_scope(scope, show_all=False):
-    params = pwndbg.config.get_params(scope)
+    params = pwndbg.gdblib.config.get_params(scope)
 
     if not show_all:
         params = list(filter(lambda p: p.is_changed, params))

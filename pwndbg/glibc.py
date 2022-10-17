@@ -3,24 +3,30 @@ Get information about the GLibc
 """
 
 import functools
+import os
 import re
 
-import pwndbg.config
+import gdb
+
+import pwndbg.gdblib.config
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
+import pwndbg.gdblib.symbol
 import pwndbg.heap
 import pwndbg.lib.memoize
-import pwndbg.proc
 import pwndbg.search
-import pwndbg.symbol
 
-safe_lnk = pwndbg.config.Parameter(
+safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
 )
 
-glibc_version = pwndbg.config.Parameter("glibc", "", "GLIBC version for heuristics", scope="heap")
+glibc_version = pwndbg.gdblib.config.add_param(
+    "glibc", "", "GLIBC version for heuristics", scope="heap"
+)
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def get_version():
     if glibc_version.value:
         ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
@@ -34,12 +40,12 @@ def get_version():
     return _get_version()
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def _get_version():
     if pwndbg.heap.current.libc_has_debug_syms():
-        addr = pwndbg.symbol.address(b"__libc_version")
+        addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
             ver = pwndbg.gdblib.memory.string(addr)
             return tuple([int(_) for _ in ver.split(b".")])
@@ -49,6 +55,23 @@ def _get_version():
         if ret:
             return tuple(int(_) for _ in ret.groups())
     return None
+
+
+@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+def get_got_plt_address():
+    # Try every possible object file, to find which one has `.got.plt` section showed in `info files`
+    for libc_filename in (
+        objfile.filename
+        for objfile in gdb.objfiles()
+        if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
+    ):
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
+            if libc_filename in line and ".got.plt" in line:
+                return int(line.strip().split()[0], 16)
+    return 0
 
 
 def OnlyWhenGlibcLoaded(function):

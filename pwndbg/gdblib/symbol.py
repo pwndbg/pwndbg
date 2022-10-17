@@ -7,8 +7,6 @@ information available.
 """
 import os
 import re
-import shutil
-import tempfile
 
 import elftools.common.exceptions
 import elftools.elf.constants
@@ -16,21 +14,22 @@ import elftools.elf.elffile
 import elftools.elf.segments
 import gdb
 
-import pwndbg.elf
-import pwndbg.file
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
+import pwndbg.gdblib.stack
+import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.memoize
-import pwndbg.stack
-import pwndbg.vmmap
 
 
-def get_directory():
+def _get_debug_file_directory():
     """
     Retrieve the debug file directory path.
 
@@ -48,36 +47,34 @@ def get_directory():
     return ""
 
 
-def set_directory(d):
+def _set_debug_file_directory(d):
     gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
 
 
-def add_directory(d):
-    current = get_directory()
+def _add_debug_file_directory(d):
+    current = _get_debug_file_directory()
     if current:
-        set_directory("%s:%s" % (current, d))
+        _set_debug_file_directory("%s:%s" % (current, d))
     else:
-        set_directory(d)
+        _set_debug_file_directory(d)
 
 
-remote_files = {}
-remote_files_dir = None
+if "/usr/lib/debug" not in _get_debug_file_directory():
+    _add_debug_file_directory("/usr/lib/debug")
+
+
+_remote_files = {}
 
 
 @pwndbg.gdblib.events.exit
-def reset_remote_files():
-    global remote_files
-    global remote_files_dir
-    remote_files = {}
-    if remote_files_dir is not None:
-        shutil.rmtree(remote_files_dir)
-        remote_files_dir = None
+def _reset_remote_files():
+    global _remote_files
+    _remote_files = {}
 
 
 @pwndbg.gdblib.events.new_objfile
-def autofetch():
+def _autofetch():
     """ """
-    global remote_files_dir
     if not pwndbg.gdblib.remote.is_remote():
         return
 
@@ -87,13 +84,11 @@ def autofetch():
     if pwndbg.gdblib.android.is_android():
         return
 
-    if not remote_files_dir:
-        remote_files_dir = tempfile.mkdtemp()
-        add_directory(remote_files_dir)
+    remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
+    if remote_files_dir not in _get_debug_file_directory().split(":"):
+        _add_debug_file_directory(remote_files_dir)
 
-    searchpath = get_directory()
-
-    for mapping in pwndbg.vmmap.get():
+    for mapping in pwndbg.gdblib.vmmap.get():
         objfile = mapping.objfile
 
         # Don't attempt to download things like '[stack]' and '[heap]'
@@ -101,14 +96,14 @@ def autofetch():
             continue
 
         # Don't re-download things that we have already downloaded
-        if not objfile or objfile in remote_files:
+        if not objfile or objfile in _remote_files:
             continue
 
         msg = "Downloading %r from the remote server" % objfile
         print(msg, end="")
 
         try:
-            data = pwndbg.file.get(objfile)
+            data = pwndbg.gdblib.file.get(objfile)
             print("\r" + msg + ": OK")
         except OSError:
             # The file could not be downloaded :(
@@ -121,10 +116,10 @@ def autofetch():
         with open(local_path, "wb+") as f:
             f.write(data)
 
-        remote_files[objfile] = local_path
+        _remote_files[objfile] = local_path
 
         base = None
-        for mapping in pwndbg.vmmap.get():
+        for mapping in pwndbg.gdblib.vmmap.get():
             if mapping.objfile != objfile:
                 continue
 
@@ -154,16 +149,16 @@ def autofetch():
 
 
 @pwndbg.lib.memoize.reset_on_objfile
-def get(address, gdb_only=False):
+def get(address: int, gdb_only=False) -> str:
     """
-    Retrieve the textual name for a symbol
+    Retrieve the name for the symbol located at `address`
     """
     # Fast path
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
         return ""
 
     # Don't look up stack addresses
-    if pwndbg.stack.find(address):
+    if pwndbg.gdblib.stack.find(address):
         return ""
 
     # This sucks, but there's not a GDB API for this.
@@ -171,9 +166,9 @@ def get(address, gdb_only=False):
 
     if not gdb_only and result.startswith("No symbol"):
         address = int(address)
-        exe = pwndbg.elf.exe()
+        exe = pwndbg.gdblib.elf.exe()
         if exe:
-            exe_map = pwndbg.vmmap.find(exe.address)
+            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
             if exe_map and address in exe_map:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
@@ -194,7 +189,61 @@ def get(address, gdb_only=False):
 
 
 @pwndbg.lib.memoize.reset_on_objfile
-def address(symbol, allow_unmapped=False):
+def address(symbol: str) -> int:
+    """
+    Get the address for `symbol`
+    """
+    try:
+        symbol_obj = gdb.lookup_symbol(symbol)[0]
+        if symbol_obj:
+            return int(symbol_obj.value().address)
+    except gdb.error as e:
+        # Symbol lookup only throws exceptions on errors, not if it failed to
+        # lookup a symbol. We want to raise these errors so we can handle them
+        # properly, but there are some we haven't figured out how to fix yet, so
+        # we ignore those here
+        skipped_exceptions = []
+
+        # This is exception is being thrown by the Go typeinfo tests, we should
+        # investigate why this is happening and see if we can explicitly check
+        # for it with `gdb.selected_frame()`
+        skipped_exceptions.append("No frame selected")
+
+        # If we try to look up a TLS variable when there is no TLS, this
+        # exception occurs. Ideally we should come up with a way to check for
+        # this case before calling `gdb.lookup_symbol`
+        skipped_exceptions.append("Cannot find thread-local")
+
+        if all(x not in str(e) for x in skipped_exceptions):
+            raise e
+
+    try:
+        # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
+        # symbols, so we need to fallback to using `info address`. See
+        # https://sourceware.org/pipermail/gdb/2022-October/050362.html
+        address = pwndbg.gdblib.info.address(symbol)
+        if address is None or not pwndbg.gdblib.vmmap.find(address):
+            return None
+
+        return address
+
+    except gdb.error:
+        return None
+
+    try:
+        # TODO: We should properly check if we have a connection to the IDA server first
+        address = pwndbg.ida.LocByName(symbol)
+        if address:
+            return address
+    except Exception:
+        pass
+
+    return None
+
+
+@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.memoize.reset_on_thread
+def static_linkage_symbol_address(symbol):
     if isinstance(symbol, int):
         return symbol
 
@@ -204,47 +253,22 @@ def address(symbol, allow_unmapped=False):
         pass
 
     try:
-        symbol_obj = gdb.lookup_symbol(symbol)[0]
-        if symbol_obj:
-            return int(symbol_obj.value().address)
-    except Exception:
-        pass
-
-    try:
-        result = gdb.execute("info address %s" % symbol, to_string=True, from_tty=False)
-        address = int(re.search("0x[0-9a-fA-F]+", result).group(), 0)
-
-        # The address found should lie in one of the memory maps
-        # There are cases when GDB shows offsets e.g.:
-        # pwndbg> info address tcache
-        # Symbol "tcache" is a thread-local variable at offset 0x40
-        # in the thread-local storage for `/lib/x86_64-linux-gnu/libc.so.6'.
-        if not allow_unmapped and not pwndbg.vmmap.find(address):
-            return None
-
-        return address
-
+        symbol_obj = gdb.lookup_static_symbol(symbol)
+        return int(symbol_obj.value().address) if symbol_obj else None
     except gdb.error:
         return None
-
-    try:
-        address = pwndbg.ida.LocByName(symbol)
-        if address:
-            return address
-    except Exception:
-        pass
 
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
-def add_main_exe_to_symbols():
+def _add_main_exe_to_symbols():
     if not pwndbg.gdblib.remote.is_remote():
         return
 
     if pwndbg.gdblib.android.is_android():
         return
 
-    exe = pwndbg.elf.exe()
+    exe = pwndbg.gdblib.elf.exe()
 
     if not exe:
         return
@@ -256,7 +280,7 @@ def add_main_exe_to_symbols():
 
     addr = int(addr)
 
-    mmap = pwndbg.vmmap.find(addr)
+    mmap = pwndbg.gdblib.vmmap.find(addr)
     if not mmap:
         return
 
@@ -293,7 +317,3 @@ def selected_frame_source_absolute_filename():
         return None
 
     return symtab.fullname()
-
-
-if "/usr/lib/debug" not in get_directory():
-    set_directory(get_directory() + ":/usr/lib/debug")

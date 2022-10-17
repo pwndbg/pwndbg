@@ -7,7 +7,7 @@ import gdb
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
+import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
 from pwndbg.color import generateColorFunction
@@ -27,7 +27,7 @@ def read_chunk(addr):
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if not pwndbg.config.resolve_heap_via_heuristic:
+    if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
         val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
@@ -143,7 +143,7 @@ def heap(addr=None, verbose=False, simple=False):
         cursor = heap_region.start
     else:
         cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
+        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
             # Round up to a 2-machine-word alignment after an arena to
             # compensate for the presence of the have_fastchunks variable
             # in GLIBC versions >= 2.27.
@@ -299,21 +299,16 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
         out_fields = ""
         verbose = True
     else:
-        arena = allocator.get_arena_for_chunk(chunk.address)
-        arena_address = None
-        is_top = False
+        arena = chunk.arena
         if not fake and arena:
-            arena_address = arena.address
-            top_chunk = arena["top"]
-            if chunk.address == top_chunk:
+            if chunk.is_top_chunk:
                 headers_to_print.append(message.off("Top chunk"))
-                is_top = True
 
-        if not is_top:
-            fastbins = allocator.fastbins(arena_address) or {}
-            smallbins = allocator.smallbins(arena_address) or {}
-            largebins = allocator.largebins(arena_address) or {}
-            unsortedbin = allocator.unsortedbin(arena_address) or {}
+        if not chunk.is_top_chunk:
+            fastbins = allocator.fastbins(arena.address) or {}
+            smallbins = allocator.smallbins(arena.address) or {}
+            largebins = allocator.largebins(arena.address) or {}
+            unsortedbin = allocator.unsortedbin(arena.address) or {}
             if allocator.has_tcache():
                 tcachebins = allocator.tcachebins(None)
 
@@ -549,50 +544,117 @@ def tcachebins(addr=None, verbose=False):
 
 
 parser = argparse.ArgumentParser()
-parser.description = "Find candidate fake fast chunks overlapping the specified address."
+parser.description = "Find candidate fake fast or tcache chunks overlapping the specified address."
 parser.add_argument("addr", type=int, help="Address of the word-sized value to overlap.")
-parser.add_argument("size", nargs="?", type=int, default=None, help="Size of fake chunks to find.")
+parser.add_argument(
+    "size", nargs="?", type=int, default=None, help="Maximum size of fake chunks to find."
+)
+parser.add_argument(
+    "--align",
+    "-a",
+    action="store_true",
+    default=False,
+    help="Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
+    + "chunks and for all chunks when Safe Linking is enabled",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def find_fake_fast(addr, size=None):
+def find_fake_fast(addr, size=None, align=False):
     """Find candidate fake fast chunks overlapping the specified address."""
     psize = pwndbg.gdblib.arch.ptrsize
     allocator = pwndbg.heap.current
-    align = allocator.malloc_alignment
+    malloc_alignment = allocator.malloc_alignment
+
     min_fast = allocator.min_chunk_size
     max_fast = allocator.global_max_fast
     max_fastbin = allocator.fastbin_index(max_fast)
-    start = int(addr) - max_fast + psize
-    if start < 0:
+
+    if size is None:
+        size = max_fast
+    elif size > addr:
+        print(message.warn("Size of 0x%x is greater than the target address 0x%x", (size, addr)))
+        size = addr
+    elif size > max_fast:
         print(
             message.warn(
-                "addr - global_max_fast is negative, if the max_fast is not corrupted, you gave wrong address"
+                "0x%x is greater than the global_max_fast value of 0x%x" % (size, max_fast)
             )
         )
-        start = 0  # TODO, maybe some better way to handle case when global_max_fast is overwritten with something large
-    mem = pwndbg.gdblib.memory.read(start, max_fast - psize, partial=True)
+    elif size < min_fast:
+        print(
+            message.warn(
+                "0x%x is smaller than the minimum fastbin chunk size of 0x%x" % (size, min_fast)
+            )
+        )
+        size = min_fast
+
+    # Clear the flags
+    size &= ~0xF
+
+    start = int(addr) - size + psize
+
+    if align:
+        # If a chunk is aligned to MALLOC_ALIGNMENT, the size field should be at
+        # offset `psize`. First we align up to a multiple of `psize`
+        new_start = pwndbg.lib.memory.align_up(start, psize)
+
+        # Then we make sure we're at a multiple of `psize` but not `psize*2` by
+        # making sure the bottom nibble gets set to `psize`
+        new_start |= psize
+
+        # We should not have increased `start` by more than `psize*2 - 1` bytes
+        distance = new_start - start
+        assert distance < psize * 2
+
+        # If we're starting at a higher address, we still only want to read
+        # enough bytes to reach our target address
+        size -= distance
+
+        # Clear the flags
+        size &= ~0xF
+
+        start = new_start
+
+    print(
+        message.notice(
+            "Searching for fastbin sizes up to 0x%x starting at 0x%x resulting in an overlap of 0x%x"
+            % (size, start, addr)
+        )
+    )
+
+    # Only consider `size - psize` bytes, since we're starting from after `prev_size`
+    mem = pwndbg.gdblib.memory.read(start, size - psize, partial=True)
 
     fmt = {"little": "<", "big": ">"}[pwndbg.gdblib.arch.endian] + {4: "I", 8: "Q"}[psize]
 
-    if size is None:
-        sizes = range(min_fast, max_fast + 1, align)
-    else:
-        sizes = [int(size)]
-
     print(C.banner("FAKE CHUNKS"))
-    for size in sizes:
-        fastbin = allocator.fastbin_index(size)
-        for offset in range((max_fastbin - fastbin) * align, max_fast - align + 1):
-            candidate = mem[offset : offset + psize]
-            if len(candidate) == psize:
-                value = struct.unpack(fmt, candidate)[0]
-                if allocator.fastbin_index(value) == fastbin:
-                    malloc_chunk(start + offset - psize, fake=True)
+    step = malloc_alignment if align else 1
+    for i in range(0, len(mem), step):
+        candidate = mem[i : i + psize]
+        if len(candidate) == psize:
+            value = struct.unpack(fmt, candidate)[0]
 
+            # Clear any flags
+            value &= ~0xF
+
+            if value < min_fast:
+                continue
+
+            # The value must be less than or equal to the max size we're looking
+            # for, but still be able to reach the target address
+            if value <= size and i + value >= size:
+                malloc_chunk(start + i - psize, fake=True)
+
+
+pwndbg.gdblib.config.add_param(
+    "max-visualize-chunk-size",
+    0,
+    "max display size for heap chunks visualization (0 for display all)",
+)
 
 parser = argparse.ArgumentParser()
 parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
@@ -611,13 +673,20 @@ parser.add_argument(
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
+parser.add_argument(
+    "--display_all",
+    "-a",
+    action="store_true",
+    default=False,
+    help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None):
+def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
@@ -634,7 +703,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
         cursor = heap_region.start
     else:
         cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
+        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
             # Round up to a 2-machine-word alignment after an arena to
             # compensate for the presence of the have_fastchunks variable
             # in GLIBC versions >= 2.27.
@@ -704,10 +773,36 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
 
     cursor = cursor_backup
 
+    has_huge_chunk = False
+    # round up to align with 4*ptr_size and get half
+    half_max_size = (
+        pwndbg.lib.memory.round_up(pwndbg.gdblib.config.max_visualize_chunk_size, ptr_size << 2)
+        >> 1
+    )
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
+        if stop - cursor > 0x10000:
+            has_huge_chunk = True
+        first_cut = True
+        # round down to align with 2*ptr_size
+        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
+        end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
+
         while cursor != stop:
+            # skip the middle part of a huge chunk
+            if (
+                not display_all
+                and half_max_size > 0
+                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
+            ):
+                if first_cut:
+                    out += "\n" + "." * len(hex(cursor))
+                    first_cut = False
+                cursor += ptr_size
+                continue
+
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
@@ -732,6 +827,13 @@ def vis_heap_chunks(addr=None, count=None, naive=None):
             cursor += ptr_size
 
     print(out)
+
+    if has_huge_chunk and pwndbg.gdblib.config.max_visualize_chunk_size == 0:
+        print(
+            message.warn(
+                "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"
+            )
+        )
 
 
 def bin_ascii(bs):
@@ -791,7 +893,7 @@ def try_free(addr):
     addr = int(addr)
 
     # check hook
-    free_hook = pwndbg.symbol.address("__free_hook")
+    free_hook = pwndbg.gdblib.symbol.address("__free_hook")
     if free_hook is not None:
         if pwndbg.gdblib.memory.pvoid(free_hook) != 0:
             print(message.success("__libc_free: will execute __free_hook"))

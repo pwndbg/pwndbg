@@ -6,23 +6,24 @@ import ctypes
 import re
 import sys
 from types import ModuleType
+from typing import Dict
 
 import gdb
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
 import pwndbg.lib.memoize
-import pwndbg.proc
 from pwndbg.lib.regs import reg_sets
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb77_get_register(name):
     return gdb.parse_and_eval("$" + name)
 
 
-@pwndbg.proc.OnlyWhenRunning
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
 
@@ -41,7 +42,7 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
-    last = {}
+    last: Dict[str, int] = {}
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
@@ -68,16 +69,19 @@ class module(ModuleType):
         except (ValueError, gdb.error):
             return None
 
+    def __setattr__(self, attr, val):
+        if attr == "last" or attr == "previous":
+            return super().__setattr__(attr, val)
+        else:
+            # Not catching potential gdb.error as this should never
+            # be called in a case when this can throw
+            gdb.execute(f"set ${attr} = {val}")
+
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
     def __getitem__(self, item):
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
-            import pdb
-            import traceback
-
-            traceback.print_stack()
-            pdb.set_trace()
             return None
 
         # e.g. if we're looking for register "$rax", turn it into "rax"
@@ -224,5 +228,5 @@ def update_last():
     M = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
-    if pwndbg.config.show_retaddr_reg:
+    if pwndbg.gdblib.config.show_retaddr_reg:
         M.last.update({k: M[k] for k in M.retaddr})

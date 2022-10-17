@@ -11,14 +11,14 @@ import string
 
 import pwndbg.color as color
 import pwndbg.color.enhance as E
-import pwndbg.config
 import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
-import pwndbg.symbol
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
@@ -59,8 +59,8 @@ def enhance(value, code=True, safe_linking=False):
     """
     value = int(value)
 
-    name = pwndbg.symbol.get(value) or None
-    page = pwndbg.vmmap.find(value)
+    name = pwndbg.gdblib.symbol.get(value) or None
+    page = pwndbg.gdblib.vmmap.find(value)
 
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
@@ -90,7 +90,7 @@ def enhance(value, code=True, safe_linking=False):
         instr = pwndbg.disasm.one(value)
         if instr:
             instr = "%-6s %s" % (instr.mnemonic, instr.op_str)
-            if pwndbg.config.syntax_highlight:
+            if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
     szval = pwndbg.gdblib.strings.get(value) or None

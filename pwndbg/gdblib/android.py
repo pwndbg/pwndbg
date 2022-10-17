@@ -1,8 +1,8 @@
 import gdb
 
 import pwndbg.color.message as message
-import pwndbg.file
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
 
@@ -14,7 +14,7 @@ def is_android():
         return False
 
     try:
-        if pwndbg.file.get("/system/etc/hosts"):
+        if pwndbg.gdblib.file.get("/system/etc/hosts"):
             return True
     except OSError:
         pass

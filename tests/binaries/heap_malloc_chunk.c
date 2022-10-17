@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <pthread.h>
 
 #define INTERNAL_SIZE_T size_t
 #define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
@@ -11,6 +12,8 @@
 #define mem2chunk(mem) ((void*)(mem) - CHUNK_HDR_SZ)
 
 void break_here(void) {}
+void configure_heap_layout(void);
+void* thread_func(void*);
 
 void* allocated_chunk = NULL;
 void* tcache_chunk = NULL;
@@ -20,6 +23,17 @@ void* large_chunk = NULL;
 void* unsorted_chunk = NULL;
 
 int main(void)
+{
+    configure_heap_layout();
+
+    break_here();
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, thread_func, NULL);
+    pthread_join(thread, NULL);
+}
+
+void configure_heap_layout(void)
 {
     void* chunks[6] = {0};
 
@@ -66,6 +80,16 @@ int main(void)
     small_chunk = mem2chunk(before_remainder + 0x210);
     large_chunk = mem2chunk(large);
     unsorted_chunk = mem2chunk(unsorted);
+}
 
+void* thread_func(void* args)
+{
+    // Initialize a 2nd arena by allocating any size chunk.
+    malloc(0x18);
     break_here();
+
+    configure_heap_layout();
+    break_here();
+
+    pthread_exit(NULL);
 }

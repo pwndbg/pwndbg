@@ -6,9 +6,12 @@ Generally not needed, except under qemu-user and for when
 binaries do things to remap the stack (e.g. pwnies' postit).
 """
 
+from typing import Dict
+
 import gdb
 
-import pwndbg.elf
+import pwndbg.gdblib.abi
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
@@ -16,7 +19,7 @@ import pwndbg.lib.memoize
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
 # Value is a pwndbg.lib.memory.Page object
-stacks = {}
+stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
 # Whether the stack is protected by NX.
 # This is updated automatically by is_executable.
@@ -42,7 +45,7 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
     # We can't get the stack size from stack layout and page fault on bare metal mode,
     # so we return current page as a walkaround.
     if not pwndbg.gdblib.abi.linux:
-        return stack_ptr + pwndbg.lib.memory.PAGE_SIZE
+        return stack_ptr + pwndbg.gdblib.memory.PAGE_SIZE
 
     return pwndbg.gdblib.memory.find_upper_boundary(stack_ptr, max_pages)
 
@@ -124,9 +127,9 @@ def is_executable():
     nx = False
 
     PT_GNU_STACK = 0x6474E551
-    ehdr = pwndbg.elf.exe()
+    ehdr = pwndbg.gdblib.elf.exe()
 
-    for phdr in pwndbg.elf.iter_phdrs(ehdr):
+    for phdr in pwndbg.gdblib.elf.iter_phdrs(ehdr):
         if phdr.p_type == PT_GNU_STACK:
             nx = True
 

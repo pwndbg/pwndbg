@@ -11,11 +11,14 @@ import pwndbg.color
 import pwndbg.color.message as message
 import pwndbg.enhance
 import pwndbg.exception
+import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
+import pwndbg.heap
 import pwndbg.hexdump
-import pwndbg.symbol
 import pwndbg.ui
+from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
 command_names = set()
@@ -51,10 +54,12 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 class Command(gdb.Command):
     """Generic command wrapper"""
 
-    builtin_override_whitelist = {"up", "down", "search", "pwd", "start"}
+    builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
     history = {}  # type: Dict[int,str]
 
-    def __init__(self, function, prefix=False, command_name=None):
+    def __init__(self, function, prefix=False, command_name=None, shell=False):
+        self.shell = shell
+
         if command_name is None:
             command_name = function.__name__
 
@@ -200,7 +205,7 @@ def fix_int_reraise(*a, **kw):
 def OnlyWithFile(function):
     @functools.wraps(function)
     def _OnlyWithFile(*a, **kw):
-        if pwndbg.proc.exe:
+        if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
             if pwndbg.gdblib.qemu.is_qemu():
@@ -214,7 +219,7 @@ def OnlyWithFile(function):
 def OnlyWhenRunning(function):
     @functools.wraps(function)
     def _OnlyWhenRunning(*a, **kw):
-        if pwndbg.proc.alive:
+        if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
             print("%s: The program is not being run." % function.__name__)
@@ -269,27 +274,54 @@ def _is_statically_linked():
 def OnlyWithResolvedHeapSyms(function):
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a, **kw):
-        if pwndbg.heap.current.libc_has_debug_syms() or pwndbg.config.resolve_heap_via_heuristic:
-            return function(*a, **kw)
-        else:
-            e = lambda s: print(message.error(s))
-            w = lambda s: print(message.warn(s))
-
-            if _is_statically_linked():
-                e(
-                    f"{function.__name__}: Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
-                )
+        e = lambda s: print(message.error(s))
+        w = lambda s: print(message.warn(s))
+        if pwndbg.heap.current.can_be_resolved():
+            # Note: We will still raise the error for developers when exception-* is set to "on"
+            try:
+                return function(*a, **kw)
+            except SymbolUnresolvableError as err:
+                e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
                 w(
-                    """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
+                    f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
+                )
+                if (
+                    pwndbg.gdblib.config.exception_verbose.value
+                    or pwndbg.gdblib.config.exception_debugger.value
+                ):
+                    raise err
+            except Exception as err:
+                e(f"{function.__name__}: An unknown error occurred when running this command.")
+                if pwndbg.gdblib.config.resolve_heap_via_heuristic:
+                    w(
+                        "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+                    )
+                else:
+                    w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
+                if (
+                    pwndbg.gdblib.config.exception_verbose
+                    or pwndbg.gdblib.config.exception_debugger
+                ):
+                    raise err
+        else:
+            print(message.error(f"{function.__name__}: "), end="")
+            if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
+                if _is_statically_linked():
+                    e(
+                        "Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
+                    )
+                    w(
+                        """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
 Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command.
 If this does not work, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."""
-                )
-                gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
-                return
+                    )
+                    gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
+                    return
 
-            else:
-                print(
-                    """%s: This command only works with libc debug symbols which are missing.
+                else:
+
+                    w(
+                        """This command only works with libc debug symbols which are missing.
 
 They can probably be installed via the package manager of your choice.
 See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
@@ -299,18 +331,20 @@ sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
 """
-                    % function.__name__
-                )
-                print(
-                    message.warn(
-                        "pwndbg can still try to use this command without debug symbols by `set resolve-heap-via-heuristic on`."
                     )
-                )
-                print(message.warn("You can show your current config about heap by `heap_config`."))
-                print(
-                    message.warn(
-                        "Then pwndbg will resolve some missing symbols via heuristics, but the results of those commands may be incorrect in some cases."
+                    w(
+                        "pwndbg can still try to use this command without debug symbols after you `set resolve-heap-via-heuristic on`, but the results of those commands may be incorrect in some cases.\n"
+                        "If the output of the heap command is still wrong or gives you erros, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
                     )
+            elif pwndbg.glibc.get_version() is None:
+                e("Can't resolve the heap since the GLIBC version is not set.")
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                )
+            else:
+                e("An unknown error occurred when resolved the heap.")
+                pwndbg.exception.inform_report_issue(
+                    "An unknown error occurred when resolved the heap"
                 )
 
     return _OnlyWithResolvedHeapSyms
@@ -419,3 +453,56 @@ def HexOrAddressExpr(s):
         return int(s, 16)
     except ValueError:
         return AddressExpr(s)
+
+
+def load_commands():
+    import pwndbg.commands.argv
+    import pwndbg.commands.aslr
+    import pwndbg.commands.attachp
+    import pwndbg.commands.auxv
+    import pwndbg.commands.canary
+    import pwndbg.commands.checksec
+    import pwndbg.commands.comments
+    import pwndbg.commands.config
+    import pwndbg.commands.context
+    import pwndbg.commands.cpsr
+    import pwndbg.commands.dt
+    import pwndbg.commands.dumpargs
+    import pwndbg.commands.elf
+    import pwndbg.commands.flags
+    import pwndbg.commands.gdbinit
+    import pwndbg.commands.ghidra
+    import pwndbg.commands.got
+    import pwndbg.commands.heap
+    import pwndbg.commands.hexdump
+    import pwndbg.commands.ida
+    import pwndbg.commands.ignore
+    import pwndbg.commands.ipython_interactive
+    import pwndbg.commands.leakfind
+    import pwndbg.commands.memoize
+    import pwndbg.commands.misc
+    import pwndbg.commands.mprotect
+    import pwndbg.commands.next
+    import pwndbg.commands.p2p
+    import pwndbg.commands.patch
+    import pwndbg.commands.peda
+    import pwndbg.commands.pie
+    import pwndbg.commands.probeleak
+    import pwndbg.commands.procinfo
+    import pwndbg.commands.radare2
+    import pwndbg.commands.reload
+    import pwndbg.commands.rop
+    import pwndbg.commands.ropper
+    import pwndbg.commands.search
+    import pwndbg.commands.segments
+    import pwndbg.commands.shell
+    import pwndbg.commands.stack
+    import pwndbg.commands.start
+    import pwndbg.commands.telescope
+    import pwndbg.commands.theme
+    import pwndbg.commands.tls
+    import pwndbg.commands.version
+    import pwndbg.commands.vmmap
+    import pwndbg.commands.windbg
+    import pwndbg.commands.xinfo
+    import pwndbg.commands.xor

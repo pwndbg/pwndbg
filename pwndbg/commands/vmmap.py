@@ -9,8 +9,8 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.elf
-import pwndbg.vmmap
+import pwndbg.gdblib.elf
+import pwndbg.gdblib.vmmap
 
 integer_types = (int, gdb.Value)
 
@@ -62,7 +62,7 @@ parser.add_argument("-x", "--executable", action="store_true", help="Display exe
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["lm", "address", "vprot"])
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(gdbval_or_str=None, writable=False, executable=False):
-    pages = pwndbg.vmmap.get()
+    pages = pwndbg.gdblib.vmmap.get()
 
     if gdbval_or_str:
         pages = list(filter(pages_filter(gdbval_or_str), pages))
@@ -104,9 +104,9 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_add(start, size, flags, offset):
     page_flags = {
-        "r": pwndbg.elf.PF_R,
-        "w": pwndbg.elf.PF_W,
-        "x": pwndbg.elf.PF_X,
+        "r": pwndbg.gdblib.elf.PF_R,
+        "w": pwndbg.gdblib.elf.PF_W,
+        "x": pwndbg.gdblib.elf.PF_X,
     }
     perm = 0
     for flag in flags:
@@ -117,14 +117,14 @@ def vmmap_add(start, size, flags, offset):
         perm |= flag_val
 
     page = pwndbg.lib.memory.Page(start, size, perm, offset)
-    pwndbg.vmmap.add_custom_page(page)
+    pwndbg.gdblib.vmmap.add_custom_page(page)
 
     print("%r added" % page)
 
 
 @pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
 def vmmap_clear():
-    pwndbg.vmmap.clear_custom_page()
+    pwndbg.gdblib.vmmap.clear_custom_page()
 
 
 parser = argparse.ArgumentParser()
@@ -137,7 +137,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 def vmmap_load(filename):
     if filename is None:
-        filename = pwndbg.file.get_file(pwndbg.proc.exe)
+        filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     print('Load "%s" ...' % filename)
 
@@ -163,15 +163,15 @@ def vmmap_load(filename):
                 continue
 
             # Guess the segment flags from section flags
-            flags = pwndbg.elf.PF_R
+            flags = pwndbg.gdblib.elf.PF_R
             if sh_flags & SH_FLAGS.SHF_WRITE:
-                flags |= pwndbg.elf.PF_W
+                flags |= pwndbg.gdblib.elf.PF_W
             if sh_flags & SH_FLAGS.SHF_EXECINSTR:
-                flags |= pwndbg.elf.PF_X
+                flags |= pwndbg.gdblib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
             pages.append(page)
 
     for page in pages:
-        pwndbg.vmmap.add_custom_page(page)
+        pwndbg.gdblib.vmmap.add_custom_page(page)
         print("%r added" % page)

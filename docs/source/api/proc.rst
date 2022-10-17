@@ -1,5 +1,5 @@
-:mod:`pwndbg.proc` --- pwndbg.proc
+:mod:`pwndbg.gdblib.proc` --- pwndbg.gdblib.proc
 =============================================
 
-.. automodule:: pwndbg.proc
+.. automodule:: pwndbg.gdblib.proc
     :members:

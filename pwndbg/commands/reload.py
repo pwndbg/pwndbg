@@ -1,14 +1,10 @@
 import types
+from imp import reload as _reload
 
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.lib.memoize
-
-try:
-    from __builtins__ import reload as _reload
-except Exception:
-    from imp import reload as _reload
 
 
 def rreload(module, mdict=None):

@@ -7,13 +7,17 @@ by using a decorator.
 import sys
 from functools import partial
 from functools import wraps
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Set
 
 import gdb
 
-import pwndbg.config
+from pwndbg.gdblib.config import config
 
-debug = pwndbg.config.Parameter("debug-events", False, "display internal event debugging info")
-pause = 0
+debug = config.add_param("debug-events", False, "display internal event debugging info")
 
 
 # There is no GDB way to get a notification when the binary itself
@@ -102,12 +106,13 @@ gdb.events.before_prompt = before_prompt_event
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered = {
+registered: Dict[Any, List[Callable]] = {
     gdb.events.exited: [],
     gdb.events.cont: [],
     gdb.events.new_objfile: [],
     gdb.events.stop: [],
     gdb.events.start: [],
+    gdb.events.new_thread: [],
     gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
 }
 
@@ -119,21 +124,11 @@ except (NameError, AttributeError):
     pass
 
 
-class Pause:
-    def __enter__(self, *a, **kw):
-        global pause
-        pause += 1
-
-    def __exit__(self, *a, **kw):
-        global pause
-        pause -= 1
-
-
 # When performing remote debugging, gdbserver is very noisy about which
 # objects are loaded.  This greatly slows down the debugging session.
 # In order to combat this, we keep track of which objfiles have been loaded
 # this session, and only emit objfile events for each *new* file.
-objfile_cache = dict()
+objfile_cache: Dict[str, Set[str]] = {}
 
 
 def connect(func, event_handler, name=""):
@@ -156,9 +151,6 @@ def connect(func, event_handler, name=""):
 
             dispatched.add(handler)
             objfile_cache[path] = dispatched
-
-        if pause:
-            return
 
         try:
             func()
@@ -191,6 +183,10 @@ def stop(func):
 
 def start(func):
     return connect(func, gdb.events.start, "start")
+
+
+def thread(func):
+    return connect(func, gdb.events.new_thread, "thread")
 
 
 before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")

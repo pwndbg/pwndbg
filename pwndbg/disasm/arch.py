@@ -1,8 +1,8 @@
 import gdb
 from capstone import *  # noqa: F403
 
+import pwndbg.gdblib.symbol
 import pwndbg.lib.memoize
-import pwndbg.symbol
 
 debug = False
 
@@ -197,7 +197,7 @@ class DisassemblyAssistant:
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if op.int:
-                op.symbol = pwndbg.symbol.get(op.int)
+                op.symbol = pwndbg.gdblib.symbol.get(op.int)
 
     def immediate(self, instruction, operand):
         return operand.value.imm

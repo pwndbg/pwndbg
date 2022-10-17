@@ -101,6 +101,7 @@ class FakeGDBField:
 
 
 class CStruct2GDB:
+    code = gdb.TYPE_CODE_STRUCT
     _c_struct = None
 
     def __init__(self, address: int) -> None:
@@ -154,6 +155,13 @@ class CStruct2GDB:
         Returns type(self) to make it compatible with the `gdb.Value` interface.
         """
         return type(self)
+
+    @classmethod
+    def unqualified(cls):
+        """
+        Returns cls to make it compatible with the `gdb.types.has_field()` interface.
+        """
+        return cls
 
     @classmethod
     def fields(cls):

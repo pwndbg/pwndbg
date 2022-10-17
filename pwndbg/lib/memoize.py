@@ -6,17 +6,11 @@ new library/objfile are loaded, etc.
 
 import functools
 import sys
+from collections.abc import Hashable
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-
-try:
-    # Python >= 3.10
-    from collections.abc import Hashable
-except ImportError:
-    # Python < 3.10
-    from collections import Hashable  # type: ignore
 
 debug = False
 
@@ -155,6 +149,18 @@ class reset_on_cont(memoize):
             obj.clear()
 
     _reset = __reset_on_cont
+
+
+class reset_on_thread(memoize):
+    caches = []  # type: List[reset_on_thread]
+    kind = "thread"
+
+    @staticmethod
+    def __reset_on_thread() -> None:
+        for obj in reset_on_thread.caches:
+            obj.clear()
+
+    _reset = __reset_on_thread
 
 
 class while_running(memoize):

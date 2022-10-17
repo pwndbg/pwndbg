@@ -20,7 +20,7 @@ class AddrRange:
 
 
 def get_addrrange_any_named():
-    return [AddrRange(page.start, page.end) for page in pwndbg.vmmap.get()]
+    return [AddrRange(page.start, page.end) for page in pwndbg.gdblib.vmmap.get()]
 
 
 def guess_numbers_base(num: str):
@@ -63,7 +63,7 @@ def address_range(section):
     if ":" in section:
         return [address_range_explicit(section)]
 
-    pages = list(filter(lambda page: section in page.objfile, pwndbg.vmmap.get()))
+    pages = list(filter(lambda page: section in page.objfile, pwndbg.gdblib.vmmap.get()))
 
     if pages:
         return [AddrRange(page.start, page.end) for page in pages]

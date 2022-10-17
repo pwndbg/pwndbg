@@ -1,7 +1,7 @@
 import gdb
 import pwnlib
 
-import pwndbg.proc
+import pwndbg.gdblib.proc
 from pwndbg.gdblib import typeinfo
 from pwndbg.lib.arch import Arch
 
@@ -31,7 +31,7 @@ def _get_arch(ptrsize):
     else:
         endian = "big"
 
-    if pwndbg.proc.alive:
+    if pwndbg.gdblib.proc.alive:
         arch = gdb.newest_frame().architecture().name()
     else:
         arch = gdb.execute("show architecture", to_string=True).strip()

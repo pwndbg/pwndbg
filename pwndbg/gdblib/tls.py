@@ -10,8 +10,8 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.symbol
-import pwndbg.vmmap
+import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 
 
 class module(ModuleType):
@@ -21,20 +21,27 @@ class module(ModuleType):
 
     def get_tls_base_via_errno_location(self) -> int:
         """Heuristically determine the base address of the TLS."""
-        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
+        if pwndbg.gdblib.symbol.address(
+            "__errno_location"
+        ) is None or pwndbg.gdblib.arch.current not in (
+            "x86-64",
+            "i386",
+            "arm",
+        ):
             # Note: We doesn't implement this for aarch64 because its TPIDR_EL0 register seems always work
             # If oneday we can't get TLS base via TPIDR_EL0, we should implement this for aarch64
             return 0
         already_lock = gdb.parameter("scheduler-locking") == "on"
+        old_config = gdb.parameter("scheduler-locking")
         if not already_lock:
             gdb.execute("set scheduler-locking on")
         errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
         if not already_lock:
-            gdb.execute("set scheduler-locking off")
+            gdb.execute("set scheduler-locking %s" % old_config)
 
         if not self._errno_offset:
             __errno_location_instr = pwndbg.disasm.near(
-                pwndbg.symbol.address("__errno_location"), 5, show_prev_insns=False
+                pwndbg.gdblib.symbol.address("__errno_location"), 5, show_prev_insns=False
             )
             if pwndbg.gdblib.arch.current == "x86-64":
                 for instr in __errno_location_instr:
@@ -90,7 +97,8 @@ class module(ModuleType):
         # For arm (32-bit), we doesn't have other choice
         # Note: aarch64 seems doesn't have this issue
         is_valid_tls_base = (
-            pwndbg.vmmap.find(tls_base) is not None and tls_base % pwndbg.gdblib.arch.ptrsize == 0
+            pwndbg.gdblib.vmmap.find(tls_base) is not None
+            and tls_base % pwndbg.gdblib.arch.ptrsize == 0
         )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 
@@ -98,7 +106,7 @@ class module(ModuleType):
 @pwndbg.gdblib.events.exit
 def reset():
     # We should reset the offset when we attach to a new process or something
-    pwndbg.tls._errno_offset = None
+    pwndbg.gdblib.tls._errno_offset = None
 
 
 # To prevent garbage collection

@@ -48,7 +48,14 @@ Other Linux distributions are also supported via `setup.sh`, including:
 * Void (via xbps)
 * Gentoo (via emerge)
 
-If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source.  Be sure to pass `--with-python=/path/to/python` to `./configure`.
+If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source. You can build it as:
+```
+cd <gdb-sources-dir>
+mkdir build
+cd build
+../configure --disable-nls --disable-werror --with-system-readline --with-python=`which python3` --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all
+make -j7
+```
 
 ## What can I do with that?
 

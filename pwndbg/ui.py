@@ -10,22 +10,22 @@ import termios
 
 import pwndbg.color.context as C
 import pwndbg.gdblib.arch
-from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
+from pwndbg.gdblib import config
 
-theme.Parameter("banner-separator", "─", "repeated banner separator character")
-theme.Parameter("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")
-theme.Parameter(
+theme.add_param("banner-separator", "─", "repeated banner separator character")
+theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")
+theme.add_param(
     "banner-title-surrounding-right", " ]", "banner title surrounding char (right side)"
 )
-title_position = theme.Parameter("banner-title-position", "center", "banner title position")
+title_position = theme.add_param("banner-title-position", "center", "banner title position")
 
 
-@pwndbg.config.Trigger([title_position])
+@pwndbg.gdblib.config.trigger(title_position)
 def check_title_position():
     valid_values = ["center", "left", "right"]
     if title_position not in valid_values:
