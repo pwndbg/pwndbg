@@ -13,7 +13,8 @@ import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.lib.regs import reg_sets
 
-parser = argparse.ArgumentParser(description="""
+parser = argparse.ArgumentParser(
+    description="""
 Calls the mprotect syscall and prints its result value
 
 Note that the mprotect syscall may fail for various reasons
@@ -23,8 +24,11 @@ can be decoded with the `errno <value>` command.
 Examples:
     mprotect $rsp PROT_READ|PROT_WRITE|PROT_EXEC
     mprotect some_symbol PROT_NONE
-""")
-parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)
+"""
+)
+parser.add_argument(
+    "addr", help="Page-aligned address to all mprotect on.", type=pwndbg.commands.sloppy_gdb_parse
+)
 parser.add_argument(
     "length",
     help="Count of bytes to call mprotect on. Needs " "to be multiple of page size.",
@@ -60,7 +64,9 @@ def mprotect(addr, length, prot):
     prot_int = prot_str_to_val(prot)
 
     # generate a shellcode that executes the mprotect syscall
-    shellcode_asm = pwnlib.shellcraft.syscall("SYS_mprotect", int(addr), int(length), int(prot_int))
+    shellcode_asm = pwnlib.shellcraft.syscall(
+        "SYS_mprotect", int(pwndbg.lib.memory.page_align(addr)), int(length), int(prot_int)
+    )
     shellcode = asm.asm(shellcode_asm)
 
     # obtain the registers that need to be saved for the current platform
