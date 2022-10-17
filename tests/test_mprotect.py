@@ -13,7 +13,6 @@ def test_mprotect_executes_properly(start_binary):
     start_binary(SMALL_BINARY)
 
     pc = pwndbg.gdblib.regs.pc
-    vm = pwndbg.gdblib.vmmap.find(pc)
 
     # Check if we can use mprotect with address provided as value
     # and to set page permissions to RWX
