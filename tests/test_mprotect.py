@@ -2,54 +2,30 @@ import gdb
 
 import pwndbg
 import tests
-from pwndbg.gdblib import arch_mod
 
-MPROTECT_BINARY = tests.binaries.get("mprotect.out")
+SMALL_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
 
 
-def test_mprotect(start_binary):
-    arch_mod.update()
+def test_mprotect_executes_properly(start_binary):
     """
-    Tests mprotect command
-    It will mark some memory as executable, then this binary will print "mprotect_ok"
+    Tests the mprotect command
     """
-    start_binary(MPROTECT_BINARY)
+    start_binary(SMALL_BINARY)
 
-    gdb.execute("starti")
-    # get addr of func
-    addr = int(gdb.parse_and_eval("&func"))
-    addr_aligned = pwndbg.lib.memory.page_align(addr)
+    pc = pwndbg.gdblib.regs.pc
+    vm = pwndbg.gdblib.vmmap.find(pc)
 
-    # sizeof
-    size = int(gdb.parse_and_eval("sizeof(func)"))
-    size_aligned = pwndbg.lib.memory.page_align(size)
+    # Check if we can use mprotect with address provided as value
+    # and to set page permissions to RWX
+    gdb.execute("mprotect %d 4096 PROT_EXEC|PROT_READ|PROT_WRITE" % pc)
+    vm = pwndbg.gdblib.vmmap.find(pc)
+    assert vm.read and vm.write and vm.execute
 
-    vmmaps_before = gdb.execute("vmmap -x", to_string=True).splitlines()
-
-    # mark memory as executable
-    gdb.execute(
-        "mprotect {} {} PROT_EXEC|PROT_READ|PROT_WRITE".format(
-            hex(addr_aligned), pwndbg.lib.memory.PAGE_SIZE
-        )
-    )
-
-    vmmaps_after = gdb.execute("vmmap -x", to_string=True).splitlines()
-
-    # expect vmmaps_after to be one element longer than vmmaps_before
-    assert len(vmmaps_after) == len(vmmaps_before) + 1
-
-    # get the changed vmmap entry
-    vmmap_entry = [x for x in vmmaps_after if x not in vmmaps_before][0]
-
-    assert vmmap_entry.split()[2] == "rwxp"
-
-    # continue execution
-    gdb.execute("continue")
-
-    # check if the process exited with 0
-    # since we inject a shellcode to call mprotect, we need to check if it is removed afterwards,
-    # and the program can continue running normally
-    assert gdb.execute("print $_exitcode", to_string=True).splitlines()[-1] == "$1 = 0"
+    # Check if we can use mprotect with address provided as register
+    # and to set page permissions to none
+    gdb.execute("mprotect $pc 0x1000 PROT_NONE")
+    vm = pwndbg.gdblib.vmmap.find(pc)
+    assert not (vm.read and vm.write and vm.execute)
 
 
 def test_cannot_run_mprotect_when_not_running(start_binary):
