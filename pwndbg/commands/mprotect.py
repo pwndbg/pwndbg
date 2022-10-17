@@ -75,9 +75,7 @@ def mprotect(addr, length, prot):
     regs_to_save = current_regs.args + (current_regs.retval, current_regs.pc)
 
     # save the registers
-    saved_registers = {}
-    for reg in regs_to_save:
-        saved_registers[reg] = pwndbg.gdblib.regs[reg]
+    saved_registers = {reg: pwndbg.gdblib.regs[reg] for reg in regs_to_save}
 
     # save the memory which will be overwritten by the shellcode
     saved_instruction_bytes = pwndbg.gdblib.memory.read(
@@ -89,9 +87,14 @@ def mprotect(addr, length, prot):
     gdb.execute("nextsyscall")
     gdb.execute("stepi")
 
+    # get the return value
+    ret = pwndbg.gdblib.regs[current_regs.retval]
+
+    print("mprotect returned %d (%s)" % (ret, current_regs.retval))
+
     # restore registers and memory
     pwndbg.gdblib.memory.write(saved_registers[current_regs.pc], saved_instruction_bytes)
 
     # restore the registers
-    for reg in regs_to_save:
-        gdb.execute("set ${}={}".format(reg, saved_registers[reg]))
+    for register, value in saved_registers.items():
+        setattr(pwndbg.gdblib.regs, register, value)
