@@ -35,12 +35,12 @@ jobs:
     # We use `sudo` for `attachp` command tests
     - name: Run tests
       run: |
+        mkdir .cov
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 sudo --preserve-env ./tests.sh
 
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        cd tests/gdb-tests
         coverage combine
         coverage xml
 

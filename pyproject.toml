@@ -14,3 +14,4 @@ parallel = true
 disable_warnings = ["module-not-imported"]
 source = ["."]
 omit = ["ida_script.py"]
+data_file = ".cov/coverage"
