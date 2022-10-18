@@ -1,6 +1,0 @@
-[run]
-branch = True
-parallel = True
-disable_warnings = module-not-imported
-source = .
-omit = ida_script.py

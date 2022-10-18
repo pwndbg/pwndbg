@@ -2,7 +2,7 @@
 
 ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
-COVERAGERC_PATH="$ROOT_DIR/.coveragerc"
+COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
 help_and_exit() {
     echo "Usage: ./tests.sh [-p|--pdb] [<test-name-filter>]"
