@@ -8,3 +8,4 @@ isort==5.10.1
 pytest==7.0.1; python_version < '3.7'
 pytest==7.1.2; python_version >= '3.7'
 types-gdb==12.1.3
+vermin==1.4.2
