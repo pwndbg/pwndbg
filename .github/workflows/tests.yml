@@ -40,6 +40,7 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
+        cd tests/gdb-tests
         coverage combine
         coverage xml
 
