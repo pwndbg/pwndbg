@@ -5,19 +5,26 @@ import gdb
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib
+from pwndbg.commands import load_commands
+from pwndbg.gdblib import load_gdblib
 
-pwndbg.commands.load_commands()
-pwndbg.gdblib.load_gdblib()
+load_commands()
+load_gdblib()
 
-import pwndbg.disasm
-import pwndbg.disasm.arm
-import pwndbg.disasm.jump
-import pwndbg.disasm.mips
-import pwndbg.disasm.ppc
-import pwndbg.disasm.sparc
-import pwndbg.disasm.x86
+# TODO: Convert these to gdblib modules and remove this
+try:
+    import pwndbg.disasm
+    import pwndbg.disasm.arm
+    import pwndbg.disasm.jump
+    import pwndbg.disasm.mips
+    import pwndbg.disasm.ppc
+    import pwndbg.disasm.sparc
+    import pwndbg.disasm.x86
+    import pwndbg.heap
+except ModuleNotFoundError:
+    pass
+
 import pwndbg.exception
-import pwndbg.heap
 import pwndbg.lib.version
 import pwndbg.ui
 
@@ -58,7 +65,9 @@ __all__ = [
     "vmmap",
 ]
 
-pwndbg.gdblib.prompt.set_prompt()
+from pwndbg.gdblib import prompt
+
+prompt.set_prompt()
 
 pre_commands = """
 set confirm off
@@ -95,7 +104,9 @@ signal.signal(
 )
 
 # Reading Comment file
-pwndbg.commands.comments.init()
+from pwndbg.commands import comments
+
+comments.init()
 
 from pwndbg.gdblib import config_mod
 
