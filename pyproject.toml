@@ -12,6 +12,9 @@ extend_skip_glob = ["gdb-pt-dump/*"]
 branch = true
 parallel = true
 disable_warnings = ["module-not-imported"]
-source = ["."]
+source = ["${SRC_DIR-.}"]
 omit = ["ida_script.py"]
 data_file = ".cov/coverage"
+
+[tool.coverage.report]
+omit = ["ida_script.py", "tests/*"]
