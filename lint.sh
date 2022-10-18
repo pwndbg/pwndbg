@@ -38,5 +38,7 @@ fi
 
 flake8 --show-source .
 
+vermin -t=3.6 .
+
 # Indents are four spaces, binary ops can start a line, and indent switch cases
 shfmt -i 4 -bn -ci -d .
