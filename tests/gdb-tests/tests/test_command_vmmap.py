@@ -15,7 +15,7 @@ def get_proc_maps():
     Mapped address spaces:
 
               Start Addr           End Addr       Size     Offset objfile
-                0x400000           0x401000     0x1000        0x0 /opt/pwndbg/tests/binaries/crash_simple.out
+                0x400000           0x401000     0x1000        0x0 /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
           0x7ffff7ffa000     0x7ffff7ffd000     0x3000        0x0 [vvar]
           0x7ffff7ffd000     0x7ffff7fff000     0x2000        0x0 [vdso]
           0x7ffffffde000     0x7ffffffff000    0x21000        0x0 [stack]
@@ -42,7 +42,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     """
     Example vmmap when debugging binary:
         LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
-                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/binaries/crash_simple.out
+                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffa000     0x7ffff7ffd000 r--p     3000 0      [vvar]
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 0      [vdso]
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 0      [stack]
@@ -50,7 +50,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
 
     The same vmmap when debugging coredump:
         LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
-                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/binaries/crash_simple.out
+                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 1158   load2
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 24158  [vsyscall]
