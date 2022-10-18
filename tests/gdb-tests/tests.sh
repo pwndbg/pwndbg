@@ -68,7 +68,8 @@ tests_failed=0
 
 for test_case in ${TESTS_LIST}; do
     gdb_args=(-ex 'py import coverage;coverage.process_startup()' --command $GDB_INIT_PATH --command pytests_launcher.py)
-    COVERAGE_PROCESS_START=$COVERAGERC_PATH \
+    COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
+        COVERAGE_PROCESS_START=$COVERAGERC_PATH \
         USE_PDB="${USE_PDB}" \
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
