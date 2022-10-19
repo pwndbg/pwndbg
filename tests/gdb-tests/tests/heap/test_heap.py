@@ -89,6 +89,37 @@ def test_malloc_chunk_command(start_binary):
     for name in chunk_types:
         assert results[name] == expected[name]
 
+    gdb.execute("continue")
+
+    # Print main thread's chunk from another thread
+    assert gdb.selected_thread().num == 2
+    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    expected = generate_expected_malloc_chunk_output(chunks)
+    assert results["large"] == expected["large"]
+
+    gdb.execute("continue")
+
+    # Test some non-main-arena chunks
+    for name in chunk_types:
+        chunks[name] = pwndbg.gdblib.memory.poi(
+            pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol(f"{name}_chunk")[0].value()
+        )
+        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+
+    expected = generate_expected_malloc_chunk_output(chunks)
+    expected["allocated"][0] += " | NON_MAIN_ARENA"
+    expected["tcache"][0] += " | NON_MAIN_ARENA"
+    expected["fast"][0] += " | NON_MAIN_ARENA"
+
+    for name in chunk_types:
+        assert results[name] == expected[name]
+
+    # Print another thread's chunk from the main thread
+    gdb.execute("thread 1")
+    assert gdb.selected_thread().num == 1
+    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    assert results["large"] == expected["large"]
+
 
 def test_malloc_chunk_command_heuristic(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
@@ -109,6 +140,37 @@ def test_malloc_chunk_command_heuristic(start_binary):
 
     for name in chunk_types:
         assert results[name] == expected[name]
+
+    gdb.execute("continue")
+
+    # Print main thread's chunk from another thread
+    assert gdb.selected_thread().num == 2
+    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    expected = generate_expected_malloc_chunk_output(chunks)
+    assert results["large"] == expected["large"]
+
+    gdb.execute("continue")
+
+    # Test some non-main-arena chunks
+    for name in chunk_types:
+        chunks[name] = pwndbg.heap.current.malloc_chunk(
+            gdb.lookup_symbol(f"{name}_chunk")[0].value()
+        )
+        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+
+    expected = generate_expected_malloc_chunk_output(chunks)
+    expected["allocated"][0] += " | NON_MAIN_ARENA"
+    expected["tcache"][0] += " | NON_MAIN_ARENA"
+    expected["fast"][0] += " | NON_MAIN_ARENA"
+
+    for name in chunk_types:
+        assert results[name] == expected[name]
+
+    # Print another thread's chunk from the main thread
+    gdb.execute("thread 1")
+    assert gdb.selected_thread().num == 1
+    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    assert results["large"] == expected["large"]
 
 
 class mock_for_heuristic:

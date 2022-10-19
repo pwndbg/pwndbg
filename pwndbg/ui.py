@@ -25,7 +25,7 @@ theme.add_param(
 title_position = theme.add_param("banner-title-position", "center", "banner title position")
 
 
-@pwndbg.gdblib.config.trigger(title_position)
+@config.trigger(title_position)
 def check_title_position():
     valid_values = ["center", "left", "right"]
     if title_position not in valid_values:

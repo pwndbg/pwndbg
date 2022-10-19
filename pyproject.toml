@@ -7,3 +7,14 @@ profile = "black"
 force_single_line = true
 known_third_party = ["capstone", "unicorn", "psutil", "pycparser", "gdb"]
 extend_skip_glob = ["gdb-pt-dump/*"]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+disable_warnings = ["module-not-imported"]
+source = ["${SRC_DIR-.}"]
+omit = ["ida_script.py"]
+data_file = ".cov/coverage"
+
+[tool.coverage.report]
+omit = ["ida_script.py", "tests/*"]

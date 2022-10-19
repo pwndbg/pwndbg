@@ -151,6 +151,18 @@ class reset_on_cont(memoize):
     _reset = __reset_on_cont
 
 
+class reset_on_thread(memoize):
+    caches = []  # type: List[reset_on_thread]
+    kind = "thread"
+
+    @staticmethod
+    def __reset_on_thread() -> None:
+        for obj in reset_on_thread.caches:
+            obj.clear()
+
+    _reset = __reset_on_thread
+
+
 class while_running(memoize):
     caches = []  # type: List[while_running]
     kind = "running"

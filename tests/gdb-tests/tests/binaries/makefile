@@ -1,3 +1,4 @@
+ZIGPATH     ?=     ../../.zig
 ZIGCC		=	  $(ZIGPATH)/zig cc
 
 CC              =	   gcc

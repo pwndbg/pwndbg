@@ -7,6 +7,7 @@ from pwndbg.lib.memoize import reset_on_objfile
 from pwndbg.lib.memoize import reset_on_prompt
 from pwndbg.lib.memoize import reset_on_start
 from pwndbg.lib.memoize import reset_on_stop
+from pwndbg.lib.memoize import reset_on_thread
 from pwndbg.lib.memoize import while_running
 
 # TODO: Combine these `update_*` hook callbacks into one method
@@ -58,6 +59,11 @@ def memoize_on_start():
 def memoize_on_exit():
     while_running._reset()
     reset_on_exit._reset()
+
+
+@pwndbg.gdblib.events.thread
+def memoize_on_new_thread():
+    reset_on_thread._reset()
 
 
 def init():

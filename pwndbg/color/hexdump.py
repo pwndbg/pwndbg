@@ -1,6 +1,6 @@
 import pwndbg.color.theme as theme
-import pwndbg.gdblib.config as config
 from pwndbg.color import generateColorFunction
+from pwndbg.gdblib import config
 
 config_normal = theme.add_color_param(
     "hexdump-normal-color", "none", "color for hexdump command (normal bytes)"

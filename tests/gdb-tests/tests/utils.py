@@ -19,7 +19,7 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
     for cmd in pybefore:
         command += ["--eval-command", cmd]
 
-    command += ["--command", "gdbinit.py"]
+    command += ["--command", "../../gdbinit.py"]
 
     if binary:
         command += [binary]

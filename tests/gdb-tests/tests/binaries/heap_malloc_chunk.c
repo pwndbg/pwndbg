@@ -12,6 +12,8 @@
 #define mem2chunk(mem) ((void*)(mem) - CHUNK_HDR_SZ)
 
 void break_here(void) {}
+void configure_heap_layout(void);
+void* thread_func(void*);
 
 void* allocated_chunk = NULL;
 void* tcache_chunk = NULL;
@@ -21,6 +23,17 @@ void* large_chunk = NULL;
 void* unsorted_chunk = NULL;
 
 int main(void)
+{
+    configure_heap_layout();
+
+    break_here();
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, thread_func, NULL);
+    pthread_join(thread, NULL);
+}
+
+void configure_heap_layout(void)
 {
     void* chunks[6] = {0};
 
@@ -67,12 +80,16 @@ int main(void)
     small_chunk = mem2chunk(before_remainder + 0x210);
     large_chunk = mem2chunk(large);
     unsorted_chunk = mem2chunk(unsorted);
+}
 
+void* thread_func(void* args)
+{
+    // Initialize a 2nd arena by allocating any size chunk.
+    malloc(0x18);
     break_here();
 
-    // Required for CI build to retrieve TLS variables.
-    // See:
-    // - https://github.com/pwndbg/pwndbg/pull/1086
-    // - https://sourceware.org/bugzilla/show_bug.cgi?id=24548
-    pthread_create(0,0,0,0);
+    configure_heap_layout();
+    break_here();
+
+    pthread_exit(NULL);
 }

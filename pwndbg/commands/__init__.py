@@ -6,18 +6,10 @@ from typing import List
 
 import gdb
 
-import pwndbg.chain
-import pwndbg.color
 import pwndbg.color.message as message
-import pwndbg.enhance
 import pwndbg.exception
-import pwndbg.gdblib.config
-import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.gdblib.symbol
 import pwndbg.heap
-import pwndbg.hexdump
-import pwndbg.ui
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
