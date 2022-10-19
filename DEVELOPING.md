@@ -3,12 +3,12 @@
 After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-test-tools.sh` to install the necessary development dependencies.
 
 If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this, run the following command:
-```
+```bash
 docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 ```
 
 If you'd like to use `docker compose`, you can run
-```
+```bash
 docker compose run -i main
 ```
 
@@ -23,7 +23,7 @@ To run the tests, run [`./tests.sh`](./tests.sh). You can filter the tests to ru
 Our tests are written using [`pytest`](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions. These fixtures are defined in [`tests/conftest.py`](tests/conftest.py).
 
 We can take a look at [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py) for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
-```
+```python
 import gdb
 import tests
 
@@ -33,12 +33,11 @@ BINARY = tests.binaries.get("reference-binary.out")
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
 
 Here's a small snippet of the actual test:
-```
+```python
 def test_hexdump(start_binary):
     start_binary(BINARY)
     pwndbg.gdblib.config.hexdump_group_width = -1
 
-    # TODO: Setting theme options with Python isn't working
     gdb.execute("set hexdump-byte-separator")
     stack_addr = pwndbg.gdblib.regs.rsp - 0x100
 ```
@@ -54,7 +53,7 @@ The `lint.sh` script runs `isort`, `black`, `flake8`, and `shfmt`. `isort` and `
 When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
 You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to automatically be run before every push:
-```
+```bash
 #!/bin/sh
 
 ./lint.sh || exit 1
