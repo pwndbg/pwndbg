@@ -12,6 +12,41 @@ If you'd like to use `docker compose`, you can run
 docker compose run -i main
 ```
 
+# Testing
+
+It's highly recommended you write a new test or update an existing test whenever adding new functionality to `pwndbg`.
+
+Tests are located in [`tests/gdb-tests`](tests/gdb-tests). `tests/unit-tests` also exists, but the unit testing framework is not complete and so it should not be used.
+
+To run the tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
+
+Our tests are written using [`pytest`](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions. These fixtures are defined in [`tests/conftest.py`](tests/conftest.py).
+
+We can take a look at [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py) for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
+```
+import gdb
+import tests
+
+BINARY = tests.binaries.get("reference-binary.out")
+```
+
+Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
+
+Here's a small snippet of the actual test:
+```
+def test_hexdump(start_binary):
+    start_binary(BINARY)
+    pwndbg.gdblib.config.hexdump_group_width = -1
+
+    # TODO: Setting theme options with Python isn't working
+    gdb.execute("set hexdump-byte-separator")
+    stack_addr = pwndbg.gdblib.regs.rsp - 0x100
+```
+
+`pytest` will run any function that starts with `test_` as a new test, so there is no need to register your new test anywhere. The `start_binary` argument is a function that will run the binary you give it, and it will set some common options before starting the binary. Using `start_binary` is recommended if you don't need any additional customization to GDB settings before starting the binary, but if you do it's fine to not use it.
+
+Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+
 # Linting
 
 The `lint.sh` script runs `isort`, `black`, `flake8`, and `shfmt`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
@@ -56,9 +91,3 @@ Feel free to update the list below!
 * Some of pwndbg's functionality - e.g. memory fetching - require us to have an instance of proper `gdb.Type` - the problem with that is that there is no way to define our own types - we have to ask gdb if it detected particular type in this particular binary (that sucks). We do it in `pwndbg/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
 
 * We would like to add proper tests for pwndbg - see tests framework PR if you want to help on that.
-
-# Testing
-
-Our tests are written using [pytest](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions.
-
-The fixtures should be defined in [tests/conftest.py](tests/conftest.py). If you need help with writing tests, feel free to reach out on gitub issues/pr or on our irc channel on freenode.
