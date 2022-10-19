@@ -16,6 +16,8 @@ from pwndbg.commands.config import extend_value_with_default
 from pwndbg.commands.config import get_config_parameters
 from pwndbg.commands.config import print_row
 from pwndbg.heap.ptmalloc import Chunk
+from pwndbg.heap.ptmalloc import Bin
+from pwndbg.heap.ptmalloc import BinType
 
 
 def read_chunk(addr):
@@ -37,63 +39,56 @@ def read_chunk(addr):
 def format_bin(bins, verbose=False, offset=None):
     allocator = pwndbg.heap.current
     if offset is None:
-        offset = allocator.chunk_key_offset("fd")
+        offset = allocator.chunk_key_offset('fd')
 
     result = []
-    bins_type = bins.pop("type")
+    bins_type = bins.bin_type
 
-    for size in bins:
-        b = bins[size]
-        count, is_chain_corrupted = None, False
-        safe_lnk = False
-
-        # fastbins consists of only single linked list
-        if bins_type == "fastbins":
-            chain_fd = b
-            safe_lnk = pwndbg.glibc.check_safe_linking()
-        # tcachebins consists of single linked list and entries count
-        elif bins_type == "tcachebins":
-            chain_fd, count = b
-            safe_lnk = pwndbg.glibc.check_safe_linking()
-        # normal bins consists of double linked list and may be corrupted (we can detect corruption)
-        else:  # normal bin
-            chain_fd, chain_bk, is_chain_corrupted = b
-
-        if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
+    for size, b in bins.bins.items():
+        if not verbose and (
+            b.fd_chain == [0] and not b.count
+        ) and not b.is_corrupted:
             continue
 
-        if bins_type == "tcachebins":
-            limit = 8
-            if count <= 7:
-                limit = count + 1
-            formatted_chain = pwndbg.chain.format(
-                chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
+        # TODO: Abstract this away
+        safe_lnk = False
+        if bins_type in [BinType.FAST, BinType.TCACHE]:
+            safe_lnk = pwndbg.glibc.check_safe_linking()
+
+        if bins_type == BinType.TCACHE:
+            limit = min(8, b.count + 1)
+        else:
+            limit = pwndbg.chain.LIMIT
+
+        formatted_chain = pwndbg.chain.format(
+            b.fd_chain[0], limit=limit, offset=offset, safe_linking=safe_lnk
+        )
+
+        size_str = Bin.size_to_display_name(size)
+
+        if b.is_corrupted:
+            line = message.hint(size_str) + message.error(' [corrupted]') + '\n'
+            line += message.hint('FD: ') + formatted_chain + '\n'
+            line += message.hint('BK: ') + pwndbg.chain.format(
+                b.bk_chain[0], offset=allocator.chunk_key_offset('bk')
             )
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
+            line = message.hint(size_str)
+            if b.count is not None:
+                line += message.hint(' [%3d]' % b.count)
 
-        if isinstance(size, int):
-            size = hex(size)
+            line += ': '
+            line.ljust(13)
 
-        if is_chain_corrupted:
-            line = message.hint(size) + message.error(" [corrupted]") + "\n"
-            line += message.hint("FD: ") + formatted_chain + "\n"
-            line += message.hint("BK: ") + pwndbg.chain.format(
-                chain_bk[0], offset=allocator.chunk_key_offset("bk")
-            )
-        else:
-            if count is not None:
-                line = (message.hint(size) + message.hint(" [%3d]" % count) + ": ").ljust(13)
-            else:
-                line = (message.hint(size) + ": ").ljust(13)
             line += formatted_chain
 
         result.append(line)
 
     if not result:
-        result.append(message.hint("empty"))
+        result.append(message.hint('empty'))
 
     return result
+
 
 
 parser = argparse.ArgumentParser()
@@ -259,6 +254,31 @@ def top_chunk(addr=None):
     print(out)
 
 
+def get_chunk_bin(chunk):
+    # points to the real start of the chunk
+    allocator = pwndbg.heap.current
+    bins = [
+        allocator.fastbins(chunk.arena.address),
+        allocator.smallbins(chunk.arena.address),
+        allocator.largebins(chunk.arena.address),
+        allocator.unsortedbin(chunk.arena.address),
+    ]
+
+    if allocator.has_tcache():
+        bins.append(allocator.tcachebins(None))
+
+    # TODO: What if we somehow got this chunk into a bin of a different size? We
+    # would miss it with this logic. Should we check every bin?
+    res = []
+    for bin_ in bins:
+        if bin_.contains_chunk(chunk):
+            res.append(bin_.bin_type)
+    if len(res) == 0:
+        return [BinType.NOT_IN_BIN]
+    else:
+        return res
+
+
 parser = argparse.ArgumentParser()
 parser.description = "Print a chunk."
 parser.add_argument(
@@ -280,10 +300,7 @@ parser.add_argument(
 def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
     chunk = Chunk(addr)
-
     allocator = pwndbg.heap.current
-    ptr_size = allocator.size_sz
-
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
     out_fields = "Addr: {}\n".format(M.get(chunk.address))
@@ -305,52 +322,18 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk:
-            fastbins = allocator.fastbins(arena.address) or {}
-            smallbins = allocator.smallbins(arena.address) or {}
-            largebins = allocator.largebins(arena.address) or {}
-            unsortedbin = allocator.unsortedbin(arena.address) or {}
-            if allocator.has_tcache():
-                tcachebins = allocator.tcachebins(None)
-
-            if chunk.real_size in fastbins.keys() and chunk.address in fastbins[chunk.real_size]:
-                headers_to_print.append(message.on("Free chunk (fastbins)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
-            elif chunk.real_size in smallbins.keys() and chunk.address in bin_addrs(
-                smallbins[chunk.real_size], "smallbins"
-            ):
-                headers_to_print.append(message.on("Free chunk (smallbins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif chunk.real_size >= list(largebins.items())[0][0] and chunk.address in bin_addrs(
-                largebins[
-                    (list(largebins.items())[allocator.largebin_index(chunk.real_size) - 64][0])
-                ],
-                "largebins",
-            ):
-                headers_to_print.append(message.on("Free chunk (largebins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk", "fd_nextsize", "bk_nextsize"])
-
-            elif chunk.address in bin_addrs(unsortedbin["all"], "unsortedbin"):
-                headers_to_print.append(message.on("Free chunk (unsortedbin)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif (
-                allocator.has_tcache()
-                and chunk.real_size in tcachebins.keys()
-                and chunk.address + ptr_size * 2
-                in bin_addrs(tcachebins[chunk.real_size], "tcachebins")
-            ):
-                headers_to_print.append(message.on("Free chunk (tcache)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
+            bin_types = get_chunk_bin(chunk)
+            if BinType.NOT_IN_BIN in bin_types:
+                headers_to_print.append(message.hint('Allocated chunk'))
             else:
-                headers_to_print.append(message.hint("Allocated chunk"))
+                # TODO: Handle a chunk being in multiple bins
+                bin_type = bin_types[0]
+                headers_to_print.append(
+                    message.on('Free chunk ({})'.format('|'.join(bin_types)))
+                )
+                for bin_type in bin_types:
+                    fields_to_print.update(bin_type.valid_fields())
+
 
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
@@ -396,15 +379,34 @@ def bins(addr=None, tcache_addr=None):
     smallbins(addr)
     largebins(addr)
 
+def print_bins(bin_type, addr=None, verbose=False):
+    allocator = pwndbg.heap.current
+    offset = None
+
+    # TODO: Abstract this away
+    if bin_type == BinType.TCACHE:
+        offset = allocator.tcache_next_offset
+    else:
+        offset = None
+
+    bins = allocator.get_bins(bin_type, addr=addr)
+    if bins is None:
+        return
+
+    formatted_bins = format_bin(bins, verbose, offset=offset)
+
+    print(C.banner(bin_type.value))
+    for node in formatted_bins:
+        print(node)
 
 parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's fastbins, default to the current thread's arena."
+parser.description = "Print the contents of an arena's fastbins, default to the current thread's arena."
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
-
-
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=True, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -413,27 +415,17 @@ def fastbins(addr=None, verbose=True):
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    fastbins = allocator.fastbins(addr)
-
-    if fastbins is None:
-        return
-
-    formatted_bins = format_bin(fastbins, verbose)
-
-    print(C.banner("fastbins"))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.FAST, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's unsortedbin, default to the current thread's arena."
+parser.description = "Print the contents of an arena's unsortedbin, default to the current thread's arena."
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
-
-
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=True, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -442,27 +434,17 @@ def unsortedbin(addr=None, verbose=True):
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    unsortedbin = allocator.unsortedbin(addr)
-
-    if unsortedbin is None:
-        return
-
-    formatted_bins = format_bin(unsortedbin, verbose)
-
-    print(C.banner("unsortedbin"))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.UNSORTED, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's smallbins, default to the current thread's arena."
+parser.description = "Print the contents of an arena's smallbins, default to the current thread's arena."
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
-
-
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=False, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -471,27 +453,17 @@ def smallbins(addr=None, verbose=False):
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    smallbins = allocator.smallbins(addr)
-
-    if smallbins is None:
-        return
-
-    formatted_bins = format_bin(smallbins, verbose)
-
-    print(C.banner("smallbins"))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.SMALL, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's largebins, default to the current thread's arena."
+parser.description = "Print the contents of an arena's largebins, default to the current thread's arena."
+parser.add_argument(
+    "addr", nargs="?", type=int, default=None, help="Address of the arena."
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
-
-
+parser.add_argument(
+    "verbose", nargs="?", type=bool, default=False, help="Show extra detail."
+)
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -500,29 +472,25 @@ def largebins(addr=None, verbose=False):
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.heap.current
-    largebins = allocator.largebins(addr)
-
-    if largebins is None:
-        return
-
-    formatted_bins = format_bin(largebins, verbose)
-
-    print(C.banner("largebins"))
-    for node in formatted_bins:
-        print(node)
+    print_bins(BinType.LARGE, addr, verbose)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Print the contents of a tcache, default to the current thread's tcache."
 parser.add_argument(
-    "addr", nargs="?", type=int, default=None, help="The address of the tcache bins."
+    "addr",
+    nargs="?",
+    type=int,
+    default=None,
+    help="The address of the tcache bins."
 )
 parser.add_argument(
-    "verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not."
+    "verbose",
+    nargs="?",
+    type=bool,
+    default=False,
+    help="Whether to show more details or not."
 )
-
-
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -530,17 +498,8 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithTcache
 def tcachebins(addr=None, verbose=False):
     """Print the contents of a tcache, default to the current thread's tcache."""
-    allocator = pwndbg.heap.current
-    tcachebins = allocator.tcachebins(addr)
+    print_bins(BinType.TCACHE, addr, verbose)
 
-    if tcachebins is None:
-        return
-
-    formatted_bins = format_bin(tcachebins, verbose, offset=allocator.tcache_next_offset)
-
-    print(C.banner("tcachebins"))
-    for node in formatted_bins:
-        print(node)
 
 
 parser = argparse.ArgumentParser()
@@ -669,6 +628,7 @@ parser.add_argument(
 )
 
 
+
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
@@ -678,8 +638,6 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     allocator = pwndbg.heap.current
     heap_region = allocator.get_heap_boundaries(addr)
     arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
-
-    top_chunk = arena["top"]
     ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
@@ -705,31 +663,28 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
             cursor += ptr_size * 2
 
     cursor_backup = cursor
-
     for _ in range(count + 1):
+        chunk = Chunk(cursor,arena)
+
         # Don't read beyond the heap mapping if --naive or corrupted heap.
-        if cursor not in heap_region:
+        if chunk.address not in heap_region:
             chunk_delims.append(heap_region.end)
             break
 
-        size_field = pwndbg.gdblib.memory.u(cursor + ptr_size)
-        real_size = size_field & ~allocator.malloc_align_mask
-        prev_inuse = allocator.chunk_flags(size_field)[0]
-
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
-        if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
+        if chunk.address in chunk_delims or chunk.address + ptr_size in chunk_delims:
             break
 
-        if prev_inuse:
-            chunk_delims.append(cursor + ptr_size)
+        if chunk.prev_inuse:
+            chunk_delims.append(chunk.address + ptr_size)
         else:
-            chunk_delims.append(cursor)
+            chunk_delims.append(chunk.address)
 
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
-            chunk_delims.append(cursor + ptr_size * 2)
+        if (chunk.is_top_chunk and not naive) or (chunk.address == heap_region.end - ptr_size * 2):
+            chunk_delims.append(chunk.address + ptr_size * 2)
             break
 
-        cursor += real_size
+        cursor += chunk.real_size
 
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
@@ -741,25 +696,12 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
         generateColorFunction("blue"),
     ]
 
-    bin_collections = [
-        allocator.fastbins(arena.address),
-        allocator.unsortedbin(arena.address),
-        allocator.smallbins(arena.address),
-        allocator.largebins(arena.address),
-    ]
-    if allocator.has_tcache():
-        # Only check for tcache entries belonging to the current thread,
-        # it's difficult (impossible?) to find all the thread caches for a
-        # specific heap.
-        bin_collections.insert(0, allocator.tcachebins(None))
-
     printed = 0
     out = ""
     asc = ""
     labels = []
 
     cursor = cursor_backup
-
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
@@ -769,41 +711,43 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
-
-        if stop - cursor > 0x10000:
+        chunk = Chunk(cursor,arena)
+        if stop - chunk.address > 0x10000:
             has_huge_chunk = True
+        
+        bin_type = get_chunk_bin(chunk)
         first_cut = True
         # round down to align with 2*ptr_size
-        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
+        begin_addr = pwndbg.lib.memory.round_down(chunk.address, ptr_size << 1)
         end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
 
-        while cursor != stop:
+        while chunk.address != stop:
             # skip the middle part of a huge chunk
             if (
                 not display_all
                 and half_max_size > 0
-                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
+                and begin_addr + half_max_size <= chunk.address < end_addr - half_max_size
             ):
                 if first_cut:
-                    out += "\n" + "." * len(hex(cursor))
+                    out += "\n" + "." * len(hex(chunk.address))
                     first_cut = False
-                cursor += ptr_size
+                chunk.address += ptr_size
                 continue
 
             if printed % 2 == 0:
-                out += "\n0x%x" % cursor
+                out += "\n0x%x" % chunk.address
 
-            cell = pwndbg.gdblib.arch.unpack(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            cell = pwndbg.gdblib.arch.unpack(pwndbg.gdblib.memory.read(chunk.address, ptr_size))
             cell_hex = "\t0x{:0{n}x}".format(cell, n=ptr_size * 2)
 
             out += color_func(cell_hex)
             printed += 1
 
-            labels.extend(bin_labels(cursor, bin_collections))
-            if cursor == top_chunk:
+            labels.extend(bin_labels(chunk.address, bin_type))
+            if chunk.is_top_chunk:
                 labels.append("Top chunk")
 
-            asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            asc += bin_ascii(pwndbg.gdblib.memory.read(chunk.address, ptr_size))
             if printed % 2 == 0:
                 out += (
                     "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if len(labels) else "")
@@ -830,26 +774,27 @@ def bin_ascii(bs):
     return "".join(chr(c) if c in valid_chars else "." for c in bs)
 
 
-def bin_labels(addr, collections):
+def bin_labels(addr, bin_type):
     labels = []
-    for bins in collections:
-        bins_type = bins.get("type", None)
-        if not bins_type:
-            continue
+    allocator = pwndbg.heap.current
 
-        for size in filter(lambda x: x != "type", bins.keys()):
-            b = bins[size]
-            if isinstance(size, int):
-                size = hex(size)
-            count = "/{:d}".format(b[1]) if bins_type == "tcachebins" else None
-            chunks = bin_addrs(b, bins_type)
-            for chunk_addr in chunks:
-                if addr == chunk_addr:
-                    labels.append(
-                        "{:s}[{:s}][{:d}{}]".format(
-                            bins_type, size, chunks.index(addr), count or ""
-                        )
-                    )
+    bins = allocator.get_bins(bin_type)
+    if bins is None:
+        return []
+
+    for size, b in bins.bins.items():
+        size_str = Bin.size_to_display_name(size)
+
+        if b.contains_chunk(addr):
+            count = ''
+            if bins.bin_type == BinType.TCACHE:
+                count = '/{:d}'.format(b.count)
+
+            labels.append(
+                '{:s}[{:s}][{:d}{:s}]'.format(
+                    bins.bin_type.value, size_str, b.fd_chain.index(addr), count
+                )
+            )
 
     return labels
 
@@ -1017,9 +962,7 @@ def try_free(addr):
     if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
-        fastbin_list = allocator.fastbins(int(arena.address))[
-            (chunk_fastbin_idx + 2) * (ptr_size * 2)
-        ]
+        fastbin_list = allocator.fastbins(int(arena.address)).bins[(chunk_fastbin_idx+2)*(ptr_size*2)]
 
         try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
@@ -1044,7 +987,7 @@ def try_free(addr):
             errors_found += 1
 
         # chunk is not the same as the one on top of fastbin[idx]
-        if int(fastbin_list[0]) == addr:
+        if int(fastbin_list.fd_chain[0]) == addr:
             err = "double free or corruption (fasttop) -> chunk already is on top of fastbin list\n"
             err += "    fastbin idx == {}"
             err = err.format(chunk_fastbin_idx)
@@ -1052,7 +995,7 @@ def try_free(addr):
             errors_found += 1
 
         # chunk's size is ~same as top chunk's size
-        fastbin_top_chunk = int(fastbin_list[0])
+        fastbin_top_chunk = int(fastbin_list.fd_chain[0])
         if fastbin_top_chunk != 0:
             try:
                 fastbin_top_chunk = read_chunk(fastbin_top_chunk)
