@@ -491,7 +491,6 @@ def load_commands():
     import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
-    import pwndbg.commands.theme
     import pwndbg.commands.tls
     import pwndbg.commands.version
     import pwndbg.commands.vmmap
