@@ -12,9 +12,7 @@ import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
-from pwndbg.commands.config import extend_value_with_default
-from pwndbg.commands.config import get_config_parameters
-from pwndbg.commands.config import print_row
+from pwndbg.commands.config import display_config
 from pwndbg.heap.ptmalloc import Chunk
 
 
@@ -1250,26 +1248,8 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def heap_config(filter_pattern):
-    values = get_config_parameters("heap", filter_pattern)
+    display_config(filter_pattern, "heap")
 
-    if not values:
-        print(message.hint('No config parameter found with filter "{}"'.format(filter_pattern)))
-        return
-
-    longest_optname = max(map(len, [v.optname for v in values]))
-    longest_value = max(
-        map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values])
-    )
-
-    header = print_row("Name", "Value", "Def", "Documentation", longest_optname, longest_value)
-    print("-" * (len(header)))
-
-    for v in sorted(values):
-        print_row(
-            v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value
-        )
-
-    print(message.hint("You can set config variable with `set <config-var> <value>`"))
     print(
         message.hint(
             "Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `True`"
