@@ -1,3 +1,17 @@
+# Environment setup
+
+After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-test-tools.sh` to install the necessary development dependencies.
+
+If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this, run the following command:
+```
+docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
+```
+
+If you'd like to use `docker compose`, you can run
+```
+docker compose run -i main
+```
+
 # Linting
 
 The `lint.sh` script runs `isort`, `black`, `flake8`, and `shfmt`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
