@@ -6,6 +6,7 @@ import argparse
 
 import pwndbg.commands
 import pwndbg.gdblib.config
+from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
@@ -29,7 +30,7 @@ def extend_value_with_default(value, default):
 def get_config_parameters(scope, filter_pattern):
     values = [
         v
-        for k, v in pwndbg.gdblib.config.__dict__.items()
+        for k, v in pwndbg.gdblib.config.params.items()
         if isinstance(v, pwndbg.lib.config.Parameter) and v.scope == scope
     ]
 
@@ -56,16 +57,16 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def config(filter_pattern):
-    values = get_config_parameters("config", filter_pattern)
+def display_config(filter_pattern: str, scope: str):
+    values = get_config_parameters(scope, filter_pattern)
 
     if not values:
-        print(hint('No config parameter found with filter "{}"'.format(filter_pattern)))
+        print(hint(f'No {scope} parameter found with filter "{filter_pattern}"'))
         return
 
-    longest_optname = max(map(len, [v.optname for v in values]))
+    longest_optname = max(map(len, [v.name for v in values]))
     longest_value = max(
+        # We use `repr` here so the string values will be in quotes
         map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values])
     )
 
@@ -73,17 +74,30 @@ def config(filter_pattern):
     print("-" * (len(header)))
 
     for v in sorted(values):
-        print_row(
-            v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value
-        )
+        if isinstance(v, pwndbg.color.theme.ColorParameter):
+            # Only the theme scope should use ColorParameter
+            assert scope == "theme"
 
-    print(hint("You can set config variable with `set <config-var> <value>`"))
+            value = generateColorFunction(v.value)(v.value)
+            default = generateColorFunction(v.default)(v.default)
+        else:
+            value = repr(v.value)
+            default = repr(v.default)
+
+        print_row(v.name, value, default, v.docstring, longest_optname, longest_value)
+
+    print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
     print(
         hint(
-            "You can generate configuration file using `configfile` "
+            f"You can generate configuration file using `{scope}file` "
             "- then put it in your .gdbinit after initializing pwndbg"
         )
     )
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+def config(filter_pattern):
+    display_config(filter_pattern, "config")
 
 
 configfile_parser = argparse.ArgumentParser(
@@ -92,6 +106,22 @@ configfile_parser = argparse.ArgumentParser(
 configfile_parser.add_argument(
     "--show-all", action="store_true", help="Force displaying of all configs."
 )
+
+parser = argparse.ArgumentParser(
+    description="Shows pwndbg-specific theme config. The list can be filtered."
+)
+parser.add_argument(
+    "filter_pattern",
+    type=str,
+    nargs="?",
+    default=None,
+    help="Filter to apply to theme parameters names/descriptions",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser)
+def theme(filter_pattern):
+    display_config(filter_pattern, "theme")
 
 
 @pwndbg.commands.ArgparsedCommand(configfile_parser)
@@ -122,9 +152,9 @@ def configfile_print_scope(scope, show_all=False):
         if not show_all:
             print(hint("Showing only changed values:"))
         for p in params:
-            print("# %s: %s" % (p.optname, p.docstring))
+            print("# %s: %s" % (p.name, p.docstring))
             print("# default: %s" % p.native_default)
-            print("set %s %s" % (p.optname, p.native_value))
+            print("set %s %s" % (p.name, p.native_value))
             print()
     else:
         print(hint("No changed values. To see current values use `%s`." % scope))
