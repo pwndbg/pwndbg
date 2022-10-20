@@ -57,14 +57,20 @@ def test_heap_bins(start_binary):
     result = allocator.smallbins()
     assert result.bin_type == BinType.SMALL
     assert smallbin_size in result.bins
-    assert len(result.bins[smallbin_size].fd_chain) == 1 and len(result.bins[smallbin_size].bk_chain) == 1
+    assert (
+        len(result.bins[smallbin_size].fd_chain) == 1
+        and len(result.bins[smallbin_size].bk_chain) == 1
+    )
     assert not result.bins[smallbin_size].is_corrupted
 
     result = allocator.largebins()
     assert result.bin_type == BinType.LARGE
     largebin_size = list(result.bins.items())[allocator.largebin_index(largebin_size) - 64][0]
     assert largebin_size in result.bins
-    assert len(result.bins[largebin_size].fd_chain) == 1 and len(result.bins[largebin_size].bk_chain) == 1
+    assert (
+        len(result.bins[largebin_size].fd_chain) == 1
+        and len(result.bins[largebin_size].bk_chain) == 1
+    )
     assert not result.bins[largebin_size].is_corrupted
 
     # check tcache
@@ -74,7 +80,8 @@ def test_heap_bins(start_binary):
     assert result.bin_type == BinType.TCACHE
     assert tcache_size in result.bins
     assert (
-        result.bins[tcache_size].count == tcache_count and len(result.bins[tcache_size].fd_chain) == tcache_count + 1
+        result.bins[tcache_size].count == tcache_count
+        and len(result.bins[tcache_size].fd_chain) == tcache_count + 1
     )
     for addr in result.bins[tcache_size].fd_chain[:-1]:
         assert pwndbg.gdblib.vmmap.find(addr)
@@ -84,7 +91,9 @@ def test_heap_bins(start_binary):
 
     result = allocator.fastbins()
     assert result.bin_type == BinType.FAST
-    assert (fastbin_size in result.bins) and (len(result.bins[fastbin_size].fd_chain) == fastbin_count + 1)
+    assert (fastbin_size in result.bins) and (
+        len(result.bins[fastbin_size].fd_chain) == fastbin_count + 1
+    )
     for addr in result.bins[fastbin_size].fd_chain[:-1]:
         assert pwndbg.gdblib.vmmap.find(addr)
 
@@ -94,7 +103,8 @@ def test_heap_bins(start_binary):
     result = allocator.unsortedbin()
     assert result.bin_type == BinType.UNSORTED
     assert (
-        len(result.bins["all"].fd_chain) == smallbin_count + 2 and len(result.bins["all"].bk_chain) == smallbin_count + 2
+        len(result.bins["all"].fd_chain) == smallbin_count + 2
+        and len(result.bins["all"].bk_chain) == smallbin_count + 2
     )
     assert not result.bins["all"].is_corrupted
     for addr in result.bins["all"].fd_chain[:-1]:

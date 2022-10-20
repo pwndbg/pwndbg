@@ -8,16 +8,7 @@ from pwndbg.commands.shell import shellcmd_names
 BINARY = tests.binaries.get("heap_bins.out")
 
 # TODO: See if we can reduce the number of commands we need to skip
-blacklisted_commands = set(
-    [
-        "disasm",
-        "unhex",
-        "bugreport",
-        "try_free",
-        "errno",
-        "nextproginstr",
-    ]
-)
+blacklisted_commands = set(["disasm", "unhex", "bugreport", "try_free", "errno", "nextproginstr",])
 
 # Don't run any shell commands
 blacklisted_commands.update(shellcmd_names)

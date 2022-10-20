@@ -31,8 +31,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(
-    parser,
-    aliases=["flag"],
+    parser, aliases=["flag"],
 )
 def setflag(flag, value):
     if value not in [0, 1]:

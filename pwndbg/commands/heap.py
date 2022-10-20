@@ -13,10 +13,10 @@ import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import display_config
-from pwndbg.heap.ptmalloc import Chunk
 from pwndbg.heap.ptmalloc import Bin
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
+from pwndbg.heap.ptmalloc import Chunk
 
 
 def read_chunk(addr):
@@ -35,7 +35,7 @@ def read_chunk(addr):
     return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
 
 
-def format_bin(bins : Bins, verbose=False, offset=None):
+def format_bin(bins: Bins, verbose=False, offset=None):
     allocator = pwndbg.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
@@ -261,6 +261,7 @@ def top_chunk(addr=None):
 
     out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
     print(out)
+
 
 parser = argparse.ArgumentParser()
 parser.description = "Print a chunk."
@@ -829,7 +830,6 @@ def bin_labels(addr, collections):
     return labels
 
 
-
 try_free_parser = argparse.ArgumentParser(
     description="Check what would happen if free was called with given address"
 )
@@ -980,9 +980,11 @@ def try_free(addr):
     if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
-        fastbin_list = allocator.fastbins(int(arena.address)).bins[
-            (chunk_fastbin_idx + 2) * (ptr_size * 2)
-        ].fd_chain
+        fastbin_list = (
+            allocator.fastbins(int(arena.address))
+            .bins[(chunk_fastbin_idx + 2) * (ptr_size * 2)]
+            .fd_chain
+        )
 
         try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
