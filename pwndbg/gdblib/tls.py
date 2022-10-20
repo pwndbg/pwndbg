@@ -74,7 +74,12 @@ class module(ModuleType):
     @property
     def address(self) -> int:
         """Get the base address of TLS."""
-        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "aarch64", "arm"):
+        if pwndbg.gdblib.arch.current not in (
+            "x86-64", 
+            "i386", 
+            "aarch64", 
+            "arm"
+        ):
             # Not supported yet
             return 0
 

@@ -786,7 +786,10 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         for i in range(num_fastbins):
             size += pwndbg.gdblib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
-                int(fastbinsY[i]), offset=fd_offset, limit=heap_chain_limit, safe_linking=safe_lnk,
+                int(fastbinsY[i]), 
+                offset=fd_offset, 
+                limit=heap_chain_limit, 
+                safe_linking=safe_lnk,
             )
 
             result.bins[size] = Bin(chain)
