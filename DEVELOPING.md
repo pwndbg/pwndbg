@@ -30,7 +30,7 @@ import tests
 BINARY = tests.binaries.get("reference-binary.out")
 ```
 
-Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
+Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/binaries`](tests/gdb-tests/tests/binaries). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
 
 Here's a small snippet of the actual test:
 ```python
