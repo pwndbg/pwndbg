@@ -1,6 +1,7 @@
 import re
 
 import gdb
+import pytest
 
 import pwndbg.commands
 import tests
@@ -63,3 +64,23 @@ def test_context_disasm_show_fd_filepath(start_binary):
 
     line_nbytes = line_nbytes.strip()
     assert re.match(r"nbytes:\s+0x10", line_nbytes)
+
+
+@pytest.mark.parametrize("sections", ("''", '""', "none", "-", ""))
+def test_empty_context_sections(start_binary, sections):
+    start_binary(USE_FDS_BINARY)
+
+    # Sanity check
+    default_ctx_sects = "regs disasm code ghidra stack backtrace expressions"
+    assert pwndbg.gdblib.config.context_sections.value == default_ctx_sects
+    assert gdb.execute("context", to_string=True) != ""
+
+    # Actual test check
+    gdb.execute(f"set context-sections {sections}", to_string=True)
+    assert pwndbg.gdblib.config.context_sections.value == ""
+    assert gdb.execute("context", to_string=True) == ""
+
+    # Bring back old values && sanity check
+    gdb.execute(f"set context-sections {default_ctx_sects}")
+    assert pwndbg.gdblib.config.context_sections.value == default_ctx_sects
+    assert gdb.execute("context", to_string=True) != ""

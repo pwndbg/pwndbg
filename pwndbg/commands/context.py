@@ -80,8 +80,11 @@ def validate_context_sections():
     # If someone tries to set an empty string, we let to do that informing about possible values
     # (so that it is possible to have no context at all)
     if not config_context_sections.value or config_context_sections.value.lower() in (
+        "''",
+        '""',
         "none",
         "empty",
+        "-",
     ):
         config_context_sections.value = ""
         print(
