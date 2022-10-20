@@ -1,0 +1,30 @@
+import gdb
+import pytest
+
+import pwndbg.gdblib.config
+import tests
+from pwndbg.gdblib import config_mod
+
+
+@pytest.mark.parametrize(
+    "params",
+    (("int", 123, "123"), ("bool", True, "on"), ("string", "some-string-val", "some-string-val")),
+)
+def test_gdb_parameter_default_value_works(start_binary, params):
+    name_suffix, default_value, displayed_value = params
+
+    param_name = f"test-param-{name_suffix}"
+
+    param = pwndbg.gdblib.config.add_param(param_name, default_value, "some show string")
+
+    # Initialize and register param in GDB as if it would be done by gdblib.config.init_params
+    pwndbg.gdblib.config_mod.Parameter(param)
+
+    out = gdb.execute(f"show {param_name}", to_string=True)
+    assert out == f"""The current value of '{param_name}' is "{displayed_value}".\n"""
+    assert gdb.parameter(param_name) == default_value
+
+    # TODO/FIXME: Is there a way to unregister a GDB parameter defined in Python?
+    # Probably no? If the fact that we register params above ever causes issues,
+    # then we should just not test it via gdb.* APIs and only check if the added param
+    # has proper/expected fields set?
