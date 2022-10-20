@@ -29,6 +29,7 @@ def pages_filter(gdbval_or_str):
     else:
         raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
+
 def print_vmmap_table_header():
     """
     Prints the table header for the vmmap command.
@@ -36,6 +37,7 @@ def print_vmmap_table_header():
     width = 2 + 2 * pwndbg.gdblib.arch.ptrsize
     fmt_string = "%#{}s %#{}s %#4s %#8s %#6s %s".format(width, width)
     print(fmt_string % ("Start", "End", "Perm", "Size", "Offset", "File"))
+
 
 parser = argparse.ArgumentParser()
 parser.description = """Print virtual memory map pages. Results can be filtered by providing address/module name.
