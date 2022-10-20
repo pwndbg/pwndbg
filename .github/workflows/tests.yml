@@ -8,7 +8,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
     - uses: actions/checkout@v3
     - name: Cache for pip
