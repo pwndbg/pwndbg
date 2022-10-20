@@ -25,8 +25,14 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     assert gdb.parameter(param_name) == default_value
 
     # TODO/FIXME: We need to add documentation
-    assert gdb.execute(f"help show {param_name}", to_string=True) == 'Show some show string\nThis command is not documented.\n'
-    assert gdb.execute(f"help set {param_name}", to_string=True) == 'Set some show string\nThis command is not documented.\n'
+    assert (
+        gdb.execute(f"help show {param_name}", to_string=True)
+        == "Show some show string\nThis command is not documented.\n"
+    )
+    assert (
+        gdb.execute(f"help set {param_name}", to_string=True)
+        == "Set some show string\nThis command is not documented.\n"
+    )
 
     # TODO/FIXME: Is there a way to unregister a GDB parameter defined in Python?
     # Probably no? If the fact that we register params above ever causes issues,
