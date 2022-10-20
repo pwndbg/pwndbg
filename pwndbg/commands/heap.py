@@ -865,7 +865,7 @@ def bin_labels(addr, collections):
             b = bins.bins[size]
             if isinstance(size, int):
                 size = hex(size)
-            count = "/{:d}".format(b[1]) if bins_type == BinType.TCACHE else None
+            count = "/{:d}".format(b.count) if bins_type == BinType.TCACHE else None
             chunks = b.fd_chain
             for chunk_addr in chunks:
                 if addr == chunk_addr:
@@ -1029,9 +1029,9 @@ def try_free(addr):
     if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
-        fastbin_list = allocator.fastbins(int(arena.address))[
+        fastbin_list = allocator.fastbins(int(arena.address)).bins[
             (chunk_fastbin_idx + 2) * (ptr_size * 2)
-        ]
+        ].fd_chain
 
         try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
