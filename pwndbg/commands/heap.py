@@ -262,39 +262,6 @@ def top_chunk(addr=None):
     out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
     print(out)
 
-
-def get_chunk_bin(addr):
-    # points to the real start of the chunk
-    cursor = int(addr)
-
-    allocator = pwndbg.heap.current
-    size = allocator.chunk_size(cursor)
-
-    arena = allocator.get_arena_for_chunk(addr)
-
-    bins = [
-        allocator.fastbins(arena.address),
-        allocator.smallbins(arena.address),
-        allocator.largebins(arena.address),
-        allocator.unsortedbin(arena.address),
-    ]
-
-    if allocator.has_tcache():
-        bins.append(allocator.tcachebins(None))
-
-    # TODO: What if we somehow got this chunk into a bin of a different size? We
-    # would miss it with this logic. Should we check every bin?
-    res = []
-    for bin_ in bins:
-        if bin_.contains_chunk(size, cursor):
-            res.append(bin_.bin_type)
-
-    if len(res) == 0:
-        return [BinType.NOT_IN_BIN]
-    else:
-        return res
-
-
 parser = argparse.ArgumentParser()
 parser.description = "Print a chunk."
 parser.add_argument(
@@ -341,39 +308,23 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk:
-            fastbins = allocator.fastbins(arena.address) or {}
-            smallbins = allocator.smallbins(arena.address) or {}
-            largebins = allocator.largebins(arena.address) or {}
-            unsortedbin = allocator.unsortedbin(arena.address) or {}
+
+            bins_list = [
+                allocator.fastbins(arena.address) or {},
+                allocator.smallbins(arena.address) or {},
+                allocator.largebins(arena.address) or {},
+                allocator.unsortedbin(arena.address) or {},
+            ]
             if allocator.has_tcache():
-                tcachebins = allocator.tcachebins(None)
-
-            if fastbins.contains_chunk(chunk.real_size, chunk.address):
-                headers_to_print.append(message.on("Free chunk (fastbins)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
-            elif smallbins.contains_chunk(chunk.real_size, chunk.address):
-                headers_to_print.append(message.on("Free chunk (smallbins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif largebins.contains_chunk(chunk.real_size,chunk.address):
-                headers_to_print.append(message.on("Free chunk (largebins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk", "fd_nextsize", "bk_nextsize"])
-
-            elif unsortedbin.contains_chunk(chunk.real_size, chunk.address):
-                headers_to_print.append(message.on("Free chunk (unsortedbin)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif allocator.has_tcache() and tcachebins.contains_chunk(chunk.real_size, chunk.address):
-                headers_to_print.append(message.on("Free chunk (tcache)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
-            else:
+                bins_list.append(allocator.tcachebins(None))
+            no_match = True
+            for bins in bins_list:
+                if bins.contains_chunk(chunk.real_size, chunk.address):
+                    no_match = False
+                    headers_to_print.append(message.on("Free chunk ({})".format(bins.bin_type)))
+                    if not verbose:
+                        fields_to_print.update(bins.bin_type.valid_fields())
+            if no_match:
                 headers_to_print.append(message.hint("Allocated chunk"))
 
     if verbose:
