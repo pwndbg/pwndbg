@@ -23,6 +23,12 @@ from pwndbg.heap import heap_chain_limit
 # 1 Mb (x86) or 64 Mb (x64)
 HEAP_MAX_SIZE = 1024 * 1024 if pwndbg.gdblib.arch.ptrsize == 4 else 2 * 4 * 1024 * 1024 * 8
 
+NBINS = 128
+BINMAPSIZE = 4
+TCACHE_MAX_BINS = 64
+NFASTBINS = 10
+
+
 # Note that we must inherit from `str` before `Enum`: https://stackoverflow.com/a/58608362/803801
 class BinType(str, Enum):
     TCACHE = 'tcachebins'
@@ -300,20 +306,59 @@ class Chunk:
 
         return self._is_top_chunk
 
-
+# https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
 class Arena:
-    __slots__ = ("_gdbValue", "address", "is_main_arena", "_top", "heaps")
+    __slots__ = ("_gdbValue", "address", "is_main_arena", "_top", "heaps", "_mutex","_flags", "_have_fastchunks", "_fastbinsY", "_bins", "_binmap", "_next", "_next_free")
 
     def __init__(self, addr, heaps=None):
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
+
         self.address = int(self._gdbValue.address)
         self.is_main_arena = self.address == pwndbg.heap.current.main_arena.address
         self._top = None
         self.heaps = heaps
+        self._mutex = None
+        self._flags = None
+        self._have_fastchunks = None
+        self._fastbinsY = None
+        self._bins = None
+        self._binmap = None
+        self._next = None
+        self._next_free = None
 
+    @property
+    def mutex(self):
+        if self._mutex is None:
+            try:
+                self._mutex = int(self._gdbValue["mutex"])
+            except gdb.MemoryError:
+                pass
+            
+        return self._mutex
+
+    @property
+    def flag(self):
+        if self._flags is None:
+            try:
+                self._flags = int(self._gdbValue["flag"])
+            except gdb.MemoryError:
+                pass
+
+        return self._flags
+
+    @property
+    def have_fastchunks(self):
+        if self._have_fastchunks is None:
+            try:
+                self._have_fastchunks = int(self._gdbValue["have_fastchunks"])
+            except gdb.MemoryError:
+                pass
+
+        return self._have_fastchunks
+        
     @property
     def top(self):
         if self._top is None:
@@ -324,6 +369,62 @@ class Arena:
 
         return self._top
 
+    @property
+    def fastbinsY(self):
+        if self._fastbinsY is None:
+            try:
+                self._fastbinsY = []
+                for i in range(NFASTBINS):
+                    self._fastbinsY.append(int(self._gdbValue["fastbinsY"][i]))
+            except gdb.MemoryError:
+                pass
+
+        return self._fastbinsY
+
+    @property
+    def bins(self):
+        if self._bins is None:
+            try:
+                self._bins = []
+                for i in range(NBINS):
+                    self._bins.append(int(self._gdbValue["bins"][i]))
+            except gdb.MemoryError:
+                pass
+
+        return self._bins
+
+    @property
+    def binmap(self):
+        if self._binmap is None:
+            try:
+                self._binmap = []
+                for i in range(BINMAPSIZE):
+                    self._binmap.append(int(self._gdbValue["binmap"][i]))
+            except gdb.MemoryError:
+                pass
+
+        return self._binmap
+
+    @property
+    def next(self):
+        if self._next is None:
+            try:
+                self._next = int(self._gdbValue["next"])
+            except gdb.MemoryError:
+                pass
+
+        return self._next
+
+    @property
+    def next_free(self):
+        if self._next_free is None:
+            try:
+                self._next_free = int(self._gdbValue["next_free"])
+            except gdb.MemoryError:
+                pass
+
+        return self._next_free
+
     def __str__(self):
         prefix = "[%%%ds]    " % (pwndbg.gdblib.arch.ptrsize * 2)
         prefix_len = len(prefix % (""))
@@ -333,7 +434,6 @@ class Arena:
             res.append(" " * prefix_len + str(h))
 
         return "\n".join(res)
-
 
 class HeapInfo:
     def __init__(self, addr, first_chunk):
