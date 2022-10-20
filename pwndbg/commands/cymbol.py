@@ -104,7 +104,7 @@ def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_fi
     gcc_cmd = gcc_flags + gcc_extra_flags
 
     try:
-        subprocess.run(gcc_cmd, capture_output=False, check=True)
+        subprocess.run(gcc_cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, check=True)
     except subprocess.CalledProcessError as exepction:
         print(message.error(exepction))
         print(message.error("Parsing failed, try to fix any syntax errors first."))
@@ -156,7 +156,7 @@ def edit_custom_structure(custom_structure_name, custom_structure_path):
         editor_preference = cymbol_editor
 
     try:
-        subprocess.run([editor_preference, custom_structure_path], capture_output=False, check=True)
+        subprocess.run([editor_preference, custom_structure_path], stdout = subprocess.PIPE, stderr = subprocess.PIPE, check=True)
     except Exception as exepction:
         print(message.error("An error occured during opening the source file."))
         print(message.error(f"Path to the custom structure: {custom_structure_path}"))
