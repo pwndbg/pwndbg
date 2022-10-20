@@ -31,7 +31,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(
-    parser, 
+    parser,
     aliases=["flag"],
 )
 def setflag(flag, value):

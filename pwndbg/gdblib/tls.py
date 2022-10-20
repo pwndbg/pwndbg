@@ -23,7 +23,11 @@ class module(ModuleType):
         """Heuristically determine the base address of the TLS."""
         if pwndbg.gdblib.symbol.address(
             "__errno_location"
-        ) is None or pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm",):
+        ) is None or pwndbg.gdblib.arch.current not in (
+            "x86-64",
+            "i386",
+            "arm",
+        ):
             # Note: We doesn't implement this for aarch64 because its TPIDR_EL0 register seems always work
             # If oneday we can't get TLS base via TPIDR_EL0, we should implement this for aarch64
             return 0
@@ -74,12 +78,7 @@ class module(ModuleType):
     @property
     def address(self) -> int:
         """Get the base address of TLS."""
-        if pwndbg.gdblib.arch.current not in (
-            "x86-64", 
-            "i386", 
-            "aarch64", 
-            "arm"
-        ):
+        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "aarch64", "arm"):
             # Not supported yet
             return 0
 
