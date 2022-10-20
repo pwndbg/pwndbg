@@ -73,7 +73,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
 
     # Split vmmaps
-    vmmaps = [i.split() for i in vmmaps[1:]]
+    vmmaps = [i.split() for i in vmmaps[2:]]
 
     # Assert that vmmap output matches expected one
     assert vmmaps == expected_maps
