@@ -69,7 +69,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Basic asserts
-    assert len(vmmaps) == len(expected_maps) + 1
+    assert len(vmmaps) == len(expected_maps) + 2 # +2 for header and legend
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
 
     # Split vmmaps
