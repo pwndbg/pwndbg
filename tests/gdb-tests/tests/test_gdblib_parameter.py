@@ -2,7 +2,6 @@ import gdb
 import pytest
 
 import pwndbg.gdblib.config
-import tests
 
 
 @pytest.mark.parametrize(
