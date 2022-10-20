@@ -257,22 +257,13 @@ parser.add_argument(
 def cymbol(add, remove, edit, load, show):
     if add:
         add_custom_structure(add)
-        return
-
-    if remove:
+    elif remove:
         remove_custom_structure(remove)
-        return
-
-    if edit:
+    elif edit:
         edit_custom_structure(edit)
-        return
-
-    if load:
+    elif load:
         load_custom_structure(load)
-        return
-
-    if show:
+    elif show:
         show_custom_structure(show)
-        return
-
-    parser.print_help()
+    else:
+        parser.print_help()
