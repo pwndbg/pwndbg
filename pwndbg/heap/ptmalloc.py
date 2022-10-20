@@ -78,7 +78,7 @@ class Bins:
         # pwndbg.heap.current.size_sz. I think each bin should already have a
         # reference to the allocator and shouldn't need to access the `current`
         # variable
-        ptr_size = pwndbg.arch.ptrsize
+        ptr_size = pwndbg.gdblib.arch.ptrsize
 
         if self.bin_type == BinType.UNSORTED:
             # The unsorted bin only has one bin called 'all'
@@ -93,7 +93,11 @@ class Bins:
 
             # TODO: Refactor this, the bin should know how to calculate
             # largebin_index without calling into the allocator
+            if size < list(self.bins.items())[0][0]:
+                return False
             size = pwndbg.heap.current.largebin_index(size) - 64
+            return list(self.bins.items())[size][1].contains_chunk(chunk)
+        
         elif self.bin_type == BinType.TCACHE:
             # Unlike fastbins, tcache bins don't store the chunk address in the
             # bins, they store the address of the fd pointer, so we need to
@@ -425,6 +429,23 @@ class Arena:
 
         return self._next_free
 
+    def fastbins(self):
+        size = pwndbg.gdblib.arch.ptrsize * 2
+        fd_offset =  pwndbg.gdblib.arch.ptrsize * 2
+        safe_lnk = pwndbg.glibc.check_safe_linking()
+        result = Bins(BinType.FAST)
+        for i in range(7):
+            size += pwndbg.gdblib.arch.ptrsize * 2
+            chain = pwndbg.chain.get(
+                int(self.fastbinsY[i]),
+                offset=fd_offset,
+                limit=heap_chain_limit,
+                safe_linking=safe_lnk,
+            )
+
+            result.bins[size] = chain
+        return result
+
     def __str__(self):
         prefix = "[%%%ds]    " % (pwndbg.gdblib.arch.ptrsize * 2)
         prefix_len = len(prefix % (""))
@@ -744,7 +765,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         size = pwndbg.gdblib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
 
-        result = OrderedDict()
+        result = Bins(BinType.FAST)
         for i in range(num_fastbins):
             size += pwndbg.gdblib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
@@ -754,9 +775,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 safe_linking=safe_lnk,
             )
 
-            result[size] = chain
-
-        result["type"] = "fastbins"
+            result.bins[size] = Bin(chain)
         return result
 
     def tcachebins(self, tcache_addr=None):
@@ -776,7 +795,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
-        result = OrderedDict()
+        result = Bins(BinType.TCACHE)
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
@@ -787,9 +806,7 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 safe_linking=safe_lnk,
             )
 
-            result[size] = (chain, count)
-
-        result["type"] = "tcachebins"
+            result.bins[size] = Bin(chain, count=count)
         return result
 
     def bin_at(self, index, arena_addr=None):
@@ -820,7 +837,6 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset = self.chunk_key_offset("fd")
         bk_offset = self.chunk_key_offset("bk")
-
         is_chain_corrupted = False
 
         get_chain = lambda bin, offset: pwndbg.chain.get(
@@ -846,38 +862,36 @@ class Heap(pwndbg.heap.heap.BaseHeap):
 
     def unsortedbin(self, arena_addr=None):
         chain = self.bin_at(1, arena_addr=arena_addr)
-        result = OrderedDict()
+        result = Bins(BinType.UNSORTED)
 
         if chain is None:
             return
 
-        result["all"] = chain
-
-        result["type"] = "unsortedbin"
+        fd_chain, bk_chain, is_corrupted = chain
+        result.bins["all"] = Bin(fd_chain, bk_chain, is_corrupted = is_corrupted)
         return result
 
     def smallbins(self, arena_addr=None):
         size = self.min_chunk_size - self.malloc_alignment
         spaces_table = self._spaces_table()
 
-        result = OrderedDict()
+        result = Bins(BinType.SMALL)
         for index in range(2, 64):
             size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
-
+            
             if chain is None:
                 return
 
-            result[size] = chain
-
-        result["type"] = "smallbins"
+            fd_chain, bk_chain, is_corrupted = chain
+            result.bins[size] = Bin(fd_chain, bk_chain, is_corrupted = is_corrupted)
         return result
 
     def largebins(self, arena_addr=None):
         size = (ptmalloc.NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
         spaces_table = self._spaces_table()
 
-        result = OrderedDict()
+        result = Bins(BinType.LARGE)
         for index in range(64, 127):
             size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
@@ -885,9 +899,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
             if chain is None:
                 return
 
-            result[size] = chain
+            fd_chain, bk_chain, is_corrupted = chain
+            result.bins[size] = Bin(fd_chain, bk_chain, is_corrupted = is_corrupted)
 
-        result["type"] = "largebins"
         return result
 
     def largebin_index_32(self, sz):
