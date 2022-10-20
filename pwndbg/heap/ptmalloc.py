@@ -360,7 +360,7 @@ class Arena:
         return self._mutex
 
     @property
-    def flag(self):
+    def flags(self):
         if self._flags is None:
             try:
                 self._flags = int(self._gdbValue["flag"])

@@ -42,7 +42,7 @@ def test_heap_bins(start_binary):
     result = allocator.tcachebins()
     assert result.bin_type == BinType.TCACHE
     assert tcache_size in result.bins
-    assert result.bins[tcache_size].bk_chain == None and len(result.bins[tcache_size].fd_chain) == 1
+    assert result.bins[tcache_size].bk_chain is None and len(result.bins[tcache_size].fd_chain) == 1
 
     result = allocator.fastbins()
     assert result.bin_type == BinType.FAST

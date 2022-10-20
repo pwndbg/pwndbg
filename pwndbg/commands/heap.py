@@ -13,7 +13,6 @@ import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import display_config
-from pwndbg.heap.ptmalloc import Bin
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk

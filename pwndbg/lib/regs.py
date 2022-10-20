@@ -190,7 +190,7 @@ aarch64 = RegisterSet(
 
 x86flags = {
     "eflags": collections.OrderedDict(
-        [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7), ("IF", 9), ("DF", 10), ("OF", 11),]
+        [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7), ("IF", 9), ("DF", 10), ("OF", 11)]
     )
 }
 
