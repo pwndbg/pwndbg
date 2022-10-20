@@ -3,7 +3,6 @@ import pytest
 
 import pwndbg.gdblib.config
 import tests
-from pwndbg.gdblib import config_mod
 
 
 @pytest.mark.parametrize(
