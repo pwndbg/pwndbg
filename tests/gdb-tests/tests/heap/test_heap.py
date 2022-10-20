@@ -23,7 +23,7 @@ def generate_expected_malloc_chunk_output(chunks):
     ]
 
     expected["tcache"] = [
-        f"Free chunk ({'tcache' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
+        f"Free chunk ({'tcachebins' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
         f"Addr: {chunks['tcache'].address}",
         f"Size: 0x{int(chunks['tcache']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['tcache'].type.fields()) else 'size']):02x}",
         f"fd: 0x{int(chunks['tcache']['fd']):02x}",
