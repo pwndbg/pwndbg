@@ -37,19 +37,17 @@ PARAM_CLASSES = {
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
 class Parameter(gdb.Parameter):
     def __init__(self, param: pwndbg.lib.config.Parameter):
-        self.param = param
-
         # `set_doc` and `show_doc` must be set before `gdb.Parameter.__init__`.
         # They will be used for `help set <param>` and `help show <param>`,
         # respectively
-        self.set_doc = "Set " + self.param.docstring
-        self.show_doc = "Show " + self.param.docstring
-        super().__init__(self.param.name, gdb.COMMAND_SUPPORT, self._param_class())
+        self.set_doc = "Set " + param.docstring
+        self.show_doc = "Show " + param.docstring
 
-    def _param_class(self):
-        for k, v in PARAM_CLASSES.items():
-            if isinstance(self.param.value, k):
-                return v
+        param_class = PARAM_CLASSES[type(param.value)]
+        super().__init__(param.name, gdb.COMMAND_SUPPORT, param_class)
+
+        self.param = param
+        self.value = param.value
 
     @property
     def native_value(self):

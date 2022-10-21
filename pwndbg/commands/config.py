@@ -39,7 +39,7 @@ def get_config_parameters(scope, filter_pattern):
         values = [
             v
             for v in values
-            if filter_pattern in v.optname.lower() or filter_pattern in v.docstring.lower()
+            if filter_pattern in v.name.lower() or filter_pattern in v.docstring.lower()
         ]
 
     return values
