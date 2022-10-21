@@ -50,7 +50,7 @@ def setflag(flag, value):
 
                 if value == 1:
                     # novermin
-                    new_flags_reg_value = old_flags_reg_value | bit_value 
+                    new_flags_reg_value = old_flags_reg_value | bit_value
                 else:
                     new_flags_reg_value = old_flags_reg_value & ~bit_value
 
