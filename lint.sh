@@ -28,15 +28,17 @@ done
 
 set -o xtrace
 
+LINT_FILES="pwndbg tests *.py"
+
 if [[ $FORMAT == 1 ]]; then
-    isort .
-    black .
+    isort ${LINT_FILES}
+    black ${LINT_FILES}
 else
-    isort --check-only --diff .
-    black --check --diff .
+    isort --check-only --diff ${LINT_FILES}
+    black --check --diff ${LINT_FILES}
 fi
 
-flake8 --show-source .
+flake8 --show-source ${LINT_FILES}
 
 # Indents are four spaces, binary ops can start a line, and indent switch cases
 shfmt -i 4 -bn -ci -d .
