@@ -42,4 +42,4 @@ flake8 --show-source .
 shfmt -i 4 -bn -ci -d .
 
 # Checking minimum python version
-vermin -t=3.6 --no-parse-comments --violations --eval-annotations .
+vermin -t=3.6 --violations --eval-annotations .
