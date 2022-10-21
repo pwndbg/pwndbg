@@ -19,14 +19,15 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     pwndbg.gdblib.config_mod.Parameter(param)
 
     out = gdb.execute(f"show {param_name}", to_string=True)
-    assert out == f"""The current value of '{param_name}' is "{displayed_value}".\n"""
+    assert out in (
+        f"""The current value of '{param_name}' is "{displayed_value}".\n""",  # GDB 12.x
+        f"Show some show string {displayed_value}\n",  # GDB 9.x
+    )
     assert gdb.parameter(param_name) == default_value
 
     # TODO/FIXME: We need to add documentation
-    assert (
-        gdb.execute(f"help show {param_name}", to_string=True)
-        == "Show some show string\nThis command is not documented.\n"
-    )
+    out = gdb.execute(f"help show {param_name}", to_string=True)
+    assert out == "Show some show string\nThis command is not documented.\n"
     assert (
         gdb.execute(f"help set {param_name}", to_string=True)
         == "Set some show string\nThis command is not documented.\n"
