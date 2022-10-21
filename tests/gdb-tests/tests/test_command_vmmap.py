@@ -69,11 +69,11 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Basic asserts
-    assert len(vmmaps) == len(expected_maps) + 1
+    assert len(vmmaps) == len(expected_maps) + 2  # +2 for header and legend
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
 
     # Split vmmaps
-    vmmaps = [i.split() for i in vmmaps[1:]]
+    vmmaps = [i.split() for i in vmmaps[2:]]
 
     # Assert that vmmap output matches expected one
     assert vmmaps == expected_maps
@@ -91,7 +91,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
 
     # Note: we will now see one less vmmap page as [vvar] will be missing
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
-    vmmaps = [i.split() for i in vmmaps[1:]]
+    vmmaps = [i.split() for i in vmmaps[2:]]
     assert len(vmmaps) == old_len_vmmaps - 1
 
     # Fix up expected maps
@@ -134,6 +134,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     gdb.execute("file")
 
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
-    vmmaps = [i.split() for i in vmmaps[1:]]
+    vmmaps = [i.split() for i in vmmaps[2:]]
 
     assert_maps()
