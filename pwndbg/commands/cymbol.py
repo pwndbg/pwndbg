@@ -187,9 +187,10 @@ def load_custom_structure(custom_structure_name, custom_structure_path):
 
 @OnlyWhenStructureExists
 def show_custom_structure(custom_structure_name, custom_structure_path):
-    # Clear the memoization cache.
-    pwndbg.pwndbg.commands.context.get_highlight_source.clear()
-    highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source(custom_structure_path)
+    # Call wrapper .func() to avoid memoization.
+    highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source.func(
+        custom_structure_path
+    )
     print("\n".join(highlighted_source))
 
 
