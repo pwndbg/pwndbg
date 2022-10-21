@@ -31,7 +31,8 @@ set -o xtrace
 LINT_FILES="pwndbg tests *.py"
 
 if [[ $FORMAT == 1 ]]; then
-    isort     black ${LINT_FILES}
+    isort ${LINT_FILES}
+    black ${LINT_FILES}
 else
     isort --check-only --diff ${LINT_FILES}
     black --check --diff ${LINT_FILES}
