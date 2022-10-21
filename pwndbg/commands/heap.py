@@ -12,9 +12,9 @@ import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
-from pwndbg.commands.config import extend_value_with_default
-from pwndbg.commands.config import get_config_parameters
-from pwndbg.commands.config import print_row
+from pwndbg.commands.config import display_config
+from pwndbg.heap.ptmalloc import Bins
+from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
 
 
@@ -34,35 +34,38 @@ def read_chunk(addr):
     return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
 
 
-def format_bin(bins, verbose=False, offset=None):
+def format_bin(bins: Bins, verbose=False, offset=None):
     allocator = pwndbg.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
 
     result = []
-    bins_type = bins.pop("type")
+    bins_type = bins.bin_type
 
-    for size in bins:
-        b = bins[size]
+    for size in bins.bins:
+        b = bins.bins[size]
         count, is_chain_corrupted = None, False
         safe_lnk = False
 
         # fastbins consists of only single linked list
-        if bins_type == "fastbins":
-            chain_fd = b
+        if bins_type == BinType.FAST:
+            chain_fd = b.fd_chain
             safe_lnk = pwndbg.glibc.check_safe_linking()
         # tcachebins consists of single linked list and entries count
-        elif bins_type == "tcachebins":
-            chain_fd, count = b
+        elif bins_type == BinType.TCACHE:
+            chain_fd = b.fd_chain
+            count = b.count
             safe_lnk = pwndbg.glibc.check_safe_linking()
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
-            chain_fd, chain_bk, is_chain_corrupted = b
+            chain_fd = b.fd_chain
+            chain_bk = b.bk_chain
+            is_chain_corrupted = b.is_corrupted
 
         if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
 
-        if bins_type == "tcachebins":
+        if bins_type == BinType.TCACHE:
             limit = 8
             if count <= 7:
                 limit = count + 1
@@ -305,51 +308,23 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk:
-            fastbins = allocator.fastbins(arena.address) or {}
-            smallbins = allocator.smallbins(arena.address) or {}
-            largebins = allocator.largebins(arena.address) or {}
-            unsortedbin = allocator.unsortedbin(arena.address) or {}
+
+            bins_list = [
+                allocator.fastbins(arena.address) or {},
+                allocator.smallbins(arena.address) or {},
+                allocator.largebins(arena.address) or {},
+                allocator.unsortedbin(arena.address) or {},
+            ]
             if allocator.has_tcache():
-                tcachebins = allocator.tcachebins(None)
-
-            if chunk.real_size in fastbins.keys() and chunk.address in fastbins[chunk.real_size]:
-                headers_to_print.append(message.on("Free chunk (fastbins)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
-            elif chunk.real_size in smallbins.keys() and chunk.address in bin_addrs(
-                smallbins[chunk.real_size], "smallbins"
-            ):
-                headers_to_print.append(message.on("Free chunk (smallbins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif chunk.real_size >= list(largebins.items())[0][0] and chunk.address in bin_addrs(
-                largebins[
-                    (list(largebins.items())[allocator.largebin_index(chunk.real_size) - 64][0])
-                ],
-                "largebins",
-            ):
-                headers_to_print.append(message.on("Free chunk (largebins)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk", "fd_nextsize", "bk_nextsize"])
-
-            elif chunk.address in bin_addrs(unsortedbin["all"], "unsortedbin"):
-                headers_to_print.append(message.on("Free chunk (unsortedbin)"))
-                if not verbose:
-                    fields_to_print.update(["fd", "bk"])
-
-            elif (
-                allocator.has_tcache()
-                and chunk.real_size in tcachebins.keys()
-                and chunk.address + ptr_size * 2
-                in bin_addrs(tcachebins[chunk.real_size], "tcachebins")
-            ):
-                headers_to_print.append(message.on("Free chunk (tcache)"))
-                if not verbose:
-                    fields_to_print.add("fd")
-
-            else:
+                bins_list.append(allocator.tcachebins(None))
+            no_match = True
+            for bins in bins_list:
+                if bins.contains_chunk(chunk.real_size, chunk.address):
+                    no_match = False
+                    headers_to_print.append(message.on("Free chunk ({})".format(bins.bin_type)))
+                    if not verbose:
+                        fields_to_print.update(bins.bin_type.valid_fields())
+            if no_match:
                 headers_to_print.append(message.hint("Allocated chunk"))
 
     if verbose:
@@ -833,16 +808,16 @@ def bin_ascii(bs):
 def bin_labels(addr, collections):
     labels = []
     for bins in collections:
-        bins_type = bins.get("type", None)
-        if not bins_type:
+        if not bins:
             continue
+        bins_type = bins.bin_type
 
-        for size in filter(lambda x: x != "type", bins.keys()):
-            b = bins[size]
+        for size in bins.bins.keys():
+            b = bins.bins[size]
             if isinstance(size, int):
                 size = hex(size)
-            count = "/{:d}".format(b[1]) if bins_type == "tcachebins" else None
-            chunks = bin_addrs(b, bins_type)
+            count = "/{:d}".format(b.count) if bins_type == BinType.TCACHE else None
+            chunks = b.fd_chain
             for chunk_addr in chunks:
                 if addr == chunk_addr:
                     labels.append(
@@ -852,19 +827,6 @@ def bin_labels(addr, collections):
                     )
 
     return labels
-
-
-def bin_addrs(b, bins_type):
-    addrs = []
-    if bins_type == "fastbins":
-        return b
-    # tcachebins consists of single linked list and entries count
-    elif bins_type == "tcachebins":
-        addrs, _ = b
-    # normal bins consists of double linked list and may be corrupted (we can detect corruption)
-    else:  # normal bin
-        addrs, _, _ = b
-    return addrs
 
 
 try_free_parser = argparse.ArgumentParser(
@@ -1017,9 +979,11 @@ def try_free(addr):
     if chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
-        fastbin_list = allocator.fastbins(int(arena.address))[
-            (chunk_fastbin_idx + 2) * (ptr_size * 2)
-        ]
+        fastbin_list = (
+            allocator.fastbins(int(arena.address))
+            .bins[(chunk_fastbin_idx + 2) * (ptr_size * 2)]
+            .fd_chain
+        )
 
         try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
@@ -1250,26 +1214,8 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def heap_config(filter_pattern):
-    values = get_config_parameters("heap", filter_pattern)
+    display_config(filter_pattern, "heap")
 
-    if not values:
-        print(message.hint('No config parameter found with filter "{}"'.format(filter_pattern)))
-        return
-
-    longest_optname = max(map(len, [v.optname for v in values]))
-    longest_value = max(
-        map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values])
-    )
-
-    header = print_row("Name", "Value", "Def", "Documentation", longest_optname, longest_value)
-    print("-" * (len(header)))
-
-    for v in sorted(values):
-        print_row(
-            v.optname, repr(v.value), repr(v.default), v.docstring, longest_optname, longest_value
-        )
-
-    print(message.hint("You can set config variable with `set <config-var> <value>`"))
     print(
         message.hint(
             "Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `True`"

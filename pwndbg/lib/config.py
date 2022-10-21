@@ -102,6 +102,9 @@ class Config:
         assert "_" not in name
 
         p = Parameter(name, default, docstring, scope)
+        return self.add_param_obj(p)
+
+    def add_param_obj(self, p: Parameter):
         attr_name = p.attr_name()
 
         # Make sure this isn't a duplicate parameter
