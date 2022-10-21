@@ -28,10 +28,6 @@ def test_cymbol(start_binary):
     assert pwndbg.commands.cymbol.OnlyWhenStructureExists(lambda x, y: True)("dummy") is None
     assert pwndbg.commands.cymbol.OnlyWhenStructureExists(lambda x, y: True)("example") is True
 
-    # Test whether PromptForOverwrite decorator works properly
-    # Returns True when the custom structure 'dummy' does not exist and there is no need for an overwrite prompt.
-    assert pwndbg.commands.cymbol.PromptForOverwrite(lambda x: True)("dummy") is True
-
     # Test whether generate_debug_symbols() works properly
     assert pwndbg.commands.cymbol.generate_debug_symbols(custom_structure_example_path) is not None
 
@@ -63,3 +59,11 @@ def test_cymbol(start_binary):
     # Restore
     sys.stdin.read = saved_read
     os.path.exists = saved_exists
+
+    # Test whether remove_custom_structure() works properly.
+    pwndbg.commands.cymbol.remove_custom_structure("example2")
+    try:
+        pwndbg.gdblib.dt.dt("example2_t")
+    except Exception as exception:
+        # In case it is an AttributeError remove_custom_structure() successfully removed the loaded symbol.
+        assert isinstance(exception, AttributeError)
