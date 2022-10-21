@@ -1,4 +1,4 @@
-class BaseHeap:
+class MemoryAllocator:
     """Heap abstraction layer."""
 
     def breakpoint(event):

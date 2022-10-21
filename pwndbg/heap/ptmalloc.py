@@ -485,7 +485,7 @@ class HeapInfo:
         )
 
 
-class Heap(pwndbg.heap.heap.BaseHeap):
+class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def __init__(self):
         # Global ptmalloc objects
         self._global_max_fast_addr = None
@@ -984,8 +984,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         )
 
 
-class DebugSymsHeap(Heap):
-    can_be_resolved = Heap.libc_has_debug_syms
+class DebugSymsHeap(GlibcMemoryAllocator):
+    can_be_resolved = GlibcMemoryAllocator.libc_has_debug_syms
 
     @property
     def main_arena(self):
@@ -1158,7 +1158,7 @@ class SymbolUnresolvableError(Exception):
         return "`%s` can not be resolved via heuristic" % self.symbol
 
 
-class HeuristicHeap(Heap):
+class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self):
         super().__init__()
         self._thread_arena_offset = None
