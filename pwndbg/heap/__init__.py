@@ -5,31 +5,33 @@ import pwndbg.heap.heap
 
 current = None
 
-main_arena = pwndbg.gdblib.config.add_param("main-arena", "0", "&main_arena for heuristics", "heap")
-
-thread_arena = pwndbg.gdblib.config.add_param(
-    "thread-arena", "0", "*thread_arena for heuristics", "heap"
+main_arena = pwndbg.gdblib.config.add_param(
+    "main-arena", "0", "&main_arena for heuristics", scope="heap"
 )
 
-mp_ = pwndbg.gdblib.config.add_param("mp", "0", "&mp_ for heuristics", "heap")
+thread_arena = pwndbg.gdblib.config.add_param(
+    "thread-arena", "0", "*thread_arena for heuristics", scope="heap"
+)
 
-tcache = pwndbg.gdblib.config.add_param("tcache", "0", "*tcache for heuristics", "heap")
+mp_ = pwndbg.gdblib.config.add_param("mp", "0", "&mp_ for heuristics", scope="heap")
+
+tcache = pwndbg.gdblib.config.add_param("tcache", "0", "*tcache for heuristics", scope="heap")
 
 global_max_fast = pwndbg.gdblib.config.add_param(
-    "global-max-fast", "0", "&global_max_fast for heuristics", "heap"
+    "global-max-fast", "0", "&global_max_fast for heuristics", scope="heap"
 )
 
 symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 
 heap_chain_limit = pwndbg.gdblib.config.add_param(
-    "heap-dereference-limit", 8, "number of bins to dereference", "heap"
+    "heap-dereference-limit", 8, "number of bins to dereference", scope="heap"
 )
 
 resolve_heap_via_heuristic = pwndbg.gdblib.config.add_param(
     "resolve-heap-via-heuristic",
     False,
     "Resolve missing heap related symbols via heuristics",
-    "heap",
+    scope="heap",
 )
 
 

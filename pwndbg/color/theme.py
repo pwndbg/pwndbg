@@ -7,7 +7,7 @@ class ColorParameter(pwndbg.lib.config.Parameter):
 
 
 def add_param(name, default, docstring, color_param=False):
-    return config.add_param(name, default, docstring, "theme")
+    return config.add_param(name, default, docstring, scope="theme")
 
 
 def add_color_param(name, default, docstring):
