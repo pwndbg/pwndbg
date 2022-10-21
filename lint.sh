@@ -44,4 +44,4 @@ flake8 --show-source ${LINT_FILES}
 shfmt -i 4 -bn -ci -d .
 
 # Checking minimum python version
-vermin -t=3.6 --violations --eval-annotations --exclude './gdb-pt-dump/*.py' .
+vermin -t=3.6 --violations --eval-annotations .
