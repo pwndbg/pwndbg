@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Any
 
 import pwndbg.lib.memoize
 
@@ -130,7 +131,23 @@ def generateColorFunctionInner(old, new):
     return wrapper
 
 
-def generateColorFunction(config):
+class ColorConfig:
+    def __init__(self, namespace):
+        self.namespace = namespace
+        self.params = {}
+
+    def add_color_param(self, name: str, default: Any, doc: str):
+        self.params[name] = theme.add_color_param(f"{self.namespace}-{name}-color", default, doc)
+
+    def __getattr__(self, attr):
+        param_name = attr.replace("_", "-")
+        if param_name in self.params:
+            return generateColorFunction(self.params[param_name])
+
+        raise AttributeError
+
+
+def generateColorFunction(config: str):
     # the `x` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
     # is empty, we need to ensure we cast it to string

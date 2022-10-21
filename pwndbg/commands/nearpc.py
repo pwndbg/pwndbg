@@ -7,7 +7,6 @@ import pwndbg.arguments
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
-import pwndbg.color.nearpc as N
 import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.disasm
@@ -19,6 +18,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.functions
 import pwndbg.ui
+from pwndbg.color import ColorConfig
 from pwndbg.color import message
 
 
@@ -26,6 +26,15 @@ def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst]
 
+
+c = ColorConfig("nearpc")
+c.add_color_param("symbol", "normal", "color for nearpc command (symbol)")
+c.add_color_param("address", "normal", "color for nearpc command (address)")
+c.add_color_param("prefix", "none", "color for nearpc command (prefix marker)")
+c.add_color_param("syscall-name", "red", "color for nearpc command (resolved syscall name)")
+c.add_color_param("argument", "bold", "color for nearpc command (target argument)")
+c.add_color_param("ida-anterior", "bold", "color for nearpc command (IDA anterior)")
+c.add_color_param("branch-marker", "normal", "color for nearpc command (branch marker line)")
 
 nearpc_branch_marker = pwndbg.color.theme.add_param(
     "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
@@ -149,17 +158,17 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # or when showing current instruction for the second time
         show_prefix = instr.address == pc and not nearpc.repeat and first_pc
         prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
-        prefix = N.prefix(prefix)
+        prefix = c.prefix(prefix)
 
         pre = pwndbg.ida.Anterior(instr.address)
         if pre:
-            result.append(N.ida_anterior(pre))
+            result.append(c.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         if instr.address != pc or not pwndbg.gdblib.config.highlight_pc or nearpc.repeat:
-            address_str = N.address(address_str)
-            symbol = N.symbol(symbol)
+            address_str = c.address(address_str)
+            symbol = c.symbol(symbol)
         elif pwndbg.gdblib.config.highlight_pc and first_pc:
             prefix = C.highlight(prefix)
             address_str = C.highlight(address_str)
@@ -171,7 +180,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
         if prev and prev.address + prev.size != instr.address:
-            result.append(N.branch_marker("%s" % nearpc_branch_marker))
+            result.append(c.branch_marker("%s" % nearpc_branch_marker))
 
         # Otherwise if it's a branch and it *is* contiguous, just put
         # and empty line.
@@ -183,7 +192,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         if instr.address == pc:
             syscall_name = pwndbg.arguments.get_syscall_name(instr)
             if syscall_name:
-                line += " <%s>" % N.syscall_name("SYS_" + syscall_name)
+                line += " <%s>" % c.syscall_name("SYS_" + syscall_name)
 
         # For Comment Function
         try:

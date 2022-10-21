@@ -7,7 +7,6 @@ from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain
-import pwndbg.color.nearpc as N
 import pwndbg.constants
 import pwndbg.disasm
 import pwndbg.gdblib.arch
@@ -19,6 +18,7 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
+from pwndbg.commands.nearpc import c as N
 
 ida_replacements = {
     "__int64": "signed long long int",
