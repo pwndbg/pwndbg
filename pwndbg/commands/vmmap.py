@@ -34,9 +34,17 @@ def print_vmmap_table_header():
     """
     Prints the table header for the vmmap command.
     """
-    width = 2 + 2 * pwndbg.gdblib.arch.ptrsize
-    fmt_string = "%#{}s %#{}s %#4s %#8s %#6s %s".format(width, width)
-    print(fmt_string % ("Start", "End", "Perm", "Size", "Offset", "File"))
+    print(
+        "{start:>{width}} {end:>{width}} {permstr} {size:>8} {offset:>6} {objfile}".format(
+            start="Start",
+            end="End",
+            permstr="Perm",
+            size="Size",
+            offset="Offset",
+            objfile="File",
+            width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
+        )
+    )
 
 
 parser = argparse.ArgumentParser()
