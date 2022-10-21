@@ -18,7 +18,10 @@ import pwndbg.lib.memoize
 import pwndbg.search
 
 safe_lnk = pwndbg.gdblib.config.add_param(
-    "safe-linking", "auto", "whether glibc use safe-linking (on/off/auto)"
+    "safe-linking",
+    None,
+    "whether glibc use safe-linking (on/off/auto)",
+    param_class=gdb.PARAM_AUTO_BOOLEAN,
 )
 
 glibc_version = pwndbg.gdblib.config.add_param(
@@ -92,4 +95,4 @@ def check_safe_linking():
     - https://lanph3re.blogspot.com/2020/08/blog-post.html
     - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
     """
-    return (get_version() >= (2, 32) or safe_lnk == "on") and safe_lnk != "off"
+    return (get_version() >= (2, 32) or safe_lnk) and safe_lnk is not False
