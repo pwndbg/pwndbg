@@ -151,3 +151,5 @@ def test_heap_bins(start_binary):
     result = allocator.largebins()
     assert result.bin_type == BinType.LARGE
     assert result.bins[largebin_size].is_corrupted
+
+    gdb.execute("bins")
