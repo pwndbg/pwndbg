@@ -40,7 +40,7 @@ def format_bin(bins: Bins, verbose=False, offset=None):
         offset = allocator.chunk_key_offset("fd")
 
     result = []
-    bins_type = bins.BinType
+    bins_type = bins.bin_type
 
     for size in bins.bins:
         b = bins.bins[size]
