@@ -94,10 +94,7 @@ class Bins:
 
             # TODO: Refactor this, the bin should know how to calculate
             # largebin_index without calling into the allocator
-            if size < list(self.bins.items())[0][0]:
-                return False
             size = pwndbg.heap.current.largebin_index(size) - 64
-            return list(self.bins.items())[size][1].contains_chunk(chunk)
 
         elif self.bin_type == BinType.TCACHE:
             # Unlike fastbins, tcache bins don't store the chunk address in the
@@ -917,7 +914,9 @@ class Heap(pwndbg.heap.heap.BaseHeap):
                 return
 
             fd_chain, bk_chain, is_corrupted = chain
-            result.bins[size] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
+            result.bins[self.largebin_index(size) - 64] = Bin(
+                fd_chain, bk_chain, is_corrupted=is_corrupted
+            )
 
         return result
 
