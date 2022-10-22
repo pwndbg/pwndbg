@@ -28,10 +28,13 @@ def test_gdb_parameter_default_value_works(start_binary, params):
 
     param_name = f"test-param-{name_suffix}"
     help_docstring = f"Help docstring for {param_name}"
-    optional_kwargs["help_docstring"] = help_docstring
 
     param = pwndbg.gdblib.config.add_param(
-        param_name, default_value, "some show string", **optional_kwargs
+        param_name,
+        default_value,
+        "some show string",
+        help_docstring=help_docstring,
+        **optional_kwargs,
     )
 
     # Initialize and register param in GDB as if it would be done by gdblib.config.init_params
