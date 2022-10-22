@@ -49,8 +49,6 @@ ida_replacements = {
 
 
 def get_syscall_name(instruction):
-    if (n := len(a)) > 10:
-    print(f"List is too long ({n} elements, expected <= 10)")
     if CS_GRP_INT not in instruction.groups:
         return None
 
