@@ -26,13 +26,11 @@ config = pwndbg.lib.config.Config()
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
 class Parameter(gdb.Parameter):
     def __init__(self, param: pwndbg.lib.config.Parameter):
-        # `set_doc` and `show_doc` must be set before `gdb.Parameter.__init__`.
+        # `set_doc`, `show_doc`, and `__doc__` must be set before `gdb.Parameter.__init__`.
         # They will be used for `help set <param>` and `help show <param>`,
         # respectively
         self.set_doc = "Set " + param.docstring
         self.show_doc = "Show " + param.docstring
-        # `__doc__` must be set before `gdb.Parameter.__init__`, too.
-        # It will be used for `help set <param>` and `help show <param>`.
         self.__doc__ = param.help_docstring
 
         if param.param_class == gdb.PARAM_ENUM:
@@ -90,11 +88,11 @@ class Parameter(gdb.Parameter):
     @staticmethod
     def _value_to_gdb_native(value, param_class=None):
         """Translates Python value into native GDB syntax string."""
-        # Convert booleans to "on" or "off".
         if isinstance(value, bool):
+            # Convert booleans to "on" or "off".
             return "on" if value else "off"
         elif value is None and param_class == gdb.PARAM_AUTO_BOOLEAN:
-            # None for gdb.PARAM_UINTEGER means "auto".
+            # None for gdb.PARAM_AUTO_BOOLEAN means "auto".
             return "auto"
         elif value == 0 and param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
             # 0 for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER means "unlimited".
