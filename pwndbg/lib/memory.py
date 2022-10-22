@@ -129,16 +129,14 @@ class Page:
         )
 
     def __str__(self):
-        width = 2 + 2 * pwndbg.gdblib.arch.ptrsize
-        fmt_string = "%#{}x %#{}x %s %8x %-6x %s"
-        fmt_string = fmt_string.format(width, width)
-        return fmt_string % (
-            self.vaddr,
-            self.vaddr + self.memsz,
-            self.permstr,
-            self.memsz,
-            self.offset,
-            self.objfile or "",
+        return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
+            start=self.vaddr,
+            end=self.vaddr + self.memsz,
+            permstr=self.permstr,
+            size=self.memsz,
+            offset=self.offset,
+            objfile=self.objfile or "",
+            width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
         )
 
     def __repr__(self):
