@@ -29,6 +29,15 @@ done
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py"
+LINT_TOOLS="isort black flake8 vermin"
+
+if ! type ${LINT_TOOLS} &>/dev/null; then
+    PIP_CMD="pip install -Ur dev-requirements.txt"
+    echo "Missing one of the following tools: ${LINT_TOOLS}"
+    echo "Running '${PIP_CMD}'"
+
+    $PIP_CMD
+fi
 
 if [[ $FORMAT == 1 ]]; then
     isort ${LINT_FILES}
