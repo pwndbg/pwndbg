@@ -7,22 +7,29 @@ COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 help_and_exit() {
     echo "Usage: ./tests.sh [-p|--pdb] [<test-name-filter>]"
     echo "  -p,  --pdb         enable pdb (Python debugger) post mortem debugger on failed tests"
+    echo "  -c,  --cov         enable codecov"
     echo "  <test-name-filter> run only tests that match the regex"
     exit 1
 }
 
-if [[ $# -gt 2 ]]; then
+if [[ $# -gt 3 ]]; then
     help_and_exit
 fi
 
 USE_PDB=0
 TEST_NAME_FILTER=""
+RUN_CODECOV=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -p | --pdb)
             USE_PDB=1
             echo "Will run tests with Python debugger"
+            shift
+            ;;
+        -c | --cov)
+            echo "Will run codecov"
+            RUN_CODECOV=1
             shift
             ;;
         -h | --help)
@@ -67,7 +74,11 @@ tests_passed_or_skipped=0
 tests_failed=0
 
 for test_case in ${TESTS_LIST}; do
-    gdb_args=(-ex 'py import coverage;coverage.process_startup()' --command $GDB_INIT_PATH --command pytests_launcher.py)
+    if [ ${RUN_CODECOV} -eq 0 ]; then
+        gdb_args=(--command $GDB_INIT_PATH --command pytests_launcher.py)
+    else
+        gdb_args=(-ex 'py import coverage;coverage.process_startup()' --command $GDB_INIT_PATH --command pytests_launcher.py)
+    fi
     SRC_DIR=$ROOT_DIR \
         COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
