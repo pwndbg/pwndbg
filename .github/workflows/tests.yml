@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         ./setup.sh --user
-        ./setup-test-tools.sh --user
+        ./setup-dev.sh --user
         pip install --user coveralls
 
     - name: Python version info

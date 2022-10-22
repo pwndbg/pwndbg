@@ -1,6 +1,6 @@
 # Environment setup
 
-After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-test-tools.sh` to install the necessary development dependencies.
+After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-dev.sh` to install the necessary development dependencies.
 
 If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this, run the following command:
 ```bash
