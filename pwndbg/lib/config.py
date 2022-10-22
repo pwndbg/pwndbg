@@ -127,6 +127,7 @@ class Config:
         name,
         default,
         docstring,
+        *,
         help_docstring=None,
         param_class=None,
         enum_sequence=None,
@@ -135,7 +136,15 @@ class Config:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
 
-        p = Parameter(name, default, docstring, help_docstring, param_class, enum_sequence, scope)
+        p = Parameter(
+            name,
+            default,
+            docstring,
+            help_docstring,
+            param_class,
+            enum_sequence,
+            scope,
+        )
         return self.add_param_obj(p)
 
     def add_param_obj(self, p: Parameter):
