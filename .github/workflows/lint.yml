@@ -22,7 +22,6 @@ jobs:
       run: |
         ./setup.sh --user
         ./setup-dev.sh --user
-        sudo snap install shfmt
 
     - name: Run linters
       run: |

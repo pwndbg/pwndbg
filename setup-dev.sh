@@ -34,6 +34,11 @@ install_apt() {
         curl \
         build-essential \
         gdb
+
+    if [[ "$1" == "22.04" ]]; then
+        sudo apt install shfmt
+    fi
+
     test -f /usr/bin/go || sudo apt-ge\t install -y golang
 
     # Install zig to current directory
@@ -57,11 +62,18 @@ install_apt() {
 }
 
 if linux; then
-    distro=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed -e 's/"//g')
+    distro=$(
+        . /etc/os-release
+        echo ${ID}
+    )
 
     case $distro in
         "ubuntu")
-            install_apt
+            ubuntu_version=$(
+                . /etc/os-release
+                echo ${VERSION_ID}
+            )
+            install_apt $ubuntu_version
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."

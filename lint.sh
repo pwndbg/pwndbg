@@ -49,8 +49,12 @@ fi
 
 flake8 --show-source ${LINT_FILES}
 
-# Indents are four spaces, binary ops can start a line, and indent switch cases
-shfmt -i 4 -bn -ci -d .
+if [ -x "$(command -v shfmt)" ]; then
+    # Indents are four spaces, binary ops can start a line, and indent switch cases
+    shfmt -i 4 -bn -ci -d .
+else
+    echo "shfmt not installed, skipping"
+fi
 
 # Checking minimum python version
 vermin -q -t=3.6 --violations ./pwndbg/
