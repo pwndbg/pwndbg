@@ -89,6 +89,7 @@ def get_disassembler_cached(arch, ptrsize, endian, extra=None):
 
 def get_disassembler(pc):
     if pwndbg.gdblib.arch.current == "armcm":
+        # novermin
         extra = (
             (CS_MODE_MCLASS | CS_MODE_THUMB)
             if (pwndbg.gdblib.regs.xpsr & (1 << 24))

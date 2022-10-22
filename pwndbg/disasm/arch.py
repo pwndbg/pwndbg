@@ -12,6 +12,7 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
 for value1, name1 in dict(access).items():
     for value2, name2 in dict(access).items():
+        # novermin
         access.setdefault(value1 | value2, "%s | %s" % (name1, name2))
 
 

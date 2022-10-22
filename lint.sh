@@ -42,3 +42,6 @@ flake8 --show-source ${LINT_FILES}
 
 # Indents are four spaces, binary ops can start a line, and indent switch cases
 shfmt -i 4 -bn -ci -d .
+
+# Checking minimum python version
+vermin -t=3.6 --violations ./pwndbg/
