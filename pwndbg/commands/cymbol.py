@@ -16,6 +16,7 @@ to find the path to the default text editor.
 """
 
 import argparse
+import functools
 import os
 import subprocess
 import sys
@@ -48,9 +49,11 @@ def unload_loaded_symbol(custom_structure_name):
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
         gdb.execute(f"remove-symbol-file {custom_structure_symbols_file}")
+        loaded_symbols.pop(custom_structure_name)
 
 
 def OnlyWhenStructureExists(func):
+    @functools.wraps(func)
     def wrapper(custom_structure_name):
         pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
         pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
@@ -109,7 +112,6 @@ def add_custom_structure(custom_structure_name):
         )
         if option != "y":
             return
-        unload_loaded_symbol(custom_structure_name)
 
     print(
         message.notice("Enter your custom structure in a C header style, press Ctrl+D to save:\n")
@@ -123,14 +125,8 @@ def add_custom_structure(custom_structure_name):
     with open(pwndbg_custom_structure_path, "w") as f:
         f.write(custom_structures_source)
 
-    pwndbg_debug_symbols_output_file = generate_debug_symbols(pwndbg_custom_structure_path)
-    if not pwndbg_debug_symbols_output_file:
-        return
-
-    loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
-
-    gdb.execute(f"add-symbol-file {pwndbg_debug_symbols_output_file}", to_string=True)
-    print(message.success("Symbols are added!"))
+    # Avoid checking for file existance. Call the decorator wrapper directly.
+    load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
 @OnlyWhenStructureExists
