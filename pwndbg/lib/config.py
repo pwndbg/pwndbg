@@ -2,16 +2,41 @@ import collections
 from functools import total_ordering
 from typing import List
 
+import gdb
+
+PARAM_CLASSES = {
+    # The Python boolean values, True and False are the only valid values.
+    bool: gdb.PARAM_BOOLEAN,
+    # This is like PARAM_INTEGER, except 0 is interpreted as itself.
+    int: gdb.PARAM_ZINTEGER,
+    # When the user modifies the string, any escape sequences,
+    # such as ‘\t’, ‘\f’, and octal escapes, are translated into
+    # corresponding characters and encoded into the current host charset.
+    str: gdb.PARAM_STRING,
+}
+
 
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
 # other comparison operators handled for us
 @total_ordering
 class Parameter:
-    def __init__(self, name, default, docstring, scope="config"):
+    def __init__(
+        self,
+        name,
+        default,
+        docstring,
+        help_docstring=None,
+        param_class=None,
+        enum_sequence=None,
+        scope="config",
+    ):
         self.docstring = docstring.strip()
+        self.help_docstring = help_docstring.strip() if help_docstring else None
         self.name = name
         self.default = default
         self.value = default
+        self.param_class = param_class or PARAM_CLASSES[type(default)]
+        self.enum_sequence = enum_sequence
         self.scope = scope
 
     @property
@@ -97,11 +122,29 @@ class Config:
         self.params = {}
         self.triggers = collections.defaultdict(lambda: [])
 
-    def add_param(self, name, default, docstring, scope="config"):
+    def add_param(
+        self,
+        name,
+        default,
+        docstring,
+        *,
+        help_docstring=None,
+        param_class=None,
+        enum_sequence=None,
+        scope="config",
+    ):
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
 
-        p = Parameter(name, default, docstring, scope)
+        p = Parameter(
+            name,
+            default,
+            docstring,
+            help_docstring,
+            param_class,
+            enum_sequence,
+            scope,
+        )
         return self.add_param_obj(p)
 
     def add_param_obj(self, p: Parameter):

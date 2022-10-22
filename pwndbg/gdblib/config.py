@@ -21,47 +21,52 @@ import pwndbg.lib.config
 
 config = pwndbg.lib.config.Config()
 
-PARAM_CLASSES = {
-    # The Python boolean values, True and False are the only valid values.
-    bool: gdb.PARAM_BOOLEAN,
-    # This is like PARAM_INTEGER, except 0 is interpreted as itself.
-    int: gdb.PARAM_ZINTEGER,
-    # When the user modifies the string, any escape sequences,
-    # such as ‘\t’, ‘\f’, and octal escapes, are translated into
-    # corresponding characters and encoded into the current host charset.
-    str: gdb.PARAM_STRING,
-}
-
 
 # See this for details about the API of `gdb.Parameter`:
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
 class Parameter(gdb.Parameter):
     def __init__(self, param: pwndbg.lib.config.Parameter):
-        # `set_doc` and `show_doc` must be set before `gdb.Parameter.__init__`.
+        # `set_doc`, `show_doc`, and `__doc__` must be set before `gdb.Parameter.__init__`.
         # They will be used for `help set <param>` and `help show <param>`,
         # respectively
         self.set_doc = "Set " + param.docstring
         self.show_doc = "Show " + param.docstring
+        self.__doc__ = param.help_docstring
 
-        param_class = PARAM_CLASSES[type(param.value)]
-        super().__init__(param.name, gdb.COMMAND_SUPPORT, param_class)
-
+        if param.param_class == gdb.PARAM_ENUM:
+            super().__init__(
+                param.name,
+                gdb.COMMAND_SUPPORT,
+                param.param_class,
+                param.enum_sequence,
+            )
+        else:
+            super().__init__(param.name, gdb.COMMAND_SUPPORT, param.param_class)
         self.param = param
         self.value = param.value
 
     @property
     def native_value(self):
-        return Parameter._value_to_gdb_native(self.param.value)
+        return Parameter._value_to_gdb_native(self.param.value, param_class=self.param.param_class)
 
     @property
     def native_default(self):
-        return Parameter._value_to_gdb_native(self.param.default)
+        return Parameter._value_to_gdb_native(
+            self.param.default, param_class=self.param.param_class
+        )
 
     def get_set_string(self):
         """Handles the GDB `set <param>` command"""
 
         # GDB will set `self.value` to the user's input
-        self.param.value = self.value
+        if self.value is None and self.param.param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
+            # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
+            # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
+            # Maybe it's a bug of GDB?
+            # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
+            self.param.value = 0
+        else:
+            self.param.value = self.value
 
         for trigger in config.triggers[self.param.name]:
             trigger()
@@ -71,15 +76,32 @@ class Parameter(gdb.Parameter):
         if not pwndbg.decorators.first_prompt:
             return ""
 
-        return "Set %s to %r" % (self.param.docstring, self.param.value)
+        return "Set %s to %r" % (self.param.docstring, self.native_value)
+
+    def get_show_string(self, svalue):
+        """Handles the GDB `show <param>` command"""
+        return "The current value of %r is %r" % (
+            self.param.name,
+            Parameter._value_to_gdb_native(svalue, self.param.param_class),
+        )
 
     @staticmethod
-    def _value_to_gdb_native(value):
+    def _value_to_gdb_native(value, param_class=None):
         """Translates Python value into native GDB syntax string."""
-        # Convert booleans to "on" or "off". Other types pass through normally
         if isinstance(value, bool):
+            # Convert booleans to "on" or "off".
             return "on" if value else "off"
+        elif value is None and param_class == gdb.PARAM_AUTO_BOOLEAN:
+            # None for gdb.PARAM_AUTO_BOOLEAN means "auto".
+            return "auto"
+        elif value == 0 and param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
+            # 0 for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER means "unlimited".
+            return "unlimited"
+        elif value == -1 and param_class == gdb.PARAM_ZUINTEGER_UNLIMITED:
+            # -1 for gdb.PARAM_ZUINTEGER_UNLIMITED means "unlimited".
+            return "unlimited"
 
+        # Other types pass through normally
         return value
 
 
