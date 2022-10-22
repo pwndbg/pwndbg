@@ -312,6 +312,49 @@ class Chunk:
         return self._is_top_chunk
 
 
+class Heap:
+    def __init__(self, addr=None):
+        allocator = pwndbg.heap.current
+        if addr is not None:
+            try:
+                ar_ptr = allocator.get_heap(addr)["ar_ptr"]
+                ar_ptr.fetch_lazy()
+            except Exception:
+                ar_ptr = None
+
+            if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
+                self.arena = Arena(ar_ptr)
+            else:
+                self.arena = Arena(allocator.main_arena.address)
+        else:
+            self.arena = Arena(allocator.get_arena().address)
+
+        if self.arena.address == allocator.main_arena.address:
+            self.is_main_arena_heap = True
+        else:
+            self.is_main_arena_heap = False
+
+        heap_region = allocator.get_heap_boundaries(addr)
+        if not self.is_main_arena_heap:
+            page = pwndbg.lib.memory.Page(0, 0, 0, 0)
+            page.vaddr = heap_region.start + allocator.heap_info.sizeof
+            if (
+                pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"])
+                == heap_region
+            ):
+                page.vaddr += (
+                    allocator.malloc_state.sizeof + allocator.size_sz
+                ) & ~allocator.malloc_align_mask
+            page.memsz = heap_region.end - page.start
+            heap_region = page
+
+        self.start = heap_region.start
+        self.end = heap_region.end
+
+    def __contains__(self, addr: int) -> bool:
+        return self.start <= addr < self.end
+
+
 # https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
 class Arena:
     __slots__ = (
