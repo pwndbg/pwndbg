@@ -127,7 +127,7 @@ def heap(addr=None, verbose=False, simple=False):
     active heap.
     """
     allocator = pwndbg.heap.current
-    heap_region = allocator.get_heap_boundaries(addr)
+    heap_region = pwndbg.heap.ptmalloc.Heap(addr)
     arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
     top_chunk = arena["top"]
     ptr_size = allocator.size_sz
@@ -142,15 +142,8 @@ def heap(addr=None, verbose=False, simple=False):
     # struct and possibly an arena.
     if addr:
         cursor = int(addr)
-    elif arena == allocator.main_arena:
-        cursor = heap_region.start
     else:
-        cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
-            # Round up to a 2-machine-word alignment after an arena to
-            # compensate for the presence of the have_fastchunks variable
-            # in GLIBC versions >= 2.27.
-            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
+        cursor = heap_region.start
 
     # i686 alignment heuristic
     first_chunk_size = pwndbg.gdblib.arch.unpack(
