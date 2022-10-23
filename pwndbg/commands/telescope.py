@@ -9,7 +9,6 @@ import collections
 import math
 
 import pwndbg.chain
-import pwndbg.color.telescope as T
 import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.gdblib.arch
@@ -17,6 +16,32 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
+
+c = ColorConfig(
+    "telescope",
+    [
+        ColorParamSpec("offset", "normal", "color of the telescope command (offset prefix)"),
+        ColorParamSpec("register", "bold", "color of the telescope command (register)"),
+        ColorParamSpec(
+            "offset-separator",
+            "normal",
+            "color of the telescope command (offset separator)",
+        ),
+        ColorParamSpec(
+            "offset-delimiter",
+            "normal",
+            "color of the telescope command (offset delimiter)",
+        ),
+        ColorParamSpec(
+            "repeating-marker",
+            "normal",
+            "color of the telescope command (repeating values marker)",
+        ),
+    ],
+)
+
 
 telescope_lines = pwndbg.gdblib.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
@@ -83,8 +108,8 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
     address = int(address if address else pwndbg.gdblib.regs.sp) & pwndbg.gdblib.arch.ptrmask
     count = max(int(count), 1) & pwndbg.gdblib.arch.ptrmask
-    delimiter = T.delimiter(offset_delimiter)
-    separator = T.separator(offset_separator)
+    delimiter = c.offset_delimiter(offset_delimiter)
+    separator = c.offset_separator(offset_separator)
 
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR and not pwndbg.gdblib.memory.peek(address):
@@ -146,7 +171,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         # The first line was already printed, hence increment by 1
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
             result.append(
-                T.repeating_marker(
+                c.repeating_marker(
                     "%s%s%i skipped"
                     % (repeating_marker, " " * skipped_padding, len(collapse_buffer))
                 )
@@ -163,7 +188,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
         line = " ".join(
             (
-                T.offset(
+                c.offset(
                     "%02x%s%04x%s"
                     % (
                         i + telescope.offset,
@@ -172,7 +197,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
                         separator,
                     )
                 ),
-                T.register(regs[addr].ljust(longest_regs)),
+                c.register(regs[addr].ljust(longest_regs)),
                 pwndbg.chain.format(addr),
             )
         )

@@ -8,6 +8,28 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
+from pwndbg.color import theme
+
+c = ColorConfig(
+    "hexdump",
+    [
+        ColorParamSpec("normal", "none", "color for hexdump command (normal bytes)"),
+        ColorParamSpec("printable", "bold", "color for hexdump command (printable characters)"),
+        ColorParamSpec("zero", "red", "color for hexdump command (zero bytes)"),
+        ColorParamSpec("special", "yellow", "color for hexdump command (special bytes)"),
+        ColorParamSpec("offset", "none", "color for hexdump command (offset label)"),
+        ColorParamSpec("address", "none", "color for hexdump command (address label)"),
+        ColorParamSpec("separator", "none", "color for hexdump command (group separator)"),
+        ColorParamSpec("lsb", "none", "color for hexdump command (group lsb)"),
+    ],
+)
+
+config_colorize_ascii = theme.add_param(
+    "hexdump-colorize-ascii", True, "whether to colorize the hexdump command ascii section"
+)
+
 
 pwndbg.gdblib.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.gdblib.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -53,6 +75,17 @@ parser.add_argument(
 parser.add_argument(
     "count", nargs="?", default=pwndbg.gdblib.config.hexdump_bytes, help="Number of bytes to dump"
 )
+
+
+@pwndbg.gdblib.config.trigger(
+    c.get_param("normal"),
+    c.get_param("zero"),
+    c.get_param("special"),
+    c.get_param("printable"),
+    config_colorize_ascii,
+)
+def load_color_scheme():
+    pwndbg.hexdump.load_color_scheme(c)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -106,6 +139,7 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes):
         group_width=group_width,
         flip_group_endianess=flip_group_endianess,
         offset=hexdump.offset,
+        H=c,
     )
     for i, line in enumerate(result):
         print(line)

@@ -10,7 +10,6 @@ supplemental information sources (e.g. active IDA Pro connection).
 import string
 
 import pwndbg.color as color
-import pwndbg.color.enhance as E
 import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
@@ -19,9 +18,20 @@ import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
+c = ColorConfig(
+    "enhance",
+    [
+        ColorParamSpec("integer-value", "none", "color of value enhance (integer)"),
+        ColorParamSpec("string-value", "none", "color of value enhance (string)"),
+        ColorParamSpec("comment", "none", "color of value enhance (comment)"),
+        ColorParamSpec("unknown", "none", "color of value enhance (unknown value)"),
+    ],
+)
 
 
 def good_instr(i):
@@ -69,7 +79,7 @@ def enhance(value, code=True, safe_linking=False):
         can_read = False
 
     if not can_read:
-        return E.integer(int_str(value))
+        return c.integer_value(int_str(value))
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
@@ -96,20 +106,20 @@ def enhance(value, code=True, safe_linking=False):
     szval = pwndbg.gdblib.strings.get(value) or None
     szval0 = szval
     if szval:
-        szval = E.string(repr(szval))
+        szval = c.string_value(repr(szval))
 
     # Fix for case when we can't read the end address anyway (#946)
     if value + pwndbg.gdblib.arch.ptrsize > page.end:
-        return E.integer(int_str(value))
+        return c.integer_value(int_str(value))
 
     intval = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
-        intval = E.integer(str(intval))
+        intval = c.integer_value(str(intval))
     else:
-        intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
+        intval = c.integer_value("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
 
     retval = []
 
@@ -144,14 +154,14 @@ def enhance(value, code=True, safe_linking=False):
 
     # And then integer
     else:
-        return E.integer(int_str(intval0))
+        return c.integer_value(int_str(intval0))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 
     if len(retval) == 0:
-        return E.unknown("???")
+        return c.unknown("???")
 
     if len(retval) == 1:
         return retval[0]
 
-    return retval[0] + E.comment(color.strip(" /* {} */".format("; ".join(retval[1:]))))
+    return retval[0] + c.comment(color.strip(" /* {} */".format("; ".join(retval[1:]))))
