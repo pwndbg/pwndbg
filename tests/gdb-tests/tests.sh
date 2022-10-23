@@ -70,8 +70,6 @@ fi
 
 TESTS_LIST=($(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}"))
 
-declare -a FAILED_TESTS
-
 run_test() {
     test_case="$1"
 
@@ -89,21 +87,26 @@ run_test() {
 
     exit $?
 }
+JOBLOG_PATH="$(mktemp)"
+echo "Joblog: $JOBLOG_PATH"
 
 . $(which env_parallel.bash)
-env_parallel run_test ::: "${TESTS_LIST[@]}"
+env_parallel --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}"
 
-tests_failed=$?
-tests_passed_or_skipped=$((${#TESTS_LIST[@]} - $tests_failed))
+# The seventh column in the joblog is the exit value and the tenth is the test name
+FAILED_TESTS=($(awk '$7 == "1" { print $10 }' "${JOBLOG_PATH}"))
+
+num_tests_failed=${#FAILED_TESTS[@]}
+num_tests_passed_or_skipped=$((${#TESTS_LIST[@]} - $num_tests_failed))
 
 echo ""
 echo "*********************************"
 echo "********* TESTS SUMMARY *********"
 echo "*********************************"
-echo "Tests passed or skipped: ${tests_passed_or_skipped}"
-echo "Tests failed: ${tests_failed}"
+echo "Tests passed or skipped: ${num_tests_passed_or_skipped}"
+echo "Tests failed: ${num_tests_failed}"
 
-if [ "${tests_failed}" -ne 0 ]; then
+if [ "${num_tests_failed}" -ne 0 ]; then
     echo ""
     echo "Failing tests: ${FAILED_TESTS[@]}"
     exit 1
