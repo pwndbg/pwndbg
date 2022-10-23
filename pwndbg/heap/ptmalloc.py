@@ -317,16 +317,20 @@ class Heap:
         allocator = pwndbg.heap.current
         if addr is not None:
             try:
+                # Can fail if any part of the struct is unmapped (due to corruption/fake struct).
                 ar_ptr = allocator.get_heap(addr)["ar_ptr"]
                 ar_ptr.fetch_lazy()
             except Exception:
                 ar_ptr = None
 
+            # This is probably a non-main arena if a legitimate ar_ptr exists.
             if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
                 self.arena = Arena(ar_ptr)
             else:
+                # Use the main arena as a fallback
                 self.arena = Arena(allocator.main_arena.address)
         else:
+            # Get the thread arena under default conditions.
             self.arena = Arena(allocator.get_arena().address)
 
         if self.arena.address == allocator.main_arena.address:
