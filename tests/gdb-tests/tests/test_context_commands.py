@@ -32,8 +32,10 @@ def test_context_disasm_show_fd_filepath(start_binary):
 
     assert "call   read@plt" in line_call_read
 
+    # When running tests with GNU Parallel, sometimes the file name looks like
+    # this: /tmp/parZ4YC4.par (deleted)
     line_fd = line_fd.strip()
-    assert re.match(r"fd:\s+0x1 \((/dev/pts/\d+|pipe:\[\d+\])\)", line_fd)
+    assert re.match(r"fd:\s+0x1 \((/dev/pts/\d+|/tmp/par.+\.par \(deleted\)|pipe:\[\d+\])\)", line_fd)
 
     line_buf = line_buf.strip()
     assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0x0", line_buf)
