@@ -1,6 +1,5 @@
 import gdb
 
-import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.theme as theme
 import pwndbg.enhance
@@ -9,9 +8,21 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
 
 LIMIT = pwndbg.gdblib.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
+)
+
+c = ColorConfig(
+    "chain",
+    [
+        ColorParamSpec("arrow", "normal", "color of chain formatting (arrow)"),
+        ColorParamSpec(
+            "contiguous-marker", "normal", "color of chain formatting (contiguous marker)"
+        ),
+    ],
 )
 
 
@@ -102,8 +113,8 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking)
 
-    arrow_left = C.arrow(" %s " % config_arrow_left)
-    arrow_right = C.arrow(" %s " % config_arrow_right)
+    arrow_left = c.arrow(" %s " % config_arrow_left)
+    arrow_right = c.arrow(" %s " % config_arrow_right)
 
     # Colorize the chain
     rest = []
@@ -132,7 +143,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
 
     else:
-        enhanced = C.contiguous("%s" % config_contiguous)
+        enhanced = c.contiguous_marker("%s" % config_contiguous)
 
     if len(chain) == 1:
         return enhanced
