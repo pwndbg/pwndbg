@@ -179,7 +179,7 @@ class mock_for_heuristic:
             mock_symbols  # every symbol's address in the list will be mocked to `None`
         )
         self.mock_all = mock_all  # all symbols will be mocked to `None`
-        # Save `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses` before mocking
+        # Save `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address` before mocking
         self.saved_address_func = pwndbg.gdblib.symbol.address
         self.saved_static_linkage_symbol_address_func = (
             pwndbg.gdblib.symbol.static_linkage_symbol_address
@@ -203,7 +203,7 @@ class mock_for_heuristic:
 
             return _mock
 
-        # Mock `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses`
+        # Mock `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
         pwndbg.gdblib.symbol.address = mock(pwndbg.gdblib.symbol.address)
         pwndbg.gdblib.symbol.static_linkage_symbol_address = mock(
             pwndbg.gdblib.symbol.static_linkage_symbol_address
@@ -213,7 +213,7 @@ class mock_for_heuristic:
             pwndbg.gdblib.memory.write(self.page.vaddr, b"\xff" * self.page.memsz)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses`
+        # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
         pwndbg.gdblib.symbol.address = self.saved_address_func
         pwndbg.gdblib.symbol.static_linkage_symbol_address = (
             self.saved_static_linkage_symbol_address_func

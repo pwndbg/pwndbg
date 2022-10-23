@@ -243,14 +243,14 @@ def address(symbol: str) -> int:
 
 @pwndbg.lib.memoize.reset_on_objfile
 @pwndbg.lib.memoize.reset_on_thread
-def static_linkage_symbol_address(symbol):
-    if isinstance(symbol, int):
-        return symbol
+def static_linkage_symbol_address(symbol: str) -> int:
+    """
+    Get the address for static linkage `symbol`
+    """
 
-    try:
-        return int(symbol, 0)
-    except Exception:
-        pass
+    # GDB < 9.x does not have `gdb.lookup_static_symbol`
+    if not hasattr(gdb, "lookup_static_symbol"):
+        return None
 
     try:
         symbol_obj = gdb.lookup_static_symbol(symbol)
