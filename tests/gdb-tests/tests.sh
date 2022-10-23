@@ -73,6 +73,8 @@ TESTS_LIST=$(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${
 tests_passed_or_skipped=0
 tests_failed=0
 
+declare -a FAILED_TESTS
+
 for test_case in ${TESTS_LIST}; do
     gdb_args=(--command $GDB_INIT_PATH --command pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
@@ -91,6 +93,7 @@ for test_case in ${TESTS_LIST}; do
         ((++tests_passed_or_skipped))
     else
         ((++tests_failed))
+        FAILED_TESTS+=(${test_case})
     fi
 done
 
@@ -102,5 +105,7 @@ echo "Tests passed or skipped: ${tests_passed_or_skipped}"
 echo "Tests failed: ${tests_failed}"
 
 if [ "${tests_failed}" -ne 0 ]; then
+    echo ""
+    echo "Failing tests: ${FAILED_TESTS[@]}"
     exit 1
 fi
