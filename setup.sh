@@ -60,6 +60,12 @@ install_emerge() {
     emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip sys-devel/gdb
 }
 
+install_pacman() {
+	sudo pacman -Syy || true
+	sudo pacman -S gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-future python-pygments which debuginfod
+	echo "set debuginfod enabled on" >> ~/.gdbinit
+}
+
 PYTHON=''
 INSTALLFLAGS=''
 
@@ -85,24 +91,10 @@ if linux; then
         "opensuse-leap")
             install_zypper
             ;;
-        "arch")
-            echo "Install Arch linux using a community package. See:"
-            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
-            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
-            exit 1
-            ;;
-        "endeavouros")
-            echo "Install pwndbg using a community package. See:"
-            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
-            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
-            exit 1
-            ;;
-        "manjaro")
-            echo "Pwndbg is not available on Manjaro's repositories."
-            echo "But it can be installed using Arch's AUR community package. See:"
-            echo " - https://www.archlinux.org/packages/community/any/pwndbg/"
-            echo " - https://aur.archlinux.org/packages/pwndbg-git/"
-            exit 1
+        "arch" | "endeavouros" | "manjaro" )
+			install_pacman
+			echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
+			echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
             ;;
         "void")
             install_xbps
