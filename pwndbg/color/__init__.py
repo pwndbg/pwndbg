@@ -1,6 +1,8 @@
 import os
 import re
+from collections import namedtuple
 from typing import Any
+from typing import List
 
 import pwndbg.lib.memoize
 
@@ -131,20 +133,24 @@ def generateColorFunctionInner(old, new):
     return wrapper
 
 
-class ColorConfig:
-    def __init__(self, namespace):
-        self.namespace = namespace
-        self.params = {}
+ColorParamSpec = namedtuple("ColorParamSpec", ["name", "default", "doc"])
 
-    def add_color_param(self, name: str, default: Any, doc: str):
-        self.params[name] = theme.add_color_param(f"{self.namespace}-{name}-color", default, doc)
+
+class ColorConfig:
+    def __init__(self, namespace: str, params: List[ColorParamSpec]):
+        self._namespace = namespace
+        self._params = {}
+        for param in params:
+            self._params[param.name] = theme.add_color_param(
+                f"{self._namespace}-{param.name}-color", param.default, param.doc
+            )
 
     def __getattr__(self, attr):
         param_name = attr.replace("_", "-")
-        if param_name in self.params:
-            return generateColorFunction(self.params[param_name])
+        if param_name in self._params:
+            return generateColorFunction(self._params[param_name])
 
-        raise AttributeError
+        raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
 def generateColorFunction(config: str):
@@ -169,7 +175,7 @@ def strip(x):
 
 
 def terminateWith(x, color):
-    return re.sub("\x1b\\[0m", NORMAL + color, x)
+    return x.replace("\x1b[0m", NORMAL + color)
 
 
 def ljust_colored(x, length, char=" "):

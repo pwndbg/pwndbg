@@ -19,6 +19,7 @@ import pwndbg.ida
 import pwndbg.lib.functions
 import pwndbg.ui
 from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 
 
@@ -27,14 +28,18 @@ def ljust_padding(lst):
     return [s.ljust(longest_len) for s in lst]
 
 
-c = ColorConfig("nearpc")
-c.add_color_param("symbol", "normal", "color for nearpc command (symbol)")
-c.add_color_param("address", "normal", "color for nearpc command (address)")
-c.add_color_param("prefix", "none", "color for nearpc command (prefix marker)")
-c.add_color_param("syscall-name", "red", "color for nearpc command (resolved syscall name)")
-c.add_color_param("argument", "bold", "color for nearpc command (target argument)")
-c.add_color_param("ida-anterior", "bold", "color for nearpc command (IDA anterior)")
-c.add_color_param("branch-marker", "normal", "color for nearpc command (branch marker line)")
+c = ColorConfig(
+    "nearpc",
+    [
+        ColorParamSpec("symbol", "normal", "color for nearpc command (symbol)"),
+        ColorParamSpec("address", "normal", "color for nearpc command (address)"),
+        ColorParamSpec("prefix", "none", "color for nearpc command (prefix marker)"),
+        ColorParamSpec("syscall-name", "red", "color for nearpc command (resolved syscall name)"),
+        ColorParamSpec("argument", "bold", "color for nearpc command (target argument)"),
+        ColorParamSpec("ida-anterior", "bold", "color for nearpc command (IDA anterior)"),
+        ColorParamSpec("branch-marker", "normal", "color for nearpc command (branch marker line)"),
+    ],
+)
 
 nearpc_branch_marker = pwndbg.color.theme.add_param(
     "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
