@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import tempfile
 
 import pytest
 
@@ -24,7 +25,7 @@ REASON_CANNOT_ATTACH = (
 
 @pytest.fixture
 def launched_bash_binary():
-    path = "/tmp/pwndbg_test_bash"
+    path = tempfile.mktemp()
     subprocess.check_output(["cp", "/bin/bash", path])
 
     process = subprocess.Popen([path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
