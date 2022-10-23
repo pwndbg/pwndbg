@@ -75,7 +75,9 @@ tests_failed=0
 
 declare -a FAILED_TESTS
 
-for test_case in ${TESTS_LIST}; do
+run_test() {
+    test_case="$1"
+
     gdb_args=(--command $GDB_INIT_PATH --command pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
@@ -95,7 +97,10 @@ for test_case in ${TESTS_LIST}; do
         ((++tests_failed))
         FAILED_TESTS+=(${test_case})
     fi
-done
+}
+
+. $(which env_parallel.bash)
+env_parallel run_test ::: "${TESTS_LIST[@]}"
 
 echo ""
 echo "*********************************"
