@@ -68,10 +68,7 @@ if [ $? -eq 1 ]; then
     exit 1
 fi
 
-TESTS_LIST=$(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}")
-
-tests_passed_or_skipped=0
-tests_failed=0
+TESTS_LIST=($(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}"))
 
 declare -a FAILED_TESTS
 
@@ -90,17 +87,14 @@ run_test() {
         PWNDBG_DISABLE_COLORS=1 \
         run_gdb "${gdb_args[@]}"
 
-    exit_status=$?
-    if [ ${exit_status} -eq 0 ]; then
-        ((++tests_passed_or_skipped))
-    else
-        ((++tests_failed))
-        FAILED_TESTS+=(${test_case})
-    fi
+    exit $?
 }
 
 . $(which env_parallel.bash)
 env_parallel run_test ::: "${TESTS_LIST[@]}"
+
+tests_failed=$?
+tests_passed_or_skipped=$((${#TESTS_LIST[@]} - $tests_failed))
 
 echo ""
 echo "*********************************"
