@@ -35,8 +35,10 @@ install_apt() {
         build-essential \
         gdb
 
-    if [[ "$1" == "22.04" ]]; then
-        sudo apt install shfmt
+    # Docker doesn't support running snaps, and the only way to install shfmt on
+    # Ubuntu 18.04 and 20.04 is with a snap
+    if [ ! -f /.dockerenv ]; then
+        sudo snap install shfmt
     fi
 
     test -f /usr/bin/go || sudo apt-ge\t install -y golang
@@ -69,11 +71,7 @@ if linux; then
 
     case $distro in
         "ubuntu")
-            ubuntu_version=$(
-                . /etc/os-release
-                echo ${VERSION_ID}
-            )
-            install_apt $ubuntu_version
+            install_apt
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
