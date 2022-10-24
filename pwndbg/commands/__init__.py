@@ -458,6 +458,7 @@ def load_commands():
     import pwndbg.commands.config
     import pwndbg.commands.context
     import pwndbg.commands.cpsr
+    import pwndbg.commands.cyclic
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
