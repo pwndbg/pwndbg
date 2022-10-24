@@ -87,6 +87,11 @@ class Parameter(gdb.Parameter):
             param.set_show_doc.capitalize(),
             svalue,
             more_information_hint if self.__doc__ else "",
+            # TODO: Convert above to code below
+            # param = self._get_replacement_param()
+            # return "The current value of %r is %s" % (
+            #     param.name,
+            #     Parameter._value_to_gdb_native(param.value, param.param_class),
         )
 
     @staticmethod
