@@ -2,13 +2,11 @@
 Hexdump implementation, ~= stolen from pwntools.
 """
 
-import string
 import math
-
-import pwnlib.util.lists
+import string
 
 import gdb
-
+import pwnlib.util.lists
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
 import pwndbg.gdblib.config
