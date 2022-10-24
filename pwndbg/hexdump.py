@@ -6,11 +6,12 @@ import math
 import string
 
 import gdb
-import pwnlib.util.lists
+
 import pwndbg.color.hexdump as H
 import pwndbg.color.theme as theme
 import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
+import pwnlib.util.lists
 from pwndbg.commands.windbg import enhex
 
 color_scheme = None
@@ -74,7 +75,19 @@ def load_color_scheme():
     color_scheme[-1] = "  "
     printable[-1] = " "
 
-def hexdump(data,address=0,width=16,group_width=4,flip_group_endianess=False,skip=True,offset=0,size=0,count=0,repeat=False,dX_call=False):
+def hexdump(
+    data, 
+    address=0,
+    width=16,
+    group_width=4,
+    flip_group_endianess=False,
+    skip=True,
+    offset=0,
+    size=0,
+    count=0,
+    repeat=False,
+    dX_call=False
+):
     if (not dX_call):
         if not color_scheme or not printable:
             load_color_scheme()
