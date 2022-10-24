@@ -1,3 +1,5 @@
+import tempfile
+
 import gdb
 
 import pwndbg
@@ -79,7 +81,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     assert vmmaps == expected_maps
 
     # Now, generate core file, so we can then test coredump vmmap
-    core = "/tmp/test_command_vmmap_on_coredump_on_crash_simple_binary"
+    core = tempfile.mktemp()
     gdb.execute("generate-core-file %s" % core)
 
     #### TEST COREDUMP VMMAP

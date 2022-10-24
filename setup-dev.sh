@@ -33,7 +33,8 @@ install_apt() {
         libc6-dev \
         curl \
         build-essential \
-        gdb
+        gdb \
+        parallel
 
     if [[ "$1" == "22.04" ]]; then
         sudo apt install shfmt

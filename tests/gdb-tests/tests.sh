@@ -68,14 +68,11 @@ if [ $? -eq 1 ]; then
     exit 1
 fi
 
-TESTS_LIST=$(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}")
+TESTS_LIST=($(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}"))
 
-tests_passed_or_skipped=0
-tests_failed=0
+run_test() {
+    test_case="$1"
 
-declare -a FAILED_TESTS
-
-for test_case in ${TESTS_LIST}; do
     gdb_args=(--command $GDB_INIT_PATH --command pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
@@ -88,23 +85,28 @@ for test_case in ${TESTS_LIST}; do
         PWNDBG_DISABLE_COLORS=1 \
         run_gdb "${gdb_args[@]}"
 
-    exit_status=$?
-    if [ ${exit_status} -eq 0 ]; then
-        ((++tests_passed_or_skipped))
-    else
-        ((++tests_failed))
-        FAILED_TESTS+=(${test_case})
-    fi
-done
+    exit $?
+}
+JOBLOG_PATH="$(mktemp)"
+echo "Joblog: $JOBLOG_PATH"
+
+. $(which env_parallel.bash)
+env_parallel --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}"
+
+# The seventh column in the joblog is the exit value and the tenth is the test name
+FAILED_TESTS=($(awk '$7 == "1" { print $10 }' "${JOBLOG_PATH}"))
+
+num_tests_failed=${#FAILED_TESTS[@]}
+num_tests_passed_or_skipped=$((${#TESTS_LIST[@]} - $num_tests_failed))
 
 echo ""
 echo "*********************************"
 echo "********* TESTS SUMMARY *********"
 echo "*********************************"
-echo "Tests passed or skipped: ${tests_passed_or_skipped}"
-echo "Tests failed: ${tests_failed}"
+echo "Tests passed or skipped: ${num_tests_passed_or_skipped}"
+echo "Tests failed: ${num_tests_failed}"
 
-if [ "${tests_failed}" -ne 0 ]; then
+if [ "${num_tests_failed}" -ne 0 ]; then
     echo ""
     echo "Failing tests: ${FAILED_TESTS[@]}"
     exit 1
