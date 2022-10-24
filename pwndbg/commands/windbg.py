@@ -134,14 +134,13 @@ def dX(size, address, count, to_string=False, repeat=False):
     Traditionally, windbg will display 16 bytes of data per line.
     """
     
-    lines = list(chain.from_iterable(pwndbg.hexdump.hexdump(
-        data = None,
-        size = size, 
-        count = count,
-        address = address, 
-        repeat = repeat, 
-        dX_call = True
-    )))
+    lines = list(
+        chain.from_iterable(
+            pwndbg.hexdump.hexdump(
+                data=None, size=size, count=count, address=address, repeat=repeat, dX_call=True
+            )
+        )
+    )
 
     if not to_string and lines != []:
         print("\n".join(lines))
