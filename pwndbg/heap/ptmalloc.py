@@ -366,6 +366,7 @@ class Arena:
         "heaps",
         "_mutex",
         "_flags",
+        "_non_contiguous",
         "_have_fastchunks",
         "_fastbinsY",
         "_bins",
@@ -386,6 +387,7 @@ class Arena:
         self.heaps = heaps
         self._mutex = None
         self._flags = None
+        self._non_contiguous = None
         self._have_fastchunks = None
         self._fastbinsY = None
         self._bins = None
@@ -407,11 +409,20 @@ class Arena:
     def flags(self):
         if self._flags is None:
             try:
-                self._flags = int(self._gdbValue["flag"])
+                self._flags = int(self._gdbValue["flags"])
             except gdb.MemoryError:
                 pass
 
         return self._flags
+
+    @property
+    def non_contiguous(self):
+        if self._non_contiguous is None:
+            flags = self.flags
+            if flags is not None:
+                self._non_contiguous = bool(flags & ptmalloc.NONCONTIGUOUS_BIT)
+
+        return self._non_contiguous
 
     @property
     def have_fastchunks(self):
