@@ -4,22 +4,20 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
-import pwndbg.color.theme as theme
 import pwndbg.disasm.jump
-from pwndbg.color import generateColorFunction
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color.message import on
-from pwndbg.gdblib import config
 
 capstone_branch_groups = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP))
 
-config_branch = theme.add_color_param(
-    "disasm-branch-color", "bold", "color for disasm (branch/call instruction)"
+c = ColorConfig(
+    "disasm",
+    [
+        ColorParamSpec("branch", "bold", "color for disasm (branch/call instruction)"),
+    ],
 )
-
-
-def branch(x):
-    return generateColorFunction(config.disasm_branch_color)(x)
 
 
 def syntax_highlight(ins):
@@ -75,7 +73,7 @@ def instruction(ins):
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:
-        asm = asm.replace(ins.mnemonic, branch(ins.mnemonic), 1)
+        asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)
 
     # If we know the conditional is taken, mark it as taken.
     if ins.condition is None:
