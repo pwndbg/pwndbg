@@ -6,6 +6,7 @@ import argparse
 import codecs
 import math
 from builtins import str
+from itertools import chain
 
 import gdb
 
@@ -15,16 +16,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-
-
-def get_type(size):
-    return {
-        1: pwndbg.gdblib.typeinfo.uint8,
-        2: pwndbg.gdblib.typeinfo.uint16,
-        4: pwndbg.gdblib.typeinfo.uint32,
-        8: pwndbg.gdblib.typeinfo.uint64,
-    }[size]
-
+import pwndbg.hexdump
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
 parser.add_argument(
@@ -141,49 +133,18 @@ def dX(size, address, count, to_string=False, repeat=False):
     """
     Traditionally, windbg will display 16 bytes of data per line.
     """
-    values = []
+    
+    lines = list(chain.from_iterable(pwndbg.hexdump.hexdump(
+        data = None,
+        size = size, 
+        count = count,
+        address = address, 
+        repeat = repeat, 
+        dX_call = True
+    )))
 
-    if repeat:
-        count = dX.last_count
-        address = dX.last_address
-    else:
-        address = int(address) & pwndbg.gdblib.arch.ptrmask
-        count = int(count)
-
-    type = get_type(size)
-
-    for i in range(count):
-        try:
-            gval = pwndbg.gdblib.memory.poi(type, address + i * size)
-            # print(str(gval))
-            values.append(int(gval))
-        except gdb.MemoryError:
-            break
-
-    if not values:
-        print("Could not access the provided address")
-        return
-
-    n_rows = int(math.ceil(count * size / float(16)))
-    row_sz = int(16 / size)
-    rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
-    lines = []
-
-    # sys.stdout.write(repr(rows) + '\n')
-
-    for i, row in enumerate(rows):
-        if not row:
-            continue
-        line = [enhex(pwndbg.gdblib.arch.ptrsize, address + (i * 16)), "   "]
-        for value in row:
-            line.append(enhex(size, value))
-        lines.append(" ".join(line))
-
-    if not to_string:
+    if not to_string and lines != []:
         print("\n".join(lines))
-
-    dX.last_count = count
-    dX.last_address = address + len(rows) * 16
 
     return lines
 
