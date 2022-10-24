@@ -78,54 +78,6 @@ def load_color_scheme():
     printable[-1] = " "
 
 
-def test_for_dx(size, address, count, to_string=False, repeat=False):
-    """
-    Traditionally, windbg will display 16 bytes of data per line.
-    """
-    values = []
-
-    if repeat:
-        count = test_for_dx.last_count
-        address = test_for_dx.last_address
-    else:
-        address = int(address) & pwndbg.gdblib.arch.ptrmask
-        count = int(count)
-
-    type = get_type(size)
-
-    for i in range(count):
-        try:
-            gval = pwndbg.gdblib.memory.poi(type, address + i * size)
-            # print(str(gval))
-            values.append(int(gval))
-        except gdb.MemoryError:
-            break
-
-    if not values:
-        print("Could not access the provided address")
-        return
-
-    n_rows = int(math.ceil(count * size / float(16)))
-    row_sz = int(16 / size)
-    rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
-    lines = []
-
-    # sys.stdout.write(repr(rows) + '\n')
-
-    for i, row in enumerate(rows):
-        if not row:
-            continue
-        line = [enhex(pwndbg.gdblib.arch.ptrsize, address + (i * 16)), "   "]
-        for value in row:
-            line.append(enhex(size, value))
-        lines.append(" ".join(line))
-
-    test_for_dx.last_count = count
-    test_for_dx.last_address = address + len(rows) * 16
-
-    return lines
-
-
 def hexdump(
     data,
     address=0,
