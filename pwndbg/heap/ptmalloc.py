@@ -196,8 +196,7 @@ class Chunk:
         if self._real_size is None:
             try:
                 self._real_size = int(
-                    self._gdbValue[self.__match_renamed_field("size")]
-                    & ~(ptmalloc.NON_MAIN_ARENA | ptmalloc.IS_MMAPPED | ptmalloc.PREV_INUSE)
+                    self._gdbValue[self.__match_renamed_field("size")] & ~(ptmalloc.SIZE_BITS)
                 )
             except gdb.MemoryError:
                 pass
