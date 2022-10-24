@@ -129,6 +129,7 @@ class Parameter:
 class Config:
     def __init__(self) -> None:
         self.params: Dict[str, Parameter] = {}
+        self.deprecated_params = {}
         self.triggers: DefaultDict[str, List[Callable]] = collections.defaultdict(lambda: [])
 
     def add_param(
@@ -156,6 +157,9 @@ class Config:
         )
         return self.add_param_obj(p)
 
+    def add_deprecated_param(self, old_name: str, new_name: str):
+        self.deprecated_params[old_name] = (new_name, False)
+
     def add_param_obj(self, p: Parameter):
         attr_name = p.attr_name()
 
@@ -178,8 +182,23 @@ class Config:
     def get_params(self, scope) -> List[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
+    def _print_deprecation_warning(old_name: str, new_name: str):
+        # We need to import this here, otherwise we get a circular import error
+        import pwndbg.color.message as message
+
+        print(
+            message.warning(
+                f"The config option '{old_name}' is deprecated and will be removed in the future. Please update your configuration to use '{new_name}' instead"
+            )
+        )
+
     def __getattr__(self, name):
         if name in self.params:
+            return self.params[name]
+        elif name in self.deprected_params:
+            new_param, already_warned = self.deprecated_params[name]
+            if not already_warned:
+                self._print_deprecation_warning()
             return self.params[name]
         else:
             raise AttributeError("'Config' object has no attribute '%s'" % name)
