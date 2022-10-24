@@ -75,6 +75,7 @@ def load_color_scheme():
     color_scheme[-1] = "  "
     printable[-1] = " "
 
+    
 def hexdump(
     data, 
     address=0,
@@ -86,9 +87,9 @@ def hexdump(
     size=0,
     count=0,
     repeat=False,
-    dX_call=False
+    dX_call=False,
 ):
-    if (not dX_call):
+    if not dX_call:
         if not color_scheme or not printable:
             load_color_scheme()
 
