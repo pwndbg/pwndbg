@@ -87,11 +87,41 @@ run_test() {
 
     exit $?
 }
+
+parse_output_file() {
+    #echo $1
+    output_file="$1"
+
+    read -r testname result < <(grep -Po '(^tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED)\x1b\[0m)' "$output_file" | tr '\n' ' ' | cut -d ' ' -f 1,2)
+    testfile=${testname%::*}
+    testname=${testname#*::}
+
+    printf '%-70s %s\n' $testname $result
+
+    # Only show the output of failed tests
+    if [[ "$result" =~ FAILED ]]; then
+        echo ""
+        cat "$output_file"
+        echo ""
+    fi
+
+    # Delete the temporary file created by `parallel`
+    rm "$output_file"
+}
+
 JOBLOG_PATH="$(mktemp)"
+echo ""
 echo "Joblog: $JOBLOG_PATH"
 
 . $(which env_parallel.bash)
-env_parallel --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}"
+
+start=$(date +%s)
+
+env_parallel --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel parse_output_file {}
+
+end=$(date +%s)
+seconds=$((end - start))
+echo "Tests completed in ${seconds} seconds"
 
 # The seventh column in the joblog is the exit value and the tenth is the test name
 FAILED_TESTS=($(awk '$7 == "1" { print $10 }' "${JOBLOG_PATH}"))
