@@ -18,15 +18,6 @@ color_scheme = None
 printable = None
 
 
-def get_type(size):
-    return {
-        1: pwndbg.gdblib.typeinfo.uint8,
-        2: pwndbg.gdblib.typeinfo.uint16,
-        4: pwndbg.gdblib.typeinfo.uint32,
-        8: pwndbg.gdblib.typeinfo.uint64,
-    }[size]
-
-
 def groupby(width, array, fill=None):
     return pwnlib.util.lists.group(width, array, underfull_action="fill", fill_value=fill)
 
@@ -141,9 +132,7 @@ def hexdump(
 
     else:
 
-        """
-        Traditionally, windbg will display 16 bytes of data per line.
-        """
+        # Traditionally, windbg will display 16 bytes of data per line.
         values = []
 
         if repeat:
@@ -153,12 +142,11 @@ def hexdump(
             address = int(address) & pwndbg.gdblib.arch.ptrmask
             count = int(count)
 
-        type = get_type(size)
+        size_type = pwndbg.gdblib.typeinfo.get_type(size)
 
         for i in range(count):
             try:
-                gval = pwndbg.gdblib.memory.poi(type, address + i * size)
-                # print(str(gval))
+                gval = pwndbg.gdblib.memory.poi(size_type, address + i * size)
                 values.append(int(gval))
             except gdb.MemoryError:
                 break
@@ -171,8 +159,6 @@ def hexdump(
         row_sz = int(16 / size)
         rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
         lines = []
-
-        # sys.stdout.write(repr(rows) + '\n')
 
         for i, row in enumerate(rows):
             if not row:
