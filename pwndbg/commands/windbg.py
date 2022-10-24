@@ -141,7 +141,7 @@ def dX(size, address, count, to_string=False, repeat=False):
         )
     )
 
-    if not to_string and lines != []:
+    if not to_string and lines:
         print("\n".join(lines))
 
     return lines
