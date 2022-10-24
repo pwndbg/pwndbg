@@ -4,7 +4,6 @@ Compatibility functionality for Windbg users.
 
 import argparse
 import codecs
-import math
 from builtins import str
 from itertools import chain
 
@@ -133,7 +132,7 @@ def dX(size, address, count, to_string=False, repeat=False):
     """
     Traditionally, windbg will display 16 bytes of data per line.
     """
-    
+
     lines = list(
         chain.from_iterable(
             pwndbg.hexdump.hexdump(
