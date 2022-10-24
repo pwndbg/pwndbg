@@ -2,10 +2,10 @@ import os
 
 import gdb
 
-import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.regs
 import pwndbg.radare2
+from pwndbg.color.context import c
 
 
 def decompile(func=None):
@@ -73,5 +73,5 @@ def decompile(func=None):
         source = H.syntax_highlight(source, src_filename)
 
     # Replace code prefix marker after syntax highlighting
-    source = source.replace(current_line_marker, C.prefix(pwndbg.gdblib.config.code_prefix), 1)
+    source = source.replace(current_line_marker, c.prefix(pwndbg.gdblib.config.code_prefix), 1)
     return source

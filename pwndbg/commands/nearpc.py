@@ -1,9 +1,23 @@
 import argparse
 
+import pwndbg.arguments
+import pwndbg.color
+import pwndbg.color.theme
+import pwndbg.commands.comments
+import pwndbg.disasm
+import pwndbg.gdblib.config
 import pwndbg.gdblib.nearpc
+import pwndbg.gdblib.regs
+import pwndbg.gdblib.strings
+import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
+import pwndbg.ida
+import pwndbg.lib.functions
+import pwndbg.ui
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Disassemble near a specified address.")
+
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
 parser.add_argument(
     "lines",

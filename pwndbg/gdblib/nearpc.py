@@ -5,7 +5,6 @@ from capstone import *  # noqa: F403
 
 import pwndbg.arguments
 import pwndbg.color
-import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
@@ -21,6 +20,7 @@ import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
+from pwndbg.color.context import c as C
 
 
 def ljust_padding(lst):

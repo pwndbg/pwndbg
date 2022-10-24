@@ -157,7 +157,7 @@ class Config:
         )
         return self.add_param_obj(p)
 
-    def add_deprecated_param(self, old_name: str, new_name: str):
+    def add_deprecated_param(self, old_name: str, new_name: str, scope="TODO"):
         self.deprecated_params[old_name] = (new_name, False)
 
     def add_param_obj(self, p: Parameter):

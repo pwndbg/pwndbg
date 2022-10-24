@@ -3,7 +3,6 @@ import ctypes
 
 import gdb
 
-import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.config
@@ -12,6 +11,7 @@ import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
+from pwndbg.color.context import c as C
 from pwndbg.commands import CommandCategory
 from pwndbg.commands.config import display_config
 from pwndbg.heap.ptmalloc import Arena

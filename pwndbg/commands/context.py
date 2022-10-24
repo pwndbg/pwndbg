@@ -13,7 +13,6 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
-import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
@@ -28,24 +27,35 @@ import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.ui
-from pwndbg.color import ColorConfig
-from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
+from pwndbg.color.context import c
 from pwndbg.commands import CommandCategory
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
+theme.add_param("context-register-changed-marker", "*", "change marker for registers label")
 
-# TODO: Should namespace be "context.backtrace"?
-c = ColorConfig(
-    "backtrace",
-    [
-        ColorParamSpec("prefix", "none", "color for prefix of current backtrace label"),
-        ColorParamSpec("address", "none", "color for backtrace (address)"),
-        ColorParamSpec("symbol", "none", "color for backtrace (symbol)"),
-        ColorParamSpec("frame-label", "none", "color for backtrace (frame label)"),
-    ],
-)
+
+def format_flags(value, flags, last=None):
+    desc = c.flag_value("%#x" % value)
+    if not flags:
+        return desc
+
+    names = []
+    for name, bit in flags.items():
+        bit = 1 << bit
+        if value & bit:
+            name = name.upper()
+            name = c.flag_set(name)
+        else:
+            name = name.lower()
+            name = c.flag_unset(name)
+
+        if last is not None and value & bit != last & bit:
+            name = c.flag_changed(name)
+        names.append(name)
+
+    return "%s %s %s %s" % (desc, c.flag_bracket("["), " ".join(names), c.flag_bracket("]"))
 
 
 def clear_screen(out=sys.stdout) -> None:
@@ -323,7 +333,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
             else:
                 lines.append(line)
 
-        fmt = C.highlight(exp)
+        fmt = c.highlight(exp)
         lines[0] = "{}: {} = {}".format(i + 1, fmt, lines[0])
         lines[1:] = [" " * (len(exp) + 3) + line for line in lines[1:]]
         output.extend(lines)
@@ -572,16 +582,16 @@ def get_regs(*regs):
         value = pwndbg.gdblib.regs[reg]
 
         # Make the register stand out and give a color if changed
-        regname = C.register(reg.ljust(4).upper())
+        regname = c.register(reg.ljust(4).upper())
         if reg in changed:
-            regname = C.register_changed(regname)
+            regname = c.register_changed(regname)
 
         # Show a dot next to the register if it changed
-        change_marker = "%s" % C.config_register_changed_marker
-        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
+        change_marker = "%s" % pwndbg.gdblib.config.context_register_changed_marker
+        m = " " * len(change_marker) if reg not in changed else c.register_changed(change_marker)
 
         if reg in pwndbg.gdblib.regs.flags:
-            desc = C.format_flags(
+            desc = format_flags(
                 value, pwndbg.gdblib.regs.flags[reg], pwndbg.gdblib.regs.last.get(reg, 0)
             )
 
@@ -695,7 +705,7 @@ def get_filename_and_formatted_source():
     source = source[start:end]
 
     # Compute the prefix_sign length
-    prefix_sign = C.prefix(str(pwndbg.gdblib.config.code_prefix))
+    prefix_sign = c.code_prefix(str(pwndbg.gdblib.config.code_prefix))
     prefix_width = len(prefix_sign)
 
     # Format the output
@@ -705,7 +715,7 @@ def get_filename_and_formatted_source():
             code = code.replace("\t", " " * pwndbg.gdblib.config.context_source_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
         if pwndbg.gdblib.config.highlight_source and line_number == closest_line:
-            fmt = C.highlight(fmt)
+            fmt = c.highlight(fmt)
 
         line = fmt.format(
             prefix_sign=prefix_sign if line_number == closest_line else "",
@@ -804,12 +814,14 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     while True:
 
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
-        prefix = " %s" % c.prefix(prefix)
-        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame.pc())))
+        prefix = " %s" % c.backtrace_prefix(prefix)
+        addrsz = c.backtrace_address(pwndbg.ui.addrsz(frame.pc()))
+        symbol = c.backtrace_symbol(pwndbg.gdblib.symbol.get(int(frame.pc())))
         if symbol:
             addrsz = addrsz + " " + symbol
-        line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
+        line = map(
+            str, (prefix, c.backtrace_frame_label("%s%i" % (backtrace_frame_label, i)), addrsz)
+        )
         line = " ".join(line)
         result.append(line)
 
