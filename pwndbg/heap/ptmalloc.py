@@ -787,6 +787,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def get_tcache(self, tcache_addr=None):
         raise NotImplementedError()
 
+    def get_sbrk_heap_region(self):
+        raise NotImplementedError()
+
     def get_heap_boundaries(self, addr=None):
         raise NotImplementedError()
 
@@ -1171,6 +1174,21 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             return self.thread_cache
 
         return pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache_addr)
+
+    def get_sbrk_heap_region(self):
+        """Return a Page object representing the sbrk heap region.
+        Ensure the region's start address is aligned to SIZE_SZ * 2,
+        which compensates for the presence of GLIBC_TUNABLES.
+        """
+        sbrk_base = pwndbg.lib.memory.align_up(
+            int(self.mp["sbrk_base"]), pwndbg.heap.current.size_sz * 2
+        )
+
+        sbrk_region = self.get_region(sbrk_base)
+        sbrk_region.memsz = self.get_region(sbrk_base).end - sbrk_base
+        sbrk_region.vaddr = sbrk_base
+
+        return sbrk_region
 
     def get_heap_boundaries(self, addr=None):
         """Find the boundaries of the heap containing `addr`, default to the
@@ -2125,6 +2143,39 @@ class HeuristicHeap(GlibcMemoryAllocator):
             return self.thread_cache
 
         return self.tcache_perthread_struct(tcache_addr)
+
+    def get_sbrk_heap_region(self):
+        """Return a Page object representing the sbrk heap region.
+        Ensure the region's start address is aligned to SIZE_SZ * 2,
+        which compensates for the presence of GLIBC_TUNABLES.
+        This heuristic version requires some sanity checks and may raise SymbolUnresolvableError
+        if malloc's `mp_` struct can't be resolved.
+        """
+        # Initialize malloc's mp_ struct if necessary.
+        if not self._mp_addr:
+            try:
+                self.mp
+            except Exception:
+                # Should only raise SymbolUnresolvableError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
+                pass
+
+        if self._mp_addr:
+            if self.get_region(self.mp.get_field_address("sbrk_base")) and self.get_region(
+                self.mp["sbrk_base"]
+            ):
+                sbrk_base = pwndbg.lib.memory.align_up(
+                    int(self.mp["sbrk_base"]), pwndbg.heap.current.size_sz * 2
+                )
+
+                sbrk_region = self.get_region(sbrk_base)
+                sbrk_region.memsz = self.get_region(sbrk_base).end - sbrk_base
+                sbrk_region.vaddr = sbrk_base
+
+                return sbrk_region
+            else:
+                raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
+        else:
+            raise SymbolUnresolvableError("Unable to resolve mp_ struct via heuristics.")
 
     def get_heap_boundaries(self, addr=None):
         """Find the boundaries of the heap containing `addr`, default to the
