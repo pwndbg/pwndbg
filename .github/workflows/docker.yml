@@ -12,7 +12,7 @@ jobs:
       run: docker-compose build ubuntu18.04
 
     - name: Test on Ubuntu 18.04
-      run: docker-compose run ubuntu20.04 ./tests.sh
+      run: docker-compose run ubuntu18.04 ./tests.sh
 
     - name: Docker Build Ubuntu 20.04
       run: docker-compose build ubuntu20.04
