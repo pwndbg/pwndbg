@@ -4,7 +4,6 @@ from enum import Enum
 
 import gdb
 
-import pwndbg.color.memory as M
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
@@ -15,6 +14,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.color.memory import c as M
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
