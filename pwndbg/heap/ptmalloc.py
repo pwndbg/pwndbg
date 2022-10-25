@@ -376,6 +376,7 @@ class Arena:
         "address",
         "is_main_arena",
         "_top",
+        "_active_heap",
         "heaps",
         "_mutex",
         "_flags",
@@ -397,6 +398,7 @@ class Arena:
         self.address = int(self._gdbValue.address)
         self.is_main_arena = self.address == pwndbg.heap.current.main_arena.address
         self._top = None
+        self._active_heap = None
         self.heaps = heaps
         self._mutex = None
         self._flags = None
@@ -512,6 +514,13 @@ class Arena:
                 pass
 
         return self._next_free
+
+    @property
+    def active_heap(self):
+        if self._active_heap is None:
+            self._active_heap = Heap(self.top, arena=self)
+
+        return self._active_heap
 
     def fastbins(self):
         size = pwndbg.gdblib.arch.ptrsize * 2
