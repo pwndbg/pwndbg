@@ -9,7 +9,31 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Build the Docker image
-      run: docker-compose build main
+      run: docker-compose build ubuntu18.04
 
     - name: Run the tests in Docker
-      run: docker-compose run main ./tests.sh
+      run: docker-compose run ubuntu20.04 ./tests.sh
+
+    - name: Build the Docker image
+      run: docker-compose build ubuntu20.04
+
+    - name: Run the tests in Docker
+      run: docker-compose run ubuntu20.04 ./tests.sh
+
+    - name: Build the Docker image
+      run: docker-compose build ubuntu22.04
+
+    - name: Run the tests in Docker
+      run: docker-compose run ubuntu22.04 ./tests.sh
+      
+    - name: Build the Docker image
+      run: docker-compose build debian10
+
+    - name: Run the tests in Docker
+      run: docker-compose run debian10 ./tests.sh
+
+    - name: Build the Docker image
+      run: docker-compose build debian11
+
+    - name: Run the tests in Docker
+      run: docker-compose run debian11 ./tests.sh
