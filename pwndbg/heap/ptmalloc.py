@@ -314,7 +314,10 @@ class Chunk:
         if self.is_top_chunk:
             return None
 
-        next = Chunk(self.address + self.real_size)
+        if self.real_size == 0:
+            return None
+
+        next = Chunk(self.address + self.real_size, arena=self.arena)
         if pwndbg.gdblib.memory.peek(next.address):
             return next
         else:
@@ -341,7 +344,7 @@ class Heap:
         4) no arena - for fake/mmapped chunks
         """
         allocator = pwndbg.heap.current
-        main_arena = Arena(allocator.main_arena.address)
+        main_arena = allocator.main_arena
 
         sbrk_region = allocator.get_sbrk_heap_region()
         if addr in sbrk_region:
@@ -417,7 +420,7 @@ class Arena:
     __slots__ = (
         "_gdbValue",
         "address",
-        "is_main_arena",
+        "_is_main_arena",
         "_top",
         "_active_heap",
         "_heaps",
@@ -439,7 +442,7 @@ class Arena:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
 
         self.address = int(self._gdbValue.address)
-        self.is_main_arena = self.address == pwndbg.heap.current.main_arena.address
+        self._is_main_arena = None
         self._top = None
         self._active_heap = None
         self._heaps = None
@@ -452,6 +455,13 @@ class Arena:
         self._binmap = None
         self._next = None
         self._next_free = None
+
+    @property
+    def is_main_arena(self):
+        if self._is_main_arena is None:
+            self._is_main_arena = self.address == pwndbg.heap.current.main_arena.address
+
+        return self._is_main_arena
 
     @property
     def mutex(self):
@@ -573,10 +583,10 @@ class Arena:
             if self.is_main_arena:
                 sbrk_region = pwndbg.heap.current.get_sbrk_heap_region()
                 if self.top not in sbrk_region:
-                    heap_list.append(Heap(sbrk_region.start))
+                    heap_list.append(Heap(sbrk_region.start, arena=self))
             else:
                 while heap.prev:
-                    heap = Heap(heap.prev)
+                    heap = Heap(heap.prev, arena=self)
                     heap_list.append(heap)
 
             heap_list.reverse()
@@ -659,7 +669,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         arenas.append(main_arena)
 
         # Iterate over all the non-main arenas
-        addr = int(arena["next"])
+        addr = arena.next
         while addr != main_arena_addr:
             heaps = []
             arena = self.get_arena(addr)
@@ -701,6 +711,10 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return arenas
 
     def has_tcache(self):
+        raise NotImplementedError()
+
+    @property
+    def thread_arena(self):
         raise NotImplementedError()
 
     @property
@@ -1137,12 +1151,20 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             "main_arena"
         ) or pwndbg.gdblib.symbol.address("main_arena")
         if self._main_arena_addr is not None:
-            self._main_arena = pwndbg.gdblib.memory.poi(self.malloc_state, self._main_arena_addr)
+            self._main_arena = Arena(self._main_arena_addr)
 
         return self._main_arena
 
     def has_tcache(self):
         return self.mp and "tcache_bins" in self.mp.type.keys() and self.mp["tcache_bins"]
+
+    @property
+    def thread_arena(self):
+        thread_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
+            "thread_arena"
+        ) or pwndbg.gdblib.symbol.address("thread_arena")
+        if thread_arena_addr is not None:
+            return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_addr))
 
     @property
     def thread_cache(self):
@@ -1273,7 +1295,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         )
 
         sbrk_region = self.get_region(sbrk_base)
-        sbrk_region.memsz = self.get_region(sbrk_base).end - sbrk_base
+        sbrk_region.memsz = sbrk_region.end - sbrk_base
         sbrk_region.vaddr = sbrk_base
 
         return sbrk_region
@@ -1476,7 +1498,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                             break
 
         if self._main_arena_addr and pwndbg.gdblib.vmmap.find(self._main_arena_addr):
-            self._main_arena = self.malloc_state(self._main_arena_addr)
+            self._main_arena = Arena(self._main_arena_addr)
             return self._main_arena
 
         raise SymbolUnresolvableError("main_arena")
@@ -1494,11 +1516,11 @@ class HeuristicHeap(GlibcMemoryAllocator):
             "thread_arena"
         ) or pwndbg.gdblib.symbol.address("thread_arena")
         if thread_arena_via_config > 0:
-            return thread_arena_via_config
+            return Arena(thread_arena_via_config)
         elif thread_arena_via_symbol:
             if pwndbg.gdblib.symbol.static_linkage_symbol_address("thread_arena"):
                 # If the symbol is static-linkage symbol, we trust it.
-                return pwndbg.gdblib.memory.u(thread_arena_via_symbol)
+                return Arena(pwndbg.gdblib.memory.u(thread_arena_via_symbol))
             # Check &thread_arena is nearby TLS base or not to avoid false positive.
             tls_base = pwndbg.gdblib.tls.address
             if tls_base:
@@ -1516,7 +1538,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
                     # Check &thread_arena is a valid address or not to avoid false positive.
                     if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
-                        return thread_arena_struct_addr
+                        return Arena(thread_arena_struct_addr)
 
         if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
             # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
@@ -1641,7 +1663,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             if tls_base:
                 thread_arena_struct_addr = tls_base + self._thread_arena_offset
                 if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
-                    return pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr)
+                    return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr))
 
         raise SymbolUnresolvableError("thread_arena")
 

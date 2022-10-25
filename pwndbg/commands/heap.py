@@ -16,6 +16,7 @@ from pwndbg.commands.config import display_config
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
+from pwndbg.heap.ptmalloc import Heap
 
 
 def read_chunk(addr):
@@ -126,45 +127,17 @@ def heap(addr=None, verbose=False, simple=False):
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
-    allocator = pwndbg.heap.current
-    heap_region = pwndbg.heap.ptmalloc.Heap(addr)
-    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
-    top_chunk = arena["top"]
-    ptr_size = allocator.size_sz
-
-    # Store the heap base address in a GDB variable that can be used in other
-    # GDB commands
-    gdb.execute("set $heap_base=0x{:x}".format(heap_region.start))
-
-    # Calculate where to start printing; if an address was supplied, use that,
-    # if this heap belongs to the main arena, start at the beginning of the
-    # heap's mapping, otherwise, compensate for the presence of a heap_info
-    # struct and possibly an arena.
-    if addr:
-        cursor = int(addr)
+    if addr is not None:
+        chunk = Chunk(addr)
+        while chunk is not None:
+            malloc_chunk(chunk.address)
+            chunk = chunk.next_chunk()
     else:
-        cursor = heap_region.start
+        arena = pwndbg.heap.current.thread_arena or pwndbg.heap.current.main_arena
+        h = arena.active_heap
 
-    # i686 alignment heuristic
-    first_chunk_size = pwndbg.gdblib.arch.unpack(
-        pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
-    )
-    if first_chunk_size == 0:
-        cursor += ptr_size * 2
-
-    while cursor in heap_region:
-        malloc_chunk(cursor, verbose=verbose, simple=simple)
-
-        if cursor == top_chunk:
-            break
-
-        size_field = pwndbg.gdblib.memory.u(cursor + allocator.chunk_key_offset("size"))
-        real_size = size_field & ~allocator.malloc_align_mask
-        cursor += real_size
-
-        # Avoid an infinite loop when a chunk's size is 0.
-        if real_size == 0:
-            break
+        for chunk in h:
+            malloc_chunk(chunk.address)
 
 
 parser = argparse.ArgumentParser()
@@ -278,7 +251,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     chunk = Chunk(addr)
 
     allocator = pwndbg.heap.current
-    ptr_size = allocator.size_sz
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
@@ -644,35 +616,23 @@ parser.add_argument(
 def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
-    heap_region = allocator.get_heap_boundaries(addr)
-    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
 
-    top_chunk = arena["top"]
+    if addr is not None:
+        cursor = int(addr)
+        heap_region = Heap(cursor)
+        arena = heap_region.arena
+    else:
+        arena = allocator.thread_arena or allocator.main_arena
+        heap_region = arena.active_heap
+        cursor = heap_region.start
+
+    top_chunk = arena.top
     ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
-    if addr:
-        cursor = int(addr)
-    elif arena == allocator.main_arena:
-        cursor = heap_region.start
-    else:
-        cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
-            # Round up to a 2-machine-word alignment after an arena to
-            # compensate for the presence of the have_fastchunks variable
-            # in GLIBC versions >= 2.27.
-            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
-
-    # Check if there is an alignment at the start of the heap, adjust if necessary.
-    if not addr:
-        first_chunk_size = pwndbg.gdblib.arch.unpack(
-            pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
-        )
-        if first_chunk_size == 0:
-            cursor += ptr_size * 2
-
     cursor_backup = cursor
+    chunk = Chunk(cursor)
 
     for _ in range(count + 1):
         # Don't read beyond the heap mapping if --naive or corrupted heap.
@@ -680,24 +640,21 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
             chunk_delims.append(heap_region.end)
             break
 
-        size_field = pwndbg.gdblib.memory.u(cursor + ptr_size)
-        real_size = size_field & ~allocator.malloc_align_mask
-        prev_inuse = allocator.chunk_flags(size_field)[0]
-
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
         if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
             break
 
-        if prev_inuse:
+        if chunk.prev_inuse:
             chunk_delims.append(cursor + ptr_size)
         else:
             chunk_delims.append(cursor)
 
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
+        if (chunk.is_top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
             chunk_delims.append(cursor + ptr_size * 2)
             break
 
-        cursor += real_size
+        cursor += chunk.real_size
+        chunk = Chunk(cursor)
 
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
@@ -727,6 +684,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     labels = []
 
     cursor = cursor_backup
+    chunk = Chunk(cursor)
 
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
@@ -768,7 +726,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
             printed += 1
 
             labels.extend(bin_labels(cursor, bin_collections))
-            if cursor == top_chunk:
+            if cursor == arena.top:
                 labels.append("Top chunk")
 
             asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
