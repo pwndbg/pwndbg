@@ -1,10 +1,10 @@
+import copy
 import importlib
 from collections import OrderedDict
 from enum import Enum
 
 import gdb
 
-import pwndbg.color.memory as M
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
@@ -15,6 +15,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.color.memory import c as M
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
@@ -309,13 +310,26 @@ class Chunk:
 
         return self._is_top_chunk
 
+    def next_chunk(self):
+        if self.is_top_chunk:
+            return None
+
+        next = Chunk(self.address + self.real_size)
+        if pwndbg.gdblib.memory.peek(next.address):
+            return next
+        else:
+            return None
+
 
 class Heap:
     __slots__ = (
+        "_gdbValue",
         "arena",
         "_memory_region",
         "start",
         "end",
+        "_prev",
+        "first_chunk",
     )
 
     def __init__(self, addr, arena=None):
@@ -334,10 +348,12 @@ class Heap:
             # Case 1; main_arena.
             self.arena = main_arena if arena is None else arena
             self._memory_region = sbrk_region
+            self._gdbValue = None
         else:
             heap_region = allocator.get_region(addr)
+            heap_info = allocator.get_heap(addr)
             try:
-                ar_ptr = int(allocator.get_heap(addr)["ar_ptr"])
+                ar_ptr = int(heap_info["ar_ptr"])
             except gdb.MemoryError:
                 ar_ptr = None
 
@@ -353,23 +369,50 @@ class Heap:
                 heap_region.memsz = heap_region.end - start
                 heap_region.vaddr = start
                 self._memory_region = heap_region
+                self._gdbValue = heap_info
             elif main_arena.non_contiguous:
                 # Case 3; non-contiguous main_arena.
                 self.arena = main_arena if arena is None else arena
                 self._memory_region = heap_region
+                self._gdbValue = None
             else:
                 # Case 4; fake/mmapped chunk
                 self.arena = None
                 self._memory_region = heap_region
+                self._gdbValue = None
 
         self.start = self._memory_region.start
         self.end = self._memory_region.end
+        self.first_chunk = Chunk(self.start)
+
+        self._prev = None
+
+    @property
+    def prev(self):
+        if self._prev is None and self._gdbValue is not None:
+            try:
+                self._prev = int(self._gdbValue["prev"])
+            except gdb.MemoryError:
+                pass
+
+        return self._prev
+
+    def __iter__(self):
+        iter_chunk = self.first_chunk
+        while iter_chunk is not None:
+            yield iter_chunk
+            iter_chunk = iter_chunk.next_chunk()
 
     def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end
 
+    def __str__(self):
+        fmt = "[%%%ds]" % (pwndbg.gdblib.arch.ptrsize * 2)
+        return message.hint(fmt % (hex(self.first_chunk.address))) + M.heap(
+            str(pwndbg.gdblib.vmmap.find(self.start))
+        )
 
-# https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
+
 class Arena:
     __slots__ = (
         "_gdbValue",
@@ -377,7 +420,7 @@ class Arena:
         "is_main_arena",
         "_top",
         "_active_heap",
-        "heaps",
+        "_heaps",
         "_mutex",
         "_flags",
         "_non_contiguous",
@@ -389,7 +432,7 @@ class Arena:
         "_next_free",
     )
 
-    def __init__(self, addr, heaps=None):
+    def __init__(self, addr):
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
         else:
@@ -399,7 +442,7 @@ class Arena:
         self.is_main_arena = self.address == pwndbg.heap.current.main_arena.address
         self._top = None
         self._active_heap = None
-        self.heaps = heaps
+        self._heaps = None
         self._mutex = None
         self._flags = None
         self._non_contiguous = None
@@ -522,6 +565,25 @@ class Arena:
 
         return self._active_heap
 
+    @property
+    def heaps(self):
+        if self._heaps is None:
+            heap = self.active_heap
+            heap_list = [heap]
+            if self.is_main_arena:
+                sbrk_region = pwndbg.heap.current.get_sbrk_heap_region()
+                if self.top not in sbrk_region:
+                    heap_list.append(Heap(sbrk_region.start))
+            else:
+                while heap.prev:
+                    heap = Heap(heap.prev)
+                    heap_list.append(heap)
+
+            heap_list.reverse()
+            self._heaps = heap_list
+
+        return self._heaps
+
     def fastbins(self):
         size = pwndbg.gdblib.arch.ptrsize * 2
         fd_offset = pwndbg.gdblib.arch.ptrsize * 2
@@ -593,7 +655,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         sbrk_page = self.get_heap_boundaries().vaddr
 
         # Create the main_arena with a fake HeapInfo
-        main_arena = Arena(main_arena_addr, [HeapInfo(sbrk_page, sbrk_page)])
+        main_arena = Arena(main_arena_addr)
         arenas.append(main_arena)
 
         # Iterate over all the non-main arenas
@@ -631,7 +693,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 haddr = int(heap["prev"])
 
             # Add to the list of arenas and move on to the next one
-            arenas.append(Arena(addr, tuple(reversed(heaps))))
+            arenas.append(Arena(addr))
             addr = int(arena["next"])
 
         arenas = tuple(arenas)
@@ -827,7 +889,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     def get_region(self, addr):
         """Find the memory map containing 'addr'."""
-        return pwndbg.gdblib.vmmap.find(addr)
+        return copy.deepcopy(pwndbg.gdblib.vmmap.find(addr))
 
     def get_bins(self, bin_type, addr=None):
         if bin_type == BinType.TCACHE:
