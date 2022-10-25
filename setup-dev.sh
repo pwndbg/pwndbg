@@ -5,6 +5,17 @@ echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT."
 echo "# --------------------------------------"
 
+hook_script_name=".git/hooks/pre-push"
+
+if [ -t 1 ]; then
+    echo "Install a git hook to automatically lint files before pushing? (y/N)"
+    read yn
+    if [[ "$yn" == [Yy]* ]]; then
+        echo "./lint.sh -f" >>$hook_script_name
+        echo "pre-push hook installed to $hook_script_name"
+    fi
+fi
+
 if [[ -z "$ZIGPATH" ]]; then
     # If ZIGPATH is not set, set it to $pwd/.zig
     # In Docker environment this should by default be set to /opt/zig
