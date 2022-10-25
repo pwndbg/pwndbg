@@ -134,11 +134,12 @@ class Chunk:
         "_bk",
         "_fd_nextsize",
         "_bk_nextsize",
+        "_heap",
         "_arena",
         "_is_top_chunk",
     )
 
-    def __init__(self, addr, arena=None):
+    def __init__(self, addr, heap=None, arena=None):
         if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
         else:
@@ -155,6 +156,7 @@ class Chunk:
         self._bk = None
         self._fd_nextsize = None
         self._bk_nextsize = None
+        self._heap = heap
         self._arena = arena
         self._is_top_chunk = None
 
@@ -283,17 +285,16 @@ class Chunk:
         return self._bk_nextsize
 
     @property
+    def heap(self):
+        if self._heap is None:
+            self._heap = Heap(self.address)
+
+        return self._heap
+
+    @property
     def arena(self):
         if self._arena is None:
-            try:
-                ar_ptr = pwndbg.heap.current.get_heap(self.address)["ar_ptr"]
-                ar_ptr.fetch_lazy()
-            except Exception:
-                ar_ptr = None
-            if ar_ptr is not None and ar_ptr in (ar.address for ar in pwndbg.heap.current.arenas):
-                self._arena = Arena(ar_ptr)
-            else:
-                self._arena = Arena(pwndbg.heap.current.main_arena.address)
+            self._arena = self.heap.arena
 
         return self._arena
 
@@ -310,47 +311,59 @@ class Chunk:
 
 
 class Heap:
-    def __init__(self, addr=None):
+    __slots__ = (
+        "arena",
+        "_memory_region",
+        "start",
+        "end",
+    )
+
+    def __init__(self, addr, arena=None):
+        """Build a Heap object given an address on that heap.
+        Heap regions are treated differently depending on their arena:
+        1) main_arena - uses the sbrk heap
+        2) non-main arena - heap starts after its heap_info struct (and possibly an arena)
+        3) non-contiguous main_arena - just a memory region
+        4) no arena - for fake/mmapped chunks
+        """
         allocator = pwndbg.heap.current
-        if addr is not None:
+        main_arena = Arena(allocator.main_arena.address)
+
+        sbrk_region = allocator.get_sbrk_heap_region()
+        if addr in sbrk_region:
+            # Case 1; main_arena.
+            self.arena = main_arena if arena is None else arena
+            self._memory_region = sbrk_region
+        else:
+            heap_region = allocator.get_region(addr)
             try:
-                # Can fail if any part of the struct is unmapped (due to corruption/fake struct).
-                ar_ptr = allocator.get_heap(addr)["ar_ptr"]
-                ar_ptr.fetch_lazy()
-            except Exception:
+                ar_ptr = int(allocator.get_heap(addr)["ar_ptr"])
+            except gdb.MemoryError:
                 ar_ptr = None
 
-            # This is probably a non-main arena if a legitimate ar_ptr exists.
             if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
-                self.arena = Arena(ar_ptr)
+                # Case 2; non-main arena.
+                self.arena = Arena(ar_ptr) if arena is None else arena
+                start = heap_region.start + allocator.heap_info.sizeof
+                if ar_ptr in heap_region:
+                    start += pwndbg.lib.memory.align_up(
+                        allocator.malloc_state.sizeof, allocator.malloc_alignment
+                    )
+
+                heap_region.memsz = heap_region.end - start
+                heap_region.vaddr = start
+                self._memory_region = heap_region
+            elif main_arena.non_contiguous:
+                # Case 3; non-contiguous main_arena.
+                self.arena = main_arena if arena is None else arena
+                self._memory_region = heap_region
             else:
-                # Use the main arena as a fallback
-                self.arena = Arena(allocator.main_arena.address)
-        else:
-            # Get the thread arena under default conditions.
-            self.arena = Arena(allocator.get_arena().address)
+                # Case 4; fake/mmapped chunk
+                self.arena = None
+                self._memory_region = heap_region
 
-        if self.arena.address == allocator.main_arena.address:
-            self.is_main_arena_heap = True
-        else:
-            self.is_main_arena_heap = False
-
-        heap_region = allocator.get_heap_boundaries(addr)
-        if not self.is_main_arena_heap:
-            page = pwndbg.lib.memory.Page(0, 0, 0, 0)
-            page.vaddr = heap_region.start + allocator.heap_info.sizeof
-            if (
-                pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"])
-                == heap_region
-            ):
-                page.vaddr += (
-                    allocator.malloc_state.sizeof + allocator.size_sz
-                ) & ~allocator.malloc_align_mask
-            page.memsz = heap_region.end - page.start
-            heap_region = page
-
-        self.start = heap_region.start
-        self.end = heap_region.end
+        self.start = self._memory_region.start
+        self.end = self._memory_region.end
 
     def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end
@@ -1149,13 +1162,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
     def get_heap(self, addr):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        try:
-            r = pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
-            r.fetch_lazy()
-        except gdb.MemoryError:
-            r = None
-
-        return r
+        return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
 
     def get_arena(self, arena_addr=None):
         """Read a malloc_state struct from the specified address, default to
