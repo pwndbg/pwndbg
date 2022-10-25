@@ -4,36 +4,36 @@ on: [push, pull_request]
 jobs:
   docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v3
 
-    - name: Build the Docker image
+    - name: Docker Build Ubuntu 18.04
       run: docker-compose build ubuntu18.04
 
-    - name: Run the tests in Docker
+    - name: Test on Ubuntu 18.04
       run: docker-compose run ubuntu20.04 ./tests.sh
 
-    - name: Build the Docker image
+    - name: Docker Build Ubuntu 20.04
       run: docker-compose build ubuntu20.04
 
-    - name: Run the tests in Docker
+    - name: Test on Ubuntu 20.04
       run: docker-compose run ubuntu20.04 ./tests.sh
 
-    - name: Build the Docker image
+    - name: Docker Build Ubuntu 22.04
       run: docker-compose build ubuntu22.04
 
-    - name: Run the tests in Docker
+    - name: Test on Ubuntu 22.04
       run: docker-compose run ubuntu22.04 ./tests.sh
       
-    - name: Build the Docker image
+    - name: Docker Build Debian 10
       run: docker-compose build debian10
 
-    - name: Run the tests in Docker
+    - name: Test on Debian 10
       run: docker-compose run debian10 ./tests.sh
 
-    - name: Build the Docker image
+    - name: Docker Build Debian 11
       run: docker-compose build debian11
 
-    - name: Run the tests in Docker
+    - name: Test on Debian 11
       run: docker-compose run debian11 ./tests.sh
