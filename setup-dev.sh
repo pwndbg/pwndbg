@@ -5,18 +5,19 @@ echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT."
 echo "# --------------------------------------"
 
-hookScriptName=".git/hooks/pre-push"
+hook_script_name=".git/hooks/pre-push"
 
 if [ -t 1 ]; then
-    echo "Install a git pre-push hook?"
-    select yn in "Yes" "No"; do
+    while true; do
+        echo "Install a git hook to automatically lint files before pushing? ([y]/N)"
+        read yn
         case $yn in
-            Yes)
-                echo "./lint.sh -f" >>$hookScriptName
-                echo "pre-push hook installed"
+            [Yy]* | "")
+                echo "./lint.sh -f" >>$hook_script_name
+                echo "pre-push hook installed to $hook_script_name"
                 break
                 ;;
-            No)
+            [Nn]*)
                 break
                 ;;
         esac
