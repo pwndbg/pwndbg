@@ -300,7 +300,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
             if chunk.is_top_chunk:
                 headers_to_print.append(message.off("Top chunk"))
 
-        if not chunk.is_top_chunk:
+        if not chunk.is_top_chunk and arena:
 
             bins_list = [
                 allocator.fastbins(arena.address) or {},
