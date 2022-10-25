@@ -8,20 +8,12 @@ echo "# --------------------------------------"
 hook_script_name=".git/hooks/pre-push"
 
 if [ -t 1 ]; then
-    while true; do
-        echo "Install a git hook to automatically lint files before pushing? ([y]/N)"
-        read yn
-        case $yn in
-            [Yy]* | "")
-                echo "./lint.sh -f" >>$hook_script_name
-                echo "pre-push hook installed to $hook_script_name"
-                break
-                ;;
-            [Nn]*)
-                break
-                ;;
-        esac
-    done
+    echo "Install a git hook to automatically lint files before pushing? (y/N)"
+    read yn
+    if [[ "$yn" == [Yy]* ]]; then
+        echo "./lint.sh -f" >>$hook_script_name
+        echo "pre-push hook installed to $hook_script_name"
+    fi
 fi
 
 if [[ -z "$ZIGPATH" ]]; then
