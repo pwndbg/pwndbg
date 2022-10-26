@@ -3,7 +3,7 @@ services:
   ubuntu18.04:
     build:
       context: . 
-      target: ubuntu18.04
+      target: ubuntu:18.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -15,7 +15,7 @@ services:
   ubuntu20.04:
     build:
       context: . 
-      target: ubuntu20.04
+      target: ubuntu:20.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -27,7 +27,7 @@ services:
   ubuntu22.04:
     build:
       context: . 
-      target: ubuntu22.04
+      target: ubuntu:22.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -39,7 +39,7 @@ services:
   debian10:
     build:
       context: . 
-      target: debian10
+      target: debian:10
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -51,7 +51,7 @@ services:
   debian11:
     build:
       context: . 
-      target: debian11
+      target: debian:11
     volumes:
       - .:/pwndbg
     platform: linux/amd64

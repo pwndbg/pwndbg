@@ -7,7 +7,7 @@
 # For development, mount the directory so the host changes are reflected into container:
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
-FROM ubuntu:18.04 as ubuntu18.04
+FROM ubuntu:18.04
 
 WORKDIR /pwndbg
 
@@ -45,7 +45,7 @@ ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
 
-FROM ubuntu:20.04 as ubuntu20.04
+FROM ubuntu:20.04
 
 WORKDIR /pwndbg
 
@@ -83,7 +83,7 @@ ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
 
-FROM ubuntu:22.04 as ubuntu22.04
+FROM ubuntu:22.04
 
 WORKDIR /pwndbg
 
@@ -121,7 +121,7 @@ ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
 
-FROM debian:10 as debian10
+FROM debian:10
 
 WORKDIR /pwndbg
 
@@ -159,7 +159,7 @@ ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
 
-FROM debian:11 as debian11
+FROM debian:11
 
 WORKDIR /pwndbg
 
