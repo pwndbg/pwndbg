@@ -3,7 +3,8 @@ services:
   ubuntu18.04:
     build:
       context: . 
-      target: ubuntu:18.04
+      dockerfile: Dockerfile
+      target: ubuntu18.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -15,7 +16,7 @@ services:
   ubuntu20.04:
     build:
       context: . 
-      target: ubuntu:20.04
+      target: ubuntu20.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -27,7 +28,7 @@ services:
   ubuntu22.04:
     build:
       context: . 
-      target: ubuntu:22.04
+      target: ubuntu22.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -39,7 +40,7 @@ services:
   debian10:
     build:
       context: . 
-      target: debian:10
+      target: debian10
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -51,7 +52,7 @@ services:
   debian11:
     build:
       context: . 
-      target: debian:11
+      target: debian11
     volumes:
       - .:/pwndbg
     platform: linux/amd64
