@@ -3,37 +3,22 @@ on: [push, pull_request]
 
 jobs:
   docker:
+    strategy:
+      fail-fast: false
+      matrix:
+        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11]
+
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-    - name: Docker Build Ubuntu 18.04
-      run: docker-compose build ubuntu18.04
+    - uses: satackey/action-docker-layer-caching@v0.0.11
+      # Ignore the failure of a step and avoid terminating the job.
+      continue-on-error: true
 
-    - name: Test on Ubuntu 18.04
-      run: docker-compose run ubuntu18.04 ./tests.sh
+    - name: Docker Build Ubuntu ${{ matrix.version }}
+      run: docker-compose build ${{ matrix.version }}
 
-    - name: Docker Build Ubuntu 20.04
-      run: docker-compose build ubuntu20.04
-
-    - name: Test on Ubuntu 20.04
-      run: docker-compose run ubuntu20.04 ./tests.sh
-
-    - name: Docker Build Ubuntu 22.04
-      run: docker-compose build ubuntu22.04
-
-    - name: Test on Ubuntu 22.04
-      run: docker-compose run ubuntu22.04 ./tests.sh
-      
-    - name: Docker Build Debian 10
-      run: docker-compose build debian10
-
-    - name: Test on Debian 10
-      run: docker-compose run debian10 ./tests.sh
-
-    - name: Docker Build Debian 11
-      run: docker-compose build debian11
-
-    - name: Test on Debian 11
-      run: docker-compose run debian11 ./tests.sh
+    - name: Test on Ubuntu ${{ matrix.version }}
+      run: docker-compose run ${{ matrix.version }} ./tests.sh
