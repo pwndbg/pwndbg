@@ -433,6 +433,7 @@ class Arena:
         "_binmap",
         "_next",
         "_next_free",
+        "_system_mem",
     )
 
     def __init__(self, addr):
@@ -455,6 +456,7 @@ class Arena:
         self._binmap = None
         self._next = None
         self._next_free = None
+        self._system_mem = None
 
     @property
     def is_main_arena(self):
@@ -567,6 +569,16 @@ class Arena:
                 pass
 
         return self._next_free
+
+    @property
+    def system_mem(self):
+        if self._system_mem is None:
+            try:
+                self._system_mem = int(self._gdbValue["system_mem"])
+            except gdb.MemoryError:
+                pass
+
+        return self._system_mem
 
     @property
     def active_heap(self):

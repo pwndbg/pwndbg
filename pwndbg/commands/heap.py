@@ -939,7 +939,7 @@ def try_free(addr):
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
         fastbin_list = (
-            allocator.fastbins(int(arena.address))
+            allocator.fastbins(arena.address)
             .bins[(chunk_fastbin_idx + 2) * (ptr_size * 2)]
             .fd_chain
         )
@@ -959,10 +959,10 @@ def try_free(addr):
 
         # next chunk's size is big enough and small enough
         next_chunk_size = unsigned_size(next_chunk["size"])
-        if next_chunk_size <= 2 * size_sz or chunksize(next_chunk_size) >= int(arena["system_mem"]):
+        if next_chunk_size <= 2 * size_sz or chunksize(next_chunk_size) >= arena.system_mem:
             err = "free(): invalid next size (fast) -> next chunk's size not in [2*size_sz; av->system_mem]\n"
             err += "    next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
-            err = err.format(next_chunk_size, 2 * size_sz, int(arena["system_mem"]))
+            err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
             errors_found += 1
 
@@ -1010,21 +1010,21 @@ def try_free(addr):
         print(message.notice("Not mapped checks"))
 
         # chunks is not top chunk
-        if addr == int(arena["top"]):
+        if addr == arena.top:
             err = "double free or corruption (top) -> chunk is top chunk"
             print(message.error(err))
             errors_found += 1
 
         # next chunk is not beyond the boundaries of the arena
         NONCONTIGUOUS_BIT = 2
-        top_chunk_addr = int(arena["top"])
+        top_chunk_addr = arena.top
         top_chunk = read_chunk(top_chunk_addr)
         next_chunk_addr = addr + chunk_size_unmasked
 
         # todo: in libc, addition may overflow
-        if (
-            arena["flags"] & NONCONTIGUOUS_BIT == 0
-        ) and next_chunk_addr >= top_chunk_addr + chunksize(top_chunk["size"]):
+        if (arena.flags & NONCONTIGUOUS_BIT == 0) and next_chunk_addr >= top_chunk_addr + chunksize(
+            top_chunk["size"]
+        ):
             err = "double free or corruption (out) -> next chunk is beyond arena and arena is contiguous\n"
             err += "next chunk at 0x{:x}, end of arena at 0x{:x}"
             err = err.format(
@@ -1050,10 +1050,10 @@ def try_free(addr):
             errors_found += 1
 
         # next chunk's size is big enough and small enough
-        if next_chunk_size <= 2 * size_sz or next_chunk_size >= int(arena["system_mem"]):
+        if next_chunk_size <= 2 * size_sz or next_chunk_size >= arena.system_mem:
             err = "free(): invalid next size (normal) -> next chunk's size not in [2*size_sz; system_mem]\n"
             err += "next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
-            err = err.format(next_chunk_size, 2 * size_sz, int(arena["system_mem"]))
+            err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
             errors_found += 1
 
@@ -1111,7 +1111,7 @@ def try_free(addr):
                 print(message.notice("Clearing next chunk's P bit"))
 
             # unsorted bin fd->bk should be unsorted bean
-            unsorted_addr = int(arena["bins"][0])
+            unsorted_addr = int(arena.bins[0])
             try:
                 unsorted = read_chunk(unsorted_addr)
                 try:
