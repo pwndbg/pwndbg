@@ -51,7 +51,7 @@ services:
   debian11:
     build:
       context: . 
-      target: debian10
+      target: debian11
     volumes:
       - .:/pwndbg
     platform: linux/amd64
