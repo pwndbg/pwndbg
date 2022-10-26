@@ -4,7 +4,7 @@ set -ex
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
-if ! hash sudo 2>/dev/null && whoami | grep root; then
+if ! hash sudo 2> /dev/null && whoami | grep root; then
     sudo() {
         ${*}
     }
@@ -12,17 +12,17 @@ fi
 
 # Helper functions
 linux() {
-    uname | grep -i Linux &>/dev/null
+    uname | grep -i Linux &> /dev/null
 }
 osx() {
-    uname | grep -i Darwin &>/dev/null
+    uname | grep -i Darwin &> /dev/null
 }
 
 install_apt() {
     sudo apt-get update || true
     sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
-    if uname -m | grep x86_64 >/dev/null; then
+    if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
         sudo apt-get update || true
         sudo apt-get install -y libc6-dbg:i386 || true
@@ -51,7 +51,7 @@ install_zypper() {
     sudo zypper refresh || true
     sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
 
-    if uname -m | grep x86_64 >/dev/null; then
+    if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
     fi
 }
@@ -109,7 +109,7 @@ if linux; then
             ;;
         "gentoo")
             install_emerge
-            if ! hash sudo 2>/dev/null && whoami | grep root; then
+            if ! hash sudo 2> /dev/null && whoami | grep root; then
                 sudo() {
                     ${*}
                 }
@@ -163,6 +163,6 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
 # Load Pwndbg into GDB on every launch.
-if ! grep pwndbg ~/.gdbinit &>/dev/null; then
-    echo "source $PWD/gdbinit.py" >>~/.gdbinit
+if ! grep pwndbg ~/.gdbinit &> /dev/null; then
+    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
 fi
