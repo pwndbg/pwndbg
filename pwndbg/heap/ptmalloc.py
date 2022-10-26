@@ -622,18 +622,6 @@ class Arena:
         return "\n".join(res)
 
 
-class HeapInfo:
-    def __init__(self, addr, first_chunk):
-        self.addr = addr
-        self.first_chunk = first_chunk
-
-    def __str__(self):
-        fmt = "[%%%ds]" % (pwndbg.gdblib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk))) + M.heap(
-            str(pwndbg.gdblib.vmmap.find(self.addr))
-        )
-
-
 class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def __init__(self):
         # Global ptmalloc objects
@@ -658,53 +646,17 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     @property
     @pwndbg.lib.memoize.reset_on_stop
     def arenas(self):
-        arena = self.main_arena
+        """Return a tuple of all current arenas."""
         arenas = []
-        arena_cnt = 0
-        main_arena_addr = int(arena.address)
-        sbrk_page = self.get_heap_boundaries().vaddr
-
-        # Create the main_arena with a fake HeapInfo
-        main_arena = Arena(main_arena_addr)
+        main_arena = self.main_arena
         arenas.append(main_arena)
 
-        # Iterate over all the non-main arenas
+        arena = main_arena
         addr = arena.next
-        while addr != main_arena_addr:
-            heaps = []
-            arena = self.get_arena(addr)
-            arena_cnt += 1
-
-            # Get the first and last element on the heap linked list of the arena
-            last_heap_addr = heap_for_ptr(int(arena["top"]))
-            first_heap_addr = heap_for_ptr(addr)
-
-            heap = self.get_heap(last_heap_addr)
-            if not heap:
-                print(message.error("Could not find the heap for arena %s" % hex(addr)))
-                return
-
-            # Iterate over the heaps of the arena
-            haddr = last_heap_addr
-            while haddr != 0:
-                if haddr == first_heap_addr:
-                    # The first heap has a heap_info and a malloc_state before the actual chunks
-                    chunks_offset = self.heap_info.sizeof + self.malloc_state.sizeof
-                else:
-                    # The others just
-                    chunks_offset = self.heap_info.sizeof
-                heaps.append(HeapInfo(haddr, haddr + chunks_offset))
-
-                # Name the heap mapping, so that it can be colored properly. Note that due to the way malloc is
-                # optimized, a vm mapping may contain two heaps, so the numbering will not be exact.
-                page = self.get_region(haddr)
-                page.objfile = "[heap %d:%d]" % (arena_cnt, len(heaps))
-                heap = self.get_heap(haddr)
-                haddr = int(heap["prev"])
-
-            # Add to the list of arenas and move on to the next one
+        while addr != main_arena.address:
             arenas.append(Arena(addr))
-            addr = int(arena["next"])
+            arena = Arena(addr)
+            addr = arena.next
 
         arenas = tuple(arenas)
         self._arenas = arenas
@@ -879,26 +831,10 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def get_heap(self, addr):
         raise NotImplementedError()
 
-    def get_arena(self, arena_addr=None):
-        raise NotImplementedError()
-
-    def get_arena_for_chunk(self, addr):
-        chunk = pwndbg.commands.heap.read_chunk(addr)
-        _, _, nm = self.chunk_flags(chunk["size"])
-        if nm:
-            h = self.get_heap(addr)
-            r = self.get_arena(h["ar_ptr"]) if h else None
-        else:
-            r = self.main_arena
-        return r
-
     def get_tcache(self, tcache_addr=None):
         raise NotImplementedError()
 
     def get_sbrk_heap_region(self):
-        raise NotImplementedError()
-
-    def get_heap_boundaries(self, addr=None):
         raise NotImplementedError()
 
     def get_region(self, addr):
@@ -927,12 +863,15 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     def fastbins(self, arena_addr=None):
         """Returns: chain or None"""
-        arena = self.get_arena(arena_addr)
+        if arena_addr:
+            arena = Arena(arena_addr)
+        else:
+            arena = self.thread_arena or self.main_arena
 
         if arena is None:
             return
 
-        fastbinsY = arena["fastbinsY"]
+        fastbinsY = arena.fastbinsY
         fd_offset = self.chunk_key_offset("fd")
         num_fastbins = 7
         size = pwndbg.gdblib.arch.ptrsize * 2
@@ -996,13 +935,16 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         Returns: tuple(chain_from_bin_fd, chain_from_bin_bk, is_chain_corrupted) or None
         """
         index = index - 1
-        arena = self.get_arena(arena_addr)
+
+        if arena_addr is not None:
+            arena = Arena(arena_addr)
+        else:
+            arena = self.thread_arena or self.main_arena
 
         if arena is None:
             return
 
-        normal_bins = arena["bins"]
-        num_bins = normal_bins.type.sizeof // normal_bins.type.target().sizeof
+        normal_bins = arena._gdbValue["bins"]  # Breaks encapsulation, find a better way.
 
         bins_base = int(normal_bins.address) - (pwndbg.gdblib.arch.ptrsize * 2)
         current_base = bins_base + (index * pwndbg.gdblib.arch.ptrsize * 2)
@@ -1257,28 +1199,6 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
 
-    def get_arena(self, arena_addr=None):
-        """Read a malloc_state struct from the specified address, default to
-        reading the current thread's arena. Return the main arena if the
-        current thread is not attached to an arena.
-        """
-        if arena_addr is None:
-            if self.multithreaded:
-                arena_addr = pwndbg.gdblib.memory.u(
-                    pwndbg.gdblib.symbol.static_linkage_symbol_address("thread_arena")
-                    or pwndbg.gdblib.symbol.address("thread_arena")
-                )
-                if arena_addr > 0:
-                    return pwndbg.gdblib.memory.poi(self.malloc_state, arena_addr)
-
-            return self.main_arena
-
-        return (
-            None
-            if pwndbg.gdblib.vmmap.find(arena_addr) is None
-            else pwndbg.gdblib.memory.poi(self.malloc_state, arena_addr)
-        )
-
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
             return self.thread_cache
@@ -1299,24 +1219,6 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         sbrk_region.vaddr = sbrk_base
 
         return sbrk_region
-
-    def get_heap_boundaries(self, addr=None):
-        """Find the boundaries of the heap containing `addr`, default to the
-        boundaries of the heap containing the top chunk for the thread's arena.
-        """
-        region = self.get_region(addr) if addr else self.get_region(self.get_arena()["top"])
-
-        # Occasionally, the [heap] vm region and the actual start of the heap are
-        # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
-        # Return an adjusted Page object if this is the case.
-        page = pwndbg.lib.memory.Page(0, 0, 0, 0)
-        sbrk_base = int(self.mp["sbrk_base"])
-        if region == self.get_region(sbrk_base):
-            if sbrk_base != region.vaddr:
-                page.vaddr = sbrk_base
-                page.memsz = region.memsz - (sbrk_base - region.vaddr)
-                return page
-        return region
 
     def is_initialized(self):
         addr = pwndbg.gdblib.symbol.address("__libc_malloc_initialized")
@@ -1700,10 +1602,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
                 if is_valid_address:
                     thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
-                    # Check *tcache is in the heap region or not to avoid false positive.
-                    if thread_cache_struct_addr in self.get_heap_boundaries():
-                        self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
-                        return self._thread_cache
+                    self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
+                    return self._thread_cache
 
         if self.has_tcache():
             # Each thread has a tcache struct, and the address of the tcache struct is stored in the TLS.
@@ -1869,31 +1769,17 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(
                         tls_base + self._thread_cache_offset
                     )
-                    if (
-                        pwndbg.gdblib.vmmap.find(thread_cache_struct_addr)
-                        and thread_cache_struct_addr in self.get_heap_boundaries()
-                    ):
+                    if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
                         self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                         return self._thread_cache
 
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
             # Note: The result might be wrong if the arena is being shared by multiple threads
             # And that's why we need to find the tcache address in TLS first
-            arena = self.get_arena()
-            heap_region = self.get_heap_boundaries()
+            arena = self.thread_arena or self.main_arena
             ptr_size = pwndbg.gdblib.arch.ptrsize
-            if arena == self.main_arena:
-                cursor = heap_region.start
-            else:
-                cursor = heap_region.start + self.heap_info.sizeof
-                if (
-                    pwndbg.gdblib.vmmap.find(self.get_heap(heap_region.start)["ar_ptr"])
-                    == heap_region
-                ):
-                    # Round up to a 2-machine-word alignment after an arena to
-                    # compensate for the presence of the have_fastchunks variable
-                    # in GLIBC versions >= 2.27.
-                    cursor += (self.malloc_state.sizeof + ptr_size) & ~self.malloc_align_mask
+
+            cursor = arena.active_heap.start
 
             # i686 alignment heuristic
             first_chunk_size = pwndbg.gdblib.arch.unpack(
@@ -2034,7 +1920,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             region = None
             # Try to find heap region via `main_arena.top`
             if self._main_arena_addr and arena:
-                region = self.get_region(arena["top"])
+                region = self.get_region(arena.top)
             # If we can't use `main_arena` to find the heap region, try to find it via vmmap
             region = region or next(
                 (p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None
@@ -2233,21 +2119,6 @@ class HeuristicHeap(GlibcMemoryAllocator):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         return self.heap_info(heap_for_ptr(addr))
 
-    def get_arena(self, arena_addr=None):
-        """Read a malloc_state struct from the specified address, default to
-        reading the current thread's arena. Return the main arena if the
-        current thread is not attached to an arena.
-        """
-        if arena_addr is None:
-            if self.multithreaded:
-                thread_arena = self.thread_arena
-                if thread_arena > 0:
-                    return self.malloc_state(thread_arena)
-
-            return self.main_arena
-
-        return self.malloc_state(arena_addr)
-
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
             return self.thread_cache
@@ -2286,43 +2157,6 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
         else:
             raise SymbolUnresolvableError("Unable to resolve mp_ struct via heuristics.")
-
-    def get_heap_boundaries(self, addr=None):
-        """Find the boundaries of the heap containing `addr`, default to the
-        boundaries of the heap containing the top chunk for the thread's arena.
-        """
-        try:
-            region = self.get_region(addr) if addr else self.get_region(self.get_arena()["top"])
-        except Exception:
-            # Although `self.get_arena` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in main_arena's heuristics break this function :)
-            pass
-        # If we can't use arena to find the heap region, we use vmmap to find the heap region
-        region = next((p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None)
-        if region is not None and addr is not None:
-            region = None if addr not in region else region
-
-        # Occasionally, the [heap] vm region and the actual start of the heap are
-        # different, e.g. [heap] starts at 0x61f000 but mp_.sbrk_base is 0x620000.
-        # Return an adjusted Page object if this is the case.
-        if not self._mp_addr:
-            try:
-                self.mp  # try to fetch the mp_ structure to make sure it's initialized
-            except Exception:
-                # Although `self.mp` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in mp_'s heuristics break this function :)
-                pass
-        if self._mp_addr:  # sometimes we can't find mp_ via heuristics
-            page = pwndbg.lib.memory.Page(0, 0, 0, 0)
-            # make sure mp["sbrk_base"] is valid
-            if self.get_region(self.mp.get_field_address("sbrk_base")) and self.get_region(
-                self.mp["sbrk_base"]
-            ):
-                sbrk_base = int(self.mp["sbrk_base"])
-                if region == self.get_region(sbrk_base):
-                    if sbrk_base != region.vaddr:
-                        page.vaddr = sbrk_base
-                        page.memsz = region.memsz - (sbrk_base - region.vaddr)
-                        return page
-        return region
 
     def is_initialized(self):
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.

@@ -13,6 +13,7 @@ import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import display_config
+from pwndbg.heap.ptmalloc import Arena
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
@@ -127,13 +128,15 @@ def heap(addr=None, verbose=False, simple=False):
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
+    allocator = pwndbg.heap.current
+
     if addr is not None:
         chunk = Chunk(addr)
         while chunk is not None:
             malloc_chunk(chunk.address)
             chunk = chunk.next_chunk()
     else:
-        arena = pwndbg.heap.current.thread_arena or pwndbg.heap.current.main_arena
+        arena = allocator.thread_arena or allocator.main_arena
         h = arena.active_heap
 
         for chunk in h:
@@ -152,8 +155,13 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 def arena(addr=None):
     """Print the contents of an arena, default to the current thread's arena."""
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena(addr)
-    print(arena)
+
+    if addr is not None:
+        arena = Arena(addr)
+    else:
+        arena = allocator.thread_arena or allocator.main_arena
+
+    print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
 parser = argparse.ArgumentParser()
@@ -220,12 +228,13 @@ def top_chunk(addr=None):
     current thread's arena.
     """
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena(addr)
-    address = arena["top"]
-    size = pwndbg.gdblib.memory.u(int(address) + allocator.chunk_key_offset("size"))
 
-    out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
-    print(out)
+    if addr is not None:
+        arena = Arena(addr)
+    else:
+        arena = allocator.thread_arena or allocator.main_arena
+
+    malloc_chunk(arena.top)
 
 
 parser = argparse.ArgumentParser()
@@ -248,9 +257,9 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
-    chunk = Chunk(addr)
-
     allocator = pwndbg.heap.current
+
+    chunk = Chunk(addr)
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
@@ -626,7 +635,6 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
         heap_region = arena.active_heap
         cursor = heap_region.start
 
-    top_chunk = arena.top
     ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
@@ -805,7 +813,7 @@ def try_free(addr):
 
     # constants
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena()
+    arena = allocator.thread_arena or allocator.main_arena
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz
