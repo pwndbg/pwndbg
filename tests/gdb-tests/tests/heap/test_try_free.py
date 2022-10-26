@@ -157,9 +157,11 @@ def test_try_free_invalid_fastbin_entry(start_binary):
 
 def test_try_free_double_free_or_corruption_top(start_binary):
     setup_heap(start_binary, 9)
+    allocator = pwndbg.heap.current
 
     ptr_size = pwndbg.gdblib.arch.ptrsize
-    top_chunk = int(pwndbg.heap.current.get_arena()["top"]) + 2 * ptr_size
+    arena = allocator.thread_arena or allocator.main_arena
+    top_chunk = arena.top + (2 * ptr_size)
 
     result = gdb.execute("try_free {}".format(hex(top_chunk)), to_string=True)
     assert "double free or corruption (top)" in result
