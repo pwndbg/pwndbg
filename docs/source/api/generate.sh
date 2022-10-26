@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -ex
-cat >$1.rst <<EOF
+cat > $1.rst << EOF
 :mod:\`pwndbg.$1\` --- pwndbg.$1
 =============================================
 

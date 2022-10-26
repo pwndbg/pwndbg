@@ -1,6 +1,6 @@
 #!/bin/bash
 # Benchmark context command
-make test >/dev/null
+make test > /dev/null
 git log --abbrev-commit --pretty=oneline HEAD^..HEAD
 gdb ./test \
     -ex "source ../gdbinit.py" \
