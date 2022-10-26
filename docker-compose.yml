@@ -1,5 +1,15 @@
 version: "3.8"
 services:
+  main:
+    build: .
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+  
   ubuntu18.04:
     build:
       context: . 
