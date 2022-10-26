@@ -48,7 +48,7 @@ Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.r
 
 # Linting
 
-The `lint.sh` script runs `isort`, `black`, `flake8`, and `shfmt`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
+The `lint.sh` script runs `isort`, `black`, `flake8`, `shfmt`, and `vermin`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
 
 When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
@@ -58,6 +58,14 @@ You can optionally set the contents of `.git/hooks/pre-push` to the following if
 
 ./lint.sh || exit 1
 ```
+
+# Minimum Supported Versions
+
+Our goal is to fully support all Ubuntu LTS releases that have not reach end-of-life, with support for other platforms on a best-effort basis. Currently that means all code should work on Ubuntu 18.04, 20.04, and 22.04 with GDB 8.1 and later. This means that the minimum supported Python version is 3.6.9, and we cannot use any newer Python features unless those features are backported to this minimum version.
+
+Note that while all code should run without errors on these supported LTS versions, it's fine if older versions don't support all of the features of newer versions, as long as this is handled correctly and this information is shown to the user. For example, we may make use of some GDB APIs in newer versions that we aren't able to provide alternative implementations for in older versions, and so in these cases we should inform the user that the functionality can't be provided due to the version of GDB.
+
+The `lint.sh` script described in the previous section runs [`vermin`](https://github.com/netromdk/vermin) to ensure that our code does not use any features that aren't supported on Python 3.6.
 
 # Random developer notes
 
