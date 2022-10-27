@@ -248,12 +248,15 @@ def static_linkage_symbol_address(symbol: str) -> int:
     Get the address for static linkage `symbol`
     """
 
-    # GDB < 9.x does not have `gdb.lookup_static_symbol`
-    if not hasattr(gdb, "lookup_static_symbol"):
-        return None
-
     try:
-        symbol_obj = gdb.lookup_static_symbol(symbol)
+        if hasattr(gdb, "lookup_static_symbol"):
+            symbol_obj = gdb.lookup_static_symbol(symbol)
+        else:
+            # GDB < 9.x does not have `gdb.lookup_static_symbol`
+            # We will fallback to `gdb.lookup_symbol` here, but the drawback is that we might find incorrect symbol if there is a symbol with the same name which is not static linkage
+            # But this is better than just returning None
+            # TODO/FIXME: Find a way to get the static linkage symbol's address in GDB < 9.x
+            symbol_obj = gdb.lookup_symbol(symbol)[0]
         return int(symbol_obj.value().address) if symbol_obj else None
     except gdb.error:
         return None
