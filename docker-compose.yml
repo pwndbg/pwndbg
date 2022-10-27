@@ -13,7 +13,9 @@ services:
   ubuntu18.04:
     build:
       context: . 
-      dockerfile: Dockerfile-ubuntu18-04
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: ubuntu18.04
       target: ubuntu18.04
     volumes:
       - .:/pwndbg
@@ -26,7 +28,9 @@ services:
   ubuntu20.04:
     build:
       context: . 
-      dockerfile: Dockerfile-ubuntu20-04
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: ubuntu20.04
       target: ubuntu20.04
     volumes:
       - .:/pwndbg
@@ -39,7 +43,9 @@ services:
   ubuntu22.04:
     build:
       context: . 
-      dockerfile: Dockerfile-ubuntu22-04      
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: ubuntu22.04      
       target: ubuntu22.04
     volumes:
       - .:/pwndbg
@@ -52,7 +58,9 @@ services:
   debian10:
     build:
       context: . 
-      dockerfile: Dockerfile-debian10
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: debian10
       target: debian10
     volumes:
       - .:/pwndbg
@@ -65,7 +73,9 @@ services:
   debian11:
     build:
       context: . 
-      dockerfile: Dockerfile-debian11
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: debian11
       target: debian11
     volumes:
       - .:/pwndbg
