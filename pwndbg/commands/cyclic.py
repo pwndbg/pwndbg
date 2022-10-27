@@ -73,7 +73,7 @@ def cyclic_cmd(alphabet, length, lookup, count):
 
         print(message.notice(f"Lookup value: {str(lookup)}"))
 
-        if not all(c in alphabet for c in lookup):
+        if any(c not in alphabet for c in lookup):
             print(message.error("Pattern contains characters not present in the alphabet"))
             return
 
