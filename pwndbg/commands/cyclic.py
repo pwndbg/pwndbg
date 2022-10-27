@@ -55,8 +55,6 @@ def cyclic_cmd(alphabet, length, lookup, count):
         # Convert from gdb.Value
         length = int(length)
     else:
-        # Placing the default here as placing it in the arguments
-        # will default to 4 for some reason
         length = pwndbg.gdblib.arch.ptrsize
 
     if lookup:
