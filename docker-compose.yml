@@ -14,13 +14,73 @@ services:
       - SYS_PTRACE
     
   
-  ${{ matrix.images }}:
+  ubuntu18.04:
     build:
       context: . 
       dockerfile: Dockerfile-unitTests
       args:
-        image: ${{ matrix.images }}
-      target: ${{ matrix.images }}
+        image: ubuntu18.04
+      target: ubuntu18.04
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+      
+  ubuntu20.04:
+    build:
+      context: . 
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: ubuntu20.04
+      target: ubuntu20.04
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+
+  ubuntu22.04:
+    build:
+      context: . 
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: ubuntu22.04      
+      target: ubuntu22.04
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+
+  debian10:
+    build:
+      context: . 
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: debian10
+      target: debian10
+    volumes:
+      - .:/pwndbg
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+
+  debian11:
+    build:
+      context: . 
+      dockerfile: Dockerfile-unitTests
+      args:
+        image: debian11
+      target: debian11
     volumes:
       - .:/pwndbg
     platform: linux/amd64
