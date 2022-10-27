@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   main:
-    build: .
+    build: . 
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -9,14 +9,12 @@ services:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
-    
-  
+
   ubuntu18.04:
     build:
       context: . 
-      dockerfile: Dockerfile-unitTests
       args:
-        image: ubuntu18.04
+        image: ubuntu:18.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -28,9 +26,8 @@ services:
   ubuntu20.04:
     build:
       context: . 
-      dockerfile: Dockerfile-unitTests
       args:
-        image: ubuntu20.04
+        image: ubuntu:20.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -42,9 +39,8 @@ services:
   ubuntu22.04:
     build:
       context: . 
-      dockerfile: Dockerfile-unitTests
       args:
-        image: ubuntu22.04      
+        image: ubuntu:22.04      
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -56,9 +52,8 @@ services:
   debian10:
     build:
       context: . 
-      dockerfile: Dockerfile-unitTests
       args:
-        image: debian10
+        image: debian:10
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -70,9 +65,8 @@ services:
   debian11:
     build:
       context: . 
-      dockerfile: Dockerfile-unitTests
       args:
-        image: debian11
+        image: debian:11
     volumes:
       - .:/pwndbg
     platform: linux/amd64
