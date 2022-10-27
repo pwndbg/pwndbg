@@ -1,7 +1,4 @@
 version: "3.8"
-docker:
-      matrix:
-        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11]
 services:
   main:
     build: .
