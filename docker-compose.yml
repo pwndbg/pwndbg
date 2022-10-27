@@ -17,7 +17,6 @@ services:
       dockerfile: Dockerfile-unitTests
       args:
         image: ubuntu18.04
-      target: ubuntu18.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -32,7 +31,6 @@ services:
       dockerfile: Dockerfile-unitTests
       args:
         image: ubuntu20.04
-      target: ubuntu20.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -47,7 +45,6 @@ services:
       dockerfile: Dockerfile-unitTests
       args:
         image: ubuntu22.04      
-      target: ubuntu22.04
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -62,7 +59,6 @@ services:
       dockerfile: Dockerfile-unitTests
       args:
         image: debian10
-      target: debian10
     volumes:
       - .:/pwndbg
     platform: linux/amd64
@@ -77,7 +73,6 @@ services:
       dockerfile: Dockerfile-unitTests
       args:
         image: debian11
-      target: debian11
     volumes:
       - .:/pwndbg
     platform: linux/amd64
