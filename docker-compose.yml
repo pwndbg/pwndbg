@@ -1,4 +1,7 @@
 version: "3.8"
+docker:
+      matrix:
+        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11]
 services:
   main:
     build: .
@@ -9,74 +12,15 @@ services:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
+    
   
-  ubuntu18.04:
+  ${{ matrix.images }}:
     build:
       context: . 
       dockerfile: Dockerfile-unitTests
       args:
-        image: ubuntu18.04
-      target: ubuntu18.04
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-      
-  ubuntu20.04:
-    build:
-      context: . 
-      dockerfile: Dockerfile-unitTests
-      args:
-        image: ubuntu20.04
-      target: ubuntu20.04
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-
-  ubuntu22.04:
-    build:
-      context: . 
-      dockerfile: Dockerfile-unitTests
-      args:
-        image: ubuntu22.04      
-      target: ubuntu22.04
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-
-  debian10:
-    build:
-      context: . 
-      dockerfile: Dockerfile-unitTests
-      args:
-        image: debian10
-      target: debian10
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-
-  debian11:
-    build:
-      context: . 
-      dockerfile: Dockerfile-unitTests
-      args:
-        image: debian11
-      target: debian11
+        image: ${{ matrix.images }}
+      target: ${{ matrix.images }}
     volumes:
       - .:/pwndbg
     platform: linux/amd64
