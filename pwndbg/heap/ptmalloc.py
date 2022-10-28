@@ -4,7 +4,6 @@ from enum import Enum
 
 import gdb
 
-import pwndbg.color.memory as M
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
@@ -15,6 +14,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.color.memory import c as M
 from pwndbg.constants import ptmalloc
 from pwndbg.heap import heap_chain_limit
 
@@ -310,6 +310,53 @@ class Chunk:
         return self._is_top_chunk
 
 
+class Heap:
+    def __init__(self, addr=None):
+        allocator = pwndbg.heap.current
+        if addr is not None:
+            try:
+                # Can fail if any part of the struct is unmapped (due to corruption/fake struct).
+                ar_ptr = allocator.get_heap(addr)["ar_ptr"]
+                ar_ptr.fetch_lazy()
+            except Exception:
+                ar_ptr = None
+
+            # This is probably a non-main arena if a legitimate ar_ptr exists.
+            if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
+                self.arena = Arena(ar_ptr)
+            else:
+                # Use the main arena as a fallback
+                self.arena = Arena(allocator.main_arena.address)
+        else:
+            # Get the thread arena under default conditions.
+            self.arena = Arena(allocator.get_arena().address)
+
+        if self.arena.address == allocator.main_arena.address:
+            self.is_main_arena_heap = True
+        else:
+            self.is_main_arena_heap = False
+
+        heap_region = allocator.get_heap_boundaries(addr)
+        if not self.is_main_arena_heap:
+            page = pwndbg.lib.memory.Page(0, 0, 0, 0)
+            page.vaddr = heap_region.start + allocator.heap_info.sizeof
+            if (
+                pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"])
+                == heap_region
+            ):
+                page.vaddr += (
+                    allocator.malloc_state.sizeof + allocator.size_sz
+                ) & ~allocator.malloc_align_mask
+            page.memsz = heap_region.end - page.start
+            heap_region = page
+
+        self.start = heap_region.start
+        self.end = heap_region.end
+
+    def __contains__(self, addr: int) -> bool:
+        return self.start <= addr < self.end
+
+
 # https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
 class Arena:
     __slots__ = (
@@ -483,7 +530,7 @@ class HeapInfo:
         )
 
 
-class Heap(pwndbg.heap.heap.BaseHeap):
+class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def __init__(self):
         # Global ptmalloc objects
         self._global_max_fast_addr = None
@@ -984,8 +1031,8 @@ class Heap(pwndbg.heap.heap.BaseHeap):
         )
 
 
-class DebugSymsHeap(Heap):
-    can_be_resolved = Heap.libc_has_debug_syms
+class DebugSymsHeap(GlibcMemoryAllocator):
+    can_be_resolved = GlibcMemoryAllocator.libc_has_debug_syms
 
     @property
     def main_arena(self):
@@ -1158,7 +1205,7 @@ class SymbolUnresolvableError(Exception):
         return "`%s` can not be resolved via heuristic" % self.symbol
 
 
-class HeuristicHeap(Heap):
+class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self):
         super().__init__()
         self._thread_arena_offset = None

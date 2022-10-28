@@ -11,7 +11,6 @@ import gdb
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
-import pwndbg.color.backtrace as B
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
@@ -27,8 +26,23 @@ import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.ui
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
+
+theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
+
+# TODO: Should namespace be "context.backtrace"?
+c = ColorConfig(
+    "backtrace",
+    [
+        ColorParamSpec("prefix", "none", "color for prefix of current backtrace label"),
+        ColorParamSpec("address", "none", "color for backtrace (address)"),
+        ColorParamSpec("symbol", "none", "color for backtrace (symbol)"),
+        ColorParamSpec("frame-label", "none", "color for backtrace (frame label)"),
+    ],
+)
 
 
 def clear_screen(out=sys.stdout):
@@ -767,16 +781,16 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
     frame = newest_frame
     i = 0
-    bt_prefix = "%s" % B.config_prefix
+    bt_prefix = "%s" % pwndbg.gdblib.config.backtrace_prefix
     while True:
 
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
-        prefix = " %s" % B.prefix(prefix)
-        addrsz = B.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = B.symbol(pwndbg.gdblib.symbol.get(frame.pc()))
+        prefix = " %s" % c.prefix(prefix)
+        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
+        symbol = c.symbol(pwndbg.gdblib.symbol.get(frame.pc()))
         if symbol:
             addrsz = addrsz + " " + symbol
-        line = map(str, (prefix, B.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
+        line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
         line = " ".join(line)
         result.append(line)
 

@@ -85,7 +85,7 @@ ctx-watch ITEMS[0]
 Alternatively one can provide an arbitrary gdb command to be executed and the result printed in the
 context by using the optional `cmd` parameter with the value `execute`:
 ```
-contextwatch exectue "ds BUF"
+contextwatch execute "ds BUF"
 cwatch execute "x/20x $rsp"
 ```
 

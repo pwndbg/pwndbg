@@ -322,6 +322,8 @@ E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 3
 sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
+
+If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
 """
                     )
                     w(
@@ -459,6 +461,7 @@ def load_commands():
     import pwndbg.commands.context
     import pwndbg.commands.cpsr
     import pwndbg.commands.cyclic
+    import pwndbg.commands.cymbol
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf

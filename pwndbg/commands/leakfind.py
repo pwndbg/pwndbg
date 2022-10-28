@@ -7,12 +7,12 @@ import queue
 
 import gdb
 
-import pwndbg.color.chain as C
 import pwndbg.color.memory as M
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
-from pwndbg.chain import config_arrow_right
+from pwndbg.chain import c as C
 
 
 # Used to recursively print the pointer chain.
@@ -20,7 +20,7 @@ from pwndbg.chain import config_arrow_right
 # visited_map is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr, visited_map):
     page = pwndbg.gdblib.vmmap.find(addr)
-    arrow_right = C.arrow(" %s " % config_arrow_right)
+    arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
 
     if page is not None:
         if addr not in visited_map:
@@ -162,7 +162,7 @@ def leakfind(
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
     output_map = {}
-    arrow_right = C.arrow(" %s " % config_arrow_right)
+    arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
 
     for child in visited_map:
         child_page = pwndbg.gdblib.vmmap.find(child)

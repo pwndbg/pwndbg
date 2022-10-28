@@ -1,3 +1,5 @@
+import os
+
 import gdb
 import pytest
 
@@ -8,13 +10,22 @@ from pwndbg.commands.shell import shellcmd_names
 BINARY = tests.binaries.get("heap_bins.out")
 
 # TODO: See if we can reduce the number of commands we need to skip
-blacklisted_commands = set(["disasm", "unhex", "bugreport", "try_free", "errno", "nextproginstr"])
+disallowed_commands = set(
+    [
+        # requires user input
+        "ipi",
+        # takes too long
+        "nextproginstr",
+    ]
+)
 
 # Don't run any shell commands
-blacklisted_commands.update(shellcmd_names)
+disallowed_commands.update(shellcmd_names)
+
+filtered_commands = command_names - disallowed_commands
 
 # TODO: Figure out why these are being thrown and then remove this
-whitelisted_exceptions = [
+allowed_exceptions = [
     "Cannot access memory at address",
     "Cannot insert breakpoint",
     "Warning:",
@@ -22,24 +33,30 @@ whitelisted_exceptions = [
 ]
 
 
-@pytest.mark.skip(reason="flaky test")
-def test_commands(start_binary):
-    for name in command_names:
-        print("Running command", name)
-        try:
-            start_binary(BINARY)
+running_on_ci = os.getenv("GITHUB_ACTIONS")
+run_flaky = os.getenv("RUN_FLAKY")
 
-            if name in blacklisted_commands:
-                continue
+should_skip_test = not running_on_ci and not run_flaky
+if should_skip_test:
+    # The test name will look like "test_commands[*]" if the test is skipped
+    filtered_commands = set("*")
 
-            gdb.execute(name)
-        except gdb.error as e:
-            ignore = False
-            for ex in whitelisted_exceptions:
-                if ex in str(e):
-                    ignore = True
-                    print("Ignoring exception in command", name)
-                    break
 
-            if not ignore:
-                raise e
+@pytest.mark.parametrize("name", filtered_commands)
+@pytest.mark.skipif(condition=should_skip_test, reason="flaky test")
+@pytest.mark.xfail(reason="flaky test")
+def test_commands(start_binary, name):
+    print("Running command", name)
+    try:
+        start_binary(BINARY)
+        gdb.execute(name)
+    except gdb.error as e:
+        ignore = False
+        for ex in allowed_exceptions:
+            if ex in str(e):
+                ignore = True
+                print("Ignoring exception in command", name)
+                break
+
+        if not ignore:
+            raise e
