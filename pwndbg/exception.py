@@ -42,6 +42,16 @@ def inform_report_issue(exception_msg):
     )
 
 
+def inform_verbose_and_debug():
+    print(
+        message.notice("For more info invoke `")
+        + message.hint("set exception-verbose on")
+        + message.notice("` and rerun the command\nor debug it by yourself with `")
+        + message.hint("set exception-debugger on")
+        + message.notice("`")
+    )
+
+
 def handle(name="Error"):
     """Displays an exception to the user, optionally displaying a full traceback
     and spawning an interactive post-moretem debugger.
@@ -69,13 +79,7 @@ def handle(name="Error"):
 
         print(message.error("Exception occurred: {}: {} ({})".format(name, exc_value, exc_type)))
 
-        print(
-            message.notice("For more info invoke `")
-            + message.hint("set exception-verbose on")
-            + message.notice("` and rerun the command\nor debug it by yourself with `")
-            + message.hint("set exception-debugger on")
-            + message.notice("`")
-        )
+        inform_verbose_and_debug()
 
     # Break into the interactive debugger
     if debug:
