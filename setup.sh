@@ -61,9 +61,9 @@ install_emerge() {
 }
 
 install_pacman() {
-	sudo pacman -Syy || true
-	sudo pacman -S gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-future python-pygments which debuginfod
-	echo "set debuginfod enabled on" >> ~/.gdbinit
+    sudo pacman -Syy || true
+    sudo pacman -S gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-future python-pygments which debuginfod
+    echo "set debuginfod enabled on" >> ~/.gdbinit
 }
 
 PYTHON=''
@@ -91,10 +91,10 @@ if linux; then
         "opensuse-leap")
             install_zypper
             ;;
-        "arch" | "endeavouros" | "manjaro" )
-			install_pacman
-			echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
-			echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
+        "arch" | "endeavouros" | "manjaro")
+            install_pacman
+            echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
+            echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
             ;;
         "void")
             install_xbps
