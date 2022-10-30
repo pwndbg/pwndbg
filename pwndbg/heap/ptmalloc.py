@@ -2130,13 +2130,15 @@ class HeuristicHeap(GlibcMemoryAllocator):
         """Find the boundaries of the heap containing `addr`, default to the
         boundaries of the heap containing the top chunk for the thread's arena.
         """
+        region = None
         try:
             region = self.get_region(addr) if addr else self.get_region(self.get_arena()["top"])
         except Exception:
             # Although `self.get_arena` should only raise `SymbolUnresolvableError`, we catch all exceptions here to avoid some bugs in main_arena's heuristics break this function :)
             pass
         # If we can't use arena to find the heap region, we use vmmap to find the heap region
-        region = next((p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None)
+        if region is None and not self.multithreaded:
+            region = next((p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None)
         if region is not None and addr is not None:
             region = None if addr not in region else region
 

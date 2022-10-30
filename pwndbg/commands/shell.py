@@ -7,7 +7,7 @@ import os
 import pwndbg.commands
 import pwndbg.lib.which
 
-pwncmds = ["asm", "constgrep", "cyclic", "disasm", "pwn", "unhex"]
+pwncmds = ["asm", "constgrep", "disasm", "pwn", "unhex"]
 shellcmd_names = [
     "awk",
     "bash",

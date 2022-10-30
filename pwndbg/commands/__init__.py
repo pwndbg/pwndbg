@@ -278,10 +278,12 @@ def OnlyWithResolvedHeapSyms(function):
                     f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
                 )
                 if (
-                    pwndbg.gdblib.config.exception_verbose.value
-                    or pwndbg.gdblib.config.exception_debugger.value
+                    pwndbg.gdblib.config.exception_verbose
+                    or pwndbg.gdblib.config.exception_debugger
                 ):
                     raise err
+                else:
+                    pwndbg.exception.inform_verbose_and_debug()
             except Exception as err:
                 e(f"{function.__name__}: An unknown error occurred when running this command.")
                 if pwndbg.gdblib.config.resolve_heap_via_heuristic:
@@ -295,6 +297,8 @@ def OnlyWithResolvedHeapSyms(function):
                     or pwndbg.gdblib.config.exception_debugger
                 ):
                     raise err
+                else:
+                    pwndbg.exception.inform_verbose_and_debug()
         else:
             print(message.error(f"{function.__name__}: "), end="")
             if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
@@ -322,6 +326,8 @@ E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 3
 sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
+
+If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
 """
                     )
                     w(
@@ -458,6 +464,8 @@ def load_commands():
     import pwndbg.commands.config
     import pwndbg.commands.context
     import pwndbg.commands.cpsr
+    import pwndbg.commands.cyclic
+    import pwndbg.commands.cymbol
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
