@@ -8,6 +8,9 @@ help_and_exit() {
     echo "Usage: ./tests.sh [-p|--pdb] [-c|--cov] [<test-name-filter>]"
     echo "  -p,  --pdb         enable pdb (Python debugger) post mortem debugger on failed tests"
     echo "  -c,  --cov         enable codecov"
+    echo "  -v,  --verbose     display all test output instead of just failing test output"
+    echo "  -k,  --keep        don't delete the temporary files containing the command output"
+    echo " --collect-only      only show the output of test collection, don't run any tests"
     echo "  <test-name-filter> run only tests that match the regex"
     exit 1
 }
@@ -19,6 +22,9 @@ fi
 USE_PDB=0
 TEST_NAME_FILTER=""
 RUN_CODECOV=0
+KEEP=0
+VERBOSE=0
+COLLECT_ONLY=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -30,6 +36,18 @@ while [[ $# -gt 0 ]]; do
         -c | --cov)
             echo "Will run codecov"
             RUN_CODECOV=1
+            shift
+            ;;
+        -v | --verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -k | --keep)
+            KEEP=1
+            shift
+            ;;
+        --collect-only)
+            COLLECT_ONLY=1
             shift
             ;;
         -h | --help)
@@ -66,6 +84,9 @@ TESTS_COLLECT_OUTPUT=$(run_gdb "${gdb_args[@]}")
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
     exit 1
+elif [ $COLLECT_ONLY -eq 1 ]; then
+    echo "$TESTS_COLLECT_OUTPUT"
+    exit 0
 fi
 
 TESTS_LIST=($(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}"))
@@ -89,24 +110,31 @@ run_test() {
 }
 
 parse_output_file() {
-    #echo $1
     output_file="$1"
 
-    read -r testname result < <(grep -Po '(^tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED)\x1b\[0m)' "$output_file" | tr '\n' ' ' | cut -d ' ' -f 1,2)
+    read -r testname result < <(
+        grep -Po '(^tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)' "$output_file" \
+            | tr '\n' ' ' \
+            | cut -d ' ' -f 1,2
+    )
     testfile=${testname%::*}
     testname=${testname#*::}
 
     printf '%-70s %s\n' $testname $result
 
-    # Only show the output of failed tests
-    if [[ "$result" =~ FAILED ]]; then
+    # Only show the output of failed tests unless the verbose flag was used
+    if [[ $VERBOSE -eq 1 || "$result" =~ FAIL ]]; then
         echo ""
         cat "$output_file"
         echo ""
     fi
 
-    # Delete the temporary file created by `parallel`
-    rm "$output_file"
+    if [[ $KEEP -ne 1 ]]; then
+        # Delete the temporary file created by `parallel`
+        rm "$output_file"
+    else
+        echo "$output_file"
+    fi
 }
 
 JOBLOG_PATH="$(mktemp)"

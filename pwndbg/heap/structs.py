@@ -629,12 +629,90 @@ class c_malloc_par_2_26(ctypes.LittleEndianStructure):
     ]
 
 
+class c_malloc_par_2_35(ctypes.LittleEndianStructure):
+    """
+    This class represents the malloc_par struct for GLIBC >= 2.35 as a ctypes struct.
+
+    https://github.com/bminor/glibc/blob/glibc-2.35/malloc/malloc.c#L1874
+
+    struct malloc_par
+    {
+        /* Tunable parameters */
+        unsigned long trim_threshold;
+        INTERNAL_SIZE_T top_pad;
+        INTERNAL_SIZE_T mmap_threshold;
+        INTERNAL_SIZE_T arena_test;
+        INTERNAL_SIZE_T arena_max;
+
+    #if HAVE_TUNABLES
+        /* Transparent Large Page support.  */
+        INTERNAL_SIZE_T thp_pagesize;
+        /* A value different than 0 means to align mmap allocation to hp_pagesize
+            add hp_flags on flags.  */
+        INTERNAL_SIZE_T hp_pagesize;
+        int hp_flags;
+    #endif
+
+        /* Memory map support */
+        int n_mmaps;
+        int n_mmaps_max;
+        int max_n_mmaps;
+        /* the mmap_threshold is dynamic, until the user sets
+            it manually, at which point we need to disable any
+            dynamic behavior. */
+        int no_dyn_threshold;
+
+        /* Statistics */
+        INTERNAL_SIZE_T mmapped_mem;
+        INTERNAL_SIZE_T max_mmapped_mem;
+
+        /* First address handed out by MORECORE/sbrk.  */
+        char *sbrk_base;
+
+    #if USE_TCACHE
+        /* Maximum number of buckets to use.  */
+        size_t tcache_bins;
+        size_t tcache_max_bytes;
+        /* Maximum number of chunks in each bucket.  */
+        size_t tcache_count;
+        /* Maximum number of chunks to remove from the unsorted list, which
+            aren't used to prefill the cache.  */
+        size_t tcache_unsorted_limit;
+    #endif
+    };
+    """
+
+    _fields_ = [
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("thp_pagesize", c_size_t),
+        ("hp_pagesize", c_size_t),
+        ("hp_flags", ctypes.c_int32),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+        ("tcache_bins", c_size_t),
+        ("tcache_max_bytes", c_size_t),
+        ("tcache_count", ctypes.c_int32),
+        ("tcache_unsorted_limit", c_size_t),
+    ]
+
+
 class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
 
-    if pwndbg.glibc.get_version() >= (2, 26):
+    if pwndbg.glibc.get_version() >= (2, 35):
+        _c_struct = c_malloc_par_2_35
+    elif pwndbg.glibc.get_version() >= (2, 26):
         _c_struct = c_malloc_par_2_26
     else:
         _c_struct = c_malloc_par_2_25

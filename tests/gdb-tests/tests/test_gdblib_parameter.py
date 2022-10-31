@@ -14,7 +14,10 @@ import pwndbg.gdblib.config
         ("auto-bool", None, "auto", {"param_class": gdb.PARAM_AUTO_BOOLEAN}),
         ("unlimited-uint", 0, "unlimited", {"param_class": gdb.PARAM_UINTEGER}),
         ("unlimited-int", 0, "unlimited", {"param_class": gdb.PARAM_INTEGER}),
-        ("unlimited-zuint", -1, "unlimited", {"param_class": gdb.PARAM_ZUINTEGER_UNLIMITED}),
+        # GDB < 9.x does not support PARAM_ZUINTEGER_UNLIMITED
+        ("unlimited-zuint", -1, "unlimited", {"param_class": gdb.PARAM_ZUINTEGER_UNLIMITED})
+        if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
+        else (),
         (
             "enum",
             "enum1",
@@ -24,6 +27,9 @@ import pwndbg.gdblib.config
     ),
 )
 def test_gdb_parameter_default_value_works(start_binary, params):
+    if not params:
+        pytest.skip("Current GDB version does not support this testcase")
+
     name_suffix, default_value, displayed_value, optional_kwargs = params
 
     param_name = f"test-param-{name_suffix}"

@@ -179,7 +179,7 @@ class mock_for_heuristic:
             mock_symbols  # every symbol's address in the list will be mocked to `None`
         )
         self.mock_all = mock_all  # all symbols will be mocked to `None`
-        # Save `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses` before mocking
+        # Save `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address` before mocking
         self.saved_address_func = pwndbg.gdblib.symbol.address
         self.saved_static_linkage_symbol_address_func = (
             pwndbg.gdblib.symbol.static_linkage_symbol_address
@@ -203,7 +203,7 @@ class mock_for_heuristic:
 
             return _mock
 
-        # Mock `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses`
+        # Mock `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
         pwndbg.gdblib.symbol.address = mock(pwndbg.gdblib.symbol.address)
         pwndbg.gdblib.symbol.static_linkage_symbol_address = mock(
             pwndbg.gdblib.symbol.static_linkage_symbol_address
@@ -213,7 +213,7 @@ class mock_for_heuristic:
             pwndbg.gdblib.memory.write(self.page.vaddr, b"\xff" * self.page.memsz)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.addresses`
+        # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
         pwndbg.gdblib.symbol.address = self.saved_address_func
         pwndbg.gdblib.symbol.static_linkage_symbol_address = (
             self.saved_static_linkage_symbol_address_func
@@ -281,14 +281,10 @@ def test_mp_heuristic(start_binary):
     # Check the address of `main_arena` is correct
     assert pwndbg.heap.current.mp.address == mp_addr_via_debug_symbol
     # Check the struct size is correct
-    # FIXME: We still have bug for GLIBC >= 2.35 in this heuristic because the size of `malloc_par` is changed
-    # So this test will fail for the tests on ubuntu 22.04
-    # TODO: Fix the bug and enable this test
-    if pwndbg.glibc.get_version() < (2, 35):
-        assert (
-            pwndbg.heap.current.mp.type.sizeof
-            == pwndbg.gdblib.typeinfo.lookup_types("struct malloc_par").sizeof
-        )
+    assert (
+        pwndbg.heap.current.mp.type.sizeof
+        == pwndbg.gdblib.typeinfo.lookup_types("struct malloc_par").sizeof
+    )
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 2: We check we can get the address of `mp_` by parsing the assembly code of `__libc_free`
@@ -299,13 +295,9 @@ def test_mp_heuristic(start_binary):
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 3: We check we can get the address of `mp_` by parsing the memory
-    # FIXME: We still have bug for GLIBC >= 2.35 in this heuristic because the size of `malloc_par` is changed
-    # So this test will fail for the tests on ubuntu 22.04
-    # TODO: Fix the bug and enable this test
-    if pwndbg.glibc.get_version() < (2, 35):
-        with mock_for_heuristic(mock_all=True):
-            # Check the address of `mp_` is correct
-            assert pwndbg.heap.current.mp.address == mp_addr_via_debug_symbol
+    with mock_for_heuristic(mock_all=True):
+        # Check the address of `mp_` is correct
+        assert pwndbg.heap.current.mp.address == mp_addr_via_debug_symbol
 
 
 def test_global_max_fast_heuristic(start_binary):
