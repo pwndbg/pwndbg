@@ -1,6 +1,6 @@
 # This dockerfile was created for development & testing purposes
 #
-# Build as:             docker build -t pwndbg . 
+# Build as:             docker build -t pwndbg .
 #
 # For testing use:      docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pwndbg bash
 #
