@@ -44,13 +44,13 @@ group.add_argument(
     "count",
     type=int,
     nargs="?",
-    default=None,
+    default=100,
     help="Number of characters to print from the sequence (default: print the entire sequence)",
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
-def cyclic_cmd(alphabet, length, lookup, count):
+def cyclic_cmd(alphabet, length, lookup, count=100):
     if length:
         # Convert from gdb.Value
         length = int(length)
