@@ -147,7 +147,13 @@ parse_output_file() {
 
 JOBLOG_PATH="$(mktemp)"
 echo ""
-echo "Joblog: $JOBLOG_PATH"
+echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
+
+if [[ $KEEP -ne 1 ]]; then
+    echo " (use --keep it to persist it)"
+else
+    echo ""
+fi
 
 . $(which env_parallel.bash)
 
@@ -183,4 +189,11 @@ if [ "${num_tests_failed}" -ne 0 ]; then
     echo ""
     echo "Failing tests: ${FAILED_TESTS[@]}"
     exit 1
+fi
+
+if [[ $KEEP -ne 1 ]]; then
+    # Delete the temporary joblog file
+    rm "${JOBLOG_PATH}"
+else
+    echo "Not removing the ${JOBLOG_PATH} since --keep was passed"
 fi
