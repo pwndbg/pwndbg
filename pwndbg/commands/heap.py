@@ -136,7 +136,7 @@ def heap(addr=None, verbose=False, simple=False):
             malloc_chunk(chunk.address)
             chunk = chunk.next_chunk()
     else:
-        arena = allocator.thread_arena or allocator.main_arena
+        arena = allocator.thread_arena
         h = arena.active_heap
 
         for chunk in h:
@@ -159,7 +159,7 @@ def arena(addr=None):
     if addr is not None:
         arena = Arena(addr)
     else:
-        arena = allocator.thread_arena or allocator.main_arena
+        arena = allocator.thread_arena
 
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
@@ -232,7 +232,7 @@ def top_chunk(addr=None):
     if addr is not None:
         arena = Arena(addr)
     else:
-        arena = allocator.thread_arena or allocator.main_arena
+        arena = allocator.thread_arena
 
     malloc_chunk(arena.top)
 
@@ -631,7 +631,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
         heap_region = Heap(cursor)
         arena = heap_region.arena
     else:
-        arena = allocator.thread_arena or allocator.main_arena
+        arena = allocator.thread_arena
         heap_region = arena.active_heap
         cursor = heap_region.start
 
@@ -813,7 +813,7 @@ def try_free(addr):
 
     # constants
     allocator = pwndbg.heap.current
-    arena = allocator.thread_arena or allocator.main_arena
+    arena = allocator.thread_arena
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz

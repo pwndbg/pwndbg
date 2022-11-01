@@ -878,7 +878,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if arena_addr:
             arena = Arena(arena_addr)
         else:
-            arena = self.thread_arena or self.main_arena
+            arena = self.thread_arena
 
         if arena is None:
             return
@@ -951,7 +951,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if arena_addr is not None:
             arena = Arena(arena_addr)
         else:
-            arena = self.thread_arena or self.main_arena
+            arena = self.thread_arena
 
         if arena is None:
             return
@@ -1114,11 +1114,16 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
     @property
     def thread_arena(self):
-        thread_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-            "thread_arena"
-        ) or pwndbg.gdblib.symbol.address("thread_arena")
-        if thread_arena_addr is not None:
-            return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_addr))
+        if self.multithreaded:
+            thread_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
+                "thread_arena"
+            ) or pwndbg.gdblib.symbol.address("thread_arena")
+            if thread_arena_addr is not None and thread_arena_addr != 0:
+                return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_addr))
+            else:
+                return None
+        else:
+            return self.main_arena
 
     @property
     def thread_cache(self):
@@ -1425,161 +1430,168 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     @property
     def thread_arena(self):
-        thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
-        thread_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-            "thread_arena"
-        ) or pwndbg.gdblib.symbol.address("thread_arena")
-        if thread_arena_via_config > 0:
-            return Arena(thread_arena_via_config)
-        elif thread_arena_via_symbol:
-            if pwndbg.gdblib.symbol.static_linkage_symbol_address("thread_arena"):
-                # If the symbol is static-linkage symbol, we trust it.
-                return Arena(pwndbg.gdblib.memory.u(thread_arena_via_symbol))
-            # Check &thread_arena is nearby TLS base or not to avoid false positive.
-            tls_base = pwndbg.gdblib.tls.address
-            if tls_base:
-                if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-                    is_valid_address = 0 < tls_base - thread_arena_via_symbol < 0x250
-                else:  # elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
-                    is_valid_address = 0 < thread_arena_via_symbol - tls_base < 0x250
+        if self.multithreaded:
+            thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
+            thread_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
+                "thread_arena"
+            ) or pwndbg.gdblib.symbol.address("thread_arena")
+            if thread_arena_via_config > 0:
+                return Arena(thread_arena_via_config)
+            elif thread_arena_via_symbol:
+                if pwndbg.gdblib.symbol.static_linkage_symbol_address("thread_arena"):
+                    # If the symbol is static-linkage symbol, we trust it.
+                    return Arena(pwndbg.gdblib.memory.u(thread_arena_via_symbol))
+                # Check &thread_arena is nearby TLS base or not to avoid false positive.
+                tls_base = pwndbg.gdblib.tls.address
+                if tls_base:
+                    if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
+                        is_valid_address = 0 < tls_base - thread_arena_via_symbol < 0x250
+                    else:  # elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
+                        is_valid_address = 0 < thread_arena_via_symbol - tls_base < 0x250
 
-                is_valid_address = (
-                    is_valid_address
-                    and thread_arena_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
-                )
-
-                if is_valid_address:
-                    thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
-                    # Check &thread_arena is a valid address or not to avoid false positive.
-                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
-                        return Arena(thread_arena_struct_addr)
-
-        if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
-            # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
-            __libc_calloc_instruction = pwndbg.disasm.near(
-                pwndbg.gdblib.symbol.address("__libc_calloc"), 100, show_prev_insns=False
-            )
-            # try to find the reference to thread_arena in arena_get in __libc_calloc ( ptr = thread_arena; )
-            if pwndbg.gdblib.arch.current == "x86-64":
-                # try to find something like `mov rax, [rip + disp]`
-                # and its next is `mov reg, qword ptr fs:[rax]`
-                # and then we can get the tls offset to thread_arena by calculating value of rax
-
-                is_possible = lambda i, instr: (
-                    __libc_calloc_instruction[i + 1].op_str.endswith("qword ptr fs:[rax]")
-                    and instr.op_str.startswith("rax, qword ptr [rip +")
-                )
-                get_offset_instruction = next(
-                    instr
-                    for i, instr in enumerate(__libc_calloc_instruction[:-1])
-                    if is_possible(i, instr)
-                )
-                # rip + disp
-                self._thread_arena_offset = pwndbg.gdblib.memory.s64(
-                    get_offset_instruction.next + get_offset_instruction.disp
-                )
-            elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
-                base_offset = self.possible_page_of_symbols.vaddr
-                # try to find something like `mov eax, dword ptr [reg + disp]` (disp is a negative value)
-                # and its next is either `mov reg, dword ptr gs:[eax]` or `mov reg, dword ptr [reg + eax]`
-                # and then we can get the tls offset to thread_arena by calculating value of eax
-
-                # this part is very dirty, but it works
-                is_possible = lambda i, instr: (
-                    (
-                        __libc_calloc_instruction[i + 1].op_str.endswith("gs:[eax]")
-                        ^ __libc_calloc_instruction[i + 1].op_str.endswith("+ eax]")
+                    is_valid_address = (
+                        is_valid_address
+                        and thread_arena_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
                     )
-                    and __libc_calloc_instruction[i + 1].mnemonic == "mov"
-                    and instr.mnemonic == "mov"
-                    and instr.op_str.startswith("eax, dword ptr [e")
-                    and instr.disp < 0
-                )
-                get_offset_instruction = [
-                    instr
-                    for i, instr in enumerate(__libc_calloc_instruction[:-1])
-                    if is_possible(i, instr)
-                ][-1]
-                # reg + disp (value of reg is the page start of the last libc page)
-                self._thread_arena_offset = pwndbg.gdblib.memory.s32(
-                    base_offset + get_offset_instruction.disp
-                )
-            elif pwndbg.gdblib.arch.current == "aarch64":
-                # There's a branch to get main_arena or thread_arena
-                # and before the branch, the flow of assembly code will like:
-                # `mrs reg1, tpidr_el;
-                # adrp reg2, #base_offset;
-                # ldr reg2, [reg2, #offset]
-                # /* branch(cbnz) to arena_get or use main_arena */;
-                # /* if branch to thread_arena*/;
-                # ldr reg3, [reg1, reg2]`
-                # Or:
-                # `adrp	reg1, #base_offset;
-                # ldr reg1, [reg1, #offset];
-                # mrs reg2, tpidr_el;
-                # /* branch(cbnz) to arena_get or use main_arena */;
-                # /* if branch to thread_arena*/;
-                # ldr reg2, [reg1, reg2]`
-                # , then reg3 or reg2 will be &thread_arena
-                mrs_instr = next(
-                    instr for instr in __libc_calloc_instruction if instr.mnemonic == "mrs"
-                )
-                min_adrp_distance = 0x1000  # just a big enough number
-                nearest_adrp = None
-                nearest_adrp_idx = 0
-                for i, instr in enumerate(__libc_calloc_instruction):
-                    if (
-                        instr.mnemonic == "adrp"
-                        and abs(mrs_instr.address - instr.address) < min_adrp_distance
-                    ):
-                        reg = instr.operands[0].str
-                        nearest_adrp = instr
-                        nearest_adrp_idx = i
-                        min_adrp_distance = abs(mrs_instr.address - instr.address)
-                    if instr.address - mrs_instr.address > min_adrp_distance:
-                        break
-                for instr in __libc_calloc_instruction[nearest_adrp_idx + 1 :]:
-                    if instr.mnemonic == "ldr":
-                        base_offset = nearest_adrp.operands[1].int
-                        offset = instr.operands[1].mem.disp
-                        self._thread_arena_offset = pwndbg.gdblib.memory.s64(base_offset + offset)
-                        break
 
-            elif pwndbg.gdblib.arch.current == "arm":
-                # We need to find something near the first `mrc 15, ......`
-                # The flow of assembly code will like:
-                # `ldr reg1, [pc, #offset];
-                # mrc 15, 0, reg2, cr13, cr0, {3};
-                # add reg1, pc;
-                # ldr reg1, [reg1];
-                # add reg1, reg2`
-                # , then reg1 will be &thread_arena
-                found_mrc = False
-                ldr_instr = None
-                for instr in __libc_calloc_instruction:
-                    if not found_mrc:
-                        if instr.mnemonic == "mrc":
-                            found_mrc = True
-                        elif instr.mnemonic == "ldr":
-                            ldr_instr = instr
-                    else:
-                        reg = ldr_instr.operands[0].str
-                        if instr.mnemonic == "add" and instr.op_str == reg + ", pc":
-                            offset = ldr_instr.operands[1].mem.disp
-                            offset = pwndbg.gdblib.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                            self._thread_arena_offset = pwndbg.gdblib.memory.s32(
-                                instr.address + 4 + offset
+                    if is_valid_address:
+                        thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
+                        # Check &thread_arena is a valid address or not to avoid false positive.
+                        if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
+                            return Arena(thread_arena_struct_addr)
+
+            if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
+                # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
+                __libc_calloc_instruction = pwndbg.disasm.near(
+                    pwndbg.gdblib.symbol.address("__libc_calloc"), 100, show_prev_insns=False
+                )
+                # try to find the reference to thread_arena in arena_get in __libc_calloc ( ptr = thread_arena; )
+                if pwndbg.gdblib.arch.current == "x86-64":
+                    # try to find something like `mov rax, [rip + disp]`
+                    # and its next is `mov reg, qword ptr fs:[rax]`
+                    # and then we can get the tls offset to thread_arena by calculating value of rax
+
+                    is_possible = lambda i, instr: (
+                        __libc_calloc_instruction[i + 1].op_str.endswith("qword ptr fs:[rax]")
+                        and instr.op_str.startswith("rax, qword ptr [rip +")
+                    )
+                    get_offset_instruction = next(
+                        instr
+                        for i, instr in enumerate(__libc_calloc_instruction[:-1])
+                        if is_possible(i, instr)
+                    )
+                    # rip + disp
+                    self._thread_arena_offset = pwndbg.gdblib.memory.s64(
+                        get_offset_instruction.next + get_offset_instruction.disp
+                    )
+                elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
+                    base_offset = self.possible_page_of_symbols.vaddr
+                    # try to find something like `mov eax, dword ptr [reg + disp]` (disp is a negative value)
+                    # and its next is either `mov reg, dword ptr gs:[eax]` or `mov reg, dword ptr [reg + eax]`
+                    # and then we can get the tls offset to thread_arena by calculating value of eax
+
+                    # this part is very dirty, but it works
+                    is_possible = lambda i, instr: (
+                        (
+                            __libc_calloc_instruction[i + 1].op_str.endswith("gs:[eax]")
+                            ^ __libc_calloc_instruction[i + 1].op_str.endswith("+ eax]")
+                        )
+                        and __libc_calloc_instruction[i + 1].mnemonic == "mov"
+                        and instr.mnemonic == "mov"
+                        and instr.op_str.startswith("eax, dword ptr [e")
+                        and instr.disp < 0
+                    )
+                    get_offset_instruction = [
+                        instr
+                        for i, instr in enumerate(__libc_calloc_instruction[:-1])
+                        if is_possible(i, instr)
+                    ][-1]
+                    # reg + disp (value of reg is the page start of the last libc page)
+                    self._thread_arena_offset = pwndbg.gdblib.memory.s32(
+                        base_offset + get_offset_instruction.disp
+                    )
+                elif pwndbg.gdblib.arch.current == "aarch64":
+                    # There's a branch to get main_arena or thread_arena
+                    # and before the branch, the flow of assembly code will like:
+                    # `mrs reg1, tpidr_el;
+                    # adrp reg2, #base_offset;
+                    # ldr reg2, [reg2, #offset]
+                    # /* branch(cbnz) to arena_get or use main_arena */;
+                    # /* if branch to thread_arena*/;
+                    # ldr reg3, [reg1, reg2]`
+                    # Or:
+                    # `adrp	reg1, #base_offset;
+                    # ldr reg1, [reg1, #offset];
+                    # mrs reg2, tpidr_el;
+                    # /* branch(cbnz) to arena_get or use main_arena */;
+                    # /* if branch to thread_arena*/;
+                    # ldr reg2, [reg1, reg2]`
+                    # , then reg3 or reg2 will be &thread_arena
+                    mrs_instr = next(
+                        instr for instr in __libc_calloc_instruction if instr.mnemonic == "mrs"
+                    )
+                    min_adrp_distance = 0x1000  # just a big enough number
+                    nearest_adrp = None
+                    nearest_adrp_idx = 0
+                    for i, instr in enumerate(__libc_calloc_instruction):
+                        if (
+                            instr.mnemonic == "adrp"
+                            and abs(mrs_instr.address - instr.address) < min_adrp_distance
+                        ):
+                            reg = instr.operands[0].str
+                            nearest_adrp = instr
+                            nearest_adrp_idx = i
+                            min_adrp_distance = abs(mrs_instr.address - instr.address)
+                        if instr.address - mrs_instr.address > min_adrp_distance:
+                            break
+                    for instr in __libc_calloc_instruction[nearest_adrp_idx + 1 :]:
+                        if instr.mnemonic == "ldr":
+                            base_offset = nearest_adrp.operands[1].int
+                            offset = instr.operands[1].mem.disp
+                            self._thread_arena_offset = pwndbg.gdblib.memory.s64(
+                                base_offset + offset
                             )
                             break
 
-        if self._thread_arena_offset:
-            tls_base = pwndbg.gdblib.tls.address
-            if tls_base:
-                thread_arena_struct_addr = tls_base + self._thread_arena_offset
-                if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
-                    return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr))
+                elif pwndbg.gdblib.arch.current == "arm":
+                    # We need to find something near the first `mrc 15, ......`
+                    # The flow of assembly code will like:
+                    # `ldr reg1, [pc, #offset];
+                    # mrc 15, 0, reg2, cr13, cr0, {3};
+                    # add reg1, pc;
+                    # ldr reg1, [reg1];
+                    # add reg1, reg2`
+                    # , then reg1 will be &thread_arena
+                    found_mrc = False
+                    ldr_instr = None
+                    for instr in __libc_calloc_instruction:
+                        if not found_mrc:
+                            if instr.mnemonic == "mrc":
+                                found_mrc = True
+                            elif instr.mnemonic == "ldr":
+                                ldr_instr = instr
+                        else:
+                            reg = ldr_instr.operands[0].str
+                            if instr.mnemonic == "add" and instr.op_str == reg + ", pc":
+                                offset = ldr_instr.operands[1].mem.disp
+                                offset = pwndbg.gdblib.memory.s32(
+                                    (ldr_instr.address + 4 & -4) + offset
+                                )
+                                self._thread_arena_offset = pwndbg.gdblib.memory.s32(
+                                    instr.address + 4 + offset
+                                )
+                                break
 
-        raise SymbolUnresolvableError("thread_arena")
+            if self._thread_arena_offset:
+                tls_base = pwndbg.gdblib.tls.address
+                if tls_base:
+                    thread_arena_struct_addr = tls_base + self._thread_arena_offset
+                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
+                        return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr))
+
+            raise SymbolUnresolvableError("thread_arena")
+        else:
+            return self.main_arena
 
     @property
     def thread_cache(self):
@@ -1788,7 +1800,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
             # Note: The result might be wrong if the arena is being shared by multiple threads
             # And that's why we need to find the tcache address in TLS first
-            arena = self.thread_arena or self.main_arena
+            arena = self.thread_arena
             ptr_size = pwndbg.gdblib.arch.ptrsize
 
             cursor = arena.active_heap.start
