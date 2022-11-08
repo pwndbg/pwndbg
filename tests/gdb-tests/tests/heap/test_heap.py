@@ -240,7 +240,7 @@ def test_main_arena_heuristic(start_binary):
     assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
     # Check the struct size is correct
     assert (
-        pwndbg.heap.current.main_arena.type.sizeof
+        pwndbg.heap.current.main_arena._gdbValue.type.sizeof
         == pwndbg.gdblib.typeinfo.lookup_types("struct malloc_state").sizeof
     )
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
@@ -381,7 +381,7 @@ def test_thread_arena_heuristic(start_binary):
     # Level 1: We check we can get the address of `thread_arena` from debug symbols and the value of `thread_arena` is correct
     assert pwndbg.heap.current.thread_arena is not None
     # Check the address of `thread_arena` is correct
-    assert pwndbg.heap.current.thread_arena == thread_arena_via_debug_symbol
+    assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 2: We check we can get the address of `thread_arena` by parsing the assembly code of `__libc_calloc`
@@ -389,7 +389,7 @@ def test_thread_arena_heuristic(start_binary):
     with mock_for_heuristic(["thread_arena"]):
         assert pwndbg.gdblib.symbol.address("thread_arena") is None
         # Check the value of `thread_arena` is correct
-        assert pwndbg.heap.current.thread_arena == thread_arena_via_debug_symbol
+        assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
 
 def test_heuristic_fail_gracefully(start_binary):
