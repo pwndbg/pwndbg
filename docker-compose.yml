@@ -1,6 +1,6 @@
 version: "3.8"
 services:
-  main:
+  main: &base-spec
     build: .
     volumes:
       - .:/pwndbg
@@ -11,67 +11,31 @@ services:
       - SYS_PTRACE
 
   ubuntu18.04:
+    <<: *base-spec
     build:
-      context: . 
       args:
         image: ubuntu:18.04
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-      
+
   ubuntu20.04:
+    <<: *base-spec
     build:
-      context: . 
       args:
         image: ubuntu:20.04
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
 
   ubuntu22.04:
+    <<: *base-spec
     build:
-      context: . 
       args:
-        image: ubuntu:22.04      
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
+        image: ubuntu:22.04
 
   debian10:
+    <<: *base-spec
     build:
-      context: . 
       args:
         image: debian:10
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
 
   debian11:
+    <<: *base-spec
     build:
-      context: . 
       args:
         image: debian:11
-    volumes:
-      - .:/pwndbg
-    platform: linux/amd64
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_PTRACE
-
