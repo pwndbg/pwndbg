@@ -7,5 +7,5 @@ pycparser==2.21
 pyelftools==0.29
 Pygments==2.13.0
 ROPGadget==7.1
-unicorn==2.0.0; python_version >= '3.7'
+unicorn==2.0.1; python_version >= '3.7'
 unicorn==2.0.0rc7; python_version < '3.7'
