@@ -13,9 +13,11 @@ import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands.config import display_config
+from pwndbg.heap.ptmalloc import Arena
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
+from pwndbg.heap.ptmalloc import Heap
 
 
 def read_chunk(addr):
@@ -127,44 +129,18 @@ def heap(addr=None, verbose=False, simple=False):
     active heap.
     """
     allocator = pwndbg.heap.current
-    heap_region = pwndbg.heap.ptmalloc.Heap(addr)
-    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
-    top_chunk = arena["top"]
-    ptr_size = allocator.size_sz
 
-    # Store the heap base address in a GDB variable that can be used in other
-    # GDB commands
-    gdb.execute("set $heap_base=0x{:x}".format(heap_region.start))
-
-    # Calculate where to start printing; if an address was supplied, use that,
-    # if this heap belongs to the main arena, start at the beginning of the
-    # heap's mapping, otherwise, compensate for the presence of a heap_info
-    # struct and possibly an arena.
-    if addr:
-        cursor = int(addr)
+    if addr is not None:
+        chunk = Chunk(addr)
+        while chunk is not None:
+            malloc_chunk(chunk.address)
+            chunk = chunk.next_chunk()
     else:
-        cursor = heap_region.start
+        arena = allocator.thread_arena
+        h = arena.active_heap
 
-    # i686 alignment heuristic
-    first_chunk_size = pwndbg.gdblib.arch.unpack(
-        pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
-    )
-    if first_chunk_size == 0:
-        cursor += ptr_size * 2
-
-    while cursor in heap_region:
-        malloc_chunk(cursor, verbose=verbose, simple=simple)
-
-        if cursor == top_chunk:
-            break
-
-        size_field = pwndbg.gdblib.memory.u(cursor + allocator.chunk_key_offset("size"))
-        real_size = size_field & ~allocator.malloc_align_mask
-        cursor += real_size
-
-        # Avoid an infinite loop when a chunk's size is 0.
-        if real_size == 0:
-            break
+        for chunk in h:
+            malloc_chunk(chunk.address)
 
 
 parser = argparse.ArgumentParser()
@@ -179,8 +155,13 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 def arena(addr=None):
     """Print the contents of an arena, default to the current thread's arena."""
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena(addr)
-    print(arena)
+
+    if addr is not None:
+        arena = Arena(addr)
+    else:
+        arena = allocator.thread_arena
+
+    print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
 parser = argparse.ArgumentParser()
@@ -247,12 +228,13 @@ def top_chunk(addr=None):
     current thread's arena.
     """
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena(addr)
-    address = arena["top"]
-    size = pwndbg.gdblib.memory.u(int(address) + allocator.chunk_key_offset("size"))
 
-    out = message.off("Top chunk\n") + "Addr: {}\nSize: 0x{:02x}".format(M.get(address), size)
-    print(out)
+    if addr is not None:
+        arena = Arena(addr)
+    else:
+        arena = allocator.thread_arena
+
+    malloc_chunk(arena.top)
 
 
 parser = argparse.ArgumentParser()
@@ -275,10 +257,9 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     """Print a malloc_chunk struct's contents."""
-    chunk = Chunk(addr)
-
     allocator = pwndbg.heap.current
-    ptr_size = allocator.size_sz
+
+    chunk = Chunk(addr)
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
@@ -300,7 +281,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
             if chunk.is_top_chunk:
                 headers_to_print.append(message.off("Top chunk"))
 
-        if not chunk.is_top_chunk:
+        if not chunk.is_top_chunk and arena:
 
             bins_list = [
                 allocator.fastbins(arena.address) or {},
@@ -644,35 +625,22 @@ parser.add_argument(
 def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
-    heap_region = allocator.get_heap_boundaries(addr)
-    arena = allocator.get_arena_for_chunk(addr) if addr else allocator.get_arena()
 
-    top_chunk = arena["top"]
+    if addr is not None:
+        cursor = int(addr)
+        heap_region = Heap(cursor)
+        arena = heap_region.arena
+    else:
+        arena = allocator.thread_arena
+        heap_region = arena.active_heap
+        cursor = heap_region.start
+
     ptr_size = allocator.size_sz
 
     # Build a list of addresses that delimit each chunk.
     chunk_delims = []
-    if addr:
-        cursor = int(addr)
-    elif arena == allocator.main_arena:
-        cursor = heap_region.start
-    else:
-        cursor = heap_region.start + allocator.heap_info.sizeof
-        if pwndbg.gdblib.vmmap.find(allocator.get_heap(heap_region.start)["ar_ptr"]) == heap_region:
-            # Round up to a 2-machine-word alignment after an arena to
-            # compensate for the presence of the have_fastchunks variable
-            # in GLIBC versions >= 2.27.
-            cursor += (allocator.malloc_state.sizeof + ptr_size) & ~allocator.malloc_align_mask
-
-    # Check if there is an alignment at the start of the heap, adjust if necessary.
-    if not addr:
-        first_chunk_size = pwndbg.gdblib.arch.unpack(
-            pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
-        )
-        if first_chunk_size == 0:
-            cursor += ptr_size * 2
-
     cursor_backup = cursor
+    chunk = Chunk(cursor)
 
     for _ in range(count + 1):
         # Don't read beyond the heap mapping if --naive or corrupted heap.
@@ -680,24 +648,21 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
             chunk_delims.append(heap_region.end)
             break
 
-        size_field = pwndbg.gdblib.memory.u(cursor + ptr_size)
-        real_size = size_field & ~allocator.malloc_align_mask
-        prev_inuse = allocator.chunk_flags(size_field)[0]
-
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
         if cursor in chunk_delims or cursor + ptr_size in chunk_delims:
             break
 
-        if prev_inuse:
+        if chunk.prev_inuse:
             chunk_delims.append(cursor + ptr_size)
         else:
             chunk_delims.append(cursor)
 
-        if (cursor == top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
+        if (chunk.is_top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
             chunk_delims.append(cursor + ptr_size * 2)
             break
 
-        cursor += real_size
+        cursor += chunk.real_size
+        chunk = Chunk(cursor)
 
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
@@ -727,6 +692,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
     labels = []
 
     cursor = cursor_backup
+    chunk = Chunk(cursor)
 
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
@@ -768,7 +734,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
             printed += 1
 
             labels.extend(bin_labels(cursor, bin_collections))
-            if cursor == top_chunk:
+            if cursor == arena.top:
                 labels.append("Top chunk")
 
             asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
@@ -847,7 +813,7 @@ def try_free(addr):
 
     # constants
     allocator = pwndbg.heap.current
-    arena = allocator.get_arena()
+    arena = allocator.thread_arena
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz
@@ -973,7 +939,7 @@ def try_free(addr):
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
         fastbin_list = (
-            allocator.fastbins(int(arena.address))
+            allocator.fastbins(arena.address)
             .bins[(chunk_fastbin_idx + 2) * (ptr_size * 2)]
             .fd_chain
         )
@@ -993,10 +959,10 @@ def try_free(addr):
 
         # next chunk's size is big enough and small enough
         next_chunk_size = unsigned_size(next_chunk["size"])
-        if next_chunk_size <= 2 * size_sz or chunksize(next_chunk_size) >= int(arena["system_mem"]):
+        if next_chunk_size <= 2 * size_sz or chunksize(next_chunk_size) >= arena.system_mem:
             err = "free(): invalid next size (fast) -> next chunk's size not in [2*size_sz; av->system_mem]\n"
             err += "    next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
-            err = err.format(next_chunk_size, 2 * size_sz, int(arena["system_mem"]))
+            err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
             errors_found += 1
 
@@ -1044,21 +1010,21 @@ def try_free(addr):
         print(message.notice("Not mapped checks"))
 
         # chunks is not top chunk
-        if addr == int(arena["top"]):
+        if addr == arena.top:
             err = "double free or corruption (top) -> chunk is top chunk"
             print(message.error(err))
             errors_found += 1
 
         # next chunk is not beyond the boundaries of the arena
         NONCONTIGUOUS_BIT = 2
-        top_chunk_addr = int(arena["top"])
+        top_chunk_addr = arena.top
         top_chunk = read_chunk(top_chunk_addr)
         next_chunk_addr = addr + chunk_size_unmasked
 
         # todo: in libc, addition may overflow
-        if (
-            arena["flags"] & NONCONTIGUOUS_BIT == 0
-        ) and next_chunk_addr >= top_chunk_addr + chunksize(top_chunk["size"]):
+        if (arena.flags & NONCONTIGUOUS_BIT == 0) and next_chunk_addr >= top_chunk_addr + chunksize(
+            top_chunk["size"]
+        ):
             err = "double free or corruption (out) -> next chunk is beyond arena and arena is contiguous\n"
             err += "next chunk at 0x{:x}, end of arena at 0x{:x}"
             err = err.format(
@@ -1084,10 +1050,10 @@ def try_free(addr):
             errors_found += 1
 
         # next chunk's size is big enough and small enough
-        if next_chunk_size <= 2 * size_sz or next_chunk_size >= int(arena["system_mem"]):
+        if next_chunk_size <= 2 * size_sz or next_chunk_size >= arena.system_mem:
             err = "free(): invalid next size (normal) -> next chunk's size not in [2*size_sz; system_mem]\n"
             err += "next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
-            err = err.format(next_chunk_size, 2 * size_sz, int(arena["system_mem"]))
+            err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
             errors_found += 1
 
@@ -1145,7 +1111,7 @@ def try_free(addr):
                 print(message.notice("Clearing next chunk's P bit"))
 
             # unsorted bin fd->bk should be unsorted bean
-            unsorted_addr = int(arena["bins"][0])
+            unsorted_addr = int(arena.bins[0])
             try:
                 unsorted = read_chunk(unsorted_addr)
                 try:

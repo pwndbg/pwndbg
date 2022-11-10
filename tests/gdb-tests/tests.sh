@@ -10,6 +10,7 @@ help_and_exit() {
     echo "  -c,  --cov         enable codecov"
     echo "  -v,  --verbose     display all test output instead of just failing test output"
     echo "  -k,  --keep        don't delete the temporary files containing the command output"
+    echo "  -s,  --serial      run tests one at a time instead of in parallel"
     echo " --collect-only      only show the output of test collection, don't run any tests"
     echo "  <test-name-filter> run only tests that match the regex"
     exit 1
@@ -23,6 +24,7 @@ USE_PDB=0
 TEST_NAME_FILTER=""
 RUN_CODECOV=0
 KEEP=0
+SERIAL=0
 VERBOSE=0
 COLLECT_ONLY=0
 
@@ -44,6 +46,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -k | --keep)
             KEEP=1
+            shift
+            ;;
+        -s | --serial)
+            SERIAL=1
             shift
             ;;
         --collect-only)
@@ -106,7 +112,9 @@ run_test() {
         PWNDBG_DISABLE_COLORS=1 \
         run_gdb "${gdb_args[@]}"
 
-    exit $?
+    if [ "$SERIAL" -ne 1 ]; then
+        exit $?
+    fi
 }
 
 parse_output_file() {
@@ -139,18 +147,31 @@ parse_output_file() {
 
 JOBLOG_PATH="$(mktemp)"
 echo ""
-echo "Joblog: $JOBLOG_PATH"
+echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
+
+if [[ $KEEP -ne 1 ]]; then
+    echo " (use --keep it to persist it)"
+else
+    echo ""
+fi
 
 . $(which env_parallel.bash)
 
 start=$(date +%s)
 
-env_parallel --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel parse_output_file {}
+if [ $SERIAL -eq 1 ]; then
+    for t in "${TESTS_LIST[@]}"; do
+        run_test "$t"
+    done
+else
+    env_parallel --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel parse_output_file {}
+fi
 
 end=$(date +%s)
 seconds=$((end - start))
 echo "Tests completed in ${seconds} seconds"
 
+# TODO: This doesn't work with serial
 # The seventh column in the joblog is the exit value and the tenth is the test name
 FAILED_TESTS=($(awk '$7 == "1" { print $10 }' "${JOBLOG_PATH}"))
 
@@ -168,4 +189,11 @@ if [ "${num_tests_failed}" -ne 0 ]; then
     echo ""
     echo "Failing tests: ${FAILED_TESTS[@]}"
     exit 1
+fi
+
+if [[ $KEEP -ne 1 ]]; then
+    # Delete the temporary joblog file
+    rm "${JOBLOG_PATH}"
+else
+    echo "Not removing the ${JOBLOG_PATH} since --keep was passed"
 fi

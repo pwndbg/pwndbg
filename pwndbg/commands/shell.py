@@ -7,7 +7,7 @@ import os
 import pwndbg.commands
 import pwndbg.lib.which
 
-pwncmds = ["asm", "constgrep", "disasm", "pwn", "unhex"]
+pwncmd_names = ["asm", "constgrep", "disasm", "pwn", "unhex"]
 shellcmd_names = [
     "awk",
     "bash",
@@ -60,7 +60,7 @@ shellcmd_names = [
     "zsh",
 ]
 
-pwncmds = list(filter(pwndbg.lib.which.which, pwncmds))
+pwncmds = list(filter(pwndbg.lib.which.which, pwncmd_names))
 shellcmds = list(filter(pwndbg.lib.which.which, shellcmd_names))
 
 
