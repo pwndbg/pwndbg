@@ -82,10 +82,11 @@ bugreport_parser = argparse.ArgumentParser(
     Generate bugreport
     """
 )
-bugreport_parser.add_argument(
+bugreport_group = bugreport_parser.add_mutually_exclusive_group()
+bugreport_group.add_argument(
     "--run-browser", "-b", action="store_true", help="Open browser on github/issues/new"
 )
-bugreport_parser.add_argument(
+bugreport_group.add_argument(
     "--use-gh", "-g", action="store_true", help="Create issue using Github CLI"
 )
 
@@ -200,14 +201,11 @@ If it is somehow unavailable, use:
             with NamedTemporaryFile("w", delete=True) as f:
                 f.write(issue_bugreport)
                 f.flush()
-                if "EDITOR" in os.environ:
-                    editor = os.environ["EDITOR"]
-                else:
-                    editor = "vi"
-                check_call([editor, f.name])
+                check_call([os.environ.get("EDITOR", "vi"), f.name])
                 check_call(["gh", "issue", "create", "--body-file", f.name])
         except Exception:
             print(please_please_submit + github_issue_url)
+            raise
     elif run_browser:
         try:
             check_output(["xdg-open", github_issue_url + github_issue_body])
