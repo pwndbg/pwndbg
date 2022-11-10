@@ -13,29 +13,34 @@ services:
   ubuntu18.04:
     <<: *base-spec
     build:
+      context: .
       args:
         image: ubuntu:18.04
 
   ubuntu20.04:
     <<: *base-spec
     build:
+      context: .
       args:
         image: ubuntu:20.04
 
   ubuntu22.04:
     <<: *base-spec
     build:
+      context: .
       args:
         image: ubuntu:22.04
 
   debian10:
     <<: *base-spec
     build:
+      context: .
       args:
         image: debian:10
 
   debian11:
     <<: *base-spec
     build:
+      context: .
       args:
         image: debian:11
