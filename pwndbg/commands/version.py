@@ -4,9 +4,12 @@ Displays gdb, python and pwndbg versions.
 
 
 import argparse
+import os
 import sys
 from platform import platform
+from subprocess import check_call
 from subprocess import check_output
+from tempfile import NamedTemporaryFile
 from urllib.parse import quote
 
 import gdb
@@ -82,10 +85,13 @@ bugreport_parser = argparse.ArgumentParser(
 bugreport_parser.add_argument(
     "--run-browser", "-b", action="store_true", help="Open browser on github/issues/new"
 )
+bugreport_parser.add_argument(
+    "--use-gh", "-g", action="store_true", help="Create issue using Github CLI"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(bugreport_parser)
-def bugreport(run_browser=False):
+def bugreport(run_browser=False, use_gh=False):
     ISSUE_TEMPLATE = """
 <!--
 Before reporting a new issue, make sure that we do not have any duplicates already open.
@@ -189,7 +195,20 @@ If it is somehow unavailable, use:
     github_issue_url = "https://github.com/pwndbg/pwndbg/issues/new"
     github_issue_body = "?body=" + quote(issue_bugreport)
 
-    if run_browser:
+    if use_gh:
+        try:
+            with NamedTemporaryFile("w", delete=True) as f:
+                f.write(issue_bugreport)
+                f.flush()
+                if "EDITOR" in os.environ:
+                    editor = os.environ["EDITOR"]
+                else:
+                    editor = "vi"
+                check_call([editor, f.name])
+                check_call(["gh", "issue", "create", "--body-file", f.name])
+        except Exception:
+            print(please_please_submit + github_issue_url)
+    elif run_browser:
         try:
             check_output(["xdg-open", github_issue_url + github_issue_body])
         except Exception:
