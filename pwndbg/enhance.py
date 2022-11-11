@@ -89,7 +89,7 @@ def enhance(value, code=True, safe_linking=False):
     if exe:
         instr = pwndbg.disasm.one(value)
         if instr:
-            instr = "%-6s %s" % (instr.mnemonic, instr.op_str)
+            instr = "%s %s" % (instr.mnemonic, instr.op_str)
             if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
