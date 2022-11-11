@@ -7,7 +7,9 @@
 # For development, mount the directory so the host changes are reflected into container:
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
-FROM ubuntu:20.04
+
+ARG image=ubuntu:20.04
+FROM $image
 
 WORKDIR /pwndbg
 
