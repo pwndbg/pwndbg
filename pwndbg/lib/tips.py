@@ -25,6 +25,7 @@ TIPS = [
     "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
+    "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration", 
 ]  # type: List[str]
 
 
