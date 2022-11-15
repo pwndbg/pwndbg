@@ -2,7 +2,7 @@
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
-echo "# Only works with Ubuntu / APT."
+echo "# Only works with Ubuntu / APT or Arch / Pacman."
 echo "# --------------------------------------"
 
 hook_script_path=".git/hooks/pre-push"
@@ -37,13 +37,6 @@ if [ -t 1 ]; then
     fi
 fi
 
-if [[ -z "$ZIGPATH" ]]; then
-    # If ZIGPATH is not set, set it to $pwd/.zig
-    # In Docker environment this should by default be set to /opt/zig
-    export ZIGPATH="$(pwd)/.zig"
-fi
-echo "ZIGPATH set to $ZIGPATH"
-
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
@@ -58,6 +51,13 @@ linux() {
 }
 
 install_apt() {
+    if [[ -z "$ZIGPATH" ]]; then
+        # If ZIGPATH is not set, set it to $pwd/.zig
+        # In Docker environment this should by default be set to /opt/zig
+        export ZIGPATH="$(pwd)/.zig"
+    fi
+    echo "ZIGPATH set to $ZIGPATH"
+
     sudo apt-get update || true
     sudo apt-get install -y \
         nasm \
@@ -72,7 +72,7 @@ install_apt() {
         sudo apt install shfmt
     fi
 
-    test -f /usr/bin/go || sudo apt-ge\t install -y golang
+    test -f /usr/bin/go || sudo apt-get install -y golang
 
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
@@ -94,6 +94,46 @@ install_apt() {
     echo "Zig installed to ${ZIGPATH}"
 }
 
+install_pacman() {
+    if [[ -z "$ZIGPATH" ]]; then
+        # If ZIGPATH is not set, set it to /usr/bin to use the system one
+        # In Docker environment this should by default be set to /usr/bin
+        export ZIGPATH="/usr/bin"
+    fi
+    echo "ZIGPATH set to $ZIGPATH"
+
+    # add debug repo for glibc-debug
+    cat <<EOF | sudo tee -a /etc/pacman.conf
+[core-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[extra-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[community-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[multilib-debug]
+Include = /etc/pacman.d/mirrorlist
+EOF
+
+    sudo pacman -Syu --noconfirm || true
+    sudo pacman -S --noconfirm \
+        nasm \
+        gcc \
+        glibc-debug \
+        curl \
+        base-devel \
+        gdb \
+        parallel
+
+    test -f /usr/bin/go || sudo pacman -S --noconfirm go
+
+    # Install zig to system
+    # We use zig to compile some test binaries as it is much easier than with gcc
+    sudo pacman -S --noconfirm zig
+}
+
 if linux; then
     distro=$(
         . /etc/os-release
@@ -108,10 +148,15 @@ if linux; then
             )
             install_apt $ubuntu_version
             ;;
+        "arch")
+            install_pacman
+            ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
             if hash apt; then
                 install_apt
+            elif hash pacman; then
+                install_pacman
             else
                 echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
                 exit

@@ -49,3 +49,11 @@ services:
       dockerfile: Dockerfile
       args:
         image: debian:11
+
+  archlinux:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.arch
+      args:
+        image: archlinux:latest
