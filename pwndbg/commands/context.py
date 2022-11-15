@@ -627,6 +627,9 @@ theme.add_param("highlight-source", True, "whether to highlight the closest sour
 source_code_lines = pwndbg.gdblib.config.add_param(
     "context-source-code-lines", 10, "number of source code lines to print by the context command"
 )
+pwndbg.gdblib.config.add_param(
+    "context-source-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
+)
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
 
 
@@ -684,6 +687,8 @@ def get_filename_and_formatted_source():
     # Format the output
     formatted_source = []
     for line_number, code in enumerate(source, start=start + 1):
+        if pwndbg.gdblib.config.context_source_code_tabstop > 0:
+            code = code.replace("\t", " " * pwndbg.gdblib.config.context_source_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
         if pwndbg.gdblib.config.highlight_source and line_number == closest_line:
             fmt = C.highlight(fmt)
