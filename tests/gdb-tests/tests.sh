@@ -111,6 +111,7 @@ run_test() {
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         run_gdb "${gdb_args[@]}"
+        exit $?
 
     if [ "$SERIAL" -ne 1 ]; then
         exit $?
