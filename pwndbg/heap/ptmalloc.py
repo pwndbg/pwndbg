@@ -1274,9 +1274,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
     @property
     def possible_page_of_symbols(self):
         if self._possible_page_of_symbols is None:
-            if pwndbg.glibc.get_got_plt_address() > 0:
+            if pwndbg.glibc.get_data_address() > 0:
                 self._possible_page_of_symbols = pwndbg.gdblib.vmmap.find(
-                    pwndbg.glibc.get_got_plt_address()
+                    pwndbg.glibc.get_data_address()
                 )
             elif pwndbg.gdblib.symbol.address("_IO_list_all"):
                 self._possible_page_of_symbols = pwndbg.gdblib.vmmap.find(

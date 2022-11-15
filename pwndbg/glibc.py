@@ -63,16 +63,20 @@ def _get_version():
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
-def get_got_plt_address():
-    # Try every possible object file, to find which one has `.got.plt` section showed in `info files`
+def get_data_address():
+    """
+    Find .data section address of libc
+    """
+    # Try every possible object file, to find which one has `.data` section showed in `info files`
     for libc_filename in (
         objfile.filename
         for objfile in gdb.objfiles()
         if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
     ):
+        # Will `info files` always work? If not, we should probably use `ELFFile` to parse libc file directly
         out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
-            if libc_filename in line and ".got.plt" in line:
+            if libc_filename in line and " is .data in " in line:
                 return int(line.strip().split()[0], 16)
     return 0
 
