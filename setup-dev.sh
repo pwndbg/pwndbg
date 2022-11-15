@@ -50,13 +50,17 @@ linux() {
     uname | grep -i Linux &> /dev/null
 }
 
-install_apt() {
+set_zigpath() {
     if [[ -z "$ZIGPATH" ]]; then
-        # If ZIGPATH is not set, set it to $pwd/.zig
-        # In Docker environment this should by default be set to /opt/zig
-        export ZIGPATH="$(pwd)/.zig"
+        # If ZIGPATH is not set, set it
+        # In Docker environment this should by default be set to /opt/zig (APT) or /usr/bin (Pacman)
+        export ZIGPATH="$1"
     fi
     echo "ZIGPATH set to $ZIGPATH"
+}
+
+install_apt() {
+    set_zigpath "$(pwd)/.zig"
 
     sudo apt-get update || true
     sudo apt-get install -y \
@@ -95,12 +99,7 @@ install_apt() {
 }
 
 install_pacman() {
-    if [[ -z "$ZIGPATH" ]]; then
-        # If ZIGPATH is not set, set it to /usr/bin to use the system one
-        # In Docker environment this should by default be set to /usr/bin
-        export ZIGPATH="/usr/bin"
-    fi
-    echo "ZIGPATH set to $ZIGPATH"
+    set_zigpath /usr/bin
 
     # add debug repo for glibc-debug
     cat <<EOF | sudo tee -a /etc/pacman.conf
