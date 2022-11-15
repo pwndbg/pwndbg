@@ -152,13 +152,13 @@ if linux; then
             install_pacman
             ;;
         *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
+            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
             if hash apt; then
                 install_apt
             elif hash pacman; then
                 install_pacman
             else
-                echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
+                echo "\"$distro\" is not supported and your distro don't have apt or pacman that we support currently."
                 exit
             fi
             ;;
