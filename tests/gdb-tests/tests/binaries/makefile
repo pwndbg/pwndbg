@@ -51,7 +51,7 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
 
 %.out : %.o
 	@echo "[+] Linking '$@'"
-	@$(LD) -Ttext 0x400080 -o $@ $?
+	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $?
 
 %.x86 : %.x86.go
 	@echo "[+] Building '$@'"
