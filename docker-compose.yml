@@ -14,6 +14,7 @@ services:
     <<: *base-spec
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         image: ubuntu:18.04
 
@@ -21,6 +22,7 @@ services:
     <<: *base-spec
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         image: ubuntu:20.04
 
@@ -28,6 +30,7 @@ services:
     <<: *base-spec
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         image: ubuntu:22.04
 
@@ -35,6 +38,7 @@ services:
     <<: *base-spec
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         image: debian:10
 
@@ -42,5 +46,6 @@ services:
     <<: *base-spec
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         image: debian:11
