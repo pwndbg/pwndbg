@@ -59,25 +59,7 @@ set_zigpath() {
     echo "ZIGPATH set to $ZIGPATH"
 }
 
-install_apt() {
-    set_zigpath "$(pwd)/.zig"
-
-    sudo apt-get update || true
-    sudo apt-get install -y \
-        nasm \
-        gcc \
-        libc6-dev \
-        curl \
-        build-essential \
-        gdb \
-        parallel
-
-    if [[ "$1" == "22.04" ]]; then
-        sudo apt install shfmt
-    fi
-
-    test -f /usr/bin/go || sudo apt-get install -y golang
-
+download_zig_binary() {
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
 
@@ -98,8 +80,30 @@ install_apt() {
     echo "Zig installed to ${ZIGPATH}"
 }
 
+install_apt() {
+    set_zigpath "$(pwd)/.zig"
+
+    sudo apt-get update || true
+    sudo apt-get install -y \
+        nasm \
+        gcc \
+        libc6-dev \
+        curl \
+        build-essential \
+        gdb \
+        parallel
+
+    if [[ "$1" == "22.04" ]]; then
+        sudo apt install shfmt
+    fi
+
+    test -f /usr/bin/go || sudo apt-get install -y golang
+
+    download_zig_binary
+}
+
 install_pacman() {
-    set_zigpath /usr/bin
+    set_zigpath "$(pwd)/.zig"
 
     # add debug repo for glibc-debug
     cat <<EOF | sudo tee -a /etc/pacman.conf
@@ -128,9 +132,7 @@ EOF
 
     test -f /usr/bin/go || sudo pacman -S --noconfirm go
 
-    # Install zig to system
-    # We use zig to compile some test binaries as it is much easier than with gcc
-    sudo pacman -S --noconfirm zig
+    download_zig_binary
 }
 
 if linux; then
