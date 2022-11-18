@@ -7,6 +7,7 @@ import pwndbg.commands
 import tests
 
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
+TABSTOP_BINARY = tests.binaries.get("tabstop.out")
 
 
 def test_context_disasm_show_fd_filepath(start_binary):
@@ -89,3 +90,52 @@ def test_empty_context_sections(start_binary, sections):
     gdb.execute(f"set context-sections {default_ctx_sects}")
     assert pwndbg.gdblib.config.context_sections.value == default_ctx_sects
     assert gdb.execute("context", to_string=True) != ""
+
+
+def test_source_code_tabstop(start_binary):
+    start_binary(TABSTOP_BINARY)
+
+    # Run until line 6
+    gdb.execute("break tabstop.c:6")
+    gdb.execute("continue")
+
+    # Default context-source-code-tabstop = 8
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4         // test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6                 puts("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
+
+    # Test context-source-code-tabstop = 2
+    gdb.execute("set context-source-code-tabstop 2")
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4   // test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6     puts("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
+
+    # Disable context-source-code-tabstop
+    gdb.execute("set context-source-code-tabstop 0")
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4 \t// test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6 \t\tputs("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
