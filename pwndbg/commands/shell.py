@@ -9,7 +9,7 @@ from pwnlib.util.misc import which
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
-pwncmd_names = ["asm", "constgrep", "disasm", "pwn", "unhex"]
+pwncmd_names = ["constgrep", "disasm", "pwn", "unhex"]
 shellcmd_names = [
     "awk",
     "bash",
