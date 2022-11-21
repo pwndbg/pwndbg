@@ -12,11 +12,11 @@ from pwndbg.color import strip
 from pwndbg.color.message import hint
 
 
-def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty_space=6):
+def print_row(name, value, default, set_show_doc, ljust_optname, ljust_value, empty_space=6):
     name = ljust_colored(name, ljust_optname + empty_space)
     defval = extend_value_with_default(value, default)
     defval = ljust_colored(defval, ljust_value + empty_space)
-    result = " ".join((name, defval, docstring))
+    result = " ".join((name, defval, set_show_doc))
     print(result)
     return result
 
@@ -39,7 +39,7 @@ def get_config_parameters(scope, filter_pattern):
         values = [
             v
             for v in values
-            if filter_pattern in v.name.lower() or filter_pattern in v.docstring.lower()
+            if filter_pattern in v.name.lower() or filter_pattern in v.set_show_doc.lower()
         ]
 
     return values
@@ -84,7 +84,7 @@ def display_config(filter_pattern: str, scope: str):
             value = repr(v.value)
             default = repr(v.default)
 
-        print_row(v.name, value, default, v.docstring, longest_optname, longest_value)
+        print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_value)
 
     print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
     print(
@@ -152,7 +152,7 @@ def configfile_print_scope(scope, show_all=False):
         if not show_all:
             print(hint("Showing only changed values:"))
         for p in params:
-            print("# %s: %s" % (p.name, p.docstring))
+            print("# %s: %s" % (p.name, p.set_show_doc))
             print("# default: %s" % p.native_default)
             print("set %s %s" % (p.name, p.native_value))
             print()

@@ -7,12 +7,12 @@ current = None
 
 
 def add_heap_param(
-    name, default, docstring, *, help_docstring=None, param_class=None, enum_sequence=None
+    name, default, set_show_doc, *, help_docstring=None, param_class=None, enum_sequence=None
 ):
     return pwndbg.gdblib.config.add_param(
         name,
         default,
-        docstring,
+        set_show_doc,
         help_docstring=help_docstring,
         param_class=param_class,
         enum_sequence=enum_sequence,

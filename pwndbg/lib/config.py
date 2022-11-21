@@ -24,13 +24,14 @@ class Parameter:
         self,
         name,
         default,
-        docstring,
+        set_show_doc,
+        *,
         help_docstring=None,
         param_class=None,
         enum_sequence=None,
         scope="config",
     ):
-        self.docstring = docstring.strip()
+        self.set_show_doc = set_show_doc.strip()
         self.help_docstring = help_docstring.strip() if help_docstring else None
         self.name = name
         self.default = default
@@ -126,7 +127,7 @@ class Config:
         self,
         name,
         default,
-        docstring,
+        set_show_doc,
         *,
         help_docstring=None,
         param_class=None,
@@ -139,11 +140,11 @@ class Config:
         p = Parameter(
             name,
             default,
-            docstring,
-            help_docstring,
-            param_class,
-            enum_sequence,
-            scope,
+            set_show_doc,
+            help_docstring=help_docstring,
+            param_class=param_class,
+            enum_sequence=enum_sequence,
+            scope=scope,
         )
         return self.add_param_obj(p)
 
