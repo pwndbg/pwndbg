@@ -44,14 +44,14 @@ def test_loads_binary_with_core_without_crashing():
         assert os.path.isfile(CORE)
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
 
-    expected = [
-        "Reading symbols from %s..." % BINARY,
-        "(No debugging symbols found in %s)" % BINARY,
-        "Program terminated with signal SIGFPE, Arithmetic exception.",
-    ]
-    expected += HELLO
+    assert any("Reading symbols from %s..." % BINARY in line for line in output)
+    # Old GDB says f"(no debugging symbols found)"
+    # New GDB says f"(No debugging symbols found in ${BINARY})"
+    assert any("(no debugging symbols found" in line.lower() for line in output)
+    assert "Program terminated with signal SIGFPE, Arithmetic exception." in output
+    for h in HELLO:
+        assert h in output
 
-    assert all(item in output for item in expected)
 
     lwp_line = re.compile(r"^\[New LWP \d+\]$")
     assert any([lwp_line.match(line) for line in output])
