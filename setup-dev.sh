@@ -92,7 +92,7 @@ install_apt() {
         build-essential \
         gdb \
         parallel \
-	netcat-openbsd
+        netcat-openbsd
 
     if [[ "$1" == "22.04" ]]; then
         sudo apt install shfmt
@@ -107,7 +107,7 @@ install_pacman() {
     set_zigpath "$(pwd)/.zig"
 
     # add debug repo for glibc-debug
-    cat <<EOF | sudo tee -a /etc/pacman.conf
+    cat << EOF | sudo tee -a /etc/pacman.conf
 [core-debug]
 Include = /etc/pacman.d/mirrorlist
 

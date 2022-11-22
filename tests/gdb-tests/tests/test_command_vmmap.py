@@ -1,6 +1,7 @@
 import tempfile
 
 import gdb
+import pytest
 
 import pwndbg
 import tests
@@ -40,7 +41,8 @@ def get_proc_maps():
     return maps
 
 
-def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
+@pytest.mark.parametrize("unload_file", (False, True))
+def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_file):
     """
     Example vmmap when debugging binary:
         LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
@@ -84,6 +86,10 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     core = tempfile.mktemp()
     gdb.execute("generate-core-file %s" % core)
 
+    # The test should work fine even if we unload the original binary
+    if unload_file:
+        gdb.execute("file")
+
     #### TEST COREDUMP VMMAP
     # Now, let's load the generated core file
     gdb.execute("core-file %s" % core)
@@ -94,7 +100,18 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary):
     # Note: we will now see one less vmmap page as [vvar] will be missing
     assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
     vmmaps = [i.split() for i in vmmaps[2:]]
-    assert len(vmmaps) == old_len_vmmaps - 1
+
+    has_proc_maps = "warning: unable to find mappings in core file" not in gdb.execute(
+        "info proc mappings", to_string=True
+    )
+
+    if has_proc_maps:
+        assert len(vmmaps) == old_len_vmmaps - 1
+    else:
+        # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
+        assert len(vmmaps) == old_len_vmmaps - 2
+        binary_map = next(i for i in expected_maps if CRASH_SIMPLE_BINARY in i[-1])
+        expected_maps.remove(binary_map)
 
     # Fix up expected maps
     next(i for i in expected_maps if i[-1] == "[vdso]")[-1] = "load2"

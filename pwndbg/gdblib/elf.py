@@ -249,7 +249,7 @@ def get_ehdr(pointer):
         return None, None
 
     # We first check if the beginning of the page contains the ELF magic
-    if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
+    if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
         base = vmmap.start
 
     # The page did not have ELF magic; it may be that .text and binary start are split
@@ -260,7 +260,7 @@ def get_ehdr(pointer):
                 vmmap = v
                 break
 
-        if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
+        if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
             base = vmmap.start
 
     if base is None:
