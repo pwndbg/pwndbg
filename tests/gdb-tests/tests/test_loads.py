@@ -26,13 +26,12 @@ def test_loads_binary_without_crashing():
         compile_binary(BINARY_SOURCE, BINARY)
     output = run_gdb_with_script(binary=BINARY).splitlines()
 
-    expected = [
-        "Reading symbols from %s..." % BINARY,
-        "(No debugging symbols found in %s)" % BINARY,
-    ]
-    expected += HELLO
-
-    assert all(item in output for item in expected)
+    for h in HELLO:
+        assert h in output
+    assert any("Reading symbols from %s..." % BINARY in line for line in output)
+    # Old GDB says f"(no debugging symbols found)"
+    # New GDB says f"(No debugging symbols found in ${BINARY})"
+    assert any("(no debugging symbols found" in line.lower() for line in output)
 
 
 def test_loads_binary_with_core_without_crashing():
