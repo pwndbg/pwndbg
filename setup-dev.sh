@@ -91,7 +91,8 @@ install_apt() {
         curl \
         build-essential \
         gdb \
-        parallel
+        parallel \
+	netcat-openbsd
 
     if [[ "$1" == "22.04" ]]; then
         sudo apt install shfmt
