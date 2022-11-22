@@ -51,7 +51,6 @@ def test_loads_binary_with_core_without_crashing():
     for h in HELLO:
         assert h in output
 
-
     lwp_line = re.compile(r"^\[New LWP \d+\]$")
     assert any([lwp_line.match(line) for line in output])
 
