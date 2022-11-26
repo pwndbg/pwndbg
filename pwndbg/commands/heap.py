@@ -592,13 +592,19 @@ pwndbg.gdblib.config.add_param(
     "max display size for heap chunks visualization (0 for display all)",
 )
 
+pwndbg.gdblib.config.add_param(
+    "default-visualize-chunk-number",
+    10,
+    "the number of chunks to visualize (default is 10)",
+)
+
 parser = argparse.ArgumentParser()
 parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
 parser.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
-    default=10,
+    default=pwndbg.gdblib.config.default_visualize_chunk_number,
     help="Number of chunks to visualize.",
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")

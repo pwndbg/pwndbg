@@ -29,8 +29,8 @@ class Parameter(gdb.Parameter):
         # `set_doc`, `show_doc`, and `__doc__` must be set before `gdb.Parameter.__init__`.
         # They will be used for `help set <param>` and `help show <param>`,
         # respectively
-        self.set_doc = "Set " + param.docstring
-        self.show_doc = "Show " + param.docstring
+        self.set_doc = "Set " + param.set_show_doc
+        self.show_doc = "Show " + param.set_show_doc
         self.__doc__ = param.help_docstring
 
         if param.param_class == gdb.PARAM_ENUM:
@@ -76,7 +76,7 @@ class Parameter(gdb.Parameter):
         if not pwndbg.decorators.first_prompt:
             return ""
 
-        return "Set %s to %r" % (self.param.docstring, self.native_value)
+        return "Set %s to %r" % (self.param.set_show_doc, self.native_value)
 
     def get_show_string(self, svalue):
         """Handles the GDB `show <param>` command"""
