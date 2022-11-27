@@ -7,7 +7,7 @@ def build_id():  # type: () -> str
     Returns pwndbg commit id if git is available.
     """
     pwndbg_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    assert os.path.exists(os.path.join(pwndbg_dir, 'gdbinit.py'))
+    assert os.path.exists(os.path.join(pwndbg_dir, "gdbinit.py"))
 
     try:
         git_path = os.path.join(pwndbg_dir, ".git")
