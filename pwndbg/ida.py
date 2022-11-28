@@ -28,7 +28,7 @@ ida_rpc_host = pwndbg.gdblib.config.add_param(
 )
 ida_rpc_port = pwndbg.gdblib.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
 ida_enabled = pwndbg.gdblib.config.add_param(
-    "ida-enabled", True, "whether to enable ida integration"
+    "ida-enabled", False, "whether to enable ida integration"
 )
 ida_timeout = pwndbg.gdblib.config.add_param(
     "ida-timeout", 2, "time to wait for ida xmlrpc in seconds"
