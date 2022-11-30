@@ -1,22 +1,27 @@
-/* Test the find_fake_fast command.
- *
- * No need to test the output as find_fake_fast wraps malloc_chunk,
- * which can be tested separately.
- *
- * Just test for the command completing without a crash.
- * Purposefully pass a fake chunk with no parent arena, with a set
- * NON_MAIN_ARENA flag to ensure no error occurs when attempting to read
- * the non-existent heap_info struct - issue #1142
- */
+// Test the find_fake_fast command.
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+// Part of this test requires unmapped virtual memory at a specific alignment.
+#define LIKELY_UNMAPPED_MEMORY_ADDRESS (void*)0x500000000000
+
+/* GLIBC's HEAP_MAX_SIZE constant, used to align the aforementioned unmapped virtual memory.
+ * HEAP_MAX_SIZE is defined at:
+ * https://github.com/bminor/glibc/blob/f704192911c6c7b65a54beab3ab369fca7609a5d/malloc/arena.c#L31
+ * It is calculated using DEFAULT_MMAP_THRESHOLD_MAX, which is defined at:
+ * https://github.com/bminor/glibc/blob/f704192911c6c7b65a54beab3ab369fca7609a5d/malloc/malloc.c#L956
+ * (x64 architecture is assumed for this test)
+ */
+#define HEAP_MAX_SIZE (2 * 4 * 1024 * 1024 * sizeof(long))
 
 void break_here(void) {}
 
-// Fake chunk size field with a set NON_MAIN_ARENA flag.
-// Enough space afterwards to ensure only this fake size field is a candidate.
-char fake_chunk[0x80] __attribute__((aligned(0x10))) = "XXXXXXXX\x7f";
+// Fake chunk size field for use with issue #1142 test.
+char* fake_chunk = NULL;
 
 // This buffer will contain the fake chunk sizes
 unsigned long buf[64] __attribute__((aligned(0x10)));
@@ -24,7 +29,7 @@ unsigned long buf[64] __attribute__((aligned(0x10)));
 // This is the address we want the fake chunks to overlap with
 unsigned long target_address;
 
-/**
+/*
  * Put the value of `size` at `distance` bytes before the address of
  * `target_address`
  */
@@ -38,6 +43,36 @@ void setup_mem(unsigned long size, unsigned distance) {
 
 int main(void) {
     assert((unsigned long)&target_address - (unsigned long)buf == sizeof(buf));
+
+    /* Test whether the find_fake_fast command can deal with a fake chunk that has a set
+     * NON_MAIN_ARENA flag, but no heap_info struct (the struct would reside in unmapped memory).
+     * Issue #1142
+     */
+    void* aligned_memory = NULL;
+    for (void* requested_address = LIKELY_UNMAPPED_MEMORY_ADDRESS; requested_address > 0; requested_address -= HEAP_MAX_SIZE)
+    {
+        // Attempt to find unmapped memory aligned to HEAP_MAX_SIZE.
+        void* mmapped_address = mmap(requested_address, 2*getpagesize(), PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        if (mmapped_address == requested_address)
+        {
+            aligned_memory = mmapped_address;
+            break;
+        }
+        else
+        {
+            munmap(mmapped_address, 2*getpagesize());
+        }
+    }
+    assert(aligned_memory != NULL);
+
+    // Set up a candidate fake fast chunk size field with a set NON_MAIN_ARENA flag.
+    fake_chunk = aligned_memory + getpagesize();
+    fake_chunk[8] = '\x85';
+
+    // Unmap the memory where the fake chunk's heap_info struct would reside.
+    int unmapped = munmap(aligned_memory, getpagesize());
+    assert(unmapped == 0);
+
     // Initialize malloc so heap commands can run.
     void* m = malloc(0x18);
 
