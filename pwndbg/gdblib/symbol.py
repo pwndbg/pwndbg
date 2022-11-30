@@ -74,8 +74,14 @@ def _reset_remote_files():
 
 @pwndbg.gdblib.events.new_objfile
 def _autofetch():
-    """ """
+    """
+    Automatically downloads ELF files with debug symbols from the remotely debugged system.
+    Does not work with QEMU and Android. It also does not work when debugging embedded devices, as they don't even have a filesystem.
+    """
     if not pwndbg.gdblib.remote.is_remote():
+        return
+
+    if pwndbg.gdblib.remote.is_debug_probe():
         return
 
     if pwndbg.gdblib.qemu.is_qemu_usermode():
