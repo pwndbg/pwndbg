@@ -18,6 +18,7 @@ pwnlib_archs_mapping = {
     "powerpc": "powerpc",
     "sparc": "sparc",
     "arm": "arm",
+    "armcm": "thumb",
 }
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
