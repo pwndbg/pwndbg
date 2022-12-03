@@ -58,7 +58,7 @@ def get_syscall_name(instruction):
     # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
     # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
     # So here, we return no syscall name for other instructions and we also
-    # handle a cse when 32-bit syscalls are executed on x64
+    # handle a case when 32-bit syscalls are executed on x64
     if syscall_register in ("eax", "rax"):
         mnemonic = instruction.mnemonic
 
