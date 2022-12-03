@@ -10,20 +10,20 @@ from . import thumb
 arches = {"arm": arm, "armcm": arm, "i386": i386, "mips": mips, "x86-64": amd64, "aarch64": aarch64}
 
 
-def syscall(value):
+def syscall(number, arch):
     """
-    Given a value for a syscall number (e.g. execve == 11), return
-    the *name* of the syscall.
+    Given a syscall number and architecture, returns the name of the syscall.
+    E.g. execve == 59 on x86-64
     """
-    arch = arches.get(pwndbg.gdblib.arch.current, None)
+    arch = arches.get(arch, None)
 
-    if not arch:
+    if arch is None:
         return None
 
     prefix = "__NR_"
 
     for k, v in arch.__dict__.items():
-        if v != value:
+        if v != number:
             continue
 
         if not k.startswith(prefix):
