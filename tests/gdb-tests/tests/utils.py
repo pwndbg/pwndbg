@@ -47,9 +47,3 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
     )
 
     return output
-
-
-def compile_binary(binary_source, binary_out):
-    assert os.path.isfile(binary_source)
-
-    subprocess.check_call(["gcc", binary_source, "-o", binary_out])

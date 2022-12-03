@@ -129,7 +129,8 @@ EOF
         curl \
         base-devel \
         gdb \
-        parallel
+        parallel \
+        gnu-netcat
 
     test -f /usr/bin/go || sudo pacman -S --noconfirm go
 

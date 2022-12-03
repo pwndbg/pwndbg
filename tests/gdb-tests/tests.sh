@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -p | --pdb)
             USE_PDB=1
-	    SERIAL=1
+            SERIAL=1
             echo "Will run tests in serial and with Python debugger"
             shift
             ;;
