@@ -3,7 +3,6 @@ import re
 
 import tests
 
-from .utils import compile_binary
 from .utils import run_gdb_with_script
 
 HELLO = [
@@ -22,21 +21,15 @@ def test_loads_pure_gdb_without_crashing():
 
 
 def test_loads_binary_without_crashing():
-    if not os.path.isfile(BINARY):
-        compile_binary(BINARY_SOURCE, BINARY)
     output = run_gdb_with_script(binary=BINARY).splitlines()
 
     for h in HELLO:
         assert h in output
     assert any("Reading symbols from %s..." % BINARY in line for line in output)
-    # Old GDB says f"(no debugging symbols found)"
-    # New GDB says f"(No debugging symbols found in ${BINARY})"
-    assert any("(no debugging symbols found" in line.lower() for line in output)
+    assert any('pwndbg: loaded' in line for line in output)
 
 
 def test_loads_binary_with_core_without_crashing():
-    if not os.path.isfile(BINARY):
-        compile_binary(BINARY_SOURCE, BINARY)
     if not os.path.isfile(CORE):
         create_coredump = ["run", f"generate-core-file {CORE}"]
         run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
@@ -44,9 +37,7 @@ def test_loads_binary_with_core_without_crashing():
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
 
     assert any("Reading symbols from %s..." % BINARY in line for line in output)
-    # Old GDB says f"(no debugging symbols found)"
-    # New GDB says f"(No debugging symbols found in ${BINARY})"
-    assert any("(no debugging symbols found" in line.lower() for line in output)
+    assert any('pwndbg: loaded' in line for line in output)
     assert "Program terminated with signal SIGFPE, Arithmetic exception." in output
     for h in HELLO:
         assert h in output
@@ -62,8 +53,6 @@ def test_loads_binary_with_core_without_crashing():
 
 
 def test_loads_core_without_crashing():
-    if not os.path.isfile(BINARY):
-        compile_binary(BINARY_SOURCE, BINARY)
     if not os.path.isfile(CORE):
         create_coredump = ["run", f"generate-core-file {CORE}"]
         run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
