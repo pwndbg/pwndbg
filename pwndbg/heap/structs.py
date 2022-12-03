@@ -515,12 +515,65 @@ class TcacheEntry(CStruct2GDB):
         _c_struct = c_tcache_entry_2_28
     sizeof = ctypes.sizeof(_c_struct)
 
-
-class c_malloc_par_2_25(ctypes.LittleEndianStructure):
+class c_malloc_par_2_23(ctypes.LittleEndianStructure):
     """
-    This class represents the malloc_par struct for GLIBC < 2.26 as a ctypes struct.
+    This class represents the malloc_par struct for GLIBC < 2.24 as a ctypes struct.
+
+    https://github.com/bminor/glibc/blob/glibc-2.23/malloc/malloc.c#L1726
+
+    struct malloc_par
+    {
+    /* Tunable parameters */
+    unsigned long trim_threshold;
+    INTERNAL_SIZE_T top_pad;
+    INTERNAL_SIZE_T mmap_threshold;
+    INTERNAL_SIZE_T arena_test;
+    INTERNAL_SIZE_T arena_max;
+
+    /* Memory map support */
+    int n_mmaps;
+    int n_mmaps_max;
+    int max_n_mmaps;
+    /* the mmap_threshold is dynamic, until the user sets
+        it manually, at which point we need to disable any
+        dynamic behavior. */
+    int no_dyn_threshold;
+
+    /* Statistics */
+    INTERNAL_SIZE_T mmapped_mem;
+    /*INTERNAL_SIZE_T  sbrked_mem;*/
+    /*INTERNAL_SIZE_T  max_sbrked_mem;*/
+    INTERNAL_SIZE_T max_mmapped_mem;
+    INTERNAL_SIZE_T max_total_mem;  /* only kept for NO_THREADS */
+
+    /* First address handed out by MORECORE/sbrk.  */
+    char *sbrk_base;
+    };
+    """
+
+    _fields_ = [
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("max_total_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+    ]
+
+
+class c_malloc_par_2_24(ctypes.LittleEndianStructure):
+    """
+    This class represents the malloc_par struct for GLIBC >= 2.24 as a ctypes struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.25/malloc/malloc.c#L1690
+    https://github.com/bminor/glibc/blob/glibc-2.24/malloc/malloc.c#L1719
 
     struct malloc_par
     {
@@ -714,6 +767,8 @@ class MallocPar(CStruct2GDB):
         _c_struct = c_malloc_par_2_35
     elif pwndbg.glibc.get_version() >= (2, 26):
         _c_struct = c_malloc_par_2_26
+    elif pwndbg.glibc.get_version() >= (2, 24):
+        _c_struct = c_malloc_par_2_24
     else:
-        _c_struct = c_malloc_par_2_25
+        _c_struct = c_malloc_par_2_23
     sizeof = ctypes.sizeof(_c_struct)
