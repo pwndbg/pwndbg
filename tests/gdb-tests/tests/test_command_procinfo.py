@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import gdb
 
@@ -10,6 +11,8 @@ REFERENCE_BINARY_NET = tests.binaries.get("reference-binary-net.out")
 def test_command_procinfo(start_binary):
     start_binary(REFERENCE_BINARY_NET)
 
+    # Sanity check, netcat must exist at this point
+    assert shutil.which("nc") is not None
     os.system("nc -l -p 31337 2>/dev/null 1>&2 &")
 
     bin_path = gdb.execute("pi pwndbg.gdblib.proc.exe", to_string=True).strip("\n")
