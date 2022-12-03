@@ -51,9 +51,12 @@ def test_cymbol(start_binary):
     assert pwndbg.commands.cymbol.loaded_symbols.get("example") is not None
     # Test whether the returned type is what we expect (on x86-64).
     assert (
-        "example_t\n    +0x0000 a                    : int\n    +0x0004 b                    : char [16]\n    +0x0018 c                    : char *\n    +0x0020 d                    : void *"
-        in pwndbg.gdblib.dt.dt("example_t").strip()
-    )
+        "example_t\n"
+        "    +0x0000 a                    : int\n"
+        "    +0x0004 b                    : char [16]\n"
+        "    +0x0018 c                    : char *\n"
+        "    +0x0020 d                    : void *"
+    ) == pwndbg.gdblib.dt.dt("example_t").strip()
 
     # Test whether unload_loaded_symbol() works properly.
     pwndbg.commands.cymbol.unload_loaded_symbol("example")
