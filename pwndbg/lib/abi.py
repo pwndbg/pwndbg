@@ -32,38 +32,15 @@ class ABI:
 
     @staticmethod
     def default():  # type: () -> ABI
-        return {
-            (32, "i386", "linux"): linux_i386,
-            (64, "x86-64", "linux"): linux_amd64,
-            (64, "aarch64", "linux"): linux_aarch64,
-            (32, "arm", "linux"): linux_arm,
-            (32, "thumb", "linux"): linux_arm,
-            (32, "mips", "linux"): linux_mips,
-            (32, "powerpc", "linux"): linux_ppc,
-            (64, "powerpc", "linux"): linux_ppc64,
-        }[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
     def syscall():  # type: () -> ABI
-        return {
-            (32, "i386", "linux"): linux_i386_syscall,
-            (64, "x86-64", "linux"): linux_amd64_syscall,
-            (64, "aarch64", "linux"): linux_aarch64_syscall,
-            (32, "arm", "linux"): linux_arm_syscall,
-            (32, "thumb", "linux"): linux_arm_syscall,
-            (32, "mips", "linux"): linux_mips_syscall,
-            (32, "powerpc", "linux"): linux_ppc_syscall,
-            (64, "powerpc", "linux"): linux_ppc64_syscall,
-        }[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
     def sigreturn():  # type: () -> SigreturnABI
-        return {
-            (32, "i386", "linux"): linux_i386_sigreturn,
-            (64, "x86-64", "linux"): linux_amd64_sigreturn,
-            (32, "arm", "linux"): linux_arm_sigreturn,
-            (32, "thumb", "linux"): linux_arm_sigreturn,
-        }[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
 
 class SyscallABI(ABI):
@@ -111,3 +88,32 @@ linux_arm_sigreturn = SigreturnABI(["r7"], 4, 0)
 linux_i386_srop = ABI(["eax"], 4, 0)
 linux_amd64_srop = ABI(["rax"], 4, 0)
 linux_arm_srop = ABI(["r7"], 4, 0)
+
+DEFAULT_ABIS = {
+    (32, "i386", "linux"): linux_i386,
+    (64, "x86-64", "linux"): linux_amd64,
+    (64, "aarch64", "linux"): linux_aarch64,
+    (32, "arm", "linux"): linux_arm,
+    (32, "thumb", "linux"): linux_arm,
+    (32, "mips", "linux"): linux_mips,
+    (32, "powerpc", "linux"): linux_ppc,
+    (64, "powerpc", "linux"): linux_ppc64,
+}
+
+SYSCALL_ABIS = {
+    (32, "i386", "linux"): linux_i386_syscall,
+    (64, "x86-64", "linux"): linux_amd64_syscall,
+    (64, "aarch64", "linux"): linux_aarch64_syscall,
+    (32, "arm", "linux"): linux_arm_syscall,
+    (32, "thumb", "linux"): linux_arm_syscall,
+    (32, "mips", "linux"): linux_mips_syscall,
+    (32, "powerpc", "linux"): linux_ppc_syscall,
+    (64, "powerpc", "linux"): linux_ppc64_syscall,
+}
+
+SIGRETURN_ABIS = {
+    (32, "i386", "linux"): linux_i386_sigreturn,
+    (64, "x86-64", "linux"): linux_amd64_sigreturn,
+    (32, "arm", "linux"): linux_arm_sigreturn,
+    (32, "thumb", "linux"): linux_arm_sigreturn,
+}
