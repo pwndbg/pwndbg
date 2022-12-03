@@ -515,6 +515,7 @@ class TcacheEntry(CStruct2GDB):
         _c_struct = c_tcache_entry_2_28
     sizeof = ctypes.sizeof(_c_struct)
 
+
 class c_malloc_par_2_23(ctypes.LittleEndianStructure):
     """
     This class represents the malloc_par struct for GLIBC < 2.24 as a ctypes struct.
