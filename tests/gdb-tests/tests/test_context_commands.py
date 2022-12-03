@@ -147,41 +147,41 @@ def test_context_disasm_syscalls_args_display(start_binary):
     gdb.execute("nextsyscall")
     dis = gdb.execute("context disasm", to_string=True)
     assert dis == (
-        'LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n'
-        '──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n'
-        '   0x400080 <_start>       mov    eax, 0\n'
-        '   0x400085 <_start+5>     mov    edi, 0x1337\n'
-        '   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n'
-        '   0x40008f <_start+15>    mov    ecx, 0x10\n'
-        ' ► 0x400094 <_start+20>    syscall  <SYS_read>\n'
-        '        fd:        0x1337\n'
-        '        buf:       0xdeadbeef\n'
-        '        nbytes:    0x0\n'
-        '   0x400096 <_start+22>    mov    eax, 0xa\n'
-        '   0x40009b <_start+27>    int    0x80\n'
-        '   0x40009d                add    byte ptr [rax], al\n'
-        '   0x40009f                add    byte ptr [rax], al\n'
-        '   0x4000a1                add    byte ptr [rax], al\n'
-        '   0x4000a3                add    byte ptr [rax], al\n'
-        '────────────────────────────────────────────────────────────────────────────────\n'
+        "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x400080 <_start>       mov    eax, 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        " ► 0x400094 <_start+20>    syscall  <SYS_read>\n"
+        "        fd:        0x1337\n"
+        "        buf:       0xdeadbeef\n"
+        "        nbytes:    0x0\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
     gdb.execute("nextsyscall")
     dis = gdb.execute("context disasm", to_string=True)
     assert dis == (
-        'LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n'
-        '──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n'
-        '   0x400085 <_start+5>     mov    edi, 0x1337\n'
-        '   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n'
-        '   0x40008f <_start+15>    mov    ecx, 0x10\n'
-        '   0x400094 <_start+20>    syscall \n'
-        '   0x400096 <_start+22>    mov    eax, 0xa\n'
-        ' ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n'
-        '        name:      0x1337\n'
-        '   0x40009d                add    byte ptr [rax], al\n'
-        '   0x40009f                add    byte ptr [rax], al\n'
-        '   0x4000a1                add    byte ptr [rax], al\n'
-        '   0x4000a3                add    byte ptr [rax], al\n'
-        '   0x4000a5                add    byte ptr [rax], al\n'
-        '────────────────────────────────────────────────────────────────────────────────\n'
+        "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
+        "        name:      0x1337\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "   0x4000a5                add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
     )
