@@ -10,6 +10,7 @@ import os
 
 import gdb
 
+import pwndbg.color.message as M
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
@@ -34,8 +35,14 @@ custom_pages = []
 
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
     "kernel-vmmap-via-page-tables",
-    True,
-    "When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel's `monitor info mem` command",
+    "deprecated",
+    "Deprecated in favor of `kernel-vmmap`",
+)
+
+kernel_vmmap = pwndbg.gdblib.config.add_param(
+    "kernel-vmmap",
+    "page-tables",
+    "Can be set to 'page-tables' to use gdb-pt-dump for vmmap, 'monitor' to use 'monitor info mem', or 'none' to disable vmmap",
 )
 
 
@@ -70,10 +77,25 @@ def get():
         and pwndbg.gdblib.qemu.is_qemu_kernel()
         and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
     ):
-        if kernel_vmmap_via_pt:
+
+        # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
+        # That means the user was explicitly setting it themselves and need to
+        # be warned that the option is deprecated
+        if kernel_vmmap_via_pt != "deprecated":
+            print(
+                M.warn(
+                    "`kernel-vmmap-via-page-tables` is deprecated, please use `kernel-vmmap` instead."
+                )
+            )
+
+        if kernel_vmmap == "page-tables":
             pages.extend(kernel_vmmap_via_page_tables())
-        else:
+        elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
+        else:
+            # TODO: Properly validate the config option when it's set so we can
+            # remove this assert
+            assert kernel_vmmap == "none"
 
     if not pages and is_corefile():
         pages.extend(coredump_maps())
@@ -418,11 +440,27 @@ def kernel_vmmap_via_monitor_info_mem():
     # ffff90358009b000-ffff903582200000 0000000002165000 -rw
     # ffff903582200000-ffff903582803000 0000000000603000 -r-
     """
+    monitor_info_mem = None
     try:
-        lines = gdb.execute("monitor info mem", to_string=True).splitlines()
-    except gdb.error:
-        # Likely a `gdb.error: "monitor" command not supported by this target.`
-        return tuple()
+        monitor_info_mem = gdb.execute("monitor info mem", to_string=True)
+    finally:
+        # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
+        # not supported by this target`. Newer versions will not throw, but will
+        # return a string starting with 'unknown command:'. We handle both of
+        # these cases in a `finally` block instead of an `except` block.
+        if monitor_info_mem is None or "unknown command" in monitor_info_mem:
+            # TODO: Find out which other architectures don't support this command
+            if pwndbg.gdblib.arch.name == "aarch64":
+                print(
+                    M.error(
+                        f"The {pwndbg.gdblib.arch.name} architecture does"
+                        + " not support the `monitor info mem` command. Run "
+                        + "`help show kernel-vmmap` for other options."
+                    )
+                )
+            return tuple()
+
+    lines = monitor_info_mem.splitlines()
 
     # Handle disabled PG
     # This will prevent a crash on abstract architectures
