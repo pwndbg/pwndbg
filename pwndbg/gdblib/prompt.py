@@ -1,4 +1,5 @@
 import re
+from os import environ
 
 import gdb
 
@@ -6,6 +7,7 @@ import pwndbg.decorators
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
 import pwndbg.lib.memoize
+import pwndbg.profiling
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.lib.tips import get_tip_of_the_day
@@ -45,6 +47,10 @@ def initial_hook(*a):
     pwndbg.decorators.first_prompt = True
 
     prompt_hook(*a)
+
+    if environ.get("PWNDBG_PROFILE") == "1":
+        pwndbg.profiling.profiler.stop("pwndbg-first-prompt.pstats")
+
     gdb.prompt_hook = prompt_hook
 
 

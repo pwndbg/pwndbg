@@ -1,8 +1,17 @@
+import cProfile
 import glob
 import locale
 import sys
+import time
 from os import environ
 from os import path
+
+_profiler = cProfile.Profile()
+
+_start_time = None
+if environ.get("PWNDBG_PROFILE") == "1":
+    _start_time = time.time()
+    _profiler.enable()
 
 # Allow users to use packages from a virtualenv
 # That's not 100% supported, but they do it on their own,
@@ -73,3 +82,9 @@ if encoding != "UTF-8":
 environ["PWNLIB_NOTERM"] = "1"
 
 import pwndbg  # noqa: F401
+import pwndbg.profiling
+
+pwndbg.profiling.init(_profiler, _start_time)
+if environ.get("PWNDBG_PROFILE") == "1":
+    pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+    pwndbg.profiling.profiler.start()
