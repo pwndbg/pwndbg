@@ -123,7 +123,7 @@ def test_malloc_chunk_command(start_binary):
 
 def test_malloc_chunk_command_heuristic(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -225,7 +225,7 @@ class mock_for_heuristic:
 
 def test_main_arena_heuristic(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -267,7 +267,7 @@ def test_main_arena_heuristic(start_binary):
 
 def test_mp_heuristic(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -303,7 +303,7 @@ def test_mp_heuristic(start_binary):
 def test_global_max_fast_heuristic(start_binary):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -331,7 +331,7 @@ def test_global_max_fast_heuristic(start_binary):
 def test_thread_cache_heuristic(start_binary):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -366,7 +366,7 @@ def test_thread_cache_heuristic(start_binary):
 def test_thread_arena_heuristic(start_binary):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -395,7 +395,7 @@ def test_thread_arena_heuristic(start_binary):
 def test_heuristic_fail_gracefully(start_binary):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
-    gdb.execute("set resolve-heap-via-heuristic on")
+    gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
 

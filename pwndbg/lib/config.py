@@ -26,13 +26,18 @@ class Parameter:
         default,
         set_show_doc,
         *,
-        help_docstring=None,
+        help_docstring="",
         param_class=None,
         enum_sequence=None,
         scope="config",
     ):
+        # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
+        # The `set_doc` will be "Set the value of the foo."
+        # The `show_doc` will be "Show the value of the foo."
+        # `get_set_string()` will return "Set the value of the foo to VALUE."
+        # `get_show_string()` will return "Show the value of the foo."
         self.set_show_doc = set_show_doc.strip()
-        self.help_docstring = help_docstring.strip() if help_docstring else None
+        self.help_docstring = help_docstring.strip()
         self.name = name
         self.default = default
         self.value = default
@@ -129,7 +134,7 @@ class Config:
         default,
         set_show_doc,
         *,
-        help_docstring=None,
+        help_docstring="",
         param_class=None,
         enum_sequence=None,
         scope="config",
