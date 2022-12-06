@@ -10,6 +10,8 @@ import pwndbg.color.message as message
 import pwndbg.exception
 import pwndbg.gdblib.regs
 import pwndbg.heap
+from pwndbg.heap.ptmalloc import DebugSymsHeap
+from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
@@ -284,83 +286,102 @@ def _is_statically_linked():
     return "No shared libraries loaded at this time." in out
 
 
+def _try2run_heap_command(function, a, kw):
+    e = lambda s: print(message.error(s))
+    w = lambda s: print(message.warn(s))
+    # Note: We will still raise the error for developers when exception-* is set to "on"
+    try:
+        return function(*a, **kw)
+    except SymbolUnresolvableError as err:
+        e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
+        w(
+            f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
+        )
+        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+            raise err
+        else:
+            pwndbg.exception.inform_verbose_and_debug()
+    except Exception as err:
+        e(f"{function.__name__}: An unknown error occurred when running this command.")
+        if isinstance(pwndbg.heap.current, HeuristicHeap):
+            w(
+                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+            )
+        else:
+            w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
+        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+            raise err
+        else:
+            pwndbg.exception.inform_verbose_and_debug()
+
+
 def OnlyWithResolvedHeapSyms(function):
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a, **kw):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
+        if (
+            isinstance(pwndbg.heap.current, HeuristicHeap)
+            and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            and DebugSymsHeap().can_be_resolved()
+        ):
+            # In auto mode, we will try to use the debug symbols if possible
+            pwndbg.heap.current = DebugSymsHeap()
         if pwndbg.heap.current.can_be_resolved():
-            # Note: We will still raise the error for developers when exception-* is set to "on"
-            try:
-                return function(*a, **kw)
-            except SymbolUnresolvableError as err:
-                e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
-                w(
-                    f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
-                )
-                if (
-                    pwndbg.gdblib.config.exception_verbose
-                    or pwndbg.gdblib.config.exception_debugger
-                ):
-                    raise err
-                else:
-                    pwndbg.exception.inform_verbose_and_debug()
-            except Exception as err:
-                e(f"{function.__name__}: An unknown error occurred when running this command.")
-                if pwndbg.gdblib.config.resolve_heap_via_heuristic:
-                    w(
-                        "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
-                    )
-                else:
-                    w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
-                if (
-                    pwndbg.gdblib.config.exception_verbose
-                    or pwndbg.gdblib.config.exception_debugger
-                ):
-                    raise err
-                else:
-                    pwndbg.exception.inform_verbose_and_debug()
+            return _try2run_heap_command(function, a, kw)
         else:
-            print(message.error(f"{function.__name__}: "), end="")
-            if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
-                if _is_statically_linked():
+            if (
+                isinstance(pwndbg.heap.current, DebugSymsHeap)
+                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            ):
+                # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+                heuristic_heap = HeuristicHeap()
+                if heuristic_heap.can_be_resolved():
+                    pwndbg.heap.current = heuristic_heap
+                    w(
+                        "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+                        "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+                    )
+                    return _try2run_heap_command(function, a, kw)
+                elif _is_statically_linked():
                     e(
-                        "Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
+                        "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                     )
                     w(
-                        """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
-Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command.
-If this does not work, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."""
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
                     )
-                    gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
-                    return
-
                 else:
-
-                    w(
-                        """This command only works with libc debug symbols which are missing.
-
-They can probably be installed via the package manager of your choice.
-See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
-
-E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 32-bit binaries):
-sudo apt-get install libc6-dbg
-sudo dpkg --add-architecture i386
-sudo apt-get install libc-dbg:i386
-
-If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
-"""
+                    e(
+                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
                     )
                     w(
-                        "pwndbg can still try to use this command without debug symbols after you `set resolve-heap-via-heuristic on`, but the results of those commands may be incorrect in some cases.\n"
-                        "If the output of the heap command is still wrong or gives you erros, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
                     )
-            elif pwndbg.glibc.get_version() is None:
-                e("Can't resolve the heap since the GLIBC version is not set.")
-                w(
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+            elif (
+                isinstance(pwndbg.heap.current, DebugSymsHeap)
+                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "force"
+            ):
+                e(
+                    "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
                 )
+                w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+            elif pwndbg.glibc.get_version() is None:
+                if _is_statically_linked():
+                    e("Can't resolve the heap since the GLIBC version is not set.")
+                    w(
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                    )
+                else:
+                    e(
+                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
+                    )
+                    w(
+                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                    )
             else:
+                # Note: Should not see this error, but just in case
                 e("An unknown error occurred when resolved the heap.")
                 pwndbg.exception.inform_report_issue(
                     "An unknown error occurred when resolved the heap"
