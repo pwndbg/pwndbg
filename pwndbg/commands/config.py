@@ -57,7 +57,7 @@ parser.add_argument(
 )
 
 
-def display_config(filter_pattern: str, scope: str):
+def display_config(filter_pattern: str, scope: str, has_file_command: bool = True):
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
@@ -87,12 +87,13 @@ def display_config(filter_pattern: str, scope: str):
         print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_value)
 
     print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
-    print(
-        hint(
-            f"You can generate configuration file using `{scope}file` "
-            "- then put it in your .gdbinit after initializing pwndbg"
+    if has_file_command:
+        print(
+            hint(
+                f"You can generate configuration file using `{scope}file` "
+                "- then put it in your .gdbinit after initializing pwndbg"
+            )
         )
-    )
 
 
 @pwndbg.commands.ArgparsedCommand(parser)

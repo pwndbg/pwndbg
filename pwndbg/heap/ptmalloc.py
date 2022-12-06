@@ -2185,7 +2185,6 @@ class HeuristicHeap(GlibcMemoryAllocator):
     def is_initialized(self):
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
-        return (
-            any("[heap]" == x.objfile for x in pwndbg.gdblib.vmmap.get())
-            or self.main_arena["top"] != 0
+        return any("[heap]" == x.objfile for x in pwndbg.gdblib.vmmap.get()) or (
+            self.can_be_resolved() and self.main_arena.top != 0
         )
