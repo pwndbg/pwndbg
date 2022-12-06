@@ -1179,7 +1179,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 def heap_config(filter_pattern):
-    display_config(filter_pattern, "heap")
+    display_config(filter_pattern, "heap", has_file_command=False)
 
     print(
         message.hint(

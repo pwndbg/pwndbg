@@ -34,11 +34,15 @@ from pwndbg.color import message
 gcc_compiler_path = pwndbg.gdblib.config.add_param(
     "gcc-compiler-path",
     "",
-    "Path to the gcc/g++ toolchain for generating imported symbols",
+    "path to the gcc/g++ toolchain for generating imported symbols",
+    param_class=gdb.PARAM_OPTIONAL_FILENAME,
 )
 
 cymbol_editor = pwndbg.gdblib.config.add_param(
-    "cymbol-editor", "", "Path to the editor for editing custom structures"
+    "cymbol-editor",
+    "",
+    "path to the editor for editing custom structures",
+    param_class=gdb.PARAM_OPTIONAL_FILENAME,
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.

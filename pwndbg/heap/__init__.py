@@ -1,3 +1,5 @@
+import gdb
+
 import pwndbg.color.message as message
 import pwndbg.gdblib.config
 import pwndbg.gdblib.symbol
@@ -7,7 +9,7 @@ current = None
 
 
 def add_heap_param(
-    name, default, set_show_doc, *, help_docstring=None, param_class=None, enum_sequence=None
+    name, default, set_show_doc, *, help_docstring="", param_class=None, enum_sequence=None
 ):
     return pwndbg.gdblib.config.add_param(
         name,
@@ -35,7 +37,36 @@ symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 heap_chain_limit = add_heap_param("heap-dereference-limit", 8, "number of bins to dereference")
 
 resolve_heap_via_heuristic = add_heap_param(
-    "resolve-heap-via-heuristic", False, "Resolve missing heap related symbols via heuristics"
+    "resolve-heap-via-heuristic",
+    "auto",
+    "the strategy to resolve heap via heuristic",
+    help_docstring="""If pwndbg fails to use the debug symbols to resolve the heap, it can try to resolve the heap via heuristics.
+This configuration sets the strategy for resolving the heap.
+
+There are three strategies:
+auto    == pwndbg will try to use heuristics if debug symbols are missing
+force   == pwndbg will always try to use heuristics, even if debug symbols are available
+never   == pwndbg will never use heuristics to resolve the heap
+
+
+If the output of the heap related command produces errors with heuristics, you can try manually setting the libc symbol addresses.
+For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses.
+
+Note: pwndbg will generate more reliable results with proper debug symbols.
+Therefore, when debug symbols are missing, you should try to install them first if you haven't already.
+
+They can probably be installed via the package manager of your choice.
+See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
+
+E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 32-bit binaries):
+sudo apt-get install libc6-dbg
+sudo dpkg --add-architecture i386
+sudo apt-get install libc-dbg:i386
+
+If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+""",
+    param_class=gdb.PARAM_ENUM,
+    enum_sequence=["auto", "force", "never"],
 )
 
 
@@ -59,19 +90,13 @@ def resolve_heap(is_first_run=False):
     import pwndbg.heap.ptmalloc
 
     global current
-    if resolve_heap_via_heuristic:
+    if resolve_heap_via_heuristic == "force":
         current = pwndbg.heap.ptmalloc.HeuristicHeap()
         if not is_first_run and pwndbg.gdblib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
                     "You are going to resolve the heap via heuristic even though you have libc debug symbols."
                     " This is not recommended!"
-                )
-            )
-        else:
-            print(
-                message.warn(
-                    "You are going to resolve the heap via heuristic. This might not work in all cases."
                 )
             )
     else:
