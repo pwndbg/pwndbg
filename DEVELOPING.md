@@ -77,6 +77,15 @@ Feel free to update the list below!
 
 * We have our own `pwndbg.config.Parameter` (which extends `gdb.Parameter`) - all of our parameters can be seen using `config` or `theme` commands. If we want to do something when user changes config/theme - we can do it defining a function and decorating it with `pwndbg.config.Trigger`.
 
+* You can create a new config with `pwndbg.gdblib.config.add_param`.
+
+* When using `pwndbg.gdblib.config.add_param` to add a new config, there are a few things to keep in mind:
+  * For the `set_show_doc` parameter, it is best to use a noun phrase like "the value of something" to ensure that the output is grammatically correct.
+  * For the `help_docstring` parameter, you can use the output of `help set follow-fork-mode` as a guide for formatting the documentation string if the config is an enum type.
+  * For the `param_class` parameter
+    * See the [documentation](https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html) for more information.
+    * If you use `gdb.PARAM_ENUM` as `param_class`, you must pass a list of strings to the `enum_sequence` parameter.
+
 * The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's prompt hook (which we defined in `pwndbg/prompt.py` as `prompt_hook_on_stop`).
 
 * All commands should be defined in `pwndbg/commands` - most of them lie in separate files but some files contains many of them (e.g. commands corresponding to windbg debugger - in `windbg.py` or some misc commands in `misc.py`). We would also want to make all of them to use `ArgparsedCommand` (instead of `Command`).
@@ -98,3 +107,4 @@ Feel free to update the list below!
 * Some of pwndbg's functionality - e.g. memory fetching - require us to have an instance of proper `gdb.Type` - the problem with that is that there is no way to define our own types - we have to ask gdb if it detected particular type in this particular binary (that sucks). We do it in `pwndbg/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
 
 * We would like to add proper tests for pwndbg - see tests framework PR if you want to help on that.
+
