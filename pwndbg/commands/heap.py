@@ -596,7 +596,7 @@ pwndbg.gdblib.config.add_param(
 pwndbg.gdblib.config.add_param(
     "default-visualize-chunk-number",
     10,
-    "the number of chunks to visualize (default is 10)",
+    "default number of chunks to visualize (default is 10)",
 )
 
 parser = argparse.ArgumentParser()

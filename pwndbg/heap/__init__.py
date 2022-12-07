@@ -40,14 +40,11 @@ resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
     "auto",
     "the strategy to resolve heap via heuristic",
-    help_docstring="""If pwndbg fails to use the debug symbols to resolve the heap, it can try to resolve the heap via heuristics.
-This configuration sets the strategy for resolving the heap.
-
-There are three strategies:
-auto    == pwndbg will try to use heuristics if debug symbols are missing
-force   == pwndbg will always try to use heuristics, even if debug symbols are available
-never   == pwndbg will never use heuristics to resolve the heap
-
+    help_docstring="""\
+resolve-heap-via-heuristic can be:
+auto    - pwndbg will try to use heuristics if debug symbols are missing
+force   - pwndbg will always try to use heuristics, even if debug symbols are available
+never   - pwndbg will never use heuristics to resolve the heap
 
 If the output of the heap related command produces errors with heuristics, you can try manually setting the libc symbol addresses.
 For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses.
