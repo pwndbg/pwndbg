@@ -36,13 +36,24 @@ custom_pages = []
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
     "kernel-vmmap-via-page-tables",
     "deprecated",
-    "Deprecated in favor of `kernel-vmmap`",
+    "the deprecated config of the method get kernel vmmap",
+    help_docstring="Deprecated in favor of `kernel-vmmap`",
 )
 
 kernel_vmmap = pwndbg.gdblib.config.add_param(
     "kernel-vmmap",
     "page-tables",
-    "Can be set to 'page-tables' to use gdb-pt-dump for vmmap, 'monitor' to use 'monitor info mem', or 'none' to disable vmmap",
+    "the method to get vmmap information when debugging via QEMU kernel",
+    help_docstring="""\
+kernel-vmmap can be:
+page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+monitor        - use QEMU's `monitor info mem` to render vmmap
+none           - disable vmmap rendering; useful if rendering is particularly slow
+
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+""",
+    param_class=gdb.PARAM_ENUM,
+    enum_sequence=["page-tables", "monitor", "none"],
 )
 
 
@@ -92,10 +103,6 @@ def get():
             pages.extend(kernel_vmmap_via_page_tables())
         elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
-        else:
-            # TODO: Properly validate the config option when it's set so we can
-            # remove this assert
-            assert kernel_vmmap == "none"
 
     if not pages and is_corefile():
         pages.extend(coredump_maps())

@@ -49,7 +49,10 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     pwndbg.gdblib.config_mod.Parameter(param)
 
     out = gdb.execute(f"show {param_name}", to_string=True)
-    assert out == f"{set_show_doc.capitalize()} is {displayed_value!r}.\n"
+    assert (
+        out
+        == f"{set_show_doc.capitalize()} is {displayed_value!r}. See `help set {param_name}` for more information.\n"
+    )
     if (
         optional_kwargs.get("param_class") in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER)
         and default_value == 0

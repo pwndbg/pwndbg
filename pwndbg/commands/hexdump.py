@@ -8,6 +8,7 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
+from pwndbg.color import message
 
 pwndbg.gdblib.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.gdblib.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -19,7 +20,8 @@ pwndbg.gdblib.config.add_param(
 pwndbg.gdblib.config.add_param(
     "hexdump-group-use-big-endian",
     False,
-    "Use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. "
+    "whether to use big-endian within each group of bytes in hexdump command",
+    help_docstring="When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. "
     "See also hexdump-highlight-group-lsb.",
 )
 
