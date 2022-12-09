@@ -245,7 +245,7 @@ def contextoutput(section, path, clearing, banner="both", width=None):
 
 
 # Watches
-expressions = set()
+expressions = []
 expression_commands = {
     "eval": gdb.parse_and_eval,
     "execute": lambda exp: gdb.execute(exp, False, True),
@@ -256,8 +256,10 @@ parser.description = """
 Adds an expression to be shown on context.
 
 'cmd' controls what command is used to interpret the expression.
-eval: the expression is parsed and evaluated as in the debugged language
-execute: the expression is executed as an gdb command
+eval: the expression is parsed and evaluated as in the debugged language.
+execute: the expression is executed as an gdb command.
+
+To remove an expression, see `cunwatch`.
 """
 parser.add_argument(
     "cmd",
@@ -273,18 +275,22 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-watch", "cwatch"])
 def contextwatch(expression, cmd=None):
-    expressions.add((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
+    expressions.append((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
 
 
-parser = argparse.ArgumentParser()
-parser.description = """Removes an expression previously added to be watched."""
-parser.add_argument("expression", type=str, help="The expression to be removed from context")
+parser = argparse.ArgumentParser(
+    description="Removes an expression previously added to be watched."
+)
+parser.add_argument("num", type=int, help="The expression number to be removed from context")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-unwatch", "cunwatch"])
-def contextunwatch(expression):
-    global expressions
-    expressions = set((exp, cmd) for exp, cmd in expressions if exp != expression)
+def contextunwatch(num):
+    if num < 1 or num > len(expressions):
+        print(message.error("Invalid input"))
+        return
+
+    expressions.pop(int(num) - 1)
 
 
 def context_expressions(target=sys.stdout, with_banner=True, width=None):
@@ -294,7 +300,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
     output = []
     if width is None:
         _height, width = pwndbg.ui.get_window_size(target=target)
-    for exp, cmd in sorted(expressions):
+    for i, (exp, cmd) in enumerate(expressions):
         try:
             # value = gdb.parse_and_eval(exp)
             value = str(cmd(exp))
@@ -310,7 +316,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
                 lines.append(line)
 
         fmt = C.highlight(exp)
-        lines[0] = "{} = {}".format(fmt, lines[0])
+        lines[0] = "{}: {} = {}".format(i + 1, fmt, lines[0])
         lines[1:] = [" " * (len(exp) + 3) + line for line in lines[1:]]
         output.extend(lines)
     return banner + output if with_banner else output
