@@ -404,7 +404,17 @@ def kernel_vmmap_via_page_tables():
     import pt
 
     p = pt.PageTableDump()
-    p.lazy_init()
+    try:
+        p.lazy_init()
+    except PermissionError:
+        print(
+            M.error(
+                "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
+                + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama`)"
+            )
+        )
+        return tuple([])
+
     pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
 
     retpages = []
