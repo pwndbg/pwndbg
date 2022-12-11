@@ -330,7 +330,6 @@ def find_lower_boundary(addr, max_pages=1024):
     return addr
 
 
-@pwndbg.gdblib.events.start
 def update_min_addr():
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():

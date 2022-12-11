@@ -7,7 +7,6 @@ import sys
 
 import gdb
 
-import pwndbg.gdblib.events
 import pwndbg.lib.gcc
 import pwndbg.lib.memoize
 import pwndbg.lib.tempfile

@@ -1,4 +1,9 @@
+import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
+import pwndbg.gdblib.memory
+import pwndbg.gdblib.next
+import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 from pwndbg.gdblib import arch_mod
 from pwndbg.lib.memoize import reset_on_cont
@@ -30,6 +35,24 @@ def update_arch():
 @pwndbg.gdblib.events.new_objfile
 def reset_config():
     pwndbg.gdblib.kernel._kconfig = None
+
+
+@pwndbg.gdblib.events.start
+def on_start():
+    pwndbg.gdblib.abi.update()
+    pwndbg.gdblib.memory.update_min_addr()
+
+
+@pwndbg.gdblib.events.exit
+def on_exit():
+    pwndbg.gdblib.tls.reset()
+    pwndbg.gdblib.file.reset_remote_files()
+    pwndbg.gdblib.next.clear_temp_breaks()
+
+
+@pwndbg.gdblib.events.stop
+def on_stop():
+    pwndbg.gdblib.strings.update_length()
 
 
 @pwndbg.gdblib.events.stop
@@ -77,6 +100,7 @@ def init():
     """
     update_arch()
     update_typeinfo()
+    pwndbg.gdblib.abi.update()
 
 
 init()

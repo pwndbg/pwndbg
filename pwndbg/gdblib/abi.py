@@ -3,14 +3,11 @@ import functools
 import gdb
 
 import pwndbg.color.message as M
-import pwndbg.gdblib.events
 
 abi = None
 linux = False
 
 
-# TODO: Maybe move this to hooks.py?
-@pwndbg.gdblib.events.start
 def update():
     global abi
     global linux
@@ -61,7 +58,3 @@ def LinuxOnly(default=None):
         return caller
 
     return decorator
-
-
-# Update when starting the gdb to show warning message for non-Linux ABI user.
-update()
