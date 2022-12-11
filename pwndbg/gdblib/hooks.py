@@ -27,6 +27,11 @@ def update_arch():
     arch_mod.update()
 
 
+@pwndbg.gdblib.events.new_objfile
+def reset_config():
+    pwndbg.gdblib.kernel._kconfig = None
+
+
 @pwndbg.gdblib.events.stop
 @pwndbg.gdblib.events.mem_changed
 @pwndbg.gdblib.events.reg_changed
