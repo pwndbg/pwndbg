@@ -8,6 +8,7 @@ import gdb
 
 import pwndbg.color.message as message
 import pwndbg.exception
+import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
@@ -240,6 +241,20 @@ def OnlyWithArch(arch_names: List[str]):
         return _OnlyWithArch
 
     return decorator
+
+
+def OnlyWithKernelDebugSyms(function):
+    @functools.wraps(function)
+    def _OnlyWithKernelDebugSyms(*a, **kw):
+        if pwndbg.gdblib.kernel.has_debug_syms():
+            return function(*a, **kw)
+        else:
+            print(
+                "%s: This command may only be run when debugging a Linux kernel with debug symbols."
+                % function.__name__
+            )
+
+    return _OnlyWithKernelDebugSyms
 
 
 def OnlyWhenRunning(function):
