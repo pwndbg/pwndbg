@@ -403,6 +403,8 @@ def proc_pid_maps():
 def kernel_vmmap_via_page_tables():
     import pt
 
+    retpages = []
+
     p = pt.PageTableDump()
     try:
         p.lazy_init()
@@ -413,11 +415,15 @@ def kernel_vmmap_via_page_tables():
                 + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama`)"
             )
         )
-        return tuple([])
+        return tuple(retpages)
+
+    # Somewhat hacky, but if TCR_EL1 is zero, that generally means that we've
+    # attached to QEMU before it's started running, and if we attempt to parse
+    # page tables at this point we'll get an exception
+    if pwndbg.gdblib.arch.name == "aarch64" and int(pwndbg.gdblib.regs.TCR_EL1) == 0:
+        return tuple(retpages)
 
     pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
-
-    retpages = []
 
     for page in pages:
         start = page.va
