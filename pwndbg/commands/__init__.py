@@ -222,6 +222,26 @@ def OnlyWhenQemuKernel(function):
     return _OnlyWhenQemuKernel
 
 
+def OnlyWithArch(arch_names: List[str]):
+    """Decorates function to work only with the specified archictectures."""
+
+    def decorator(function):
+        @functools.wraps(function)
+        def _OnlyWithArch(*a, **kw):
+            if pwndbg.gdblib.arch.name in arch_names:
+                return function(*a, **kw)
+            else:
+                arches_str = ", ".join(arch_names)
+                print(
+                    f"%s: This command may only be run on the {arches_str} architecture(s)"
+                    % function.__name__
+                )
+
+        return _OnlyWithArch
+
+    return decorator
+
+
 def OnlyWhenRunning(function):
     @functools.wraps(function)
     def _OnlyWhenRunning(*a, **kw):
@@ -256,19 +276,6 @@ def OnlyWhenHeapIsInitialized(function):
             print("%s: Heap is not initialized yet." % function.__name__)
 
     return _OnlyWhenHeapIsInitialized
-
-
-def OnlyAmd64(function):
-    """Decorates function to work only when pwndbg.gdblib.arch.current == \"x86-64\"."""
-
-    @functools.wraps(function)
-    def _OnlyAmd64(*a, **kw):
-        if pwndbg.gdblib.arch.current == "x86-64":
-            return function(*a, **kw)
-        else:
-            print('%s: Only works with "x86-64" arch.' % function.__name__)
-
-    return _OnlyAmd64
 
 
 # TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
