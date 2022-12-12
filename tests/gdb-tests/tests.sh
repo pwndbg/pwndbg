@@ -147,18 +147,6 @@ parse_output_file() {
     fi
 }
 
-JOBLOG_PATH="$(mktemp)"
-echo ""
-echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
-
-if [[ $KEEP -ne 1 ]]; then
-    echo " (use --keep it to persist it)"
-else
-    echo ""
-fi
-
-. $(which env_parallel.bash)
-
 start=$(date +%s)
 
 if [ $SERIAL -eq 1 ]; then
@@ -166,6 +154,18 @@ if [ $SERIAL -eq 1 ]; then
         run_test "$t"
     done
 else
+    JOBLOG_PATH="$(mktemp)"
+    echo ""
+    echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
+
+    if [[ $KEEP -ne 1 ]]; then
+        echo " (use --keep it to persist it)"
+    else
+        echo ""
+    fi
+
+    . $(which env_parallel.bash)
+
     env_parallel --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel parse_output_file {}
 fi
 
