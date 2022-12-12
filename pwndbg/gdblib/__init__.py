@@ -22,6 +22,7 @@ def load_gdblib():
     import pwndbg.gdblib.events
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.hooks
+    import pwndbg.gdblib.kernel
     import pwndbg.gdblib.memory
     import pwndbg.gdblib.prompt
     import pwndbg.gdblib.regs

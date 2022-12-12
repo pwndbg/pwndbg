@@ -208,6 +208,20 @@ def OnlyWithFile(function):
     return _OnlyWithFile
 
 
+def OnlyWhenQemuKernel(function):
+    @functools.wraps(function)
+    def _OnlyWhenQemuKernel(*a, **kw):
+        if pwndbg.gdblib.qemu.is_qemu_kernel():
+            return function(*a, **kw)
+        else:
+            print(
+                "%s: This command may only be run when debugging the Linux kernel in QEMU."
+                % function.__name__
+            )
+
+    return _OnlyWhenQemuKernel
+
+
 def OnlyWithArch(arch_names: List[str]):
     """Decorates function to work only with the specified archictectures."""
 
@@ -485,6 +499,7 @@ def load_commands():
     import pwndbg.commands.ida
     import pwndbg.commands.ignore
     import pwndbg.commands.ipython_interactive
+    import pwndbg.commands.kconfig
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
