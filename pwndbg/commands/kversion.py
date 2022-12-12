@@ -8,5 +8,6 @@ parser = argparse.ArgumentParser(description="Outputs the kernel version (/proc/
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSyms
 def kversion():
     print(pwndbg.gdblib.kernel.kversion())

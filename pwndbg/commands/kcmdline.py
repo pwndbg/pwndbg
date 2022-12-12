@@ -8,5 +8,6 @@ parser = argparse.ArgumentParser(description="Return the kernel commandline (/pr
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSyms
 def kcmdline():
     print(pwndbg.gdblib.kernel.kcmdline())
