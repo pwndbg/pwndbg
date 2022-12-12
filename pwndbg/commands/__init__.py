@@ -499,7 +499,9 @@ def load_commands():
     import pwndbg.commands.ida
     import pwndbg.commands.ignore
     import pwndbg.commands.ipython_interactive
+    import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
     import pwndbg.commands.misc

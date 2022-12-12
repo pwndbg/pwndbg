@@ -21,3 +21,15 @@ def kconfig():
     if _kconfig is None:
         _kconfig = load_kconfig()
     return _kconfig
+
+
+@pwndbg.lib.memoize.reset_on_start
+def kcmdline() -> str:
+    cmdline_addr = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.symbol.address("saved_command_line"))
+    return pwndbg.gdblib.memory.string(cmdline_addr).decode("ascii")
+
+
+@pwndbg.lib.memoize.reset_on_start
+def kversion() -> str:
+    version_addr = pwndbg.gdblib.symbol.address("linux_banner")
+    return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
