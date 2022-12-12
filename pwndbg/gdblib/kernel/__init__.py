@@ -33,3 +33,11 @@ def kcmdline() -> str:
 def kversion() -> str:
     version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
+
+
+@pwndbg.lib.memoize.reset_on_start
+def is_kaslr_enabled() -> bool:
+    if "CONFIG_RANDOMIZE_BASE" not in kconfig():
+        return False
+
+    return "nokaslr" not in kcmdline()
