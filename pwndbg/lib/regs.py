@@ -94,6 +94,25 @@ arm_xpsr_flags = collections.OrderedDict(
     [("N", 31), ("Z", 30), ("C", 29), ("V", 28), ("Q", 27), ("T", 24)]
 )
 
+aarch64_cpsr_flags = collections.OrderedDict(
+    [
+        ("N", 31),
+        ("Z", 30),
+        ("C", 29),
+        ("V", 28),
+        ("Q", 27),
+        ("PAN", 22),
+        ("IL", 20),
+        ("D", 9),
+        ("A", 8),
+        ("I", 7),
+        ("F", 6),
+        # TODO: EL is two bits
+        ("EL", 2),
+        ("SP", 0),
+    ]
+)
+
 arm = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": arm_cpsr_flags},
@@ -111,10 +130,10 @@ armcm = RegisterSet(
     retval="r0",
 )
 
-# FIXME AArch64 does not have a CPSR register
+# AArch64 has a PSTATE register, but GDB represents it as the CPSR register
 aarch64 = RegisterSet(
     retaddr=("lr",),
-    flags={"cpsr": {}},
+    flags={"cpsr": aarch64_cpsr_flags},
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point
     # it's confusing. Think about improving this if frame
