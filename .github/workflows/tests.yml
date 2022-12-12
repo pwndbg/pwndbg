@@ -40,13 +40,13 @@ jobs:
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 ./tests.sh --cov
 
     - name: Process coverage data
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-22.04' && success() || failure()
       run: |
         coverage combine
         coverage xml
 
     - name: "Upload coverage to Codecov"
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-22.04' && success() || failure()
       uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: true
