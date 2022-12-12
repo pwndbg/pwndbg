@@ -244,7 +244,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-@pwndbg.commands.OnlyAmd64
+@pwndbg.commands.OnlyWithArch(["x86_64"])
 @pwndbg.commands.OnlyWhenRunning
 def cymbol(add, remove, edit, load, show):
     if add:
