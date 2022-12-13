@@ -32,10 +32,10 @@ def is_debug_probe():
             and "Black Magic Probe" not in help_output
             and "SEGGER J-Link GDB Server" not in help_output
         ):
-            # We can't directly use the `monitor` command if we are using normal GDBserver, because the `monitor` command will cause GDBserver stuck.
-            # So we check if we are using GDBserver by checking the output of `monitor help`.
-            # TODO: Does this problem only occur with normal GDBserver?
-            # If not, we should find a better way to check what remote server we are using.
+            # We can't use the `monitor` command directly when using normal GDBserver because it can cause GDBserver somehow show an additional newline in the end and fail to show the context because `pwndbg.gdblib.proc.thread_is_stopped` is False when running `gdb.prompt_hook`.
+            # To avoid this issue, we can check the output of `monitor help` to determine if we're using GDBserver.
+            # TODO/FIXME: Investigate the cause of this problem and fix it properly.
+            # TODO/FIXME: Determine if this issue only occurs with normal GDBserver and find a better way to check the remote server if necessary.
             return False
     except gdb.error:
         # Now we check if we are using Black Magic Probe or the SEGGER J-Link GDB Server
