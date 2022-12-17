@@ -40,7 +40,7 @@ jobs:
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 ./tests.sh --cov
 
     - name: Process coverage data
-      if: matrix.os == 'ubuntu-22.04' && success() || failure()
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         coverage combine
         coverage xml
