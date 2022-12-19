@@ -506,6 +506,8 @@ class ArgparsedCommand:
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                action.type = str
             if action.dest == "help":
                 continue
             if action.type in (int, None):
