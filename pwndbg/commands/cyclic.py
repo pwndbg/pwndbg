@@ -82,5 +82,5 @@ def cyclic_cmd(alphabet, length, lookup, count=100):
         else:
             print(message.success(offset))
     else:
-        sequence = cyclic(count, alphabet, length)
+        sequence = cyclic(int(count), alphabet, length)
         print(sequence.decode())
