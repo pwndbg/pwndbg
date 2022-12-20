@@ -18,13 +18,12 @@ import pwndbg.gdblib.remote
 _remote_files_dir = None
 
 
-@pwndbg.gdblib.events.exit
 def reset_remote_files():
     global _remote_files_dir
 
     if _remote_files_dir is not None:
         shutil.rmtree(_remote_files_dir)
-        remote_files_dir = None
+        _remote_files_dir = None
 
 
 def remote_files_dir():
