@@ -11,9 +11,7 @@ import pwndbg.gdblib.symbol
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
 parser = argparse.ArgumentParser(
-    description="""
-Converts errno (or argument) to its string representation.
-"""
+    description="Converts errno (or argument) to its string representation."
 )
 parser.add_argument(
     "err",
@@ -60,9 +58,7 @@ def errno_(err):
 
 
 parser = argparse.ArgumentParser(
-    description="""
-Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
-"""
+    description="Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed."
 )
 
 group = parser.add_mutually_exclusive_group()
@@ -94,7 +90,7 @@ def pwndbg_(filter_pattern, shell, all_):
         print("%-20s %s" % (name, docs))
 
 
-parser = argparse.ArgumentParser(description="""Print the distance between the two arguments.""")
+parser = argparse.ArgumentParser(description="Print the distance between the two arguments.")
 parser.add_argument("a", type=int, help="The first address.")
 parser.add_argument("b", type=int, help="The second address.")
 

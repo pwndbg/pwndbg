@@ -28,6 +28,7 @@ def on_start():
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
+    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
@@ -44,7 +45,6 @@ use "set args" without arguments.
 
 To start the inferior without using a shell, use "set startup-with-shell off".
 """,
-    formatter_class=RawTextHelpFormatter,
 )
 
 parser.add_argument(
@@ -77,6 +77,7 @@ def start(args=None):
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
+    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at its entrypoint address.
 You may specify arguments to give it.
@@ -96,7 +97,6 @@ use "set args" without arguments.
 
 To start the inferior without using a shell, use "set startup-with-shell off".
 """,
-    formatter_class=RawTextHelpFormatter,
 )
 parser.add_argument(
     "args", nargs="*", type=str, default=None, help="The arguments to run the binary with."

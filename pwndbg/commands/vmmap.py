@@ -47,8 +47,9 @@ def print_vmmap_table_header():
     )
 
 
-parser = argparse.ArgumentParser()
-parser.description = """Print virtual memory map pages. Results can be filtered by providing address/module name.
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print virtual memory map pages. Results can be filtered by providing address/module name.
 
 Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address. This is useful for filtering with `vmmap` or `search` commands.
 
@@ -63,8 +64,8 @@ As a last resort, we sometimes try to explore the addresses in CPU registers and
 
 Memory pages can also be added manually with the use of vmmap_add, vmmap_clear and vmmap_load commands. This may be useful for bare metal debugging.
 
-[0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/"""
-parser.formatter_class = argparse.RawDescriptionHelpFormatter
+[0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/""",
+)
 parser.add_argument(
     "gdbval_or_str",
     type=pwndbg.commands.sloppy_gdb_parse,
@@ -103,8 +104,7 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False):
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Add Print virtual memory map page."
+parser = argparse.ArgumentParser(description="Add virtual memory map page.")
 parser.add_argument("start", help="Starting virtual address")
 parser.add_argument("size", help="Size of the address space, in bytes")
 parser.add_argument(
@@ -144,8 +144,7 @@ def vmmap_clear():
     pwndbg.gdblib.vmmap.clear_custom_page()
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Load virtual memory map pages from ELF file."
+parser = argparse.ArgumentParser(description="Load virtual memory map pages from ELF file.")
 parser.add_argument(
     "filename", nargs="?", type=str, help="ELF filename, by default uses current loaded filename."
 )

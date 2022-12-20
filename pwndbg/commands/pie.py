@@ -67,8 +67,7 @@ def translate_addr(offset, module):
     return addr
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Calculate VA of RVA from PIE base."
+parser = argparse.ArgumentParser(description="Calculate VA of RVA from PIE base.")
 parser.add_argument("offset", nargs="?", default=0, help="Offset from PIE base.")
 parser.add_argument(
     "module",

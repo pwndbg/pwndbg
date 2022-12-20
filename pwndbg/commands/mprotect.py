@@ -14,6 +14,7 @@ import pwndbg.wrappers.readelf
 from pwndbg.lib.regs import reg_sets
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Calls the mprotect syscall and prints its result value
 
@@ -24,7 +25,7 @@ can be decoded with the `errno <value>` command.
 Examples:
     mprotect $rsp PROT_READ|PROT_WRITE|PROT_EXEC
     mprotect some_symbol PROT_NONE
-"""
+""",
 )
 parser.add_argument(
     "addr", help="Page-aligned address to all mprotect on.", type=pwndbg.commands.sloppy_gdb_parse

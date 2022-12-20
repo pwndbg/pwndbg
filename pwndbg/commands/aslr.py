@@ -10,11 +10,12 @@ from pwndbg.color import message
 options = {"on": "off", "off": "on"}
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Check the current ASLR status, or turn it on/off.
 
 Does not take effect until the program is restarted.
-"""
+""",
 )
 parser.add_argument(
     "state",

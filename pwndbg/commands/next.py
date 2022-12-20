@@ -18,7 +18,7 @@ def nextjmp():
         pwndbg.commands.context.context()
 
 
-parser = argparse.ArgumentParser(description="""Breaks at the next call instruction""")
+parser = argparse.ArgumentParser(description="Breaks at the next call instruction")
 parser.add_argument(
     "symbol_regex",
     type=str,
@@ -70,9 +70,7 @@ def nextproginstr():
     pwndbg.gdblib.next.break_on_program_code()
 
 
-parser = argparse.ArgumentParser(
-    description="""Sets a breakpoint on the instruction after this one"""
-)
+parser = argparse.ArgumentParser(description="Sets a breakpoint on the instruction after this one")
 parser.add_argument("addr", type=int, default=None, nargs="?", help="The address to break after.")
 
 

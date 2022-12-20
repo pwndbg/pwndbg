@@ -202,8 +202,7 @@ def output(section):
         return FileOutput(target, "w")
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Sets the output of a context section."
+parser = argparse.ArgumentParser(description="Sets the output of a context section.")
 parser.add_argument(
     "section",
     type=str,
@@ -251,8 +250,9 @@ expression_commands = {
     "execute": lambda exp: gdb.execute(exp, False, True),
 }
 
-parser = argparse.ArgumentParser()
-parser.description = """
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""
 Adds an expression to be shown on context.
 
 'cmd' controls what command is used to interpret the expression.
@@ -260,7 +260,8 @@ eval: the expression is parsed and evaluated as in the debugged language.
 execute: the expression is executed as an gdb command.
 
 To remove an expression, see `cunwatch`.
-"""
+""",
+)
 parser.add_argument(
     "cmd",
     type=str,
@@ -356,8 +357,9 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
 
 # @pwndbg.gdblib.events.stop
 
-parser = argparse.ArgumentParser()
-parser.description = "Print out the current register, instruction, and stack context."
+parser = argparse.ArgumentParser(
+    description="Print out the current register, instruction, and stack context."
+)
 parser.add_argument(
     "subcontext",
     nargs="*",
@@ -515,8 +517,7 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     return banner + regs if with_banner else regs
 
 
-parser = argparse.ArgumentParser()
-parser.description = """Print out all registers and enhance the information."""
+parser = argparse.ArgumentParser(description="Print out all registers and enhance the information.")
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
 
 
