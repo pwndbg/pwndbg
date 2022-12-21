@@ -312,8 +312,7 @@ def dds(addr):
     return pwndbg.commands.telescope.telescope(addr)
 
 
-da_parser = argparse.ArgumentParser()
-da_parser.description = "Dump a string at the specified address."
+da_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")
 da_parser.add_argument("address", type=pwndbg.commands.HexOrAddressExpr, help="Address to dump")
 da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum string length")
 
@@ -324,8 +323,7 @@ def da(address, max):
     print("%x" % address, repr(pwndbg.gdblib.strings.get(address, max)))
 
 
-ds_parser = argparse.ArgumentParser()
-ds_parser.description = "Dump a string at the specified address."
+ds_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")
 ds_parser.add_argument("address", type=pwndbg.commands.HexOrAddressExpr, help="Address to dump")
 ds_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum string length")
 

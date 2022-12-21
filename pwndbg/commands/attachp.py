@@ -10,6 +10,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name or device file.
 
 This command wraps the original GDB `attach` command to add the ability
@@ -27,7 +28,7 @@ Original GDB attach command help:
     program running in the process, looking first in the current working
     directory, or (if not found there) using the source file search path
     (see the "directory" command).  You can also use the "file" command
-    to specify the program, and to load its symbol table."""
+    to specify the program, and to load its symbol table.""",
 )
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")

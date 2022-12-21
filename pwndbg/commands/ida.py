@@ -27,11 +27,7 @@ def j(*args):
         pass
 
 
-parser = argparse.ArgumentParser()
-parser.description = """
-    Select and print stack frame that called this one.
-    An argument says how many frames up to go.
-    """
+parser = argparse.ArgumentParser(description="Select and print stack frame that called this one.")
 parser.add_argument(
     "n", nargs="?", default=1, type=int, help="The number of stack frames to go up."
 )
@@ -42,7 +38,6 @@ parser.add_argument(
 def up(n=1):
     """
     Select and print stack frame that called this one.
-    An argument says how many frames up to go.
     """
     f = gdb.selected_frame()
 
@@ -60,11 +55,7 @@ def up(n=1):
     j()
 
 
-parser = argparse.ArgumentParser()
-parser.description = """
-    Select and print stack frame called by this one.
-    An argument says how many frames down to go.
-    """
+parser = argparse.ArgumentParser(description="Select and print stack frame called by this one.")
 parser.add_argument(
     "n", nargs="?", default=1, type=int, help="The number of stack frames to go down."
 )
@@ -75,7 +66,6 @@ parser.add_argument(
 def down(n=1):
     """
     Select and print stack frame called by this one.
-    An argument says how many frames down to go.
     """
     f = gdb.selected_frame()
 

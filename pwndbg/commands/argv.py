@@ -14,8 +14,7 @@ def argc():
     print(pwndbg.gdblib.argv.argc)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Prints out the contents of argv."
+parser = argparse.ArgumentParser(description="Prints out the contents of argv.")
 parser.add_argument(
     "i", nargs="?", type=int, default=None, help="Index of the argument to print out."
 )
@@ -34,8 +33,7 @@ def argv(i=None):
     pwndbg.commands.telescope.telescope(start, n)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Prints out the contents of the environment."
+parser = argparse.ArgumentParser(description="Prints out the contents of the environment.")
 parser.add_argument(
     "name", nargs="?", type=str, default=None, help="Name of the environment variable to see."
 )

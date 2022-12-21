@@ -77,11 +77,7 @@ def version():
     print("\n".join(map(message.system, all_versions())))
 
 
-bugreport_parser = argparse.ArgumentParser(
-    description="""
-    Generate bugreport
-    """
-)
+bugreport_parser = argparse.ArgumentParser(description="Generate bugreport")
 bugreport_group = bugreport_parser.add_mutually_exclusive_group()
 bugreport_group.add_argument(
     "--run-browser", "-b", action="store_true", help="Open browser on github/issues/new"

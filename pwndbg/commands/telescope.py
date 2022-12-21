@@ -44,10 +44,7 @@ repeating_marker = theme.add_param(
 
 
 parser = argparse.ArgumentParser(
-    description="""
-    Recursively dereferences pointers starting at the specified address
-    ($sp by default)
-    """
+    description="Recursively dereferences pointers starting at the specified address ($sp by default)"
 )
 parser.add_argument(
     "-r",

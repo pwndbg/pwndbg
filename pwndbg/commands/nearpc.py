@@ -57,7 +57,7 @@ show_args = pwndbg.gdblib.config.add_param(
     "nearpc-show-args", True, "show call arguments below instruction"
 )
 
-parser = argparse.ArgumentParser(description="""Disassemble near a specified address.""")
+parser = argparse.ArgumentParser(description="Disassemble near a specified address.")
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
 parser.add_argument(
     "lines",
@@ -225,7 +225,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
 
 
 parser = argparse.ArgumentParser(
-    description="""Like nearpc, but will emulate instructions from the current $PC forward."""
+    description="Like nearpc, but will emulate instructions from the current $PC forward."
 )
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to emulate near.")
 parser.add_argument(
@@ -250,7 +250,7 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
 emulate_command = emulate
 
 
-parser = argparse.ArgumentParser(description="""Compatibility layer for PEDA's pdisass command.""")
+parser = argparse.ArgumentParser(description="Compatibility layer for PEDA's pdisass command.")
 parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
 parser.add_argument(
     "lines",
