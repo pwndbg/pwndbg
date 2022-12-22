@@ -579,8 +579,6 @@ def find_fake_fast(addr, size=None, align=False):
     # Only consider `size - psize` bytes, since we're starting from after `prev_size`
     mem = pwndbg.gdblib.memory.read(start, size - psize, partial=True)
 
-    fmt = {"little": "<", "big": ">"}[pwndbg.gdblib.arch.endian] + {4: "I", 8: "Q"}[psize]
-
     print(C.banner("FAKE CHUNKS"))
     step = malloc_alignment if align else 1
     for offset in pwndbg.lib.heap.helpers.find_fastbin_size(mem, size, step):
