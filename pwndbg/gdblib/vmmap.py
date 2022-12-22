@@ -429,10 +429,12 @@ def kernel_vmmap_via_page_tables():
         )
         return tuple(retpages)
 
-    # Somewhat hacky, but if TCR_EL1 is zero, that generally means that we've
-    # attached to QEMU before it's started running, and if we attempt to parse
-    # page tables at this point we'll get an exception
-    if pwndbg.gdblib.arch.name == "aarch64" and int(pwndbg.gdblib.regs.TCR_EL1) == 0:
+    # Somewhat hacky, but if TCR_EL1 on AArch64 or CR3 on x86 is zero, that means paging is disabled
+    # and we should not attempt to parse page tables. Ideally we should check the specific bits of
+    # these registers to determine if paging is enabled instead.
+    if (pwndbg.gdblib.arch.name == "aarch64" and int(pwndbg.gdblib.regs.TCR_EL1) == 0) or (
+        pwndbg.gdblib.arch.name == "x86-64" and int(pwndbg.gdblib.regs.cr3) == 0
+    ):
         return tuple(retpages)
 
     pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
