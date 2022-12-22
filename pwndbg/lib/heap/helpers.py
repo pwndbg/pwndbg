@@ -1,17 +1,14 @@
-import struct
-
 import pwndbg.gdblib.arch
 
 
 def find_fastbin_size(mem: bytes, max_size: int, step: int):
     psize = pwndbg.gdblib.arch.ptrsize
     min_fast = 4 * psize
-    fmt = {"little": "<", "big": ">"}[pwndbg.gdblib.arch.endian] + {4: "I", 8: "Q"}[psize]
 
     for i in range(0, len(mem), step):
         candidate = mem[i : i + psize]
         if len(candidate) == psize:
-            value = struct.unpack(fmt, candidate)[0]
+            value = pwndbg.gdblib.arch.unpack(candidate)
 
             # Clear any flags
             value &= ~0xF
