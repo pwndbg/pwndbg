@@ -98,15 +98,15 @@ class Page:
 
     @property
     def read(self) -> bool:
-        return bool(self.flags & 4)
+        return bool(self.flags & os.R_OK)
 
     @property
     def write(self) -> bool:
-        return bool(self.flags & 2)
+        return bool(self.flags & os.W_OK)
 
     @property
     def execute(self) -> bool:
-        return bool(self.flags & 1)
+        return bool(self.flags & os.X_OK)
 
     @property
     def rw(self):
