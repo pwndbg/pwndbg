@@ -81,7 +81,7 @@ def is_kaslr_enabled() -> bool:
 
 
 class ArchOps:
-    def per_cpu(addr: gdb.Value, cpu=None):
+    def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
     def virt_to_phys(self, virt: int) -> int:
@@ -107,6 +107,52 @@ class ArchOps:
 
     def page_to_virt(self, page: int) -> int:
         return phys_to_virt(page_to_phys(page))
+
+
+class x86_64Ops(ArchOps):
+    def __init__(self):
+        if "X86_5LEVEL" in kconfig() and "no5lvl" not in kcmdline():
+            raise NotImplementedError("Level 5 page table support is not implemented")
+
+        self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
+        self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
+
+        self.PAGE_OFFSET = 0xFFFF888000000000
+        self.PHYSICAL_MASK_SHIFT = 52
+        self.VIRTUAL_MASK_SHIFT = 47
+        self.START_KERNEL_map = 0xFFFFFFFF80000000
+        self.PAGE_SHIFT = 12
+        self.phys_base = 0x1000000
+
+    def per_cpu(self, addr: gdb.Value, cpu=None):
+        if cpu is None:
+            cpu = gdb.selected_thread().num - 1
+
+        per_cpu_offset = pwndbg.gdblib.symbol.address("__per_cpu_offset")
+        offset = pwndbg.gdblib.memory.u(per_cpu_offset + (cpu * 8))
+        per_cpu_addr = (int(addr) + offset) % 2**64
+        return gdb.Value(per_cpu_addr).cast(addr.type)
+
+    def virt_to_phys(self, virt: int) -> int:
+        if virt < self.__START_KERNEL_map:
+            return virt - self.PAGE_OFFSET
+        else:
+            return (virt - self.__START_KERNEL_MAP) + self.phys_base
+
+    def phys_to_virt(self, phys: int) -> int:
+        return phys + self.PAGE_OFFSET
+
+    def phys_to_pfn(self, phys: int) -> int:
+        return phys >> self.PAGE_SHIFT
+
+    def pfn_to_phys(self, pfn: int) -> int:
+        return pfn << self.PAGE_SHIFT
+
+    def phys_to_page(self, phys: int) -> int:
+        return (self.STRUCT_PAGE_SIZE * phys_to_pfn(phys)) + self.START_KERNEL_map
+
+    def page_to_phys(self, page: int) -> int:
+        return pfn_to_phys((page - self.START_KERNEL_map) >> self.STRUCT_PAGE_SHIFT)
 
 
 class Aarch64Ops(ArchOps):
@@ -166,6 +212,8 @@ def arch_ops():
         arch_name = pwndbg.gdblib.arch.name
         if pwndbg.gdblib.arch.name == "aarch64":
             _arch_ops = Aarch64Ops()
+        elif pwndbg.gdblib.arch.name == "x86-64":
+            _arch_ops = x86_64Ops()
 
     return _arch_ops
 
