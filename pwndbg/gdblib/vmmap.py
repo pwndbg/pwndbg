@@ -7,6 +7,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
 import os
+from typing import Tuple
 
 import gdb
 
@@ -76,7 +77,11 @@ def is_corefile():
 
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_stop
-def get():
+def get() -> Tuple[pwndbg.lib.memory.Page, str]:
+    """
+    Returns a tuple of `Page` objects representing the memory mappings of the
+    target, sorted by virtual address ascending.
+    """
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
         return tuple()
