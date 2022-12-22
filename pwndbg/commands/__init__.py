@@ -558,6 +558,7 @@ def load_commands():
     import pwndbg.commands.search
     import pwndbg.commands.segments
     import pwndbg.commands.shell
+    import pwndbg.commands.slab
     import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
