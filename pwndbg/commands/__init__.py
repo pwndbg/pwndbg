@@ -259,6 +259,17 @@ def OnlyWithKernelDebugSyms(function):
     return _OnlyWithKernelDebugSyms
 
 
+def OnlyWhenPagingEnabled(function):
+    @functools.wraps(function)
+    def _OnlyWhenPagingEnabled(*a, **kw):
+        if pwndbg.gdblib.kernel.paging_enabled():
+            return function(*a, **kw)
+        else:
+            print("%s: This command may only be run when paging is enabled." % function.__name__)
+
+    return _OnlyWhenPagingEnabled
+
+
 def OnlyWhenRunning(function):
     @functools.wraps(function)
     def _OnlyWhenRunning(*a, **kw):
