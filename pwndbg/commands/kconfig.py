@@ -12,6 +12,7 @@ parser.add_argument("config_name", nargs="?", type=str, help="A config name to s
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWhenPagingEnabled
 def kconfig(config_name=None):
     kconfig_ = pwndbg.gdblib.kernel.kconfig()
 

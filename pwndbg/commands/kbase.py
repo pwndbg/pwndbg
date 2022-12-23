@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(description="Finds the kernel virtual base addr
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWhenPagingEnabled
 def kbase():
     if config.kernel_vmmap == "none":
         print(M.error("kbase does not work when kernel-vmmap is set to none"))

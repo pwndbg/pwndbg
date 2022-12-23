@@ -11,6 +11,11 @@ import pwndbg.lib.memoize
 _kconfig = None
 
 
+def BIT(shift: int):
+    assert shift >= 0 and shift < 64
+    return 1 << shift
+
+
 @pwndbg.lib.memoize.reset_on_objfile
 def has_debug_syms() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
@@ -154,6 +159,10 @@ class x86_64Ops(ArchOps):
     def page_to_phys(self, page: int) -> int:
         return pfn_to_phys((page - self.START_KERNEL_map) >> self.STRUCT_PAGE_SHIFT)
 
+    @staticmethod
+    def paging_enabled() -> bool:
+        return int(pwndbg.gdblib.regs.cr0) & BIT(31) != 0
+
 
 class Aarch64Ops(ArchOps):
     def __init__(self):
@@ -199,6 +208,10 @@ class Aarch64Ops(ArchOps):
 
     def page_to_phys(self, page: int) -> int:
         return pfn_to_phys((page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT)
+
+    @staticmethod
+    def paging_enabled() -> bool:
+        return int(pwndbg.gdblib.regs.SCTLR) & BIT(0) != 0
 
 
 _arch_ops = None
@@ -295,5 +308,15 @@ def page_to_virt(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_virt(page)
+    else:
+        raise NotImplementedError()
+
+
+def paging_enabled() -> bool:
+    arch_name = pwndbg.gdblib.arch.name
+    if arch_name == "x86-64":
+        return x86_64Ops.paging_enabled()
+    elif arch_name == "aarch64":
+        return Aarch64Ops.paging_enabled()
     else:
         raise NotImplementedError()

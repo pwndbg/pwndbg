@@ -20,6 +20,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWhenPagingEnabled
 def slab(filter_=None):
     results = []
     for cache in pwndbg.gdblib.kernel.slab.caches():
