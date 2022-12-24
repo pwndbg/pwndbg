@@ -4,6 +4,7 @@ import errno
 import gdb
 
 import pwndbg.auxv
+import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
@@ -84,8 +85,22 @@ def pwndbg_(filter_pattern, shell, all_):
         shell_cmds = False
         pwndbg_cmds = True
 
-    for name, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
-        print("%-20s %s" % (name, docs))
+    from tabulate import tabulate
+
+    table_data = []
+    for name, aliases, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
+        alias_str = ""
+        aliases_len = 0
+        if aliases:
+            aliases = map(C.blue, aliases)
+            alias_str = f" [{', '.join(aliases)}]"
+
+        command_names = C.green(name) + alias_str
+        table_data.append((command_names, docs))
+
+    print(
+        tabulate(table_data, headers=[f"{C.green('Command')} [{C.blue('Aliases')}]", "Description"])
+    )
 
 
 parser = argparse.ArgumentParser(description="Print the distance between the two arguments.")
@@ -125,6 +140,10 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
         if not c.shell and not pwndbg_cmds:
             continue
 
+        # Don't print aliases
+        if c.is_alias:
+            continue
+
         name = c.__name__
         docs = c.__doc__
 
@@ -134,6 +153,6 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
             docs = docs.splitlines()[0]
 
         if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
-            results.append((name, docs))
+            results.append((name, c.aliases, docs))
 
     return results
