@@ -49,7 +49,7 @@ def print_vmmap_table_header():
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Print virtual memory map pages. Results can be filtered by providing address/module name.
+    description="""Print virtual memory map pages.
 
 Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address. This is useful for filtering with `vmmap` or `search` commands.
 
@@ -71,7 +71,7 @@ parser.add_argument(
     type=pwndbg.commands.sloppy_gdb_parse,
     nargs="?",
     default=None,
-    help="Address or module name.",
+    help="Address or module name filter",
 )
 parser.add_argument("-w", "--writable", action="store_true", help="Display writable maps only")
 parser.add_argument("-x", "--executable", action="store_true", help="Display executable maps only")

@@ -19,7 +19,7 @@ def xor_memory(address, key, count):
     return mem
 
 
-parser = argparse.ArgumentParser(description="XOR `count` bytes at address` with the key key`.")
+parser = argparse.ArgumentParser(description="XOR `count` bytes at `address` with the key `key`.")
 parser.add_argument(
     "address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to start xoring at."
 )

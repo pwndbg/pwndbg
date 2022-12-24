@@ -43,7 +43,7 @@ def address_or_module_name(s):
 
 
 parser = argparse.ArgumentParser(
-    description="Hexdumps data at the specified address or module name (or at $sp)"
+    description="Hexdumps data at the specified address or module name."
 )
 parser.add_argument(
     "address",

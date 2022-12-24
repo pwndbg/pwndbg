@@ -19,7 +19,7 @@ num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.comman
 hint_lines = (
     "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
     % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
-    "created %s gdb functions (can be used with print/break)" % funcs_list_str,
+    "created %s GDB functions (can be used with print/break)" % funcs_list_str,
 )
 
 for line in hint_lines:

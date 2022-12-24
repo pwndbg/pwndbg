@@ -102,9 +102,11 @@ def format_bin(bins: Bins, verbose=False, offset=None):
     return result
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Iteratively print chunks on a heap, default to the current thread's active heap."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Iteratively print chunks on a heap.
+
+Default to the current thread's active heap.""",
 )
 parser.add_argument(
     "addr",
@@ -144,8 +146,12 @@ def heap(addr=None, verbose=False, simple=False):
             malloc_chunk(chunk.address)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print the contents of an arena, default to the current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of an arena.
+
+Default to the current thread's arena.""",
+)
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
@@ -165,8 +171,7 @@ def arena(addr=None):
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
-parser = argparse.ArgumentParser()
-parser.description = "List this process's arenas."
+parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -180,8 +185,12 @@ def arenas():
         print(ar)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print a thread's tcache contents, default to the current thread's tcache."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print a thread's tcache contents.
+
+Default to the current thread's tcache.""",
+)
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
@@ -199,8 +208,7 @@ def tcache(addr=None):
     print(tcache)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print the mp_ struct's contents."
+parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -213,9 +221,11 @@ def mp():
     print(allocator.mp)
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Print relevant information about an arena's top chunk, default to current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print relevant information about an arena's top chunk.
+
+Default to current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
@@ -238,8 +248,7 @@ def top_chunk(addr=None):
     malloc_chunk(arena.top)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print a chunk."
+parser = argparse.ArgumentParser(description="Print a chunk.")
 parser.add_argument(
     "addr", type=int, help="Address of the chunk (malloc_chunk struct start, prev_size field)."
 )
@@ -325,8 +334,12 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False):
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print the contents of all an arena's bins and a thread's tcache, default to the current thread's arena and tcache."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of all an arena's bins and a thread's tcache.
+
+Default to the current thread's arena and tcache.""",
+)
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
@@ -347,9 +360,11 @@ def bins(addr=None, tcache_addr=None):
     largebins(addr)
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's fastbins, default to the current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of an arena's fastbins.
+
+Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
@@ -376,9 +391,11 @@ def fastbins(addr=None, verbose=True):
         print(node)
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's unsortedbin, default to the current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of an arena's unsortedbin.
+
+Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
@@ -405,9 +422,11 @@ def unsortedbin(addr=None, verbose=True):
         print(node)
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's smallbins, default to the current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of an arena's smallbins.
+
+Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
@@ -434,9 +453,11 @@ def smallbins(addr=None, verbose=False):
         print(node)
 
 
-parser = argparse.ArgumentParser()
-parser.description = (
-    "Print the contents of an arena's largebins, default to the current thread's arena."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of an arena's largebins.
+
+Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
@@ -463,8 +484,12 @@ def largebins(addr=None, verbose=False):
         print(node)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Print the contents of a tcache, default to the current thread's tcache."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Print the contents of a tcache.
+
+Default to the current thread's tcache.""",
+)
 parser.add_argument(
     "addr", nargs="?", type=int, default=None, help="The address of the tcache bins."
 )
@@ -493,8 +518,9 @@ def tcachebins(addr=None, verbose=False):
         print(node)
 
 
-parser = argparse.ArgumentParser()
-parser.description = "Find candidate fake fast or tcache chunks overlapping the specified address."
+parser = argparse.ArgumentParser(
+    description="Find candidate fake fast or tcache chunks overlapping the specified address."
+)
 parser.add_argument("addr", type=int, help="Address of the word-sized value to overlap.")
 parser.add_argument(
     "size", nargs="?", type=int, default=None, help="Maximum size of fake chunks to find."
@@ -597,8 +623,12 @@ pwndbg.gdblib.config.add_param(
     "default number of chunks to visualize (default is 10)",
 )
 
-parser = argparse.ArgumentParser()
-parser.description = "Visualize chunks on a heap, default to the current arena's active heap."
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Visualize chunks on a heap.
+
+Default to the current arena's active heap.""",
+)
 parser.add_argument(
     "count",
     nargs="?",
@@ -794,7 +824,7 @@ def bin_labels(addr, collections):
 
 
 try_free_parser = argparse.ArgumentParser(
-    description="Check what would happen if free was called with given address"
+    description="Check what would happen if free was called with given address."
 )
 try_free_parser.add_argument("addr", nargs="?", help="Address passed to free")
 
@@ -1166,7 +1196,7 @@ def try_unlink(addr):
     pass
 
 
-parser = argparse.ArgumentParser(description="Shows heap related config. The list can be filtered.")
+parser = argparse.ArgumentParser(description="Shows heap related configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,

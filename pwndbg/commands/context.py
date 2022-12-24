@@ -255,9 +255,9 @@ parser = argparse.ArgumentParser(
     description="""
 Adds an expression to be shown on context.
 
-'cmd' controls what command is used to interpret the expression.
-eval: the expression is parsed and evaluated as in the debugged language.
-execute: the expression is executed as an gdb command.
+'cmd' controls what command is used to interpret the expression:
+- eval: the expression is parsed and evaluated as in the debugged language.
+- execute: the expression is executed as a GDB command.
 
 To remove an expression, see `cunwatch`.
 """,

@@ -4,7 +4,9 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
 
-parser = argparse.ArgumentParser(description="Outputs the kernel config (requires CONFIG_IKCONFIG)")
+parser = argparse.ArgumentParser(
+    description="Outputs the kernel config (requires CONFIG_IKCONFIG)."
+)
 
 parser.add_argument("config_name", nargs="?", type=str, help="A config name to search for")
 

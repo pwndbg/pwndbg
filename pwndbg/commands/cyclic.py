@@ -9,7 +9,7 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 from pwndbg.color import message
 
-parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder")
+parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
 
 parser.add_argument(
     "-a",

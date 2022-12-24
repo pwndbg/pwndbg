@@ -12,7 +12,7 @@ import pwndbg.ida
 from pwndbg.gdblib.functions import GdbFunction
 
 
-@pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB")
+@pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB.")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.gdblib.events.stop
 @pwndbg.ida.withIDA

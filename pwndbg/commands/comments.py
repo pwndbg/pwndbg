@@ -4,7 +4,7 @@ from typing import Dict
 import pwndbg.commands
 from pwndbg.color import message
 
-parser = argparse.ArgumentParser(description="Put comments in assembly code")
+parser = argparse.ArgumentParser(description="Put comments in assembly code.")
 parser.add_argument(
     "--addr", metavar="address", default=None, type=str, help="Address to write comments"
 )

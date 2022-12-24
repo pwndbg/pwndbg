@@ -57,9 +57,7 @@ def errno_(err):
     print("Errno %s: %s" % (err, msg))
 
 
-parser = argparse.ArgumentParser(
-    description="Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed."
-)
+parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg commands.")
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--shell", action="store_true", help="Only display shell commands")

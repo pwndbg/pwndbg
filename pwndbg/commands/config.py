@@ -45,9 +45,7 @@ def get_config_parameters(scope, filter_pattern):
     return values
 
 
-parser = argparse.ArgumentParser(
-    description="Shows pwndbg-specific config. The list can be filtered."
-)
+parser = argparse.ArgumentParser(description="Shows pwndbg-specific configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -102,15 +100,13 @@ def config(filter_pattern):
 
 
 configfile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current Pwndbg options"
+    description="Generates a configuration file for the current pwndbg options."
 )
 configfile_parser.add_argument(
-    "--show-all", action="store_true", help="Force displaying of all configs."
+    "--show-all", action="store_true", help="Display all configuration options."
 )
 
-parser = argparse.ArgumentParser(
-    description="Shows pwndbg-specific theme config. The list can be filtered."
-)
+parser = argparse.ArgumentParser(description="Shows pwndbg-specific theme configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -131,7 +127,7 @@ def configfile(show_all=False):
 
 
 themefile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current Pwndbg theme options"
+    description="Generates a configuration file for the current pwndbg theme options."
 )
 themefile_parser.add_argument(
     "--show-all", action="store_true", help="Force displaying of all theme options."

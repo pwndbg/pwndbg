@@ -69,15 +69,15 @@ def all_versions():
     return all_versions
 
 
-@pwndbg.commands.ArgparsedCommand("Displays gdb, python and pwndbg versions.")
+@pwndbg.commands.ArgparsedCommand("Displays GDB, Python, and pwndbg versions.")
 def version():
     """
-    Displays gdb, python and pwndbg versions.
+    Displays GDB, Python, and pwndbg versions.
     """
     print("\n".join(map(message.system, all_versions())))
 
 
-bugreport_parser = argparse.ArgumentParser(description="Generate bugreport")
+bugreport_parser = argparse.ArgumentParser(description="Generate a bug report.")
 bugreport_group = bugreport_parser.add_mutually_exclusive_group()
 bugreport_group.add_argument(
     "--run-browser", "-b", action="store_true", help="Open browser on github/issues/new"

@@ -72,9 +72,10 @@ def address_range(section):
 
 
 parser = argparse.ArgumentParser(
-    description="Pointer to pointer chain search - "
-    "Searches given mapping for all pointers that point to specified mapping (any chain length > 0 is valid)."
-    "If only one mapping is given it just looks for any pointers in that mapping."
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
+
+Any chain length greater than 0 is valid. If only one mapping is given it just looks for any pointers in that mapping.""",
 )
 
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")

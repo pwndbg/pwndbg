@@ -6,7 +6,7 @@ STACK_COMMANDS = [
     ("context", "Print out the current register, instruction, and stack context."),
     ("down", "Select and print stack frame called by this one."),
     ("retaddr", "Print out the stack addresses that contain return addresses."),
-    ("stack", "dereferences on stack data with specified count and offset."),
+    ("stack", "Dereferences on stack data with specified count and offset."),
     ("up", "Select and print stack frame that called this one."),
 ]
 

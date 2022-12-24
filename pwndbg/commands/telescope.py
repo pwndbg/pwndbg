@@ -44,7 +44,7 @@ repeating_marker = theme.add_param(
 
 
 parser = argparse.ArgumentParser(
-    description="Recursively dereferences pointers starting at the specified address ($sp by default)"
+    description="Recursively dereferences pointers starting at the specified address."
 )
 parser.add_argument(
     "-r",
@@ -56,7 +56,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "address", nargs="?", default=None, type=int, help="The address to telescope at."
+    "address", nargs="?", default="$sp", type=int, help="The address to telescope at."
 )
 
 parser.add_argument(
@@ -196,7 +196,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
 
 parser = argparse.ArgumentParser(
-    description="dereferences on stack data with specified count and offset."
+    description="Dereferences on stack data with specified count and offset."
 )
 parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
 parser.add_argument(

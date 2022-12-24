@@ -14,7 +14,7 @@ import pwndbg.lib.memoize
 patches = {}
 
 
-parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes")
+parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes.")
 parser.add_argument("address", type=int, help="The address to patch")
 parser.add_argument("ins", type=str, help="instruction[s]")
 
@@ -33,7 +33,7 @@ def patch(address, ins):
     pwndbg.lib.memoize.reset()
 
 
-parser2 = argparse.ArgumentParser(description="Revert patch at given address")
+parser2 = argparse.ArgumentParser(description="Revert patch at given address.")
 parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 
@@ -56,7 +56,7 @@ def patch_revert(address):
     pwndbg.lib.memoize.reset()
 
 
-parser3 = argparse.ArgumentParser(description="List all patches")
+parser3 = argparse.ArgumentParser(description="List all patches.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser3)

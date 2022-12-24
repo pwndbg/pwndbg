@@ -4,7 +4,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.ghidra
 
-parser = argparse.ArgumentParser(description="Decompile a given function using ghidra")
+parser = argparse.ArgumentParser(description="Decompile a given function using Ghidra.")
 parser.add_argument(
     "func",
     type=str,
