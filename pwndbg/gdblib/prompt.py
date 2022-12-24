@@ -14,7 +14,9 @@ from pwndbg.lib.tips import get_tip_of_the_day
 
 funcs_list_str = ", ".join(message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions)
 
-num_pwndbg_cmds = sum(1 for _ in filter(lambda c: not c.shell, pwndbg.commands.commands))
+num_pwndbg_cmds = sum(
+    1 for _ in filter(lambda c: not (c.shell or c.is_alias), pwndbg.commands.commands)
+)
 num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
 hint_lines = (
     "loaded %i pwndbg commands and %i shell commands. Type %s for a list."

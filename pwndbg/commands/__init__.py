@@ -52,7 +52,11 @@ class Command(gdb.Command):
     builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
     history = {}  # type: Dict[int,str]
 
-    def __init__(self, function, prefix=False, command_name=None, shell=False):
+    def __init__(
+        self, function, prefix=False, command_name=None, shell=False, is_alias=False, aliases=[]
+    ):
+        self.is_alias = is_alias
+        self.aliases = aliases
         self.shell = shell
 
         if command_name is None:
@@ -417,7 +421,7 @@ def OnlyWithResolvedHeapSyms(function):
 
 
 class _ArgparsedCommand(Command):
-    def __init__(self, parser, function, command_name=None, *a, **kw):
+    def __init__(self, parser, function, command_name=None, is_alias=False, aliases=[], *a, **kw):
         self.parser = parser
         if command_name is None:
             self.parser.prog = function.__name__
@@ -431,7 +435,9 @@ class _ArgparsedCommand(Command):
         # Note: function.__doc__ is used in the `pwndbg [filter]` command display
         function.__doc__ = self.parser.description.strip()
 
-        super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
+        super(_ArgparsedCommand, self).__init__(
+            function, command_name=command_name, is_alias=is_alias, aliases=aliases, *a, **kw
+        )
 
     def split_args(self, argument):
         argv = gdb.string_to_argv(argument)
@@ -464,8 +470,10 @@ class ArgparsedCommand:
 
     def __call__(self, function):
         for alias in self.aliases:
-            _ArgparsedCommand(self.parser, function, command_name=alias)
-        return _ArgparsedCommand(self.parser, function, command_name=self._command_name)
+            _ArgparsedCommand(self.parser, function, command_name=alias, is_alias=True)
+        return _ArgparsedCommand(
+            self.parser, function, command_name=self._command_name, aliases=self.aliases
+        )
 
 
 # We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
