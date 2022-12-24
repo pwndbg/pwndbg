@@ -119,6 +119,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
 def vmmap_add(start, size, flags, offset):
     page_flags = {
         "r": pwndbg.gdblib.elf.PF_R,
@@ -140,6 +141,7 @@ def vmmap_add(start, size, flags, offset):
 
 
 @pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
+@pwndbg.commands.OnlyWhenRunning
 def vmmap_clear():
     pwndbg.gdblib.vmmap.clear_custom_page()
 
@@ -151,6 +153,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.OnlyWhenRunning
 def vmmap_load(filename):
     if filename is None:
         filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
