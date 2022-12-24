@@ -3,7 +3,7 @@ from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
 
-description = "Modify the flags register"
+description = "Modify the flags register."
 epilog = """Examples:
   On X86/X64:
     setflag ZF 1        -- set zero flag

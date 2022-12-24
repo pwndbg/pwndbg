@@ -203,7 +203,7 @@ def show_custom_structure(custom_structure_name, custom_structure_path):
 
 
 parser = argparse.ArgumentParser(
-    description="Add, show, load, edit, or delete custom structures in plain C"
+    description="Add, show, load, edit, or delete custom structures in plain C."
 )
 parser.add_argument(
     "-a",

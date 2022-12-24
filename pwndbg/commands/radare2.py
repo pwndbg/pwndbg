@@ -5,7 +5,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.radare2
 
-parser = argparse.ArgumentParser(description="Launches radare2", epilog="Example: r2 -- -S -AA")
+parser = argparse.ArgumentParser(description="Launches radare2.", epilog="Example: r2 -- -S -AA")
 parser.add_argument("--no-seek", action="store_true", help="Do not seek to current pc")
 parser.add_argument(
     "--no-rebase",
@@ -43,7 +43,7 @@ def r2(arguments, no_seek=False, no_rebase=False):
 
 
 parser = argparse.ArgumentParser(
-    description="Execute stateful radare2 commands through r2pipe",
+    description="Execute stateful radare2 commands through r2pipe.",
     epilog="Example: r2pipe pdf sym.main",
 )
 parser.add_argument("arguments", nargs="+", type=str, help="Arguments to pass to r2pipe")

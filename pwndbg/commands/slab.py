@@ -7,7 +7,7 @@ import pwndbg.gdblib.kernel.slab
 from pwndbg.gdblib.kernel.slab import oo_objects
 from pwndbg.gdblib.kernel.slab import oo_order
 
-parser = argparse.ArgumentParser(description="Prints information about the SLUB allocator")
+parser = argparse.ArgumentParser(description="Prints information about the SLUB allocator.")
 parser.add_argument(
     "filter_",
     metavar="filter",

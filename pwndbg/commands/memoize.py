@@ -4,10 +4,12 @@ import pwndbg.commands
 from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""
-Toggles memoization (caching). Pwndbg will work slower when it's off, however
-it's useful for diagnosing caching-related bugs.
-"""
+Toggles memoization (caching).
+
+Useful for diagnosing caching-related bugs. Decreases performance.
+""",
 )
 
 

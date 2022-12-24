@@ -11,7 +11,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.wrappers
 
 parser = argparse.ArgumentParser(
-    description="Shows offsets of the specified address to useful other locations"
+    description="Shows offsets of the specified address from various useful locations."
 )
 parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect")
 

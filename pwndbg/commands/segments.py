@@ -20,19 +20,19 @@ segment("fsbase")
 segment("gsbase")
 
 
-@pwndbg.commands.ArgparsedCommand("Prints out the FS base address.  See also $fsbase.")
+@pwndbg.commands.ArgparsedCommand("Prints out the FS base address. See also $fsbase.")
 @pwndbg.commands.OnlyWhenRunning
 def fsbase():
     """
-    Prints out the FS base address.  See also $fsbase.
+    Prints out the FS base address. See also $fsbase.
     """
     print(hex(int(pwndbg.gdblib.regs.fsbase)))
 
 
-@pwndbg.commands.ArgparsedCommand("Prints out the GS base address.  See also $gsbase.")
+@pwndbg.commands.ArgparsedCommand("Prints out the GS base address. See also $gsbase.")
 @pwndbg.commands.OnlyWhenRunning
 def gsbase():
     """
-    Prints out the GS base address.  See also $gsbase.
+    Prints out the GS base address. See also $gsbase.
     """
     print(hex(int(pwndbg.gdblib.regs.gsbase)))

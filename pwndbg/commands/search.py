@@ -45,7 +45,7 @@ auto_save = pwndbg.gdblib.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    description="Search memory for byte sequences, strings, pointers, and integer values"
+    description="Search memory for byte sequences, strings, pointers, and integer values."
 )
 parser.add_argument(
     "-t",

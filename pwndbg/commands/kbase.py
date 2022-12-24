@@ -6,7 +6,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
 from pwndbg.gdblib.config import config
 
-parser = argparse.ArgumentParser(description="Finds the kernel virtual base address")
+parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)

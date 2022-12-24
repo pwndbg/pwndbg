@@ -97,7 +97,7 @@ _arch_hardening_options["aarch64"] = [
     Option("ARM64_MTE"),
 ]
 
-parser = argparse.ArgumentParser(description="Checks for kernel hardening configuration options")
+parser = argparse.ArgumentParser(description="Checks for kernel hardening configuration options.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)

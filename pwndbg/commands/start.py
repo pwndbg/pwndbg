@@ -80,7 +80,6 @@ parser = argparse.ArgumentParser(
     formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at its entrypoint address.
-You may specify arguments to give it.
 
 Note that the entrypoint may not be the first instruction executed
 by the program. If you want to stop on the first executed instruction,

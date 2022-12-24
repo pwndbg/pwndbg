@@ -16,7 +16,7 @@ from pwndbg.lib.regs import reg_sets
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     description="""
-Calls the mprotect syscall and prints its result value
+Calls the mprotect syscall and prints its result value.
 
 Note that the mprotect syscall may fail for various reasons
 (see `man mprotect`) and a non-zero error return value
