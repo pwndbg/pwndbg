@@ -24,9 +24,7 @@ return_code = pytest.main(args)
 
 if return_code != 0:
     print("-" * 80)
-    print(
-        "If you want to debug tests locally, modify {} and add --pdb to its args".format(__file__)
-    )
+    print("If you want to debug tests locally, run ./tests.sh with the --pdb flag")
     print("-" * 80)
 
 sys.exit(return_code)

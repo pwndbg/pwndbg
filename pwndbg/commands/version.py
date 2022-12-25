@@ -158,9 +158,16 @@ If it is somehow unavailable, use:
     except FileNotFoundError:
         pass
 
-    max_command_no = (
-        int(gdb.execute("show commands", to_string=True).split("\n")[-2].split()[0]) - 1
-    )
+    max_command_no = 0
+    history_commands = gdb.execute("show commands", to_string=True)
+    if history_commands:
+        history_commands = history_commands.split("\n")
+        if len(history_commands > 1):
+            # The last element of the list is the `show commands` command we
+            # just ran, so we need to get the second to last one
+            last_command = history_commands[-2]
+            max_command_no = int(last_command.split()[0]) - 1
+
     show_command_size = 10  # 'show command' returns 10 commands
     gdb_current_session_history = {}
     current_command_no = gdb_history_len + 1
