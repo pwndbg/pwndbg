@@ -162,7 +162,7 @@ If it is somehow unavailable, use:
     history_commands = gdb.execute("show commands", to_string=True)
     if history_commands:
         history_commands = history_commands.split("\n")
-        if len(history_commands > 1):
+        if len(history_commands) > 1:
             # The last element of the list is the `show commands` command we
             # just ran, so we need to get the second to last one
             last_command = history_commands[-2]
