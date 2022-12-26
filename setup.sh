@@ -62,7 +62,7 @@ install_emerge() {
 
 install_pacman() {
     sudo pacman -Syy --noconfirm || true
-    sudo pacman -S --noconfirm git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-future python-pygments which debuginfod
+    sudo pacman -S --noconfirm git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
     echo "set debuginfod enabled on" >> ~/.gdbinit
 }
 

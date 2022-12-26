@@ -1,6 +1,4 @@
 capstone==4.0.2
-# This can be removed after ida_script.py upgrades to Python 3
-future==0.18.2
 psutil==5.9.2
 pwntools==4.8.0
 pycparser==2.21
