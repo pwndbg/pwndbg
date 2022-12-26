@@ -294,23 +294,19 @@ def UpdateBreakpoints() -> None:
     current = set(eval(b.location.lstrip("*")) for b in _breakpoints)
     want = set(GetBreakpoints())
 
-    # print(want)
-
     for addr in current - want:
         for bp in _breakpoints:
             if int(bp.location.lstrip("*"), 0) == addr:
-                # print("delete", addr)
                 bp.delete()
                 break
         _breakpoints.remove(bp)
 
-    for bp in want - current:
-        if not pwndbg.gdblib.memory.peek(bp):
+    for addr in want - current:
+        if not pwndbg.gdblib.memory.peek(addr):
             continue
 
-        bp = gdb.Breakpoint("*" + hex(int(bp)))
+        bp = gdb.Breakpoint("*" + hex(int(addr)))
         _breakpoints.append(bp)
-        # print(_breakpoints)
 
 
 @withIDA
