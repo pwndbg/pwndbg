@@ -55,9 +55,9 @@ class Command(gdb.Command):
     def __init__(
         self, function, prefix=False, command_name=None, shell=False, is_alias=False, aliases=[]
     ) -> None:
-        self.is_alias = is_alias
+        self.is_alias: bool = is_alias
         self.aliases = aliases
-        self.shell = shell
+        self.shell: bool = shell
 
         if command_name is None:
             command_name = function.__name__

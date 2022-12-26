@@ -11,24 +11,32 @@ check_untyped_defs = true
 pretty = true
 show_error_codes = true
 incremental = false
+follow_imports = "skip"
+exclude = [
+    #"^pwndbg/commands",
+    "^pwndbg/heap",
+    #'^pwndbg/[^/]*\.py',
+    '^pwndbg/ida.py',
+    '^pwndbg/gdblib/vmmap.py',
+]
 disable_error_code = [
     "misc",
     "import",
     "name-defined",
     "attr-defined",
-    "var-annotated",
+    # "var-annotated",
     "index",
-    "arg-type",
+    # "arg-type",
     "assignment",
-    "operator",
+    # "operator",
     "override",
     "call-overload",
     "union-attr",
-    "str-format",
-    "call-arg",
-    "return-value",
-    "has-type",
-    "no-redef",
+    # "str-format",
+    # "call-arg",
+    # "return-value",
+    # "has-type",
+    # "no-redef",
 ]
 
 [tool.isort]

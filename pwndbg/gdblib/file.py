@@ -35,7 +35,7 @@ def remote_files_dir():
     return _remote_files_dir
 
 
-def get_file(path):
+def get_file(path: str) -> str:
     """
     Downloads the specified file from the system where the current process is
     being debugged.
@@ -64,7 +64,7 @@ def get_file(path):
             try:
                 error = gdb.execute('remote get "%s" "%s"' % (path, local_path), to_string=True)
             except gdb.error as e:
-                error = e
+                error = str(e)
 
             if error:
                 raise OSError("Could not download remote file %r:\n" "Error: %s" % (path, error))
@@ -79,7 +79,7 @@ def get_file(path):
     return local_path
 
 
-def get(path):
+def get(path: str) -> bytes:
     """
     Retrieves the contents of the specified file on the system
     where the current process is being debugged.

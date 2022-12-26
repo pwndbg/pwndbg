@@ -7,6 +7,8 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
 import os
+from typing import Any
+from typing import Optional
 from typing import Tuple
 
 import gdb
@@ -153,7 +155,7 @@ def find(address):
 
 
 @pwndbg.gdblib.abi.LinuxOnly()
-def explore(address_maybe):
+def explore(address_maybe: int) -> Optional[Any]:
     """
     Given a potential address, check to see what permissions it has.
 

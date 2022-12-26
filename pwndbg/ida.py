@@ -10,6 +10,8 @@ import sys
 import time
 import traceback
 import xmlrpc.client
+from typing import Any
+from typing import Optional
 
 import gdb
 
@@ -126,7 +128,7 @@ class withIDA:
         self.fn = fn
         functools.update_wrapper(self, fn)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: int, **kwargs: Any) -> Optional[Any]:
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:
@@ -161,7 +163,7 @@ def returns_address(function):
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def available():
+def available() -> bool:
     if not ida_enabled:
         return False
     return can_connect()

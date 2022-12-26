@@ -21,7 +21,7 @@ def proc_mappings():
 
 
 @pwndbg.lib.memoize.reset_on_exit
-def auxv():
+def auxv() -> str:
     try:
         return gdb.execute("info auxv", to_string=True)
     except gdb.error:

@@ -8,7 +8,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.memoize
 
-_kconfig = None
+_kconfig: pwndbg.lib.kernel.kconfig.Kconfig = None
 
 
 def BIT(shift: int):
@@ -45,7 +45,7 @@ def requires_debug_syms(default=None):
 
 
 @requires_debug_syms(default={})
-def load_kconfig():
+def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
     config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
     config_size = config_end - config_start
@@ -55,7 +55,7 @@ def load_kconfig():
 
 
 @pwndbg.lib.memoize.reset_on_start
-def kconfig():
+def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     global _kconfig
     if _kconfig is None:
         _kconfig = load_kconfig()
@@ -214,12 +214,12 @@ class Aarch64Ops(ArchOps):
         return int(pwndbg.gdblib.regs.SCTLR) & BIT(0) != 0
 
 
-_arch_ops = None
+_arch_ops: ArchOps = None
 
 
 @requires_debug_syms(default={})
 @pwndbg.lib.memoize.reset_on_start
-def arch_ops():
+def arch_ops() -> ArchOps:
     global _arch_ops
     if _arch_ops is None:
         arch_name = pwndbg.gdblib.arch.name

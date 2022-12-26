@@ -46,7 +46,7 @@ class module(ModuleType):
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> int:
         attr = attr.lstrip("$")
         try:
             # Seriously, gdb? Only accepts uint32.
@@ -79,7 +79,7 @@ class module(ModuleType):
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> int:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -112,7 +112,7 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].common
 
     @property
-    def frame(self):
+    def frame(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].frame
 
     @property
@@ -225,7 +225,7 @@ sys.modules[__name__] = module(__name__, "")
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
 def update_last() -> None:
-    M = sys.modules[__name__]
+    M: module = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
     if pwndbg.gdblib.config.show_retaddr_reg:

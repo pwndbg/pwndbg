@@ -3,6 +3,7 @@ Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
 import collections
+from typing import List
 
 
 class RegisterSet:
@@ -34,7 +35,7 @@ class RegisterSet:
     retval = None
 
     #: Common registers which should be displayed in the register context
-    common = None
+    common: List[str] = None
 
     #: All valid registers
     all = None

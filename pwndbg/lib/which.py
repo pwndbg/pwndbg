@@ -32,7 +32,7 @@ import os
 import stat
 
 
-def which(name, all=False):
+def which(name: str, all: bool = False):
     """which(name, flags = os.X_OK, all = False) -> str or str set
 
     Works as the system command ``which``; searches $PATH for ``name`` and

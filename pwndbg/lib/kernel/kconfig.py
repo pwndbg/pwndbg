@@ -4,7 +4,7 @@ from typing import Dict
 from typing import Optional
 
 
-def parse_config(config_text: str) -> Dict[str, str]:
+def parse_config(config_text: bytes) -> Dict[str, str]:
     res = {}
 
     for line in config_text.split(b"\n"):

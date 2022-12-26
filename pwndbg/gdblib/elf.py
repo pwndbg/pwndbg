@@ -184,7 +184,7 @@ def exe():
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
-def entry():
+def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """

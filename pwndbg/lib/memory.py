@@ -89,11 +89,11 @@ class Page:
         return self.vaddr + self.memsz
 
     @property
-    def is_stack(self):
+    def is_stack(self) -> bool:
         return self.objfile == "[stack]"
 
     @property
-    def is_memory_mapped_file(self):
+    def is_memory_mapped_file(self) -> bool:
         return len(self.objfile) > 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
 
     @property
@@ -109,7 +109,7 @@ class Page:
         return bool(self.flags & os.X_OK)
 
     @property
-    def rw(self):
+    def rw(self) -> bool:
         return self.read and self.write
 
     @property
@@ -117,7 +117,7 @@ class Page:
         return self.read and self.write and self.execute
 
     @property
-    def permstr(self):
+    def permstr(self) -> str:
         flags = self.flags
         return "".join(
             [
