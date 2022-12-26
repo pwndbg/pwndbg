@@ -35,7 +35,7 @@ debug = config.add_param("debug-events", False, "display internal event debuggin
 # capture this so that we can fire off all of the 'start' events first.
 class StartEvent:
     def __init__(self) -> None:
-        self.registered = list()
+        self.registered: List[Callable] = []
         self.running = False
 
     def connect(self, function) -> None:

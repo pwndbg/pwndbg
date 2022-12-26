@@ -10,7 +10,7 @@ parser.add_argument(
 )
 parser.add_argument("comment", type=str, default=None, help="The text you want to comment")
 
-file_lists = {}  # type:Dict[str,str] #This saves all comments.
+file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
 
 
 @pwndbg.commands.ArgparsedCommand(parser)

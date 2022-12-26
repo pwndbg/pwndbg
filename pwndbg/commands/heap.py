@@ -552,7 +552,7 @@ def find_fake_fast(addr, size=None, align=False) -> None:
     if size is None:
         size = max_fast
     elif size > addr:
-        print(message.warn("Size of 0x%x is greater than the target address 0x%x", (size, addr)))
+        print(message.warn("Size of 0x%x is greater than the target address 0x%x" % (size, addr)))
         size = addr
     elif size > max_fast:
         print(

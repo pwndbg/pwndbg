@@ -70,7 +70,7 @@ def get_window_size(target=sys.stdin):
         return fallback
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg
-        rows, cols = struct.unpack("hh", fcntl.ioctl(target.fileno(), termios.TIOCGWINSZ, "1234"))
+        rows, cols = struct.unpack("hh", fcntl.ioctl(target.fileno(), termios.TIOCGWINSZ, b"1234"))
     except Exception:
         rows, cols = fallback
     return rows, cols

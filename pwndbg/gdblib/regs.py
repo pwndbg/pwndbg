@@ -7,6 +7,7 @@ import re
 import sys
 from types import ModuleType
 from typing import Dict
+from typing import List
 
 import gdb
 
@@ -134,7 +135,7 @@ class module(ModuleType):
     @property
     def all(self):
         regs = reg_sets[pwndbg.gdblib.arch.current]
-        retval = []
+        retval: List[str] = []
         for regset in (
             regs.pc,
             regs.stack,

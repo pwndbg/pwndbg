@@ -1,5 +1,6 @@
 import collections
 from functools import total_ordering
+from typing import DefaultDict
 from typing import List
 
 import gdb
@@ -126,7 +127,7 @@ class Parameter:
 class Config:
     def __init__(self) -> None:
         self.params: Dict[str, Parameter] = {}
-        self.triggers = collections.defaultdict(lambda: [])
+        self.triggers: DefaultDict[str, Callable] = collections.defaultdict(lambda: [])
 
     def add_param(
         self,
