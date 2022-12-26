@@ -4,6 +4,7 @@ from typing import Optional
 
 import pwndbg.color
 import pwndbg.commands
+import pwndbg.commands.telescope
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 

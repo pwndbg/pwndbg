@@ -146,20 +146,20 @@ class Chunk:
         else:
             self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
-        self._prev_size = None
-        self._size = None
-        self._real_size = None
-        self._flags = None
-        self._non_main_arena = None
-        self._is_mmapped = None
-        self._prev_inuse = None
+        self._prev_size: int = None
+        self._size: int = None
+        self._real_size: int = None
+        self._flags: int = None
+        self._non_main_arena: bool = None
+        self._is_mmapped: bool = None
+        self._prev_inuse: bool = None
         self._fd = None
         self._bk = None
         self._fd_nextsize = None
         self._bk_nextsize = None
         self._heap = heap
         self._arena = arena
-        self._is_top_chunk = None
+        self._is_top_chunk: bool = None
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
     def __match_renamed_field(self, field):
@@ -443,7 +443,7 @@ class Arena:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
 
         self.address = int(self._gdbValue.address)
-        self._is_main_arena = None
+        self._is_main_arena: bool = None
         self._top = None
         self._active_heap = None
         self._heaps = None
@@ -637,16 +637,16 @@ class Arena:
 class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def __init__(self) -> None:
         # Global ptmalloc objects
-        self._global_max_fast_addr = None
-        self._global_max_fast = None
-        self._main_arena_addr = None
-        self._main_arena = None
-        self._mp_addr = None
+        self._global_max_fast_addr: int = None
+        self._global_max_fast: int = None
+        self._main_arena_addr: int = None
+        self._main_arena: Arena = None
+        self._mp_addr: int = None
         self._mp = None
         # List of arenas/heaps
         self._arenas = None
         # ptmalloc cache for current thread
-        self._thread_cache = None
+        self._thread_cache: gdb.Value = None
 
     def can_be_resolved(self):
         raise NotImplementedError()

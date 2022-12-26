@@ -28,7 +28,7 @@ class memoize:
         self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> int:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         how = None
 
         if not isinstance(args, Hashable):

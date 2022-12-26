@@ -63,12 +63,12 @@ def root() -> Optional[Any]:
     global binfmt_root
 
     if not is_qemu_usermode():
-        return
+        return None
 
     binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdblib.arch.qemu
 
     if not os.path.isdir(binfmt_root):
-        return
+        return None
 
     gdb.execute("set sysroot " + binfmt_root, from_tty=False)
 
