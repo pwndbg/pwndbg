@@ -4,6 +4,7 @@ Find a chain of leaks given some starting address.
 
 import argparse
 import queue
+from typing import Dict
 
 import gdb
 
@@ -162,7 +163,7 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map = {}
+    output_map: Dict[int, List[str]] = {}
     arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
 
     for child in visited_map:

@@ -351,7 +351,7 @@ def map_inner(ei_class, ehdr, objfile):
     # Entries are processed in-order so that later entries
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for phdr in iter_phdrs(ehdr):
         memsz = int(phdr.p_memsz)
 

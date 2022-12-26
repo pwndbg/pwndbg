@@ -7,6 +7,7 @@ Generally used to print out the stack or register values.
 import argparse
 import collections
 import math
+from typing import List
 
 import pwndbg.chain
 import pwndbg.color.telescope as T
@@ -126,7 +127,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     # Print everything out
     result = []
     last = None
-    collapse_buffer = []
+    collapse_buffer: List[str] = []
     skipped_padding = (
         2
         + len(offset_delimiter)

@@ -98,15 +98,13 @@ To start the inferior without using a shell, use "set startup-with-shell off".
 """,
 )
 parser.add_argument(
-    "args", nargs="*", type=str, default=None, help="The arguments to run the binary with."
+    "args", nargs="*", type=str, default=[], help="The arguments to run the binary with."
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWithFile
-def entry(args=None) -> None:
-    if args is None:
-        arg = []
+def entry(args=[]) -> None:
     global break_on_first_instruction
     break_on_first_instruction = True
     run = "run " + " ".join(map(quote, args))

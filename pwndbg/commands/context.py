@@ -4,6 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from io import open
+from typing import DefaultDict
 from typing import Dict
 
 import gdb
@@ -308,7 +309,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
         except gdb.error as err:
             value = str(err)
         value = value.split("\n")
-        lines = []
+        lines: List[str] = []
         for line in value:
             if width and len(line) + len(exp) + 3 > width:
                 n = width - (len(exp) + 3) - 1  # 1 Padding...
@@ -388,7 +389,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings = defaultdict(dict)
+    result_settings: DefaultDict[str, Dict] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
