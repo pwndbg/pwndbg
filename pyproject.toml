@@ -2,6 +2,35 @@
 line-length = 100
 extend-exclude = "gdb-pt-dump"
 
+[tool.mypy]
+strict_optional = false
+allow_untyped_globals = true
+allow_redefinition = true
+show_error_context = true
+check_untyped_defs = true
+pretty = true
+show_error_codes = true
+incremental = false
+disable_error_code = [
+    "misc",
+    "import",
+    "name-defined",
+    "attr-defined",
+    "var-annotated",
+    "index",
+    "arg-type",
+    "assignment",
+    "operator",
+    "override",
+    "call-overload",
+    "union-attr",
+    "str-format",
+    "call-arg",
+    "return-value",
+    "has-type",
+    "no-redef",
+]
+
 [tool.isort]
 profile = "black"
 force_single_line = true
