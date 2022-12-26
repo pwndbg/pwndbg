@@ -125,7 +125,7 @@ class Parameter:
 
 class Config:
     def __init__(self) -> None:
-        self.params = {}
+        self.params: Dict[str, Parameter] = {}
         self.triggers = collections.defaultdict(lambda: [])
 
     def add_param(

@@ -24,7 +24,7 @@ disable_error_code = [
     "import",
     "name-defined",
     "attr-defined",
-    "var-annotated",
+    # "var-annotated",
     "index",
     # "arg-type",
     "assignment",

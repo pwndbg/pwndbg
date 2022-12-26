@@ -6,11 +6,6 @@ import time
 from os import environ
 from os import path
 
-from pyannotate_runtime import collect_types
-
-collect_types.init_types_collection()
-collect_types.start()
-
 _profiler = cProfile.Profile()
 
 _start_time = None

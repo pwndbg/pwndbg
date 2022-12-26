@@ -15,7 +15,7 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands: List[Command] = []
+commands = []  # type: List[Command]
 command_names = set()
 
 
@@ -572,7 +572,6 @@ def load_commands() -> None:
     import pwndbg.commands.pie
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
-    import pwndbg.commands.pyannotate
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
     import pwndbg.commands.rop

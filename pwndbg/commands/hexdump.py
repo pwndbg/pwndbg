@@ -112,10 +112,6 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
     for i, line in enumerate(result):
         print(line)
 
-    from pyannotate_runtime import collect_types
-
-    collect_types.dump_stats("stats.json")
-
     # If this command is entered again with no arguments, remember where we left off printing
     # TODO: This is broken if the user inputs a count less than the width
     hexdump.offset += i

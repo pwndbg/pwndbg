@@ -7,6 +7,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 """
 
 from typing import Dict
+from typing import Tuple
 
 import gdb
 
