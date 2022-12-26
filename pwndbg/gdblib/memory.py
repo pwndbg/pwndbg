@@ -79,7 +79,7 @@ def readtype(gdb_type, addr):
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
 
-def write(addr, data):
+def write(addr, data) -> None:
     """write(addr, data)
 
     Writes data into the memory of the process being debugged.
@@ -114,7 +114,7 @@ def peek(address):
     return None
 
 
-def poke(address):
+def poke(address) -> bool:
     """poke(address)
 
     Checks whether an address is writable.
@@ -330,7 +330,7 @@ def find_lower_boundary(addr, max_pages=1024):
     return addr
 
 
-def update_min_addr():
+def update_min_addr() -> None:
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0

@@ -7,7 +7,7 @@ import pwndbg.gdblib.events
 import pwndbg.lib.memoize
 
 
-def rreload(module, mdict=None):
+def rreload(module, mdict=None) -> None:
     """Recursively reload modules."""
     name = module.__name__
 
@@ -27,14 +27,14 @@ def rreload(module, mdict=None):
 
 
 @pwndbg.commands.ArgparsedCommand("Reload pwndbg.")
-def reload(*a):
+def reload(*a) -> None:
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
 
 
 @pwndbg.commands.ArgparsedCommand("Makes pwndbg reinitialize all state.")
-def reinit_pwndbg():
+def reinit_pwndbg() -> None:
     """
     Makes pwndbg reinitialize all state.
     """

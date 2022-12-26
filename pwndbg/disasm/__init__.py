@@ -124,7 +124,7 @@ def get_disassembler(pc):
 
 
 class SimpleInstruction:
-    def __init__(self, address):
+    def __init__(self, address) -> None:
         self.address = address
         ins = gdb.newest_frame().architecture().disassemble(address)[0]
         asm = ins["asm"].split(None, 1)

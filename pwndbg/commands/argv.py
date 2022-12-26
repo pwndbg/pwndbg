@@ -10,7 +10,7 @@ import pwndbg.gdblib.typeinfo
 
 @pwndbg.commands.ArgparsedCommand("Prints out the number of arguments.")
 @pwndbg.commands.OnlyWhenRunning
-def argc():
+def argc() -> None:
     print(pwndbg.gdblib.argv.argc)
 
 
@@ -22,7 +22,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["args"])
 @pwndbg.commands.OnlyWhenRunning
-def argv(i=None):
+def argv(i=None) -> None:
     start = pwndbg.gdblib.argv.argv
     n = pwndbg.gdblib.argv.argc + 1
 
@@ -59,7 +59,7 @@ class argv_function(gdb.Function):
     Evaluate argv on the supplied value.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(argv_function, self).__init__("argv")
 
     def invoke(self, number=0):
@@ -82,7 +82,7 @@ class envp_function(gdb.Function):
     Evaluate envp on the supplied value.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(envp_function, self).__init__("envp")
 
     def invoke(self, number=0):
@@ -105,7 +105,7 @@ class argc_function(gdb.Function):
     Evaluates to argc.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(argc_function, self).__init__("argc")
 
     def invoke(self, number=0):
@@ -120,7 +120,7 @@ class environ_function(gdb.Function):
     Evaluate getenv() on the supplied value.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(environ_function, self).__init__("environ")
 
     def invoke(self, name):

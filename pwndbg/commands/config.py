@@ -55,7 +55,7 @@ parser.add_argument(
 )
 
 
-def display_config(filter_pattern: str, scope: str, has_file_command: bool = True):
+def display_config(filter_pattern: str, scope: str, has_file_command: bool = True) -> None:
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
@@ -95,7 +95,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def config(filter_pattern):
+def config(filter_pattern) -> None:
     display_config(filter_pattern, "config")
 
 
@@ -117,12 +117,12 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def theme(filter_pattern):
+def theme(filter_pattern) -> None:
     display_config(filter_pattern, "theme")
 
 
 @pwndbg.commands.ArgparsedCommand(configfile_parser)
-def configfile(show_all=False):
+def configfile(show_all=False) -> None:
     configfile_print_scope("config", show_all)
 
 
@@ -135,11 +135,11 @@ themefile_parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(themefile_parser)
-def themefile(show_all=False):
+def themefile(show_all=False) -> None:
     configfile_print_scope("theme", show_all)
 
 
-def configfile_print_scope(scope, show_all=False):
+def configfile_print_scope(scope, show_all=False) -> None:
     params = pwndbg.gdblib.config.get_params(scope)
 
     if not show_all:

@@ -12,7 +12,7 @@ parser.add_argument("-f", "--force", action="store_true", help="Force displaying
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def dumpargs(force=False):
+def dumpargs(force=False) -> None:
     args = (not force and call_args()) or all_args()
 
     if args:

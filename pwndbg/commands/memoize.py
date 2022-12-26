@@ -14,7 +14,7 @@ Useful for diagnosing caching-related bugs. Decreases performance.
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def memoize():
+def memoize() -> None:
     pwndbg.lib.memoize.memoize.caching = not pwndbg.lib.memoize.memoize.caching
 
     status = message.off("OFF (pwndbg will work slower, use only for debugging pwndbg)")

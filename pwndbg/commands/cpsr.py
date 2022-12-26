@@ -9,7 +9,7 @@ from pwndbg.color import context
 )
 @pwndbg.commands.OnlyWithArch(["arm", "armcm", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
-def cpsr():
+def cpsr() -> None:
     reg = "xpsr" if pwndbg.gdblib.arch.name == "armcm" else "cpsr"
     reg_val = getattr(pwndbg.gdblib.regs, reg)
     reg_flags = pwndbg.gdblib.regs.flags[reg]

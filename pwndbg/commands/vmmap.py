@@ -30,7 +30,7 @@ def pages_filter(gdbval_or_str):
         raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
-def print_vmmap_table_header():
+def print_vmmap_table_header() -> None:
     """
     Prints the table header for the vmmap command.
     """
@@ -79,7 +79,7 @@ parser.add_argument("-x", "--executable", action="store_true", help="Display exe
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["lm", "address", "vprot"])
 @pwndbg.commands.OnlyWhenRunning
-def vmmap(gdbval_or_str=None, writable=False, executable=False):
+def vmmap(gdbval_or_str=None, writable=False, executable=False) -> None:
     pages = pwndbg.gdblib.vmmap.get()
 
     if gdbval_or_str:
@@ -120,7 +120,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def vmmap_add(start, size, flags, offset):
+def vmmap_add(start, size, flags, offset) -> None:
     page_flags = {
         "r": pwndbg.gdblib.elf.PF_R,
         "w": pwndbg.gdblib.elf.PF_W,
@@ -142,7 +142,7 @@ def vmmap_add(start, size, flags, offset):
 
 @pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
 @pwndbg.commands.OnlyWhenRunning
-def vmmap_clear():
+def vmmap_clear() -> None:
     pwndbg.gdblib.vmmap.clear_custom_page()
 
 
@@ -154,7 +154,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def vmmap_load(filename):
+def vmmap_load(filename) -> None:
     if filename is None:
         filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 

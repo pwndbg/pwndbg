@@ -16,7 +16,7 @@ parser.add_argument(
 
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.ArgparsedCommand(parser)
-def ghidra(func):
+def ghidra(func) -> None:
     try:
         print(pwndbg.ghidra.decompile(func))
     except Exception as e:

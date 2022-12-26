@@ -80,7 +80,9 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def probeleak(address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None):
+def probeleak(
+    address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
+) -> None:
 
     address = int(address)
     address &= pwndbg.gdblib.arch.ptrmask

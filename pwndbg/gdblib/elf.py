@@ -49,7 +49,7 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
 
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
-def update():
+def update() -> None:
     importlib.reload(pwndbg.lib.elftypes)
 
     if pwndbg.gdblib.arch.ptrsize == 4:
@@ -224,7 +224,7 @@ ehdr_type_loaded = 0
 
 
 @pwndbg.lib.memoize.reset_on_start
-def reset_ehdr_type_loaded():
+def reset_ehdr_type_loaded() -> None:
     global ehdr_type_loaded
     ehdr_type_loaded = 0
 

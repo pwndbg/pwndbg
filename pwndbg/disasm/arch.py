@@ -20,7 +20,7 @@ class DisassemblyAssistant:
     # Registry of all instances, {architecture: instance}
     assistants = {}
 
-    def __init__(self, architecture):
+    def __init__(self, architecture) -> None:
         if architecture is not None:
             self.assistants[architecture] = self
 
@@ -37,7 +37,7 @@ class DisassemblyAssistant:
         }
 
     @staticmethod
-    def enhance(instruction):
+    def enhance(instruction) -> None:
         enhancer = DisassemblyAssistant.assistants.get(
             pwndbg.gdblib.arch.current, generic_assistant
         )
@@ -49,7 +49,7 @@ class DisassemblyAssistant:
         if debug:
             print(enhancer.dump(instruction))
 
-    def enhance_conditional(self, instruction):
+    def enhance_conditional(self, instruction) -> None:
         """
         Adds a ``condition`` field to the instruction.
 
@@ -71,10 +71,10 @@ class DisassemblyAssistant:
 
         instruction.condition = c
 
-    def condition(self, instruction):
+    def condition(self, instruction) -> bool:
         return False
 
-    def enhance_next(self, instruction):
+    def enhance_next(self, instruction) -> None:
         """
         Adds a ``next`` field to the instruction.
 
@@ -152,7 +152,7 @@ class DisassemblyAssistant:
 
         return int(addr)
 
-    def enhance_symbol(self, instruction):
+    def enhance_symbol(self, instruction) -> None:
         """
         Adds a ``symbol`` and ``symbol_addr`` fields to the instruction.
 
@@ -173,7 +173,7 @@ class DisassemblyAssistant:
         instruction.symbol = o.symbol
         instruction.symbol_addr = o.int
 
-    def enhance_operands(self, instruction):
+    def enhance_operands(self, instruction) -> None:
         """
         Enhances all of the operands in the instruction, by adding the following
         fields:
@@ -203,7 +203,7 @@ class DisassemblyAssistant:
     def immediate(self, instruction, operand):
         return operand.value.imm
 
-    def immediate_sz(self, instruction, operand):
+    def immediate_sz(self, instruction, operand) -> str:
         value = operand.int
 
         if abs(value) < 0x10:

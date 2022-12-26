@@ -102,7 +102,7 @@ class module(ModuleType):
         )
         return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
 
-    def reset(self):
+    def reset(self) -> None:
         # We should reset the offset when we attach to a new process
         self._errno_offset = None
 

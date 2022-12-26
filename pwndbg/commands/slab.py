@@ -21,7 +21,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def slab(filter_=None):
+def slab(filter_=None) -> None:
     results = []
     for cache in pwndbg.gdblib.kernel.slab.caches():
         name = pwndbg.gdblib.memory.string(cache["name"]).decode("ascii")

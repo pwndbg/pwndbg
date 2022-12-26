@@ -25,7 +25,7 @@ def config_to_key(name: str) -> str:
 
 
 class Kconfig(UserDict):
-    def __init__(self, compressed_config: bytes):
+    def __init__(self, compressed_config: bytes) -> None:
         super().__init__()
         self.data = parse_compresed_config(compressed_config)
 
@@ -50,7 +50,7 @@ class Kconfig(UserDict):
 
         raise KeyError(f"Key {name} not found")
 
-    def __contains__(self, name: str):
+    def __contains__(self, name: str) -> bool:
         return self.get_key(name) is not None
 
     def __getattr__(self, name: str):

@@ -8,7 +8,7 @@ abi = None
 linux = False
 
 
-def update():
+def update() -> None:
     global abi
     global linux
 

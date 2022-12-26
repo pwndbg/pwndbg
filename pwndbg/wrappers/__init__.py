@@ -7,7 +7,7 @@ import pwndbg.lib.which
 
 
 class OnlyWithCommand:
-    def __init__(self, *commands):
+    def __init__(self, *commands) -> None:
         self.all_cmds = list(map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands))
         for command in commands:
             self.cmd = command if isinstance(command, list) else [command]

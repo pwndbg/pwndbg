@@ -25,7 +25,7 @@ config = pwndbg.lib.config.Config()
 # See this for details about the API of `gdb.Parameter`:
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
 class Parameter(gdb.Parameter):
-    def __init__(self, param: pwndbg.lib.config.Parameter):
+    def __init__(self, param: pwndbg.lib.config.Parameter) -> None:
         # `set_doc`, `show_doc`, and `__doc__` must be set before `gdb.Parameter.__init__`.
         # They will be used for `help set <param>` and `help show <param>`,
         # respectively
@@ -55,7 +55,7 @@ class Parameter(gdb.Parameter):
             self.param.default, param_class=self.param.param_class
         )
 
-    def get_set_string(self):
+    def get_set_string(self) -> str:
         """Handles the GDB `set <param>` command"""
 
         # GDB will set `self.value` to the user's input
@@ -78,7 +78,7 @@ class Parameter(gdb.Parameter):
 
         return "Set %s to %r." % (self.param.set_show_doc, self.native_value)
 
-    def get_show_string(self, svalue):
+    def get_show_string(self, svalue) -> str:
         """Handles the GDB `show <param>` command"""
         more_information_hint = " See `help set %s` for more information." % self.param.name
         return "%s is %r.%s" % (
@@ -107,7 +107,7 @@ class Parameter(gdb.Parameter):
         return value
 
 
-def init_params():
+def init_params() -> None:
     # Create a gdb.Parameter for each parameter
     for p in pwndbg.gdblib.config.params.values():
         # We don't need to store this anywhere, GDB will handle this

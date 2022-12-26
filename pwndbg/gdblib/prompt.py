@@ -35,7 +35,7 @@ show_tip = pwndbg.gdblib.config.add_param(
 cur = None
 
 
-def initial_hook(*a):
+def initial_hook(*a) -> None:
     if show_tip and not pwndbg.decorators.first_prompt:
         colored_tip = re.sub(
             "`(.*?)`", lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day()
@@ -59,7 +59,7 @@ def initial_hook(*a):
 context_shown = False
 
 
-def prompt_hook(*a):
+def prompt_hook(*a) -> None:
     global cur, context_shown
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
@@ -74,13 +74,13 @@ def prompt_hook(*a):
 
 
 @pwndbg.gdblib.events.cont
-def reset_context_shown(*a):
+def reset_context_shown(*a) -> None:
     global context_shown
     context_shown = False
 
 
 @pwndbg.gdblib.config.trigger(message.config_prompt_color, disable_colors)
-def set_prompt():
+def set_prompt() -> None:
     prompt = "pwndbg> "
 
     if not disable_colors:

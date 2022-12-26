@@ -52,7 +52,7 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_stop
-def update():
+def update() -> None:
     """
     For each running thread, updates the known address range
     for its stack.
@@ -109,7 +109,7 @@ def current():
 
 
 @pwndbg.gdblib.events.exit
-def clear():
+def clear() -> None:
     """
     Clears everything we know about any stack memory ranges.
 
@@ -122,7 +122,7 @@ def clear():
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_exit
-def is_executable():
+def is_executable() -> bool:
     global nx
     nx = False
 

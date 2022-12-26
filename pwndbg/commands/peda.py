@@ -12,13 +12,13 @@ import pwndbg.gdblib.proc
 
 @pwndbg.commands.ArgparsedCommand("Gets the current file.")
 @pwndbg.commands.OnlyWhenRunning
-def getfile():
+def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))
 
 
 @pwndbg.commands.ArgparsedCommand("Get the pid.")
 @pwndbg.commands.OnlyWhenRunning
-def getpid():
+def getpid() -> None:
     print(pwndbg.gdblib.proc.pid)
 
 
@@ -27,7 +27,7 @@ parser.add_argument("target", type=str, help="Address or function to stop execut
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def xuntil(target):
+def xuntil(target) -> None:
     try:
         addr = int(target, 0)
 

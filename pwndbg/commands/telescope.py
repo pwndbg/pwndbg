@@ -139,7 +139,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     )
 
     # Collapse repeating values exceeding minimum delta.
-    def collapse_repeating_values():
+    def collapse_repeating_values() -> None:
         # The first line was already printed, hence increment by 1
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
             result.append(
@@ -210,7 +210,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def stack(count, offset):
+def stack(count, offset) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
     telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count)

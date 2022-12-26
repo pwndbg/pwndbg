@@ -60,7 +60,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 @pwndbg.lib.memoize.reset_on_objfile
 @pwndbg.lib.memoize.reset_on_start
-def is_corefile():
+def is_corefile() -> bool:
     """
     For example output use:
         gdb ./tests/binaries/crash_simple.out -ex run -ex 'generate-core-file ./core' -ex 'quit'
@@ -191,18 +191,18 @@ def explore(address_maybe):
 
 # Automatically ensure that all registers are explored on each stop
 # @pwndbg.gdblib.events.stop
-def explore_registers():
+def explore_registers() -> None:
     for regname in pwndbg.gdblib.regs.common:
         find(pwndbg.gdblib.regs[regname])
 
 
 # @pwndbg.gdblib.events.exit
-def clear_explored_pages():
+def clear_explored_pages() -> None:
     while explored_pages:
         explored_pages.pop()
 
 
-def add_custom_page(page):
+def add_custom_page(page) -> None:
     bisect.insort(custom_pages, page)
 
     # Reset all the cache
@@ -211,7 +211,7 @@ def add_custom_page(page):
     pwndbg.lib.memoize.reset()
 
 
-def clear_custom_page():
+def clear_custom_page() -> None:
     while custom_pages:
         custom_pages.pop()
 
@@ -710,7 +710,7 @@ def check_aslr():
 
 
 @pwndbg.gdblib.events.cont
-def mark_pc_as_executable():
+def mark_pc_as_executable() -> None:
     mapping = find(pwndbg.gdblib.regs.pc)
     if mapping and not mapping.execute:
         mapping.flags |= os.X_OK

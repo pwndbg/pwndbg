@@ -35,7 +35,7 @@ parser.add_argument("target", type=str, help="pid, process name or device file t
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def attachp(target):
+def attachp(target) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -80,7 +80,7 @@ def attachp(target):
         print(message.error("Error: %s" % e))
 
 
-def _is_device(path):
+def _is_device(path) -> bool:
     try:
         mode = os.stat(path).st_mode
     except FileNotFoundError:

@@ -62,7 +62,7 @@ arch_to_CS = {
 DEBUG = False
 
 
-def debug(fmt, args=()):
+def debug(fmt, args=()) -> None:
     if DEBUG:
         print(fmt % args)
 
@@ -99,7 +99,7 @@ e.until_jump()
 
 
 class Emulator:
-    def __init__(self):
+    def __init__(self) -> None:
         self.arch = pwndbg.gdblib.arch.current
 
         if self.arch not in arch_to_UC:
@@ -177,7 +177,7 @@ class Emulator:
 
         raise AttributeError("AttributeError: %r object has no attribute %r" % (self, name))
 
-    def update_pc(self, pc=None):
+    def update_pc(self, pc=None) -> None:
         if pc is None:
             pc = pwndbg.gdblib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
@@ -212,7 +212,7 @@ class Emulator:
 
         return mode
 
-    def map_page(self, page):
+    def map_page(self, page) -> bool:
         page = pwndbg.lib.memory.page_align(page)
         size = pwndbg.lib.memory.PAGE_SIZE
 
@@ -238,7 +238,7 @@ class Emulator:
 
         return True
 
-    def hook_mem_invalid(self, uc, access, address, size, value, user_data):
+    def hook_mem_invalid(self, uc, access, address, size, value, user_data) -> bool:
         debug("# Invalid access at %#x", address)
 
         # Page-align the start address
@@ -257,7 +257,7 @@ class Emulator:
 
         return True
 
-    def hook_intr(self, uc, intno, user_data):
+    def hook_intr(self, uc, intno, user_data) -> None:
         """
         We never want to emulate through an interrupt.  Just stop.
         """
@@ -318,7 +318,7 @@ class Emulator:
         debug("uc.emu_stop(*%r, **%r)", (a, kw))
         return self.uc.emu_stop(*a, **kw)
 
-    def emulate_with_hook(self, hook, count=512):
+    def emulate_with_hook(self, hook, count=512) -> None:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
         try:
             self.emu_start(self.pc, 0, count=count)
@@ -368,7 +368,7 @@ class Emulator:
         # We're done emulating
         return self._prev, self._curr
 
-    def until_jump_hook_code(self, _uc, address, instruction_size, _user_data):
+    def until_jump_hook_code(self, _uc, address, instruction_size, _user_data) -> None:
         # We have not emulated any instructions yet.
         if self._prev is None:
             pass
@@ -406,7 +406,7 @@ class Emulator:
         self.emulate_with_hook(self.until_syscall_hook_code)
         return (self.until_syscall_address, None)
 
-    def until_syscall_hook_code(self, uc, address, size, user_data):
+    def until_syscall_hook_code(self, uc, address, size, user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, size))
         debug("# Executing instruction at %(address)#x with bytes %(data)s", locals())
         self.until_syscall_address = address
@@ -447,7 +447,7 @@ class Emulator:
             yield a
             a = self.single_step(pc)
 
-    def single_step_hook_code(self, _uc, address, instruction_size, _user_data):
+    def single_step_hook_code(self, _uc, address, instruction_size, _user_data) -> None:
         # For whatever reason, the hook will hit twice on
         # unicorn >= 1.0.2rc4, but not on unicorn-1.0.2rc1~unicorn-1.0.2rc3,
         # So we use a counter to ensure the code run only once
@@ -456,7 +456,7 @@ class Emulator:
             self._single_step = (address, instruction_size)
             self.single_step_hook_hit_count += 1
 
-    def dumpregs(self):
+    def dumpregs(self) -> None:
         for reg in (
             list(self.regs.retaddr)
             + list(self.regs.misc)
@@ -473,6 +473,6 @@ class Emulator:
             value = self.uc.reg_read(enum)
             debug("uc.reg_read(%(name)s) ==> %(value)x", locals())
 
-    def trace_hook(self, _uc, address, instruction_size, _user_data):
+    def trace_hook(self, _uc, address, instruction_size, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
         debug("# trace_hook: %#-8x %r", (address, data))

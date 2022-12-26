@@ -252,7 +252,7 @@ def eza(address, data):
     return ez(address, data)
 
 
-def eX(size, address, data, hex=True):
+def eX(size, address, data, hex=True) -> None:
     """
     This relies on windbg's default hex encoding being enforced
     """
@@ -319,7 +319,7 @@ da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum st
 
 @pwndbg.commands.ArgparsedCommand(da_parser)
 @pwndbg.commands.OnlyWhenRunning
-def da(address, max):
+def da(address, max) -> None:
     print("%x" % address, repr(pwndbg.gdblib.strings.get(address, max)))
 
 
@@ -330,7 +330,7 @@ ds_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum st
 
 @pwndbg.commands.ArgparsedCommand(ds_parser)
 @pwndbg.commands.OnlyWhenRunning
-def ds(address, max):
+def ds(address, max) -> None:
     # We do change the max length to the default if its too low
     # because the truncated display is not that ideal/not the same as GDB's yet
     # (ours: "truncated ...", GDBs: "truncated "...)
@@ -349,7 +349,7 @@ def ds(address, max):
 
 
 @pwndbg.commands.ArgparsedCommand("List breakpoints.")
-def bl():
+def bl() -> None:
     """
     List breakpoints
     """
@@ -363,7 +363,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def bd(which="*"):
+def bd(which="*") -> None:
     """
     Disable the breakpoint with the specified index.
     """
@@ -380,7 +380,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def be(which="*"):
+def be(which="*") -> None:
     """
     Enable the breakpoint with the specified index.
     """
@@ -397,7 +397,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def bc(which="*"):
+def bc(which="*") -> None:
     """
     Clear the breakpoint with the specified index.
     """
@@ -412,7 +412,7 @@ parser.add_argument("where", type=int, help="The address to break at.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def bp(where):
+def bp(where) -> None:
     """
     Set a breakpoint at the specified address.
     """
@@ -446,7 +446,7 @@ def u(where=None, n=5, to_string=False):
 
 @pwndbg.commands.ArgparsedCommand("Print a backtrace (alias 'bt').")
 @pwndbg.commands.OnlyWhenRunning
-def k():
+def k() -> None:
     """
     Print a backtrace (alias 'bt')
     """
@@ -461,7 +461,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def ln(value=None):
+def ln(value=None) -> None:
     """
     List the symbols nearest to the provided value.
     """
@@ -482,13 +482,13 @@ def ln(value=None):
 
 @pwndbg.commands.ArgparsedCommand("Not be windows.")
 @pwndbg.commands.OnlyWhenRunning
-def peb():
+def peb() -> None:
     print("This isn't Windows!")
 
 
 @pwndbg.commands.ArgparsedCommand("Windbg compatibility alias for 'continue' command.")
 @pwndbg.commands.OnlyWhenRunning
-def go():
+def go() -> None:
     """
     Windbg compatibility alias for 'continue' command.
     """

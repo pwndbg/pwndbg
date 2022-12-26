@@ -27,7 +27,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def aslr(state=None):
+def aslr(state=None) -> None:
     if state:
         gdb.execute("set disable-randomization %s" % options[state], from_tty=False, to_string=True)
 

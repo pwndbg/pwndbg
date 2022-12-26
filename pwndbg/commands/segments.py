@@ -7,7 +7,7 @@ import pwndbg.gdblib.regs
 class segment(gdb.Function):
     """Get the flat address of memory based off of the named segment register."""
 
-    def __init__(self, name):
+    def __init__(self, name) -> None:
         super(segment, self).__init__(name)
         self.name = name
 
@@ -22,7 +22,7 @@ segment("gsbase")
 
 @pwndbg.commands.ArgparsedCommand("Prints out the FS base address. See also $fsbase.")
 @pwndbg.commands.OnlyWhenRunning
-def fsbase():
+def fsbase() -> None:
     """
     Prints out the FS base address. See also $fsbase.
     """
@@ -31,7 +31,7 @@ def fsbase():
 
 @pwndbg.commands.ArgparsedCommand("Prints out the GS base address. See also $gsbase.")
 @pwndbg.commands.OnlyWhenRunning
-def gsbase():
+def gsbase() -> None:
     """
     Prints out the GS base address. See also $gsbase.
     """

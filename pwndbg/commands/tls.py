@@ -11,7 +11,7 @@ from pwndbg.color import message
     "Print out base address of the current Thread Local Storage (TLS)."
 )
 @pwndbg.commands.OnlyWhenRunning
-def tls():
+def tls() -> None:
     tls_base = pwndbg.gdblib.tls.address
     if tls_base:
         print(message.success("Thread Local Storage (TLS) base: %#x" % tls_base))

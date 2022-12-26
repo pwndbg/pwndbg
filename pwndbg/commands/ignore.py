@@ -24,7 +24,7 @@ parser.add_argument("count", metavar="COUNT", type=int, help="The number to set 
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def ignore(bpnum, count):
+def ignore(bpnum, count) -> None:
     bps = gdb.breakpoints()
 
     if not bps:

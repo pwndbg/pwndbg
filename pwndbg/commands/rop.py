@@ -18,7 +18,7 @@ parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ropgadget"])
 @pwndbg.commands.OnlyWithFile
-def rop(grep, argument):
+def rop(grep, argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:
 
         # If the process is running, dump a corefile so we get actual addresses.

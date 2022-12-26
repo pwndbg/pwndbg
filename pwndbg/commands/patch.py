@@ -21,7 +21,7 @@ parser.add_argument("ins", type=str, help="instruction[s]")
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def patch(address, ins):
+def patch(address, ins) -> None:
     new_mem = asm(ins)
 
     old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
@@ -39,7 +39,7 @@ parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 @pwndbg.commands.ArgparsedCommand(parser2)
 @pwndbg.commands.OnlyWhenRunning
-def patch_revert(address):
+def patch_revert(address) -> None:
     if not patches:
         print(message.notice("No patches to revert"))
         return
@@ -61,7 +61,7 @@ parser3 = argparse.ArgumentParser(description="List all patches.")
 
 @pwndbg.commands.ArgparsedCommand(parser3)
 @pwndbg.commands.OnlyWhenRunning
-def patch_list():
+def patch_list() -> None:
     if not patches:
         print(message.hint("No patches to list"))
         return

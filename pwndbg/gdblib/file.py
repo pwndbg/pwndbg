@@ -18,7 +18,7 @@ import pwndbg.gdblib.remote
 _remote_files_dir = None
 
 
-def reset_remote_files():
+def reset_remote_files() -> None:
     global _remote_files_dir
 
     if _remote_files_dir is not None:

@@ -50,7 +50,7 @@ group.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
-def cyclic_cmd(alphabet, length, lookup, count=100):
+def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
     if length:
         # Convert from gdb.Value
         length = int(length)

@@ -53,7 +53,7 @@ class memoize:
             print(".... %r" % (value,))
         return value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         funcname = self.func.__module__ + "." + self.func.__name__
         return "<%s-memoized function %s>" % (self.kind, funcname)
 
@@ -74,7 +74,7 @@ class forever(memoize):
     caches = []  # type: List[forever]
 
     @staticmethod
-    def _reset():
+    def _reset() -> None:
         for obj in forever.caches:
             obj.cache.clear()
 
@@ -96,7 +96,7 @@ class reset_on_prompt(memoize):
     kind = "prompt"
 
     @staticmethod
-    def __reset_on_prompt():
+    def __reset_on_prompt() -> None:
         for obj in reset_on_prompt.caches:
             obj.cache.clear()
 
@@ -181,7 +181,7 @@ class while_running(memoize):
     _reset = __reset_while_running
 
 
-def reset():
+def reset() -> None:
     forever._reset()
     reset_on_stop._reset()
     reset_on_exit._reset()

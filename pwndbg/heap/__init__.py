@@ -68,12 +68,12 @@ If you used setup.sh on Arch based distro you'll need to do a power cycle or set
 
 
 @pwndbg.gdblib.events.start
-def update():
+def update() -> None:
     resolve_heap(is_first_run=True)
 
 
 @pwndbg.gdblib.events.exit
-def reset():
+def reset() -> None:
     global current
     # Re-initialize the heap
     if current:
@@ -83,7 +83,7 @@ def reset():
 
 
 @pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
-def resolve_heap(is_first_run=False):
+def resolve_heap(is_first_run=False) -> None:
     import pwndbg.heap.ptmalloc
 
     global current

@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect")
 
 
-def print_line(name, addr, first, second, op, width=20):
+def print_line(name, addr, first, second, op, width=20) -> None:
 
     print(
         "{} {} = {} {} {:#x}".format(
@@ -29,7 +29,7 @@ def print_line(name, addr, first, second, op, width=20):
     )
 
 
-def xinfo_stack(page, addr):
+def xinfo_stack(page, addr) -> None:
     # If it's a stack address, print offsets to top and bottom of stack, as
     # well as offsets to current stack and base pointer (if used by debuggee)
 
@@ -58,7 +58,7 @@ def xinfo_stack(page, addr):
             print_line("Next Stack Canary", addr, nxt, nxt - addr, "-")
 
 
-def xinfo_mmap_file(page, addr):
+def xinfo_mmap_file(page, addr) -> None:
     # If it's an address pointing into a memory mapped file, print offsets
     # to beginning of file in memory and on disk
 
@@ -98,14 +98,14 @@ def xinfo_mmap_file(page, addr):
             print_line(sec["x_name"], addr, sec["sh_addr"], addr - sec["sh_addr"], "+")
 
 
-def xinfo_default(page, addr):
+def xinfo_default(page, addr) -> None:
     # Just print the distance to the beginning of the mapping
     print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def xinfo(address=None):
+def xinfo(address=None) -> None:
     address = address.cast(
         pwndbg.gdblib.typeinfo.pvoid
     )  # Fixes issues with function ptrs (xinfo malloc)

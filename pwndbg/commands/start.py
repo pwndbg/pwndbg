@@ -17,7 +17,7 @@ break_on_first_instruction = False
 
 
 @pwndbg.gdblib.events.start
-def on_start():
+def on_start() -> None:
     global break_on_first_instruction
     if break_on_first_instruction:
         spec = "*%#x" % (int(pwndbg.gdblib.elf.entry()))
@@ -53,7 +53,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def start(args=None):
+def start(args=None) -> None:
     if args is None:
         args = []
     run = "run " + " ".join(args)
@@ -104,7 +104,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWithFile
-def entry(args=None):
+def entry(args=None) -> None:
     if args is None:
         arg = []
     global break_on_first_instruction

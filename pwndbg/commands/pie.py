@@ -80,7 +80,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def piebase(offset=None, module=None):
+def piebase(offset=None, module=None) -> None:
     offset = int(offset)
     if not module:
         # Note: we do not use `pwndbg.gdblib.file.get_file(module)` here as it is not needed.
@@ -109,7 +109,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["brva"])
 @pwndbg.commands.OnlyWhenRunning
-def breakrva(offset=0, module=None):
+def breakrva(offset=0, module=None) -> None:
     offset = int(offset)
     if not module:
         # Note: we do not use `pwndbg.gdblib.file.get_file(module)` here as it is not needed.

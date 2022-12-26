@@ -9,7 +9,7 @@ __all__ = ["ctypes", "memory", "typeinfo"]
 
 
 # TODO: should the imports above be moved here?
-def load_gdblib():
+def load_gdblib() -> None:
     """
     Import all gdblib modules that need to run code on import
     """
