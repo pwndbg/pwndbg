@@ -829,7 +829,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal = []
+last_signal: List[str] = []
 
 
 def save_signal(signal) -> None:

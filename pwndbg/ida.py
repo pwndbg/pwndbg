@@ -12,6 +12,7 @@ import traceback
 import xmlrpc.client
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 
 import gdb
@@ -282,7 +283,7 @@ def GetBptEA(i):
     return _ida.get_bpt_ea(i)
 
 
-_breakpoints = []
+_breakpoints: List[gdb.Breakpoint] = []
 
 
 @pwndbg.gdblib.events.cont

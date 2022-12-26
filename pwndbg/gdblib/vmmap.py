@@ -31,10 +31,10 @@ import pwndbg.lib.memoize
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages = []
+explored_pages: List[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages = []
+custom_pages: List[pwndbg.lib.memory.Page] = []
 
 
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(

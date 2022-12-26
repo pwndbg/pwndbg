@@ -11,7 +11,6 @@ check_untyped_defs = true
 pretty = true
 show_error_codes = true
 incremental = false
-follow_imports = "skip"
 disable_error_code = [
     "misc",
     # No type stubs for capstone, unicorn, pwnlib, and elftools

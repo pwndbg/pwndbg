@@ -7,6 +7,7 @@ information available.
 """
 import os
 import re
+from typing import Dict
 
 import elftools.common.exceptions
 import elftools.elf.constants
@@ -63,7 +64,7 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
     _add_debug_file_directory("/usr/lib/debug")
 
 
-_remote_files = {}
+_remote_files: Dict[str, str] = {}
 
 
 @pwndbg.gdblib.events.exit
