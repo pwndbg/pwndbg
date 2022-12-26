@@ -11,6 +11,8 @@ import time
 import traceback
 import xmlrpc.client
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import Optional
 
 import gdb
@@ -252,16 +254,16 @@ def Jump(addr):
 @takes_address
 @pwndbg.lib.memoize.reset_on_objfile
 def Anterior(addr):
-    hexrays_prefix = "\x01\x04; "
+    hexrays_prefix = b"\x01\x04; "
     lines = []
     for i in range(10):
-        r = _ida.get_extra_cmt(addr, 0x3E8 + i)  # E_PREV
+        r: Optional[bytes] = _ida.get_extra_cmt(addr, 0x3E8 + i)  # E_PREV
         if not r:
             break
         if r.startswith(hexrays_prefix):
             r = r[len(hexrays_prefix) :]
         lines.append(r)
-    return "\n".join(lines)
+    return b"\n".join(lines)
 
 
 @withIDA
@@ -281,7 +283,7 @@ def GetBptEA(i):
     return _ida.get_bpt_ea(i)
 
 
-_breakpoints = []
+_breakpoints: List[gdb.Breakpoint] = []
 
 
 @pwndbg.gdblib.events.cont
@@ -488,7 +490,7 @@ class IDC:
 
     def __init__(self) -> None:
         if available():
-            data = _ida.eval(self.query)
+            data: Dict = _ida.eval(self.query)
             self.__dict__.update(data)
 
 

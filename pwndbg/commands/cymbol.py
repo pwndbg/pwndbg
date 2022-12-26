@@ -21,6 +21,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from typing import Dict
 
 import gdb
 
@@ -46,7 +47,7 @@ cymbol_editor = pwndbg.gdblib.config.add_param(
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.
-loaded_symbols = {}
+loaded_symbols: Dict[str, str] = {}
 
 # Where generated symbol source files are saved.
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")

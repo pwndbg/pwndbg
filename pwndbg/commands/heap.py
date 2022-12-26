@@ -294,13 +294,15 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
         if not chunk.is_top_chunk and arena:
 
             bins_list = [
-                allocator.fastbins(arena.address) or {},
-                allocator.smallbins(arena.address) or {},
-                allocator.largebins(arena.address) or {},
-                allocator.unsortedbin(arena.address) or {},
+                allocator.fastbins(arena.address),
+                allocator.smallbins(arena.address),
+                allocator.largebins(arena.address),
+                allocator.unsortedbin(arena.address),
             ]
             if allocator.has_tcache():
                 bins_list.append(allocator.tcachebins(None))
+
+            bins_list = [x for x in bins_list if x is not None]
             no_match = True
             for bins in bins_list:
                 if bins.contains_chunk(chunk.real_size, chunk.address):
@@ -897,7 +899,7 @@ def try_free(addr) -> None:
         print(message.notice("__libc_free: Doing munmap_chunk"))
         return
 
-    errors_found = False
+    errors_found = 0
     returned_before_error = False
 
     # chunk doesn't overlap memory

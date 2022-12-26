@@ -4,6 +4,7 @@ address +/- a few instructions.
 """
 
 import collections
+from typing import DefaultDict
 
 import capstone
 import gdb
@@ -54,7 +55,7 @@ VariableInstructionSizeMax = {
     "mips": 8,
 }
 
-backward_cache = collections.defaultdict(lambda: None)
+backward_cache: DefaultDict = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.memoize.reset_on_objfile

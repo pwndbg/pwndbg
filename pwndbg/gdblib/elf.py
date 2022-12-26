@@ -10,6 +10,7 @@ import ctypes
 import importlib
 import sys
 from collections import namedtuple
+from typing import List
 
 import gdb
 from elftools.elf.constants import SH_FLAGS

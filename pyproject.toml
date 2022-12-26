@@ -11,33 +11,31 @@ check_untyped_defs = true
 pretty = true
 show_error_codes = true
 incremental = false
-follow_imports = "skip"
-exclude = [
-    #"^pwndbg/commands",
-    "^pwndbg/heap",
-    #'^pwndbg/[^/]*\.py',
-    '^pwndbg/ida.py',
-    '^pwndbg/gdblib/vmmap.py',
-]
 disable_error_code = [
     "misc",
+    # No type stubs for capstone, unicorn, pwnlib, and elftools
     "import",
-    "name-defined",
+    # Lots of dynamic attribute access
     "attr-defined",
-    # "var-annotated",
-    # "index",
-    # "arg-type",
+    # Issues with indexing Module
+    "index",
+    # https://github.com/python/mypy/issues/6232
     "assignment",
-    # "operator",
-    "override",
-    # "call-overload",
-    "union-attr",
-    # "str-format",
-    # "call-arg",
-    # "return-value",
-    # "has-type",
-    # "no-redef",
+    # Issues with @property
+    "operator",
 ]
+
+[[tool.mypy.overrides]]
+module = [
+   # Capstone constants
+   "pwndbg.disasm.*",
+   "pwndbg.commands.nearpc",
+   # Module fields
+   "pwndbg.gdblib.typeinfo",
+   "pwndbg.gdblib.elf",
+   "pwndbg.auxv",
+]
+disable_error_code = ["name-defined"]
 
 [tool.isort]
 profile = "black"

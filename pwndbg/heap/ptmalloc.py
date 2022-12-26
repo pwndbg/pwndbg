@@ -2,6 +2,10 @@ import copy
 import importlib
 from collections import OrderedDict
 from enum import Enum
+from typing import Any
+from typing import Dict
+from typing import Set
+from typing import Union
 
 import gdb
 
@@ -71,7 +75,8 @@ class Bin:
 
 class Bins:
     def __init__(self, bin_type) -> None:
-        self.bins = OrderedDict()
+        # `typing.OrderedDict` requires Python 3.7
+        self.bins = OrderedDict()  # type: OrderedDict[Union[int, str], Bin]
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
@@ -1880,7 +1885,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     pass
             elif pwndbg.gdblib.arch.current == "aarch64" and self.possible_page_of_symbols:
                 base_offset = self.possible_page_of_symbols.vaddr
-                regs = set()
+                regs: Set[str] = set()
                 found = False
                 for instr in __libc_free_instructions:
                     if found:
@@ -1899,7 +1904,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         regs.add(instr.operands[0].str)
             elif pwndbg.gdblib.arch.current == "arm":
                 regs = {}
-                ldr = {}
+                ldr: Dict[str, Any] = {}
                 found = False
                 for instr in __libc_free_instructions:
                     if found:

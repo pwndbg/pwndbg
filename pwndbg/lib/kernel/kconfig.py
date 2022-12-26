@@ -50,7 +50,7 @@ class Kconfig(UserDict):
 
         raise KeyError(f"Key {name} not found")
 
-    def __contains__(self, name: str) -> bool:
+    def __contains__(self, name: str) -> bool:  # type: ignore[override]
         return self.get_key(name) is not None
 
     def __getattr__(self, name: str):

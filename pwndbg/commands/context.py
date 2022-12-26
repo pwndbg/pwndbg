@@ -6,6 +6,7 @@ from collections import defaultdict
 from io import open
 from typing import DefaultDict
 from typing import Dict
+from typing import List
 
 import gdb
 
@@ -828,7 +829,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal = []
+last_signal: List[str] = []
 
 
 def save_signal(signal) -> None:
