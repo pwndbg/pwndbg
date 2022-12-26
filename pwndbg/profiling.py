@@ -14,7 +14,7 @@ def init(p: cProfile.Profile, _start_time: Optional[float]) -> None:
 class Profiler:
     def __init__(self, p: cProfile.Profile) -> None:
         self._profiler = p
-        self._start_time = None
+        self._start_time: Optional[float] = None
 
     def print_time_elapsed(self):
         assert self._start_time is not None

@@ -8,6 +8,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 import bisect
 import os
 from typing import Any
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -79,7 +80,7 @@ def is_corefile() -> bool:
 
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_stop
-def get() -> Tuple[pwndbg.lib.memory.Page, str]:
+def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
@@ -417,7 +418,7 @@ def proc_pid_maps():
 def kernel_vmmap_via_page_tables():
     import pt
 
-    retpages = []
+    retpages: List[pwndbg.lib.memory.Page] = []
 
     p = pt.PageTableDump()
     try:

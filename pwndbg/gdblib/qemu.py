@@ -60,8 +60,6 @@ def is_qemu_kernel() -> bool:
 @start
 @pwndbg.lib.memoize.reset_on_stop
 def root() -> Optional[Any]:
-    global binfmt_root
-
     if not is_qemu_usermode():
         return None
 

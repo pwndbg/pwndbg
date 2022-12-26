@@ -226,7 +226,7 @@ sys.modules[__name__] = module(__name__, "")
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
 def update_last() -> None:
-    M: module = sys.modules[__name__]
+    M = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
     if pwndbg.gdblib.config.show_retaddr_reg:

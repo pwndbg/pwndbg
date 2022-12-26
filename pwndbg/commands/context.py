@@ -6,6 +6,7 @@ from collections import defaultdict
 from io import open
 from typing import DefaultDict
 from typing import Dict
+from typing import List
 
 import gdb
 
