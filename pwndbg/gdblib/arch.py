@@ -52,7 +52,7 @@ def _get_arch(ptrsize):
     return arch, ptrsize, endian
 
 
-def update():
+def update() -> None:
     # We can't just assign to `arch` with a new `Arch` object. Modules that have
     # already imported it will still have a reference to the old `arch`
     # object. Instead, we call `__init__` again with the new args

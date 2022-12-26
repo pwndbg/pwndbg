@@ -25,7 +25,7 @@ class ABI:
     #: Indicates that this ABI returns to the next address on the slot
     returns = True
 
-    def __init__(self, regs, align, minimum):
+    def __init__(self, regs, align, minimum) -> None:
         self.register_arguments = regs
         self.arg_alignment = align
         self.stack_minimum = minimum
@@ -49,7 +49,7 @@ class SyscallABI(ABI):
     which must be loaded into the specified register.
     """
 
-    def __init__(self, register_arguments, *a, **kw):
+    def __init__(self, register_arguments, *a, **kw) -> None:
         self.syscall_register = register_arguments.pop(0)
         super(SyscallABI, self).__init__(register_arguments, *a, **kw)
 

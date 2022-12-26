@@ -15,7 +15,7 @@ file_lists = {}  # type:Dict[str,str] #This saves all comments.
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def comm(addr=None, comment=None):
+def comm(addr=None, comment=None) -> None:
     if addr is None:
         addr = hex(pwndbg.gdblib.regs.pc)
     try:
@@ -35,7 +35,7 @@ def comm(addr=None, comment=None):
         print(message.error("Permission denied to create file"))
 
 
-def init():
+def init() -> None:
     try:
         with open(".gdb_comments", "r") as f:
             text = f.read()

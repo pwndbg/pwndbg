@@ -20,7 +20,7 @@ Structure = ctypes.LittleEndianStructure  # default Structure type
 
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
-def update():
+def update() -> None:
     global module
 
     if pwndbg.gdblib.arch.endian == "little":

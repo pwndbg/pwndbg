@@ -50,7 +50,7 @@ class RegisterSet:
         misc=tuple(),
         args=tuple(),
         retval=None,
-    ):
+    ) -> None:
         self.pc = pc
         self.stack = stack
         self.frame = frame

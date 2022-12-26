@@ -45,7 +45,7 @@ def get_rec_addr_string(addr, visited_map):
 
 
 # Useful for debugging. Prints a map of child -> (parent, parent_start)
-def dbg_print_map(maps):
+def dbg_print_map(maps) -> None:
     for child, parent_info in maps.items():
         print("0x%x + (0x%x, 0x%x)" % (child, parent_info[0], parent_info[1]))
 

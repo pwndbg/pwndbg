@@ -10,7 +10,7 @@ import pwndbg.lib.memoize
 
 @pwndbg.lib.memoize.reset_on_objfile
 @pwndbg.lib.memoize.reset_on_start
-def is_remote():
+def is_remote() -> bool:
     # Example:
     # pwndbg> maintenance print target-stack
     # The current target stack is:
@@ -20,7 +20,7 @@ def is_remote():
     return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
-def is_debug_probe():
+def is_debug_probe() -> bool:
     """
     Returns True if the target is a debug probe for an embedded device.
     Currently detects the Black Magic Probe and the SEGGER J-Link GDB Server.

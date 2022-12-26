@@ -39,7 +39,7 @@ Function = collections.namedtuple("Function", ("type", "derefcnt", "name", "args
 Argument = collections.namedtuple("Argument", ("type", "derefcnt", "name"))
 
 
-def Stringify(X):
+def Stringify(X) -> str:
     return "%s %s %s" % (X.type, X.derefcnt * "*", X.name)
 
 
@@ -72,7 +72,7 @@ def ExtractAllFuncDecls(ast, verbose=False):
     Functions = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
-        def visit_FuncDecl(self, node, *a):
+        def visit_FuncDecl(self, node, *a) -> None:
             f = ExtractFuncDecl(node, verbose)
             Functions[f.name] = f
 

@@ -49,7 +49,7 @@ _ida_last_connection_check = 0
 
 @pwndbg.decorators.only_after_first_prompt()
 @pwndbg.gdblib.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
-def init_ida_rpc_client():
+def init_ida_rpc_client() -> None:
     global _ida, _ida_last_exception, _ida_last_connection_check
 
     if not ida_enabled:
@@ -122,7 +122,7 @@ def init_ida_rpc_client():
 
 
 class withIDA:
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         self.fn = fn
         functools.update_wrapper(self, fn)
 
@@ -168,7 +168,7 @@ def available():
 
 
 @withIDA
-def can_connect():
+def can_connect() -> bool:
     return True
 
 
@@ -188,7 +188,7 @@ def r2l(addr):
     return result
 
 
-def remote(function):
+def remote(function) -> None:
     """Runs the provided function in IDA's interpreter.
 
     The function must be self-contained and not reference any
@@ -285,7 +285,7 @@ _breakpoints = []
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
 @withIDA
-def UpdateBreakpoints():
+def UpdateBreakpoints() -> None:
     # XXX: Remove breakpoints from IDA when the user removes them.
     current = set(eval(b.location.lstrip("*")) for b in _breakpoints)
     want = set(GetBreakpoints())
@@ -320,7 +320,7 @@ colored_pc = None
 
 @pwndbg.gdblib.events.stop
 @withIDA
-def Auto_Color_PC():
+def Auto_Color_PC() -> None:
     global colored_pc
     colored_pc = pwndbg.gdblib.regs.pc
     SetColor(colored_pc, 0x7F7FFF)
@@ -328,7 +328,7 @@ def Auto_Color_PC():
 
 @pwndbg.gdblib.events.cont
 @withIDA
-def Auto_UnColor_PC():
+def Auto_UnColor_PC() -> None:
     global colored_pc
     if colored_pc:
         SetColor(colored_pc, 0xFFFFFF)
@@ -381,7 +381,7 @@ def isASCII(flags):
 @withIDA
 @takes_address
 @pwndbg.lib.memoize.reset_on_objfile
-def ArgCount(address):
+def ArgCount(address) -> None:
     pass
 
 
@@ -484,7 +484,7 @@ def GetStrucNextOff(sid, offset):
 class IDC:
     query = "{k:v for k,v in globals()['idc'].__dict__.items() if type(v) in (int,long)}"
 
-    def __init__(self):
+    def __init__(self) -> None:
         if available():
             data = _ida.eval(self.query)
             self.__dict__.update(data)
@@ -493,7 +493,7 @@ class IDC:
 idc = IDC()
 
 
-def print_member(sid, offset):
+def print_member(sid, offset) -> None:
     mid = GetMemberId(sid, offset)
     mname = GetMemberName(sid, offset) or "(no name)"
     msize = GetMemberSize(sid, offset) or 0
@@ -501,7 +501,7 @@ def print_member(sid, offset):
     print("    +%#x - %s [%#x bytes]" % (offset, mname, msize))
 
 
-def print_structs():
+def print_structs() -> None:
     for i in range(GetStrucQty() or 0):
         sid = GetStrucId(i)
 

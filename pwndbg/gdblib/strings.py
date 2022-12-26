@@ -12,7 +12,7 @@ import pwndbg.gdblib.memory
 length = 15
 
 
-def update_length():
+def update_length() -> None:
     r"""
     Unfortunately there's not a better way to get at this info.
 

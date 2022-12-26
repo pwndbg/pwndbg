@@ -54,7 +54,7 @@ class Command(gdb.Command):
 
     def __init__(
         self, function, prefix=False, command_name=None, shell=False, is_alias=False, aliases=[]
-    ):
+    ) -> None:
         self.is_alias = is_alias
         self.aliases = aliases
         self.shell = shell
@@ -109,7 +109,7 @@ class Command(gdb.Command):
         finally:
             self.repeat = False
 
-    def check_repeated(self, argument, from_tty):
+    def check_repeated(self, argument, from_tty) -> bool:
         """Keep a record of all commands which come from the TTY.
 
         Returns:
@@ -311,7 +311,7 @@ def OnlyWhenHeapIsInitialized(function):
 
 
 # TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
-def _is_statically_linked():
+def _is_statically_linked() -> bool:
     out = gdb.execute("info dll", to_string=True)
     return "No shared libraries loaded at this time." in out
 
@@ -421,7 +421,9 @@ def OnlyWithResolvedHeapSyms(function):
 
 
 class _ArgparsedCommand(Command):
-    def __init__(self, parser, function, command_name=None, is_alias=False, aliases=[], *a, **kw):
+    def __init__(
+        self, parser, function, command_name=None, is_alias=False, aliases=[], *a, **kw
+    ) -> None:
         self.parser = parser
         if command_name is None:
             self.parser.prog = function.__name__
@@ -447,7 +449,7 @@ class _ArgparsedCommand(Command):
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
-    def __init__(self, parser_or_desc, aliases=[], command_name=None):
+    def __init__(self, parser_or_desc, aliases=[], command_name=None) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
@@ -529,7 +531,7 @@ def HexOrAddressExpr(s):
         return AddressExpr(s)
 
 
-def load_commands():
+def load_commands() -> None:
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.attachp

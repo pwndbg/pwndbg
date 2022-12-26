@@ -60,7 +60,7 @@ def prot_str_to_val(protstr):
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def mprotect(addr, length, prot):
+def mprotect(addr, length, prot) -> None:
 
     prot_int = prot_str_to_val(prot)
 

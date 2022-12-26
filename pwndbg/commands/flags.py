@@ -34,7 +34,7 @@ parser.add_argument(
     parser,
     aliases=["flag"],
 )
-def setflag(flag, value):
+def setflag(flag, value) -> None:
     if value not in [0, 1]:
         print("can only set flag bit to 0 or 1")
         return

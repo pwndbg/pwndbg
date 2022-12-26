@@ -50,13 +50,13 @@ class BinType(str, Enum):
 
 
 class Bin:
-    def __init__(self, fd_chain, bk_chain=None, count=None, is_corrupted=False):
+    def __init__(self, fd_chain, bk_chain=None, count=None, is_corrupted=False) -> None:
         self.fd_chain = fd_chain
         self.bk_chain = bk_chain
         self.count = count
         self.is_corrupted = is_corrupted
 
-    def contains_chunk(self, chunk):
+    def contains_chunk(self, chunk) -> bool:
         return chunk in self.fd_chain
 
     @staticmethod
@@ -70,7 +70,7 @@ class Bin:
 
 
 class Bins:
-    def __init__(self, bin_type):
+    def __init__(self, bin_type) -> None:
         self.bins = OrderedDict()
         self.bin_type = bin_type
 
@@ -140,7 +140,7 @@ class Chunk:
         "_is_top_chunk",
     )
 
-    def __init__(self, addr, heap=None, arena=None):
+    def __init__(self, addr, heap=None, arena=None) -> None:
         if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
         else:
@@ -335,7 +335,7 @@ class Heap:
         "first_chunk",
     )
 
-    def __init__(self, addr, arena=None):
+    def __init__(self, addr, arena=None) -> None:
         """Build a Heap object given an address on that heap.
         Heap regions are treated differently depending on their arena:
         1) main_arena - uses the sbrk heap
@@ -409,7 +409,7 @@ class Heap:
     def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end
 
-    def __str__(self):
+    def __str__(self) -> str:
         fmt = "[%%%ds]" % (pwndbg.gdblib.arch.ptrsize * 2)
         return message.hint(fmt % (hex(self.first_chunk.address))) + M.heap(
             str(pwndbg.gdblib.vmmap.find(self.start))
@@ -436,7 +436,7 @@ class Arena:
         "_system_mem",
     )
 
-    def __init__(self, addr):
+    def __init__(self, addr) -> None:
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
             self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
         else:
@@ -623,7 +623,7 @@ class Arena:
             result.bins[size] = chain
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         prefix = "[%%%ds]    " % (pwndbg.gdblib.arch.ptrsize * 2)
         prefix_len = len(prefix % (""))
         arena_name = "main" if self.is_main_arena else hex(self.address)
@@ -635,7 +635,7 @@ class Arena:
 
 
 class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
-    def __init__(self):
+    def __init__(self) -> None:
         # Global ptmalloc objects
         self._global_max_fast_addr = None
         self._global_max_fast = None
@@ -1082,7 +1082,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def is_initialized(self):
         raise NotImplementedError()
 
-    def is_statically_linked(self):
+    def is_statically_linked(self) -> bool:
         out = gdb.execute("info dll", to_string=True)
         return "No shared libraries loaded at this time." in out
 
@@ -1245,15 +1245,15 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
 
 class SymbolUnresolvableError(Exception):
-    def __init__(self, symbol):
+    def __init__(self, symbol) -> None:
         self.symbol = symbol
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "`%s` can not be resolved via heuristic" % self.symbol
 
 
 class HeuristicHeap(GlibcMemoryAllocator):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._thread_arena_offset = None
         self._thread_cache_offset = None
@@ -1284,7 +1284,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 )
         return self._possible_page_of_symbols
 
-    def can_be_resolved(self):
+    def can_be_resolved(self) -> bool:
         return self.struct_module is not None
 
     def is_glibc_symbol(self, addr):

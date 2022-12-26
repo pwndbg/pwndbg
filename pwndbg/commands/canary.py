@@ -23,7 +23,7 @@ def canary_value():
 
 @pwndbg.commands.ArgparsedCommand("Print out the current stack canary.")
 @pwndbg.commands.OnlyWhenRunning
-def canary():
+def canary() -> None:
     global_canary, at_random = canary_value()
 
     if global_canary is None or at_random is None:

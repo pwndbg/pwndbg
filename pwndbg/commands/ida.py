@@ -16,7 +16,7 @@ from pwndbg.gdblib.functions import GdbFunction
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.gdblib.events.stop
 @pwndbg.ida.withIDA
-def j(*args):
+def j(*args) -> None:
     """
     Synchronize IDA's cursor with GDB
     """
@@ -35,7 +35,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def up(n=1):
+def up(n=1) -> None:
     """
     Select and print stack frame that called this one.
     """
@@ -63,7 +63,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def down(n=1):
+def down(n=1) -> None:
     """
     Select and print stack frame called by this one.
     """
@@ -85,7 +85,7 @@ def down(n=1):
 
 @pwndbg.commands.ArgparsedCommand("Save the ida database.")
 @pwndbg.ida.withIDA
-def save_ida():
+def save_ida() -> None:
     """Save the IDA database"""
     if not pwndbg.ida.available():
         return

@@ -87,7 +87,7 @@ class FakeGDBField:
         artificial=False,
         is_base_class=False,
         bitsize=0,
-    ):
+    ) -> None:
         # Note: pwndbg only uses `name` currently
         self.bitpos = bitpos
         self.name = name

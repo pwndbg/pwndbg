@@ -14,7 +14,7 @@ from pwndbg.gdblib.events import start
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_qemu():
+def is_qemu() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
 
@@ -28,7 +28,7 @@ def is_qemu():
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_usermode():
+def is_usermode() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
 

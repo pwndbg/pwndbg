@@ -6,7 +6,7 @@ from pwndbg.color import message
 
 @pwndbg.commands.ArgparsedCommand("Prints the section mappings contained in the ELF header.")
 @pwndbg.commands.OnlyWithFile
-def elfheader():
+def elfheader() -> None:
     local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     with open(local_path, "rb") as f:
@@ -30,13 +30,13 @@ def elfheader():
 
 @pwndbg.commands.ArgparsedCommand("Prints any symbols found in the .got.plt section if it exists.")
 @pwndbg.commands.OnlyWithFile
-def gotplt():
+def gotplt() -> None:
     print_symbols_in_section(".got.plt", "@got.plt")
 
 
 @pwndbg.commands.ArgparsedCommand("Prints any symbols found in the .plt section if it exists.")
 @pwndbg.commands.OnlyWithFile
-def plt():
+def plt() -> None:
     print_symbols_in_section(".plt", "@plt")
 
 
@@ -56,7 +56,7 @@ def get_section_bounds(section_name):
         return (start, start + size)
 
 
-def print_symbols_in_section(section_name, filter_text=""):
+def print_symbols_in_section(section_name, filter_text="") -> None:
     start, end = get_section_bounds(section_name)
 
     if start is None:

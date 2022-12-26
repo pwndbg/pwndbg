@@ -30,7 +30,7 @@ class Parameter:
         param_class=None,
         enum_sequence=None,
         scope="config",
-    ):
+    ) -> None:
         # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
         # The `set_doc` will be "Set the value of the foo."
         # The `show_doc` will be "Show the value of the foo."
@@ -49,7 +49,7 @@ class Parameter:
     def is_changed(self):
         return self.value != self.default
 
-    def revert_default(self):
+    def revert_default(self) -> None:
         self.value = self.default
 
     def attr_name(self):
@@ -61,13 +61,13 @@ class Parameter:
         return getattr(self.value, name)
 
     # Casting
-    def __int__(self):
+    def __int__(self) -> int:
         return int(self.value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.value)
 
     # Compare operators
@@ -119,12 +119,12 @@ class Parameter:
     def __mod__(self, other):
         return self.value % other
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.value)
 
 
 class Config:
-    def __init__(self):
+    def __init__(self) -> None:
         self.params = {}
         self.triggers = collections.defaultdict(lambda: [])
 

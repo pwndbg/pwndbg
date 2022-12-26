@@ -11,11 +11,11 @@ ts = pwndbg.commands.telescope.telescope
 
 
 class AddrRange:
-    def __init__(self, begin, end):
+    def __init__(self, begin, end) -> None:
         self.begin = begin
         self.end = end
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (self.begin, self.end).__repr__()
 
 
@@ -113,7 +113,7 @@ def p2p_walk(addr, ranges, current_level):
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: Optional[List] = None):
+def p2p(mapping_names: Optional[List] = None) -> None:
 
     if not mapping_names:
         return

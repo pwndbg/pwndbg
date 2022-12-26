@@ -41,7 +41,7 @@ class module(ModuleType):
         return self.pid
 
     @property
-    def alive(self):
+    def alive(self) -> bool:
         """
         Informs whether the process has a thread. However, note that it will
         still return True for a segfaulted thread. To detect that, consider

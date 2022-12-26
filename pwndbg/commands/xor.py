@@ -29,7 +29,7 @@ parser.add_argument("count", type=int, help="The number of bytes to xor.")
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def xor(address, key, count):
+def xor(address, key, count) -> None:
     try:
         xorred_memory = xor_memory(address, key, count)
         pwndbg.gdblib.memory.write(address, xorred_memory)

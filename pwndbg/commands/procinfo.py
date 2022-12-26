@@ -62,7 +62,7 @@ capabilities = {
 
 
 class Process:
-    def __init__(self, pid=None, tid=None):
+    def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
             pid = pwndbg.gdblib.proc.pid
         if tid is None:
@@ -180,13 +180,13 @@ class Process:
 
 @pwndbg.commands.ArgparsedCommand("Gets the pid.")
 @pwndbg.commands.OnlyWhenRunning
-def pid():
+def pid() -> None:
     print(pwndbg.gdblib.proc.pid)
 
 
 @pwndbg.commands.ArgparsedCommand("Display information about the running process.")
 @pwndbg.commands.OnlyWhenRunning
-def procinfo():
+def procinfo() -> None:
     """
     Display information about the running process.
     """

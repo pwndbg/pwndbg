@@ -128,7 +128,7 @@ class Page:
             ]
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
             start=self.vaddr,
             end=self.vaddr + self.memsz,
@@ -139,7 +139,7 @@ class Page:
             width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
 
     def __contains__(self, addr: int) -> bool:

@@ -21,7 +21,7 @@ envc = None
 
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.abi.LinuxOnly()
-def update():
+def update() -> None:
     global argc
     global argv
     global envp

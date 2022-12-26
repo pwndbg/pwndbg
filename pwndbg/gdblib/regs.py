@@ -213,7 +213,7 @@ class module(ModuleType):
 
         return 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<module pwndbg.gdblib.regs>"
 
 
@@ -224,7 +224,7 @@ sys.modules[__name__] = module(__name__, "")
 
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
-def update_last():
+def update_last() -> None:
     M = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}

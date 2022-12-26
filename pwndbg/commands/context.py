@@ -45,7 +45,7 @@ c = ColorConfig(
 )
 
 
-def clear_screen(out=sys.stdout):
+def clear_screen(out=sys.stdout) -> None:
     """
     Clear the screen by moving the cursor to top-left corner and
     clearing the content. Different terminals may act differently
@@ -86,7 +86,7 @@ output_settings = {}
 
 
 @pwndbg.gdblib.config.trigger(config_context_sections)
-def validate_context_sections():
+def validate_context_sections() -> None:
     valid_values = [
         context.__name__.replace("context_", "") for context in context_sections.values()
     ]
@@ -126,20 +126,20 @@ class StdOutput:
     def __enter__(self):
         return sys.stdout
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args, **kwargs) -> None:
         pass
 
     def __hash__(self):
         return hash(sys.stdout)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return type(other) is StdOutput
 
 
 class FileOutput:
     """A context manager wrapper to reopen files on enter"""
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         self.args = args
         self.handle = None
 
@@ -147,7 +147,7 @@ class FileOutput:
         self.handle = open(*self.args)
         return self.handle
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args, **kwargs) -> None:
         self.handle.close()
 
     def __hash__(self):
@@ -160,13 +160,13 @@ class FileOutput:
 class CallOutput:
     """A context manager which calls a function on write"""
 
-    def __init__(self, func):
+    def __init__(self, func) -> None:
         self.func = func
 
     def __enter__(self):
         return self
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args, **kwargs) -> None:
         pass
 
     def __hash__(self):
@@ -175,7 +175,7 @@ class CallOutput:
     def __eq__(self, other):
         return self.func == other.func
 
-    def write(self, data):
+    def write(self, data) -> None:
         self.func(data)
 
     def flush(self):
@@ -275,7 +275,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-watch", "cwatch"])
-def contextwatch(expression, cmd=None):
+def contextwatch(expression, cmd=None) -> None:
     expressions.append((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
 
 
@@ -286,7 +286,7 @@ parser.add_argument("num", type=int, help="The expression number to be removed f
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-unwatch", "cunwatch"])
-def contextunwatch(num):
+def contextunwatch(num) -> None:
     if num < 1 or num > len(expressions):
         print(message.error("Invalid input"))
         return
@@ -371,7 +371,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"])
 @pwndbg.commands.OnlyWhenRunning
-def context(subcontext=None):
+def context(subcontext=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
@@ -523,7 +523,7 @@ parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers t
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs=None):
+def regs(regs=None) -> None:
     """Print out all registers and enhance the information."""
     print("\n".join(get_regs(*regs)))
 
@@ -830,7 +830,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
 last_signal = []
 
 
-def save_signal(signal):
+def save_signal(signal) -> None:
     global last_signal
     last_signal = result = []
 
@@ -884,7 +884,7 @@ context_sections = {
 
 
 @pwndbg.lib.memoize.forever
-def _is_rr_present():
+def _is_rr_present() -> bool:
     """
     Checks whether rr project is present (so someone launched e.g. `rr replay <some-recording>`)
     """

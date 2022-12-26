@@ -9,7 +9,7 @@ import pwndbg.gdblib.vmmap
 
 @pwndbg.commands.ArgparsedCommand("Print out the stack addresses that contain return addresses.")
 @pwndbg.commands.OnlyWhenRunning
-def retaddr():
+def retaddr() -> None:
     sp = pwndbg.gdblib.regs.sp
     stack = pwndbg.gdblib.vmmap.find(sp)
 

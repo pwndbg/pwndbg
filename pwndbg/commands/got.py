@@ -17,7 +17,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def got(name_filter=""):
+def got(name_filter="") -> None:
 
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()

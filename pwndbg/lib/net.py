@@ -41,7 +41,7 @@ class Connection(inode):
 
     family = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s %s:%s => %s:%s (%s)" % (
             self.family,
             self.lhost,
@@ -51,17 +51,17 @@ class Connection(inode):
             self.status,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Connection("%s")' % self
 
 
 class UnixSocket(inode):
     path = "(anonymous)"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "unix %r" % self.path
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "UnixSocket(%s)" % self
 
 
@@ -191,10 +191,10 @@ class Netlink(inode):
     eth = 0
     pid = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Netlink(%s)" % self
 
 

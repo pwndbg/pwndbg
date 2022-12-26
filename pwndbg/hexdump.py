@@ -38,7 +38,7 @@ config_byte_separator = theme.add_param(
 @pwndbg.gdblib.config.trigger(
     H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii
 )
-def load_color_scheme():
+def load_color_scheme() -> None:
     global color_scheme, printable
     #
     # We want to colorize the hex characters and only print out

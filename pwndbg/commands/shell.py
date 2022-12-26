@@ -64,8 +64,8 @@ pwncmds = list(filter(pwndbg.lib.which.which, pwncmd_names))
 shellcmds = list(filter(pwndbg.lib.which.which, shellcmd_names))
 
 
-def register_shell_function(cmd, deprecated=False):
-    def handler(*a):
+def register_shell_function(cmd, deprecated=False) -> None:
+    def handler(*a) -> None:
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()

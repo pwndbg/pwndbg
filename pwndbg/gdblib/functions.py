@@ -18,7 +18,7 @@ def GdbFunction(only_when_running=False):
 
 
 class _GdbFunction(gdb.Function):
-    def __init__(self, func, only_when_running):
+    def __init__(self, func, only_when_running) -> None:
         self.name = func.__name__
         self.func = func
         self.only_when_running = only_when_running

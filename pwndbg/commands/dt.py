@@ -20,7 +20,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def dt(typename, address=None):
+def dt(typename, address=None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).
 

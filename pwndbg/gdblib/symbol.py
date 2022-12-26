@@ -47,11 +47,11 @@ def _get_debug_file_directory():
     return ""
 
 
-def _set_debug_file_directory(d):
+def _set_debug_file_directory(d) -> None:
     gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
 
 
-def _add_debug_file_directory(d):
+def _add_debug_file_directory(d) -> None:
     current = _get_debug_file_directory()
     if current:
         _set_debug_file_directory("%s:%s" % (current, d))
@@ -67,13 +67,13 @@ _remote_files = {}
 
 
 @pwndbg.gdblib.events.exit
-def _reset_remote_files():
+def _reset_remote_files() -> None:
     global _remote_files
     _remote_files = {}
 
 
 @pwndbg.gdblib.events.new_objfile
-def _autofetch():
+def _autofetch() -> None:
     """
     Automatically downloads ELF files with debug symbols from the remotely debugged system.
     Does not work with QEMU and Android. It also does not work when debugging embedded devices, as they don't even have a filesystem.
@@ -270,7 +270,7 @@ def static_linkage_symbol_address(symbol: str) -> int:
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_start
-def _add_main_exe_to_symbols():
+def _add_main_exe_to_symbols() -> None:
     if not pwndbg.gdblib.remote.is_remote():
         return
 

@@ -26,7 +26,7 @@ title_position = theme.add_param("banner-title-position", "center", "banner titl
 
 
 @config.trigger(title_position)
-def check_title_position():
+def check_title_position() -> None:
     valid_values = ["center", "left", "right"]
     if title_position not in valid_values:
         print(
@@ -59,7 +59,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
     return C.banner(banner)
 
 
-def addrsz(address):
+def addrsz(address) -> str:
     address = int(address) & pwndbg.gdblib.arch.ptrmask
     return "%#{}x".format(2 * pwndbg.gdblib.arch.ptrsize) % address
 

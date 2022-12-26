@@ -127,7 +127,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def heap(addr=None, verbose=False, simple=False):
+def heap(addr=None, verbose=False, simple=False) -> None:
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
@@ -159,7 +159,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def arena(addr=None):
+def arena(addr=None) -> None:
     """Print the contents of an arena, default to the current thread's arena."""
     allocator = pwndbg.heap.current
 
@@ -178,7 +178,7 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def arenas():
+def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.heap.current
     for ar in allocator.arenas:
@@ -199,7 +199,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
-def tcache(addr=None):
+def tcache(addr=None) -> None:
     """Print a thread's tcache contents, default to the current thread's
     tcache.
     """
@@ -215,7 +215,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def mp():
+def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.heap.current
     print(allocator.mp)
@@ -234,7 +234,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def top_chunk(addr=None):
+def top_chunk(addr=None) -> None:
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
     """
@@ -265,7 +265,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def malloc_chunk(addr, fake=False, verbose=False, simple=False):
+def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -348,7 +348,7 @@ parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Addr
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def bins(addr=None, tcache_addr=None):
+def bins(addr=None, tcache_addr=None) -> None:
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
     """
@@ -374,7 +374,7 @@ parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show ex
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def fastbins(addr=None, verbose=True):
+def fastbins(addr=None, verbose=True) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
@@ -405,7 +405,7 @@ parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show ex
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def unsortedbin(addr=None, verbose=True):
+def unsortedbin(addr=None, verbose=True) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
@@ -436,7 +436,7 @@ parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show e
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def smallbins(addr=None, verbose=False):
+def smallbins(addr=None, verbose=False) -> None:
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
@@ -467,7 +467,7 @@ parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show e
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def largebins(addr=None, verbose=False):
+def largebins(addr=None, verbose=False) -> None:
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
@@ -503,7 +503,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
-def tcachebins(addr=None, verbose=False):
+def tcachebins(addr=None, verbose=False) -> None:
     """Print the contents of a tcache, default to the current thread's tcache."""
     allocator = pwndbg.heap.current
     tcachebins = allocator.tcachebins(addr)
@@ -539,7 +539,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def find_fake_fast(addr, size=None, align=False):
+def find_fake_fast(addr, size=None, align=False) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
     psize = pwndbg.gdblib.arch.ptrsize
     allocator = pwndbg.heap.current
@@ -657,7 +657,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None):
+def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
 
@@ -832,7 +832,7 @@ try_free_parser.add_argument("addr", nargs="?", help="Address passed to free")
 @pwndbg.commands.ArgparsedCommand(try_free_parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def try_free(addr):
+def try_free(addr) -> None:
     addr = int(addr)
 
     # check hook
@@ -870,7 +870,7 @@ def try_free(addr):
         # maybe move this to ptmalloc.py
         return chunk_size & (~7)
 
-    def finalize(errors_found, returned_before_error):
+    def finalize(errors_found, returned_before_error) -> None:
         print("-" * 10)
         if returned_before_error:
             print(message.success("Free should succeed!"))
@@ -1192,7 +1192,7 @@ def try_free(addr):
     finalize(errors_found, returned_before_error)
 
 
-def try_unlink(addr):
+def try_unlink(addr) -> None:
     pass
 
 
@@ -1207,7 +1207,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def heap_config(filter_pattern):
+def heap_config(filter_pattern) -> None:
     display_config(filter_pattern, "heap", has_file_command=False)
 
     print(

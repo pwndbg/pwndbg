@@ -77,7 +77,7 @@ sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
 class AUXV(dict):
-    def set(self, const, value):
+    def set(self, const, value) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
@@ -93,7 +93,7 @@ class AUXV(dict):
     def __getattr__(self, attr):
         return self.get(attr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str({k: v for k, v in self.items() if v is not None})
 
 

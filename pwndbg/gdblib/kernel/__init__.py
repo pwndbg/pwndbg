@@ -115,7 +115,7 @@ class ArchOps:
 
 
 class x86_64Ops(ArchOps):
-    def __init__(self):
+    def __init__(self) -> None:
         if "X86_5LEVEL" in kconfig() and "no5lvl" not in kcmdline():
             raise NotImplementedError("Level 5 page table support is not implemented")
 
@@ -165,7 +165,7 @@ class x86_64Ops(ArchOps):
 
 
 class Aarch64Ops(ArchOps):
-    def __init__(self):
+    def __init__(self) -> None:
         self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
 

@@ -25,7 +25,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="errno")
 @pwndbg.commands.OnlyWhenRunning
-def errno_(err):
+def errno_(err) -> None:
     if err is None:
         # Try to get the `errno` variable value
         # if it does not exist, get the errno variable from its location
@@ -74,7 +74,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
-def pwndbg_(filter_pattern, shell, all_):
+def pwndbg_(filter_pattern, shell, all_) -> None:
     if all_:
         shell_cmds = True
         pwndbg_cmds = True
@@ -109,7 +109,7 @@ parser.add_argument("b", type=int, help="The second address.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def distance(a, b):
+def distance(a, b) -> None:
     """Print the distance between the two arguments"""
     a = int(a) & pwndbg.gdblib.arch.ptrmask
     b = int(b) & pwndbg.gdblib.arch.ptrmask

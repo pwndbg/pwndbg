@@ -12,7 +12,7 @@ import pwndbg.gdblib.next
 
 @pwndbg.commands.ArgparsedCommand("Breaks at the next jump instruction.", aliases=["nextjump"])
 @pwndbg.commands.OnlyWhenRunning
-def nextjmp():
+def nextjmp() -> None:
     """Breaks at the next jump instruction"""
     if pwndbg.gdblib.next.break_next_branch():
         pwndbg.commands.context.context()
@@ -30,7 +30,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def nextcall(symbol_regex=None):
+def nextcall(symbol_regex=None) -> None:
     """Breaks at the next call instruction"""
     if pwndbg.gdblib.next.break_next_call(symbol_regex):
         pwndbg.commands.context.context()
@@ -38,7 +38,7 @@ def nextcall(symbol_regex=None):
 
 @pwndbg.commands.ArgparsedCommand("Breaks at next return-like instruction.")
 @pwndbg.commands.OnlyWhenRunning
-def nextret():
+def nextret() -> None:
     """Breaks at next return-like instruction"""
     if pwndbg.gdblib.next.break_next_ret():
         pwndbg.commands.context.context()
@@ -46,7 +46,7 @@ def nextret():
 
 @pwndbg.commands.ArgparsedCommand("Breaks at next return-like instruction by 'stepping' to it.")
 @pwndbg.commands.OnlyWhenRunning
-def stepret():
+def stepret() -> None:
     """Breaks at next return-like instruction by 'stepping' to it"""
     while (
         pwndbg.gdblib.proc.alive
@@ -66,7 +66,7 @@ def stepret():
     "Breaks at the next instruction that belongs to the running program."
 )
 @pwndbg.commands.OnlyWhenRunning
-def nextproginstr():
+def nextproginstr() -> None:
     pwndbg.gdblib.next.break_on_program_code()
 
 
@@ -76,7 +76,7 @@ parser.add_argument("addr", type=int, default=None, nargs="?", help="The address
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["so"])
 @pwndbg.commands.OnlyWhenRunning
-def stepover(addr=None):
+def stepover(addr=None) -> None:
     """Sets a breakpoint on the instruction after this one"""
     pwndbg.gdblib.next.break_on_next(addr)
 
@@ -85,7 +85,7 @@ def stepover(addr=None):
     "Breaks at the next syscall not taking branches.", aliases=["nextsc"]
 )
 @pwndbg.commands.OnlyWhenRunning
-def nextsyscall():
+def nextsyscall() -> None:
     """
     Breaks at the next syscall not taking branches.
     """
@@ -104,7 +104,7 @@ def nextsyscall():
     "Breaks at the next syscall by taking branches.", aliases=["stepsc"]
 )
 @pwndbg.commands.OnlyWhenRunning
-def stepsyscall():
+def stepsyscall() -> None:
     """
     Breaks at the next syscall by taking branches.
     """

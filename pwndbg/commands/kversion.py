@@ -10,5 +10,5 @@ parser = argparse.ArgumentParser(description="Outputs the kernel version (/proc/
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kversion():
+def kversion() -> None:
     print(pwndbg.gdblib.kernel.kversion())

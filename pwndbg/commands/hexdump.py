@@ -59,7 +59,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes):
+def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
     if hexdump.repeat:
         address = hexdump.last_address
         hexdump.offset += 1

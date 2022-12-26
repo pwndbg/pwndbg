@@ -137,7 +137,7 @@ ColorParamSpec = namedtuple("ColorParamSpec", ["name", "default", "doc"])
 
 
 class ColorConfig:
-    def __init__(self, namespace: str, params: List[ColorParamSpec]):
+    def __init__(self, namespace: str, params: List[ColorParamSpec]) -> None:
         self._namespace = namespace
         self._params = {}
         for param in params:

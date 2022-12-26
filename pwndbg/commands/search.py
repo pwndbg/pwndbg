@@ -17,7 +17,7 @@ from pwndbg.color import message
 saved = set()  # type:Set[int]
 
 
-def print_search_hit(address):
+def print_search_hit(address) -> None:
     """Prints out a single search hit.
 
     Arguments:
@@ -130,7 +130,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out):
+def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out) -> None:
     global saved
     if next and not saved:
         print(

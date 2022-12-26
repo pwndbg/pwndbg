@@ -70,7 +70,7 @@ def all_versions():
 
 
 @pwndbg.commands.ArgparsedCommand("Displays GDB, Python, and pwndbg versions.")
-def version():
+def version() -> None:
     """
     Displays GDB, Python, and pwndbg versions.
     """
