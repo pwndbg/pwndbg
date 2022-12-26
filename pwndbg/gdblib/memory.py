@@ -156,7 +156,7 @@ def string(addr, max=4096):
     return bytearray()
 
 
-def byte(addr):
+def byte(addr: int) -> int:
     """byte(addr) -> int
 
     Read one byte at the specified address
@@ -188,7 +188,7 @@ def uint(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint, addr)
 
 
-def pvoid(addr):
+def pvoid(addr: int) -> int:
     """pvoid(addr) -> int
 
     Read one pointer from the specified address.
@@ -220,7 +220,7 @@ def u32(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint32, addr)
 
 
-def u64(addr):
+def u64(addr: int) -> int:
     """u64(addr) -> int
 
     Read one ``uint64_t`` from the specified address.
@@ -282,7 +282,7 @@ def poi(type, addr):
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def find_upper_boundary(addr, max_pages=1024):
+def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """find_upper_boundary(addr, max_pages=1024) -> int
 
     Brute-force search the upper boundary of a memory mapping,

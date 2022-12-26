@@ -88,7 +88,7 @@ class EventWrapper:
             self._event.disconnect(func)
 
     @property
-    def is_real_event(self):
+    def is_real_event(self) -> bool:
         return self._is_real_event
 
     def invoke_callbacks(self) -> None:

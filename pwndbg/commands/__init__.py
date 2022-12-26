@@ -572,6 +572,7 @@ def load_commands() -> None:
     import pwndbg.commands.pie
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
+    import pwndbg.commands.pyannotate
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
     import pwndbg.commands.rop

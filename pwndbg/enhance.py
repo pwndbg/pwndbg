@@ -28,7 +28,7 @@ def good_instr(i) -> bool:
     return not any(bad in i for bad in bad_instrs)
 
 
-def int_str(value):
+def int_str(value: int) -> str:
     retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
 
     # Try to unpack the value as a string
@@ -41,7 +41,7 @@ def int_str(value):
 
 
 # @pwndbg.lib.memoize.reset_on_stop
-def enhance(value, code=True, safe_linking=False):
+def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
 

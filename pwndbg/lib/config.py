@@ -46,13 +46,13 @@ class Parameter:
         self.scope = scope
 
     @property
-    def is_changed(self):
+    def is_changed(self) -> bool:
         return self.value != self.default
 
     def revert_default(self) -> None:
         self.value = self.default
 
-    def attr_name(self):
+    def attr_name(self) -> str:
         """Returns the attribute name associated with this config option,
         i.e. `my-config` has the attribute name `my_config`"""
         return self.name.replace("-", "_")
@@ -89,13 +89,13 @@ class Parameter:
         return self.value < other
 
     # Operators
-    def __add__(self, other):
+    def __add__(self, other: int) -> int:
         return self.value + other
 
     def __radd__(self, other):
         return other + self.value
 
-    def __sub__(self, other):
+    def __sub__(self, other: int) -> int:
         return self.value - other
 
     def __rsub__(self, other):
@@ -104,13 +104,13 @@ class Parameter:
     def __mul__(self, other):
         return self.value * other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: int) -> str:
         return other * self.value
 
     def __div__(self, other):
         return self.value / other
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: int) -> int:
         return self.value // other
 
     def __pow__(self, other):

@@ -39,7 +39,7 @@ def find(address):
             return stack
 
 
-def find_upper_stack_boundary(stack_ptr, max_pages=1024):
+def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
     stack_ptr = pwndbg.lib.memory.page_align(int(stack_ptr))
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
