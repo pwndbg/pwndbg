@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import Set
-from typing import Union
 
 import gdb
 

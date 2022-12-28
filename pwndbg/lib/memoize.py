@@ -10,7 +10,6 @@ from collections.abc import Hashable
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import List
 
 debug = False
 
@@ -24,7 +23,7 @@ class memoize:
 
     def __init__(self, func: Callable) -> None:
         self.func = func
-        self.cache = {}  # type: Dict[Any,Any]
+        self.cache: Dict[Any, Any] = {}
         self.caches.append(self)  # must be provided by base class
         functools.update_wrapper(self, func)
 

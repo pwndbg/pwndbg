@@ -14,7 +14,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message
 
-saved = set()  # type:Set[int]
+saved: Set[int] = set()
 
 
 def print_search_hit(address) -> None:
