@@ -13,7 +13,7 @@ from pwndbg.lib.arch import Arch
 printed_message = False
 
 
-def which(arch):  # type: (Arch) -> List[str]
+def which(arch: Arch) -> List[str]:
     gcc = _which_binutils("g++", arch)
 
     if not gcc:
