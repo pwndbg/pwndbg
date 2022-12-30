@@ -4,6 +4,7 @@ from typing import NamedTuple
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
+from pwndbg.commands import CommandCategory
 
 
 class Option(NamedTuple):
@@ -100,7 +101,7 @@ _arch_hardening_options["aarch64"] = [
 parser = argparse.ArgumentParser(description="Checks for kernel hardening configuration options.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled

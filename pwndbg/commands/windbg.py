@@ -1,3 +1,5 @@
+from pwndbg.commands import CommandCategory
+
 """
 Compatibility functionality for Windbg users.
 """
@@ -30,7 +32,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def db(address, count=64):
     """
@@ -53,7 +55,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def dw(address, count=32):
     """
@@ -76,7 +78,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def dd(address, count=16):
     """
@@ -99,7 +101,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def dq(address, count=8):
     """
@@ -122,7 +124,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def dc(address, count=8):
     return pwndbg.commands.hexdump.hexdump(address=address, count=count)
@@ -161,7 +163,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, nargs="*", help="The bytes to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def eb(address, data):
     """
@@ -177,7 +179,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, nargs="*", help="The words to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def ew(address, data):
     """
@@ -193,7 +195,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, nargs="*", help="The dwords to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def ed(address, data):
     """
@@ -209,7 +211,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, nargs="*", help="The qwords to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def eq(address, data):
     """
@@ -225,7 +227,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, help="The string to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def ez(address, data):
     """
@@ -243,7 +245,7 @@ parser.add_argument(
 parser.add_argument("data", type=str, help="The string to write.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def eza(address, data):
     """
@@ -317,7 +319,7 @@ da_parser.add_argument("address", type=pwndbg.commands.HexOrAddressExpr, help="A
 da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum string length")
 
 
-@pwndbg.commands.ArgparsedCommand(da_parser)
+@pwndbg.commands.ArgparsedCommand(da_parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max) -> None:
     print("%x" % address, repr(pwndbg.gdblib.strings.get(address, max)))
@@ -328,7 +330,7 @@ ds_parser.add_argument("address", type=pwndbg.commands.HexOrAddressExpr, help="A
 ds_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum string length")
 
 
-@pwndbg.commands.ArgparsedCommand(ds_parser)
+@pwndbg.commands.ArgparsedCommand(ds_parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def ds(address, max) -> None:
     # We do change the max length to the default if its too low
@@ -348,7 +350,7 @@ def ds(address, max) -> None:
         print("Perhaps try: db <address> <count> or hexdump <address>")
 
 
-@pwndbg.commands.ArgparsedCommand("List breakpoints.")
+@pwndbg.commands.ArgparsedCommand("List breakpoints.", category=CommandCategory.WINDBG)
 def bl() -> None:
     """
     List breakpoints
@@ -362,7 +364,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 def bd(which="*") -> None:
     """
     Disable the breakpoint with the specified index.
@@ -379,7 +381,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 def be(which="*") -> None:
     """
     Enable the breakpoint with the specified index.
@@ -396,7 +398,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 def bc(which="*") -> None:
     """
     Clear the breakpoint with the specified index.
@@ -411,7 +413,7 @@ parser = argparse.ArgumentParser(description="Set a breakpoint at the specified 
 parser.add_argument("where", type=int, help="The address to break at.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 def bp(where) -> None:
     """
     Set a breakpoint at the specified address.
@@ -432,7 +434,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def u(where=None, n=5, to_string=False):
     """
@@ -444,7 +446,9 @@ def u(where=None, n=5, to_string=False):
     return pwndbg.commands.nearpc.nearpc(where, n, to_string)
 
 
-@pwndbg.commands.ArgparsedCommand("Print a backtrace (alias 'bt').")
+@pwndbg.commands.ArgparsedCommand(
+    "Print a backtrace (alias 'bt').", category=CommandCategory.WINDBG
+)
 @pwndbg.commands.OnlyWhenRunning
 def k() -> None:
     """
@@ -459,7 +463,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def ln(value=None) -> None:
     """
@@ -480,13 +484,15 @@ def ln(value=None) -> None:
 # vprot
 
 
-@pwndbg.commands.ArgparsedCommand("Not be windows.")
+@pwndbg.commands.ArgparsedCommand("Not be windows.", category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def peb() -> None:
     print("This isn't Windows!")
 
 
-@pwndbg.commands.ArgparsedCommand("Windbg compatibility alias for 'continue' command.")
+@pwndbg.commands.ArgparsedCommand(
+    "Windbg compatibility alias for 'continue' command.", category=CommandCategory.WINDBG
+)
 @pwndbg.commands.OnlyWhenRunning
 def go() -> None:
     """
@@ -495,7 +501,9 @@ def go() -> None:
     gdb.execute("continue")
 
 
-@pwndbg.commands.ArgparsedCommand("Windbg compatibility alias for 'nextcall' command.")
+@pwndbg.commands.ArgparsedCommand(
+    "Windbg compatibility alias for 'nextcall' command.", category=CommandCategory.WINDBG
+)
 @pwndbg.commands.OnlyWhenRunning
 def pc():
     """

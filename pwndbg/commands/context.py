@@ -32,6 +32,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
+from pwndbg.commands import CommandCategory
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 
@@ -228,7 +229,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-out"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-out"], category=CommandCategory.CONTEXT)
 def contextoutput(section, path, clearing, banner="both", width=None):
     if not banner:  # synonym for splitmind backwards compatibility
         banner = "none"
@@ -276,7 +277,9 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-watch", "cwatch"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["ctx-watch", "cwatch"], category=CommandCategory.CONTEXT
+)
 def contextwatch(expression, cmd=None) -> None:
     expressions.append((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
 
@@ -287,7 +290,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument("num", type=int, help="The expression number to be removed from context")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-unwatch", "cunwatch"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["ctx-unwatch", "cunwatch"], category=CommandCategory.CONTEXT
+)
 def contextunwatch(num) -> None:
     if num < 1 or num > len(expressions):
         print(message.error("Invalid input"))
@@ -371,7 +376,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
 def context(subcontext=None) -> None:
     """
@@ -523,7 +528,7 @@ parser = argparse.ArgumentParser(description="Print out all registers and enhanc
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
 def regs(regs=None) -> None:
     """Print out all registers and enhance the information."""

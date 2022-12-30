@@ -6,6 +6,7 @@ import pwndbg.gdblib.file
 import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
+from pwndbg.commands import CommandCategory
 
 """
 PEDA prints it out like this:
@@ -178,13 +179,17 @@ class Process:
         return tuple(result)
 
 
-@pwndbg.commands.ArgparsedCommand("Gets the pid.")
+@pwndbg.commands.ArgparsedCommand(
+    "Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS
+)
 @pwndbg.commands.OnlyWhenRunning
 def pid() -> None:
     print(pwndbg.gdblib.proc.pid)
 
 
-@pwndbg.commands.ArgparsedCommand("Display information about the running process.")
+@pwndbg.commands.ArgparsedCommand(
+    "Display information about the running process.", category=CommandCategory.PROCESS
+)
 @pwndbg.commands.OnlyWhenRunning
 def procinfo() -> None:
     """

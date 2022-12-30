@@ -1,3 +1,5 @@
+from pwndbg.commands import CommandCategory
+
 """
 Wrapper for shell commands.
 """
@@ -81,7 +83,7 @@ def register_shell_function(cmd, deprecated=False) -> None:
     handler.__name__ = str(cmd)
     handler.__doc__ = doc
 
-    pwndbg.commands.Command(handler, shell=True)
+    pwndbg.commands.Command(handler, shell=True, category=CommandCategory.SHELL)
 
 
 for cmd in pwncmds:

@@ -1,3 +1,5 @@
+from pwndbg.commands import CommandCategory
+
 """
 Dumps all pwndbg-specific configuration points.
 """
@@ -94,7 +96,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
         )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def config(filter_pattern) -> None:
     display_config(filter_pattern, "config")
 
@@ -116,12 +118,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def theme(filter_pattern) -> None:
     display_config(filter_pattern, "theme")
 
 
-@pwndbg.commands.ArgparsedCommand(configfile_parser)
+@pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
 def configfile(show_all=False) -> None:
     configfile_print_scope("config", show_all)
 
@@ -134,7 +136,7 @@ themefile_parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(themefile_parser)
+@pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
 def themefile(show_all=False) -> None:
     configfile_print_scope("theme", show_all)
 

@@ -1,6 +1,7 @@
 import argparse
 import functools
 import io
+from enum import Enum
 from typing import Dict
 from typing import List
 
@@ -17,6 +18,25 @@ from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
 command_names = set()
+
+
+class CommandCategory(str, Enum):
+    NEXT = "Step/Next/Continue"
+    CONTEXT = "Context"
+    HEAP = "Heap"
+    BREAKPOINT = "Breakpoint"
+    MEMORY = "Memory"
+    STACK = "Stack"
+    REGISTER = "Register"
+    PROCESS = "Process"
+    DISASS = "Disassemble"
+    MISC = "Misc"
+    KERNEL = "Kernel"
+    IDA = "IDA"
+    GDBINIT = "Gdbinit"
+    WINDBG = "WinDbg"
+    PWNDBG = "pwndbg"
+    SHELL = "Shell"
 
 
 def list_current_commands():
@@ -60,7 +80,7 @@ class Command(gdb.Command):
         shell=False,
         is_alias=False,
         aliases=[],
-        category="Misc",
+        category=CommandCategory.MISC,
     ) -> None:
         self.is_alias: bool = is_alias
         self.aliases = aliases
@@ -436,7 +456,7 @@ class _ArgparsedCommand(Command):
         command_name=None,
         is_alias=False,
         aliases=[],
-        category="Misc",
+        category=CommandCategory.MISC,
         *a,
         **kw,
     ) -> None:
@@ -471,7 +491,9 @@ class _ArgparsedCommand(Command):
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
-    def __init__(self, parser_or_desc, aliases=[], command_name=None, category="Misc") -> None:
+    def __init__(
+        self, parser_or_desc, aliases=[], command_name=None, category=CommandCategory.MISC
+    ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
@@ -572,6 +594,7 @@ def load_commands() -> None:
     import pwndbg.commands.cpsr
     import pwndbg.commands.cyclic
     import pwndbg.commands.cymbol
+    import pwndbg.commands.distance
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf

@@ -2,6 +2,7 @@ import argparse
 
 import pwndbg.commands
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -13,7 +14,7 @@ Useful for diagnosing caching-related bugs. Decreases performance.
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def memoize() -> None:
     pwndbg.lib.memoize.memoize.caching = not pwndbg.lib.memoize.memoize.caching
 

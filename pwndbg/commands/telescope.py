@@ -18,6 +18,7 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
+from pwndbg.commands import CommandCategory
 
 telescope_lines = pwndbg.gdblib.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
@@ -209,7 +210,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize

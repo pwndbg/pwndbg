@@ -1,3 +1,5 @@
+from pwndbg.commands import CommandCategory
+
 """
 Compatibility functionality for GDBINIT users.
 
@@ -9,7 +11,9 @@ import gdb
 import pwndbg.commands
 
 
-@pwndbg.commands.ArgparsedCommand("GDBINIT compatibility alias for 'start' command.")
+@pwndbg.commands.ArgparsedCommand(
+    "GDBINIT compatibility alias for 'start' command.", category=CommandCategory.GDBINIT
+)
 @pwndbg.commands.OnlyWhenRunning
 def init() -> None:
     """GDBINIT compatibility alias for 'start' command."""
@@ -26,14 +30,18 @@ def sstart() -> None:
     gdb.execute("run")
 
 
-@pwndbg.commands.ArgparsedCommand("GDBINIT compatibility alias for 'main' command.")
+@pwndbg.commands.ArgparsedCommand(
+    "GDBINIT compatibility alias for 'main' command.", category=CommandCategory.GDBINIT
+)
 @pwndbg.commands.OnlyWhenRunning
 def main() -> None:
     """GDBINIT compatibility alias for 'main' command."""
     pwndbg.commands.start.start()
 
 
-@pwndbg.commands.ArgparsedCommand("GDBINIT compatibility alias for 'libs' command.")
+@pwndbg.commands.ArgparsedCommand(
+    "GDBINIT compatibility alias for 'libs' command.", category=CommandCategory.GDBINIT
+)
 @pwndbg.commands.OnlyWhenRunning
 def libs() -> None:
     """GDBINIT compatibility alias for 'libs' command."""
@@ -41,7 +49,8 @@ def libs() -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "GDBINIT compatibility alias to print the entry point. See also the 'entry' command."
+    "GDBINIT compatibility alias to print the entry point. See also the 'entry' command.",
+    category=CommandCategory.GDBINIT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def entry_point() -> None:
