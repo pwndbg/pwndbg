@@ -1,5 +1,6 @@
 import argparse
 import errno
+from collections import defaultdict
 
 import gdb
 
@@ -87,8 +88,10 @@ def pwndbg_(filter_pattern, shell, all_) -> None:
 
     from tabulate import tabulate
 
-    table_data = []
-    for name, aliases, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
+    table_data = defaultdict(lambda: [])
+    for name, aliases, category, docs in list_and_filter_commands(
+        filter_pattern, pwndbg_cmds, shell_cmds
+    ):
         alias_str = ""
         aliases_len = 0
         if aliases:
@@ -96,11 +99,16 @@ def pwndbg_(filter_pattern, shell, all_) -> None:
             alias_str = f" [{', '.join(aliases)}]"
 
         command_names = C.green(name) + alias_str
-        table_data.append((command_names, docs))
+        table_data[category].append((command_names, docs))
 
-    print(
-        tabulate(table_data, headers=[f"{C.green('Command')} [{C.blue('Aliases')}]", "Description"])
-    )
+    for category, data in table_data.items():
+        category_header = category + " Commands"
+        print(
+            tabulate(
+                data, headers=[f"{C.green(category_header)} [{C.blue('Aliases')}]", "Description"]
+            )
+        )
+        print()
 
 
 parser = argparse.ArgumentParser(description="Print the distance between the two arguments.")
@@ -153,6 +161,6 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
             docs = docs.splitlines()[0]
 
         if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
-            results.append((name, c.aliases, docs))
+            results.append((name, c.aliases, c.category, docs))
 
     return results
