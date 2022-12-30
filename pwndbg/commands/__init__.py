@@ -53,10 +53,18 @@ class Command(gdb.Command):
     history = {}  # type: Dict[int,str]
 
     def __init__(
-        self, function, prefix=False, command_name=None, shell=False, is_alias=False, aliases=[]
+        self,
+        function,
+        prefix=False,
+        command_name=None,
+        shell=False,
+        is_alias=False,
+        aliases=[],
+        category="Misc",
     ) -> None:
         self.is_alias: bool = is_alias
         self.aliases = aliases
+        self.category = category
         self.shell: bool = shell
 
         if command_name is None:
@@ -422,7 +430,15 @@ def OnlyWithResolvedHeapSyms(function):
 
 class _ArgparsedCommand(Command):
     def __init__(
-        self, parser, function, command_name=None, is_alias=False, aliases=[], *a, **kw
+        self,
+        parser,
+        function,
+        command_name=None,
+        is_alias=False,
+        aliases=[],
+        category="Misc",
+        *a,
+        **kw,
     ) -> None:
         self.parser = parser
         if command_name is None:
@@ -438,7 +454,13 @@ class _ArgparsedCommand(Command):
         function.__doc__ = self.parser.description.strip()
 
         super(_ArgparsedCommand, self).__init__(
-            function, command_name=command_name, is_alias=is_alias, aliases=aliases, *a, **kw
+            function,
+            command_name=command_name,
+            is_alias=is_alias,
+            aliases=aliases,
+            category=category,
+            *a,
+            **kw,
         )
 
     def split_args(self, argument):
@@ -449,7 +471,7 @@ class _ArgparsedCommand(Command):
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
-    def __init__(self, parser_or_desc, aliases=[], command_name=None) -> None:
+    def __init__(self, parser_or_desc, aliases=[], command_name=None, category="Misc") -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
@@ -459,7 +481,7 @@ class ArgparsedCommand:
             self.parser = parser_or_desc
         self.aliases = aliases
         self._command_name = command_name
-
+        self.category = category
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
@@ -472,9 +494,15 @@ class ArgparsedCommand:
 
     def __call__(self, function):
         for alias in self.aliases:
-            _ArgparsedCommand(self.parser, function, command_name=alias, is_alias=True)
+            _ArgparsedCommand(
+                self.parser, function, command_name=alias, is_alias=True, category=self.category
+            )
         return _ArgparsedCommand(
-            self.parser, function, command_name=self._command_name, aliases=self.aliases
+            self.parser,
+            function,
+            command_name=self._command_name,
+            aliases=self.aliases,
+            category=self.category,
         )
 
 

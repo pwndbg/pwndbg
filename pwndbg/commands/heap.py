@@ -123,7 +123,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -155,7 +155,7 @@ Default to the current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -174,7 +174,7 @@ def arena(addr=None) -> None:
 parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -194,7 +194,7 @@ Default to the current thread's tcache.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -211,7 +211,7 @@ def tcache(addr=None) -> None:
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -230,7 +230,7 @@ Default to current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -261,7 +261,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -346,7 +346,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -372,7 +372,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -403,7 +403,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -434,7 +434,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -465,7 +465,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -500,7 +500,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -537,7 +537,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -655,7 +655,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -831,7 +831,7 @@ try_free_parser = argparse.ArgumentParser(
 try_free_parser.add_argument("addr", nargs="?", help="Address passed to free")
 
 
-@pwndbg.commands.ArgparsedCommand(try_free_parser)
+@pwndbg.commands.ArgparsedCommand(try_free_parser, category="Heap")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def try_free(addr) -> None:
@@ -1208,7 +1208,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category="Heap")
 def heap_config(filter_pattern) -> None:
     display_config(filter_pattern, "heap", has_file_command=False)
 
