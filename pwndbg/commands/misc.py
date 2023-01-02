@@ -25,7 +25,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="errno")
+@pwndbg.commands.ArgparsedCommand(parser, command_name="errno", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def errno_(err) -> None:
     if err is None:

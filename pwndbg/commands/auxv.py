@@ -1,9 +1,12 @@
 import pwndbg.auxv
 import pwndbg.chain
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Print information from the Auxiliary ELF Vector.")
+@pwndbg.commands.ArgparsedCommand(
+    "Print information from the Auxiliary ELF Vector.", category=CommandCategory.LINUX
+)
 @pwndbg.commands.OnlyWhenRunning
 def auxv() -> None:
     for k, v in pwndbg.auxv.get().items():

@@ -6,9 +6,12 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.argv
 import pwndbg.gdblib.typeinfo
+from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Prints out the number of arguments.")
+@pwndbg.commands.ArgparsedCommand(
+    "Prints out the number of arguments.", category=CommandCategory.LINUX
+)
 @pwndbg.commands.OnlyWhenRunning
 def argc() -> None:
     print(pwndbg.gdblib.argv.argc)
@@ -20,7 +23,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"], category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None) -> None:
     start = pwndbg.gdblib.argv.argv
@@ -39,7 +42,9 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["env", "environ"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["env", "environ"], category=CommandCategory.LINUX
+)
 @pwndbg.commands.OnlyWhenRunning
 def envp(name=None):
     if name is not None:
