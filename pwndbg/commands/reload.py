@@ -1,5 +1,7 @@
-import types
-from imp import reload as _reload
+import importlib
+import sys
+
+import gdb
 
 import pwndbg
 import pwndbg.commands
@@ -8,23 +10,19 @@ import pwndbg.lib.memoize
 from pwndbg.commands import CommandCategory
 
 
-def rreload(module, mdict=None) -> None:
-    """Recursively reload modules."""
-    name = module.__name__
+def rreload(module, _exclude_mods=None) -> None:
+    """Recursively reload modules.
+    Impl based on https://stackoverflow.com/a/66661311/1508881"""
+    delete_folders = ["pwndbg"]
 
-    if mdict is None:
-        mdict = []
+    for module in list(sys.modules.keys()):
+        if any(folder in module for folder in delete_folders):
+            del sys.modules[module]
 
-    for attribute_name in getattr(module, "__all__", []) or []:
-        attribute = getattr(module, attribute_name, None)
-        if isinstance(attribute, types.ModuleType) and attribute not in mdict:
-            mdict.append(attribute)
-            rreload(attribute, mdict)
-
-    try:
-        _reload(module)
-    except Exception as e:
-        pass
+    # Mark that we are reloading; this is used to prevent ArgparsedCommand from
+    # erroring out on re-registering the same commands we had registered before
+    gdb.pwndbg_is_reloading = True
+    importlib.import_module("pwndbg")
 
 
 @pwndbg.commands.ArgparsedCommand("Reload pwndbg.", category=CommandCategory.PWNDBG)

@@ -64,6 +64,11 @@ def list_current_commands():
 
 GDB_BUILTIN_COMMANDS = list_current_commands()
 
+# Set in `reload` command so that we can skip double checking for registration
+# of an already existing command when re-registering GDB CLI commands
+# (there is no way to unregister a command in GDB 12.x)
+pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
+
 
 class Command(gdb.Command):
     """Generic command wrapper"""
@@ -99,6 +104,7 @@ class Command(gdb.Command):
         if (
             command_name in GDB_BUILTIN_COMMANDS
             and command_name not in self.builtin_override_whitelist
+            and not pwndbg_is_reloading
         ):
             raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
