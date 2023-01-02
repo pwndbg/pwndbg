@@ -6,6 +6,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.vmmap
+from pwndbg.command import CommandCategory
 
 parser = argparse.ArgumentParser(
     description="ROP gadget search with ropper.",
@@ -14,7 +15,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ropper")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
 def ropper(argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:

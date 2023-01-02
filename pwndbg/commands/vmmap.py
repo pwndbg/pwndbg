@@ -80,7 +80,7 @@ parser.add_argument("-x", "--executable", action="store_true", help="Display exe
 
 
 @pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["lm", "address", "vprot"], category=CommandCategory.MEMORY
+    parser, aliases=["lm", "address", "vprot", "libs"], category=CommandCategory.MEMORY
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(gdbval_or_str=None, writable=False, executable=False) -> None:
