@@ -6,7 +6,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.vmmap
-from pwndbg.command import CommandCategory
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     description="ROP gadget search with ropper.",

@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Stepping until an event occurs
 """
@@ -10,6 +8,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.next
+from pwndbg.commands import CommandCategory
 
 
 @pwndbg.commands.ArgparsedCommand(

@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Wrapper for shell commands.
 """
@@ -8,6 +6,7 @@ import os
 
 import pwndbg.commands
 import pwndbg.lib.which
+from pwndbg.commands import CommandCategory
 
 pwncmd_names = ["asm", "constgrep", "disasm", "pwn", "unhex"]
 shellcmd_names = [

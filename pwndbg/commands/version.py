@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Displays gdb, python and pwndbg versions.
 """
@@ -20,6 +18,7 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.ida
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
 def _gdb_version():

@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Command to print the virtual memory map a la /proc/self/maps.
 """
@@ -13,6 +11,7 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 
 integer_types = (int, gdb.Value)
 

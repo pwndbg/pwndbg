@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Dumps all pwndbg-specific configuration points.
 """
@@ -12,6 +10,7 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
+from pwndbg.commands import CommandCategory
 
 
 def print_row(name, value, default, set_show_doc, ljust_optname, ljust_value, empty_space=6):

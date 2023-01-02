@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Compatibility functionality for Windbg users.
 """
@@ -18,6 +16,7 @@ import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.hexdump
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
 parser.add_argument(

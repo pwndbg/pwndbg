@@ -1,5 +1,3 @@
-from pwndbg.commands import CommandCategory
-
 """
 Ignoring a breakpoint
 """
@@ -10,6 +8,7 @@ import gdb
 
 import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
