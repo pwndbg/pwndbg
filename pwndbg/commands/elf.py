@@ -9,7 +9,7 @@ from pwndbg.commands import CommandCategory
     "Prints the section mappings contained in the ELF header.", category=CommandCategory.MEMORY
 )
 @pwndbg.commands.OnlyWithFile
-def elfheader() -> None:
+def elfsections() -> None:
     local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
 
     with open(local_path, "rb") as f:
