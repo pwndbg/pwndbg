@@ -31,40 +31,6 @@ import pwndbg.ui
 __version__ = pwndbg.lib.version.__version__
 version = __version__
 
-__all__ = [
-    "arch",
-    "auxv",
-    "chain",
-    "color",
-    "disasm",
-    "dt",
-    "elf",
-    "enhance",
-    "events",
-    "file",
-    "function",
-    "heap",
-    "hexdump",
-    "ida",
-    "info",
-    "leakfind",
-    "linkmap",
-    "malloc",
-    "memoize",
-    "memory",
-    "p2p",
-    "proc",
-    "regs",
-    "remote",
-    "search",
-    "stack",
-    "strings",
-    "symbol",
-    "typeinfo",
-    "ui",
-    "vmmap",
-]
-
 from pwndbg.gdblib import prompt
 
 prompt.set_prompt()
