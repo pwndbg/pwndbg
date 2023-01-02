@@ -70,7 +70,8 @@ def stepret() -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next instruction that belongs to the running program."
+    "Breaks at the next instruction that belongs to the running program.",
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextproginstr() -> None:
@@ -89,7 +90,9 @@ def stepover(addr=None) -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next syscall not taking branches.", aliases=["nextsc"]
+    "Breaks at the next syscall not taking branches.",
+    aliases=["nextsc"],
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextsyscall() -> None:
@@ -108,7 +111,9 @@ def nextsyscall() -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next syscall by taking branches.", aliases=["stepsc"]
+    "Breaks at the next syscall by taking branches.",
+    aliases=["stepsc"],
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall() -> None:
