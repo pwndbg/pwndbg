@@ -9,10 +9,13 @@ import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.gdblib.regs
 import pwndbg.ida
+from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.functions import GdbFunction
 
 
-@pwndbg.commands.ArgparsedCommand("Synchronize IDA's cursor with GDB.")
+@pwndbg.commands.ArgparsedCommand(
+    "Synchronize IDA's cursor with GDB.", category=CommandCategory.INTEGRATIONS
+)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.gdblib.events.stop
 @pwndbg.ida.withIDA
@@ -83,7 +86,7 @@ def down(n=1) -> None:
     j()
 
 
-@pwndbg.commands.ArgparsedCommand("Save the ida database.")
+@pwndbg.commands.ArgparsedCommand("Save the ida database.", category=CommandCategory.INTEGRATIONS)
 @pwndbg.ida.withIDA
 def save_ida() -> None:
     """Save the IDA database"""

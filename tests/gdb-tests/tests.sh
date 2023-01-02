@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit
+#set -o errexit
 set -o pipefail
 
 # env_parallel will fail if there are too many environment variables, so we need

@@ -4,6 +4,7 @@ from tabulate import tabulate
 
 import pwndbg.commands
 import pwndbg.gdblib.kernel.slab
+from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel.slab import oo_objects
 from pwndbg.gdblib.kernel.slab import oo_order
 
@@ -17,7 +18,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled

@@ -21,6 +21,7 @@ import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
 def ljust_padding(lst):
@@ -76,7 +77,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["pdisass"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, to_string=False, emulate=False):
     """
@@ -237,7 +238,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def emulate(pc=None, lines=None, to_string=False, emulate=True):
     """
@@ -248,27 +249,5 @@ def emulate(pc=None, lines=None, to_string=False, emulate=True):
 
 
 emulate_command = emulate
-
-
-parser = argparse.ArgumentParser(description="Compatibility layer for PEDA's pdisass command.")
-parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
-parser.add_argument(
-    "lines",
-    type=int,
-    nargs="?",
-    default=None,
-    help="Number of lines to show on either side of the address.",
-)
-
-
-@pwndbg.commands.ArgparsedCommand(parser)
-@pwndbg.commands.OnlyWhenRunning
-def pdisass(pc=None, lines=None, to_string=False):
-    """
-    Compatibility layer for PEDA's pdisass command
-    """
-    nearpc.repeat = pdisass.repeat
-    return nearpc(pc, lines, to_string, False)
-
 
 nearpc.next_pc = 0

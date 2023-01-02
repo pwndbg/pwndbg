@@ -18,6 +18,7 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.ida
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
 def _gdb_version():
@@ -69,7 +70,9 @@ def all_versions():
     return all_versions
 
 
-@pwndbg.commands.ArgparsedCommand("Displays GDB, Python, and pwndbg versions.")
+@pwndbg.commands.ArgparsedCommand(
+    "Displays GDB, Python, and pwndbg versions.", category=CommandCategory.PWNDBG
+)
 def version() -> None:
     """
     Displays GDB, Python, and pwndbg versions.
@@ -87,7 +90,7 @@ bugreport_group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(bugreport_parser)
+@pwndbg.commands.ArgparsedCommand(bugreport_parser, category=CommandCategory.PWNDBG)
 def bugreport(run_browser=False, use_gh=False):
     ISSUE_TEMPLATE = """
 <!--

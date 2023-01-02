@@ -11,6 +11,7 @@ import pwndbg.gdblib.file
 import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
+from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import reg_sets
 
 parser = argparse.ArgumentParser(
@@ -58,7 +59,7 @@ def prot_str_to_val(protstr):
     return prot_int
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def mprotect(addr, length, prot) -> None:
 

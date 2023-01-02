@@ -5,6 +5,7 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.lib.memoize
+from pwndbg.commands import CommandCategory
 
 
 def rreload(module, mdict=None) -> None:
@@ -26,14 +27,16 @@ def rreload(module, mdict=None) -> None:
         pass
 
 
-@pwndbg.commands.ArgparsedCommand("Reload pwndbg.")
+@pwndbg.commands.ArgparsedCommand("Reload pwndbg.", category=CommandCategory.PWNDBG)
 def reload(*a) -> None:
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
 
 
-@pwndbg.commands.ArgparsedCommand("Makes pwndbg reinitialize all state.")
+@pwndbg.commands.ArgparsedCommand(
+    "Makes pwndbg reinitialize all state.", category=CommandCategory.PWNDBG
+)
 def reinit_pwndbg() -> None:
     """
     Makes pwndbg reinitialize all state.

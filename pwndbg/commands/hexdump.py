@@ -9,6 +9,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 pwndbg.gdblib.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.gdblib.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -57,7 +58,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
     if hexdump.repeat:

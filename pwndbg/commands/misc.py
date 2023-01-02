@@ -9,6 +9,7 @@ import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
+from pwndbg.commands import CommandCategory
 
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
@@ -74,7 +75,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
+@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
 def pwndbg_(filter_pattern, shell, all_) -> None:
     if all_:
         shell_cmds = True
@@ -101,33 +102,19 @@ def pwndbg_(filter_pattern, shell, all_) -> None:
         command_names = C.green(name) + alias_str
         table_data[category].append((command_names, docs))
 
-    for category, data in table_data.items():
-        category_header = category + " Commands"
+    for category in CommandCategory:
+        if category not in table_data:
+            continue
+        data = table_data[category]
+
+        category_header = C.bold(C.green(category + " Commands"))
+        alias_header = C.bold(C.blue("Aliases"))
         print(
             tabulate(
-                data, headers=[f"{C.green(category_header)} [{C.blue('Aliases')}]", "Description"]
+                data, headers=[f"{category_header} [{alias_header}]", f"{C.bold('Description')}"]
             )
         )
         print()
-
-
-parser = argparse.ArgumentParser(description="Print the distance between the two arguments.")
-parser.add_argument("a", type=int, help="The first address.")
-parser.add_argument("b", type=int, help="The second address.")
-
-
-@pwndbg.commands.ArgparsedCommand(parser)
-def distance(a, b) -> None:
-    """Print the distance between the two arguments"""
-    a = int(a) & pwndbg.gdblib.arch.ptrmask
-    b = int(b) & pwndbg.gdblib.arch.ptrmask
-
-    distance = b - a
-
-    print(
-        "%#x->%#x is %#x bytes (%#x words)"
-        % (a, b, distance, distance // pwndbg.gdblib.arch.ptrsize)
-    )
 
 
 def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):

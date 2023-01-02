@@ -2,9 +2,12 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.commands
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Prints the section mappings contained in the ELF header.")
+@pwndbg.commands.ArgparsedCommand(
+    "Prints the section mappings contained in the ELF header.", category=CommandCategory.MEMORY
+)
 @pwndbg.commands.OnlyWithFile
 def elfheader() -> None:
     local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)

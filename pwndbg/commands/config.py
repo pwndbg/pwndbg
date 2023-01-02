@@ -10,6 +10,7 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
+from pwndbg.commands import CommandCategory
 
 
 def print_row(name, value, default, set_show_doc, ljust_optname, ljust_value, empty_space=6):
@@ -94,7 +95,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
         )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def config(filter_pattern) -> None:
     display_config(filter_pattern, "config")
 
@@ -116,12 +117,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def theme(filter_pattern) -> None:
     display_config(filter_pattern, "theme")
 
 
-@pwndbg.commands.ArgparsedCommand(configfile_parser)
+@pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
 def configfile(show_all=False) -> None:
     configfile_print_scope("config", show_all)
 
@@ -134,7 +135,7 @@ themefile_parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(themefile_parser)
+@pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
 def themefile(show_all=False) -> None:
     configfile_print_scope("theme", show_all)
 

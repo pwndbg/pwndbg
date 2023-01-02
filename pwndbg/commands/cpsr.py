@@ -2,10 +2,13 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
 from pwndbg.color import context
+from pwndbg.commands import CommandCategory
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Print out ARM CPSR or xPSR register.", aliases=["xpsr", "pstate"]
+    "Print out ARM CPSR or xPSR register.",
+    aliases=["xpsr", "pstate"],
+    category=CommandCategory.REGISTER,
 )
 @pwndbg.commands.OnlyWithArch(["arm", "armcm", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning

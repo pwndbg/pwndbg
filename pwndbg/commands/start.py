@@ -52,7 +52,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"])
 def start(args=None) -> None:
     if args is None:
         args = []

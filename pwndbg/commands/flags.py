@@ -2,6 +2,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 description = "Modify the flags register."
 epilog = """Examples:
@@ -30,10 +31,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser,
-    aliases=["flag"],
-)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
 def setflag(flag, value) -> None:
     if value not in [0, 1]:
         print("can only set flag bit to 0 or 1")

@@ -8,6 +8,7 @@ import gdb
 
 import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -23,7 +24,7 @@ parser.add_argument(
 parser.add_argument("count", metavar="COUNT", type=int, help="The number to set COUNT.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.BREAKPOINT)
 def ignore(bpnum, count) -> None:
     bps = gdb.breakpoints()
 

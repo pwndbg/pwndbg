@@ -7,6 +7,7 @@ import pwndbg.auxv
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 
 
 def get_exe_name():
@@ -107,7 +108,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["brva"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["brva"], category=CommandCategory.BREAKPOINT)
 @pwndbg.commands.OnlyWhenRunning
 def breakrva(offset=0, module=None) -> None:
     offset = int(offset)

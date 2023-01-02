@@ -8,9 +8,12 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.next
+from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Breaks at the next jump instruction.", aliases=["nextjump"])
+@pwndbg.commands.ArgparsedCommand(
+    "Breaks at the next jump instruction.", aliases=["nextjump"], category=CommandCategory.NEXT
+)
 @pwndbg.commands.OnlyWhenRunning
 def nextjmp() -> None:
     """Breaks at the next jump instruction"""
@@ -28,7 +31,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def nextcall(symbol_regex=None) -> None:
     """Breaks at the next call instruction"""
@@ -36,7 +39,9 @@ def nextcall(symbol_regex=None) -> None:
         pwndbg.commands.context.context()
 
 
-@pwndbg.commands.ArgparsedCommand("Breaks at next return-like instruction.")
+@pwndbg.commands.ArgparsedCommand(
+    "Breaks at next return-like instruction.", category=CommandCategory.NEXT
+)
 @pwndbg.commands.OnlyWhenRunning
 def nextret() -> None:
     """Breaks at next return-like instruction"""
@@ -44,7 +49,9 @@ def nextret() -> None:
         pwndbg.commands.context.context()
 
 
-@pwndbg.commands.ArgparsedCommand("Breaks at next return-like instruction by 'stepping' to it.")
+@pwndbg.commands.ArgparsedCommand(
+    "Breaks at next return-like instruction by 'stepping' to it.", category=CommandCategory.NEXT
+)
 @pwndbg.commands.OnlyWhenRunning
 def stepret() -> None:
     """Breaks at next return-like instruction by 'stepping' to it"""
@@ -63,18 +70,19 @@ def stepret() -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next instruction that belongs to the running program."
+    "Breaks at the next instruction that belongs to the running program.",
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextproginstr() -> None:
     pwndbg.gdblib.next.break_on_program_code()
 
 
-parser = argparse.ArgumentParser(description="Sets a breakpoint on the instruction after this one.")
+parser = argparse.ArgumentParser(description="Breaks on the instruction after this one.")
 parser.add_argument("addr", type=int, default=None, nargs="?", help="The address to break after.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["so"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["so"], category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def stepover(addr=None) -> None:
     """Sets a breakpoint on the instruction after this one"""
@@ -82,7 +90,9 @@ def stepover(addr=None) -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next syscall not taking branches.", aliases=["nextsc"]
+    "Breaks at the next syscall not taking branches.",
+    aliases=["nextsc"],
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextsyscall() -> None:
@@ -101,7 +111,9 @@ def nextsyscall() -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Breaks at the next syscall by taking branches.", aliases=["stepsc"]
+    "Breaks at the next syscall by taking branches.",
+    aliases=["stepsc"],
+    category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall() -> None:

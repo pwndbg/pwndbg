@@ -3,6 +3,7 @@ import argparse
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     description="Outputs the kernel config (requires CONFIG_IKCONFIG)."
@@ -11,7 +12,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("config_name", nargs="?", type=str, help="A config name to search for")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled

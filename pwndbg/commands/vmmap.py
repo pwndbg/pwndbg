@@ -11,6 +11,7 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 
 integer_types = (int, gdb.Value)
 
@@ -77,7 +78,9 @@ parser.add_argument("-w", "--writable", action="store_true", help="Display writa
 parser.add_argument("-x", "--executable", action="store_true", help="Display executable maps only")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["lm", "address", "vprot"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["lm", "address", "vprot", "libs"], category=CommandCategory.MEMORY
+)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(gdbval_or_str=None, writable=False, executable=False) -> None:
     pages = pwndbg.gdblib.vmmap.get()
@@ -118,7 +121,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_add(start, size, flags, offset) -> None:
     page_flags = {
@@ -140,7 +143,9 @@ def vmmap_add(start, size, flags, offset) -> None:
     print("%r added" % page)
 
 
-@pwndbg.commands.ArgparsedCommand("Clear the vmmap cache.")  # TODO is this accurate?
+@pwndbg.commands.ArgparsedCommand(
+    "Clear the vmmap cache.", category=CommandCategory.MEMORY
+)  # TODO is this accurate?
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_clear() -> None:
     pwndbg.gdblib.vmmap.clear_custom_page()
@@ -152,7 +157,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_load(filename) -> None:
     if filename is None:

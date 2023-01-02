@@ -4,12 +4,13 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.config import config
 
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kbase() -> None:

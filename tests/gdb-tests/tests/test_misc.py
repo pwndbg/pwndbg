@@ -4,11 +4,16 @@ import pwndbg.commands
 from pwndbg.commands.misc import list_and_filter_commands
 
 STACK_COMMANDS = [
-    ("canary", [], "Misc", "Print out the current stack canary."),
-    ("context", ["ctx"], "Misc", "Print out the current register, instruction, and stack context."),
+    ("canary", [], "Stack", "Print out the current stack canary."),
+    (
+        "context",
+        ["ctx"],
+        "Context",
+        "Print out the current register, instruction, and stack context.",
+    ),
     ("down", [], "Misc", "Select and print stack frame called by this one."),
-    ("retaddr", [], "Misc", "Print out the stack addresses that contain return addresses."),
-    ("stack", [], "Misc", "Dereferences on stack data with specified count and offset."),
+    ("retaddr", [], "Stack", "Print out the stack addresses that contain return addresses."),
+    ("stack", [], "Stack", "Dereferences on stack data with specified count and offset."),
     ("up", [], "Misc", "Select and print stack frame that called this one."),
 ]
 
