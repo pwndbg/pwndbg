@@ -450,7 +450,7 @@ def kernel_vmmap_via_page_tables():
     return tuple(retpages)
 
 
-monitor_info_mem_not_warned = False
+monitor_info_mem_not_warned = True
 
 
 def kernel_vmmap_via_monitor_info_mem():
@@ -509,15 +509,16 @@ def kernel_vmmap_via_monitor_info_mem():
         start = int(line[:dash_idx], 16)
         end = int(line[dash_idx + 1 : space_idx], 16)
         size = int(line[space_idx + 1 : rspace_idx], 16)
-        if end - start == size and monitor_info_mem_not_warned:
+        if end - start != size and monitor_info_mem_not_warned:
             print(
                 M.warn(
                     (
-                        "The vmmap output may be incorrect as `monitor info mem` output didn't pass a sanity check. "
-                        "The end-start is not equal to size while it should be (end=%#x; start=%#x; size=%#x)"
-                        "\nNote that this warning will not show up again in this Pwndbg/GDB session"
+                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                        "that end-start==size failed. The values are:\n"
+                        "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
+                        "Note that this warning will not show up again in this Pwndbg/GDB session."
                     )
-                    % (end, start, size)
+                    % (end, start, size, end-start)
                 )
             )
             monitor_info_mem_not_warned = False
