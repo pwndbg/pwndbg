@@ -30,7 +30,9 @@ if virtual_env:
             print("  Assuming that you installed Pwndbg dependencies into the virtual environment")
             print("  If this is not true, this may cause import errors or other issues in Pwndbg")
             print("  If all works for you, you can suppress this warning and all further prints ")
-            print("  by setting `export PWNDBG_VENV_WARNING=0` (e.g. in ~/.bashrc or ~/.zshrc etc.)")
+            print(
+                "  by setting `export PWNDBG_VENV_WARNING=0` (e.g. in ~/.bashrc or ~/.zshrc etc.)"
+            )
             venv_warn = print
         else:
             venv_warn = lambda *a, **kw: None
@@ -59,7 +61,10 @@ if virtual_env:
             virtualenv_site_packages = path.join(
                 virtual_env, "lib", guessed_python_directory, "site-packages"
             )
-            venv_warn("***  Not found site-packages in virtualenv, using guessed site packages Python dir: %s" % virtualenv_site_packages)
+            venv_warn(
+                "***  Not found site-packages in virtualenv, using guessed site packages Python dir: %s"
+                % virtualenv_site_packages
+            )
 
         venv_warn("  Added detected virtualenv's Python site packages to sys.path")
         venv_warn("")
