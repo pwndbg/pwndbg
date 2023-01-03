@@ -5,14 +5,8 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
-import os
 import re
-from typing import Dict
 
-import elftools.common.exceptions
-import elftools.elf.constants
-import elftools.elf.elffile
-import elftools.elf.segments
 import gdb
 
 import pwndbg.gdblib.android
@@ -62,97 +56,6 @@ def _add_debug_file_directory(d) -> None:
 
 if "/usr/lib/debug" not in _get_debug_file_directory():
     _add_debug_file_directory("/usr/lib/debug")
-
-
-_remote_files: Dict[str, str] = {}
-
-
-@pwndbg.gdblib.events.exit
-def _reset_remote_files() -> None:
-    global _remote_files
-    _remote_files = {}
-
-
-@pwndbg.gdblib.events.new_objfile
-def _autofetch() -> None:
-    """
-    Automatically downloads ELF files with debug symbols from the remotely debugged system.
-    Does not work with QEMU and Android. It also does not work when debugging embedded devices, as they don't even have a filesystem.
-    """
-    if not pwndbg.gdblib.remote.is_remote():
-        return
-
-    if pwndbg.gdblib.remote.is_debug_probe():
-        return
-
-    if pwndbg.gdblib.qemu.is_qemu_usermode():
-        return
-
-    if pwndbg.gdblib.android.is_android():
-        return
-
-    remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
-    if remote_files_dir not in _get_debug_file_directory().split(":"):
-        _add_debug_file_directory(remote_files_dir)
-
-    for mapping in pwndbg.gdblib.vmmap.get():
-        objfile = mapping.objfile
-
-        # Don't attempt to download things like '[stack]' and '[heap]'
-        if not objfile.startswith("/"):
-            continue
-
-        # Don't re-download things that we have already downloaded
-        if not objfile or objfile in _remote_files:
-            continue
-
-        msg = "Downloading %r from the remote server" % objfile
-        print(msg, end="")
-
-        try:
-            data = pwndbg.gdblib.file.get(objfile)
-            print("\r" + msg + ": OK")
-        except OSError:
-            # The file could not be downloaded :(
-            print("\r" + msg + ": Failed")
-            return
-
-        filename = os.path.basename(objfile)
-        local_path = os.path.join(remote_files_dir, filename)
-
-        with open(local_path, "wb+") as f:
-            f.write(data)
-
-        _remote_files[objfile] = local_path
-
-        base = None
-        for mapping in pwndbg.gdblib.vmmap.get():
-            if mapping.objfile != objfile:
-                continue
-
-            if base is None or mapping.vaddr < base.vaddr:
-                base = mapping
-
-        if not base:
-            continue
-
-        base = base.vaddr
-
-        try:
-            elf = elftools.elf.elffile.ELFFile(open(local_path, "rb"))
-        except elftools.common.exceptions.ELFError:
-            continue
-
-        gdb_command = ["add-symbol-file", local_path, hex(int(base))]
-        for section in elf.iter_sections():
-            name = section.name  # .decode('latin-1')
-            section = section.header
-            if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
-                continue
-            gdb_command += ["-s", name, hex(int(base + section.sh_addr))]
-
-        print(" ".join(gdb_command))
-        # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
 
 
 @pwndbg.lib.memoize.reset_on_objfile
