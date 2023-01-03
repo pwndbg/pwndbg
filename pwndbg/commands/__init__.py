@@ -29,6 +29,7 @@ class CommandCategory(str, Enum):
     STACK = "Stack"
     REGISTER = "Register"
     PROCESS = "Process"
+    LINUX = "Linux/libc/ELF"
     DISASS = "Disassemble"
     MISC = "Misc"
     KERNEL = "Kernel"

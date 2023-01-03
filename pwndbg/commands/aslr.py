@@ -6,6 +6,7 @@ import pwndbg.commands
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.vmmap
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 options = {"on": "off", "off": "on"}
 
@@ -26,7 +27,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 def aslr(state=None) -> None:
     if state:
         gdb.execute("set disable-randomization %s" % options[state], from_tty=False, to_string=True)

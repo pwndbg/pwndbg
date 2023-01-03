@@ -6,7 +6,7 @@ from pwndbg.commands import CommandCategory
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Prints the section mappings contained in the ELF header.", category=CommandCategory.MEMORY
+    "Prints the section mappings contained in the ELF header.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
 def elfsections() -> None:
@@ -31,13 +31,18 @@ def elfsections() -> None:
             print("%#x - %#x " % (start, end), name)
 
 
-@pwndbg.commands.ArgparsedCommand("Prints any symbols found in the .got.plt section if it exists.")
+@pwndbg.commands.ArgparsedCommand(
+    "Prints any symbols found in the .got.plt section if it exists.",
+    category=CommandCategory.LINUX,
+)
 @pwndbg.commands.OnlyWithFile
 def gotplt() -> None:
     print_symbols_in_section(".got.plt", "@got.plt")
 
 
-@pwndbg.commands.ArgparsedCommand("Prints any symbols found in the .plt section if it exists.")
+@pwndbg.commands.ArgparsedCommand(
+    "Prints any symbols found in the .plt section if it exists.", category=CommandCategory.LINUX
+)
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
     print_symbols_in_section(".plt", "@plt")

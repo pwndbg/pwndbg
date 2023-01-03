@@ -303,7 +303,7 @@ parser.add_argument("addr", type=pwndbg.commands.HexOrAddressExpr, help="The add
 
 
 @pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["kd", "dps", "dqs"]
+    parser, aliases=["kd", "dps", "dqs"], category=CommandCategory.WINDBG
 )  # TODO are these really all the same? They had identical implementation...
 @pwndbg.commands.OnlyWhenRunning
 def dds(addr):
