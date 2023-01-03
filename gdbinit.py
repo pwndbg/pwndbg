@@ -19,19 +19,19 @@ if environ.get("PWNDBG_PROFILE") == "1":
 virtual_env = environ.get("VIRTUAL_ENV")
 
 if virtual_env:
-    venv_warning = int(environ.get("PWNDBG_VENV_WARNING", 1))
     py_exe_matches = sys.executable.startswith(virtual_env)
 
     if not py_exe_matches:
+        venv_warning = int(environ.get("PWNDBG_VENV_WARNING", 1))
         if venv_warning:
-            print("WARNING: Pwndbg/GDB run in virtualenv with which it may not work correctly ***")
-            print("  Detected Python virtual environment: VIRTUAL_ENV='%s'" % virtual_env)
-            print("  while GDB is built with different Python binary: %s" % sys.executable)
-            print("  Assuming that you installed Pwndbg dependencies into the virtual environment")
-            print("  If this is not true, this may cause import errors or other issues in Pwndbg")
-            print("  If all works for you, you can suppress this warning and all further prints ")
             print(
-                "  by setting `export PWNDBG_VENV_WARNING=0` (e.g. in ~/.bashrc or ~/.zshrc etc.)"
+                f"""WARNING: Pwndbg/GDB run in virtualenv with which it may not work correctly ***
+  Detected Python virtual environment: VIRTUAL_ENV='{virtual_env}'
+  while GDB is built with different Python binary: {sys.executable}
+  Assuming that you installed Pwndbg dependencies into the virtual environment
+  If this is not true, this may cause import errors or other issues in Pwndbg
+  If all works for you, you can suppress this warning and all further prints
+  by setting `export PWNDBG_VENV_WARNING=0` (e.g. in ~/.bashrc or ~/.zshrc etc.)"""
             )
             venv_warn = print
         else:
