@@ -52,7 +52,7 @@ def list_current_commands():
         line = line.strip()
         # Skip non-command entries
         if (
-            len(line) == 0
+            not line
             or line.startswith("Command class:")
             or line.startswith("Unclassified commands")
         ):
