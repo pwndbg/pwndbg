@@ -13,10 +13,8 @@ from pwndbg.commands import CommandCategory
 def rreload(module, _exclude_mods=None) -> None:
     """Recursively reload modules.
     Impl based on https://stackoverflow.com/a/66661311/1508881"""
-    delete_folders = ["pwndbg"]
-
     for module in list(sys.modules.keys()):
-        if any(folder in module for folder in delete_folders):
+        if "pwndbg" in module:
             del sys.modules[module]
 
     # Mark that we are reloading; this is used to prevent ArgparsedCommand from
