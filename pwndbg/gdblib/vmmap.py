@@ -518,7 +518,7 @@ def kernel_vmmap_via_monitor_info_mem():
                         "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
                         "Note that this warning will not show up again in this Pwndbg/GDB session."
                     )
-                    % (end, start, size, end-start)
+                    % (end, start, size, end - start)
                 )
             )
             monitor_info_mem_not_warned = False
