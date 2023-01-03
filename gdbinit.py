@@ -19,30 +19,41 @@ if environ.get("PWNDBG_PROFILE") == "1":
 virtual_env = environ.get("VIRTUAL_ENV")
 
 if virtual_env:
-    no_venv_warning = environ.get("PWNDBG_NO_VENV_WARNING", 0)
-    if not no_venv_warning and not sys.executable.startswith(virtual_env):
-        print("[!] Pwndbg Python virtualenv warning [!]")
-        print(
-            "Found Python virtual environment (VIRTUAL_ENV='%s') while GDB is built with a different Python binary (%s)"
-            % (virtual_env, sys.executable)
-        )
-        print("Assuming that you installed Pwndbg dependencies into the virtual environment")
-        print("If this is not true, this may cause import errors or other issues in Pwndbg")
-        print(
-            "If all works for you, you can suppress this warning by setting PWNDBG_NO_VENV_WARNING=1"
-        )
-        print("")
+    py_exe_matches = sys.executable.startswith(virtual_env)
+
+    if not py_exe_matches:
+        venv_warning = int(environ.get("PWNDBG_VENV_WARNING", 1))
+        if venv_warning:
+            print(
+                f"""WARNING: Pwndbg/GDB run in virtualenv with which it may not work correctly ***
+  Detected Python virtual environment: VIRTUAL_ENV='{virtual_env}'
+  while GDB is built with different Python binary: {sys.executable}
+  Assuming that you installed Pwndbg dependencies into the virtual environment
+  If this is not true, this may cause import errors or other issues in Pwndbg
+  If all works for you, you can suppress this warning and all further prints
+  by setting `export PWNDBG_VENV_WARNING=0` (e.g. in ~/.bashrc or ~/.zshrc etc.)"""
+            )
+            venv_warn = print
+        else:
+            venv_warn = lambda *a, **kw: None
 
         possible_site_packages = glob.glob(
             path.join(virtual_env, "lib", "python*", "site-packages")
         )
+
         if len(possible_site_packages) > 1:
-            print("Found multiple site packages in virtualenv, using the last choice.")
-        virtualenv_site_packages = []
-        for site_packages in possible_site_packages:
-            virtualenv_site_packages = site_packages
-        if not virtualenv_site_packages:
-            print("Not found site-packages in virtualenv, guessing")
+            venv_warn("*** Found multiple site packages in virtualenv:")
+            for site_pkg in possible_site_packages:
+                venv_warn("    - %s" % site_pkg)
+
+            virtualenv_site_packages = possible_site_packages[-1]
+            venv_warn("*** Using the last one: %s" % virtualenv_site_packages)
+
+        elif len(possible_site_packages) == 1:
+            virtualenv_site_packages = possible_site_packages[-1]
+            venv_warn("*** Using the only site packages dir found: %s" % virtualenv_site_packages)
+
+        else:
             guessed_python_directory = "python%s.%s" % (
                 sys.version_info.major,
                 sys.version_info.minor,
@@ -50,8 +61,13 @@ if virtual_env:
             virtualenv_site_packages = path.join(
                 virtual_env, "lib", guessed_python_directory, "site-packages"
             )
+            venv_warn(
+                "***  Not found site-packages in virtualenv, using guessed site packages Python dir: %s"
+                % virtualenv_site_packages
+            )
 
-        print("Adding virtualenv's python site packages: %s to sys.path" % virtualenv_site_packages)
+        venv_warn("  Added detected virtualenv's Python site packages to sys.path")
+        venv_warn("")
         sys.path.append(virtualenv_site_packages)
 
 
