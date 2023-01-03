@@ -10,6 +10,7 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 
 
 def find_module(addr, max_distance):
@@ -78,7 +79,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
     address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None

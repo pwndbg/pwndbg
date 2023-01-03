@@ -7,6 +7,7 @@ import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
+from pwndbg.commands import CommandCategory
 
 ts = pwndbg.commands.telescope.telescope
 
@@ -112,7 +113,7 @@ def p2p_walk(addr, ranges, current_level):
     return p2p_walk(maybe_addr, ranges, current_level + 1)
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def p2p(mapping_names: Optional[List] = None) -> None:
 

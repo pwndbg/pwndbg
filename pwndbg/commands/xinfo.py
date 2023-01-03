@@ -9,6 +9,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.vmmap
 import pwndbg.wrappers
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     description="Shows offsets of the specified address from various useful locations."
@@ -103,7 +104,7 @@ def xinfo_default(page, addr) -> None:
     print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def xinfo(address=None) -> None:
     address = address.cast(

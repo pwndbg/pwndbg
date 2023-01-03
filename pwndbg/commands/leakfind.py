@@ -15,6 +15,7 @@ import pwndbg.commands
 import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
 from pwndbg.chain import c as C
+from pwndbg.commands import CommandCategory
 
 
 # Used to recursively print the pointer chain.
@@ -99,7 +100,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def leakfind(
     address=None, page_name=None, max_offset=0x40, max_depth=0x4, step=0x1, negative_offset=0x0
