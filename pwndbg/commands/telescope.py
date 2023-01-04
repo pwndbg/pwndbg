@@ -66,7 +66,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(address=None, count=telescope_lines, to_string=False, reverse=False):
     """

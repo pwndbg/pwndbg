@@ -4,6 +4,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.memory
+from pwndbg.commands import CommandCategory
 
 
 def xor_memory(address, key, count):
@@ -27,7 +28,7 @@ parser.add_argument("key", type=str, help="The key to use.")
 parser.add_argument("count", type=int, help="The number of bytes to xor.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def xor(address, key, count) -> None:
     try:
@@ -42,7 +43,7 @@ parser.add_argument("address", type=int, help="The address to start xoring at.")
 parser.add_argument("count", type=int, help="The number of bytes to xor.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def memfrob(address, count):
     return xor(address, "*", count)

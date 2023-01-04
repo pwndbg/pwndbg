@@ -13,6 +13,7 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 saved: Set[int] = set()
 
@@ -128,7 +129,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out) -> None:
     global saved
