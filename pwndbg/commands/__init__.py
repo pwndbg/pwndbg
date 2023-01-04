@@ -161,7 +161,7 @@ class Command(gdb.Command):
             return False
 
         last_line = lines[-1]
-        number, command = last_line.split(None, 1)
+        number, command = last_line.split(maxsplit=1)
         try:
             number = int(number)
         except ValueError:
@@ -623,6 +623,7 @@ def load_commands() -> None:
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
     import pwndbg.commands.mprotect
+    import pwndbg.commands.nearpc
     import pwndbg.commands.next
     import pwndbg.commands.p2p
     import pwndbg.commands.patch

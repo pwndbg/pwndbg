@@ -17,11 +17,11 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
-import pwndbg.commands.nearpc
 import pwndbg.commands.telescope
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.nearpc
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
@@ -627,7 +627,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     info = " / %s / set emulate %s" % (arch, "on" if emulate else "off")
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
-    result = pwndbg.commands.nearpc.nearpc(to_string=True, emulate=emulate, lines=code_lines // 2)
+    result = pwndbg.gdblib.nearpc.nearpc(lines=code_lines // 2, emulate=emulate)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.

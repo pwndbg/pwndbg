@@ -422,29 +422,6 @@ def bp(where) -> None:
         gdb.execute("break *%#x" % int(result))
 
 
-parser = argparse.ArgumentParser(
-    description="Starting at the specified address, disassemble N instructions."
-)
-parser.add_argument(
-    "where", type=int, nargs="?", default=None, help="The address to disassemble at."
-)
-parser.add_argument(
-    "n", type=int, nargs="?", default=5, help="The number of instructions to disassemble."
-)
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
-@pwndbg.commands.OnlyWhenRunning
-def u(where=None, n=5, to_string=False):
-    """
-    Starting at the specified address, disassemble
-    N instructions (default 5).
-    """
-    if where is None:
-        where = pwndbg.gdblib.regs.pc
-    return pwndbg.commands.nearpc.nearpc(where, n, to_string)
-
-
 @pwndbg.commands.ArgparsedCommand(
     "Print a backtrace (alias 'bt').", category=CommandCategory.WINDBG
 )
