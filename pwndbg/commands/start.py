@@ -12,6 +12,7 @@ import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.symbol
+from pwndbg.commands import CommandCategory
 
 break_on_first_instruction = False
 
@@ -52,7 +53,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
 def start(args=None) -> None:
     if args is None:
         args = []
@@ -102,7 +103,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
 def entry(args=[]) -> None:
     global break_on_first_instruction
@@ -111,7 +112,9 @@ def entry(args=[]) -> None:
     gdb.execute(run, from_tty=False)
 
 
-@pwndbg.commands.ArgparsedCommand("Alias for 'tbreak __libc_start_main; run'.")
+@pwndbg.commands.ArgparsedCommand(
+    "Alias for 'tbreak __libc_start_main; run'.", category=CommandCategory.START
+)
 @pwndbg.commands.OnlyWithFile
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)
