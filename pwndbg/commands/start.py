@@ -109,3 +109,10 @@ def entry(args=[]) -> None:
     break_on_first_instruction = True
     run = "run " + " ".join(map(quote, args))
     gdb.execute(run, from_tty=False)
+
+
+@pwndbg.commands.ArgparsedCommand("Alias for 'tbreak __libc_start_main; run'.")
+@pwndbg.commands.OnlyWithFile
+def sstart() -> None:
+    gdb.Breakpoint("__libc_start_main", temporary=True)
+    gdb.execute("run")
