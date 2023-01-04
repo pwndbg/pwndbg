@@ -21,6 +21,7 @@ command_names = set()
 
 
 class CommandCategory(str, Enum):
+    START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
     HEAP = "Heap"
