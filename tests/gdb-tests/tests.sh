@@ -93,7 +93,7 @@ if [[ -z "$ZIGPATH" ]]; then
 fi
 echo "ZIGPATH set to $ZIGPATH"
 
-(cd ./tests/binaries && make clean && make all) || exit 1
+(cd ./tests/binaries && make all) || exit 1
 
 run_gdb() {
     gdb --silent --nx --nh "$@" --eval-command quit
