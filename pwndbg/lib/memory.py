@@ -94,7 +94,7 @@ class Page:
 
     @property
     def is_memory_mapped_file(self) -> bool:
-        return self.objfile and self.objfile[0] != "[" and self.objfile != "<pt>"
+        return len(self.objfile) != 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
 
     @property
     def read(self) -> bool:
