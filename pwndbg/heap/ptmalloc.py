@@ -1146,7 +1146,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
-                _ = self._thread_cache["entries"].fetch_lazy()
+                self._thread_cache["entries"].fetch_lazy()
             except Exception as e:
                 print(
                     message.error(
