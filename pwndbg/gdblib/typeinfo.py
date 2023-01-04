@@ -25,11 +25,22 @@ def lookup_types(*types):
 
 
 def update():
+    # Workaround for Rust stuff, see https://github.com/pwndbg/pwndbg/issues/855
+    lang = gdb.execute("show language", to_string=True)
+    if "rust" not in lang:
+        restore_lang = None
+    else:
+        gdb.execute("set language c")
+        if '"auto;' in lang:
+            restore_lang = "auto"
+        else:
+            restore_lang = "rust"
+
     module.char = gdb.lookup_type("char")
     module.ulong = lookup_types("unsigned long", "uint", "u32", "uint32")
     module.long = lookup_types("long", "int", "i32", "int32")
     module.uchar = lookup_types("unsigned char", "ubyte", "u8", "uint8")
-    module.ushort = lookup_types("unsigned short", "ushort", "u16", "uint16")
+    module.ushort = lookup_types("unsigned short", "ushort", "u16", "uint16", "uint16_t")
     module.uint = lookup_types("unsigned int", "uint", "u32", "uint32")
     module.void = lookup_types("void", "()")
 
@@ -45,9 +56,9 @@ def update():
     }
 
     module.int8 = lookup_types("char", "i8", "int8")
-    module.int16 = lookup_types("short", "i16", "int16")
+    module.int16 = lookup_types("short", "short int", "i16", "int16")
     module.int32 = lookup_types("int", "i32", "int32")
-    module.int64 = lookup_types("long long", "long", "i64", "int64")
+    module.int64 = lookup_types("long long", "long long int", "long", "i64", "int64")
     module.signed = {1: module.int8, 2: module.int16, 4: module.int32, 8: module.int64}
 
     module.pvoid = void.pointer()
@@ -67,6 +78,10 @@ def update():
     else:
         raise Exception("Pointer size not supported")
     module.null = gdb.Value(0).cast(void)
+
+    # Rust workaround part 2
+    if restore_lang:
+        gdb.execute("set language %s" % restore_lang)
 
 
 # TODO: Remove this global initialization, or move it somewhere else
