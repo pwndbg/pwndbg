@@ -87,7 +87,7 @@ def hexdump(
             load_color_scheme()
 
         # If there's nothing to print, just print the offset and address and return
-        if len(data) == 0:
+        if not data:
             yield H.offset("+%04x " % len(data)) + H.address("%#08x  " % (address + len(data)))
 
             # Don't allow iterating over this generator again

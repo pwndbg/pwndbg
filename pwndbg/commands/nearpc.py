@@ -191,7 +191,7 @@ def nearpc(pc=None, lines=None, to_string=False, emulate=False):
         # Otherwise if it's a branch and it *is* contiguous, just put
         # and empty line.
         elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            if len("%s" % nearpc_branch_marker_contiguous) > 0:
+            if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
 
         # For syscall instructions, put the name on the side
