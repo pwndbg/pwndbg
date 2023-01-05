@@ -94,6 +94,10 @@ class module(ModuleType):
 
         return item
 
+    def __contains__(self, reg):
+        regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
+        return reg in regs
+
     def __iter__(self):
         regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
         for item in regs:
