@@ -1,6 +1,8 @@
 import argparse
 import sys
 from typing import Iterator
+from typing import List
+from typing import Union
 
 import gdb
 from tabulate import tabulate
@@ -125,7 +127,9 @@ def _rx(val: int) -> str:
     return C.red(hex(val))
 
 
-def print_slab(slab: gdb.Value, freelist: Iterator[int], indent, verbose, is_partial):
+def print_slab(
+    slab: gdb.Value, freelist: Union[Iterator[int], List[int]], indent, verbose, is_partial
+):
     page_address = int(slab.address)
     virt_address = pwndbg.gdblib.kernel.page_to_virt(page_address)
     indent.print(f"- {C.green('Slab')} @ {_yx(virt_address)} [{_rx(page_address)}]:")
