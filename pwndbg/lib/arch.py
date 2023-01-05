@@ -1,9 +1,11 @@
 import struct
 import sys
 
+from typing_extensions import Literal
+
 
 class Arch:
-    def __init__(self, arch_name: str, ptrsize: int, endian: str) -> None:
+    def __init__(self, arch_name: str, ptrsize: int, endian: Literal["little", "big"]) -> None:
         self.name = arch_name
         # TODO: `current` is the old name for the arch name, and it's now an
         # alias for `name`. It's used throughout the codebase, do we want to

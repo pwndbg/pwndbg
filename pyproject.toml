@@ -18,8 +18,6 @@ show_error_codes = true
 incremental = false
 disable_error_code = [
     "misc",
-    # No type stubs for capstone, unicorn, pwnlib, and elftools
-    "import",
     # Lots of dynamic attribute access
     "attr-defined",
     # Issues with indexing Module
@@ -41,6 +39,10 @@ module = [
    "pwndbg.auxv",
 ]
 disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "pt"]
+ignore_missing_imports = true
 
 [tool.isort]
 profile = "black"

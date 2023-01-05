@@ -130,7 +130,7 @@ class withIDA:
         self.fn = fn
         functools.update_wrapper(self, fn)
 
-    def __call__(self, *args: int, **kwargs: Any) -> Optional[Any]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:
@@ -201,9 +201,8 @@ def remote(function) -> None:
 
 @pwndbg.lib.memoize.reset_on_objfile
 def base():
-    segaddr = _ida.get_next_seg(0)
-
-    base = _ida.get_fileregion_offset(segaddr)
+    segaddr: int = _ida.get_next_seg(0)
+    base: int = _ida.get_fileregion_offset(segaddr)
 
     return segaddr - base
 
@@ -386,7 +385,7 @@ def ArgCount(address) -> None:
 
 
 @withIDA
-def SaveBase(path):
+def SaveBase(path: str):
     return _ida.save_database(path)
 
 
