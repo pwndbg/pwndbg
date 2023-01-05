@@ -34,7 +34,7 @@ disable_error_code = [
 module = [
    # Capstone constants
    "pwndbg.disasm.*",
-   "pwndbg.commands.nearpc",
+   "pwndbg.gdblib.nearpc",
    # Module fields
    "pwndbg.gdblib.typeinfo",
    "pwndbg.gdblib.elf",
