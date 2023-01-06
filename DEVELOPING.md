@@ -4,6 +4,9 @@
   * [Linting](#linting)
   * [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
+- [Adding a Configuration Option](#adding-a-configuration-option)
+  * [Configuration Docstrings](#configuration-docstrings)
+  * [Triggers](#triggers)
 - [Random developer notes](#random-developer-notes)
 
 # Development Basics
