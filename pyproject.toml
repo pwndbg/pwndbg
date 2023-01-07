@@ -20,8 +20,6 @@ disable_error_code = [
     "misc",
     # Lots of dynamic attribute access
     "attr-defined",
-    # Issues with indexing Module
-    "index",
     # https://github.com/python/mypy/issues/6232
     "assignment",
     # Issues with @property
