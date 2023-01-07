@@ -17,7 +17,6 @@ pretty = true
 show_error_codes = true
 incremental = false
 disable_error_code = [
-    "misc",
     # Lots of dynamic attribute access
     "attr-defined",
     # https://github.com/python/mypy/issues/6232

@@ -233,7 +233,8 @@ def fix_int(*a, **kw):
 
 
 def fix_int_reraise(*a, **kw):
-    return fix(*a, reraise=True, **kw)
+    # Type error likely due to https://github.com/python/mypy/issues/6799
+    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
 def OnlyWithFile(function):
@@ -461,9 +462,6 @@ class _ArgparsedCommand(Command):
         parser,
         function,
         command_name=None,
-        is_alias=False,
-        aliases=[],
-        category=CommandCategory.MISC,
         *a,
         **kw,
     ) -> None:
@@ -480,12 +478,10 @@ class _ArgparsedCommand(Command):
         # Note: function.__doc__ is used in the `pwndbg [filter]` command display
         function.__doc__ = self.parser.description.strip()
 
-        super(_ArgparsedCommand, self).__init__(
+        # Type error likely due to https://github.com/python/mypy/issues/6799
+        super(_ArgparsedCommand, self).__init__(  # type: ignore[misc]
             function,
             command_name=command_name,
-            is_alias=is_alias,
-            aliases=aliases,
-            category=category,
             *a,
             **kw,
         )
