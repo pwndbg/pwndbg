@@ -30,8 +30,16 @@ BOLD = "\x1b[1m"
 UNDERLINE = "\x1b[4m"
 
 
-def none(x):
-    return str(x)
+# We assign `none` instead of creating a function since it is faster this way
+# While this is a microptimization, the `none` may be called thousands of times with
+# a single context or a `hexdump $rsp 5000` call
+# A simple benchmark below:
+#   In [1]: def f(x): return str(x)
+#   In [2]: %timeit f('')
+#   117 ns ± 0.642 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+#   In [3]: %timeit str('')
+#   72 ns ± 0.222 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+none = str
 
 
 def normal(x):
@@ -153,20 +161,20 @@ class ColorConfig:
         raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
-def generateColorFunction(config: str):
-    # the `x` here may be a config Parameter object
+def generateColorFunction(config: str, _globals=globals()):
+    # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
     # is empty, we need to ensure we cast it to string
     # so it can be properly formatted e.g. with:
     # "{config_param:5}".format(config_param=some_config_parameter)
-    function = lambda x: str(x)
+    function = str
 
     if disable_colors:
         return function
 
     for color in config.split(","):
         func_name = color.lower().replace("-", "_")
-        function = generateColorFunctionInner(function, globals()[func_name])
+        function = generateColorFunctionInner(function, _globals[func_name])
     return function
 
 
