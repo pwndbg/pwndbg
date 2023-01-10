@@ -70,6 +70,7 @@ class forever(memoize):
     """
     Memoizes forever - for a pwndbg session or until `_reset` is called explicitly.
     """
+
     caches = []  # type: List[forever]
     kind = "forever"
 
