@@ -79,7 +79,7 @@ def memoize_on_new_objfile() -> None:
 
 @pwndbg.gdblib.events.start
 def memoize_on_start() -> None:
-    while_running._start_caching()
+    #while_running._start_caching()
     reset_on_start._reset()
 
 
