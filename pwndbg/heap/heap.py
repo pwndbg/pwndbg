@@ -1,7 +1,7 @@
 class MemoryAllocator:
     """Heap abstraction layer."""
 
-    def breakpoint(event):
+    def breakpoint(self, event):
         """Enables breakpoints on the specific event.
 
         Arguments:
@@ -12,7 +12,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def summarize(address, **kwargs):
+    def summarize(self, address, **kwargs):
         """Returns a textual summary of the specified address.
 
         Arguments:
@@ -23,7 +23,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def containing(address):
+    def containing(self, address):
         """Returns the address of the allocation which contains 'address'.
 
         Arguments:
