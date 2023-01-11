@@ -23,7 +23,7 @@ def test_windbg_dX_commands(start_binary):
         cmd = cmd_prefix + " nonexistentsymbol"
         assert gdb.execute(cmd, to_string=True) == (
             "usage: XX [-h] address [count]\n"
-            "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
+            "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
         ).replace("XX", cmd_prefix)
 
         # With an invalid/unmapped address
@@ -242,12 +242,12 @@ def test_windbg_eX_commands(start_binary):
             # This version occurred locally when tested on Python 3.9.5
             (
                 "usage: XX [-h] address [data ...]\n"
-                "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
+                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
             ).replace("XX", cmd_prefix),
             # This version occurs on CI on Python 3.8.10
             (
                 "usage: XX [-h] address [data [data ...]]\n"
-                "XX: error: argument address: invalid HexOrAddressExpr value: 'nonexistentsymbol'\n"
+                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
             ).replace("XX", cmd_prefix),
         )
 

@@ -35,7 +35,7 @@ def address_or_module_name(s):
         if pages:
             return pages[0].vaddr
         else:
-            raise argparse.ArgumentError("Could not find pages for module %s" % module_name)
+            raise argparse.ArgumentTypeError("Could not find pages for module %s" % module_name)
     elif isinstance(gdbval_or_str, (int, gdb.Value)):
         addr = gdbval_or_str
         return addr

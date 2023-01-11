@@ -72,12 +72,12 @@ def init_ida_rpc_client() -> None:
     try:
         _ida.here()
         print(message.success("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
-    except socket.error as e:
+    except TimeoutError:
+        exception = sys.exc_info()
+        _ida = None
+    except OSError as e:
         if e.errno != errno.ECONNREFUSED:
             exception = sys.exc_info()
-        _ida = None
-    except socket.timeout:
-        exception = sys.exc_info()
         _ida = None
     except xmlrpc.client.ProtocolError:
         exception = sys.exc_info()

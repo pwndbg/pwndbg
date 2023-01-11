@@ -570,7 +570,7 @@ def AddressExpr(s):
     val = sloppy_gdb_parse(s)
 
     if not isinstance(val, int):
-        raise argparse.ArgumentError("Incorrect address (or GDB expression): %s" % s)
+        raise argparse.ArgumentTypeError("Incorrect address (or GDB expression): %s" % s)
 
     return val
 
