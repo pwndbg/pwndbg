@@ -162,9 +162,9 @@ class Command(gdb.Command):
             return False
 
         last_line = lines[-1]
-        number, command = last_line.split(maxsplit=1)
+        number_str, command = last_line.split(maxsplit=1)
         try:
-            number = int(number)
+            number = int(number_str)
         except ValueError:
             # Workaround for a GDB 8.2 bug when show commands return error value
             # See issue #523

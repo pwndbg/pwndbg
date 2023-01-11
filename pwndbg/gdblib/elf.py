@@ -372,7 +372,7 @@ def map_inner(ei_class, ehdr, objfile):
         # For each page described by this program header
         for page_addr in range(vaddr, vaddr + memsz, pwndbg.lib.memory.PAGE_SIZE):
             if page_addr in pages:
-                page = pages[pages.index(page_addr)]
+                page = pages[pages.index(page_addr)]  # type: ignore[arg-type]
 
                 # Don't ever remove the execute flag.
                 # Sometimes we'll load a read-only area into .text

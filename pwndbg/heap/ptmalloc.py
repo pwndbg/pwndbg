@@ -1917,9 +1917,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         for reg in regs:
                             if "[" + reg + "]" in instr.op_str:
                                 # ldr reg1, [pc, #offset]
-                                offset = regs[reg].operands[1].mem.disp
+                                offset = regs[reg].operands[1].mem.disp  # type: ignore[index]
                                 offset = pwndbg.gdblib.memory.s32(
-                                    (regs[reg].address + 4 & -4) + offset
+                                    (regs[reg].address + 4 & -4) + offset  # type: ignore[index]
                                 )
                                 # add reg1, pc
                                 self._mp_addr = offset + ldr[reg].address + 4
@@ -1930,7 +1930,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                             if instr.op_str == reg + ", pc":
                                 ldr[reg] = instr
                     elif instr.mnemonic == "ldr" and "[pc," in instr.op_str:
-                        regs[instr.operands[0].str] = instr
+                        regs[instr.operands[0].str] = instr  # type: ignore[index]
 
         # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
         if (

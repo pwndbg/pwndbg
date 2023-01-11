@@ -391,7 +391,7 @@ def context(subcontext=None) -> None:
     if len(args) == 0:
         args = config_context_sections.split()
 
-    sections = [("legend", lambda target=None, **kwargs: [M.legend()])] if args else []
+    sections = [("legend", lambda *args, **kwargs: [M.legend()])] if args else []
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
