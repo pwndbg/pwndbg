@@ -7,11 +7,11 @@ from typing import List
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.exception
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
+from pwndbg.color import message
 from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
@@ -96,9 +96,7 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super(Command, self).__init__(
-            command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
-        )
+        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if command_name in command_names:
@@ -479,7 +477,7 @@ class _ArgparsedCommand(Command):
         function.__doc__ = self.parser.description.strip()
 
         # Type error likely due to https://github.com/python/mypy/issues/6799
-        super(_ArgparsedCommand, self).__init__(  # type: ignore[misc]
+        super().__init__(  # type: ignore[misc]
             function,
             command_name=command_name,
             *a,

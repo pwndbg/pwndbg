@@ -6,7 +6,7 @@ from typing import List
 
 import pwndbg.lib.memoize
 
-from . import theme as theme
+from . import theme
 
 NORMAL = "\x1b[0m"
 BLACK = "\x1b[30m"

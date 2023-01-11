@@ -25,7 +25,7 @@ class _GdbFunction(gdb.Function):
 
         functions.append(self)
 
-        super(_GdbFunction, self).__init__(self.name)
+        super().__init__(self.name)
 
         functools.update_wrapper(self, func)
         self.__doc__ = func.__doc__

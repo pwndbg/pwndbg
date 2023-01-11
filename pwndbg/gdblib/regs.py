@@ -70,7 +70,7 @@ class module(ModuleType):
             return None
 
     def __setattr__(self, attr, val):
-        if attr == "last" or attr == "previous":
+        if attr in ("last", "previous"):
             return super().__setattr__(attr, val)
         else:
             # Not catching potential gdb.error as this should never

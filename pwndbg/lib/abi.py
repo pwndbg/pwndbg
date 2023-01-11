@@ -51,7 +51,7 @@ class SyscallABI(ABI):
 
     def __init__(self, register_arguments, *a, **kw) -> None:
         self.syscall_register = register_arguments.pop(0)
-        super(SyscallABI, self).__init__(register_arguments, *a, **kw)
+        super().__init__(register_arguments, *a, **kw)
 
 
 class SigreturnABI(SyscallABI):

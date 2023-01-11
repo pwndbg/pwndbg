@@ -5,11 +5,11 @@ import os
 import gdb
 
 import pwndbg.color.memory as M
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

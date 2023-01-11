@@ -51,7 +51,7 @@ def _get_version():
         addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
             ver = pwndbg.gdblib.memory.string(addr)
-            return tuple([int(_) for _ in ver.split(b".")])
+            return tuple(int(_) for _ in ver.split(b"."))
     for addr in pwndbg.search.search(b"GNU C Library"):
         banner = pwndbg.gdblib.memory.string(addr)
         ret = re.search(rb"release version (\d+)\.(\d+)", banner)

@@ -92,7 +92,7 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
     # starting address and the number of bytes to dump. If the address is above
     # some minimum address, and the count is larger than that address, we assume
     # this is the case and correct it
-    if address > 0x10000 and count > address:
+    if 0x10000 < address < count:
         count -= address
 
     try:

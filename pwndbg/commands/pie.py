@@ -4,9 +4,9 @@ import os
 import gdb
 
 import pwndbg.auxv
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.vmmap
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

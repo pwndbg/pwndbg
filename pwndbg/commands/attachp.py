@@ -6,8 +6,8 @@ from subprocess import check_output
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
