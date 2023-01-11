@@ -59,3 +59,5 @@ fi
 vermin -q -t=3.6 --violations ./pwndbg/
 
 flake8 --show-source ${LINT_FILES}
+
+mypy pwndbg
