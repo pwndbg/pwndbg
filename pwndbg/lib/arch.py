@@ -33,9 +33,3 @@ class Arch:
 
     def unpack(self, data: bytes) -> int:
         return struct.unpack(self.fmt, data)[0]
-
-    def signed(self, integer: int) -> int:
-        return self.unpack(self.pack(integer), signed=True)  # type: ignore
-
-    def unsigned(self, integer: int) -> int:
-        return self.unpack(self.pack(integer))
