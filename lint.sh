@@ -60,4 +60,8 @@ vermin -q -t=3.6 --violations ./pwndbg/
 
 flake8 --show-source ${LINT_FILES}
 
-mypy pwndbg
+if [ -x "$(command -v mypy)" ]; then
+    mypy pwndbg
+else
+    echo "mypy not installed, skipping"
+fi

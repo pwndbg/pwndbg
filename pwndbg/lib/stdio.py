@@ -4,11 +4,13 @@ which prevent output from appearing on-screen inside of certain event handlers.
 """
 
 import sys
-from typing import *  # noqa note: TextIO is not abaliable in low python version
+from typing import List
+from typing import TextIO
+from typing import Tuple
 
 
 class Stdio:
-    queue = []  # type: List[Tuple[TextIO, TextIO, TextIO]]
+    queue: List[Tuple[TextIO, TextIO, TextIO]] = []
 
     def __enter__(self, *a, **kw) -> None:
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
