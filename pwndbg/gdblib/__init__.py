@@ -16,9 +16,9 @@ def load_gdblib() -> None:
     """
     Import all gdblib modules that need to run code on import
     """
+    # pylint: disable=import-outside-toplevel
     import pwndbg.gdblib.abi
     import pwndbg.gdblib.android
-    import pwndbg.gdblib.arch
     import pwndbg.gdblib.argv
     import pwndbg.gdblib.ctypes
     import pwndbg.gdblib.elf

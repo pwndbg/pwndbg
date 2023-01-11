@@ -491,7 +491,7 @@ def kernel_vmmap_via_monitor_info_mem():
                         + "`help show kernel-vmmap` for other options."
                     )
                 )
-            return tuple()
+            return tuple()  # pylint: disable=lost-exception
 
     lines = monitor_info_mem.splitlines()
 
@@ -604,7 +604,7 @@ def info_files():
     # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
     seen_files = set()
-    pages = list()
+    pages = []
     main_exe = ""
 
     for line in pwndbg.gdblib.info.files().splitlines():
@@ -687,8 +687,7 @@ def find_boundaries(addr, name="", min=0):
     start = pwndbg.gdblib.memory.find_lower_boundary(addr)
     end = pwndbg.gdblib.memory.find_upper_boundary(addr)
 
-    if start < min:
-        start = min
+    start = max(start, min)
 
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
 

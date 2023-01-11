@@ -10,7 +10,6 @@ import gdb
 import unicorn as U
 
 import pwndbg.disasm
-import pwndbg.emu.emulator
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs

@@ -587,6 +587,7 @@ def HexOrAddressExpr(s):
 
 
 def load_commands() -> None:
+    # pylint: disable=import-outside-toplevel
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.attachp

@@ -29,10 +29,9 @@ def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
 
 
-try:
-    gdb.Frame.read_register
+if hasattr(gdb.Frame, "read_register"):
     get_register = gdb79_get_register
-except AttributeError:
+else:
     get_register = gdb77_get_register
 
 
