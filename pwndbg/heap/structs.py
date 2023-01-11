@@ -41,8 +41,8 @@ if pwndbg.gdblib.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
     SIZE_T = ctypes.c_uint32
 else:
-    PTR = ctypes.c_uint64
-    SIZE_T = ctypes.c_uint64
+    PTR = ctypes.c_uint64  # type: ignore[misc]
+    SIZE_T = ctypes.c_uint64  # type: ignore[misc]
 
 
 class c_pvoid(PTR):

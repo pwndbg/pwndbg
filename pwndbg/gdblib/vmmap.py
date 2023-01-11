@@ -385,12 +385,12 @@ def proc_pid_maps():
 
     pages = []
     for line in data.splitlines():
-        maps, perm, offset, dev, inode_objfile = line.split(None, 4)
+        maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
 
         start, stop = maps.split("-")
 
         try:
-            inode, objfile = inode_objfile.split(None, 1)
+            inode, objfile = inode_objfile.split(maxsplit=1)
         except Exception:
             # Name unnamed anonymous pages so they can be used e.g. with search commands
             objfile = "[anon_" + start[:-3] + "]"
@@ -612,7 +612,7 @@ def info_files():
 
         # The name of the main executable
         if line.startswith("`"):
-            exename, filetype = line.split(None, 1)
+            exename, filetype = line.split(maxsplit=1)
             main_exe = exename.strip("`,'")
             continue
 
@@ -620,8 +620,8 @@ def info_files():
         if not line.startswith("0x"):
             continue
 
-        # start, stop, _, segment, _, filename = line.split(None,6)
-        fields = line.split(None, 6)
+        # start, stop, _, segment, _, filename = line.split(maxsplit=6)
+        fields = line.split(maxsplit=6)
         vaddr = int(fields[0], 16)
 
         if len(fields) == 5:

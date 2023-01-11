@@ -88,7 +88,7 @@ def get(address: int, gdb_only=False) -> str:
     # main + 3 in section .text of /bin/bash
     # system + 1 in section .text of /lib/x86_64-linux-gnu/libc.so.6
     # No symbol matches system-1.
-    a, b, c, _ = result.split(None, 3)
+    a, b, c, _ = result.split(maxsplit=3)
 
     if b == "+":
         return "%s+%s" % (a, c)

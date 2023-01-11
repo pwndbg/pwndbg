@@ -151,7 +151,7 @@ def unix(data: str):
         Num       RefCount Protocol Flags    Type St Inode Path
         0000000000000000: 00000002 00000000 00010000 0005 01  1536 /dev/socket/msm_irqbalance
         """
-        fields = line.split(None, 7)
+        fields = line.split(maxsplit=7)
 
         u = UnixSocket()
         if len(fields) >= 8:

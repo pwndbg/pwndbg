@@ -950,9 +950,9 @@ def try_free(addr) -> None:
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
         if tc_idx < allocator.mp["tcache_bins"]:
             print(message.notice("Tcache checks"))
-            e = addr + 2 * size_sz
-            e += allocator.tcache_entry.keys().index("key") * ptr_size
-            e = pwndbg.gdblib.memory.pvoid(e)
+            e = addr + 2 * size_sz  # type: ignore[misc]
+            e += allocator.tcache_entry.keys().index("key") * ptr_size  # type: ignore[misc]
+            e = pwndbg.gdblib.memory.pvoid(e)  # type: ignore[misc]
             tcache_addr = int(allocator.thread_cache.address)
             if e == tcache_addr:
                 # todo, actually do checks
@@ -1028,7 +1028,7 @@ def try_free(addr) -> None:
                 finalize(errors_found, returned_before_error)
                 return
 
-            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))
+            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))  # type: ignore[index]
             if chunk_fastbin_idx != allocator.fastbin_index(fastbin_top_chunk_size):
                 err = "invalid fastbin entry (free) -> chunk's size is not near top chunk's size\n"
                 err += "    chunk's size == {}, idx == {}\n"

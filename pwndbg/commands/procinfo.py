@@ -93,14 +93,13 @@ class Process:
             if not line:
                 continue
 
-            k_v = line.split(None, 1)
+            k_v = line.split(maxsplit=1)
 
             if len(k_v) == 1:
                 k_v.append(b"")
 
             k, v = k_v
 
-            # Python3 ftw!
             k = k.decode("latin-1")
             v = v.decode("latin-1")
 
@@ -129,7 +128,7 @@ class Process:
 
             # capability sets
             if k in ["capeff", "capinh", "capprm", "capbnd"]:
-                orig = v
+                orig: int = v
                 v = []
                 for i in range(max(capabilities) + 1):
                     if (orig >> i) & 1 == 1:
