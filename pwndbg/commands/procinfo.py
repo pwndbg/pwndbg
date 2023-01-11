@@ -73,9 +73,6 @@ class Process:
         self.pid = pid
         self.tid = tid
 
-        # Precalculate
-        self.status
-
     @property
     @pwndbg.lib.memoize.reset_on_stop
     def selinux(self):
