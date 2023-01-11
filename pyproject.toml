@@ -106,7 +106,6 @@ disable = [
     "consider-using-with", # TODO: Fix these
     "consider-using-generator", # TODO: Fix these
     "chained-comparison", # TODO: Fix these
-    "super-with-arguments", # TODO: Fix these
     "no-else-return",
     "no-else-raise",
     "no-else-continue",

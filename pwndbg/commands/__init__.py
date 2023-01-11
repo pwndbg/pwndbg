@@ -96,7 +96,7 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super(Command, self).__init__(
+        super().__init__(
             command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
         )
         self.function = function
@@ -479,7 +479,7 @@ class _ArgparsedCommand(Command):
         function.__doc__ = self.parser.description.strip()
 
         # Type error likely due to https://github.com/python/mypy/issues/6799
-        super(_ArgparsedCommand, self).__init__(  # type: ignore[misc]
+        super().__init__(  # type: ignore[misc]
             function,
             command_name=command_name,
             *a,
