@@ -118,7 +118,8 @@ def save_ida() -> None:
 
     pwndbg.ida.SaveBase(full_path)
 
-    data = open(full_path, "rb").read()
+    with open(full_path, "rb") as f:
+        data = f.read()
 
     # Compress!
     full_path_compressed = full_path + ".bz2"

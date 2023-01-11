@@ -75,8 +75,8 @@ disable = [
     "dangerous-default-value", # TODO: Fix these
 
     # classes
+    "arguments-renamed",
     "protected-access", # TODO: Fix these
-    "arguments-renamed", # TODO: Fix these
     "abstract-method", # TODO: Fix these
     "attribute-defined-outside-init", # TODO: Fix these
 
@@ -88,11 +88,10 @@ disable = [
     "line-too-long",
 
     # imports
-    "useless-import-alias",
     "import-outside-toplevel",
-    "wildcard-import",
-    "consider-using-from-import",
     "wrong-import-position",
+    "consider-using-from-import", # TODO: Fix these
+    "wildcard-import", # TODO: Fix these
 
     # lambda-expressions
     "unnecessary-lambda-assignment",
@@ -103,13 +102,11 @@ disable = [
     # refactoring
     "consider-using-f-string", # TODO: Fix these
     "consider-using-with", # TODO: Fix these
-    "consider-using-generator", # TODO: Fix these
-    "no-else-return",
-    "no-else-raise",
-    "no-else-continue",
-    "no-else-break",
-    "inconsistent-return-statements",
-    "too-many-nested-blocks",
+    "no-else-return", # TODO: Fix these
+    "no-else-raise", # TODO: Fix these
+    "no-else-continue", # TODO: Fix these
+    "no-else-break", # TODO: Fix these
+    "inconsistent-return-statements", # TODO: Fix these
     "redefined-argument-from-local",
 
     # stdlib
@@ -127,7 +124,6 @@ disable = [
     "unused-wildcard-import",
     "unused-argument", # TODO: Fix these
     "unused-variable", # TODO: Fix these
-    "unused-import", # TODO: Fix these
     "undefined-loop-variable", # TODO: Fix these
     "undefined-variable", # TODO: Fix these
     "redefined-builtin", # TODO: Fix these
@@ -206,7 +202,7 @@ confidence = ["HIGH", "CONTROL_FLOW", "INFERENCE", "INFERENCE_FAILURE", "UNDEFIN
 
 [tool.pylint.refactoring]
 # Maximum number of nested blocks for function / method body
-max-nested-blocks = 5
+max-nested-blocks = 6
 
 [tool.pylint.reports]
 output-format = "colorized"
