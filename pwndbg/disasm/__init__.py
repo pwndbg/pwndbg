@@ -5,6 +5,7 @@ address +/- a few instructions.
 
 import collections
 from typing import DefaultDict
+from typing import List
 from typing import Union
 
 import capstone
@@ -135,7 +136,7 @@ class SimpleInstruction:
         self.size = ins["length"]
         self.next = self.address + self.size
         self.target = self.next
-        self.groups = []
+        self.groups: List[Any] = []
         self.symbol = None
         self.condition = False
 
