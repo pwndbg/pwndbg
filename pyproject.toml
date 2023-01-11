@@ -102,7 +102,6 @@ disable = [
 
     # refactoring
     "consider-using-f-string", # TODO: Fix these
-    "consider-using-in", # TODO: Fix these
     "consider-using-with", # TODO: Fix these
     "consider-using-generator", # TODO: Fix these
     "no-else-return",

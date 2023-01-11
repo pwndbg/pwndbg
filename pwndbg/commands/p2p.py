@@ -53,7 +53,7 @@ def address_range_explicit(section):
 
 
 def address_range(section):
-    if section == "*" or section == "any":
+    if section in ("*", "any"):
         return (0, pwndbg.gdblib.arch.ptrmask)
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
