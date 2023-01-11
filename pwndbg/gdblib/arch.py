@@ -53,10 +53,7 @@ def _get_arch(ptrsize):
 
 
 def update() -> None:
-    # We can't just assign to `arch` with a new `Arch` object. Modules that have
-    # already imported it will still have a reference to the old `arch`
-    # object. Instead, we call `__init__` again with the new args
     arch_name, ptrsize, endian = _get_arch(typeinfo.ptrsize)
-    arch.__init__(arch_name, ptrsize, endian)
+    arch.update(arch_name, ptrsize, endian)
     pwnlib.context.context.arch = pwnlib_archs_mapping[arch_name]
     pwnlib.context.context.bits = ptrsize * 8
