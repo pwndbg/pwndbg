@@ -132,13 +132,10 @@ def readlink(path):
 
     result = gdb.execute(cmd % path, from_tty=False, to_string=True)
 
-    """
-    sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
-    received: "Fc;pipe:[98420]"
-
-    sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
-    received: "F-1,2"
-    """
+    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
+    # received: "Fc;pipe:[98420]"
+    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
+    # received: "F-1,2"
 
     _, data = result.split("\n", 1)
 

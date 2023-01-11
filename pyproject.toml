@@ -70,7 +70,6 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "missing-module-docstring",
-    "pointless-statement", # TODO: Fix these
     "pointless-string-statement", # TODO: Fix these
     "dangerous-default-value", # TODO: Fix these
 

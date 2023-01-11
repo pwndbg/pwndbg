@@ -47,12 +47,13 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def envp(name=None):
-    if name is not None:
-        gdb.execute('p $environ("%s")' % name)
-        return
     """
     Prints out the contents of the environment.
     """
+    if name is not None:
+        gdb.execute('p $environ("%s")' % name)
+        return
+
     start = pwndbg.gdblib.argv.envp
     n = pwndbg.gdblib.argv.envc + 1
 
