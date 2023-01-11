@@ -60,9 +60,9 @@ def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
     if lookup:
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
-        if type(lookup) in [gdb.Value, int]:
+        if isinstance(lookup, (gdb.Value, int)):
             lookup = int(lookup).to_bytes(length, pwndbg.gdblib.arch.endian)
-        elif type(lookup) is str:
+        elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
 
         if len(lookup) != length:

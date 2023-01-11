@@ -186,8 +186,8 @@ def leakfind(
                 output_map[chain_length] = [line]
 
     # Output sorted by length of chain
-    for chain_length in output_map:
-        for line in output_map[chain_length]:
+    for chain_length, lines in output_map.items():
+        for line in lines:
             print(line)
 
     if pwndbg.gdblib.qemu.is_qemu():

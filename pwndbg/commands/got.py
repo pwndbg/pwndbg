@@ -23,7 +23,7 @@ def got(name_filter="") -> None:
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
     jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())
-    if not len(jmpslots):
+    if not jmpslots:
         print(message.error("NO JUMP_SLOT entries available in the GOT"))
         return
 

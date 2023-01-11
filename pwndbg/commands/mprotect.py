@@ -53,9 +53,9 @@ prot_dict = {
 def prot_str_to_val(protstr):
     """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
     prot_int = 0
-    for k in prot_dict:
+    for k, v in prot_dict.items():
         if k in protstr:
-            prot_int |= prot_dict[k]
+            prot_int |= v
     return prot_int
 
 

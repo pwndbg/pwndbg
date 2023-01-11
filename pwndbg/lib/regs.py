@@ -46,7 +46,7 @@ class RegisterSet:
         stack="sp",
         frame=None,
         retaddr=tuple(),
-        flags=dict(),
+        flags={},
         gpr=tuple(),
         misc=tuple(),
         args=tuple(),

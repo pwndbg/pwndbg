@@ -38,8 +38,6 @@ def guess_numbers_base(num: str):
 
 
 def address_range_explicit(section):
-    global parser
-
     try:
         begin, end = section.split(":")
 
@@ -55,8 +53,6 @@ def address_range_explicit(section):
 
 
 def address_range(section):
-    global parser
-
     if section == "*" or section == "any":
         return (0, pwndbg.gdblib.arch.ptrmask)
 

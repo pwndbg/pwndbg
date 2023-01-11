@@ -136,7 +136,7 @@ class StdOutput:
         return hash(sys.stdout)
 
     def __eq__(self, other) -> bool:
-        return type(other) is StdOutput
+        return isinstance(other, StdOutput)
 
 
 class FileOutput:

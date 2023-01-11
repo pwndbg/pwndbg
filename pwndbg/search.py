@@ -35,7 +35,7 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
     elif start:
         maps = [m for m in maps if start in m]
     elif end:
-        maps = [m for m in maps if (end - 1) in m]
+        maps = [m for m in maps if end - 1 in m]
 
     if executable:
         maps = [m for m in maps if m.execute]
