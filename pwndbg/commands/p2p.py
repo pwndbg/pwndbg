@@ -86,7 +86,7 @@ def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
         return None
 
     for r in rs:
-        if pointee >= r.begin and pointee < r.end:
+        if r.begin <= pointee < r.end:
             return pointee
 
     return None

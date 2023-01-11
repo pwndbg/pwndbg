@@ -96,9 +96,7 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super().__init__(
-            command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
-        )
+        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if command_name in command_names:

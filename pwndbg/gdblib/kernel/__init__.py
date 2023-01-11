@@ -12,7 +12,7 @@ _kconfig: pwndbg.lib.kernel.kconfig.Kconfig = None
 
 
 def BIT(shift: int):
-    assert shift >= 0 and shift < 64
+    assert 0 <= shift < 64
     return 1 << shift
 
 

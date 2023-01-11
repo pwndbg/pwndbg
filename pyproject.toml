@@ -105,7 +105,6 @@ disable = [
     "consider-using-in", # TODO: Fix these
     "consider-using-with", # TODO: Fix these
     "consider-using-generator", # TODO: Fix these
-    "chained-comparison", # TODO: Fix these
     "no-else-return",
     "no-else-raise",
     "no-else-continue",
