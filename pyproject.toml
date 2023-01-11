@@ -20,9 +20,7 @@ disable_error_code = [
     # Lots of dynamic attribute access
     "attr-defined",
     # https://github.com/python/mypy/issues/6232
-    "assignment",
-    # Issues with @property
-    "operator",
+    "assignment"
 ]
 
 [[tool.mypy.overrides]]

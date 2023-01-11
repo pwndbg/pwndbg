@@ -6,8 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Only care about the oldest and newest versions
-        os: [ubuntu-22.04, ubuntu-18.04]
+        os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
