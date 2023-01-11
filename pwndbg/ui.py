@@ -8,13 +8,13 @@ import struct
 import sys
 import termios
 
-import pwndbg.color.context as C
 import pwndbg.gdblib.arch
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
+from pwndbg.color.context import c
 from pwndbg.gdblib import config
 
 theme.add_param("banner-separator", "─", "repeated banner separator character")
@@ -45,7 +45,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
     if title:
         title = "%s%s%s%s" % (
             config.banner_title_surrounding_left,
-            C.banner_title(title),
+            c.banner_title(title),
             extra,
             config.banner_title_surrounding_right,
         )
@@ -56,7 +56,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
     else:
         banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
         banner = ljust_colored(banner, width, config.banner_separator)
-    return C.banner(banner)
+    return c.banner(banner)
 
 
 def addrsz(address) -> str:

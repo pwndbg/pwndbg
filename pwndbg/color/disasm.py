@@ -1,13 +1,13 @@
 import capstone
 
 import pwndbg.chain
-import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.disasm.jump
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
+from pwndbg.color.context import c as C
 from pwndbg.color.message import on
 
 capstone_branch_groups = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP))

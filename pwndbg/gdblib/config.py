@@ -80,11 +80,18 @@ class Parameter(gdb.Parameter):
 
     def get_show_string(self, svalue) -> str:
         """Handles the GDB `show <param>` command"""
-        more_information_hint = " See `help set %s` for more information." % self.param.name
+        param = self._get_replacement_param()
+
+        more_information_hint = " See `help set %s` for more information." % param.name
         return "%s is %r.%s" % (
-            self.param.set_show_doc.capitalize(),
+            param.set_show_doc.capitalize(),
             svalue,
             more_information_hint if self.__doc__ else "",
+            # TODO: Convert above to code below
+            # param = self._get_replacement_param()
+            # return "The current value of %r is %s" % (
+            #     param.name,
+            #     Parameter._value_to_gdb_native(param.value, param.param_class),
         )
 
     @staticmethod

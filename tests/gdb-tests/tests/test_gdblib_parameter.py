@@ -53,6 +53,9 @@ def test_gdb_parameter_default_value_works(start_binary, params):
         out
         == f"{set_show_doc.capitalize()} is {displayed_value!r}. See `help set {param_name}` for more information.\n"
     )
+    # TODO: Fix merge conflict, below is new code
+    # assert out == f"The current value of {param_name!r} is {displayed_value}\n"
+
     if (
         optional_kwargs.get("param_class") in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER)
         and default_value == 0
