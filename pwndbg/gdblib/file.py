@@ -11,9 +11,9 @@ import tempfile
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
+from pwndbg.color import message
 
 _remote_files_dir = None
 

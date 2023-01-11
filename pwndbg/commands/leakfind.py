@@ -10,11 +10,11 @@ from typing import List
 import gdb
 
 import pwndbg.color.memory as M
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
 from pwndbg.chain import c as C
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

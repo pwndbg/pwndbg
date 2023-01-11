@@ -9,9 +9,9 @@ import gdb
 import pwnlib.util.lists
 
 import pwndbg.color.hexdump as H
-import pwndbg.color.theme as theme
 import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
+from pwndbg.color import theme
 from pwndbg.commands.windbg import enhex
 
 color_scheme = None

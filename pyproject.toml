@@ -90,7 +90,6 @@ disable = [
     # imports
     "import-outside-toplevel",
     "wrong-import-position",
-    "consider-using-from-import", # TODO: Fix these
     "wildcard-import", # TODO: Fix these
 
     # lambda-expressions

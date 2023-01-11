@@ -1,7 +1,6 @@
 import gdb
 
 import pwndbg.color.memory as M
-import pwndbg.color.theme as theme
 import pwndbg.enhance
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.memory
@@ -10,6 +9,7 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import theme
 
 LIMIT = pwndbg.gdblib.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"

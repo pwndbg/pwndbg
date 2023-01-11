@@ -4,9 +4,9 @@ import traceback
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.lib.memoize
 import pwndbg.lib.stdio
+from pwndbg.color import message
 from pwndbg.gdblib import config
 
 with pwndbg.lib.stdio.stdio:

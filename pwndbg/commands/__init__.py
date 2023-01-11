@@ -7,11 +7,11 @@ from typing import List
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.exception
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
+from pwndbg.color import message
 from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError

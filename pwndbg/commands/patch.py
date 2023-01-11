@@ -5,10 +5,10 @@ import argparse
 from pwnlib.asm import asm
 from pwnlib.asm import disasm
 
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
+from pwndbg.color import message
 
 # Keep old patches made so we can revert them
 patches = {}

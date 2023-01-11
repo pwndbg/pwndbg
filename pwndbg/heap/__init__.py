@@ -1,9 +1,9 @@
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.gdblib.config
 import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
+from pwndbg.color import message
 
 current = None
 
