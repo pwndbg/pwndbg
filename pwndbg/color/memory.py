@@ -16,7 +16,7 @@ c = ColorConfig(
 )
 
 
-def get(address, text=None):
+def get(address, text=None) -> str:
     """
     Returns a colorized string representing the provided address.
 
