@@ -1,6 +1,6 @@
 capstone==4.0.2
 psutil==5.9.4
-pwntools==4.8.0
+pwntools==4.9.0
 pycparser==2.21
 pyelftools==0.29
 Pygments==2.13.0
