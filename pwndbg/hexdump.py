@@ -94,23 +94,45 @@ def hexdump(
             return
 
         data = list(bytearray(data))
-        last_line = None
-        skipping = False
-        for i, line in enumerate(groupby(width, data, fill=-1)):
-            if skip and line == last_line:
-                if skipping:
-                    continue
 
-                skipping = True
-                yield "..."
-            else:
-                skipping = False
-                last_line = line
+        # Hexdump lines to skip_lines values and yields:
+        #
+        # <init: skip_lines = -1>
+        # line AAAA     => skip_lines =  0   => yield "AAAA"
+        # line AAAA     => skip_lines =  1   => <continue>
+        # line AAAA     => skip_lines = -1   => yield "skipped ..." + "AAAA"
+        # line BBBB     => skip_lines = -1   => yield "BBBB"
+        skip_lines = -1
 
-            hexline = []
+        config_separator_str = H.separator(str(config_separator))
+        config_byte_separator_str = str(config_byte_separator)
 
-            hexline.append(H.offset("+%04x " % ((i + offset) * width)))
-            hexline.append(H.address("%#08x  " % (address + (i * width))))
+        groupped = groupby(width, data, fill=-1)
+        before_last_idx = len(groupped) - 2
+
+
+        for i, line in enumerate(groupped):
+            # Handle skipping of identical lines (see skip_lines comment above)
+            if skip:
+                # Count lines to be skipped by checking next/future line
+                if i <= before_last_idx and line == groupped[i+1]:
+                    skip_lines += 1
+
+                    # Since we count from -1 then 0 means we are on first line
+                    # We want to yield that line, so we do not continue on that counter
+                    if skip_lines != 0:
+                        continue
+
+                elif skip_lines > 0:
+                    out = f"... ↓            skipped {skip_lines} identical lines ({skip_lines * width} bytes)"
+                    skip_lines = -1
+                    yield out
+                    # Fallthrough (do not continue) so we yield the current line too
+
+            hexline = [
+                H.offset("+%04x " % ((i + offset) * width)),
+                H.address("%#08x  " % (address + (i * width)))
+            ]
 
             for group in groupby(group_width, line):
                 group = reversed(group) if flip_group_endianess else group
@@ -119,19 +141,18 @@ def hexdump(
                         hexline.append(H.highlight_group_lsb(color_scheme[char]))
                     else:
                         hexline.append(color_scheme[char])
-                    hexline.append(str(config_byte_separator))
+                    hexline.append(config_byte_separator_str)
                 hexline.append(" ")
 
-            hexline.append(H.separator("%s" % config_separator))
+            hexline.append(config_separator_str)
             for group in groupby(group_width, line):
                 for char in group:
                     hexline.append(printable[char])
-                hexline.append(H.separator("%s" % config_separator))
+                hexline.append(config_separator_str)
 
             yield "".join(hexline)
 
     else:
-
         # Traditionally, windbg will display 16 bytes of data per line.
         values = []
 
@@ -155,8 +176,8 @@ def hexdump(
             print("Could not access the provided address")
             return
 
-        n_rows = int(math.ceil(count * size / float(16)))
-        row_sz = int(16 / size)
+        n_rows = int(math.ceil(count * size / 16.0))
+        row_sz = 16 // size
         rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
         lines = []
 

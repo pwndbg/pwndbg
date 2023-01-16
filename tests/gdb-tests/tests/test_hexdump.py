@@ -56,3 +56,27 @@ def test_hexdump(start_binary):
         f"""+0000 0x{stack_addr:x}  616161                            │aaa     │        │\n""",
     ]
     run_tests(stack_addr, False, expected)
+
+
+def test_hexdump_collapse_lines(start_binary):
+    start_binary(BINARY)
+    sp = pwndbg.gdblib.regs.rsp
+
+    pwndbg.gdblib.memory.write(sp, b'abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08' * 16)
+
+    def hexdump_lines(lines):
+        offset = (lines - 1) * 0x10  # last line offset
+        skipped_lines = lines - 2
+
+        out = gdb.execute(f'hexdump $rsp {offset+16}', to_string=True)
+
+        expected = (
+            f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+            f"... ↓            skipped {skipped_lines} identical lines ({skipped_lines*16} bytes)\n"
+            f"+{offset:04x} 0x{sp+offset:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+        )
+        assert out == expected
+
+    hexdump_lines(3)
+    hexdump_lines(4)
+    hexdump_lines(10)
