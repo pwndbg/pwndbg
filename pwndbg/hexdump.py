@@ -110,12 +110,11 @@ def hexdump(
         groupped = groupby(width, data, fill=-1)
         before_last_idx = len(groupped) - 2
 
-
         for i, line in enumerate(groupped):
             # Handle skipping of identical lines (see skip_lines comment above)
             if skip:
                 # Count lines to be skipped by checking next/future line
-                if i <= before_last_idx and line == groupped[i+1]:
+                if i <= before_last_idx and line == groupped[i + 1]:
                     skip_lines += 1
 
                     # Since we count from -1 then 0 means we are on first line
@@ -131,7 +130,7 @@ def hexdump(
 
             hexline = [
                 H.offset("+%04x " % ((i + offset) * width)),
-                H.address("%#08x  " % (address + (i * width)))
+                H.address("%#08x  " % (address + (i * width))),
             ]
 
             for group in groupby(group_width, line):
