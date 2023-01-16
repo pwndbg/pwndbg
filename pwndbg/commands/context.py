@@ -248,19 +248,11 @@ def contextoutput(section, path, clearing, banner="both", width=None):
 
 # Watches
 expressions = []
-expression_commands = {
-    "eval": gdb.parse_and_eval,
-    "execute": lambda exp: gdb.execute(exp, False, True),
-}
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Adds an expression to be shown on context.
-
-'cmd' controls what command is used to interpret the expression:
-- eval: the expression is parsed and evaluated as in the debugged language.
-- execute: the expression is executed as a GDB command.
 
 To remove an expression, see `cunwatch`.
 """,
@@ -270,7 +262,10 @@ parser.add_argument(
     type=str,
     default="eval",
     nargs="?",
-    help="Command to be used with the expression. Values are: eval execute",
+    choices=["eval", "execute"],
+    help="""Command to be used with the expression.
+- eval: the expression is parsed and evaluated as in the debugged language.
+- execute: the expression is executed as a GDB command.""",
 )
 parser.add_argument(
     "expression", type=str, help="The expression to be evaluated and shown in context"
@@ -280,8 +275,8 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(
     parser, aliases=["ctx-watch", "cwatch"], category=CommandCategory.CONTEXT
 )
-def contextwatch(expression, cmd=None) -> None:
-    expressions.append((expression, expression_commands.get(cmd, gdb.parse_and_eval)))
+def contextwatch(expression, cmd) -> None:
+    expressions.append((expression, cmd))
 
 
 parser = argparse.ArgumentParser(
@@ -306,27 +301,26 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
         return []
     banner = [pwndbg.ui.banner("expressions", target=target, width=width)]
     output = []
-    if width is None:
-        _height, width = pwndbg.ui.get_window_size(target=target)
     for i, (exp, cmd) in enumerate(expressions):
+        header = f"{i + 1}: {C.highlight(exp)}"
         try:
-            # value = gdb.parse_and_eval(exp)
-            value = str(cmd(exp))
+            if cmd == "eval":
+                value = str(gdb.parse_and_eval(exp))
+            else:
+                assert cmd == "execute"
+                value = gdb.execute(exp, from_tty=False, to_string=True)
         except gdb.error as err:
             value = str(err)
-        value = value.split("\n")
-        lines: List[str] = []
-        for line in value:
-            if width and len(line) + len(exp) + 3 > width:
-                n = width - (len(exp) + 3) - 1  # 1 Padding...
-                lines.extend(line[i : i + n] for i in range(0, len(line), n))
-            else:
-                lines.append(line)
 
-        fmt = C.highlight(exp)
-        lines[0] = "{}: {} = {}".format(i + 1, fmt, lines[0])
-        lines[1:] = [" " * (len(exp) + 3) + line for line in lines[1:]]
-        output.extend(lines)
+        # When evaluating the expression we display it inline with the header, but when executing an
+        # expression we display it on the next line
+        if cmd == "eval":
+            header += f" = {value}"
+        output.append(header)
+
+        if cmd == "execute":
+            output.append(value)
+
     return banner + output if with_banner else output
 
 
