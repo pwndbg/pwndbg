@@ -1,5 +1,7 @@
 #!/bin/bash
 
+make -C binaries
+
 qemu-aarch64 \
     -g 1234 \
     -L /usr/aarch64-linux-gnu/ \
