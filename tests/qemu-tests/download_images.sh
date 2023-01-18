@@ -1,7 +1,13 @@
 #!/bin/bash
 
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemux86-64/bzImage-qemux86-64.bin
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemux86-64/core-image-minimal-dev-qemux86-64-20221114164338.rootfs.ext4
+set -o errexit
 
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemuarm64/Image-qemuarm64.bin
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemuarm64/core-image-minimal-dev-qemuarm64-20221114170418.rootfs.ext4
+URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
+
+wget "$URL/rootfs-x86_64.img"
+wget "$URL/rootfs-arm64.img"
+
+wget "$URL/bzImage-linux-x86_64"
+wget "$URL/bzImage-ack-x86_64"
+wget "$URL/Image-linux-arm64"
+wget "$URL/Image-ack-arm64"
