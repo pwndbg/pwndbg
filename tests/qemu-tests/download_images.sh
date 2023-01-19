@@ -2,7 +2,8 @@
 
 set -o errexit
 
-OUT_DIR=images
+CWD=$(dirname -- "$0")
+OUT_DIR="${CWD}/images"
 URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
 
 mkdir -p "${OUT_DIR}"
