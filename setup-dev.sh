@@ -91,8 +91,11 @@ install_apt() {
         curl \
         build-essential \
         gdb \
+        gdb-multiarch \
         parallel \
-        netcat-openbsd
+        netcat-openbsd \
+        qemu-system-x86 \
+        qemu-system-arm
 
     if [[ "$1" == "22.04" ]]; then
         sudo apt install shfmt
