@@ -2,12 +2,26 @@
 
 set -o errexit
 
+OUT_DIR=images
 URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
 
-wget "$URL/rootfs-x86_64.img"
-wget "$URL/rootfs-arm64.img"
+mkdir -p "${OUT_DIR}"
 
-wget "$URL/bzImage-linux-x86_64"
-wget "$URL/bzImage-ack-x86_64"
-wget "$URL/Image-linux-arm64"
-wget "$URL/Image-ack-arm64"
+for arch in x86_64 arm64; do
+    file="rootfs-${arch}.img"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="vmlinux-linux-${arch}"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="vmlinux-ack-${arch}"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+done
+
+for kernel_type in ack linux; do
+    file="bzImage-${kernel_type}-x86_64"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="Image-${kernel_type}-arm64"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+done
