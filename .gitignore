@@ -76,10 +76,8 @@ tests/**/binaries/div_zero_binary/core
 tests/**/binaries/div_zero_binary/binary
 !tests/**/binaries/*.go
 
-# QEMU test files
-tests/qemu-tests/Image*
-tests/qemu-tests/bzImage*
-tests/qemu-tests/rootfs*.img
+# QEMU test images
+tests/qemu-tests/images
 
 # VS Code files
 .vscode/
