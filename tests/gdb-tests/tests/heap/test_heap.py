@@ -1,4 +1,5 @@
 import gdb
+import pytest
 
 import pwndbg
 import pwndbg.gdblib.arch
@@ -260,9 +261,13 @@ def test_main_arena_heuristic(start_binary):
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 3: We check we can get the address of `main_arena` by parsing the memory
-    with mock_for_heuristic(mock_all=True):
-        # Check the address of `main_arena` is correct
-        assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+    for _ in range(2):
+        with mock_for_heuristic(mock_all=True):
+            # Check the address of `main_arena` is correct
+            assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+        # Check if it works when there's more than one arena
+        gdb.execute("continue")
+        assert gdb.selected_thread().num == 2
 
 
 def test_mp_heuristic(start_binary):
@@ -328,12 +333,18 @@ def test_global_max_fast_heuristic(start_binary):
         assert pwndbg.heap.current._global_max_fast_addr == global_max_fast_addr_via_debug_symbol
 
 
-def test_thread_cache_heuristic(start_binary):
+@pytest.mark.parametrize(
+    "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
+)
+def test_thread_cache_heuristic(start_binary, is_multi_threaded):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
     gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
+    if is_multi_threaded:
+        gdb.execute("continue")
+        assert gdb.selected_thread().num == 2
 
     # Use the debug symbol to find the address of `thread_cache`
     tcache_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
@@ -363,12 +374,18 @@ def test_thread_cache_heuristic(start_binary):
         assert pwndbg.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
 
 
-def test_thread_arena_heuristic(start_binary):
+@pytest.mark.parametrize(
+    "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
+)
+def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
     gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
+    if is_multi_threaded:
+        gdb.execute("continue")
+        assert gdb.selected_thread().num == 2
 
     # Use the debug symbol to find the value of `thread_arena`
     thread_arena_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
@@ -392,12 +409,18 @@ def test_thread_arena_heuristic(start_binary):
         assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
 
-def test_heuristic_fail_gracefully(start_binary):
+@pytest.mark.parametrize(
+    "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
+)
+def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
     gdb.execute("set resolve-heap-via-heuristic force")
     gdb.execute("break break_here")
     gdb.execute("continue")
+    if is_multi_threaded:
+        gdb.execute("continue")
+        assert gdb.selected_thread().num == 2
 
     def _test_heuristic_fail_gracefully(name):
         try:
