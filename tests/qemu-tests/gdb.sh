@@ -1,7 +1,10 @@
 #!/bin/bash
 
 ARCH="$1"
-KERNEL_TYPE="$2"
+shift
+
+KERNEL_TYPE="$1"
+shift
 
 CWD=$(dirname -- "$0")
 IMAGE_DIR="${CWD}/images"
@@ -23,10 +26,10 @@ alternatively run the following command:
 EOF
 fi
 
-if [[ $ARCH == "arm64" ]]; then
-    GDB=gdb-multiarch
-else
+if [[ "$ARCH" == x86_64 ]]; then
     GDB=gdb
+else
+    GDB=gdb-multiarch
 fi
 
 VMLINUX="${IMAGE_DIR}/vmlinux-${KERNEL_TYPE}-${ARCH}"

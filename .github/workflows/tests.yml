@@ -32,7 +32,7 @@ jobs:
         echo 'Installed packages:'
         python -m pip freeze
 
-    # We to set `kernel.yama.ptrace_scope=0` for `attachp` command tests
+    # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
       run: |
         mkdir .cov
@@ -49,3 +49,29 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       uses: codecov/codecov-action@v3
 
+  qemu-tests:
+    runs-on: [ubuntu-22.04]
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Cache for pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ matrix.os }}-cache-pip
+
+    - name: Install dependencies
+      run: |
+        ./setup.sh --user
+        ./setup-dev.sh --user
+
+    - name: Download images
+      run: |
+        ./tests/qemu-tests/download_images.sh
+
+    # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
+    - name: Run tests
+      run: |
+        sudo sysctl -w kernel.yama.ptrace_scope=0
+        ./tests/qemu-tests/tests.sh
