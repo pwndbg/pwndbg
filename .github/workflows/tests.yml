@@ -46,8 +46,6 @@ jobs:
         coverage xml
 
     - name: "Upload coverage to Codecov"
-      if: matrix.os == 'ubuntu-22.04' && success() || failure()
+      if: matrix.os == 'ubuntu-22.04'
       uses: codecov/codecov-action@v3
-      with:
-        fail_ci_if_error: true
 
