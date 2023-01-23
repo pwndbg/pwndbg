@@ -10,7 +10,7 @@ import pwndbg.commands
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.tls import lock_scheduler
+from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
@@ -45,8 +45,11 @@ def errno_(err) -> None:
                 if errno_loc_gotplt is None or pwndbg.gdblib.vmmap.find(
                     pwndbg.gdblib.memory.pvoid(errno_loc_gotplt)
                 ):
-                    with lock_scheduler():
-                        err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
+                    err = int(
+                        parse_and_eval_with_scheduler_lock(
+                            "*((int *(*) (void)) __errno_location) ()"
+                        )
+                    )
                 else:
                     print(
                         "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"

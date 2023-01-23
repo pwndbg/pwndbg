@@ -2,7 +2,6 @@
 Getting Thread Local Storage (TLS) information.
 """
 import sys
-from contextlib import contextmanager
 from types import ModuleType
 
 import gdb
@@ -13,23 +12,11 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
-
-
-@contextmanager
-def lock_scheduler():
-    already_lock = gdb.parameter("scheduler-locking") == "on"
-    old_config = gdb.parameter("scheduler-locking")
-    if not already_lock:
-        gdb.execute("set scheduler-locking on")
-    yield
-    if not already_lock:
-        gdb.execute("set scheduler-locking %s" % old_config)
+from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 
 class module(ModuleType):
     """Getting Thread Local Storage (TLS) information."""
-
-    lock_scheduler = staticmethod(lock_scheduler)
 
     def is_thread_local_variable_offset(self, offset: int) -> bool:
         """Check if the offset to TLS is a valid offset for the heap heuristics."""
@@ -53,11 +40,10 @@ class module(ModuleType):
         """Get the address of TLS by calling pthread_self()."""
         if pwndbg.gdblib.symbol.address("pthread_self") is None:
             return 0
-        with lock_scheduler():
-            try:
-                return int(gdb.parse_and_eval("(void *)pthread_self()"))
-            except gdb.error:
-                return 0
+        try:
+            return int(parse_and_eval_with_scheduler_lock("(void *)pthread_self()"))
+        except gdb.error:
+            return 0
 
     @property
     def address(self) -> int:
