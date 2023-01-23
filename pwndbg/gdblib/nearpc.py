@@ -187,7 +187,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             if should_highlight_opcodes:
                 opcodes = C.highlight(opcodes)
                 should_highlight_opcodes = False
-        line = " ".join((prefix, address_str, opcodes, symbol, asm))
+        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
