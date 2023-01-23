@@ -59,6 +59,9 @@ show_args = pwndbg.gdblib.config.add_param(
 show_opcode_bytes = pwndbg.gdblib.config.add_param(
     "nearpc-opcode-bytes", 0, "number of opcode bytes to print for each instruction"
 )
+opcode_separator_bytes = pwndbg.gdblib.config.add_param(
+    "nearpc-opcode-separator-bytes", 1, "number of spaces between opcode bytes"
+)
 
 
 def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
@@ -169,14 +172,18 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
 
         opcodes = ""
         if show_opcode_bytes > 0:
-            opcodes = instr.bytes.hex()
-            opcodes = opcodes[: show_opcode_bytes * 2]
+            opcodes = (opcode_separator_bytes * " ").join(
+                f"{c:02x}" for c in instr.bytes[: int(show_opcode_bytes)]
+            )
             align = show_opcode_bytes * 2 + 10
+            if opcode_separator_bytes > 0:
+                # add the length of the maximum number of separators to the alignment
+                align += (show_opcode_bytes - 1) * opcode_separator_bytes
             if len(instr.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
-            opcodes = opcodes.ljust(align, " ")
+            opcodes = opcodes.ljust(align)
             if should_highlight_opcodes:
                 opcodes = C.highlight(opcodes)
                 should_highlight_opcodes = False
