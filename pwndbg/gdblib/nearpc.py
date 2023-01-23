@@ -57,10 +57,16 @@ show_args = pwndbg.gdblib.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
 show_opcode_bytes = pwndbg.gdblib.config.add_param(
-    "nearpc-opcode-bytes", 0, "number of opcode bytes to print for each instruction"
+    "nearpc-opcode-bytes",
+    0,
+    "number of opcode bytes to print for each instruction",
+    param_class=gdb.PARAM_ZUINTEGER,
 )
 opcode_separator_bytes = pwndbg.gdblib.config.add_param(
-    "nearpc-opcode-separator-bytes", 1, "number of spaces between opcode bytes"
+    "nearpc-opcode-separator-bytes",
+    1,
+    "number of spaces between opcode bytes",
+    param_class=gdb.PARAM_ZUINTEGER,
 )
 
 
