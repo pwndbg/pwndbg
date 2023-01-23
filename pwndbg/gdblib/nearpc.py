@@ -138,6 +138,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
     prev = None
 
     first_pc = True
+    should_highlight_opcodes = False
 
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
@@ -164,6 +165,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
             first_pc = False
+            should_highlight_opcodes = True
 
         opcodes = ""
         if show_opcode_bytes > 0:
@@ -175,8 +177,9 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align, " ")
-            if pwndbg.gdblib.config.highlight_pc and instr.address == pwndbg.gdblib.regs.pc:
+            if should_highlight_opcodes:
                 opcodes = C.highlight(opcodes)
+                should_highlight_opcodes = False
         line = " ".join((prefix, address_str, opcodes, symbol, asm))
 
         # If there was a branch before this instruction which was not
