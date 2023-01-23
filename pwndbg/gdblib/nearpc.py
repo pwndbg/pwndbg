@@ -56,8 +56,8 @@ nearpc_lines = pwndbg.gdblib.config.add_param(
 show_args = pwndbg.gdblib.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
-show_opcodes_size = pwndbg.gdblib.config.add_param(
-    "nearpc-opcodes-size", 0, "number of bytes of opcodes to print for each instruction"
+show_opcode_bytes = pwndbg.gdblib.config.add_param(
+    "nearpc-opcode-bytes", 0, "number of opcode bytes to print for each instruction"
 )
 
 
@@ -166,11 +166,11 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             first_pc = False
 
         opcodes = ""
-        if show_opcodes_size > 0:
+        if show_opcode_bytes > 0:
             opcodes = instr.bytes.hex()
-            opcodes = opcodes[: show_opcodes_size * 2]
-            align = show_opcodes_size * 2 + 10
-            if len(instr.bytes) > show_opcodes_size:
+            opcodes = opcodes[: show_opcode_bytes * 2]
+            align = show_opcode_bytes * 2 + 10
+            if len(instr.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
