@@ -165,6 +165,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             symbol = C.highlight(symbol)
             first_pc = False
 
+        opcodes = ""
         if show_opcodes_size > 0:
             opcodes = instr.bytes.hex()
             opcodes = opcodes[: show_opcodes_size * 2]
@@ -175,9 +176,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             opcodes = opcodes.ljust(align, " ")
             if pwndbg.gdblib.config.highlight_pc and instr.address == pwndbg.gdblib.regs.pc:
                 opcodes = C.highlight(opcodes)
-            line = " ".join((prefix, address_str, opcodes, symbol, asm))
-        else:
-            line = " ".join((prefix, address_str, symbol, asm))
+        line = " ".join((prefix, address_str, opcodes, symbol, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
