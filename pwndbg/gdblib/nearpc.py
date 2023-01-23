@@ -172,6 +172,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             align = show_opcodes_size * 2 + 10
             if len(instr.bytes) > show_opcodes_size:
                 opcodes += pwndbg.color.gray("...")
+                # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align, " ")
             if pwndbg.gdblib.config.highlight_pc and instr.address == pwndbg.gdblib.regs.pc:
