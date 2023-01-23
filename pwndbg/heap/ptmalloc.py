@@ -1136,7 +1136,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         thread's tcache.
         """
         if self.has_tcache():
-            tcache = self.mp["sbrk_base"] + 0x10
+            tcache = self.get_sbrk_heap_region().vaddr + 0x10
             if self.multithreaded:
                 tcache_addr = pwndbg.gdblib.memory.pvoid(
                     pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
@@ -1608,7 +1608,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
         # We try to find the address by using mp_.srck_base + 0x10 first since it's more reliable than other methods.
         if not self.multithreaded:
             try:
-                thread_cache_struct_addr = self.mp["sbrk_base"] + 0x10
+                thread_cache_struct_addr = self.get_sbrk_heap_region().vaddr + 0x10
                 if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
                     self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                     return self._thread_cache
