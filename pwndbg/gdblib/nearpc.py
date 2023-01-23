@@ -54,7 +54,10 @@ nearpc_lines = pwndbg.gdblib.config.add_param(
     "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
 )
 show_args = pwndbg.gdblib.config.add_param(
-    "nearpc-show-args", True, "show call arguments below instruction"
+    "nearpc-show-args", True, "whether to show call arguments below instruction"
+)
+show_opcodes_size = pwndbg.gdblib.config.add_param(
+    "nearpc-opcodes-size", 0, "number of bytes of opcodes to print for each instruction"
 )
 
 
@@ -162,7 +165,19 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             symbol = C.highlight(symbol)
             first_pc = False
 
-        line = " ".join((prefix, address_str, symbol, asm))
+        if show_opcodes_size > 0:
+            opcodes = instr.bytes.hex()
+            opcodes = opcodes[: show_opcodes_size * 2]
+            align = show_opcodes_size * 2 + 10
+            if len(instr.bytes) > show_opcodes_size:
+                opcodes += pwndbg.color.gray("...")
+                align += 9  # len(pwndbg.color.gray(""))
+            opcodes = opcodes.ljust(align, " ")
+            if pwndbg.gdblib.config.highlight_pc and instr.address == pwndbg.gdblib.regs.pc:
+                opcodes = C.highlight(opcodes)
+            line = " ".join((prefix, address_str, opcodes, symbol, asm))
+        else:
+            line = " ".join((prefix, address_str, symbol, asm))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
