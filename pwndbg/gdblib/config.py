@@ -21,6 +21,11 @@ import pwndbg.lib.config
 
 config = pwndbg.lib.config.Config()
 
+# GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+if not hasattr(gdb, "PARAM_ZUINTEGER"):
+    gdb.PARAM_ZUINTEGER = "PARAM_ZUINTEGER"
+    gdb.PARAM_ZUINTEGER_UNLIMITED = "PARAM_ZUINTEGER_UNLIMITED"
+
 
 # See this for details about the API of `gdb.Parameter`:
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
@@ -32,6 +37,7 @@ class Parameter(gdb.Parameter):
         self.set_doc = "Set " + param.set_show_doc + "."
         self.show_doc = "Show " + param.set_show_doc + "."
         self.__doc__ = param.help_docstring or None
+        self._custom_param_class = None
 
         if param.param_class == gdb.PARAM_ENUM:
             super().__init__(
@@ -40,6 +46,13 @@ class Parameter(gdb.Parameter):
                 param.param_class,
                 param.enum_sequence,
             )
+        elif (
+            param.param_class == "PARAM_ZUINTEGER"
+            or param.param_class == "PARAM_ZUINTEGER_UNLIMITED"
+        ):
+            # GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+            self._custom_param_class = param.param_class
+            super().__init__(param.name, gdb.COMMAND_SUPPORT, pwndbg.lib.config.PARAM_CLASSES[int])
         else:
             super().__init__(param.name, gdb.COMMAND_SUPPORT, param.param_class)
         self.param = param
@@ -66,6 +79,15 @@ class Parameter(gdb.Parameter):
             # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
             self.param.value = 0
         else:
+            if self._custom_param_class:
+                if (self._custom_param_class == "PARAM_ZUINTEGER" and self.value < 0) or (  # type: ignore
+                    self._custom_param_class == "PARAM_ZUINTEGER_UNLIMITED" and self.value < -1  # type: ignore
+                ):
+                    err = "integer %d out of range" % self.value  # type: ignore
+                    # Restore the old value
+                    self.value = self.param.value
+                    # GDB < 9 is too buggy, it won't handle `gdb.GdbError`..., so we return a string here
+                    return err
             self.param.value = self.value
 
         for trigger in config.triggers[self.param.name]:
@@ -81,6 +103,8 @@ class Parameter(gdb.Parameter):
     def get_show_string(self, svalue) -> str:
         """Handles the GDB `show <param>` command"""
         more_information_hint = " See `help set %s` for more information." % self.param.name
+        if self._custom_param_class == "PARAM_ZUINTEGER_UNLIMITED" and self.value == -1:
+            svalue = "unlimited"
         return "%s is %r.%s" % (
             self.param.set_show_doc.capitalize(),
             svalue,
