@@ -14,15 +14,32 @@ import pwndbg.gdblib.config
         ("auto-bool", None, "auto", {"param_class": gdb.PARAM_AUTO_BOOLEAN}),
         ("unlimited-uint", 0, "unlimited", {"param_class": gdb.PARAM_UINTEGER}),
         ("unlimited-int", 0, "unlimited", {"param_class": gdb.PARAM_INTEGER}),
-        # GDB < 9.x does not support PARAM_ZUINTEGER_UNLIMITED
-        ("unlimited-zuint", -1, "unlimited", {"param_class": gdb.PARAM_ZUINTEGER_UNLIMITED})
-        if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
-        else (),
         (
             "enum",
             "enum1",
             "enum1",
             {"param_class": gdb.PARAM_ENUM, "enum_sequence": ["enum1", "enum2", "enum3"]},
+        ),
+        # Note: GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+        (
+            "zuint",
+            0,
+            "0",
+            {
+                "param_class": gdb.PARAM_ZUINTEGER
+                if hasattr(gdb, "PARAM_ZUINTEGER")
+                else "PARAM_ZUINTEGER"
+            },
+        ),
+        (
+            "unlimited-zuint",
+            -1,
+            "unlimited",
+            {
+                "param_class": gdb.PARAM_ZUINTEGER_UNLIMITED
+                if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
+                else "PARAM_ZUINTEGER_UNLIMITED"
+            },
         ),
     ),
 )

@@ -168,14 +168,16 @@ def test_nearpc_opcode_seperator(start_binary, separator_bytes):
 
 
 def test_nearpc_opcode_invalid_config():
+    expected = "integer -1 out of range"
     try:
-        gdb.execute("set nearpc-opcode-bytes -1")
-        assert False, "nearpc-opcode-bytes should not accept negative values"
+        # We try to catch the output since GDB < 9 won't raise the exception
+        assert gdb.execute("set nearpc-opcode-bytes -1", to_string=True).rstrip() == expected
     except gdb.error as e:
-        pass
+        assert expected == str(e)
 
     try:
-        gdb.execute("set nearpc-opcode-separator-bytes -1")
-        assert False, "nearpc-opcode-separator-bytes should not accept negative values"
+        assert (
+            gdb.execute("set nearpc-opcode-separator-bytes -1", to_string=True).rstrip() == expected
+        )
     except gdb.error as e:
-        pass
+        assert expected == str(e)
