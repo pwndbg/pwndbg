@@ -57,7 +57,7 @@ show_args = pwndbg.gdblib.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
 show_opcode_bytes = pwndbg.gdblib.config.add_param(
-    "nearpc-opcode-bytes",
+    "nearpc-num-opcode-bytes",
     0,
     "number of opcode bytes to print for each instruction",
     param_class=gdb.PARAM_ZUINTEGER,
