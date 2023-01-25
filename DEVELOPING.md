@@ -108,4 +108,4 @@ Feel free to update the list below!
 
 * We would like to add proper tests for pwndbg - see tests framework PR if you want to help on that.
 
-* If you want to use `gdb.parse_and_eval("a_function_name()")` or something similar that call a function, please remember this might cause another thread to continue execution without `set scheduler-locking on`. If you didn't expect that, you should use `parse_and_eval_with_scheduler_lock` in `pwndbg.gdblib.scheduler` instead.
+* If you want to use `gdb.parse_and_eval("a_function_name()")` or something similar that call a function, please remember this might cause another thread to continue execution without `set scheduler-locking on`. If you didn't expect that, you should use `parse_and_eval_with_scheduler_lock` from `pwndbg.gdblib.scheduler` instead.
