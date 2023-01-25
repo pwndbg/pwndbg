@@ -1136,7 +1136,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         thread's tcache.
         """
         if self.has_tcache():
-            tcache = self.mp["sbrk_base"] + 0x10
+            tcache = self.get_sbrk_heap_region().vaddr + 0x10
             if self.multithreaded:
                 tcache_addr = pwndbg.gdblib.memory.pvoid(
                     pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
@@ -1440,27 +1440,12 @@ class HeuristicHeap(GlibcMemoryAllocator):
             if thread_arena_via_config > 0:
                 return Arena(thread_arena_via_config)
             elif thread_arena_via_symbol:
-                if pwndbg.gdblib.symbol.static_linkage_symbol_address("thread_arena"):
-                    # If the symbol is static-linkage symbol, we trust it.
-                    return Arena(pwndbg.gdblib.memory.u(thread_arena_via_symbol))
                 # Check &thread_arena is nearby TLS base or not to avoid false positive.
-                tls_base = pwndbg.gdblib.tls.address
-                if tls_base:
-                    if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-                        is_valid_address = 0 < tls_base - thread_arena_via_symbol < 0x250
-                    else:  # elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
-                        is_valid_address = 0 < thread_arena_via_symbol - tls_base < 0x250
-
-                    is_valid_address = (
-                        is_valid_address
-                        and thread_arena_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
-                    )
-
-                    if is_valid_address:
-                        thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
-                        # Check &thread_arena is a valid address or not to avoid false positive.
-                        if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
-                            return Arena(thread_arena_struct_addr)
+                if pwndbg.gdblib.tls.is_thread_local_variable(thread_arena_via_symbol):
+                    thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
+                    # Check &thread_arena is a valid address or not to avoid false positive.
+                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
+                        return Arena(thread_arena_struct_addr)
 
             if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
                 # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
@@ -1554,7 +1539,6 @@ class HeuristicHeap(GlibcMemoryAllocator):
                                 base_offset + offset
                             )
                             break
-
                 elif pwndbg.gdblib.arch.current == "arm":
                     # We need to find something near the first `mrc 15, ......`
                     # The flow of assembly code will like:
@@ -1584,7 +1568,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
                                 )
                                 break
 
-            if self._thread_arena_offset:
+            if self._thread_arena_offset and pwndbg.gdblib.tls.is_thread_local_variable_offset(
+                self._thread_arena_offset
+            ):
                 tls_base = pwndbg.gdblib.tls.address
                 if tls_base:
                     thread_arena_struct_addr = tls_base + self._thread_arena_offset
@@ -1600,6 +1586,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
+        if not self.has_tcache():
+            print(message.warn("This version of GLIBC was not compiled with tcache support."))
+            return None
         thread_cache_via_config = int(str(pwndbg.gdblib.config.tcache), 0)
         thread_cache_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "tcache"
@@ -1608,218 +1597,189 @@ class HeuristicHeap(GlibcMemoryAllocator):
             self._thread_cache = self.tcache_perthread_struct(thread_cache_via_config)
             return self._thread_cache
         elif thread_cache_via_symbol:
-            if pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache"):
-                # If the symbol is static-linkage symbol, we trust it.
-                thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
-                self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
-                return self._thread_cache
             # Check &tcache is nearby TLS base or not to avoid false positive.
-            tls_base = pwndbg.gdblib.tls.address
-            if tls_base:
-                if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-                    is_valid_address = 0 < tls_base - thread_cache_via_symbol < 0x250
-                else:  # elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
-                    is_valid_address = 0 < thread_cache_via_symbol - tls_base < 0x250
-
-                is_valid_address = (
-                    is_valid_address
-                    and thread_cache_via_symbol in pwndbg.gdblib.vmmap.find(tls_base)
-                )
-
-                if is_valid_address:
-                    thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
+            if pwndbg.gdblib.tls.is_thread_local_variable(thread_cache_via_symbol):
+                thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
+                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
                     self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                     return self._thread_cache
 
-        if self.has_tcache():
-            # Each thread has a tcache struct, and the address of the tcache struct is stored in the TLS.
+        # If target is single-threaded, then the tcache struct is at the first chunk of the heap.
+        # We try to find the address by using mp_.srck_base + 0x10 first since it's more reliable than other methods.
+        if not self.multithreaded:
+            try:
+                thread_cache_struct_addr = self.get_sbrk_heap_region().vaddr + 0x10
+                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
+                    self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
+                    return self._thread_cache
+            except SymbolUnresolvableError:
+                # mp_ is not available
+                pass
 
-            # Try to find tcache in TLS, so first we need to find the offset of tcache to TLS base
-            if not self._thread_cache_offset and pwndbg.gdblib.symbol.address("__libc_malloc"):
-                # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
-                __libc_malloc_instruction = pwndbg.disasm.near(
-                    pwndbg.gdblib.symbol.address("__libc_malloc"), 100, show_prev_insns=False
-                )[10:]
-                # Try to find the reference to tcache in __libc_malloc, the target C code is like this:
-                # `if (tc_idx < mp_.tcache_bins && tcache && ......`
-                if pwndbg.gdblib.arch.current == "x86-64":
-                    # Find the last `mov reg1, qword ptr [rip + disp]` before the first `mov reg2, fs:[reg1]`
-                    # In other words, find the first __thread variable
+        # Each thread has a tcache struct, and the address of the tcache struct is stored in the TLS.
+        # Try to find tcache in TLS, so first we need to find the offset of tcache to TLS base
+        if not self._thread_cache_offset and pwndbg.gdblib.symbol.address("__libc_malloc"):
+            # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
+            __libc_malloc_instruction = pwndbg.disasm.near(
+                pwndbg.gdblib.symbol.address("__libc_malloc"), 100, show_prev_insns=False
+            )[10:]
+            # Try to find the reference to tcache in __libc_malloc, the target C code is like this:
+            # `if (tc_idx < mp_.tcache_bins && tcache && ......`
+            if pwndbg.gdblib.arch.current == "x86-64":
+                # Find the last `mov reg1, qword ptr [rip + disp]` before the first `mov reg2, fs:[reg1]`
+                # In other words, find the first __thread variable
 
-                    get_offset_instruction = None
+                get_offset_instruction = None
 
-                    for instr in __libc_malloc_instruction:
-                        if ", qword ptr [rip +" in instr.op_str:
-                            get_offset_instruction = instr
-                        if ", qword ptr fs:[r" in instr.op_str:
-                            break
+                for instr in __libc_malloc_instruction:
+                    if ", qword ptr [rip +" in instr.op_str:
+                        get_offset_instruction = instr
+                    if ", qword ptr fs:[r" in instr.op_str:
+                        break
 
-                    if get_offset_instruction:
-                        # rip + disp
-                        self._thread_cache_offset = pwndbg.gdblib.memory.s64(
-                            get_offset_instruction.next + get_offset_instruction.disp
-                        )
-                elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
-                    # We still need to find the first __thread variable like we did for x86-64 But the assembly code
-                    # of i386 is a little bit unstable sometimes(idk why), there are two versions of the code:
-                    # 1. Find the last `mov reg1, dword ptr [reg0 + disp]` before the first `mov reg2, gs:[reg1]`(disp
-                    # is a negative value)
-                    # 2. Find the first `mov reg1, dword ptr [reg0 + disp]` after `mov reg3,
-                    # [reg1 + reg2]` (disp is a negative value), and reg2 is from `mov reg2, gs:[0]`
-
-                    get_offset_instruction = None
-                    find_after = False
-
-                    for instr in __libc_malloc_instruction:
-                        if (
-                            instr.disp < 0
-                            and instr.mnemonic == "mov"
-                            and ", dword ptr [e" in instr.op_str
-                        ):
-                            get_offset_instruction = instr
-                            if find_after:
-                                break
-                        if ", dword ptr gs:[e" in instr.op_str:
-                            break
-                        elif instr.op_str.endswith("gs:[0]") and instr.mnemonic == "mov":
-                            find_after = True
-
-                    if get_offset_instruction:
-                        # reg + disp (value of reg is the page start of the last libc page)
-                        base_offset = self.possible_page_of_symbols.vaddr
-                        self._thread_cache_offset = pwndbg.gdblib.memory.s32(
-                            base_offset + get_offset_instruction.disp
-                        )
-                elif pwndbg.gdblib.arch.current == "aarch64":
-                    # The logic is the same as the previous one..
-                    # The assembly code to access tcache is sth like:
-                    # `mrs reg1, tpidr_el0;
-                    # adrp reg2, #base_offset;
-                    # ldr reg2, [reg2, #offset]
-                    # ...
-                    # add reg3, reg1, reg2;
-                    # ldr reg3, [reg3, #8]`
-                    # Or:
-                    # `adrp reg2, #base_offset;
-                    # mrs reg1, tpidr_el0;
-                    # ldr reg2, [reg2, #offset]
-                    # ...
-                    # add reg3, reg1, reg2;
-                    # ldr reg3, [reg3, #8]`
-                    # , then reg3 will be &tcache
-                    mrs_instr = next(
-                        instr for instr in __libc_malloc_instruction if instr.mnemonic == "mrs"
+                if get_offset_instruction:
+                    # rip + disp
+                    self._thread_cache_offset = pwndbg.gdblib.memory.s64(
+                        get_offset_instruction.next + get_offset_instruction.disp
                     )
-                    min_adrp_distance = 0x1000  # just a big enough number
-                    nearest_adrp = None
-                    nearest_adrp_idx = 0
-                    for i, instr in enumerate(__libc_malloc_instruction):
-                        if (
-                            instr.mnemonic == "adrp"
-                            and abs(mrs_instr.address - instr.address) < min_adrp_distance
-                        ):
-                            reg = instr.operands[0].str
-                            nearest_adrp = instr
-                            nearest_adrp_idx = i
-                            min_adrp_distance = abs(mrs_instr.address - instr.address)
-                        if instr.address - mrs_instr.address > min_adrp_distance:
+            elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
+                # We still need to find the first __thread variable like we did for x86-64 But the assembly code
+                # of i386 is a little bit unstable sometimes(idk why), there are two versions of the code:
+                # 1. Find the last `mov reg1, dword ptr [reg0 + disp]` before the first `mov reg2, gs:[reg1]`(disp
+                # is a negative value)
+                # 2. Find the first `mov reg1, dword ptr [reg0 + disp]` after `mov reg3,
+                # [reg1 + reg2]` (disp is a negative value), and reg2 is from `mov reg2, gs:[0]`
+
+                get_offset_instruction = None
+                find_after = False
+
+                for instr in __libc_malloc_instruction:
+                    if (
+                        instr.disp < 0
+                        and instr.mnemonic == "mov"
+                        and ", dword ptr [e" in instr.op_str
+                    ):
+                        get_offset_instruction = instr
+                        if find_after:
                             break
-                    for instr in __libc_malloc_instruction[nearest_adrp_idx + 1 :]:
-                        if instr.mnemonic == "ldr":
-                            base_offset = nearest_adrp.operands[1].int
-                            offset = instr.operands[1].mem.disp
+                    if ", dword ptr gs:[e" in instr.op_str:
+                        break
+                    elif instr.op_str.endswith("gs:[0]") and instr.mnemonic == "mov":
+                        find_after = True
+
+                if get_offset_instruction:
+                    # reg + disp (value of reg is the page start of the last libc page)
+                    base_offset = self.possible_page_of_symbols.vaddr
+                    self._thread_cache_offset = pwndbg.gdblib.memory.s32(
+                        base_offset + get_offset_instruction.disp
+                    )
+            elif pwndbg.gdblib.arch.current == "aarch64":
+                # The logic is the same as the previous one..
+                # The assembly code to access tcache is sth like:
+                # `mrs reg1, tpidr_el0;
+                # adrp reg2, #base_offset;
+                # ldr reg2, [reg2, #offset]
+                # ...
+                # add reg3, reg1, reg2;
+                # ldr reg3, [reg3, #8]`
+                # Or:
+                # `adrp reg2, #base_offset;
+                # mrs reg1, tpidr_el0;
+                # ldr reg2, [reg2, #offset]
+                # ...
+                # add reg3, reg1, reg2;
+                # ldr reg3, [reg3, #8]`
+                # , then reg3 will be &tcache
+                mrs_instr = next(
+                    instr for instr in __libc_malloc_instruction if instr.mnemonic == "mrs"
+                )
+                min_adrp_distance = 0x1000  # just a big enough number
+                nearest_adrp = None
+                nearest_adrp_idx = 0
+                for i, instr in enumerate(__libc_malloc_instruction):
+                    if (
+                        instr.mnemonic == "adrp"
+                        and abs(mrs_instr.address - instr.address) < min_adrp_distance
+                    ):
+                        reg = instr.operands[0].str
+                        nearest_adrp = instr
+                        nearest_adrp_idx = i
+                        min_adrp_distance = abs(mrs_instr.address - instr.address)
+                    if instr.address - mrs_instr.address > min_adrp_distance:
+                        break
+                for instr in __libc_malloc_instruction[nearest_adrp_idx + 1 :]:
+                    if instr.mnemonic == "ldr":
+                        base_offset = nearest_adrp.operands[1].int
+                        offset = instr.operands[1].mem.disp
+                        self._thread_cache_offset = (
+                            pwndbg.gdblib.memory.s64(base_offset + offset) + 8
+                        )
+                        break
+            elif pwndbg.gdblib.arch.current == "arm":
+                # We need to find something near the first `mrc 15, ......`
+                # The flow of assembly code will like:
+                # `ldr reg1, [pc, #offset];
+                # ...
+                # mrc 15, 0, reg2, cr13, cr0, {3};
+                # ...
+                # add reg1, pc;
+                # ldr reg1, [reg1];
+                # ...
+                # add reg1, reg2
+                # ...
+                # ldr reg3, [reg1, #4]`
+                # , then reg3 will be tcache address
+                found_mrc = False
+                ldr_instr = None
+                for instr in __libc_malloc_instruction:
+                    if not found_mrc:
+                        if instr.mnemonic == "mrc":
+                            found_mrc = True
+                        elif instr.mnemonic == "ldr":
+                            ldr_instr = instr
+                    else:
+                        reg = ldr_instr.operands[0].str
+                        if instr.mnemonic == "add" and instr.op_str == reg + ", pc":
+                            offset = ldr_instr.operands[1].mem.disp
+                            offset = pwndbg.gdblib.memory.s32((ldr_instr.address + 4 & -4) + offset)
                             self._thread_cache_offset = (
-                                pwndbg.gdblib.memory.s64(base_offset + offset) + 8
+                                pwndbg.gdblib.memory.s32(instr.address + 4 + offset) + 4
                             )
                             break
-                elif pwndbg.gdblib.arch.current == "arm":
-                    # We need to find something near the first `mrc 15, ......`
-                    # The flow of assembly code will like:
-                    # `ldr reg1, [pc, #offset];
-                    # ...
-                    # mrc 15, 0, reg2, cr13, cr0, {3};
-                    # ...
-                    # add reg1, pc;
-                    # ldr reg1, [reg1];
-                    # ...
-                    # add reg1, reg2
-                    # ...
-                    # ldr reg3, [reg1, #4]`
-                    # , then reg3 will be tcache address
-                    found_mrc = False
-                    ldr_instr = None
-                    for instr in __libc_malloc_instruction:
-                        if not found_mrc:
-                            if instr.mnemonic == "mrc":
-                                found_mrc = True
-                            elif instr.mnemonic == "ldr":
-                                ldr_instr = instr
-                        else:
-                            reg = ldr_instr.operands[0].str
-                            if instr.mnemonic == "add" and instr.op_str == reg + ", pc":
-                                offset = ldr_instr.operands[1].mem.disp
-                                offset = pwndbg.gdblib.memory.s32(
-                                    (ldr_instr.address + 4 & -4) + offset
-                                )
-                                self._thread_cache_offset = (
-                                    pwndbg.gdblib.memory.s32(instr.address + 4 + offset) + 4
-                                )
-                                break
 
-            # Validate the the offset we found
-            is_offset_valid = False
-
-            if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-                # The offset to tls should be a negative integer for x86/x64, but it can't be too small
-                # If it is too small, we find a wrong value
-                is_offset_valid = (
-                    self._thread_cache_offset and -0x250 < self._thread_cache_offset < 0
+        # If the offset is valid, we add the offset to TLS base to locate the tcache struct
+        # Note: We do a lot of checks here to make sure the offset and address we found is valid,
+        # so we can use our fallback if they're invalid
+        if self._thread_cache_offset and pwndbg.gdblib.tls.is_thread_local_variable_offset(
+            self._thread_cache_offset
+        ):
+            tls_base = pwndbg.gdblib.tls.address
+            if tls_base:
+                thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(
+                    tls_base + self._thread_cache_offset
                 )
-            elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
-                # The offset to tls should be a positive integer for aarch64, but it can't be too big
-                # If it is too big, we find a wrong value
-                is_offset_valid = (
-                    self._thread_cache_offset and 0 < self._thread_cache_offset < 0x250
-                )
+                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
+                    self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
+                    return self._thread_cache
 
-            is_offset_valid = (
-                is_offset_valid and self._thread_cache_offset % pwndbg.gdblib.arch.ptrsize == 0
-            )
+        # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
+        # Note: The result might be wrong if the arena is being shared by multiple threads
+        # And that's why we need to find the tcache address in TLS first
+        arena = self.thread_arena
+        ptr_size = pwndbg.gdblib.arch.ptrsize
 
-            # If the offset is valid, we add the offset to TLS base to locate the tcache struct
-            # Note: We do a lot of checks here to make sure the offset and address we found is valid,
-            # so we can use our fallback if they're invalid
-            if is_offset_valid:
-                tls_base = pwndbg.gdblib.tls.address
-                if tls_base:
-                    thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(
-                        tls_base + self._thread_cache_offset
-                    )
-                    if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
-                        self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
-                        return self._thread_cache
+        cursor = arena.active_heap.start
 
-            # If we still can't find the tcache, we guess tcache is in the first chunk of the heap
-            # Note: The result might be wrong if the arena is being shared by multiple threads
-            # And that's why we need to find the tcache address in TLS first
-            arena = self.thread_arena
-            ptr_size = pwndbg.gdblib.arch.ptrsize
+        # i686 alignment heuristic
+        first_chunk_size = pwndbg.gdblib.arch.unpack(
+            pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
+        )
+        if first_chunk_size == 0:
+            cursor += ptr_size * 2
 
-            cursor = arena.active_heap.start
+        self._thread_cache = self.tcache_perthread_struct(cursor + ptr_size * 2)
 
-            # i686 alignment heuristic
-            first_chunk_size = pwndbg.gdblib.arch.unpack(
-                pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
-            )
-            if first_chunk_size == 0:
-                cursor += ptr_size * 2
-
-            self._thread_cache = self.tcache_perthread_struct(cursor + ptr_size * 2)
-
-            return self._thread_cache
-
-        print(message.warn("This version of GLIBC was not compiled with tcache support."))
-        return None
+        return self._thread_cache
 
     @property
     def mp(self):

@@ -45,7 +45,6 @@ def on_start() -> None:
 
 @pwndbg.gdblib.events.exit
 def on_exit() -> None:
-    pwndbg.gdblib.tls.reset()
     pwndbg.gdblib.file.reset_remote_files()
     pwndbg.gdblib.next.clear_temp_breaks()
 
