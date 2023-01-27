@@ -429,9 +429,9 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
                 "The heuristic for pwndbg.heap.current.%s should fail with SymbolUnresolvableError"
                 % name
             )
-        except SymbolUnresolvableError:
+        except SymbolUnresolvableError as e:
             # That's the only exception we expect
-            pass
+            assert e.symbol  # we should show what symbol we failed to resolve
 
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True, mess_up_memory=True):

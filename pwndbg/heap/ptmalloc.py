@@ -1252,6 +1252,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 class SymbolUnresolvableError(Exception):
     def __init__(self, symbol) -> None:
         super().__init__(f"`{symbol}` can not be resolved via heuristic")
+        self.symbol = symbol
 
 
 class HeuristicHeap(GlibcMemoryAllocator):
