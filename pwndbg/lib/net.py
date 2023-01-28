@@ -146,7 +146,12 @@ def unix(data: str):
         return []
 
     result = []
-    for line in data.splitlines()[1:]:
+    # Note: it is super important to split by "\n" instead of .splitlines() here
+    # because there may be a line like this:
+    # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    # and splitlines will also split by \r which we do not want here
+    # We also finish at -1 index since with .split() the empty last line is kept in the result
+    for line in data.split("\n")[1:-1]:
         """
         Num       RefCount Protocol Flags    Type St Inode Path
         0000000000000000: 00000002 00000000 00010000 0005 01  1536 /dev/socket/msm_irqbalance

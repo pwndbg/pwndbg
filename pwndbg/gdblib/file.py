@@ -107,7 +107,7 @@ def readlink(path):
 
     if is_qemu:
         if not os.path.exists(path):
-            path = os.path.join(pwndbg.gdblib.qemu.root(), path)
+            path = os.path.join(pwndbg.gdblib.qemu.root() or "", path)
 
     if is_qemu or not pwndbg.gdblib.remote.is_remote():
         try:
