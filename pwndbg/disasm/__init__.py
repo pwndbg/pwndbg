@@ -18,6 +18,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.memoize
+from pwndbg.color import message
 
 try:
     import pwndbg.emu.emulator
@@ -208,6 +209,45 @@ DO_NOT_EMULATE = {
 }
 
 
+def can_run_first_emulate():
+    """
+    Disable the emulate config variable if we don't have enough memory to use it
+    See https://github.com/pwndbg/pwndbg/issues/1534
+    And https://github.com/unicorn-engine/unicorn/pull/1743
+    """
+    global first_time_emulate
+    if not first_time_emulate:
+        return True
+    first_time_emulate = False
+
+    try:
+        from mmap import MAP_ANON
+        from mmap import MAP_PRIVATE
+        from mmap import PROT_EXEC
+        from mmap import PROT_READ
+        from mmap import PROT_WRITE
+        from mmap import mmap
+
+        mmap(-1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, PROT_WRITE | PROT_READ | PROT_EXEC)
+    except OSError:
+        print(
+            message.error(
+                "Disabling the emulation via Unicorn Engine that is used for computing branches"
+                " as there isn't enough memory (1GB) to use it (since mmap(1G, RWX) failed). See also:\n"
+                "* https://github.com/pwndbg/pwndbg/issues/1534\n"
+                "* https://github.com/unicorn-engine/unicorn/pull/1743\n"
+                "Either free your memory or explicitly set `set emulate off` in your Pwndbg config"
+            )
+        )
+        gdb.execute("set emulate off", to_string=True)
+        return False
+
+    return True
+
+
+first_time_emulate = True
+
+
 def near(address, instructions=1, emulate=False, show_prev_insns=True):
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
@@ -246,7 +286,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     emu = None
 
     # If we hit the current instruction, we can do emulation going forward from there.
-    if address == pc and emulate:
+    if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         emu = pwndbg.emu.emulator.Emulator()
         # skip current line
         emu.single_step()

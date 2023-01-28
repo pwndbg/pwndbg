@@ -616,12 +616,18 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     if cs is not None and cs.syntax != syntax:
         pwndbg.lib.memoize.reset()
 
-    arch = pwndbg.gdblib.arch.current
-    emulate = bool(pwndbg.gdblib.config.emulate)
+    result = pwndbg.gdblib.nearpc.nearpc(
+        lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate)
+    )
 
-    info = " / %s / set emulate %s" % (arch, "on" if emulate else "off")
+    # Note: we must fetch emulate value again and after disasm since
+    # we check if we can actually use emulation in `can_run_first_emulate`
+    # and this call may disable it
+    info = " / %s / set emulate %s" % (
+        pwndbg.gdblib.arch.current,
+        "on" if bool(pwndbg.gdblib.config.emulate) else "off",
+    )
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
-    result = pwndbg.gdblib.nearpc.nearpc(lines=code_lines // 2, emulate=emulate)
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
