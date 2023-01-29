@@ -221,14 +221,12 @@ def can_run_first_emulate():
     first_time_emulate = False
 
     try:
-        from mmap import MAP_ANON
-        from mmap import MAP_PRIVATE
-        from mmap import PROT_EXEC
-        from mmap import PROT_READ
-        from mmap import PROT_WRITE
-        from mmap import mmap
+        from mmap import mmap, MAP_ANON, MAP_PRIVATE, PROT_EXEC, PROT_READ, PROT_WRITE  # isort:skip
 
-        mmap(-1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, PROT_WRITE | PROT_READ | PROT_EXEC)
+        mm = mmap(
+            -1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, PROT_WRITE | PROT_READ | PROT_EXEC
+        )
+        mm.close()
     except OSError:
         print(
             message.error(
