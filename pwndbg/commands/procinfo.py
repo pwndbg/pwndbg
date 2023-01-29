@@ -6,6 +6,7 @@ import pwndbg.gdblib.file
 import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 """
@@ -191,7 +192,15 @@ def procinfo() -> None:
     """
     Display information about the running process.
     """
-    exe = str(pwndbg.auxv.get()["AT_EXECFN"])
+    if pwndbg.gdblib.qemu.is_qemu():
+        print(
+            message.error(
+                "QEMU target detected: showing result for the qemu process"
+                " - so it will be a bit inaccurate (excessive for the parts"
+                " used directly by the qemu process)"
+            )
+        )
+    exe = pwndbg.auxv.get()["AT_EXECFN"]
     print("%-10s %r" % ("exe", exe))
 
     proc = Process()
