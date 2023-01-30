@@ -620,7 +620,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate)
     )
 
-    # Note: we must fetch emulate value again and after disasm since
+    # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
     info = " / %s / set emulate %s" % (
