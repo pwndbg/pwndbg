@@ -1410,7 +1410,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         # check if the `next` pointer of tmp_arena will point to the same address we guess
                         # e.g. when our process is single-threaded, &tmp_arena->next == &main_arena
                         # when our process is multi-threaded, &tmp_arena->next->...->next == &main_arena
-                        while tmp_next > 0:
+                        while tmp_next > 0 and tmp_next % pwndbg.gdblib.arch.ptrsize == 0:
+                            # tmp_next should align with ptrsize
                             if tmp_next == addr:
                                 self._main_arena_addr = addr
                                 found = True
