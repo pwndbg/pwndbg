@@ -56,7 +56,7 @@ else
 fi
 
 # Checking minimum python version
-vermin -q -t=3.6 --violations ./pwndbg/
+vermin -vvvv --no-tips -q -t=3.6 --violations ./pwndbg/
 
 flake8 --show-source ${LINT_FILES}
 
