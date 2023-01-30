@@ -223,7 +223,7 @@ def can_run_first_emulate():
     try:
         from mmap import mmap, MAP_ANON, MAP_PRIVATE, PROT_EXEC, PROT_READ, PROT_WRITE  # isort:skip
 
-        mm = mmap(
+        mm = mmap(  # novm
             -1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, PROT_WRITE | PROT_READ | PROT_EXEC
         )
         mm.close()
