@@ -261,13 +261,15 @@ def test_main_arena_heuristic(start_binary):
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 3: We check we can get the address of `main_arena` by parsing the memory
-    for _ in range(2):
-        with mock_for_heuristic(mock_all=True):
-            # Check the address of `main_arena` is correct
-            assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+    with mock_for_heuristic(mock_all=True):
+        # Check the address of `main_arena` is correct
+        assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+        pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
+
         # Check if it works when there's more than one arena
         gdb.execute("continue")
         assert gdb.selected_thread().num == 2
+        assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
 
 
 def test_mp_heuristic(start_binary):
