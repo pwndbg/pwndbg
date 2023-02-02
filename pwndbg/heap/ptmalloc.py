@@ -1401,7 +1401,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         tmp_arena = self.malloc_state(addr)
                         try:
                             tmp_next = int(tmp_arena["next"])
-                        except Exception:
+                        except gdb.MemoryError:
                             # the memory after tmp_arena is not valid, stop searching
                             break
                         # check if the `next` pointer of tmp_arena will point to the same address we guess
@@ -1423,7 +1423,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                                 break
                             try:
                                 tmp_next = int(tmp_arena["next"])
-                            except Exception:
+                            except gdb.MemoryError:
                                 break
                         if found:
                             break
