@@ -151,8 +151,8 @@ def configfile_print_scope(scope, show_all=False) -> None:
             print(hint("Showing only changed values:"))
         for p in params:
             print("# %s: %s" % (p.name, p.set_show_doc))
-            print("# default: %s" % p.native_default)
-            print("set %s %s" % (p.name, p.native_value))
+            print("# default: %s" % p.default)
+            print("set %s %s" % (p.name, p.value))
             print()
     else:
         print(hint("No changed values. To see current values use `%s`." % scope))
