@@ -5,6 +5,8 @@ Get information about the GLibc
 import functools
 import os
 import re
+from typing import Optional
+from typing import Tuple
 
 import gdb
 
@@ -30,7 +32,7 @@ glibc_version = pwndbg.gdblib.config.add_param(
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def get_version():
+def get_version() -> Optional[Tuple[int, ...]]:
     if glibc_version.value:
         ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
         if ret:
@@ -46,7 +48,7 @@ def get_version():
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
-def _get_version():
+def _get_version() -> Optional[Tuple[int, ...]]:
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
@@ -63,21 +65,30 @@ def _get_version():
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
-def get_data_address():
+def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
+    for line in pwndbg.gdblib.info.sharedlibrary().splitlines()[1:]:
+        filename = line.split(maxsplit=3)[-1].lstrip("(*)").lstrip()
+        # Is it possible that the libc is not called `libc.so.6`?
+        if os.path.basename(filename) == "libc.so.6":
+            return filename
+
+
+@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+def get_data_section_address() -> int:
     """
     Find .data section address of libc
     """
-    # Try every possible object file, to find which one has `.data` section showed in `info files`
-    for libc_filename in (
-        objfile.filename
-        for objfile in gdb.objfiles()
-        if re.search(r"^libc(\.|-.+\.)so", os.path.basename(objfile.filename))
-    ):
-        # Will `info files` always work? If not, we should probably use `ELFFile` to parse libc file directly
-        out = pwndbg.gdblib.info.files()
-        for line in out.splitlines():
-            if libc_filename in line and " is .data in " in line:
-                return int(line.strip().split()[0], 16)
+    libc_filename = get_libc_filename_from_info_sharedlibrary()
+    if not libc_filename:
+        # libc not loaded yet, or it's static linked
+        return 0
+    # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
+    out = pwndbg.gdblib.info.files()
+    for line in out.splitlines():
+        if line.endswith(" is .data in " + libc_filename):
+            return int(line.split()[0], 16)
     return 0
 
 
