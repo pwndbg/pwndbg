@@ -14,6 +14,12 @@ with pwndbg.lib.stdio.stdio:
         import ipdb as pdb
     except ImportError:
         import pdb  # type: ignore
+    try:
+        from rich.console import Console
+
+        _rich_console = Console()
+    except ImportError:
+        _rich_console = None
 
 verbose = config.add_param(
     "exception-verbose",
@@ -71,7 +77,10 @@ def handle(name="Error"):
     # Display the error
     if debug or verbose:
         exception_msg = traceback.format_exc()
-        print(exception_msg)
+        if _rich_console:
+            _rich_console.print_exception()
+        else:
+            print(exception_msg)
         inform_report_issue(exception_msg)
 
     else:
