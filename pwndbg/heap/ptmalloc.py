@@ -1314,119 +1314,29 @@ class HeuristicHeap(GlibcMemoryAllocator):
             "main_arena"
         ) or self.is_glibc_symbol(main_arena_via_symbol):
             self._main_arena_addr = main_arena_via_symbol
-        # TODO/FIXME: These are quite dirty, we should find a better way to do this
-        if not self._main_arena_addr:
-            if (
-                pwndbg.glibc.get_version() < (2, 34)
-                and pwndbg.gdblib.arch.current != "arm"
-                and pwndbg.gdblib.symbol.address("__malloc_hook")
-            ):
-                malloc_hook_addr = pwndbg.gdblib.symbol.address("__malloc_hook")
-                # Credit: This tricks is modified from
-                # https://github.com/hugsy/gef/blob/c530aa518ac96dff6fc810a5552ecf54fd1b3581/gef.py#L1189-L1196
-                # Thank @_hugsy_ and all the contributors of gef! (But somehow, gef's strategy for arm doesn't seem
-                # reliable, at least for my test it isn't work)
-                if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-                    self._main_arena_addr = malloc_hook_addr + (
-                        (0x20 - (malloc_hook_addr % 0x20)) % 0x20
-                    )
-                elif pwndbg.gdblib.arch.current == "aarch64":
-                    self._main_arena_addr = (
-                        malloc_hook_addr - pwndbg.gdblib.arch.ptrsize * 2 - self.malloc_state.sizeof
-                    )
-            # If we can not find the main_arena via offset trick, we try to find its reference in malloc_trim
-            elif pwndbg.gdblib.symbol.address("malloc_trim"):
-                # try to find `mstate ar_ptr = &main_arena;` in malloc_trim instructions
-                malloc_trim_instructions = pwndbg.disasm.near(
-                    pwndbg.gdblib.symbol.address("malloc_trim"), 10, show_prev_insns=False
-                )
-                if pwndbg.gdblib.arch.current == "x86-64":
-                    for instr in malloc_trim_instructions:
-                        # try to find `lea rax,[rip+DISP]`
-                        if instr.mnemonic == "lea" and "rip" in instr.op_str and instr.disp > 0:
-                            self._main_arena_addr = instr.next + instr.disp  # rip + disp
-                            break
-                elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
-                    base_offset = self.possible_page_of_symbols.vaddr
-                    for instr in malloc_trim_instructions:
-                        # try to find `lea edi,[eax+DISP]`
-                        if instr.mnemonic == "lea" and "eax" in instr.op_str and instr.disp > 0:
-                            self._main_arena_addr = base_offset + instr.disp  # eax + disp
-                            break
-                elif pwndbg.gdblib.arch.current == "aarch64" and self.possible_page_of_symbols:
-                    base_offset = self.possible_page_of_symbols.vaddr
-                    reg = None
-                    for instr in malloc_trim_instructions[5:]:
-                        # Try to find `add reg2, reg1, #offset` after `adrp reg1, #base_offset`
-                        if instr.mnemonic == "add" and instr.operands[1].str == reg:
-                            self._main_arena_addr = base_offset + instr.operands[2].int
-                            break
-                        if instr.mnemonic == "adrp" and instr.operands[1].int == base_offset:
-                            reg = instr.operands[0].str
-                elif pwndbg.gdblib.arch.current == "arm":
-                    ldrw_instr = None
-                    for instr in malloc_trim_instructions:
-                        # Try to find `ldr.w reg, [pc, #offset]`, then `add reg, pc`
-                        if not ldrw_instr:
-                            if instr.mnemonic == "ldr.w":
-                                ldrw_instr = instr
-                        else:
-                            reg = ldrw_instr.operands[0].str
-                            if instr.mnemonic == "add" and instr.op_str == reg + ", pc":
-                                # ldr.w reg, [pc, #offset]
-                                offset = ldrw_instr.operands[1].mem.disp
-                                offset = pwndbg.gdblib.memory.s32(
-                                    (ldrw_instr.address + 4 & -4) + offset
-                                )
-                                # add reg, pc
-                                self._main_arena_addr = offset + instr.address + 4
+        if not self._main_arena_addr and not self.is_statically_linked():
+            # TODO: Support statically linked GLIBC
+            section = pwndbg.glibc.dump_elf_data_section()
+            section_address = pwndbg.glibc.get_data_section_address()
+            if section and section_address:
+                data_section_offset, size, data = section
 
-            # Try to search main_arena in .data of libc if we can't find it via above trick
-            if not pwndbg.gdblib.memory.is_readable_address(self._main_arena_addr):
-                start = pwndbg.gdblib.symbol.address("_IO_2_1_stdin_")
-                end = pwndbg.gdblib.symbol.address("_IO_list_all")
-                # If we didn't have these symbols, we try to find them in the possible page
-                if self.possible_page_of_symbols:
-                    start = start or self.possible_page_of_symbols.vaddr
-                    end = end or self.possible_page_of_symbols.end
-                if start is not None and end is not None:
-                    end -= self.malloc_state.sizeof
-                    while start < end:
-                        start += pwndbg.gdblib.arch.ptrsize
-                        if not pwndbg.gdblib.symbol.get(start).startswith("_IO"):
-                            break
-                    # main_arena is between _IO_2_1_stdin and _IO_list_all
-                    for addr in range(start, end, pwndbg.gdblib.arch.ptrsize):
-                        found = False
-                        tmp_arena = self.malloc_state(addr)
-                        try:
-                            tmp_next = int(tmp_arena["next"])
-                        except gdb.MemoryError:
-                            # the memory after tmp_arena is not valid, stop searching
-                            break
-                        # check if the `next` pointer of tmp_arena will point to the same address we guess
-                        # e.g. when our process is single-threaded, &tmp_arena->next == &main_arena
-                        # when our process is multi-threaded, &tmp_arena->next->...->next == &main_arena
-                        while tmp_next > 0 and tmp_next % pwndbg.gdblib.arch.ptrsize == 0:
-                            # tmp_next should align with ptrsize
-                            if tmp_next == addr:
-                                self._main_arena_addr = addr
-                                found = True
-                                break
-                            tmp_arena = self.malloc_state(tmp_next)
-                            if (
-                                pwndbg.gdblib.vmmap.find(tmp_arena.get_field_address("next"))
-                                is None
-                            ):
-                                # if `&tmp_arena->next` is not valid, the linked list is broken, break this while loop and try `addr+pwndbg.gdblib.arch.ptrsize` again
-                                # Note: We use vmmap to check before accessing the memory because accessing memory for embedded targets might be slow and expensive.
-                                break
-                            try:
-                                tmp_next = int(tmp_arena["next"])
-                            except gdb.MemoryError:
-                                break
-                        if found:
-                            break
+                # try to find the default main_arena struct in the .data section
+                for i in range(size - self.malloc_state.sizeof):
+                    # https://github.com/bminor/glibc/blob/glibc-2.37/malloc/malloc.c#L1902-L1907
+                    # static struct malloc_state main_arena =
+                    # {
+                    #   .mutex = _LIBC_LOCK_INITIALIZER,
+                    #   .next = &main_arena,
+                    #   .attached_threads = 1
+                    # };
+                    expected = self.malloc_state._c_struct()
+                    expected.next = data_section_offset + i
+                    expected.attached_threads = 1
+                    expected = bytes(expected)
+                    if expected == data[i : i + len(expected)]:
+                        self._main_arena_addr = section_address + i
+                        break
 
         if pwndbg.gdblib.memory.is_readable_address(self._main_arena_addr):
             self._main_arena = Arena(self._main_arena_addr)
@@ -1803,137 +1713,18 @@ class HeuristicHeap(GlibcMemoryAllocator):
             mp_via_symbol
         ):
             self._mp_addr = mp_via_symbol
-        if not self._mp_addr and pwndbg.gdblib.symbol.address("__libc_free"):
-            # try to find mp_ referenced in __libc_free
-            # TODO/FIXME: This method should be updated if we find a better way to find the target assembly code
-            __libc_free_instructions = pwndbg.disasm.near(
-                pwndbg.gdblib.symbol.address("__libc_free"), 100, show_prev_insns=False
-            )
-            if pwndbg.gdblib.arch.current == "x86-64":
-                iter_possible_match = (
-                    instr
-                    for instr in __libc_free_instructions
-                    if instr.mnemonic == "mov"
-                    and instr.disp > 0
-                    and instr.op_str.startswith("qword ptr [rip +")
-                )
-                try:
-                    # mov qword ptr [rip + (mp.mmap_threshold offset)], reg
-                    mp_mmap_threshold_ref = next(iter_possible_match)
-                    # mov qword ptr [rip + (mp offset)], reg
-                    mp_ref = next(iter_possible_match)
-                    # references to mp_.mmap_threshold and mp_ are very close to each other
-                    while mp_mmap_threshold_ref.next - mp_ref.address > 0x10:
-                        mp_mmap_threshold_ref = mp_ref
-                        mp_ref = next(iter_possible_match)
-                    self._mp_addr = mp_ref.next + mp_ref.disp
-                except StopIteration:
-                    pass
-            elif pwndbg.gdblib.arch.current == "i386" and self.possible_page_of_symbols:
-                iter_possible_match = (
-                    instr
-                    for instr in __libc_free_instructions
-                    if instr.mnemonic == "mov"
-                    and instr.disp > 0
-                    and instr.op_str.startswith("dword ptr [")
-                )
-                base_offset = self.possible_page_of_symbols.vaddr
-                try:
-                    # mov dword ptr [base_offset + (mp.mmap_threshold offset)], reg
-                    mp_mmap_threshold_ref = next(iter_possible_match)
-                    # mov dword ptr [base_offset + (mp offset)], reg
-                    mp_ref = next(iter_possible_match)
-                    # references to mp_.mmap_threshold and mp_ are very close to each other
-                    while mp_mmap_threshold_ref.next - mp_ref.address > 0x10:
-                        mp_mmap_threshold_ref = mp_ref
-                        mp_ref = next(iter_possible_match)
-                    self._mp_addr = base_offset + mp_ref.disp
-                except StopIteration:
-                    pass
-            elif pwndbg.gdblib.arch.current == "aarch64" and self.possible_page_of_symbols:
-                base_offset = self.possible_page_of_symbols.vaddr
-                regs: Set[str] = set()
-                found = False
-                for instr in __libc_free_instructions:
-                    if found:
-                        break
-                    # We want to find sth like: `str reg2, [reg1, #offset]``
-                    # and reg1 is from `adrp reg1, base_offset`
-                    # We can notice that it only have one match in __libc_free
-                    # The match should be the reference to mp_
-                    if instr.mnemonic == "str":
-                        for reg in regs:
-                            if "[" + reg in instr.op_str:
-                                self._mp_addr = base_offset + instr.operands[1].mem.disp
-                                found = True
-                                break
-                    elif instr.mnemonic == "adrp" and instr.operands[1].int == base_offset:
-                        regs.add(instr.operands[0].str)
-            elif pwndbg.gdblib.arch.current == "arm":
-                regs = {}
-                ldr: Dict[str, Any] = {}
-                found = False
-                for instr in __libc_free_instructions:
-                    if found:
-                        break
-                    # We want to find sth like: `str reg2, [reg1, #8 or #0]`
-                    # and reg1 is from `ldr reg1, [pc, #offset]` and `add reg1, pc`
-                    # We can notice that it only have one match in __libc_free
-                    # The match should be the reference to mp_ and mp_.mmap_threshold
-                    if instr.mnemonic == "str":
-                        for reg in regs:
-                            if "[" + reg + "]" in instr.op_str:
-                                # ldr reg1, [pc, #offset]
-                                offset = regs[reg].operands[1].mem.disp  # type: ignore[index]
-                                offset = pwndbg.gdblib.memory.s32(
-                                    (regs[reg].address + 4 & -4) + offset  # type: ignore[index]
-                                )
-                                # add reg1, pc
-                                self._mp_addr = offset + ldr[reg].address + 4
-                                found = True
-                                break
-                    elif instr.mnemonic == "add":
-                        for reg in regs:
-                            if instr.op_str == reg + ", pc":
-                                ldr[reg] = instr
-                    elif instr.mnemonic == "ldr" and "[pc," in instr.op_str:
-                        regs[instr.operands[0].str] = instr  # type: ignore[index]
 
-        # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
-        if (
-            not pwndbg.gdblib.memory.is_readable_address(self._mp_addr)
-            and self.possible_page_of_symbols
-        ):
-            libc_page = self.possible_page_of_symbols
+        if not self._mp_addr and not self.is_statically_linked():
+            # TODO: Support statically linked GLIBC
+            section = pwndbg.glibc.dump_elf_data_section()
+            section_address = pwndbg.glibc.get_data_section_address()
+            if section and section_address:
+                _, _, data = section
 
-            # try to find sbrk_base via main_arena or vmmap
-            # TODO/FIXME: If mp_.sbrk_base is not same as heap region start, this will fail
-            try:
-                arena = self.main_arena
-            except SymbolUnresolvableError:
-                arena = None
-            region = None
-            # Try to find heap region via `main_arena.top`
-            if self._main_arena_addr and arena:
-                region = self.get_region(arena.top)
-            # If we can't use `main_arena` to find the heap region, try to find it via vmmap
-            region = region or next(
-                (p for p in pwndbg.gdblib.vmmap.get() if "[heap]" == p.objfile), None
-            )
-            if region is not None:
-                possible_sbrk_base = region.start
-
-                sbrk_offset = self.malloc_par(0).get_field_address("sbrk_base")
-                # try to search sbrk_base in a part of libc page
-                result = pwndbg.search.search(
-                    pwndbg.gdblib.arch.pack(possible_sbrk_base),
-                    start=libc_page.start,
-                    end=libc_page.end,
-                )
-                try:
-                    self._mp_addr = next(result) - sbrk_offset
-                except StopIteration:
-                    pass
+                # try to find the default mp_ struct in the .data section
+                found = data.find(bytes(self.struct_module.DEFAULT_MP_))
+                if found != -1:
+                    self._mp_addr = section_address + found
 
         if pwndbg.gdblib.memory.is_readable_address(self._mp_addr):
             self._mp = self.malloc_par(self._mp_addr)
