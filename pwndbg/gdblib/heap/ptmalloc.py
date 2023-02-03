@@ -1299,14 +1299,55 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         chain_fd = get_chain(front, fd_offset)
         chain_bk = get_chain(back, bk_offset)
 
-        # check if bin[index] points to itself (is empty)
-        if len(chain_fd) == len(chain_bk) == 2 and chain_fd[0] == chain_bk[0]:
-            chain_fd = [0]
-            chain_bk = [0]
-
-        # check if corrupted
-        elif chain_fd[:-1] != chain_bk[:-2][::-1] + [chain_bk[-2]]:
+        if len(chain_fd) != len(chain_bk):
+            # If the chain lengths aren't equal, the chain is corrupted
             is_chain_corrupted = True
+        elif len(chain_fd) < 2 or len(chain_bk) < 2:
+            # Chains containing less than two entries are corrupted, as the smallest
+            # chain (an empty bin) would look like something like `[main_arena+88, 0]`.
+            is_chain_corrupted = True
+        elif len(chain_fd) == len(chain_bk) == 2 and chain_fd == chain_bk and chain_fd[-1] == 0:
+            # Check if bin[index] points to itself (is empty)
+
+            # If the fd pointer is in libc data section, we can be more
+            # confident that this list is actually empty and not just
+            # corrupted. If we can't find any mapping for the pointer or it's in
+            # some other mapping, we assume the bin is corrupted
+            page = pwndbg.gdblib.vmmap.find(chain_fd[0])
+            if page and page.rw and "libc" in page.objfile:
+                chain_fd = [0]
+                chain_bk = [0]
+            else:
+                is_chain_corrupted = True
+        elif chain_fd[-1] == chain_bk[-1] == 0:
+            # This branch will be hit when we were able to fully traverse the fd
+            # and bk chains (and they aren't empty). In this case we can check
+            # the integrity of the entire chain
+
+            # Get the fd chain list without the trailing zero
+            fd_chain = chain_fd[:-1]
+
+            # Get the bk chain list without the trailing zero and the last
+            # pointer (the `main_arena` pointer)
+            bk_chain = chain_bk[:-2]
+
+            # Reverse the bk chain
+            bk_chain_rev = bk_chain[::-1]
+
+            # Add back on the arena pointer
+            bk_chain_rev.append(chain_bk[-2])
+
+            # If these two chains aren't equal, the chain is corrupted
+            if fd_chain != bk_chain_rev:
+                is_chain_corrupted = True
+        else:
+            # We hit the `heap_chain_limit` while traversing the fd and bk
+            # chain, so we can't check the integrity of the entire chain, but we can at
+            # least check if `chunk->bk->fd = chunk`
+            chunk = Chunk(chain_fd[0])
+            bk = Chunk(chunk.bk)
+            if bk.fd != chain_fd[0]:
+                is_chain_corrupted = True
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
