@@ -12,6 +12,7 @@ import gdb
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
@@ -323,7 +324,7 @@ class Chunk:
             return None
 
         next = Chunk(self.address + self.real_size, arena=self.arena)
-        if pwndbg.gdblib.memory.peek(next.address):
+        if pwndbg.gdblib.memory.is_readable_address(next.address):
             return next
         else:
             return None
@@ -1381,7 +1382,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                                 self._main_arena_addr = offset + instr.address + 4
 
             # Try to search main_arena in .data of libc if we can't find it via above trick
-            if not self._main_arena_addr or pwndbg.gdblib.vmmap.find(self._main_arena_addr) is None:
+            if not pwndbg.gdblib.memory.is_readable_address(self._main_arena_addr):
                 start = pwndbg.gdblib.symbol.address("_IO_2_1_stdin_")
                 end = pwndbg.gdblib.symbol.address("_IO_list_all")
                 # If we didn't have these symbols, we try to find them in the possible page
@@ -1398,11 +1399,16 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     for addr in range(start, end, pwndbg.gdblib.arch.ptrsize):
                         found = False
                         tmp_arena = self.malloc_state(addr)
-                        tmp_next = int(tmp_arena["next"])
+                        try:
+                            tmp_next = int(tmp_arena["next"])
+                        except gdb.MemoryError:
+                            # the memory after tmp_arena is not valid, stop searching
+                            break
                         # check if the `next` pointer of tmp_arena will point to the same address we guess
                         # e.g. when our process is single-threaded, &tmp_arena->next == &main_arena
                         # when our process is multi-threaded, &tmp_arena->next->...->next == &main_arena
-                        while tmp_next > 0:
+                        while tmp_next > 0 and tmp_next % pwndbg.gdblib.arch.ptrsize == 0:
+                            # tmp_next should align with ptrsize
                             if tmp_next == addr:
                                 self._main_arena_addr = addr
                                 found = True
@@ -1410,16 +1416,19 @@ class HeuristicHeap(GlibcMemoryAllocator):
                             tmp_arena = self.malloc_state(tmp_next)
                             if (
                                 pwndbg.gdblib.vmmap.find(tmp_arena.get_field_address("next"))
-                                is not None
+                                is None
                             ):
-                                tmp_next = int(tmp_arena["next"])
-                            else:
                                 # if `&tmp_arena->next` is not valid, the linked list is broken, break this while loop and try `addr+pwndbg.gdblib.arch.ptrsize` again
+                                # Note: We use vmmap to check before accessing the memory because accessing memory for embedded targets might be slow and expensive.
+                                break
+                            try:
+                                tmp_next = int(tmp_arena["next"])
+                            except gdb.MemoryError:
                                 break
                         if found:
                             break
 
-        if self._main_arena_addr and pwndbg.gdblib.vmmap.find(self._main_arena_addr):
+        if pwndbg.gdblib.memory.is_readable_address(self._main_arena_addr):
             self._main_arena = Arena(self._main_arena_addr)
             return self._main_arena
 
@@ -1445,7 +1454,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 if pwndbg.gdblib.tls.is_thread_local_variable(thread_arena_via_symbol):
                     thread_arena_struct_addr = pwndbg.gdblib.memory.u(thread_arena_via_symbol)
                     # Check &thread_arena is a valid address or not to avoid false positive.
-                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
+                    if pwndbg.gdblib.memory.is_readable_address(thread_arena_struct_addr):
                         return Arena(thread_arena_struct_addr)
 
             if not self._thread_arena_offset and pwndbg.gdblib.symbol.address("__libc_calloc"):
@@ -1575,7 +1584,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 tls_base = pwndbg.gdblib.tls.address
                 if tls_base:
                     thread_arena_struct_addr = tls_base + self._thread_arena_offset
-                    if pwndbg.gdblib.vmmap.find(thread_arena_struct_addr):
+                    if pwndbg.gdblib.memory.is_readable_address(thread_arena_struct_addr):
                         return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_struct_addr))
 
             raise SymbolUnresolvableError("thread_arena")
@@ -1601,7 +1610,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             # Check &tcache is nearby TLS base or not to avoid false positive.
             if pwndbg.gdblib.tls.is_thread_local_variable(thread_cache_via_symbol):
                 thread_cache_struct_addr = pwndbg.gdblib.memory.u(thread_cache_via_symbol)
-                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
+                if pwndbg.gdblib.memory.is_readable_address(thread_cache_struct_addr):
                     self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                     return self._thread_cache
 
@@ -1610,7 +1619,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if not self.multithreaded:
             try:
                 thread_cache_struct_addr = self.get_sbrk_heap_region().vaddr + 0x10
-                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
+                if pwndbg.gdblib.memory.is_readable_address(thread_cache_struct_addr):
                     self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                     return self._thread_cache
             except SymbolUnresolvableError:
@@ -1759,7 +1768,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(
                     tls_base + self._thread_cache_offset
                 )
-                if pwndbg.gdblib.vmmap.find(thread_cache_struct_addr):
+                if pwndbg.gdblib.memory.is_readable_address(thread_cache_struct_addr):
                     self._thread_cache = self.tcache_perthread_struct(thread_cache_struct_addr)
                     return self._thread_cache
 
@@ -1892,8 +1901,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
         # can't find the reference about mp_ in __libc_free, try to find it with heap boundaries of main_arena
         if (
-            not self._mp_addr
-            or pwndbg.gdblib.vmmap.find(self._mp_addr) is None
+            not pwndbg.gdblib.memory.is_readable_address(self._mp_addr)
             and self.possible_page_of_symbols
         ):
             libc_page = self.possible_page_of_symbols
@@ -1927,7 +1935,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 except StopIteration:
                     pass
 
-        if self._mp_addr and pwndbg.gdblib.vmmap.find(self._mp_addr) is not None:
+        if pwndbg.gdblib.memory.is_readable_address(self._mp_addr):
             self._mp = self.malloc_par(self._mp_addr)
             return self._mp
 
@@ -2060,7 +2068,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     elif instr.mnemonic == "ldr" and "[pc" in instr.op_str:
                         ldr_instr = instr
 
-        if self._global_max_fast_addr and pwndbg.gdblib.vmmap.find(self._global_max_fast_addr):
+        if pwndbg.gdblib.memory.is_readable_address(self._global_max_fast_addr):
             self._global_max_fast = pwndbg.gdblib.memory.u(self._global_max_fast_addr)
             return self._global_max_fast
 

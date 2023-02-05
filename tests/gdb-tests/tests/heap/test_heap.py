@@ -6,10 +6,12 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.heap
 import tests
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
+from pwndbg.lib.memory import Page
 
 HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
 
@@ -175,7 +177,9 @@ def test_malloc_chunk_command_heuristic(start_binary):
 
 
 class mock_for_heuristic:
-    def __init__(self, mock_symbols=[], mock_all=False, mess_up_memory=False):
+    def __init__(
+        self, mock_symbols=[], mock_all=False, mess_up_memory=False, test_memory_parsing=False
+    ):
         self.mock_symbols = (
             mock_symbols  # every symbol's address in the list will be mocked to `None`
         )
@@ -187,10 +191,23 @@ class mock_for_heuristic:
         )
         # We mess up the memory in the page of the symbols, to make sure that the heuristic will not succeed by parsing the memory
         self.mess_up_memory = mess_up_memory
+
+        # Some addresses can be found by `pwndbg.gdblib.vmmap.find()`, but it is not a valid memory address to access (e.g. the address in [vsyscall])
+        # This option is to make sure that the heuristic will not affect by this
+        self.test_memory_parsing = test_memory_parsing
+
         if mess_up_memory:
             # Save all the memory before we mess it up
             self.page = pwndbg.heap.current.possible_page_of_symbols
             self.saved_memory = pwndbg.gdblib.memory.read(self.page.vaddr, self.page.memsz)
+        if test_memory_parsing:
+
+            def fake_vmmap_find(addr):
+                # The heuristics should work without vmmap working
+                return Page(0, 0xFFFFFFFFFFFFFFFF, 4, 0, "[deadbeaf]")
+
+            fake_vmmap_find.original = pwndbg.gdblib.vmmap.find
+            pwndbg.gdblib.vmmap.find = fake_vmmap_find
 
     def __enter__(self):
         def mock(original):
@@ -212,6 +229,8 @@ class mock_for_heuristic:
         if self.mess_up_memory:
             # Fill the page with `0xff`
             pwndbg.gdblib.memory.write(self.page.vaddr, b"\xff" * self.page.memsz)
+        if self.test_memory_parsing:
+            pwndbg.gdblib.vmmap.find = pwndbg.gdblib.vmmap.find.original
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
@@ -261,13 +280,15 @@ def test_main_arena_heuristic(start_binary):
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 3: We check we can get the address of `main_arena` by parsing the memory
-    for _ in range(2):
-        with mock_for_heuristic(mock_all=True):
-            # Check the address of `main_arena` is correct
-            assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+    with mock_for_heuristic(mock_all=True, test_memory_parsing=True):
+        # Check the address of `main_arena` is correct
+        assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
+        pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
+
         # Check if it works when there's more than one arena
         gdb.execute("continue")
         assert gdb.selected_thread().num == 2
+        assert pwndbg.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
 
 
 def test_mp_heuristic(start_binary):
@@ -300,7 +321,7 @@ def test_mp_heuristic(start_binary):
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
     # Level 3: We check we can get the address of `mp_` by parsing the memory
-    with mock_for_heuristic(mock_all=True):
+    with mock_for_heuristic(mock_all=True, test_memory_parsing=True):
         # Check the address of `mp_` is correct
         assert pwndbg.heap.current.mp.address == mp_addr_via_debug_symbol
 
