@@ -90,9 +90,11 @@ if encoding != "UTF-8":
             encoding
         )
     )
-    print("You might try launching gdb with:")
-    print("    LC_ALL=en_US.UTF-8 PYTHONIOENCODING=UTF-8 gdb")
-    print("Make sure that en_US.UTF-8 is activated in /etc/locale.gen and you called locale-gen")
+    print("You might try launching GDB with:")
+    print("    LC_CTYPE=C.UTF-8 gdb")
+    print(
+        "If that does not work, make sure that en_US.UTF-8 is uncommented in /etc/locale.gen and that you called `locale-gen` command"
+    )
     print("******")
 
 environ["PWNLIB_NOTERM"] = "1"
