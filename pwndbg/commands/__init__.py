@@ -366,6 +366,10 @@ def _try2run_heap_command(function, a, kw):
         w(
             f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
         )
+        if "thread_arena" == err.symbol:
+            w(
+                "You can use `arenas` command to see all the arenas, and use `set thread_arena <addr>` to set it manually."
+            )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
         else:
