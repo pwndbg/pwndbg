@@ -36,7 +36,7 @@ module = [
 disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
-module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "pt"]
+module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "pt"]
 ignore_missing_imports = true
 
 [tool.isort]
