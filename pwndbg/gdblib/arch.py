@@ -7,7 +7,7 @@ from pwndbg.lib.arch import Arch
 
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
-ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm")
+ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm", "armcm")
 
 # mapping between gdb and pwntools arch names
 pwnlib_archs_mapping = {
