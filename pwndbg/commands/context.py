@@ -327,7 +327,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
 config_context_ghidra = pwndbg.gdblib.config.add_param(
     "context-ghidra",
     "never",
-    "when to try to decompile the current function with ghidra (slow and requires radare2/r2pipe) (valid values: always, never, if-no-source)",
+    "when to try to decompile the current function with ghidra (slow and requires radare2/r2pipe or rizin/rzpipe) (valid values: always, never, if-no-source)",
 )
 
 
