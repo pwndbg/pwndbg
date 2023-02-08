@@ -184,8 +184,13 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.heap.current
-    for ar in allocator.arenas:
-        print(ar)
+    arenas = allocator.arenas
+    print("main_arena:")
+    print(arenas[0])
+    if arenas[1:]:
+        print("thread arenas:")
+        for arena in arenas[1:]:
+            print(arena)
 
 
 parser = argparse.ArgumentParser(

@@ -629,8 +629,7 @@ class Arena:
     def __str__(self) -> str:
         prefix = "[%%%ds]    " % (pwndbg.gdblib.arch.ptrsize * 2)
         prefix_len = len(prefix % (""))
-        arena_name = "main" if self.is_main_arena else hex(self.address)
-        res = [message.hint(prefix % (arena_name)) + str(self.heaps[0])]
+        res = [message.hint(prefix % hex(self.address)) + str(self.heaps[0])]
         for h in self.heaps[1:]:
             res.append(" " * prefix_len + str(h))
 
