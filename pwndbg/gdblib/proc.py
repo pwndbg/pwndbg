@@ -9,9 +9,11 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
+from typing import Optional
 from typing import Tuple
 
 import gdb
+from elftools.elf.elffile import ELFFile
 
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
@@ -102,6 +104,32 @@ class module(ModuleType):
     @pwndbg.lib.memoize.reset_on_stop
     def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
+        """
+        Dump .data section of current process's ELF file
+        """
+        local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+        with open(local_path, "rb") as f:
+            elffile = ELFFile(f)
+            section = elffile.get_section_by_name(".data")
+            if section:
+                return section["sh_addr"], section["sh_size"], section.data()
+        return None
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def get_data_section_address(self) -> int:
+        """
+        Find .data section address of current process.
+        """
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
+            if line.endswith(" is .data"):
+                return int(line.split()[0], 16)
+        return 0
 
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)

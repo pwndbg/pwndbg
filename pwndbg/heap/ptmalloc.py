@@ -1280,10 +1280,13 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if main_arena_via_config or main_arena_via_symbol:
             self._main_arena_addr = main_arena_via_config or main_arena_via_symbol
 
-        if not self._main_arena_addr and not self.is_statically_linked():
-            # TODO: Support statically linked GLIBC
-            section = pwndbg.glibc.dump_elf_data_section()
-            section_address = pwndbg.glibc.get_data_section_address()
+        if not self._main_arena_addr:
+            if self.is_statically_linked():
+                section = pwndbg.gdblib.proc.dump_elf_data_section()
+                section_address = pwndbg.gdblib.proc.get_data_section_address()
+            else:
+                section = pwndbg.glibc.dump_elf_data_section()
+                section_address = pwndbg.glibc.get_data_section_address()
             if section and section_address:
                 data_section_offset, size, data = section
 
@@ -1380,10 +1383,13 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if mp_via_config or mp_via_symbol:
             self._mp_addr = mp_via_symbol
 
-        if not self._mp_addr and not self.is_statically_linked():
-            # TODO: Support statically linked GLIBC
-            section = pwndbg.glibc.dump_elf_data_section()
-            section_address = pwndbg.glibc.get_data_section_address()
+        if not self._mp_addr:
+            if self.is_statically_linked():
+                section = pwndbg.gdblib.proc.dump_elf_data_section()
+                section_address = pwndbg.gdblib.proc.get_data_section_address()
+            else:
+                section = pwndbg.glibc.dump_elf_data_section()
+                section_address = pwndbg.glibc.get_data_section_address()
             if section and section_address:
                 _, _, data = section
 
