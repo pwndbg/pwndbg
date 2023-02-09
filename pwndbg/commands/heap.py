@@ -168,6 +168,11 @@ def arena(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(message.notice("No arena found for current thread."))
+            return
+        print(message.notice("current thread's arena at: ") + message.hint(hex(arena.address)))
 
     tid = pwndbg.gdblib.proc.thread_id
     print(message.hint(f"Arena for thread {tid}:"))
@@ -226,6 +231,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.heap.current
+    print(message.notice("mp_ struct at: ") + message.hint(hex(allocator.mp.address)))
     print(allocator.mp)
 
 
