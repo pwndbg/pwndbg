@@ -1495,7 +1495,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             else:
                 raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
         else:
-            raise SymbolUnresolvableError("Unable to resolve mp_ struct via heuristics.")
+            raise SymbolUnresolvableError("mp_")
 
     def is_initialized(self):
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
