@@ -1416,7 +1416,21 @@ class HeuristicHeap(GlibcMemoryAllocator):
             self._global_max_fast = pwndbg.gdblib.memory.u(self._global_max_fast_addr)
             return self._global_max_fast
 
-        raise SymbolUnresolvableError("global_max_fast")
+        # https://elixir.bootlin.com/glibc/glibc-2.37/source/malloc/malloc.c#L836
+        # https://elixir.bootlin.com/glibc/glibc-2.37/source/malloc/malloc.c#L1773
+        # https://elixir.bootlin.com/glibc/glibc-2.37/source/malloc/malloc.c#L1953
+        default = (64 * self.size_sz // 4 + self.size_sz) & ~self.malloc_align_mask
+        print(
+            message.warn(
+                "global_max_fast symbol not found, using the default value: 0x%x" % default
+            )
+        )
+        print(
+            message.warn(
+                "Use `set global-max-fast <address>` to set the address of global_max_fast manually if needed."
+            )
+        )
+        return default
 
     @property
     @pwndbg.lib.memoize.reset_on_objfile
