@@ -169,13 +169,6 @@ def arena(addr=None) -> None:
     else:
         arena = allocator.thread_arena
 
-    if addr is None:
-        th = gdb.selected_thread()
-
-        print(message.notice(f"Arena for GDB thread Id={th.num} ({th.name!r}):"))
-    else:
-        print("Arena on address %#x:" % addr)
-
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
