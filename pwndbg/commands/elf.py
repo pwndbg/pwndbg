@@ -74,13 +74,13 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
     elf_header = pwndbg.gdblib.elf.exe()
 
     # If we started the binary and it has PIE, rebase it
-    if elf_header is not None:
-        bin_base = elf_header.address
+    if pwndbg.gdblib.proc.alive:
+        bin_base_addr = pwndbg.gdblib.proc.binary_base_addr
 
-        # Rebase the start and end addresses
-        if start < bin_base:
-            start += bin_base
-            end += bin_base
+        # Rebase the start and end addresses if needed
+        if start < bin_base_addr:
+            start += bin_base_addr
+            end += bin_base_addr
 
     print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
 

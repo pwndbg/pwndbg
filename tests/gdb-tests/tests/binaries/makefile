@@ -38,8 +38,9 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO)
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out
 
+all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
@@ -97,4 +98,10 @@ clean :
 	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)
 
 
-reference-binary.out: EXTRA_FLAGS := -Dexample=1
+reference_bin_pie.out: reference-binary.c
+	@echo "[+] Building reference_bin_pie.out"
+	${ZIGCC} -fpie -o reference_bin_pie.out reference-binary.c
+
+reference_bin_nopie.out: reference-binary.c
+	@echo "[+] Building reference_bin_nopie.out"
+	${ZIGCC} -fno-pie -o reference_bin_nopie.out reference-binary.c
