@@ -265,6 +265,11 @@ def OnlyWhenQemuKernel(function):
 
 def OnlyWithArch(arch_names: List[str]):
     """Decorates function to work only with the specified archictectures."""
+    for arch in arch_names:
+        if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+            raise ValueError(
+                f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
+            )
 
     def decorator(function):
         @functools.wraps(function)

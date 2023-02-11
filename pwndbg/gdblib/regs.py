@@ -194,7 +194,7 @@ class module(ModuleType):
 
         # For GDB >= 8.x we can use get_register directly
         # Elsewhere we have to get the register via ptrace
-        if get_register == gdb79_get_register:
+        if pwndbg.gdblib.arch.current == "x86-64" and get_register == gdb79_get_register:
             return get_register(regname)
 
         # We can't really do anything if the process is remote.
