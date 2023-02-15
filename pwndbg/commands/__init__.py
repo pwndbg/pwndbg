@@ -367,15 +367,11 @@ def _try2run_heap_command(function, a, kw):
             w(
                 "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
                 "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
-                "If you want to know which exact arena is used by the current thread, you can use the `tls` command to get the thread-local storage address, and then use `search -p <arena_addr>` to find which arena's address is in your thread-local storage.\n"
-                "(If none of the arenas' address is in your thread-local storage, that's probably because the current thread doesn't allocate the arena)\n"
-                "Using `arena <addr>` to check the `attached_threads` field of the arena is also a way that can help you to determine which arena is used by the current thread."
             )
             if pwndbg.heap.current.has_tcache():
                 w(
                     "Please also notice, pwndbg will assume the tcache is at the first chunk of the arena if the `tcache` symbol does not present, so when the arena is been shared by multiple threads, the result might be wrong.\n"
                     "To resolve this, you can use `set tcache <addr>` to set the tcache structure's address manually if this problem occurs.\n"
-                    "The address of tcache should also inside your thread-local storage, so you can use the `search -p <address>` to find which chunk's address is in your thread-local storage."
                 )
         else:
             w(
