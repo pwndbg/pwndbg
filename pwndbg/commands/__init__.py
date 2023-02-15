@@ -635,6 +635,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
+    import pwndbg.commands.rizin
     import pwndbg.commands.rop
     import pwndbg.commands.ropper
     import pwndbg.commands.search
