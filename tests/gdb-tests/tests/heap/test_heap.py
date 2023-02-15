@@ -340,10 +340,11 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
         # Check the value of `thread_arena` is correct
         assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
+    # TODO: Support the test that using brute-force to find the `thread_arena`
 
-@pytest.mark.parametrize(
-    "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
-)
+
+# TODO: Support the test for multi-threaded, since it might take user's input for finding the `thread_arena`
+@pytest.mark.parametrize("is_multi_threaded", [False], ids=["single-threaded"])
 def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)

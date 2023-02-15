@@ -2,6 +2,7 @@ import copy
 import importlib
 from collections import OrderedDict
 from enum import Enum
+from typing import Dict
 from typing import Union  # noqa: F401
 
 import gdb
@@ -1256,6 +1257,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self) -> None:
         super().__init__()
         self._structs_module = None
+        self._thread_arenas: Dict[int, Arena] = {}
 
     @property
     def struct_module(self):
@@ -1327,12 +1329,72 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if thread_arena_via_symbol:
             thread_arena_addr = pwndbg.gdblib.memory.pvoid(thread_arena_via_symbol)
             return Arena(thread_arena_addr) if thread_arena_addr else None
+        thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
+        if thread_arena_via_config:
+            return Arena(thread_arena_via_config)
+        arena = self._thread_arenas.get(gdb.selected_thread().global_num)
+        if arena:
+            return arena
         if self.main_arena.address != pwndbg.heap.current.main_arena.next or self.multithreaded:
-            thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
-            if thread_arena_via_config:
-                return Arena(thread_arena_via_config)
-            # If it's multi-threaded, we can't determine the thread_arena, user needs to specify it manually
-            raise SymbolUnresolvableError("thread_arena")
+            if pwndbg.gdblib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
+                # TODO: Support other architectures
+                raise SymbolUnresolvableError("thread_arena")
+            print(
+                message.notice("We cannot determine the %s\n" % message.hint("thread_arena"))
+                + message.notice(
+                    "Will you want to brute force it in the memory to determine the address? (y/N)\n"
+                )
+                + message.warn(
+                    "Note: This might take a while and might not be reliable, so if you can determine it by yourself or you have modified any of the arena, please do not use this."
+                )
+            )
+            if input().lower() == "y":
+                tls_address = pwndbg.gdblib.tls.find_address_with_register()
+                if not tls_address:
+                    print(
+                        message.warn("Cannot find TLS address via register. ")
+                        + message.notice(
+                            "Will you want to call pthread_self() to find the address? (y/N)\n"
+                        )
+                        + message.warn("Note: Don't use this if pthread_self() is not available.")
+                    )
+                    if input().lower() == "y":
+                        tls_address = pwndbg.gdblib.tls.find_address_with_pthread_self()
+                    if not tls_address:
+                        print(message.error("Cannot find TLS address via pthread_self()."))
+                        raise SymbolUnresolvableError("thread_arena")
+                # Find the nearest arena address to the TLS address
+                arena_address = [a.address for a in self.arenas]
+                print(message.notice("Brute forcing the memory..."))
+                for search_range in (
+                    range(tls_address, tls_address - 0x500, -pwndbg.gdblib.arch.ptrsize),
+                    range(tls_address, tls_address + 0x500, pwndbg.gdblib.arch.ptrsize),
+                ):
+                    reading = False
+                    for addr in search_range:
+                        if pwndbg.gdblib.memory.is_readable_address(addr):
+                            reading = True
+                            ptr = pwndbg.gdblib.memory.pvoid(addr)
+                            if ptr in arena_address:
+                                print(
+                                    message.notice(
+                                        "Found matching arena address %s at %s"
+                                        % (message.hint(hex(ptr)), message.hint(hex(addr)))
+                                    )
+                                )
+                                arena = Arena(ptr)
+                                self._thread_arenas[gdb.selected_thread().global_num] = arena
+                                return arena
+                        elif reading:
+                            # Don't need to try now, we only read consecutive memory
+                            break
+                print(
+                    message.notice(
+                        "Cannot find %s, the arena might be not allocated yet.\n"
+                        % message.hint("thread_arena")
+                    )
+                )
+                return None
         else:
             return self.main_arena
 
