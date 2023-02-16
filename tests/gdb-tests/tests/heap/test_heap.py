@@ -331,20 +331,44 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
-    # Check if we used `main_arena` as the `thread_arena` when we can NOT find the `thread_arena` and single-threaded
+    # Check if we can use brute-force to find the `thread_arena` when multi-threaded, and if we can use the `main_arena` as the `thread_arena` when single-threaded
     with mock_for_heuristic(["thread_arena"]):
-        if is_multi_threaded:
-            # Check if user set the `thread_arena` to the correct address manually, then the heuristic can work
-            gdb.execute("set thread-arena 0x%x" % pwndbg.heap.current.main_arena.next)
+        # mock the prompt to avoid input
+        pwndbg.heap.current.prompt_for_brute_force_permission = lambda: True
         assert pwndbg.heap.current.thread_arena is not None
         # Check the value of `thread_arena` is correct
         assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
-    # TODO: Support the test that using brute-force to find the `thread_arena`
+
+def test_global_max_fast_heuristic(start_binary):
+    # TODO: Support other architectures or different libc versions
+    start_binary(HEAP_MALLOC_CHUNK)
+    gdb.execute("set resolve-heap-via-heuristic force")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    # Use the debug symbol to find the address of `global_max_fast`
+    global_max_fast_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
+        "global_max_fast"
+    ) or pwndbg.gdblib.symbol.address("global_max_fast")
+    assert global_max_fast_addr_via_debug_symbol is not None
+
+    # Check if we can get the address of `global_max_fast` from debug symbols and the value of `global_max_fast` is correct
+    assert pwndbg.heap.current.global_max_fast is not None
+    # Check the address of `global_max_fast` is correct
+    assert pwndbg.heap.current._global_max_fast_addr == global_max_fast_addr_via_debug_symbol
+    pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
+
+    # Check if we can return the default value even if we can NOT find the address of `global_max_fast`
+    with mock_for_heuristic(["global_max_fast"]):
+        assert pwndbg.heap.current.global_max_fast == pwndbg.gdblib.memory.u(
+            global_max_fast_addr_via_debug_symbol
+        )
 
 
-# TODO: Support the test for multi-threaded, since it might take user's input for finding the `thread_arena`
-@pytest.mark.parametrize("is_multi_threaded", [False], ids=["single-threaded"])
+@pytest.mark.parametrize(
+    "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
+)
 def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
     # TODO: Support other architectures or different libc versions
     start_binary(HEAP_MALLOC_CHUNK)
@@ -364,6 +388,8 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
 
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):
+        # mock the prompt to avoid input
+        pwndbg.heap.current.prompt_for_brute_force_permission = lambda: False
         _test_heuristic_fail_gracefully("main_arena")
         _test_heuristic_fail_gracefully("mp")
         _test_heuristic_fail_gracefully("global_max_fast")
