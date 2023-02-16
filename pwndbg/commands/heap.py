@@ -193,7 +193,7 @@ def arenas() -> None:
     print("main_arena:")
     print(arenas[0])
     if arenas[1:]:
-        print("thread arenas:")
+        print("non-main arena:")
         for arena in arenas[1:]:
             print(arena)
 
