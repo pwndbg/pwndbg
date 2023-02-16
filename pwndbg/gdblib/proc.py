@@ -131,6 +131,18 @@ class module(ModuleType):
                 return int(line.split()[0], 16)
         return 0
 
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def get_got_section_address(self) -> int:
+        """
+        Find .got section address of current process.
+        """
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
+            if line.endswith(" is .got"):
+                return int(line.split()[0], 16)
+        return 0
+
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)
         def wrapper(*a, **kw):

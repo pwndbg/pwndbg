@@ -117,6 +117,25 @@ def get_data_section_address() -> int:
     return 0
 
 
+@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+def get_got_section_address() -> int:
+    """
+    Find .got section address of libc
+    """
+    libc_filename = get_libc_filename_from_info_sharedlibrary()
+    if not libc_filename:
+        # libc not loaded yet, or it's static linked
+        return 0
+    # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
+    out = pwndbg.gdblib.info.files()
+    for line in out.splitlines():
+        if line.endswith(" is .got in " + libc_filename):
+            return int(line.split()[0], 16)
+    return 0
+
+
 def OnlyWhenGlibcLoaded(function):
     @functools.wraps(function)
     def _OnlyWhenGlibcLoaded(*a, **kw):
