@@ -2,9 +2,11 @@ import copy
 import importlib
 from collections import OrderedDict
 from enum import Enum
+from typing import Any
+from typing import Callable
 from typing import Dict
-from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union  # noqa: F401
 
 import gdb
@@ -1260,6 +1262,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
         super().__init__()
         self._structs_module = None
         self._thread_arenas: Dict[int, Arena] = {}
+        self._thread_caches: Dict[int, Any] = {}
 
     @property
     def struct_module(self):
@@ -1323,7 +1326,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
 
-    def prompt_for_brute_force_permission(self) -> bool:
+    def prompt_for_brute_force_thread_arena_permission(self) -> bool:
         """Check if the user wants to brute force the thread_arena's value."""
         print(
             message.notice("We cannot determine the %s\n" % message.hint("thread_arena"))
@@ -1334,12 +1337,23 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 "Note: This might take a while and might not be reliable, so if you can determine it by yourself or you have modified any of the arena, please do not use this."
             )
         )
-        if input().lower() != "y":
-            raise SymbolUnresolvableError("thread_arena")
-        return True
+        return input().lower() == "y"
+
+    def prompt_for_brute_force_thread_cache_permission(self) -> bool:
+        """Check if the user wants to brute force the tcache's value."""
+        print(
+            message.notice("We cannot determine the %s\n" % message.hint("tcache"))
+            + message.notice(
+                "Will you want to brute force it in the memory to determine the address instead of assuming it's at the beginning of the current thread's heap? (y/N)\n"
+            )
+            + message.warn(
+                "Note: This might take a while and might not be reliable, so if you can determine it by yourself or your current arena is corrupted or you have modified the chunk for the tcache, please do not use this."
+            )
+        )
+        return input().lower() == "y"
 
     def prompt_for_tls_address(self) -> int:
-        """Check if we can determine the TLS address."""
+        """Check if we can determine the TLS address and return it."""
         tls_address = pwndbg.gdblib.tls.find_address_with_register()
         if not tls_address:
             print(
@@ -1357,47 +1371,46 @@ class HeuristicHeap(GlibcMemoryAllocator):
         return tls_address
 
     def brute_force_tls_reference_in_got_section(
-        self, tls_address: int, candidates: List[int]
-    ) -> Optional[Arena]:
-        """Brute force the TLS-reference in the .got section."""
+        self, tls_address: int, validator: Callable[[int], bool]
+    ) -> Optional[Tuple[int, int]]:
+        """Brute force the TLS-reference in the .got section to that can pass the validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
         if self.is_statically_linked():
             got_address = pwndbg.gdblib.proc.get_got_section_address()
         else:
             got_address = pwndbg.glibc.get_got_section_address()
-        if got_address:
-            s_int = (
-                pwndbg.gdblib.memory.s32
-                if pwndbg.gdblib.arch.ptrsize == 4
-                else pwndbg.gdblib.memory.s64
-            )
-            for addr in range(got_address, got_address + 0xF0, pwndbg.gdblib.arch.ptrsize):
-                if not pwndbg.gdblib.memory.is_readable_address(addr):
-                    break
-                offset = s_int(addr)
-                if offset and pwndbg.gdblib.memory.is_readable_address(offset + tls_address):
-                    guess = pwndbg.gdblib.memory.pvoid(offset + tls_address)
-                    if guess in candidates:
-                        print(
-                            message.notice(
-                                "Found matching arena address %s at %s"
-                                % (
-                                    message.hint(hex(guess)),
-                                    message.hint(hex(offset + tls_address)),
-                                )
-                            )
-                        )
-                        arena = Arena(guess)
-                        self._thread_arenas[gdb.selected_thread().global_num] = arena
-                        return arena
+        if not got_address:
+            print(message.warn("Cannot find the address of the .got section."))
+            return None
+        s_int = (
+            pwndbg.gdblib.memory.s32
+            if pwndbg.gdblib.arch.ptrsize == 4
+            else pwndbg.gdblib.memory.s64
+        )
+        for addr in range(got_address, got_address + 0xF0, pwndbg.gdblib.arch.ptrsize):
+            if not pwndbg.gdblib.memory.is_readable_address(addr):
+                break
+            offset = s_int(addr)
+            if (
+                offset
+                and offset % pwndbg.gdblib.arch.ptrsize == 0
+                and pwndbg.gdblib.memory.is_readable_address(offset + tls_address)
+            ):
+                guess = pwndbg.gdblib.memory.pvoid(offset + tls_address)
+                if validator(guess):
+                    return guess, offset + tls_address
         return None
 
-    def brute_force_thread_arena_near_tls_base(
-        self, tls_address: int, candidates: List[int]
-    ) -> Optional[Arena]:
-        """Brute force the TLS address to find the thread_arena's value."""
-        print(message.notice("Brute forcing the memory near the TLS address..."))
+    def brute_force_thread_local_variable_near_tls_base(
+        self, tls_address: int, validator: Callable[[int], bool]
+    ) -> Optional[Tuple[int, int]]:
+        """Brute force the thread-local variable near the TLS base address that can pass the validator."""
+        print(
+            message.notice(
+                "Brute forcing all the possible thread-local variables near the TLS base address..."
+            )
+        )
         for search_range in (
             range(tls_address, tls_address - 0x500, -pwndbg.gdblib.arch.ptrsize),
             range(tls_address, tls_address + 0x500, pwndbg.gdblib.arch.ptrsize),
@@ -1407,16 +1420,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 if pwndbg.gdblib.memory.is_readable_address(addr):
                     reading = True
                     guess = pwndbg.gdblib.memory.pvoid(addr)
-                    if guess in candidates:
-                        print(
-                            message.notice(
-                                "Found matching arena address %s at %s"
-                                % (message.hint(hex(guess)), message.hint(hex(addr)))
-                            )
-                        )
-                        arena = Arena(guess)
-                        self._thread_arenas[gdb.selected_thread().global_num] = arena
-                        return arena
+                    if validator(guess):
+                        return guess, addr
                 elif reading:
                     # Don't need to try now, we only read consecutive memory
                     break
@@ -1440,16 +1445,31 @@ class HeuristicHeap(GlibcMemoryAllocator):
             if pwndbg.gdblib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
                 # TODO: Support other architectures
                 raise SymbolUnresolvableError("thread_arena")
-            if self.prompt_for_brute_force_permission():
+            if self.prompt_for_brute_force_thread_arena_permission():
                 tls_address = self.prompt_for_tls_address()
                 print(message.notice("Fetching all the arena addresses..."))
                 candidates = [a.address for a in self.arenas]
-                found = self.brute_force_tls_reference_in_got_section(tls_address, candidates)
+
+                def validator(guess: int) -> bool:
+                    return guess in candidates
+
+                found = self.brute_force_tls_reference_in_got_section(
+                    tls_address, validator
+                ) or self.brute_force_thread_local_variable_near_tls_base(tls_address, validator)
                 if found:
-                    return found
-                found = self.brute_force_thread_arena_near_tls_base(tls_address, candidates)
-                if found:
-                    return found
+                    value, address = found
+                    print(
+                        message.notice(
+                            "Found matching arena address %s at %s\n"
+                            % (
+                                message.hint(hex(value)),
+                                message.hint(hex(address)),
+                            )
+                        )
+                    )
+                    arena = Arena(value)
+                    self._thread_arenas[gdb.selected_thread().global_num] = arena
+                    return arena
 
                 print(
                     message.notice(
@@ -1460,6 +1480,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 return None
             raise SymbolUnresolvableError("thread_arena")
         else:
+            self._thread_arenas[gdb.selected_thread().global_num] = self.main_arena
             return self.main_arena
 
     @property
@@ -1483,8 +1504,59 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 self._thread_cache = self.tcache_perthread_struct(int(thread_cache_struct_addr))
                 return self._thread_cache
 
-        # TODO: The result might be wrong if the arena is being shared by multiple threads
+        if self._thread_caches.get(gdb.selected_thread().global_num):
+            return self._thread_caches[gdb.selected_thread().global_num]
+
         arena = self.thread_arena
+        if not arena:
+            # arena doesn't be allocated yet, so there's no tcache
+            return None
+
+        if self.main_arena.next != self.main_arena.address or self.multithreaded:
+            if self.prompt_for_brute_force_thread_cache_permission():
+                tls_address = self.prompt_for_tls_address()
+                chunk_header_size = pwndbg.gdblib.arch.ptrsize * 2
+                tcache_perthread_struct_size = self.tcache_perthread_struct.sizeof
+                lb, ub = arena.active_heap.start, arena.active_heap.end
+
+                def validator(guess: int) -> bool:
+                    if guess < lb or guess >= ub:
+                        return False
+                    if not pwndbg.gdblib.memory.is_readable_address(
+                        guess - chunk_header_size
+                    ) or not pwndbg.gdblib.memory.is_readable_address(
+                        guess + tcache_perthread_struct_size
+                    ):
+                        return False
+                    chunk = Chunk(guess - chunk_header_size)
+                    return chunk.real_size - chunk_header_size == tcache_perthread_struct_size
+
+                found = self.brute_force_tls_reference_in_got_section(
+                    tls_address, validator
+                ) or self.brute_force_thread_local_variable_near_tls_base(tls_address, validator)
+                if found:
+                    value, address = found
+                    print(
+                        message.notice(
+                            "Found possible tcache at %s with value: %s\n"
+                            % (
+                                message.hint(hex(address)),
+                                message.hint(hex(value)),
+                            )
+                        )
+                    )
+                    thread_cache = self.tcache_perthread_struct(value)
+                    self._thread_caches[gdb.selected_thread().global_num] = thread_cache
+                    return thread_cache
+
+            print(
+                message.warn(
+                    "Cannot find tcache, we assume it's at the beginning of the heap.\n"
+                    "If you think this is wrong, please manually set it with `set tcache <address>`.\n"
+                )
+            )
+
+        # TODO: The result might be wrong if the arena is being shared by multiple thread
         ptr_size = pwndbg.gdblib.arch.ptrsize
 
         cursor = arena.active_heap.start
@@ -1497,6 +1569,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
             cursor += ptr_size * 2
 
         self._thread_cache = self.tcache_perthread_struct(cursor + ptr_size * 2)
+        self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
 
         return self._thread_cache
 

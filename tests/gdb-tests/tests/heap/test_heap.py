@@ -298,9 +298,15 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
     )
     pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
 
-    # Check if we can get the address of `thread_cache` by using the first chunk
-    # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
+    # Check if we can get the address of `tcache` by using the first chunk or by brute force
     with mock_for_heuristic(["tcache"]):
+        # Check if we can find tcache by brute force
+        pwndbg.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: True
+        assert pwndbg.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
+        pwndbg.heap.current = type(pwndbg.heap.current)()  # Reset the heap object of pwndbg
+        # Check if we can find tcache by using the first chunk
+        # # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
+        pwndbg.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
         assert pwndbg.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
 
 
@@ -334,7 +340,7 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     # Check if we can use brute-force to find the `thread_arena` when multi-threaded, and if we can use the `main_arena` as the `thread_arena` when single-threaded
     with mock_for_heuristic(["thread_arena"]):
         # mock the prompt to avoid input
-        pwndbg.heap.current.prompt_for_brute_force_permission = lambda: True
+        pwndbg.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: True
         assert pwndbg.heap.current.thread_arena is not None
         # Check the value of `thread_arena` is correct
         assert pwndbg.heap.current.thread_arena.address == thread_arena_via_debug_symbol
@@ -389,7 +395,8 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):
         # mock the prompt to avoid input
-        pwndbg.heap.current.prompt_for_brute_force_permission = lambda: False
+        pwndbg.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: False
+        pwndbg.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
         _test_heuristic_fail_gracefully("main_arena")
         _test_heuristic_fail_gracefully("mp")
         _test_heuristic_fail_gracefully("global_max_fast")

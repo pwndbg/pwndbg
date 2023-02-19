@@ -368,11 +368,6 @@ def _try2run_heap_command(function, a, kw):
                 "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
                 "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
             )
-            if pwndbg.heap.current.has_tcache():
-                w(
-                    "Please also notice, pwndbg will assume the tcache is at the first chunk of the arena if the `tcache` symbol does not present, so when the arena is been shared by multiple threads, the result might be wrong.\n"
-                    "To resolve this, you can use `set tcache <addr>` to set the tcache structure's address manually if this problem occurs.\n"
-                )
         else:
             w(
                 f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
