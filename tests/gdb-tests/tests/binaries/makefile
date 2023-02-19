@@ -92,6 +92,10 @@ heap_malloc_chunk.out: heap_malloc_chunk.c
 	@echo "[+] Building heap_malloc_chunk.out"
 	${CC} -g -O0 -Wno-nonnull -Wno-unused-result -o heap_malloc_chunk.out heap_malloc_chunk.c -pthread -lpthread
 
+multiple_threads.out: multiple_threads.c
+	@echo "[+] Building multiple_threads.out"
+	${CC} -g -O0 -o multiple_threads.out multiple_threads.c -pthread -lpthread
+
 clean :
 	@echo "[+] Cleaning stuff"
 	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)
