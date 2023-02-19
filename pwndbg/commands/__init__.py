@@ -619,6 +619,7 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.killthreads
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
