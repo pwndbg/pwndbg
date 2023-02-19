@@ -42,11 +42,6 @@ def killthreads(thread_ids: Optional[List] = None, all: bool = False) -> None:
                 gdb.execute("call (void) pthread_exit(0)")
             except gdb.error as e:
                 # gdb will throw an error, because the thread dies during the call, which is expected
-                if (
-                    "The program being debugged stopped while in a function called from GDB."
-                    not in str(e)
-                ):
-                    raise e
                 pass
 
         # Switch back to the thread we were on before killing threads
