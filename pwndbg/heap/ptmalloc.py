@@ -1369,7 +1369,6 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 tls_address = pwndbg.gdblib.tls.find_address_with_pthread_self()
             if not tls_address:
                 print(message.error("Cannot find TLS address via pthread_self()."))
-                raise SymbolUnresolvableError("thread_arena")
         return tls_address
 
     def brute_force_tls_reference_in_got_section(
@@ -1452,6 +1451,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 raise SymbolUnresolvableError("thread_arena")
             if self.prompt_for_brute_force_thread_arena_permission():
                 tls_address = self.prompt_for_tls_address()
+                if not tls_address:
+                    raise SymbolUnresolvableError("thread_arena")
                 print(message.notice("Fetching all the arena addresses..."))
                 candidates = [a.address for a in self.arenas]
 
@@ -1521,39 +1522,42 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if self.main_arena.next != self.main_arena.address or self.multithreaded:
             if self.prompt_for_brute_force_thread_cache_permission():
                 tls_address = self.prompt_for_tls_address()
-                chunk_header_size = pwndbg.gdblib.arch.ptrsize * 2
-                tcache_perthread_struct_size = self.tcache_perthread_struct.sizeof
-                lb, ub = arena.active_heap.start, arena.active_heap.end
+                if tls_address:
+                    chunk_header_size = pwndbg.gdblib.arch.ptrsize * 2
+                    tcache_perthread_struct_size = self.tcache_perthread_struct.sizeof
+                    lb, ub = arena.active_heap.start, arena.active_heap.end
 
-                def validator(guess: int) -> bool:
-                    if guess < lb or guess >= ub:
-                        return False
-                    if not pwndbg.gdblib.memory.is_readable_address(
-                        guess - chunk_header_size
-                    ) or not pwndbg.gdblib.memory.is_readable_address(
-                        guess + tcache_perthread_struct_size
-                    ):
-                        return False
-                    chunk = Chunk(guess - chunk_header_size)
-                    return chunk.real_size - chunk_header_size == tcache_perthread_struct_size
+                    def validator(guess: int) -> bool:
+                        if guess < lb or guess >= ub:
+                            return False
+                        if not pwndbg.gdblib.memory.is_readable_address(
+                            guess - chunk_header_size
+                        ) or not pwndbg.gdblib.memory.is_readable_address(
+                            guess + tcache_perthread_struct_size
+                        ):
+                            return False
+                        chunk = Chunk(guess - chunk_header_size)
+                        return chunk.real_size - chunk_header_size == tcache_perthread_struct_size
 
-                found = self.brute_force_tls_reference_in_got_section(
-                    tls_address, validator
-                ) or self.brute_force_thread_local_variable_near_tls_base(tls_address, validator)
-                if found:
-                    value, address = found
-                    print(
-                        message.notice(
-                            "Found possible tcache at %s with value: %s\n"
-                            % (
-                                message.hint(hex(address)),
-                                message.hint(hex(value)),
+                    found = self.brute_force_tls_reference_in_got_section(
+                        tls_address, validator
+                    ) or self.brute_force_thread_local_variable_near_tls_base(
+                        tls_address, validator
+                    )
+                    if found:
+                        value, address = found
+                        print(
+                            message.notice(
+                                "Found possible tcache at %s with value: %s\n"
+                                % (
+                                    message.hint(hex(address)),
+                                    message.hint(hex(value)),
+                                )
                             )
                         )
-                    )
-                    self._thread_cache = self.tcache_perthread_struct(value)
-                    self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
-                    return self._thread_cache
+                        self._thread_cache = self.tcache_perthread_struct(value)
+                        self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
+                        return self._thread_cache
 
             print(
                 message.warn(
