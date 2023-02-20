@@ -1,5 +1,4 @@
 import pwndbg.commands
-import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 
 
