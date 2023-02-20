@@ -27,16 +27,14 @@ def got(name_filter="") -> None:
         return
 
     if "PIE enabled" in pie_status:
-        bin_base = pwndbg.gdblib.elf.exe().address
+        bin_base = pwndbg.gdblib.proc.binary_base_addr
 
     relro_color = message.off
     if "Partial" in relro_status:
         relro_color = message.warn
     elif "Full" in relro_status:
         relro_color = message.on
-    print(
-        "\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots))
-    )
+    print("GOT protection: %s | GOT functions: %d" % (relro_color(relro_status), len(jmpslots)))
 
     for line in jmpslots:
         address, info, rtype, value, name = line.split()[:5]
