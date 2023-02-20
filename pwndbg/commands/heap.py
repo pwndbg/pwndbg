@@ -141,6 +141,10 @@ def heap(addr=None, verbose=False, simple=False) -> None:
             chunk = chunk.next_chunk()
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(message.notice("No arena found for current thread."))
+            return
         h = arena.active_heap
 
         for chunk in h:
@@ -264,6 +268,10 @@ def top_chunk(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(message.notice("No arena found for current thread."))
+            return
 
     malloc_chunk(arena.top)
 
@@ -688,6 +696,10 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         arena = heap_region.arena
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(message.notice("No arena found for current thread."))
+            return
         heap_region = arena.active_heap
         cursor = heap_region.start
 
@@ -868,6 +880,10 @@ def try_free(addr) -> None:
     # constants
     allocator = pwndbg.heap.current
     arena = allocator.thread_arena
+    # arena might be None if the current thread doesn't allocate the arena
+    if arena is None:
+        print(message.notice("No arena found for current thread."))
+        return
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz
