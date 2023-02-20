@@ -218,7 +218,13 @@ def tcache(addr=None) -> None:
     """
     allocator = pwndbg.heap.current
     tcache = allocator.get_tcache(addr)
-    print(tcache)
+    # if the current thread doesn't allocate the arena, tcache will be NULL
+    print(
+        message.notice("tcache is pointing to: ")
+        + message.hint(hex(tcache.address) if tcache else "NULL")
+    )
+    if tcache:
+        print(tcache)
 
 
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
@@ -306,7 +312,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk and arena:
-
             bins_list = [
                 allocator.fastbins(arena.address),
                 allocator.smallbins(arena.address),

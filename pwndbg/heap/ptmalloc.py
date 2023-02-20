@@ -1144,8 +1144,10 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                     pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
                     or pwndbg.gdblib.symbol.address("tcache")
                 )
-                if tcache_addr != 0:
-                    tcache = tcache_addr
+                if tcache_addr == 0:
+                    # This thread doesn't have a tcache yet
+                    return None
+                tcache = tcache_addr
 
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
