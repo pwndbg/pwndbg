@@ -22,15 +22,15 @@ def add_heap_param(
     )
 
 
-main_arena = add_heap_param("main-arena", "0", "&main_arena for heuristics")
+main_arena = add_heap_param("main-arena", "0", "the address of main_arena")
 
-thread_arena = add_heap_param("thread-arena", "0", "*thread_arena for heuristics")
+thread_arena = add_heap_param("thread-arena", "0", "the address pointed by thread_arena")
 
-mp_ = add_heap_param("mp", "0", "&mp_ for heuristics")
+mp_ = add_heap_param("mp", "0", "the address of mp_")
 
-tcache = add_heap_param("tcache", "0", "*tcache for heuristics")
+tcache = add_heap_param("tcache", "0", "the address pointed by tcache")
 
-global_max_fast = add_heap_param("global-max-fast", "0", "&global_max_fast for heuristics")
+global_max_fast = add_heap_param("global-max-fast", "0", "the address of global_max_fast")
 
 symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 
