@@ -39,6 +39,7 @@ def test_command_killthreads_kills_specific_thread(start_binary):
 
     gdb.execute("kill")
 
+
 def test_command_killthreads_produces_error_when_unknown_thread_passed(start_binary):
     start_binary(REFERENCE_BINARY_THREADS)
 
@@ -50,7 +51,6 @@ def test_command_killthreads_produces_error_when_unknown_thread_passed(start_bin
 
     out = gdb.execute("killthreads 999", to_string=True)
     assert "Thread ID 999 does not exist" in out
-
 
     gdb.execute("kill")
 
