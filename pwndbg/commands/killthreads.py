@@ -9,20 +9,23 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.scheduler import lock_scheduler
 
-parser = argparse.ArgumentParser(description="Kill multiple threads at once.")
-
-parser.add_argument("thread_ids", nargs="*", help="Thread IDs to kill.")
-parser.add_argument(
-    "-a",
-    "--all",
-    action="store_true",
-    help="""Kill all or given threads.\
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Kill all or given threads.
 
 Switches to given threads and calls pthread_exit(0) on them.
 This is performed with scheduler-locking to prevent other threads from operating at the same time.
 
 Killing all other threads may be useful to use GDB checkpoints, e.g., to test given input & restart the execution to the point of interest (checkpoint).
 """,
+)
+
+parser.add_argument("thread_ids", nargs="*", help="Thread IDs to kill.")
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Kill all threads except the current one.",
 )
 
 
