@@ -6,6 +6,8 @@ import time
 from os import environ
 from os import path
 
+import pkg_resources
+
 _profiler = cProfile.Profile()
 
 _start_time = None
@@ -75,10 +77,14 @@ directory, file = path.split(__file__)
 directory = path.expanduser(directory)
 directory = path.abspath(directory)
 
-
+# Add gdb-pt-dump directory to sys.path so it can be imported
 gdbpt = path.join(directory, "gdb-pt-dump")
 sys.path.append(directory)
 sys.path.append(gdbpt)
+
+# Add the dir where Pwntools binaries might be into PATH
+pwntools_bin_dir = os.path.join(pkg_resources.get_distribution("pwntools").location, "bin")
+os.environ["PATH"] = os.environ.get("PATH") + os.pathsep + pwntools_bin_dir
 
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
