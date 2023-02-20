@@ -6,7 +6,6 @@ The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
-import os
 from typing import Any
 from typing import List
 from typing import Optional
@@ -88,18 +87,18 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
         return tuple()
-    pages = []
-    
+
     proc_maps = proc_pid_maps()
 
-    # Special case: this happens only if process is not fully initialized yet
-    if proc_maps is None:
-        return tuple()
+    # The `proc_maps` is usually a tuple of Page objects but it can also be:
+    #   None    - when /proc/$pid/maps does not exist/is not available
+    #   tuple() - when the process has no maps yet which happens only during its very early init
+    #             (usually when we attach to a process)
+    if proc_maps is not None:
+        return proc_maps
 
-    pages.extend(proc_maps)
-
+    pages = []
     if (
-        not pages
         and pwndbg.gdblib.qemu.is_qemu_kernel()
         and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
     ):
@@ -351,7 +350,7 @@ def proc_pid_maps():
     # If we debug remotely a qemu-user or qemu-system target,
     # there is no point of hitting things further
     if pwndbg.gdblib.qemu.is_qemu():
-        return tuple()
+        return None
 
     # Example /proc/$pid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -388,11 +387,11 @@ def proc_pid_maps():
         except (OSError, gdb.error):
             continue
     else:
-        return tuple()
+        return None
 
     # Process hasn't been fully created yet; it is in Z (zombie) state
     if data == "":
-        return None
+        return tuple()
 
     pages = []
     for line in data.splitlines():
