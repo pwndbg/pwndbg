@@ -1261,7 +1261,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self) -> None:
         super().__init__()
         self._structs_module = None
-        self._thread_arenas: Dict[int, Arena] = {}
+        self._thread_arena_values: Dict[int, int] = {}
         self._thread_caches: Dict[int, Any] = {}
 
     @property
@@ -1433,14 +1433,17 @@ class HeuristicHeap(GlibcMemoryAllocator):
             "thread_arena"
         ) or pwndbg.gdblib.symbol.address("thread_arena")
         if thread_arena_via_symbol:
-            thread_arena_addr = pwndbg.gdblib.memory.pvoid(thread_arena_via_symbol)
-            return Arena(thread_arena_addr) if thread_arena_addr else None
+            thread_arena_value = pwndbg.gdblib.memory.pvoid(thread_arena_via_symbol)
+            return Arena(thread_arena_value) if thread_arena_value else None
         thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
         if thread_arena_via_config:
             return Arena(thread_arena_via_config)
-        arena = self._thread_arenas.get(gdb.selected_thread().global_num)
-        if arena:
-            return arena
+
+        # return the value of the thread_arena if we have it cached
+        thread_arena_value = self._thread_arena_values.get(gdb.selected_thread().global_num)
+        if thread_arena_value:
+            return Arena(thread_arena_value)
+
         if self.main_arena.address != pwndbg.heap.current.main_arena.next or self.multithreaded:
             if pwndbg.gdblib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
                 # TODO: Support other architectures
@@ -1468,7 +1471,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         )
                     )
                     arena = Arena(value)
-                    self._thread_arenas[gdb.selected_thread().global_num] = arena
+                    self._thread_arena_values[gdb.selected_thread().global_num] = value
                     return arena
 
                 print(
@@ -1480,7 +1483,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 return None
             raise SymbolUnresolvableError("thread_arena")
         else:
-            self._thread_arenas[gdb.selected_thread().global_num] = self.main_arena
+            self._thread_arena_values[gdb.selected_thread().global_num] = self.main_arena.address
             return self.main_arena
 
     @property
@@ -1504,6 +1507,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 self._thread_cache = self.tcache_perthread_struct(int(thread_cache_struct_addr))
                 return self._thread_cache
 
+        # return the value of tcache if we have it cached
         if self._thread_caches.get(gdb.selected_thread().global_num):
             return self._thread_caches[gdb.selected_thread().global_num]
 
@@ -1545,9 +1549,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
                             )
                         )
                     )
-                    thread_cache = self.tcache_perthread_struct(value)
-                    self._thread_caches[gdb.selected_thread().global_num] = thread_cache
-                    return thread_cache
+                    self._thread_cache = self.tcache_perthread_struct(value)
+                    self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
+                    return self._thread_cache
 
             print(
                 message.warn(
