@@ -89,7 +89,14 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.gdblib.proc.alive:
         return tuple()
     pages = []
-    pages.extend(proc_pid_maps())
+    
+    proc_maps = proc_pid_maps()
+
+    # Special case: this happens only if process is not fully initialized yet
+    if proc_maps is None:
+        return tuple()
+
+    pages.extend(proc_maps)
 
     if (
         not pages
@@ -382,6 +389,10 @@ def proc_pid_maps():
             continue
     else:
         return tuple()
+
+    # Process hasn't been fully created yet; it is in Z (zombie) state
+    if data == "":
+        return None
 
     pages = []
     for line in data.splitlines():
@@ -725,10 +736,3 @@ def check_aslr():
     # access to procfs.
     output = gdb.execute("show disable-randomization", to_string=True)
     return ("is off." in output), "show disable-randomization"
-
-
-@pwndbg.gdblib.events.cont
-def mark_pc_as_executable() -> None:
-    mapping = find(pwndbg.gdblib.regs.pc)
-    if mapping and not mapping.execute:
-        mapping.flags |= os.X_OK
