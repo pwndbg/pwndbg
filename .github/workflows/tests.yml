@@ -23,6 +23,9 @@ jobs:
         ./setup-dev.sh --user
         pip install --user coveralls
 
+    - name: Extend system path
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
     - name: Python version info
       run: |
         echo 'GDB py:'
