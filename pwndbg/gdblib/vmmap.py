@@ -98,9 +98,11 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return proc_maps
 
     pages = []
-    if (
-        and pwndbg.gdblib.qemu.is_qemu_kernel()
-        and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
+        "i386",
+        "x86-64",
+        "aarch64",
+        "riscv:rv64",
     ):
 
         # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
