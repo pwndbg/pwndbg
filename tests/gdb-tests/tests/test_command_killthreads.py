@@ -39,6 +39,21 @@ def test_command_killthreads_kills_specific_thread(start_binary):
 
     gdb.execute("kill")
 
+def test_command_killthreads_produces_error_when_unknown_thread_passed(start_binary):
+    start_binary(REFERENCE_BINARY_THREADS)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+    initial_thread_count = len(gdb.selected_inferior().threads())
+    # check if thread with id 3 exists
+    assert len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3]) == 1
+
+    out = gdb.execute("killthreads 999", to_string=True)
+    assert "Thread ID 999 does not exist" in out
+
+
+    gdb.execute("kill")
+
 
 def test_command_killthreads_before_binary_start():
     result = gdb.execute("killthreads", to_string=True)

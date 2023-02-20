@@ -13,7 +13,13 @@ parser = argparse.ArgumentParser(description="Kill multiple threads at once.")
 
 parser.add_argument("thread_ids", nargs="*", help="Thread IDs to kill.")
 parser.add_argument(
-    "-a", "--all", action="store_true", help="Kill all threads except the current one."
+    "-a", "--all", action="store_true", help="""Kill all or given threads.\
+
+Switches to given threads and calls pthread_exit(0) on them.
+This is performed with scheduler-locking to prevent other threads from operating at the same time.
+
+Killing all other threads may be useful to use GDB checkpoints, e.g., to test given input & restart the execution to the point of interest (checkpoint).
+"""
 )
 
 
@@ -30,23 +36,26 @@ def killthreads(thread_ids: Optional[List] = None, all: bool = False) -> None:
 
     with lock_scheduler():
         current_thread_id = gdb.selected_thread().num
-        if all:
-            thread_ids = [
+        available_thread_ids = [
                 thread.num
                 for thread in gdb.selected_inferior().threads()
                 if thread.num != current_thread_id
-            ]
+        ]
+        if all:
+            thread_ids = available_thread_ids
+        else:
+            for thread_id in thread_ids:
+                if thread_id not in available_thread_ids:
+                    print(message.error(f"Thread ID {thread_id} does not exist, see `info threads`"))
+                    return
         for thread_id in thread_ids:
-            gdb.execute(f"thread {thread_id}")
+            gdb.execute(f"thread {thread_id}", to_string=True)
             try:
-                gdb.execute("call (void) pthread_exit(0)")
+                gdb.execute("call (void) pthread_exit(0)", to_string=True)
             except gdb.error as e:
                 # gdb will throw an error, because the thread dies during the call, which is expected
                 pass
 
         # Switch back to the thread we were on before killing threads
-        gdb.execute(f"thread {current_thread_id}")
-        if len(thread_ids) == 1:
-            print(message.success("Killed 1 thread"))
-        else:
-            print(message.success(f"Killed {len(thread_ids)} threads"))
+        gdb.execute(f"thread {current_thread_id}", to_string=True)
+        print(message.success("Killed threads with IDs: " + ", ".join([str(thread_id) for thread_id in thread_ids])))

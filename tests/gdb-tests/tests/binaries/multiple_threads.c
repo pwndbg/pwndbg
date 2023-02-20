@@ -7,7 +7,7 @@
 
 void *thread_function(void *arg)
 {
-    usleep(1000);
+    usleep(4000);
     exit(1);
     return NULL;
 }
@@ -40,7 +40,7 @@ int main()
     }
     
     break_here();
-    usleep(4000);
+    usleep(8000);
     
     return 0;
 }
