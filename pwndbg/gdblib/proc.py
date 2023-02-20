@@ -41,6 +41,10 @@ class module(ModuleType):
         return self.pid
 
     @property
+    def thread_id(self):
+        return gdb.selected_thread().num
+
+    @property
     def alive(self) -> bool:
         """
         Informs whether the process has a thread. However, note that it will
