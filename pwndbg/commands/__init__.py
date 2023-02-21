@@ -370,7 +370,7 @@ def _try2run_heap_command(function, a, kw):
             )
         else:
             w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
             )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
