@@ -1125,10 +1125,12 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             thread_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
                 "thread_arena"
             ) or pwndbg.gdblib.symbol.address("thread_arena")
-            if thread_arena_addr is not None and thread_arena_addr != 0:
-                return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_addr))
-            else:
-                return None
+            if thread_arena_addr:
+                thread_arena_value = pwndbg.gdblib.memory.pvoid(thread_arena_addr)
+                # thread_arena might be NULL if the thread doesn't allocate arena yet
+                if thread_arena_value:
+                    return Arena(pwndbg.gdblib.memory.pvoid(thread_arena_addr))
+            return None
         else:
             return self.main_arena
 
