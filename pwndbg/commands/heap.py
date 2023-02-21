@@ -175,7 +175,7 @@ def arena(addr=None) -> None:
         tid = pwndbg.gdblib.proc.thread_id
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice(f"No arena found for thread {message.hint(tid)}."))
+            print(message.notice(f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."))
             return
         print(
             message.notice(
