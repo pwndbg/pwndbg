@@ -172,14 +172,17 @@ def arena(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        tid = pwndbg.gdblib.proc.thread_id
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice("No arena found for current thread."))
+            print(message.notice(f"No arena found for thread {message.hint(tid)}."))
             return
-        print(message.notice("current thread's arena at: ") + message.hint(hex(arena.address)))
+        print(
+            message.notice(
+                f"Arena for thread {message.hint(tid)} is located at: {message.hint(hex(arena.address))}"
+            )
+        )
 
-    tid = pwndbg.gdblib.proc.thread_id
-    print(message.hint(f"Arena for thread {tid}:"))
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
