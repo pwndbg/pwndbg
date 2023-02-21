@@ -273,7 +273,7 @@ def top_chunk(addr=None) -> None:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice("No arena found for current thread."))
+            print(message.notice("No arena found for current thread (the thread hasn't performed any allocations)"))
             return
 
     malloc_chunk(arena.top)
