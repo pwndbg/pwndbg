@@ -1250,6 +1250,6 @@ def heap_config(filter_pattern) -> None:
 
     print(
         message.hint(
-            "Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `auto` or `force`"
+            "Some config values (e.g. main_arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )
