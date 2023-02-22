@@ -98,7 +98,7 @@ def build_prompt(question, command=None):
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"
 
-    if True or asm:
+    if asm:
         prompt += f"""These are the next assembly instructions to be executed:
 
 ```
@@ -106,7 +106,7 @@ def build_prompt(question, command=None):
 ```
 
 """
-    if True or regs:
+    if regs:
         prompt += f"""Here are the registers, '*' indicates a recent change:
 
 ```
@@ -116,7 +116,7 @@ def build_prompt(question, command=None):
 """
     if flags:
         prompt += f"""The flags {flags} are set.\n\n"""
-    if True or stack:
+    if stack:
         prompt += f"""Here is the stack:
 
 ```
@@ -124,7 +124,7 @@ def build_prompt(question, command=None):
 ```
 
 """
-    if True or trace:
+    if trace:
         prompt += f"""Here is the backtrace:
 
 ```
