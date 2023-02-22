@@ -141,9 +141,7 @@ def build_prompt(question, command=None):
 
 
 def build_prompt_from_command(question, command):
-    prompt = (
-        f"""Running the command `{command}` in the GDB debugger yields the following output:\n"""
-    )
+    prompt = f"""Running the command `{command}` in the GDB debugger yields the following output:\n"""
     output = gdb.execute(command, to_string=True)
     print(output)
     prompt += f"""\n```\n{output}\n```\n\n"""
@@ -198,7 +196,7 @@ parser.add_argument(
     "--command",
     type=str,
     default=None,
-    help="Specify command whose output should be used as the prompt.",
+    help="Run a command in the GDB debugger and ask a question about the output.",
 )
 
 
