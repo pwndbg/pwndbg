@@ -4,10 +4,6 @@ GPT-3 large language model and asks it a question supplied by the user. It then
 displays GPT-3's response to that question to the user.
 """
 
-__AUTHOR__ = "Olivia Lucca Fraser"
-__VERSION__ = 0.1
-__LICENSE__ = "MIT"
-
 import argparse
 import json
 import os
