@@ -14,20 +14,39 @@ import gdb
 import requests
 
 import pwndbg
+import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.commands import context
+from pwndbg.gdblib import config
 from pwndbg.gdblib import regs as REGS
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+config.add_param("ai-openai-api-key", "", "OpenAI API key")
+try:
+    config.ai_openai_api_key = os.environ["OPENAI_API_KEY"]
+except KeyError:
+    pass
 
-LAST_QUESTION = []
-LAST_ANSWER = []
-HISTORY_LENGTH = 3
-LAST_PC = None
-STACK_DEPTH = 16
-LAST_COMMAND = None
-DUMMY = False
+config.add_param(
+    "ai-history-size",
+    3,
+    "Maximum number of successive questions and answers to maintain in the prompt for the ai command.",
+)
+config.add_param(
+    "ai-stack-depth", 16, "Rows of stack context to include in the prompt for the ai command."
+)
+
+last_question = []
+last_answer = []
+last_pc = None
+last_command = None
+dummy = False
+
+
+def set_dummy_mode(d=True):
+    global dummy
+    dummy = d
+    return
 
 
 def build_prompt(question, command=None):
@@ -38,14 +57,12 @@ def build_prompt(question, command=None):
     ## First, get the current GDB context
     ## Let's begin with the assembly near the current instruction
     try:
-        # asm = gdb.execute("capstone-disassemble --length 32 $pc", to_string=True)
         asm_rows = pwndbg.gdblib.nearpc.nearpc(emulate=True, lines=16)
         asm = "\n".join(asm_rows)
     except Exception as e:
-        print(f"Error: {e}")
+        print(M.error(f"Error: {e}"))
         asm = gdb.execute("x/16i $pc", to_string=True)
     ## Next, let's get the registers
-    # regs = gdb.execute("info registers", to_string=True)
     regs_rows = context.get_regs()
     regs = "\n".join(regs_rows)
     flags = None
@@ -60,15 +77,16 @@ def build_prompt(question, command=None):
         except Exception:
             pass
     ## Finally, let's get the stack
-    # stack = gdb.execute("x/16x $sp", to_string=True)
-    stack_rows = pwndbg.commands.telescope.telescope(REGS.sp, to_string=True, count=16)
+    stack_rows = pwndbg.commands.telescope.telescope(
+        REGS.sp, to_string=True, count=config.ai_stack_depth
+    )
     stack = "\n".join(stack_rows)
     ## and the backtrace
     trace = gdb.execute("bt", to_string=True)
     ## the function arguments, if available
     args = gdb.execute("info args", to_string=True)
     ## and the local variables, if available
-    local_vars = None  # gdb.execute("info locals", to_string=True)
+    local_vars = None
     ## and source information, if available
     source = gdb.execute("list", to_string=True)
     if len(source.split("\n")) < 3:
@@ -157,7 +175,7 @@ def strip_colors(text):
 def finish_prompt(prompt, question):
     ## If the context hasn't changed, include the last question and answer
     ## (we could add more of these, but there are length limitations on prompts)
-    for (q, a) in zip(LAST_QUESTION, LAST_ANSWER):
+    for (q, a) in zip(last_question, last_answer):
         prompt += f"""Question: {q}\n\nAnswer: {a}\n\n"""
 
     prompt += f"""Question: {question}
@@ -170,24 +188,23 @@ Answer: """
 
 
 def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
-    if DUMMY:
+    if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
     data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
     host = "api.openai.com"
     path = "/v1/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer: {OPENAI_API_KEY}"}
     url = f"https://{host}{path}"
     try:
         r = requests.post(
             url,
             data=json.dumps(data),
             headers={"Content-Type": "application/json"},
-            auth=("Bearer", OPENAI_API_KEY),
+            auth=("Bearer", config.ai_openai_api_key),
         )
         res = r.json()
         return res["choices"][0]["text"]
     except Exception as e:
-        print(f"Error sending query to OpenAI: {e}")
+        print(M.error(f"Error sending query to OpenAI: {e}"))
         return None
 
 
@@ -216,33 +233,35 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
 def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     # print the arguments
-    global LAST_QUESTION, LAST_ANSWER, LAST_PC, LAST_COMMAND
-    if not OPENAI_API_KEY:
-        print("Please set the OPENAI_API_KEY environment variable.")
+    global last_question, last_answer, last_pc, last_command
+    if not config.ai_openai_api_key:
+        print(
+            "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
+        )
         return
     question = " ".join(question).strip()
     current_pc = gdb.execute("info reg $pc", to_string=True)
-    if current_pc == LAST_PC and command is None:
-        command = LAST_COMMAND
+    if current_pc == last_pc and command is None:
+        command = last_command
     else:
-        LAST_COMMAND = command
-    if LAST_PC != current_pc or LAST_COMMAND != command:
-        LAST_QUESTION.clear()
-        LAST_ANSWER.clear()
+        last_command = command
+    if last_pc != current_pc or last_command != command:
+        last_question.clear()
+        last_answer.clear()
 
     prompt = build_prompt(question, command)
     if verbose:
-        print(f"Sending this prompt to OpenAI:\n\n{prompt}")
+        print(M.notice(f"Sending this prompt to OpenAI:\n\n{prompt}"))
     res = query_openai(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
-    LAST_QUESTION.append(question)
-    LAST_ANSWER.append(res)
-    LAST_PC = current_pc
-    if len(LAST_QUESTION) > HISTORY_LENGTH:
-        LAST_QUESTION.pop(0)
-        LAST_ANSWER.pop(0)
+    last_question.append(question)
+    last_answer.append(res)
+    last_pc = current_pc
+    if len(last_question) > config.ai_history_size:
+        last_question.pop(0)
+        last_answer.pop(0)
 
     term_width = os.get_terminal_size().columns
     answer = textwrap.fill(res, term_width)
-    print(answer)
+    print(M.success(answer))
 
     return
