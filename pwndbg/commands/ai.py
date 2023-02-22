@@ -11,6 +11,7 @@ __LICENSE__ = "MIT"
 import argparse
 import os
 import re
+import textwrap
 
 import gdb
 import openai
@@ -228,5 +229,9 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     if len(LAST_QUESTION) > HISTORY_LENGTH:
         LAST_QUESTION.pop(0)
         LAST_ANSWER.pop(0)
-    print(res)
+    
+    term_width = os.get_terminal_size().columns
+    answer = textwrap.fill(res, term_width)
+    print(answer)
+    
     return
