@@ -143,7 +143,11 @@ def heap(addr=None, verbose=False, simple=False) -> None:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice("No arena found for current thread (the thread hasn't performed any allocations)."))
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)."
+                )
+            )
             return
         h = arena.active_heap
 
@@ -175,7 +179,11 @@ def arena(addr=None) -> None:
         tid = pwndbg.gdblib.proc.thread_id
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice(f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."))
+            print(
+                message.notice(
+                    f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+                )
+            )
             return
         print(
             message.notice(
@@ -273,7 +281,11 @@ def top_chunk(addr=None) -> None:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice("No arena found for current thread (the thread hasn't performed any allocations)"))
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)"
+                )
+            )
             return
 
     malloc_chunk(arena.top)
@@ -701,7 +713,11 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(message.notice("No arena found for current thread (the thread hasn't performed any allocations)"))
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)"
+                )
+            )
             return
         heap_region = arena.active_heap
         cursor = heap_region.start
@@ -885,7 +901,11 @@ def try_free(addr) -> None:
     arena = allocator.thread_arena
     # arena might be None if the current thread doesn't allocate the arena
     if arena is None:
-        print(message.notice("No arena found for current thread (the thread hasn't performed any allocations)"))
+        print(
+            message.notice(
+                "No arena found for current thread (the thread hasn't performed any allocations)"
+            )
+        )
         return
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
