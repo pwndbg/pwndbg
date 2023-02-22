@@ -142,7 +142,9 @@ def build_prompt(question, command=None):
 
 
 def build_prompt_from_command(question, command):
-    prompt = f"""Running the command `{command}` in the GDB debugger yields the following output:\n"""
+    prompt = (
+        f"""Running the command `{command}` in the GDB debugger yields the following output:\n"""
+    )
     output = gdb.execute(command, to_string=True)
     print(output)
     prompt += f"""\n```\n{output}\n```\n\n"""
@@ -229,9 +231,9 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     if len(LAST_QUESTION) > HISTORY_LENGTH:
         LAST_QUESTION.pop(0)
         LAST_ANSWER.pop(0)
-    
+
     term_width = os.get_terminal_size().columns
     answer = textwrap.fill(res, term_width)
     print(answer)
-    
+
     return
