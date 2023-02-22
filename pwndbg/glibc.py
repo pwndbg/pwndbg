@@ -9,9 +9,9 @@ from typing import Optional
 from typing import Tuple
 
 import gdb
-from elftools.elf.elffile import ELFFile
 
 import pwndbg.gdblib.config
+import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
@@ -31,8 +31,6 @@ safe_lnk = pwndbg.gdblib.config.add_param(
 glibc_version = pwndbg.gdblib.config.add_param(
     "glibc", "", "GLIBC version for heuristics", scope="heap"
 )
-
-libc_path = None
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -83,19 +81,11 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
     """
     Dump .data section of libc ELF file
     """
-    global libc_path
-    if not libc_path:
-        libc_filename = get_libc_filename_from_info_sharedlibrary()
-        if not libc_filename:
-            # libc not loaded yet, or it's static linked
-            return None
-        libc_path = pwndbg.gdblib.file.get_file(libc_filename)
-    with open(libc_path, "rb") as f:
-        elffile = ELFFile(f)
-        section = elffile.get_section_by_name(".data")
-        if section:
-            return section["sh_addr"], section["sh_size"], section.data()
-    return None
+    libc_filename = get_libc_filename_from_info_sharedlibrary()
+    if not libc_filename:
+        # libc not loaded yet, or it's static linked
+        return None
+    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data")
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -155,9 +145,3 @@ def check_safe_linking():
     - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
     """
     return (get_version() >= (2, 32) or safe_lnk) and safe_lnk is not False
-
-
-@pwndbg.gdblib.events.start
-def reset():
-    global libc_path
-    libc_path = None

@@ -13,7 +13,6 @@ from typing import Optional
 from typing import Tuple
 
 import gdb
-from elftools.elf.elffile import ELFFile
 
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
@@ -111,13 +110,7 @@ class module(ModuleType):
         """
         Dump .data section of current process's ELF file
         """
-        local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
-        with open(local_path, "rb") as f:
-            elffile = ELFFile(f)
-            section = elffile.get_section_by_name(".data")
-            if section:
-                return section["sh_addr"], section["sh_size"], section.data()
-        return None
+        return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data")
 
     @pwndbg.lib.memoize.reset_on_start
     @pwndbg.lib.memoize.reset_on_objfile
