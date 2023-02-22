@@ -61,14 +61,15 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
 @pwndbg.lib.memoize.reset_on_objfile
 def get(address: int, gdb_only=False) -> str:
     """
-    Retrieve the name for the symbol located at `address`
+    Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
+    Passing `gdb_only=True`
     """
-    # Fast path
-    if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
-        return ""
+    # Note: we do not return "" on `address < pwndbg.gdblib.memory.MMAP_MIN_ADDR`
+    # because this may be used to find out the symbol name on PIE binaries that weren't started yet
+    # and then their symbol addresses can be found by GDB on their (non-rebased) offsets
 
-    # Don't look up stack addresses
-    if pwndbg.gdblib.stack.find(address):
+    # Fast path: GDB's `info symbol` returns 'Numeric constant too large' here
+    if address >= ((1 << 64) - 1):
         return ""
 
     # This sucks, but there's not a GDB API for this.

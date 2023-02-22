@@ -38,11 +38,9 @@ RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py && \
-    echo "PYTHON_MINOR=$(python3 -c "import sys;print(sys.version_info.minor)")" >> /root/.bashrc && \
-    echo "PYTHON_PATH=\"/usr/local/lib/python3.${PYTHON_MINOR}/dist-packages/bin\"" >> /root/.bashrc && \
-    echo "export PATH=$PATH:$PYTHON_PATH" >> /root/.bashrc
+RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
 
 ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
+
