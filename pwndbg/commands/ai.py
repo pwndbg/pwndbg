@@ -9,12 +9,13 @@ __VERSION__ = 0.1
 __LICENSE__ = "MIT"
 
 import argparse
+import json
 import os
 import re
 import textwrap
 
 import gdb
-import openai
+import requests
 
 import pwndbg
 import pwndbg.commands
@@ -30,6 +31,7 @@ HISTORY_LENGTH = 3
 LAST_PC = None
 STACK_DEPTH = 16
 LAST_COMMAND = None
+DUMMY = False
 
 
 def build_prompt(question, command=None):
@@ -172,14 +174,25 @@ Answer: """
 
 
 def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
-    response = openai.Completion.create(
-        engine=model.strip("\"' "),
-        prompt=prompt,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        stop=["Question:"],
-    )
-    return response.choices[0].text
+    if DUMMY:
+        return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
+    data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
+    host = "api.openai.com"
+    path = "/v1/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer: {OPENAI_API_KEY}"}
+    url = f"https://{host}{path}"
+    try:
+        r = requests.post(
+            url,
+            data=json.dumps(data),
+            headers={"Content-Type": "application/json"},
+            auth=("Bearer", OPENAI_API_KEY),
+        )
+        res = r.json()
+        return res["choices"][0]["text"]
+    except Exception as e:
+        print(f"Error sending query to OpenAI: {e}")
+        return None
 
 
 parser = argparse.ArgumentParser(
