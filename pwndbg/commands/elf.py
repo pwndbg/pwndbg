@@ -68,8 +68,21 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
     start, end = get_section_bounds(section_name)
 
     if start is None:
-        print(message.error("Could not find section"))
+        print(message.error(f"Could not find section {section_name}"))
         return
+
+    elf_header = pwndbg.gdblib.elf.exe()
+
+    # If we started the binary and it has PIE, rebase it
+    if pwndbg.gdblib.proc.alive:
+        bin_base_addr = pwndbg.gdblib.proc.binary_base_addr
+
+        # Rebase the start and end addresses if needed
+        if start < bin_base_addr:
+            start += bin_base_addr
+            end += bin_base_addr
+
+    print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
 
     symbols = get_symbols_in_region(start, end, filter_text)
 
@@ -85,7 +98,7 @@ def get_symbols_in_region(start, end, filter_text=""):
     ptr_size = pwndbg.gdblib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
-        name = pwndbg.gdblib.symbol.get(addr)
+        name = pwndbg.gdblib.symbol.get(addr, gdb_only=True)
         if name != "" and "+" not in name and filter_text in name:
             symbols.append((name, addr))
         addr += ptr_size

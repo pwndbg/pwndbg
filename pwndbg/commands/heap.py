@@ -169,6 +169,8 @@ def arena(addr=None) -> None:
     else:
         arena = allocator.thread_arena
 
+    tid = pwndbg.gdblib.proc.thread_id
+    print(message.hint(f"Arena for thread {tid}:"))
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 

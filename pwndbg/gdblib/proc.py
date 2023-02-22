@@ -9,11 +9,13 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
+from typing import Tuple
 
 import gdb
 
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
+import pwndbg.lib.memory
 
 
 class module(ModuleType):
@@ -39,6 +41,10 @@ class module(ModuleType):
             return i.ptid[1]
 
         return self.pid
+
+    @property
+    def thread_id(self):
+        return gdb.selected_thread().num
 
     @property
     def alive(self) -> bool:
@@ -84,6 +90,18 @@ class module(ModuleType):
             `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)`
         """
         return gdb.current_progspace().filename
+
+    @property
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_stop
+    def binary_base_addr(self) -> int:
+        return self.binary_vmmap[0].start
+
+    @property
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_stop
+    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+        return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)
