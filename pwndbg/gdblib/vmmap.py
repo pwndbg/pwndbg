@@ -88,6 +88,9 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.gdblib.proc.alive:
         return tuple()
 
+    if is_corefile():
+        return tuple(coredump_maps())
+
     proc_maps = proc_pid_maps()
 
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
@@ -119,9 +122,6 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
             pages.extend(kernel_vmmap_via_page_tables())
         elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
-
-    if not pages and is_corefile():
-        pages.extend(coredump_maps())
 
     # TODO/FIXME: Do we still need it after coredump_maps()?
     # Add tests for other cases and see if this is needed e.g. for QEMU user
