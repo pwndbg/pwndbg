@@ -41,6 +41,7 @@ last_answer = []
 last_pc = None
 last_command = None
 dummy = False
+verbosity = 0
 
 
 def set_dummy_mode(d=True):
@@ -194,18 +195,23 @@ def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0
     host = "api.openai.com"
     path = "/v1/completions"
     url = f"https://{host}{path}"
-    try:
-        r = requests.post(
-            url,
-            data=json.dumps(data),
-            headers={"Content-Type": "application/json"},
-            auth=("Bearer", config.ai_openai_api_key),
-        )
-        res = r.json()
+    r = requests.post(
+        url,
+        data=json.dumps(data),
+        headers={"Content-Type": "application/json"},
+        auth=("Bearer", config.ai_openai_api_key),
+    )
+    res = r.json()
+    if verbosity > 0:
+        print(M.notice(repr(res)))
+    if "choices" not in res:
+        if "error" in res:
+            error_message = f"{res['error']['message']}: {res['error']['type']}"
+            raise Exception(error_message)
+        else:
+            raise Exception(res)
+    else:
         return res["choices"][0]["text"]
-    except Exception as e:
-        print(M.error(f"Error sending query to OpenAI: {e}"))
-        return None
 
 
 parser = argparse.ArgumentParser(
@@ -233,12 +239,14 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
 def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     # print the arguments
-    global last_question, last_answer, last_pc, last_command
+    global last_question, last_answer, last_pc, last_command, verbosity
     if not config.ai_openai_api_key:
         print(
             "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
         )
         return
+    if verbose:
+        verbosity = 1
     question = " ".join(question).strip()
     current_pc = gdb.execute("info reg $pc", to_string=True)
     if current_pc == last_pc and command is None:
@@ -252,7 +260,13 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     prompt = build_prompt(question, command)
     if verbose:
         print(M.notice(f"Sending this prompt to OpenAI:\n\n{prompt}"))
-    res = query_openai(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
+    try:
+        res = query_openai(
+            prompt, model=model, max_tokens=max_tokens, temperature=temperature
+        ).strip()
+    except Exception as e:
+        print(M.error(f"Error querying OpenAI: {e}"))
+        return
     last_question.append(question)
     last_answer.append(res)
     last_pc = current_pc
