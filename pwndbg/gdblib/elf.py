@@ -11,6 +11,8 @@ import importlib
 import sys
 from collections import namedtuple
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -169,6 +171,19 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
             continue
         sections.append(dict(sec))
     return sections
+
+
+def dump_section_by_name(filepath: str, section_name: str) -> Optional[Tuple[int, int, bytes]]:
+    """
+    Dump the content of a section from an ELF file, return the start address, size and content.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        return (section["sh_addr"], section["sh_size"], section.data()) if section else None
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning

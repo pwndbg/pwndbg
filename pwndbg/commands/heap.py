@@ -141,6 +141,14 @@ def heap(addr=None, verbose=False, simple=False) -> None:
             chunk = chunk.next_chunk()
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)."
+                )
+            )
+            return
         h = arena.active_heap
 
         for chunk in h:
@@ -168,9 +176,21 @@ def arena(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        tid = pwndbg.gdblib.proc.thread_id
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(
+                message.notice(
+                    f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+                )
+            )
+            return
+        print(
+            message.notice(
+                f"Arena for thread {message.hint(tid)} is located at: {message.hint(hex(arena.address))}"
+            )
+        )
 
-    tid = pwndbg.gdblib.proc.thread_id
-    print(message.hint(f"Arena for thread {tid}:"))
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
 
@@ -184,8 +204,13 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.heap.current
-    for ar in allocator.arenas:
-        print(ar)
+    arenas = allocator.arenas
+    print("main_arena:")
+    print(arenas[0])
+    if arenas[1:]:
+        print("non-main arena:")
+        for arena in arenas[1:]:
+            print(arena)
 
 
 parser = argparse.ArgumentParser(
@@ -208,7 +233,13 @@ def tcache(addr=None) -> None:
     """
     allocator = pwndbg.heap.current
     tcache = allocator.get_tcache(addr)
-    print(tcache)
+    # if the current thread doesn't allocate the arena, tcache will be NULL
+    print(
+        message.notice("tcache is pointing to: ")
+        + message.hint(hex(tcache.address) if tcache else "NULL")
+    )
+    if tcache:
+        print(tcache)
 
 
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
@@ -221,6 +252,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.heap.current
+    print(message.notice("mp_ struct at: ") + message.hint(hex(allocator.mp.address)))
     print(allocator.mp)
 
 
@@ -247,6 +279,14 @@ def top_chunk(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)"
+                )
+            )
+            return
 
     malloc_chunk(arena.top)
 
@@ -295,7 +335,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk and arena:
-
             bins_list = [
                 allocator.fastbins(arena.address),
                 allocator.smallbins(arena.address),
@@ -672,6 +711,14 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         arena = heap_region.arena
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print(
+                message.notice(
+                    "No arena found for current thread (the thread hasn't performed any allocations)"
+                )
+            )
+            return
         heap_region = arena.active_heap
         cursor = heap_region.start
 
@@ -852,6 +899,14 @@ def try_free(addr) -> None:
     # constants
     allocator = pwndbg.heap.current
     arena = allocator.thread_arena
+    # arena might be None if the current thread doesn't allocate the arena
+    if arena is None:
+        print(
+            message.notice(
+                "No arena found for current thread (the thread hasn't performed any allocations)"
+            )
+        )
+        return
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz
@@ -1215,6 +1270,6 @@ def heap_config(filter_pattern) -> None:
 
     print(
         message.hint(
-            "Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `True`"
+            "Some config values (e.g. main_arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )
