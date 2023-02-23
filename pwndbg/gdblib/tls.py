@@ -1,8 +1,6 @@
 """
 Getting Thread Local Storage (TLS) information.
 """
-import sys
-from types import ModuleType
 
 import gdb
 
@@ -15,56 +13,48 @@ import pwndbg.gdblib.vmmap
 from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 
-class module(ModuleType):
-    """Getting Thread Local Storage (TLS) information."""
-
-    def is_thread_local_variable_offset(self, offset: int) -> bool:
-        """Check if the offset to TLS is a valid offset for the heap heuristics."""
-        if pwndbg.gdblib.arch.current in ("x86-64", "i386"):
-            is_valid = 0 < -offset < 0x250
-        else:  # elif pwndbg.gdblib.arch.current in ("aarch64", "arm"):
-            is_valid = 0 < offset < 0x250
-        # check alignment
-        return is_valid and offset % pwndbg.gdblib.arch.ptrsize == 0
-
-    def is_thread_local_variable(self, addr: int) -> bool:
-        """Check if the address is a valid thread local variable's address for the heap heuristics."""
-        if not self.address:
-            # Since we can not get the TLS base address, we trust that the address is valid.
-            return True
-        return self.is_thread_local_variable_offset(
-            addr - self.address
-        ) and addr in pwndbg.gdblib.vmmap.find(self.address)
-
-    def call_pthread_self(self) -> int:
-        """Get the address of TLS by calling pthread_self()."""
-        if pwndbg.gdblib.symbol.address("pthread_self") is None:
-            return 0
-        try:
-            return int(parse_and_eval_with_scheduler_lock("(void *)pthread_self()"))
-        except gdb.error:
-            return 0
-
-    @property
-    def address(self) -> int:
-        """Get the base address of TLS."""
-        tls_base = 0
-
-        if pwndbg.gdblib.arch.current == "x86-64":
-            tls_base = int(pwndbg.gdblib.regs.fsbase)
-        elif pwndbg.gdblib.arch.current == "i386":
-            tls_base = int(pwndbg.gdblib.regs.gsbase)
-        elif pwndbg.gdblib.arch.current == "aarch64":
-            tls_base = int(pwndbg.gdblib.regs.TPIDR_EL0)
-
-        # Sometimes, we need to get TLS base via pthread_self() for the following reason:
-        # For x86-64, fsbase might be 0 if we are remotely debugging and the GDB version <= 8.X
-        # For i386, gsbase might be 0 if we are remotely debugging
-        # For other archs, we can't get the TLS base address via register
-        # Note: aarch64 seems doesn't have this issue
-        return tls_base if tls_base else self.call_pthread_self()
+def __call_pthread_self() -> int:
+    """Get the address of TLS by calling pthread_self()."""
+    if pwndbg.gdblib.symbol.address("pthread_self") is None:
+        return 0
+    try:
+        return int(parse_and_eval_with_scheduler_lock("(void *)pthread_self()"))
+    except gdb.error:
+        return 0
 
 
-# To prevent garbage collection
-tether = sys.modules[__name__]
-sys.modules[__name__] = module(__name__, "")
+def find_address_with_pthread_self() -> int:
+    """Get the address of TLS with pthread_self()."""
+    if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
+        # Note: we should support aarch64 if it's possible that TPIDR_EL0 register can not be accessed.
+        return 0
+    result = __call_pthread_self()
+    if result <= 0:
+        # pthread_self() is not valid
+        return 0
+
+    # pthread_self() is defined as: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_self.c#L22
+    # THREAD_SELF is defined as:
+    # i386: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/i386/nptl/tls.h#L234
+    # x86-64: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/x86_64/nptl/tls.h#L181
+    # arm: https://elixir.bootlin.com/glibc/latest/source/sysdeps/arm/nptl/tls.h#L76
+    # For i386 and x86-64, the return value of the pthread_self() is the address of TLS, because the value is self reference of the TLS: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_create.c#L671
+    # But for arm, the implementation of THREAD_SELF is different, we need to add sizeof(struct pthread) to the result to get the address of TLS.
+
+    if pwndbg.gdblib.arch.current == "arm":
+        # 0x4c0 is sizeof(struct pthread)
+        # TODO: we might need to adjust the value if the size of struct pthread is changed in the future.
+        result += 0x4C0
+    return result
+
+
+def find_address_with_register() -> int:
+    """Get the address of TLS with register."""
+    if pwndbg.gdblib.arch.current == "x86-64":
+        return int(pwndbg.gdblib.regs.fsbase)
+    elif pwndbg.gdblib.arch.current == "i386":
+        return int(pwndbg.gdblib.regs.gsbase)
+    elif pwndbg.gdblib.arch.current == "aarch64":
+        return int(pwndbg.gdblib.regs.TPIDR_EL0)
+    # TODO: is it possible that we can get the address of TLS with register on arm?
+    return 0

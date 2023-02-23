@@ -46,7 +46,9 @@ def get_file(path: str) -> str:
     Returns:
         The local path to the file
     """
-    assert path.startswith("/") or path.startswith("target:"), "get_file called with incorrect path"
+    assert path.startswith(("/", "./")) or path.startswith(
+        "target:"
+    ), "get_file called with incorrect path"
 
     if path.startswith("target:"):
         path = path[7:]  # len('target:') == 7

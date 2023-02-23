@@ -6,6 +6,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
+from pwndbg.gdblib.ctypes import Structure
 
 
 def request2size(req):
@@ -14,7 +15,7 @@ def request2size(req):
     return (req + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK
 
 
-def fastbin_index(size):
+def fastbin_index(size: int) -> int:
     if pwndbg.gdblib.arch.ptrsize == 8:
         return (size >> 4) - 2
     else:
@@ -43,6 +44,12 @@ if pwndbg.gdblib.arch.ptrsize == 4:
 else:
     PTR = ctypes.c_uint64  # type: ignore[misc]
     SIZE_T = ctypes.c_uint64  # type: ignore[misc]
+
+DEFAULT_TOP_PAD = 131072
+DEFAULT_MMAP_MAX = 65536
+DEFAULT_MMAP_THRESHOLD = 128 * 1024
+DEFAULT_TRIM_THRESHOLD = 128 * 1024
+TCACHE_FILL_COUNT = 7
 
 
 class c_pvoid(PTR):
@@ -201,7 +208,7 @@ class CStruct2GDB:
         return tuple((field[0], getattr(self, field[0])) for field in self._c_struct._fields_)
 
 
-class c_malloc_state_2_26(ctypes.LittleEndianStructure):
+class c_malloc_state_2_26(Structure):
     """
     This class represents malloc_state struct for GLIBC < 2.27 as a ctypes struct.
 
@@ -264,7 +271,7 @@ class c_malloc_state_2_26(ctypes.LittleEndianStructure):
     ]
 
 
-class c_malloc_state_2_27(ctypes.LittleEndianStructure):
+class c_malloc_state_2_27(Structure):
     """
     This class represents malloc_state struct for GLIBC >= 2.27 as a ctypes struct.
 
@@ -345,7 +352,7 @@ class MallocState(CStruct2GDB):
     sizeof = ctypes.sizeof(_c_struct)
 
 
-class c_heap_info(ctypes.LittleEndianStructure):
+class c_heap_info(Structure):
     """
     This class represents heap_info struct as a ctypes struct.
 
@@ -383,7 +390,7 @@ class HeapInfo(CStruct2GDB):
     sizeof = ctypes.sizeof(_c_struct)
 
 
-class c_malloc_chunk(ctypes.LittleEndianStructure):
+class c_malloc_chunk(Structure):
     """
     This class represents malloc_chunk struct as a ctypes struct.
 
@@ -422,7 +429,7 @@ class MallocChunk(CStruct2GDB):
     sizeof = ctypes.sizeof(_c_struct)
 
 
-class c_tcache_perthread_struct_2_29(ctypes.LittleEndianStructure):
+class c_tcache_perthread_struct_2_29(Structure):
     """
     This class represents tcache_perthread_struct for GLIBC < 2.30 as a ctypes struct.
 
@@ -441,7 +448,7 @@ class c_tcache_perthread_struct_2_29(ctypes.LittleEndianStructure):
     ]
 
 
-class c_tcache_perthread_struct_2_30(ctypes.LittleEndianStructure):
+class c_tcache_perthread_struct_2_30(Structure):
     """
     This class represents the tcache_perthread_struct for GLIBC >= 2.30 as a ctypes struct.
 
@@ -472,7 +479,7 @@ class TcachePerthreadStruct(CStruct2GDB):
     sizeof = ctypes.sizeof(_c_struct)
 
 
-class c_tcache_entry_2_28(ctypes.LittleEndianStructure):
+class c_tcache_entry_2_28(Structure):
     """
     This class represents the tcache_entry struct for GLIBC < 2.29 as a ctypes struct.
 
@@ -487,7 +494,7 @@ class c_tcache_entry_2_28(ctypes.LittleEndianStructure):
     _fields_ = [("next", c_pvoid)]
 
 
-class c_tcache_entry_2_29(ctypes.LittleEndianStructure):
+class c_tcache_entry_2_29(Structure):
     """
     This class represents the tcache_entry struct for GLIBC >= 2.29 as a ctypes struct.
 
@@ -516,7 +523,7 @@ class TcacheEntry(CStruct2GDB):
     sizeof = ctypes.sizeof(_c_struct)
 
 
-class c_malloc_par_2_23(ctypes.LittleEndianStructure):
+class c_malloc_par_2_23(Structure):
     """
     This class represents the malloc_par struct for GLIBC < 2.24 as a ctypes struct.
 
@@ -569,7 +576,7 @@ class c_malloc_par_2_23(ctypes.LittleEndianStructure):
     ]
 
 
-class c_malloc_par_2_24(ctypes.LittleEndianStructure):
+class c_malloc_par_2_24(Structure):
     """
     This class represents the malloc_par struct for GLIBC >= 2.24 as a ctypes struct.
 
@@ -619,7 +626,7 @@ class c_malloc_par_2_24(ctypes.LittleEndianStructure):
     ]
 
 
-class c_malloc_par_2_26(ctypes.LittleEndianStructure):
+class c_malloc_par_2_26(Structure):
     """
     This class represents the malloc_par struct for GLIBC >= 2.26 as a ctypes struct.
 
@@ -683,7 +690,7 @@ class c_malloc_par_2_26(ctypes.LittleEndianStructure):
     ]
 
 
-class c_malloc_par_2_35(ctypes.LittleEndianStructure):
+class c_malloc_par_2_35(Structure):
     """
     This class represents the malloc_par struct for GLIBC >= 2.35 as a ctypes struct.
 
@@ -773,3 +780,33 @@ class MallocPar(CStruct2GDB):
     else:
         _c_struct = c_malloc_par_2_23
     sizeof = ctypes.sizeof(_c_struct)
+
+
+# https://github.com/bminor/glibc/blob/glibc-2.37/malloc/malloc.c#L1911-L1926
+# static struct malloc_par mp_ =
+# {
+#   .top_pad = DEFAULT_TOP_PAD,
+#   .n_mmaps_max = DEFAULT_MMAP_MAX,
+#   .mmap_threshold = DEFAULT_MMAP_THRESHOLD,
+#   .trim_threshold = DEFAULT_TRIM_THRESHOLD,
+# #define NARENAS_FROM_NCORES(n) ((n) * (sizeof (long) == 4 ? 2 : 8))
+#   .arena_test = NARENAS_FROM_NCORES (1)
+# #if USE_TCACHE
+#   ,
+#   .tcache_count = TCACHE_FILL_COUNT,
+#   .tcache_bins = TCACHE_MAX_BINS,
+#   .tcache_max_bytes = tidx2usize (TCACHE_MAX_BINS-1),
+#   .tcache_unsorted_limit = 0 /* No limit.  */
+# #endif
+# };
+DEFAULT_MP_ = MallocPar._c_struct()
+DEFAULT_MP_.top_pad = DEFAULT_TOP_PAD
+DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
+DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD
+DEFAULT_MP_.trim_threshold = DEFAULT_TRIM_THRESHOLD
+DEFAULT_MP_.arena_test = 2 if pwndbg.gdblib.arch.ptrsize == 4 else 8
+if MallocPar._c_struct != c_malloc_par_2_23:
+    # the only difference between 2.23 and the rest is the lack of tcache
+    DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
+    DEFAULT_MP_.tcache_bins = TCACHE_MAX_BINS
+    DEFAULT_MP_.tcache_max_bytes = (TCACHE_MAX_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ

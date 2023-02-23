@@ -93,6 +93,20 @@ heap_malloc_chunk.out: heap_malloc_chunk.c
 	@echo "[+] Building heap_malloc_chunk.out"
 	${CC} -g -O0 -Wno-nonnull -Wno-unused-result -o heap_malloc_chunk.out heap_malloc_chunk.c -pthread -lpthread
 
+tls.x86-64.out: tls.x86-64.c
+	@echo "[+] Building tls.x86-64.c"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86_64-linux-gnu \
+	-o tls.x86-64.out tls.x86-64.c
+
+tls.i386.out: tls.i386.c
+	@echo "[+] Building tls.i386.c"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target i386-linux-gnu \
+	-o tls.i386.out tls.i386.c
+
 clean :
 	@echo "[+] Cleaning stuff"
 	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)

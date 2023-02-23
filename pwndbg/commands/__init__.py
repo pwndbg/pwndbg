@@ -363,9 +363,15 @@ def _try2run_heap_command(function, a, kw):
         return function(*a, **kw)
     except SymbolUnresolvableError as err:
         e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
-        w(
-            f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
-        )
+        if "thread_arena" == err.symbol:
+            w(
+                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
+                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
+            )
+        else:
+            w(
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
+            )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
         else:
