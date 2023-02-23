@@ -103,6 +103,26 @@ def format_bin(bins: Bins, verbose=False, offset=None):
     return result
 
 
+def print_no_arena_found_error(tid=None):
+    if tid is None:
+        tid = pwndbg.gdblib.proc.thread_id
+    print(
+        message.notice(
+            f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+        )
+    )
+
+
+def print_no_tcache_bins_found_error(tid=None):
+    if tid is None:
+        tid = pwndbg.gdblib.proc.thread_id
+    print(
+        message.notice(
+            f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+        )
+    )
+
+
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     description="""Iteratively print chunks on a heap.
@@ -143,11 +163,7 @@ def heap(addr=None, verbose=False, simple=False) -> None:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(
-                message.notice(
-                    "No arena found for current thread (the thread hasn't performed any allocations)."
-                )
-            )
+            print_no_arena_found_error()
             return
         h = arena.active_heap
 
@@ -179,11 +195,7 @@ def arena(addr=None) -> None:
         tid = pwndbg.gdblib.proc.thread_id
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(
-                message.notice(
-                    f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
-                )
-            )
+            print_no_arena_found_error(tid)
             return
         print(
             message.notice(
@@ -234,10 +246,15 @@ def tcache(addr=None) -> None:
     allocator = pwndbg.heap.current
     tcache = allocator.get_tcache(addr)
     # if the current thread doesn't allocate the arena, tcache will be NULL
-    print(
-        message.notice("tcache is pointing to: ")
-        + message.hint(hex(tcache.address) if tcache else "NULL")
-    )
+    tid = pwndbg.gdblib.proc.thread_id
+    if tcache:
+        print(
+            message.notice(
+                f"tcache is pointing to: {message.hint(hex(tcache.address))} for thread {message.hint(tid)}"
+            )
+        )
+    else:
+        print_no_tcache_bins_found_error(tid)
     if tcache:
         print(tcache)
 
@@ -281,11 +298,7 @@ def top_chunk(addr=None) -> None:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(
-                message.notice(
-                    "No arena found for current thread (the thread hasn't performed any allocations)"
-                )
-            )
+            print_no_arena_found_error()
             return
 
     malloc_chunk(arena.top)
@@ -397,7 +410,13 @@ def bins(addr=None, tcache_addr=None) -> None:
     default to the current thread's arena and tcache.
     """
     if pwndbg.heap.current.has_tcache():
-        tcachebins(tcache_addr)
+        if tcache_addr is None and pwndbg.heap.current.thread_cache is None:
+            print_no_tcache_bins_found_error()
+        else:
+            tcachebins(tcache_addr)
+    if addr is None and pwndbg.heap.current.thread_arena is None:
+        print_no_arena_found_error()
+        return
     fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
@@ -426,6 +445,7 @@ def fastbins(addr=None, verbose=True) -> None:
     fastbins = allocator.fastbins(addr)
 
     if fastbins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(fastbins, verbose)
@@ -457,6 +477,7 @@ def unsortedbin(addr=None, verbose=True) -> None:
     unsortedbin = allocator.unsortedbin(addr)
 
     if unsortedbin is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(unsortedbin, verbose)
@@ -488,6 +509,7 @@ def smallbins(addr=None, verbose=False) -> None:
     smallbins = allocator.smallbins(addr)
 
     if smallbins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(smallbins, verbose)
@@ -519,6 +541,7 @@ def largebins(addr=None, verbose=False) -> None:
     largebins = allocator.largebins(addr)
 
     if largebins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(largebins, verbose)
@@ -553,6 +576,7 @@ def tcachebins(addr=None, verbose=False) -> None:
     tcachebins = allocator.tcachebins(addr)
 
     if tcachebins is None:
+        print_no_tcache_bins_found_error()
         return
 
     formatted_bins = format_bin(tcachebins, verbose, offset=allocator.tcache_next_offset)
@@ -713,11 +737,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
-            print(
-                message.notice(
-                    "No arena found for current thread (the thread hasn't performed any allocations)"
-                )
-            )
+            print_no_arena_found_error()
             return
         heap_region = arena.active_heap
         cursor = heap_region.start
@@ -901,11 +921,7 @@ def try_free(addr) -> None:
     arena = allocator.thread_arena
     # arena might be None if the current thread doesn't allocate the arena
     if arena is None:
-        print(
-            message.notice(
-                "No arena found for current thread (the thread hasn't performed any allocations)"
-            )
-        )
+        print_no_arena_found_error()
         return
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
