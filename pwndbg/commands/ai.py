@@ -21,34 +21,40 @@ from pwndbg.commands import context
 from pwndbg.gdblib import config
 from pwndbg.gdblib import regs as REGS
 
-config.add_param("ai-openai-api-key", "", "OpenAI API key")
-try:
-    config.ai_openai_api_key = os.environ["OPENAI_API_KEY"]
-except KeyError:
-    pass
+config.add_param(
+    "ai-openai-api-key",
+    "",
+    "OpenAI API key (will default to OPENAI_API_KEY environment variable if not set)",
+)
+
 
 config.add_param(
     "ai-history-size",
     3,
-    "Maximum number of successive questions and answers to maintain in the prompt for the ai command.",
+    "maximum number of successive questions and answers to maintain in the prompt for the ai command",
 )
 config.add_param(
-    "ai-stack-depth", 16, "Rows of stack context to include in the prompt for the ai command."
+    "ai-stack-depth", 16, "rows of stack context to include in the prompt for the ai command"
 )
 config.add_param(
     "ai-model",
     "text-davinci-003",
-    "The name of the OpenAI large language model to query. See <https://platform.openai.com/docs/models> for details.",
+    "the name of the OpenAI large language model to query (see <https://platform.openai.com/docs/models> for details)",
 )
 config.add_param(
     "ai-temperature",
     0,
-    "The temperature specification for the LLM query. This controls the degree of randomness in the response. See <https://beta.openai.com/docs/api-reference/parameters> for details.",
+    "the temperature specification for the LLM query (this controls the degree of randomness in the response -- see <https://beta.openai.com/docs/api-reference/parameters> for details)",
 )
 config.add_param(
     "ai-max-tokens",
     100,
-    "The maximum number of tokens to return in the response. See <https://beta.openai.com/docs/api-reference/parameters> for details.",
+    "the maximum number of tokens to return in the response (see <https://beta.openai.com/docs/api-reference/parameters> for details)",
+)
+config.add_param(
+    "ai-show-usage",
+    False,
+    "whether to show how many tokens are used with each OpenAI API call",
 )
 
 last_question = []
@@ -63,6 +69,16 @@ def set_dummy_mode(d=True):
     global dummy
     dummy = d
     return
+
+
+def get_openai_api_key():
+    if config.ai_openai_api_key.value == "":
+        try:
+            config.ai_openai_api_key.value = os.environ["OPENAI_API_KEY"]
+            print(M.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
+        except KeyError:
+            pass
+    return config.ai_openai_api_key.value
 
 
 def build_prompt(question, command=None):
@@ -226,6 +242,12 @@ def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0
         else:
             raise Exception(res)
     else:
+        if config.ai_show_usage:
+            print(
+                M.notice(
+                    f"prompt tokens: {res['usage']['prompt_tokens']}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+                )
+            )
         return res["choices"][0]["text"]
 
 
@@ -233,17 +255,13 @@ parser = argparse.ArgumentParser(
     description="Ask GPT-3 a question about the current debugging context."
 )
 parser.add_argument("question", nargs="+", type=str, help="The question to ask.")
-parser.add_argument(
-    "-M", "--model", default=config.ai_model, type=str, help="The OpenAI model to use."
-)
-parser.add_argument(
-    "-t", "--temperature", default=config.ai_temperature, type=float, help="The temperature to use."
-)
+parser.add_argument("-M", "--model", default=None, type=str, help="The OpenAI model to use.")
+parser.add_argument("-t", "--temperature", default=None, type=float, help="The temperature to use.")
 parser.add_argument(
     "-m",
     "--max-tokens",
-    default=128,
-    type=config.ai_max_tokens,
+    default=None,
+    type=int,
     help="The maximum number of tokens to generate.",
 )
 parser.add_argument("-v", "--verbose", action="store_true", help="Print the prompt and response.")
@@ -261,13 +279,20 @@ parser.add_argument(
 def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     # print the arguments
     global last_question, last_answer, last_pc, last_command, verbosity
-    if not config.ai_openai_api_key:
+    ai_openai_api_key = get_openai_api_key()
+    if not ai_openai_api_key:
         print(
             "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
         )
         return
-    if verbose:
-        verbosity = 1
+    verbosity = int(verbose)
+    if model is None:
+        model = config.ai_model.value
+    if temperature is None:
+        temperature = config.ai_temperature.value
+    if max_tokens is None:
+        max_tokens = config.ai_max_tokens.value
+
     question = " ".join(question).strip()
     current_pc = gdb.execute("info reg $pc", to_string=True)
     if current_pc == last_pc and command is None:
