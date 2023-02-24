@@ -120,7 +120,7 @@ def build_prompt(question, command=None):
     ## and the local variables, if available
     local_vars = None
     ## and source information, if available
-    source = gdb.execute("list", to_string=True)
+    source = gdb.execute("list *$pc", to_string=True)
     if len(source.split("\n")) < 3:
         try:
             source = pwndbg.ghidra.decompile()
