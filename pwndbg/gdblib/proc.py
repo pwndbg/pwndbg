@@ -88,7 +88,8 @@ class module(ModuleType):
         2. gdb -ex "target remote :1234" -ex "pi pwndbg.gdblib.proc.exe"
 
         If you need to process the debugged file use:
-            `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)`
+            `pwndbg.gdblib.file.get_proc_exe_file()`
+            (This will call `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe, try_local_path=True)`)
         """
         return gdb.current_progspace().filename
 
@@ -110,7 +111,7 @@ class module(ModuleType):
         """
         Dump .data section of current process's ELF file
         """
-        return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data")
+        return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.memoize.reset_on_start
     @pwndbg.lib.memoize.reset_on_objfile

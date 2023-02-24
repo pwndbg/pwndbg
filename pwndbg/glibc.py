@@ -85,7 +85,7 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data")
+    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
