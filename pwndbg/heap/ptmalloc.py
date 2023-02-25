@@ -393,6 +393,9 @@ class Heap:
                 self._gdbValue = None
 
         self.start = self._memory_region.start
+        # i686 alignment heuristic
+        if Chunk(self.start).size == 0:
+            self.start += pwndbg.gdblib.arch.ptrsize * 2
         self.end = self._memory_region.end
         self.first_chunk = Chunk(self.start)
 
