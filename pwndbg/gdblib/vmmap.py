@@ -123,9 +123,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
-    # TODO/FIXME: Do we still need it after coredump_maps()?
-    # Add tests for other cases and see if this is needed e.g. for QEMU user
-    # if not, remove the code below & cleanup other parts of Pwndbg codebase
+    # TODO/FIXME: Add tests for  QEMU-user targets when this is needed
     if not pages:
         # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
@@ -346,7 +344,8 @@ def proc_pid_maps():
     Parse the contents of /proc/$PID/maps on the server.
 
     Returns:
-        A list of pwndbg.lib.memory.Page objects.
+        A tuple of pwndbg.lib.memory.Page objects or None if
+        /proc/$pid/maps doesn't exist or when we debug a qemu-user target
     """
 
     # If we debug remotely a qemu-user or qemu-system target,
