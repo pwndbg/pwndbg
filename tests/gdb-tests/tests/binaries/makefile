@@ -107,6 +107,10 @@ tls.i386.out: tls.i386.c
 	-target i386-linux-gnu \
 	-o tls.i386.out tls.i386.c
 
+issue_1565.out: issue_1565.c
+	@echo "[+] Building issue_1565.out"
+	${CC} -g -O0 -o issue_1565.out issue_1565.c -pthread -lpthread
+
 clean :
 	@echo "[+] Cleaning stuff"
 	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)
