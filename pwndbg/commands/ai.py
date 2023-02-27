@@ -21,19 +21,40 @@ from pwndbg.commands import context
 from pwndbg.gdblib import config
 from pwndbg.gdblib import regs as REGS
 
-config.add_param("ai-openai-api-key", "", "OpenAI API key")
-try:
-    config.ai_openai_api_key = os.environ["OPENAI_API_KEY"]
-except KeyError:
-    pass
+config.add_param(
+    "ai-openai-api-key",
+    "",
+    "OpenAI API key (will default to OPENAI_API_KEY environment variable if not set)",
+)
+
 
 config.add_param(
     "ai-history-size",
     3,
-    "Maximum number of successive questions and answers to maintain in the prompt for the ai command.",
+    "maximum number of successive questions and answers to maintain in the prompt for the ai command",
 )
 config.add_param(
-    "ai-stack-depth", 16, "Rows of stack context to include in the prompt for the ai command."
+    "ai-stack-depth", 16, "rows of stack context to include in the prompt for the ai command"
+)
+config.add_param(
+    "ai-model",
+    "text-davinci-003",
+    "the name of the OpenAI large language model to query (see <https://platform.openai.com/docs/models> for details)",
+)
+config.add_param(
+    "ai-temperature",
+    0,
+    "the temperature specification for the LLM query (this controls the degree of randomness in the response -- see <https://beta.openai.com/docs/api-reference/parameters> for details)",
+)
+config.add_param(
+    "ai-max-tokens",
+    100,
+    "the maximum number of tokens to return in the response (see <https://beta.openai.com/docs/api-reference/parameters> for details)",
+)
+config.add_param(
+    "ai-show-usage",
+    False,
+    "whether to show how many tokens are used with each OpenAI API call",
 )
 
 last_question = []
@@ -41,12 +62,23 @@ last_answer = []
 last_pc = None
 last_command = None
 dummy = False
+verbosity = 0
 
 
 def set_dummy_mode(d=True):
     global dummy
     dummy = d
     return
+
+
+def get_openai_api_key():
+    if config.ai_openai_api_key.value == "":
+        try:
+            config.ai_openai_api_key.value = os.environ["OPENAI_API_KEY"]
+            print(M.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
+        except KeyError:
+            pass
+    return config.ai_openai_api_key.value
 
 
 def build_prompt(question, command=None):
@@ -88,7 +120,7 @@ def build_prompt(question, command=None):
     ## and the local variables, if available
     local_vars = None
     ## and source information, if available
-    source = gdb.execute("list", to_string=True)
+    source = gdb.execute("list *$pc", to_string=True)
     if len(source.split("\n")) < 3:
         try:
             source = pwndbg.ghidra.decompile()
@@ -194,30 +226,43 @@ def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0
     host = "api.openai.com"
     path = "/v1/completions"
     url = f"https://{host}{path}"
-    try:
-        r = requests.post(
-            url,
-            data=json.dumps(data),
-            headers={"Content-Type": "application/json"},
-            auth=("Bearer", config.ai_openai_api_key),
-        )
-        res = r.json()
+    r = requests.post(
+        url,
+        data=json.dumps(data),
+        headers={"Content-Type": "application/json"},
+        auth=("Bearer", config.ai_openai_api_key),
+    )
+    res = r.json()
+    if verbosity > 0:
+        print(M.notice(repr(res)))
+    if "choices" not in res:
+        if "error" in res:
+            error_message = f"{res['error']['message']}: {res['error']['type']}"
+            raise Exception(error_message)
+        else:
+            raise Exception(res)
+    else:
+        if config.ai_show_usage:
+            print(
+                M.notice(
+                    f"prompt tokens: {res['usage']['prompt_tokens']}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+                )
+            )
         return res["choices"][0]["text"]
-    except Exception as e:
-        print(M.error(f"Error sending query to OpenAI: {e}"))
-        return None
 
 
 parser = argparse.ArgumentParser(
     description="Ask GPT-3 a question about the current debugging context."
 )
 parser.add_argument("question", nargs="+", type=str, help="The question to ask.")
+parser.add_argument("-M", "--model", default=None, type=str, help="The OpenAI model to use.")
+parser.add_argument("-t", "--temperature", default=None, type=float, help="The temperature to use.")
 parser.add_argument(
-    "-M", "--model", default="text-davinci-003", type=str, help="The OpenAI model to use."
-)
-parser.add_argument("-t", "--temperature", default=0.5, type=float, help="The temperature to use.")
-parser.add_argument(
-    "-m", "--max-tokens", default=128, type=int, help="The maximum number of tokens to generate."
+    "-m",
+    "--max-tokens",
+    default=None,
+    type=int,
+    help="The maximum number of tokens to generate.",
 )
 parser.add_argument("-v", "--verbose", action="store_true", help="Print the prompt and response.")
 parser.add_argument(
@@ -233,12 +278,21 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
 def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     # print the arguments
-    global last_question, last_answer, last_pc, last_command
-    if not config.ai_openai_api_key:
+    global last_question, last_answer, last_pc, last_command, verbosity
+    ai_openai_api_key = get_openai_api_key()
+    if not ai_openai_api_key:
         print(
             "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
         )
         return
+    verbosity = int(verbose)
+    if model is None:
+        model = config.ai_model.value
+    if temperature is None:
+        temperature = config.ai_temperature.value
+    if max_tokens is None:
+        max_tokens = config.ai_max_tokens.value
+
     question = " ".join(question).strip()
     current_pc = gdb.execute("info reg $pc", to_string=True)
     if current_pc == last_pc and command is None:
@@ -252,7 +306,13 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
     prompt = build_prompt(question, command)
     if verbose:
         print(M.notice(f"Sending this prompt to OpenAI:\n\n{prompt}"))
-    res = query_openai(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
+    try:
+        res = query_openai(
+            prompt, model=model, max_tokens=max_tokens, temperature=temperature
+        ).strip()
+    except Exception as e:
+        print(M.error(f"Error querying OpenAI: {e}"))
+        return
     last_question.append(question)
     last_answer.append(res)
     last_pc = current_pc
