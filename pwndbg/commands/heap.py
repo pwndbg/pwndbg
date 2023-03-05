@@ -733,7 +733,9 @@ group.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None, all_chunks=None) -> None:
+def vis_heap_chunks(
+    addr=None, count=None, beyond_top=None, no_truncate=None, all_chunks=None
+) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
 
