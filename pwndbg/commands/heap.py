@@ -719,13 +719,20 @@ parser.add_argument(
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
 )
+parser.add_argument(
+    "--all_chunks",
+    "-a",
+    action="store_true",
+    default=False,
+    help=" Display all chunks (Ignore the default-visualize-chunk-number configuration).",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None) -> None:
+def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None, all_chunks=None) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
 
@@ -749,7 +756,11 @@ def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None) ->
     cursor_backup = cursor
     chunk = Chunk(cursor)
 
-    for _ in range(count + 1):
+    chunk_id = 0
+    while True:
+        if not all_chunks and chunk_id == count + 1:
+            break
+
         # Don't read beyond the heap mapping if --beyond_top or corrupted heap.
         if cursor not in heap_region:
             chunk_delims.append(heap_region.end)
@@ -770,6 +781,7 @@ def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None) ->
 
         cursor += chunk.real_size
         chunk = Chunk(cursor)
+        chunk_id += 1
 
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
