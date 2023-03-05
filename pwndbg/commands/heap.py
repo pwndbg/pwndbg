@@ -706,15 +706,15 @@ parser.add_argument(
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
-    "--naive",
-    "-n",
+    "--beyond_top",
+    "-b",
     action="store_true",
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
 parser.add_argument(
-    "--display_all",
-    "-a",
+    "--no_truncate",
+    "-n",
     action="store_true",
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
@@ -725,7 +725,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None:
+def vis_heap_chunks(addr=None, count=None, beyond_top=None, no_truncate=None) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
 
@@ -750,7 +750,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
     chunk = Chunk(cursor)
 
     for _ in range(count + 1):
-        # Don't read beyond the heap mapping if --naive or corrupted heap.
+        # Don't read beyond the heap mapping if --beyond_top or corrupted heap.
         if cursor not in heap_region:
             chunk_delims.append(heap_region.end)
             break
@@ -764,7 +764,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         else:
             chunk_delims.append(cursor)
 
-        if (chunk.is_top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
+        if (chunk.is_top_chunk and not beyond_top) or (cursor == heap_region.end - ptr_size * 2):
             chunk_delims.append(cursor + ptr_size * 2)
             break
 
@@ -821,7 +821,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         while cursor != stop:
             # skip the middle part of a huge chunk
             if (
-                not display_all
+                not no_truncate
                 and half_max_size > 0
                 and begin_addr + half_max_size <= cursor < end_addr - half_max_size
             ):
