@@ -697,7 +697,8 @@ parser = argparse.ArgumentParser(
 
 Default to the current arena's active heap.""",
 )
-parser.add_argument(
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
@@ -719,7 +720,7 @@ parser.add_argument(
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
 )
-parser.add_argument(
+group.add_argument(
     "--all_chunks",
     "-a",
     action="store_true",
