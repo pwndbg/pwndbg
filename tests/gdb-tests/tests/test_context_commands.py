@@ -9,6 +9,7 @@ import tests
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
 TABSTOP_BINARY = tests.binaries.get("tabstop.out")
 SYSCALLS_BINARY = tests.binaries.get("syscalls-x64.out")
+MANGLING_BINARY = tests.binaries.get("symbol_1600_and_752.out")
 
 
 def test_context_disasm_show_fd_filepath(start_binary):
@@ -185,3 +186,39 @@ def test_context_disasm_syscalls_args_display(start_binary):
         "   0x4000a5                add    byte ptr [rax], al\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
+
+
+def test_context_backtrace_show_proper_symbol_names(start_binary):
+    start_binary(MANGLING_BINARY)
+    gdb.execute("break A::foo")
+    gdb.execute("continue")
+
+    backtrace = gdb.execute("context backtrace", to_string=True).split("\n")
+
+    assert backtrace[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert (
+        backtrace[1]
+        == "─────────────────────────────────[ BACKTRACE ]──────────────────────────────────"
+    )
+
+    assert re.match(r" ► f 0   0x[0-9a-f]+ A::foo\(int, int\)", backtrace[2])
+
+    # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
+    assert re.match(r"   f 1   0x[0-9a-f]+ A::call_foo\(\)\+\d+", backtrace[3])
+
+    # Match main+87 or similar offset
+    assert re.match(r"   f 2   0x[0-9a-f]+ main\+\d+", backtrace[4])
+
+    # Match __libc_start_main+243 or similar offset
+    # Note: on Ubuntu 22.04 there will be __libc_start_call_main and then __libc_start_main
+    # but on older distros there will be only __libc_start_main
+    # Let's not bother too much about it and make it the last call assertion here
+    assert re.match(
+        r"   f 3   0x[0-9a-f]+ (__libc_start_main|__libc_start_call_main)\+\d+", backtrace[5]
+    )
+
+    assert (
+        backtrace[-2]
+        == "────────────────────────────────────────────────────────────────────────────────"
+    )
+    assert backtrace[-1] == ""

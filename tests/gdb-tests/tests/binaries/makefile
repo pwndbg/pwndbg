@@ -38,7 +38,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -113,7 +113,7 @@ issue_1565.out: issue_1565.c
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO)
+	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO) *.out *.o
 
 
 reference_bin_pie.out: reference-binary.c
@@ -123,3 +123,6 @@ reference_bin_pie.out: reference-binary.c
 reference_bin_nopie.out: reference-binary.c
 	@echo "[+] Building reference_bin_nopie.out"
 	${ZIGCC} -fno-pie -o reference_bin_nopie.out reference-binary.c
+
+symbol_1600_and_752.out: symbol_1600_and_752.cpp
+	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
