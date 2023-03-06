@@ -179,39 +179,6 @@ def static_linkage_symbol_address(symbol: str) -> int:
         return None
 
 
-@pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_start
-def _add_main_exe_to_symbols() -> None:
-    if not pwndbg.gdblib.remote.is_remote():
-        return
-
-    if pwndbg.gdblib.android.is_android():
-        return
-
-    exe = pwndbg.gdblib.elf.exe()
-
-    if not exe:
-        return
-
-    addr = exe.address
-
-    if not addr:
-        return
-
-    addr = int(addr)
-
-    mmap = pwndbg.gdblib.vmmap.find(addr)
-    if not mmap:
-        return
-
-    path = mmap.objfile
-    if path and (pwndbg.gdblib.arch.endian == pwndbg.gdblib.arch.native_endian):
-        try:
-            gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
-        except gdb.error:
-            pass
-
-
 @pwndbg.lib.memoize.reset_on_stop
 @pwndbg.lib.memoize.reset_on_start
 def selected_frame_source_absolute_filename():
