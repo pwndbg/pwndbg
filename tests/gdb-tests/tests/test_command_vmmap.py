@@ -7,6 +7,7 @@ import pwndbg
 import tests
 
 CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
+BINARY_ISSUE_1565 = tests.binaries.get("issue_1565.out")
 
 
 def get_proc_maps():
@@ -156,3 +157,21 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     vmmaps = [i.split() for i in vmmaps[2:]]
 
     assert_maps()
+
+
+def test_vmmap_issue_1565(start_binary):
+    """
+    https://github.com/pwndbg/pwndbg/issues/1565
+
+    In tests this bug is reported as:
+    >       gdb.execute("context")
+    E       gdb.error: Error occurred in Python: maximum recursion depth exceeded in comparison
+
+    In a normal GDB session this is reported as:
+        Exception occurred: context: maximum recursion depth exceeded while calling a Python object (<class 'RecursionError'>)
+    """
+    gdb.execute(f"file {BINARY_ISSUE_1565}")
+    gdb.execute("break thread_function")
+    gdb.execute("run")
+    gdb.execute("next")
+    gdb.execute("context")

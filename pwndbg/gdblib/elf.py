@@ -173,12 +173,14 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
     return sections
 
 
-def dump_section_by_name(filepath: str, section_name: str) -> Optional[Tuple[int, int, bytes]]:
+def dump_section_by_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[int, int, bytes]]:
     """
     Dump the content of a section from an ELF file, return the start address, size and content.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
-    local_path = pwndbg.gdblib.file.get_file(filepath)
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)

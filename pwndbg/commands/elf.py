@@ -10,7 +10,7 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWithFile
 def elfsections() -> None:
-    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_proc_exe_file()
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -49,7 +49,7 @@ def plt() -> None:
 
 
 def get_section_bounds(section_name):
-    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_proc_exe_file()
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)

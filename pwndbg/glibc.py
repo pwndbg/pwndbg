@@ -68,11 +68,38 @@ def _get_version() -> Optional[Tuple[int, ...]]:
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_objfile
 def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
+    """
+    Get the filename of the libc by parsing the output of `info sharedlibrary`.
+    """
+    # Try to parse the output of `info sharedlibrary`:
+    # pwndbg> |info sharedlibrary| grep libc
+    # 0x00007f9ade418700  0x00007f9ade58f47d  Yes         ./libc.so.6
+    # Or:
+    # pwndbg> |info sharedlibrary| grep libc
+    # 0x00007f9ade418700  0x00007f9ade58f47d  Yes (*)     ./libc.so.6
+    possible_libc_path = []
     for line in pwndbg.gdblib.info.sharedlibrary().splitlines()[1:]:
-        filename = line.split(maxsplit=3)[-1].lstrip("(*)").lstrip()
-        # Is it possible that the libc is not called `libc.so.6`?
-        if os.path.basename(filename) == "libc.so.6":
-            return filename
+        if line.startswith("("):
+            # footer line:
+            # (*): Shared library is missing debugging information.
+            break
+        path = line.split(maxsplit=3)[-1].lstrip("(*)").lstrip()
+        basename = os.path.basename(
+            path[7:] if path.startswith("target:") else path
+        )  # "target:" prefix is for remote debugging
+        if basename == "libc.so.6":
+            # The default filename of libc should be libc.so.6, so if we found it, we just return it directly.
+            return path
+        elif re.search(r"^libc6?[-_\.]", basename):
+            # Maybe user loaded the libc with LD_PRELOAD.
+            # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
+            possible_libc_path.append(
+                path
+            )  # We don't return it, maybe there is a libc.so.6 and this match is just a false positive.
+    # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
+    # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
+    if possible_libc_path:
+        return possible_libc_path[0]  # just return the first match for now :)
     return None
 
 
@@ -85,7 +112,7 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data")
+    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
