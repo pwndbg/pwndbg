@@ -43,8 +43,9 @@ def test_symbol_duplicated_symbols_issue_1610():
     assert pwndbg.gdblib.symbol.get(main_addr) == "main"
 
     # This causes some confusion, see below :)
-    # (note: `0` at the end is needed on old GDBs e.g. Ubuntu 18.04)
-    gdb.execute(f"add-symbol-file {MANGLING_BINARY} 0")
+    # Note: {addr} argument is needed for old GDB (e.g. on Ubuntu 18.04)
+    addr = _get_section_addr(".text")
+    gdb.execute(f"add-symbol-file {MANGLING_BINARY} {addr}")
 
     # Sanity check - yeah, there are two symbols
     out = gdb.execute("info symbol main", to_string=True).split("\n")
@@ -61,3 +62,9 @@ def test_symbol_duplicated_symbols_issue_1610():
 
     # Real test assert - this should not crash!
     assert pwndbg.gdblib.symbol.get(main_addr) == "main"
+
+
+def _get_section_addr(sect):
+    result = gdb.execute("maintenance info sections", to_string=True).split("\n")
+    text_line = next(line for line in result if f": {sect} " in line)
+    return int(text_line.split(" at ")[1].split(":")[0], 16)
