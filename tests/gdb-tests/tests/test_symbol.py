@@ -43,7 +43,8 @@ def test_symbol_duplicated_symbols_issue_1610():
     assert pwndbg.gdblib.symbol.get(main_addr) == "main"
 
     # This causes some confusion, see below :)
-    gdb.execute(f"add-symbol-file {MANGLING_BINARY}")
+    # (note: `0` at the end is needed on old GDBs e.g. Ubuntu 18.04)
+    gdb.execute(f"add-symbol-file {MANGLING_BINARY} 0")
 
     # Sanity check - yeah, there are two symbols
     out = gdb.execute("info symbol main", to_string=True).split("\n")
