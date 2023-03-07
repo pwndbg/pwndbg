@@ -84,6 +84,10 @@ def get(address: int, gdb_only=False) -> str:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
 
+    # If there are newlines, which means that there are multiple symbols for the address
+    # then use the first one (see also #1610)
+    result = result[: result.index("\n")]
+
     # See https://github.com/bminor/binutils-gdb/blob/d1702fea87aa62dff7de465464097dba63cc8c0f/gdb/printcmd.c#L1594-L1624
     # The most often encountered formats looks like this:
     #   "main in section .text of /bin/bash"
