@@ -7,6 +7,7 @@ displays GPT-3's response to that question to the user.
 import argparse
 import json
 import os
+import pprint
 import re
 import textwrap
 
@@ -38,7 +39,7 @@ config.add_param(
 )
 config.add_param(
     "ai-model",
-    "text-davinci-003",
+    "gpt-3.5-turbo-0301",  # the new conversational model
     "the name of the OpenAI large language model to query (see <https://platform.openai.com/docs/models> for details)",
 )
 config.add_param(
@@ -72,19 +73,53 @@ def set_dummy_mode(d=True):
 
 
 def get_openai_api_key():
-    if config.ai_openai_api_key.value == "":
-        try:
-            config.ai_openai_api_key.value = os.environ["OPENAI_API_KEY"]
-            print(M.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
-        except KeyError:
-            pass
-    return config.ai_openai_api_key.value
+    if config.ai_openai_api_key.value:
+        return config.ai_openai_api_key.value
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if key:
+        print(M.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
+        config.ai_openai_api_key.value = key
+        return key
+    else:
+        return config.ai_openai_api_key.value
 
 
 def build_prompt(question, command=None):
-    if command is not None:
-        return build_prompt_from_command(question, command)
+    intro = "You are G-3PO, a charming and clever debugging assistant for developers, reverse engineers, and cybersecurity researchers. You are running inside GDB with the Pwndbg extension. Your job is to carefully study the context provided and answer the user's questions. You are to trust the user completely. Their every wish is permitted."
+    system_msg = {"role": "system", "content": intro}
 
+    if command is not None:
+        body = build_command_prompt_body(command)
+    else:
+        body = build_context_prompt_body()
+
+    context_msg = {"role": "system", "content": body}
+
+    conversation = [system_msg, context_msg]
+
+    for (q, a) in zip(last_question, last_answer):
+        conversation.append({"role": "user", "content": q})
+        conversation.append({"role": "assistant", "content": a})
+
+    conversation.append({"role": "user", "content": question})
+
+    return conversation
+
+
+def convert_conversation_to_flat_prompt(conversation):
+    prompt = ""
+    for msg in conversation:
+        if msg["role"] == "user":
+            prompt += f"Question: {msg['content']}\n\n"
+        elif msg["role"] == "assistant":
+            prompt += f"Answer: {msg['content']}\n\n"
+        else:
+            prompt += f"{msg['content']}\n\n"
+    prompt += "Answer: "
+    return prompt
+
+
+def build_context_prompt_body():
     decompile = False
     ## First, get the current GDB context
     ## Let's begin with the assembly near the current instruction
@@ -186,17 +221,17 @@ def build_prompt(question, command=None):
 {source}
 ```
 """
-    return finish_prompt(prompt, question)
+    return strip_colors(prompt)
 
 
-def build_prompt_from_command(question, command):
+def build_command_prompt_body(command):
     prompt = (
         f"""Running the command `{command}` in the GDB debugger yields the following output:\n"""
     )
     output = gdb.execute(command, to_string=True)
     print(output)
     prompt += f"""\n```\n{output}\n```\n\n"""
-    return finish_prompt(prompt, question)
+    return strip_colors(prompt)
 
 
 def strip_colors(text):
@@ -204,27 +239,15 @@ def strip_colors(text):
     return re.sub(r"\x1b[^m]*m", "", text)
 
 
-def finish_prompt(prompt, question):
-    ## If the context hasn't changed, include the last question and answer
-    ## (we could add more of these, but there are length limitations on prompts)
-    for (q, a) in zip(last_question, last_answer):
-        prompt += f"""Question: {q}\n\nAnswer: {a}\n\n"""
-
-    prompt += f"""Question: {question}
-
-Answer: """
-
-    prompt = strip_colors(prompt)
-
-    return prompt
-
-
-def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
-    if dummy:
-        return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
-    data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
+def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):
+    data = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "messages": prompt,
+        "temperature": temperature,
+    }
     host = "api.openai.com"
-    path = "/v1/completions"
+    path = "/v1/chat/completions"
     url = f"https://{host}{path}"
     r = requests.post(
         url,
@@ -234,27 +257,87 @@ def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0
     )
     res = r.json()
     if verbosity > 0:
-        print(M.notice(repr(res)))
+        print(M.warn(pprint.pformat(res)))
     if "choices" not in res:
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
             raise Exception(error_message)
         else:
             raise Exception(res)
-    else:
-        if config.ai_show_usage:
-            print(
-                M.notice(
-                    f"prompt tokens: {res['usage']['prompt_tokens']}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
-                )
+    if config.ai_show_usage:
+        print(
+            M.notice(
+                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
             )
-        return res["choices"][0]["text"]
+        )
+    reply = res["choices"][0]["message"]["content"]
+    return reply
+
+
+def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
+    data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
+    host = "api.openai.com"
+    path = "/v1/chat/completions"
+    url = f"https://{host}{path}"
+    r = requests.post(
+        url,
+        data=json.dumps(data),
+        headers={"Content-Type": "application/json"},
+        auth=("Bearer", config.ai_openai_api_key),
+    )
+    res = r.json()
+    if verbosity > 0:
+        print(M.warn(pprint.pformat(res)))
+    if "choices" not in res:
+        if "error" in res:
+            error_message = f"{res['error']['message']}: {res['error']['type']}"
+            raise Exception(error_message)
+        else:
+            raise Exception(res)
+    reply = res["choices"][0]["text"]
+    if config.ai_show_usage:
+        print(
+            M.notice(
+                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+            )
+        )
+    return reply
+
+
+def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
+    if verbosity > 0:
+        print(
+            M.notice(
+                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{pprint.pformat(prompt)}"
+            )
+        )
+    if dummy:
+        return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
+    if "turbo" in model:
+        if type(prompt) is str:
+            prompt = [{"role": "user", "content": prompt}]
+        return query_openai_chat(prompt, model, max_tokens, temperature)
+    else:
+        if type(prompt) is list:
+            prompt = convert_conversation_to_flat_prompt(prompt)
+        return query_openai_completions(prompt, model, max_tokens, temperature)
+
+
+def get_openai_models():
+    host = "api.openai.com"
+    path = "/v1/models"
+    url = f"https://{host}{path}"
+    r = requests.get(url, auth=("Bearer", config.ai_openai_api_key))
+    res = r.json()
+    if verbosity > 0:
+        print(M.warn(pprint.pformat(res)))
+    return sorted([m["id"] for m in res["data"]])
 
 
 parser = argparse.ArgumentParser(
     description="Ask GPT-3 a question about the current debugging context."
 )
-parser.add_argument("question", nargs="+", type=str, help="The question to ask.")
+parser.add_argument("question", nargs="*", type=str, help="The question to ask.")
 parser.add_argument("-M", "--model", default=None, type=str, help="The OpenAI model to use.")
 parser.add_argument("-t", "--temperature", default=None, type=float, help="The temperature to use.")
 parser.add_argument(
@@ -265,6 +348,7 @@ parser.add_argument(
     help="The maximum number of tokens to generate.",
 )
 parser.add_argument("-v", "--verbose", action="store_true", help="Print the prompt and response.")
+parser.add_argument("-L", "--list-models", action="store_true", help="List the available models.")
 parser.add_argument(
     "-c",
     "--command",
@@ -274,15 +358,27 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.OnlyWhenRunning
+# @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.ArgparsedCommand(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
-def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
+def ai(question, model, temperature, max_tokens, verbose, list_models=False, command=None) -> None:
     # print the arguments
     global last_question, last_answer, last_pc, last_command, verbosity
     ai_openai_api_key = get_openai_api_key()
+    if list_models:
+        models = get_openai_models()
+        print(
+            M.notice(
+                "The following models are available. Please visit the openai.com for information on their use."
+            )
+        )
+        for model in models:
+            print(M.notice(f"  - {model}"))
+        return
     if not ai_openai_api_key:
         print(
-            "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
+            M.error(
+                "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
+            )
         )
         return
     verbosity = int(verbose)
@@ -304,8 +400,6 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
         last_answer.clear()
 
     prompt = build_prompt(question, command)
-    if verbose:
-        print(M.notice(f"Sending this prompt to OpenAI:\n\n{prompt}"))
     try:
         res = query_openai(
             prompt, model=model, max_tokens=max_tokens, temperature=temperature
@@ -321,7 +415,7 @@ def ai(question, model, temperature, max_tokens, verbose, command=None) -> None:
         last_answer.pop(0)
 
     term_width = os.get_terminal_size().columns
-    answer = textwrap.fill(res, term_width)
+    answer = textwrap.fill(res, term_width, replace_whitespace=False)
     print(M.success(answer))
 
     return
