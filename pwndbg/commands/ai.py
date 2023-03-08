@@ -252,9 +252,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         "messages": prompt,
         "temperature": temperature,
     }
-    host = "api.openai.com"
-    path = "/v1/chat/completions"
-    url = f"https://{host}{path}"
+    url = "https://api.openai.com/v1/chat/completions"
     r = requests.post(
         url,
         data=json.dumps(data),
@@ -288,9 +286,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
             )
         )
     data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
-    host = "api.openai.com"
-    path = "/v1/completions"
-    url = f"https://{host}{path}"
+    url = "https://api.openai.com/v1/completions"
     r = requests.post(
         url,
         data=json.dumps(data),
@@ -330,9 +326,7 @@ def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0
 
 
 def get_openai_models():
-    host = "api.openai.com"
-    path = "/v1/models"
-    url = f"https://{host}{path}"
+    url = "https://api.openai.com/v1/models"
     r = requests.get(url, auth=("Bearer", config.ai_openai_api_key))
     res = r.json()
     if verbosity > 0:
