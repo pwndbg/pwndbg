@@ -240,6 +240,12 @@ def strip_colors(text):
 
 
 def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):
+    if verbosity > 0:
+        print(
+            M.notice(
+                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{pprint.pformat(prompt)}"
+            )
+        )
     data = {
         "model": model,
         "max_tokens": max_tokens,
@@ -275,9 +281,15 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
 
 
 def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
+    if verbosity > 0:
+        print(
+            M.notice(
+                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{prompt}"
+            )
+        )
     data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
     host = "api.openai.com"
-    path = "/v1/chat/completions"
+    path = "/v1/completions"
     url = f"https://{host}{path}"
     r = requests.post(
         url,
@@ -305,12 +317,6 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
 
 
 def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
-    if verbosity > 0:
-        print(
-            M.notice(
-                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{pprint.pformat(prompt)}"
-            )
-        )
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
     if "turbo" in model:
