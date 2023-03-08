@@ -82,10 +82,12 @@ def format_bin(bins: Bins, verbose=False, offset=None):
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:
-                infinity_symbol = "\u221e"  # Unicode "infinity"
                 start_size, end_size = allocator.largebin_size_range_from_index(size)
                 size = hex(start_size) + "-"
-                size += infinity_symbol if end_size == pwndbg.gdblib.arch.ptrmask else hex(end_size)
+                if end_size != pwndbg.gdblib.arch.ptrmask:
+                    size += hex(end_size)
+                else:
+                    size += "\u221e"  # Unicode "infinity"
             else:
                 size = hex(size)
 
