@@ -2,6 +2,7 @@ import argparse
 import ctypes
 
 import gdb
+from tabulate import tabulate
 
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
@@ -217,12 +218,52 @@ def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.heap.current
     arenas = allocator.arenas
-    print("main_arena:")
-    print(arenas[0])
-    if arenas[1:]:
-        print("non-main arena:")
-        for arena in arenas[1:]:
-            print(arena)
+
+    table = []
+    headers = [
+        "arena type",
+        "arena address",
+        "heap address",
+        "map start",
+        "map end",
+        "perm",
+        "size",
+        "offset",
+        "file",
+    ]
+
+    for arena in arenas:
+        arena_type, text_color = (
+            ("main_arena", message.success)
+            if arena.is_main_arena
+            else ("non-main arena", message.hint)
+        )
+        first_heap = arena.heaps[0]
+
+        row = [
+            text_color(arena_type),
+            text_color(hex(arena.address)),
+            text_color(hex(first_heap.start)),
+        ]
+
+        for mapping_data in str(pwndbg.gdblib.vmmap.find(first_heap.start)).split():
+            row.append(M.c.heap(mapping_data))
+
+        table.append(row)
+
+        for extra_heap in arena.heaps[1:]:
+            row = [
+                "",
+                text_color("\u21b3"),  # Unicode "downwards arrow with tip rightwards"
+                text_color(hex(extra_heap.start)),
+            ]
+
+            for mapping_data in str(pwndbg.gdblib.vmmap.find(extra_heap.start)).split():
+                row.append(M.c.heap(mapping_data))
+
+            table.append(row)
+
+    print(tabulate(table, headers, stralign="right"))
 
 
 parser = argparse.ArgumentParser(
