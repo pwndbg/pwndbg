@@ -81,7 +81,13 @@ def format_bin(bins: Bins, verbose=False, offset=None):
             formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
 
         if isinstance(size, int):
-            size = hex(size)
+            if bins_type == BinType.LARGE:
+                infinity_symbol = "\u221e"  # Unicode "infinity"
+                start_size, end_size = allocator.largebin_size_range_from_index(size)
+                size = hex(start_size) + "-"
+                size += infinity_symbol if end_size == pwndbg.gdblib.arch.ptrmask else hex(end_size)
+            else:
+                size = hex(size)
 
         if is_chain_corrupted:
             line = message.hint(size) + message.error(" [corrupted]") + "\n"
