@@ -667,9 +667,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         for i in range(NSMALLBINS, index + 1):
             start_size += spaces_table[i]
 
-        end_size = start_size + spaces_table[index + 1] - self.malloc_alignment
-
-        if index == largest_largebin:
+        if index != largest_largebin:
+            end_size = start_size + spaces_table[index + 1] - self.malloc_alignment
+        else:
             end_size = pwndbg.gdblib.arch.ptrmask
 
         return (start_size, end_size)
