@@ -658,6 +658,22 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # ptmalloc cache for current thread
         self._thread_cache: gdb.Value = None
 
+    def largebin_size_range_from_index(self, index):
+        index += NSMALLBINS
+        spaces_table = self._spaces_table()
+        largest_largebin = self.largebin_index(pwndbg.gdblib.arch.ptrmask)
+        start_size = (NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
+
+        for i in range(NSMALLBINS, index + 1):
+            start_size += spaces_table[i]
+
+        if index != largest_largebin:
+            end_size = start_size + spaces_table[index + 1] - self.malloc_alignment
+        else:
+            end_size = pwndbg.gdblib.arch.ptrmask
+
+        return (start_size, end_size)
+
     def can_be_resolved(self):
         raise NotImplementedError()
 
