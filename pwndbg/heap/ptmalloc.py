@@ -1062,6 +1062,25 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             else 126
         )
 
+    def largebin_index_32_big(self, sz):
+        """Modeled on the GLIBC malloc largebin_index_32_big macro.
+
+        https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1422
+        """
+        return (
+            49 + (sz >> 6)
+            if (sz >> 6) <= 45
+            else 91 + (sz >> 9)
+            if (sz >> 9) <= 20
+            else 110 + (sz >> 12)
+            if (sz >> 12) <= 10
+            else 119 + (sz >> 15)
+            if (sz >> 15) <= 4
+            else 124 + (sz >> 18)
+            if (sz >> 18) <= 2
+            else 126
+        )
+
     def largebin_index_64(self, sz):
         """Modeled on the GLIBC malloc largebin_index_64 macro.
 
@@ -1083,11 +1102,12 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     def largebin_index(self, sz):
         """Pick the appropriate largebin_index_ function for this architecture."""
-        return (
-            self.largebin_index_64(sz)
-            if pwndbg.gdblib.arch.ptrsize == 8
-            else self.largebin_index_32(sz)
-        )
+        if pwndbg.gdblib.arch.ptrsize == 8:
+            return self.largebin_index_64(sz)
+        elif self.malloc_alignment == 16:
+            return self.largebin_index_32_big(sz)
+        else:
+            return self.largebin_index_32(sz)
 
     def is_initialized(self):
         raise NotImplementedError()
