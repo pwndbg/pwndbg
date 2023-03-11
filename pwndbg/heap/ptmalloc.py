@@ -658,17 +658,219 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # ptmalloc cache for current thread
         self._thread_cache: gdb.Value = None
 
-    def largebin_size_range_from_index(self, index):
-        index += NSMALLBINS
-        spaces_table = self._spaces_table()
-        largest_largebin = self.largebin_index(pwndbg.gdblib.arch.ptrmask)
-        start_size = (NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
+        self.largebin_reverse_lookup_32 = [
+            0x200,
+            0x240,
+            0x280,
+            0x2C0,
+            0x300,
+            0x340,
+            0x380,
+            0x3C0,
+            0x400,
+            0x440,
+            0x480,
+            0x4C0,
+            0x500,
+            0x540,
+            0x580,
+            0x5C0,
+            0x600,
+            0x640,
+            0x680,
+            0x6C0,
+            0x700,
+            0x740,
+            0x780,
+            0x7C0,
+            0x800,
+            0x840,
+            0x880,
+            0x8C0,
+            0x900,
+            0x940,
+            0x980,
+            0x9C0,
+            0xA00,
+            0xC00,
+            0xE00,
+            0x1000,
+            0x1200,
+            0x1400,
+            0x1600,
+            0x1800,
+            0x1A00,
+            0x1C00,
+            0x1E00,
+            0x2000,
+            0x2200,
+            0x2400,
+            0x2600,
+            0x2800,
+            0x2A00,
+            0x3000,
+            0x4000,
+            0x5000,
+            0x6000,
+            0x7000,
+            0x8000,
+            0x9000,
+            0xA000,
+            0x10000,
+            0x18000,
+            0x20000,
+            0x28000,
+            0x40000,
+            0x80000,
+        ]
 
-        for i in range(NSMALLBINS, index + 1):
-            start_size += spaces_table[i]
+        self.largebin_reverse_lookup_32_big = [
+            0x3F0,
+            0x400,
+            0x440,
+            0x480,
+            0x4C0,
+            0x500,
+            0x540,
+            0x580,
+            0x5C0,
+            0x600,
+            0x640,
+            0x680,
+            0x6C0,
+            0x700,
+            0x740,
+            0x780,
+            0x7C0,
+            0x800,
+            0x840,
+            0x880,
+            0x8C0,
+            0x900,
+            0x940,
+            0x980,
+            0x9C0,
+            0xA00,
+            0xA40,
+            0xA80,
+            0xAC0,
+            0xB00,
+            0xB40,
+            None,
+            0xB80,
+            0xC00,
+            0xE00,
+            0x1000,
+            0x1200,
+            0x1400,
+            0x1600,
+            0x1800,
+            0x1A00,
+            0x1C00,
+            0x1E00,
+            0x2000,
+            0x2200,
+            0x2400,
+            0x2600,
+            0x2800,
+            0x2A00,
+            0x3000,
+            0x4000,
+            0x5000,
+            0x6000,
+            0x7000,
+            0x8000,
+            0x9000,
+            0xA000,
+            0x10000,
+            0x18000,
+            0x20000,
+            0x28000,
+            0x40000,
+            0x80000,
+        ]
+
+        self.largebin_reverse_lookup_64 = [
+            0x400,
+            0x440,
+            0x480,
+            0x4C0,
+            0x500,
+            0x540,
+            0x580,
+            0x5C0,
+            0x600,
+            0x640,
+            0x680,
+            0x6C0,
+            0x700,
+            0x740,
+            0x780,
+            0x7C0,
+            0x800,
+            0x840,
+            0x880,
+            0x8C0,
+            0x900,
+            0x940,
+            0x980,
+            0x9C0,
+            0xA00,
+            0xA40,
+            0xA80,
+            0xAC0,
+            0xB00,
+            0xB40,
+            0xB80,
+            0xBC0,
+            0xC00,
+            0xC40,
+            0xE00,
+            0x1000,
+            0x1200,
+            0x1400,
+            0x1600,
+            0x1800,
+            0x1A00,
+            0x1C00,
+            0x1E00,
+            0x2000,
+            0x2200,
+            0x2400,
+            0x2600,
+            0x2800,
+            0x2A00,
+            0x3000,
+            0x4000,
+            0x5000,
+            0x6000,
+            0x7000,
+            0x8000,
+            0x9000,
+            0xA000,
+            0x10000,
+            0x18000,
+            0x20000,
+            0x28000,
+            0x40000,
+            0x80000,
+        ]
+
+    def largebin_reverse_lookup(self, index):
+        """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
+        if pwndbg.gdblib.arch.ptrsize == 8:
+            return self.largebin_reverse_lookup_64[index]
+        elif self.malloc_alignment == 16:
+            return self.largebin_reverse_lookup_32_big[index]
+        else:
+            return self.largebin_reverse_lookup_32[index]
+
+    def largebin_size_range_from_index(self, index):
+        largest_largebin = self.largebin_index(pwndbg.gdblib.arch.ptrmask) - 64
+        start_size = self.largebin_reverse_lookup(index)
 
         if index != largest_largebin:
-            end_size = start_size + spaces_table[index + 1] - self.malloc_alignment
+            end_size = self.largebin_reverse_lookup(index + 1) - self.malloc_alignment
         else:
             end_size = pwndbg.gdblib.arch.ptrmask
 
@@ -805,33 +1007,6 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if req + self.size_sz + self.malloc_align_mask < self.minsize:
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
-
-    def _spaces_table(self):
-        spaces_table = (
-            [pwndbg.gdblib.arch.ptrsize * 2] * 64
-            + [pow(2, 6)] * 32
-            + [pow(2, 9)] * 16
-            + [pow(2, 12)] * 8
-            + [pow(2, 15)] * 4
-            + [pow(2, 18)] * 2
-            + [pow(2, 21)] * 1
-        )
-
-        # There is no index 0
-        spaces_table = [None] + spaces_table
-
-        # Fix up the slop in bin spacing (part of libc - they made
-        # the trade off of some slop for speed)
-        # https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1356
-        if pwndbg.gdblib.arch.ptrsize == 8:
-            spaces_table[97] = 64
-            spaces_table[98] = 448
-
-        spaces_table[113] = 1536
-        spaces_table[121] = 24576
-        spaces_table[125] = 98304
-
-        return spaces_table
 
     def chunk_flags(self, size):
         return (
@@ -1025,12 +1200,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return result
 
     def smallbins(self, arena_addr=None):
-        size = self.min_chunk_size - self.malloc_alignment
-        spaces_table = self._spaces_table()
-
+        size = self.min_chunk_size
         result = Bins(BinType.SMALL)
         for index in range(2, 64):
-            size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
 
             if chain is None:
@@ -1038,24 +1210,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
             fd_chain, bk_chain, is_corrupted = chain
             result.bins[size] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
+            size += self.malloc_alignment
         return result
 
     def largebins(self, arena_addr=None):
-        size = (ptmalloc.NSMALLBINS * self.malloc_alignment) - self.malloc_alignment
-        spaces_table = self._spaces_table()
-
         result = Bins(BinType.LARGE)
         for index in range(64, 127):
-            size += spaces_table[index]
             chain = self.bin_at(index, arena_addr=arena_addr)
 
             if chain is None:
                 return
 
             fd_chain, bk_chain, is_corrupted = chain
-            result.bins[self.largebin_index(size) - NSMALLBINS] = Bin(
-                fd_chain, bk_chain, is_corrupted=is_corrupted
-            )
+            result.bins[index - NSMALLBINS] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
 
         return result
 
