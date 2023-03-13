@@ -756,7 +756,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             0xAC0,
             0xB00,
             0xB40,
-            0xB80,  # Bin 95 is unused, but its size is used to calculate the previous bin's maximum chunk size.
+            0xB80,  # Largebin 31 (bin 95) is unused, but its size is used to calculate the previous bin's maximum chunk size.
             0xB80,
             0xC00,
             0xE00,
