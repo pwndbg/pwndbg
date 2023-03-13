@@ -665,7 +665,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         sizes through largebin_index().
         Largebin 31 (bin 95) isn't used on i386 when MALLOC_ALIGNMENT is 16, so its value must be added manually.
         """
-        self.largebin_reverse_lookup_32 = [
+        self.largebin_reverse_lookup_32 = (
             0x200,
             0x240,
             0x280,
@@ -729,9 +729,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             0x28000,
             0x40000,
             0x80000,
-        ]
+        )
 
-        self.largebin_reverse_lookup_32_big = [
+        self.largebin_reverse_lookup_32_big = (
             0x3F0,
             0x400,
             0x440,
@@ -795,9 +795,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             0x28000,
             0x40000,
             0x80000,
-        ]
+        )
 
-        self.largebin_reverse_lookup_64 = [
+        self.largebin_reverse_lookup_64 = (
             0x400,
             0x440,
             0x480,
@@ -861,7 +861,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             0x28000,
             0x40000,
             0x80000,
-        ]
+        )
 
     def largebin_reverse_lookup(self, index):
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
