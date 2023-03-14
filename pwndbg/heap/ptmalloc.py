@@ -1351,7 +1351,6 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         thread's tcache.
         """
         if self.has_tcache():
-            tcache = self.get_sbrk_heap_region().vaddr + 0x10
             if self.multithreaded:
                 tcache_addr = pwndbg.gdblib.memory.pvoid(
                     pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
@@ -1361,6 +1360,8 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                     # This thread doesn't have a tcache yet
                     return None
                 tcache = tcache_addr
+            else:
+                tcache = self.main_arena.active_heap.start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
