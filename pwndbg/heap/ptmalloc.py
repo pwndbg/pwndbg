@@ -808,7 +808,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     def _spaces_table(self):
         spaces_table = (
-            [pwndbg.gdblib.arch.ptrsize * 2] * 64
+            [self.malloc_alignment] * 64
             + [pow(2, 6)] * 32
             + [pow(2, 9)] * 16
             + [pow(2, 12)] * 8
