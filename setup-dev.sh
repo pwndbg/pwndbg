@@ -63,8 +63,8 @@ download_zig_binary() {
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
 
-    ZIG_TAR_URL="https://ziglang.org/builds/zig-linux-x86_64-0.10.0-dev.3685+dae7aeb33.tar.xz"
-    ZIG_TAR_SHA256="dfc8f5ecb651342f1fc2b2828362b62f74fadac9931bda785b80bf7ecfcfabb2"
+    ZIG_TAR_URL="https://ziglang.org/download/0.10.1/zig-linux-x86_64-0.10.1.tar.xz"
+    ZIG_TAR_SHA256="6699f0e7293081b42428f32c9d9c983854094bd15fee5489f12c4cf4518cc380"
     curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
     ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
     if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
