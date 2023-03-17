@@ -1351,7 +1351,6 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         thread's tcache.
         """
         if self.has_tcache():
-            tcache = self.get_sbrk_heap_region().vaddr + 0x10
             if self.multithreaded:
                 tcache_addr = pwndbg.gdblib.memory.pvoid(
                     pwndbg.gdblib.symbol.static_linkage_symbol_address("tcache")
@@ -1361,6 +1360,8 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                     # This thread doesn't have a tcache yet
                     return None
                 tcache = tcache_addr
+            else:
+                tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
@@ -1780,18 +1781,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
             )
 
         # TODO: The result might be wrong if the arena is being shared by multiple thread
-        ptr_size = pwndbg.gdblib.arch.ptrsize
-
-        cursor = arena.active_heap.start
-
-        # i686 alignment heuristic
-        first_chunk_size = pwndbg.gdblib.arch.unpack(
-            pwndbg.gdblib.memory.read(cursor + ptr_size, ptr_size)
+        self._thread_cache = self.tcache_perthread_struct(
+            arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
         )
-        if first_chunk_size == 0:
-            cursor += ptr_size * 2
-
-        self._thread_cache = self.tcache_perthread_struct(cursor + ptr_size * 2)
         self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
 
         return self._thread_cache
