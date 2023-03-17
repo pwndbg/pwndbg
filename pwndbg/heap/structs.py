@@ -78,6 +78,12 @@ C2GDB_MAPPING = {
     c_size_t: pwndbg.gdblib.typeinfo.size_t,
 }
 
+# Use correct endian for the dictionary keys
+if pwndbg.gdblib.arch.endian == "little":
+    C2GDB_MAPPING = {k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()}
+else:
+    C2GDB_MAPPING = {k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()}
+
 
 class FakeGDBField:
     """
