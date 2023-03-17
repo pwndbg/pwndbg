@@ -1361,7 +1361,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                     return None
                 tcache = tcache_addr
             else:
-                tcache = self.main_arena.active_heap.start + pwndbg.gdblib.arch.ptrsize * 2
+                tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
@@ -1782,7 +1782,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
         # TODO: The result might be wrong if the arena is being shared by multiple thread
         self._thread_cache = self.tcache_perthread_struct(
-            arena.active_heap.start + pwndbg.gdblib.arch.ptrsize * 2
+            arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
         )
         self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
 
