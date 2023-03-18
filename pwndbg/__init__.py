@@ -1,3 +1,4 @@
+import re
 import signal
 
 import gdb
@@ -55,7 +56,8 @@ handle SIGSEGV stop   print nopass
 )
 
 # See https://github.com/pwndbg/pwndbg/issues/808
-if int(getattr(gdb, "VERSION", "0.0").split(".")[0]) <= 9:
+gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+if gdb_version[0] <= 9:
     pre_commands += "\nset remote search-memory-packet off"
 
 for line in pre_commands.strip().splitlines():
