@@ -169,7 +169,13 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
 # Comment old configs out
 if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
-    sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+    if ! osx; then
+        sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+    else
+	# In BSD sed we need to pass ' ' to indicate that no backup file should be created
+        sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+    fi
+
 fi
 
 # Load Pwndbg into GDB on every launch.
