@@ -8,6 +8,8 @@ TIPS: List[str] = [
     'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
     "Use GDB's `pi` command to run an interactive Python console where you can use Pwndbg APIs like `pwndbg.gdblib.memory.read(addr, len)`, `pwndbg.gdblib.memory.write(addr, data)`, `pwndbg.gdb.vmmap.get()` and so on!",
     "GDB's `set directories <path>` parameter can be used to debug e.g. glibc sources like the malloc/free functions!",
+    "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
+    "Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. If you want only the current thread to run for the function call, use `set scheduler-locking on`",
     # Pwndbg hints
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
