@@ -638,9 +638,13 @@ def tcachebins(addr=None, verbose=False) -> None:
 parser = argparse.ArgumentParser(
     description="Find candidate fake fast or tcache chunks overlapping the specified address."
 )
-parser.add_argument("addr", type=int, help="Address of the word-sized value to overlap.")
+parser.add_argument("target_address", type=int, help="Address of the word-sized value to overlap.")
 parser.add_argument(
-    "size", nargs="?", type=int, default=None, help="Maximum size of fake chunks to find."
+    "max_candidate_size",
+    nargs="?",
+    type=int,
+    default=None,
+    help="Maximum size of fake chunks to find.",
 )
 parser.add_argument(
     "--align",
@@ -650,82 +654,114 @@ parser.add_argument(
     help="Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
     + "chunks and for all chunks when Safe Linking is enabled",
 )
+parser.add_argument(
+    "--glibc-fastbin-bug",
+    "-b",
+    action="store_true",
+    default=False,
+    help="Does the GLIBC fastbin size field bug affect the candidate size field width?",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def find_fake_fast(addr, size=None, align=False) -> None:
+def find_fake_fast(
+    target_address, max_candidate_size=None, align=False, glibc_fastbin_bug=False
+) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
-    psize = pwndbg.gdblib.arch.ptrsize
+    ptrsize = pwndbg.gdblib.arch.ptrsize
     allocator = pwndbg.heap.current
-    malloc_alignment = allocator.malloc_alignment
 
-    min_fast = allocator.min_chunk_size
-    max_fast = allocator.global_max_fast
-    max_fastbin = allocator.fastbin_index(max_fast)
+    min_chunk_size = allocator.min_chunk_size
+    global_max_fast = allocator.global_max_fast
+    size_field_width = gdb.lookup_type("unsigned int").sizeof if glibc_fastbin_bug else ptrsize
 
-    if size is None:
-        size = max_fast
-    elif size > addr:
-        print(message.warn("Size of 0x%x is greater than the target address 0x%x" % (size, addr)))
-        size = addr
-    elif size > max_fast:
+    if max_candidate_size is None:
+        max_candidate_size = global_max_fast
+    else:
+        max_candidate_size = int(max_candidate_size)
+        if max_candidate_size > global_max_fast:
+            print(
+                message.warn(
+                    f"Maximum candidate size {max_candidate_size:#04x} is greater than the global_max_fast value of {global_max_fast:#04x}"
+                )
+            )
+
+    target_address = int(target_address)
+    if max_candidate_size > target_address:
         print(
             message.warn(
-                "0x%x is greater than the global_max_fast value of 0x%x" % (size, max_fast)
+                f"Maximum candidate size {max_candidate_size:#04x} is greater than the target address {target_address:#x}"
             )
         )
-    elif size < min_fast:
+        print(message.warn(f"Using maximum candidate size of {target_address:#x}"))
+        max_candidate_size = target_address
+    elif max_candidate_size < min_chunk_size:
         print(
             message.warn(
-                "0x%x is smaller than the minimum fastbin chunk size of 0x%x" % (size, min_fast)
+                f"Maximum candidate size {max_candidate_size:#04x} is smaller than the minimum chunk size of {min_chunk_size:#04x}"
             )
         )
-        size = min_fast
+        print(message.warn(f"Using maximum candidate size of {min_chunk_size:#04x}"))
+        max_candidate_size = min_chunk_size
 
-    # Clear the flags
-    size &= ~0xF
+    max_candidate_size &= ~(allocator.malloc_align_mask)
 
-    start = int(addr) - size + psize
+    search_start = target_address - max_candidate_size + ptrsize
+    search_end = target_address
+
+    if pwndbg.gdblib.memory.peek(search_start) is None:
+        search_start = pwndbg.lib.memory.page_size_align(search_start)
+        if (
+            search_start > (search_end - size_field_width)
+            or pwndbg.gdblib.memory.peek(search_start) == None
+        ):
+            print(
+                message.warn(
+                    f"No fake fast chunk candidates found; memory preceding target address is not readable"
+                )
+            )
+            return None
 
     if align:
-        # If a chunk is aligned to MALLOC_ALIGNMENT, the size field should be at
-        # offset `psize`. First we align up to a multiple of `psize`
-        new_start = pwndbg.lib.memory.align_up(start, psize)
+        search_start = pwndbg.lib.memory.align_up(search_start, ptrsize)
+        search_start |= ptrsize
 
-        # Then we make sure we're at a multiple of `psize` but not `psize*2` by
-        # making sure the bottom nibble gets set to `psize`
-        new_start |= psize
-
-        # We should not have increased `start` by more than `psize*2 - 1` bytes
-        distance = new_start - start
-        assert distance < psize * 2
-
-        # If we're starting at a higher address, we still only want to read
-        # enough bytes to reach our target address
-        size -= distance
-
-        # Clear the flags
-        size &= ~0xF
-
-        start = new_start
+        if search_start > (search_end - size_field_width):
+            print(
+                message.warn(
+                    f"No fake fast chunk candidates found; alignment didn't leave enough space for a size field"
+                )
+            )
+            return None
 
     print(
         message.notice(
-            "Searching for fastbin sizes up to 0x%x starting at 0x%x resulting in an overlap of 0x%x"
-            % (size, start, addr)
+            f"Searching for fastbin size fields up to {max_candidate_size:#04x}, starting at {search_start:#x} resulting in an overlap of {target_address:#x}"
         )
     )
 
-    # Only consider `size - psize` bytes, since we're starting from after `prev_size`
-    mem = pwndbg.gdblib.memory.read(start, size - psize, partial=True)
+    search_region = pwndbg.gdblib.memory.read(search_start, search_end - search_start, partial=True)
 
     print(C.banner("FAKE CHUNKS"))
-    step = malloc_alignment if align else 1
-    for offset in pwndbg.lib.heap.helpers.find_fastbin_size(mem, size, step):
-        malloc_chunk(start + offset, fake=True)
+    step = allocator.malloc_alignment if align else 1
+    for i in range(0, len(search_region), step):
+        candidate = search_region[i : i + size_field_width]
+
+        if len(candidate) == size_field_width:
+            size_field = pwndbg.gdblib.arch.unpack(candidate)
+            size_field &= ~(allocator.malloc_align_mask)
+
+            if size_field < min_chunk_size or size_field > max_candidate_size:
+                continue
+
+            candidate_address = search_start + i
+            if (candidate_address + size_field) >= (target_address + ptrsize):
+                malloc_chunk(candidate_address - ptrsize, fake=True)
+        else:
+            break
 
 
 pwndbg.gdblib.config.add_param(
