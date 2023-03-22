@@ -23,8 +23,8 @@ Note that the mprotect syscall may fail for various reasons
 can be decoded with the `errno <value>` command.
 
 Examples:
-    mprotect $rsp PROT_READ|PROT_WRITE|PROT_EXEC
-    mprotect some_symbol PROT_NONE
+    mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
+    mprotect some_symbol 0x1000 PROT_NONE
 """,
 )
 parser.add_argument(
