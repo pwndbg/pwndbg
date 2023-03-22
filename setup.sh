@@ -172,7 +172,7 @@ if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
     if ! osx; then
         sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
     else
-	# In BSD sed we need to pass ' ' to indicate that no backup file should be created
+        # In BSD sed we need to pass ' ' to indicate that no backup file should be created
         sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
     fi
 
