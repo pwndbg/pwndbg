@@ -18,8 +18,8 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-from pwndbg.gdblib.nearpc import c as N
 from pwndbg.color import message
+from pwndbg.gdblib.nearpc import c as N
 
 ida_replacements = {
     "__int64": "signed long long int",
@@ -223,11 +223,17 @@ def format_args(instruction):
         # Enhance args display
         if arg.name == "fd" and isinstance(value, int):
             if pwndbg.gdblib.proc.pid is not None:
-                path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pwndbg.gdblib.proc.pid, value))
+                path = pwndbg.gdblib.file.readlink(
+                    "/proc/%d/fd/%d" % (pwndbg.gdblib.proc.pid, value)
+                )
                 if path:
                     pretty += " (%s)" % path
             else:
-                print(message.hint("Cannot find the PID of the program, maybe there is no permission to connect to the privileged QEMU."))
+                print(
+                    message.hint(
+                        "Cannot find the PID of the program, maybe there is no permission to connect to the privileged QEMU."
+                    )
+                )
 
         result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
     return result
