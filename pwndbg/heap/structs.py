@@ -22,16 +22,21 @@ def fastbin_index(size: int) -> int:
         return (size >> 3) - 2
 
 
+# TODO: Move these heap constants and macros to elsewhere, because pwndbg/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.gdblib.arch.ptrsize
 MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
 if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
     # i386 will override it to 16 when GLIBC version >= 2.26
     # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
     MALLOC_ALIGN = 16
-else:
+elif hasattr(gdb.Type, "alignof"):
     # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
     long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
     MALLOC_ALIGN = long_double_alignment if 2 * SIZE_SZ < long_double_alignment else 2 * SIZE_SZ
+else:
+    # alignof doesn't available in GDB < 8.2 (https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=blob_plain;f=gdb/NEWS;hb=gdb-8.2-release)
+    # Hardcoded the MALLOC_ALIGN to 16 for powerpc, and 2 * SIZE_SZ for other archs
+    MALLOC_ALIGN = 16 if pwndbg.gdblib.arch.current == "powerpc" else 2 * SIZE_SZ
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
