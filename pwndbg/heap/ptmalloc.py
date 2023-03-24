@@ -965,12 +965,14 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     @pwndbg.lib.memoize.reset_on_objfile
     def malloc_alignment(self):
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        # i386 will override it to 16 when GLIBC version >= 2.26
-        # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+        if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+            # i386 will override it to 16 when GLIBC version >= 2.26
+            # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+            return 16
+        # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
+        long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
         return (
-            16
-            if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
-            else pwndbg.gdblib.arch.ptrsize * 2
+            long_double_alignment if 2 * self.size_sz < long_double_alignment else 2 * self.size_sz
         )
 
     @property

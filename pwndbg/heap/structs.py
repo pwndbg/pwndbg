@@ -24,13 +24,14 @@ def fastbin_index(size: int) -> int:
 
 SIZE_SZ = pwndbg.gdblib.arch.ptrsize
 MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
-# i386 will override it to 16.
-# See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
-MALLOC_ALIGN = (
-    16
-    if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
-    else pwndbg.gdblib.arch.ptrsize * 2
-)
+if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+    # i386 will override it to 16 when GLIBC version >= 2.26
+    # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+    MALLOC_ALIGN = 16
+else:
+    # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
+    long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
+    MALLOC_ALIGN = long_double_alignment if 2 * SIZE_SZ < long_double_alignment else 2 * SIZE_SZ
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
