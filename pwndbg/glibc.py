@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Tuple
 
 import gdb
+from elftools.elf.relocation import Relocation
 
 import pwndbg.gdblib.config
 import pwndbg.gdblib.elf
@@ -104,6 +105,8 @@ def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
 def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
     """
     Dump .data section of libc ELF file
@@ -113,6 +116,22 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
         # libc not loaded yet, or it's static linked
         return None
     return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
+
+
+@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.memoize.reset_on_objfile
+def dump_relocations_by_section_name(section_name: str) -> Optional[Tuple[Relocation, ...]]:
+    """
+    Dump relocations of a section by section name of libc ELF file
+    """
+    libc_filename = get_libc_filename_from_info_sharedlibrary()
+    if not libc_filename:
+        # libc not loaded yet, or it's static linked
+        return None
+    return pwndbg.gdblib.elf.dump_relocations_by_section_name(
+        libc_filename, section_name, try_local_path=True
+    )
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
