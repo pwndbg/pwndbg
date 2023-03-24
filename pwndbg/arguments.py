@@ -231,7 +231,7 @@ def format_args(instruction):
             else:
                 print(
                     message.hint(
-                        "Cannot find the PID of the program, maybe there is no permission to connect to the privileged QEMU."
+                        "Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file."
                     )
                 )
 
