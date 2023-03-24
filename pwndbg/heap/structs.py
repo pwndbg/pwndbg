@@ -691,7 +691,7 @@ class c_malloc_par_2_26(Structure):
         ("sbrk_base", c_pvoid),
         ("tcache_bins", c_size_t),
         ("tcache_max_bytes", c_size_t),
-        ("tcache_count", ctypes.c_int32),
+        ("tcache_count", c_size_t),
         ("tcache_unsorted_limit", c_size_t),
     ]
 
@@ -767,7 +767,7 @@ class c_malloc_par_2_35(Structure):
         ("sbrk_base", c_pvoid),
         ("tcache_bins", c_size_t),
         ("tcache_max_bytes", c_size_t),
-        ("tcache_count", ctypes.c_int32),
+        ("tcache_count", c_size_t),
         ("tcache_unsorted_limit", c_size_t),
     ]
 
