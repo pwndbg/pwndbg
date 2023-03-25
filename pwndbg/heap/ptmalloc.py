@@ -965,12 +965,21 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     @pwndbg.lib.memoize.reset_on_objfile
     def malloc_alignment(self):
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        # i386 will override it to 16 when GLIBC version >= 2.26
-        # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+        if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+            # i386 will override it to 16 when GLIBC version >= 2.26
+            # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+            return 16
+        # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
+        if hasattr(gdb.Type, "alignof"):
+            long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
+        else:
+            # alignof doesn't available in GDB < 8.2 (https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=blob_plain;f=gdb/NEWS;hb=gdb-8.2-release)
+            # Hardcoded return correct MALLOC_ALIGNMENT for powerpc
+            # TODO: This will be wrong if there's another architecture similar to powerpc
+            # TODO: We can remove this when we drop supports for GDB < 8.2
+            return 16 if pwndbg.gdblib.arch.current == "powerpc" else 2 * self.size_sz
         return (
-            16
-            if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26)
-            else pwndbg.gdblib.arch.ptrsize * 2
+            long_double_alignment if 2 * self.size_sz < long_double_alignment else 2 * self.size_sz
         )
 
     @property
