@@ -222,9 +222,10 @@ def format_args(instruction):
 
         # Enhance args display
         if arg.name == "fd" and isinstance(value, int):
-            if pwndbg.gdblib.proc.pid is not None:
+            pid = pwndbg.gdblib.proc.pid
+            if pid is not None:
                 path = pwndbg.gdblib.file.readlink(
-                    "/proc/%d/fd/%d" % (pwndbg.gdblib.proc.pid, value)
+                    "/proc/%d/fd/%d" % (pid, value)
                 )
                 if path:
                     pretty += " (%s)" % path
