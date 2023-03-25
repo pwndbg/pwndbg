@@ -74,7 +74,7 @@ linux_ppc64 = ABI(["r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"], 8, 0)
 
 linux_i386_syscall = SyscallABI(["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"], 4, 0)
 linux_amd64_syscall = SyscallABI(["rax", "rdi", "rsi", "rdx", "r10", "r8", "r9"], 8, 0)
-linux_arm_syscall = SyscallABI(["r7", "r0", "r1", "r2", "r3", "r4", "r5"], 4, 0)
+linux_arm_syscall = SyscallABI(["r7", "r0", "r1", "r2", "r3", "r4", "r5", "r6"], 4, 0)
 linux_aarch64_syscall = SyscallABI(["x8", "x0", "x1", "x2", "x3", "x4", "x5"], 16, 0)
 linux_mips_syscall = SyscallABI(["$v0", "$a0", "$a1", "$a2", "$a3"], 4, 0)
 linux_ppc_syscall = SyscallABI(["r0", "r3", "r4", "r5", "r6", "r7", "r8", "r9"], 4, 0)
