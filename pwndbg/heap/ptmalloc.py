@@ -1531,7 +1531,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 # };
                 expected = self.malloc_state._c_struct()
                 expected.attached_threads = 1
-                next_field_offset = self.malloc_state(0).get_field_address("next")
+                next_field_offset = self.malloc_state.get_field_offset("next")
                 malloc_state_size = self.malloc_state.sizeof
 
                 # Since RELR relocations might also have .rela.dyn section, we check it first
