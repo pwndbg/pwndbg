@@ -227,12 +227,6 @@ def format_args(instruction):
                 path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:
                     pretty += " (%s)" % path
-            else:
-                print(
-                    message.hint(
-                        "Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file."
-                    )
-                )
 
         result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
     return result
