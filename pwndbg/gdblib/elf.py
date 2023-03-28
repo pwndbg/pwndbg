@@ -17,6 +17,8 @@ from typing import Tuple
 import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
+from elftools.elf.relocation import Relocation
+from elftools.elf.relocation import RelocationSection
 
 import pwndbg.auxv
 import pwndbg.gdblib.abi
@@ -186,6 +188,23 @@ def dump_section_by_name(
         elffile = ELFFile(f)
         section = elffile.get_section_by_name(section_name)
         return (section["sh_addr"], section["sh_size"], section.data()) if section else None
+
+
+def dump_relocations_by_section_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[Relocation, ...]]:
+    """
+    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        if section is None or not isinstance(section, RelocationSection):
+            return None
+        return tuple(section.iter_relocations())
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning

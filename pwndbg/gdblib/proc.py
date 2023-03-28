@@ -13,6 +13,7 @@ from typing import Optional
 from typing import Tuple
 
 import gdb
+from elftools.elf.relocation import Relocation
 
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
@@ -112,6 +113,18 @@ class module(ModuleType):
         Dump .data section of current process's ELF file
         """
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def dump_relocations_by_section_name(
+        self, section_name: str
+    ) -> Optional[Tuple[Relocation, ...]]:
+        """
+        Dump relocations of a section by section name of current process's ELF file
+        """
+        return pwndbg.gdblib.elf.dump_relocations_by_section_name(
+            self.exe, section_name, try_local_path=True
+        )
 
     @pwndbg.lib.memoize.reset_on_start
     @pwndbg.lib.memoize.reset_on_objfile

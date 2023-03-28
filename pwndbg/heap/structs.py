@@ -213,6 +213,13 @@ class CStruct2GDB:
         """
         return self.address + getattr(self._c_struct, field).offset
 
+    @classmethod
+    def get_field_offset(cls, field: str) -> int:
+        """
+        Returns the offset of the specified field.
+        """
+        return getattr(cls._c_struct, field).offset
+
     def items(self) -> tuple:
         """
         Returns a tuple of (field name, field value) pairs.

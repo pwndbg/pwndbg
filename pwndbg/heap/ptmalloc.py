@@ -1514,30 +1514,98 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
         if not self._main_arena_addr:
             if self.is_statically_linked():
-                section = pwndbg.gdblib.proc.dump_elf_data_section()
-                section_address = pwndbg.gdblib.proc.get_data_section_address()
+                data_section = pwndbg.gdblib.proc.dump_elf_data_section()
+                data_section_address = pwndbg.gdblib.proc.get_data_section_address()
             else:
-                section = pwndbg.glibc.dump_elf_data_section()
-                section_address = pwndbg.glibc.get_data_section_address()
-            if section and section_address:
-                data_section_offset, size, data = section
+                data_section = pwndbg.glibc.dump_elf_data_section()
+                data_section_address = pwndbg.glibc.get_data_section_address()
+            if data_section and data_section_address:
+                data_section_offset, size, data_section_data = data_section
+                # Try to find the default main_arena struct in the .data section
+                # https://github.com/bminor/glibc/blob/glibc-2.37/malloc/malloc.c#L1902-L1907
+                # static struct malloc_state main_arena =
+                # {
+                #   .mutex = _LIBC_LOCK_INITIALIZER,
+                #   .next = &main_arena,
+                #   .attached_threads = 1
+                # };
+                expected = self.malloc_state._c_struct()
+                expected.attached_threads = 1
+                next_field_offset = self.malloc_state.get_field_offset("next")
+                malloc_state_size = self.malloc_state.sizeof
 
-                # try to find the default main_arena struct in the .data section
-                for i in range(size - self.malloc_state.sizeof):
-                    # https://github.com/bminor/glibc/blob/glibc-2.37/malloc/malloc.c#L1902-L1907
-                    # static struct malloc_state main_arena =
-                    # {
-                    #   .mutex = _LIBC_LOCK_INITIALIZER,
-                    #   .next = &main_arena,
-                    #   .attached_threads = 1
-                    # };
-                    expected = self.malloc_state._c_struct()
-                    expected.next = data_section_offset + i
-                    expected.attached_threads = 1
-                    expected = bytes(expected)
-                    if expected == data[i : i + len(expected)]:
-                        self._main_arena_addr = section_address + i
+                # Since RELR relocations might also have .rela.dyn section, we check it first
+                for section_name in (".relr.dyn", ".rela.dyn", ".rel.dyn"):
+                    if self._main_arena_addr:
+                        # If we have found the main_arena, we can stop searching
                         break
+
+                    if self.is_statically_linked():
+                        relocations = pwndbg.gdblib.proc.dump_relocations_by_section_name(
+                            section_name
+                        )
+                    else:
+                        relocations = pwndbg.glibc.dump_relocations_by_section_name(section_name)
+                    if not relocations:
+                        continue
+
+                    for relocation in relocations:
+                        r_offset = relocation.entry.r_offset
+
+                        # We only care about the relocation in .data section
+                        if r_offset - next_field_offset < data_section_offset:
+                            continue
+                        elif r_offset - next_field_offset >= data_section_offset + size:
+                            break
+
+                        # To find addend:
+                        # .relr.dyn and .rel.dyn need to read the data from r_offset
+                        # .rela.dyn has the addend in the entry
+                        if section_name != ".rela.dyn":
+                            addend = int.from_bytes(
+                                data_section_data[
+                                    r_offset
+                                    - data_section_offset : r_offset
+                                    - data_section_offset
+                                    + pwndbg.gdblib.arch.ptrsize
+                                ],
+                                pwndbg.gdblib.arch.endian,
+                            )
+                        else:
+                            addend = relocation.entry.r_addend
+
+                        # If addend is the offset of main_arena, then r_offset should be the offset of main_arena.next
+                        if r_offset - next_field_offset == addend:
+                            # Check if we can construct the default main_arena struct we expect
+                            tmp = data_section_data[
+                                addend
+                                - data_section_offset : addend
+                                - data_section_offset
+                                + malloc_state_size
+                            ]
+                            # Note: Although RELA relocations have r_addend, some compiler will still put the addend in the location of r_offset, so we still need to check both cases
+                            found = False
+                            expected.next = addend
+                            found |= bytes(expected) == tmp
+                            if not found:
+                                expected.next = 0
+                                found |= bytes(expected) == tmp
+                            if found:
+                                # This might be a false positive, but it is very unlikely, so should be fine :)
+                                self._main_arena_addr = (
+                                    data_section_address + addend - data_section_offset
+                                )
+                                break
+
+                # If we are still not able to find the main_arena, probably we are debugging a binary with statically linked libc and no PIE enabled
+                if not self._main_arena_addr:
+                    # Try to find the default main_arena struct in the .data section
+                    for i in range(0, size - self.malloc_state.sizeof, pwndbg.gdblib.arch.ptrsize):
+                        expected.next = data_section_offset + i
+                        if bytes(expected) == data_section_data[i : i + malloc_state_size]:
+                            # This also might be a false positive, but it is very unlikely too, so should also be fine :)
+                            self._main_arena_addr = data_section_address + i
+                            break
 
         if pwndbg.gdblib.memory.is_readable_address(self._main_arena_addr):
             self._main_arena = Arena(self._main_arena_addr)
