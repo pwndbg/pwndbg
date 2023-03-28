@@ -5,9 +5,18 @@ from . import amd64
 from . import arm
 from . import i386
 from . import mips
+from . import riscv64
 from . import thumb
 
-arches = {"arm": arm, "armcm": arm, "i386": i386, "mips": mips, "x86-64": amd64, "aarch64": aarch64}
+arches = {
+    "arm": arm,
+    "armcm": arm,
+    "i386": i386,
+    "mips": mips,
+    "x86-64": amd64,
+    "aarch64": aarch64,
+    "riscv:rv64": riscv64,
+}
 
 
 def syscall(number, arch):
