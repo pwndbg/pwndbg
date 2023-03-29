@@ -7,11 +7,11 @@ from typing import List
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.exception
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
+from pwndbg.color import message
 from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
@@ -96,9 +96,7 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super(Command, self).__init__(
-            command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
-        )
+        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if command_name in command_names:
@@ -162,9 +160,9 @@ class Command(gdb.Command):
             return False
 
         last_line = lines[-1]
-        number, command = last_line.split(maxsplit=1)
+        number_str, command = last_line.split(maxsplit=1)
         try:
-            number = int(number)
+            number = int(number_str)
         except ValueError:
             # Workaround for a GDB 8.2 bug when show commands return error value
             # See issue #523
@@ -233,7 +231,8 @@ def fix_int(*a, **kw):
 
 
 def fix_int_reraise(*a, **kw):
-    return fix(*a, reraise=True, **kw)
+    # Type error likely due to https://github.com/python/mypy/issues/6799
+    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
 def OnlyWithFile(function):
@@ -266,6 +265,11 @@ def OnlyWhenQemuKernel(function):
 
 def OnlyWithArch(arch_names: List[str]):
     """Decorates function to work only with the specified archictectures."""
+    for arch in arch_names:
+        if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+            raise ValueError(
+                f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
+            )
 
     def decorator(function):
         @functools.wraps(function)
@@ -359,9 +363,15 @@ def _try2run_heap_command(function, a, kw):
         return function(*a, **kw)
     except SymbolUnresolvableError as err:
         e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
-        w(
-            f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
-        )
+        if "thread_arena" == err.symbol:
+            w(
+                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
+                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
+            )
+        else:
+            w(
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
+            )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
         else:
@@ -461,9 +471,6 @@ class _ArgparsedCommand(Command):
         parser,
         function,
         command_name=None,
-        is_alias=False,
-        aliases=[],
-        category=CommandCategory.MISC,
         *a,
         **kw,
     ) -> None:
@@ -480,12 +487,10 @@ class _ArgparsedCommand(Command):
         # Note: function.__doc__ is used in the `pwndbg [filter]` command display
         function.__doc__ = self.parser.description.strip()
 
-        super(_ArgparsedCommand, self).__init__(
+        # Type error likely due to https://github.com/python/mypy/issues/6799
+        super().__init__(  # type: ignore[misc]
             function,
             command_name=command_name,
-            is_alias=is_alias,
-            aliases=aliases,
-            category=category,
             *a,
             **kw,
         )
@@ -574,7 +579,7 @@ def AddressExpr(s):
     val = sloppy_gdb_parse(s)
 
     if not isinstance(val, int):
-        raise argparse.ArgumentError("Incorrect address (or GDB expression): %s" % s)
+        raise argparse.ArgumentTypeError("Incorrect address (or GDB expression): %s" % s)
 
     return val
 
@@ -591,6 +596,8 @@ def HexOrAddressExpr(s):
 
 
 def load_commands() -> None:
+    # pylint: disable=import-outside-toplevel
+    import pwndbg.commands.ai
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.attachp
@@ -634,6 +641,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
+    import pwndbg.commands.rizin
     import pwndbg.commands.rop
     import pwndbg.commands.ropper
     import pwndbg.commands.search
@@ -644,6 +652,7 @@ def load_commands() -> None:
     import pwndbg.commands.start
     import pwndbg.commands.telescope
     import pwndbg.commands.tls
+    import pwndbg.commands.valist
     import pwndbg.commands.version
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg

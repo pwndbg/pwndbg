@@ -1,10 +1,13 @@
 import cProfile
 import glob
 import locale
+import os
 import sys
 import time
 from os import environ
 from os import path
+
+import pkg_resources
 
 _profiler = cProfile.Profile()
 
@@ -75,10 +78,14 @@ directory, file = path.split(__file__)
 directory = path.expanduser(directory)
 directory = path.abspath(directory)
 
-
+# Add gdb-pt-dump directory to sys.path so it can be imported
 gdbpt = path.join(directory, "gdb-pt-dump")
 sys.path.append(directory)
 sys.path.append(gdbpt)
+
+# Add the dir where Pwntools binaries might be into PATH
+pwntools_bin_dir = os.path.join(pkg_resources.get_distribution("pwntools").location, "bin")
+os.environ["PATH"] = os.environ.get("PATH") + os.pathsep + pwntools_bin_dir
 
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
@@ -90,9 +97,11 @@ if encoding != "UTF-8":
             encoding
         )
     )
-    print("You might try launching gdb with:")
-    print("    LC_ALL=en_US.UTF-8 PYTHONIOENCODING=UTF-8 gdb")
-    print("Make sure that en_US.UTF-8 is activated in /etc/locale.gen and you called locale-gen")
+    print("You might try launching GDB with:")
+    print("    LC_CTYPE=C.UTF-8 gdb")
+    print(
+        "If that does not work, make sure that en_US.UTF-8 is uncommented in /etc/locale.gen and that you called `locale-gen` command"
+    )
     print("******")
 
 environ["PWNLIB_NOTERM"] = "1"

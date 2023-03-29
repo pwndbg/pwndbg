@@ -18,5 +18,5 @@ def find_fastbin_size(mem: bytes, max_size: int, step: int):
 
             # The value must be less than or equal to the max size we're looking
             # for, but still be able to reach the target address
-            if value <= max_size and i + value >= max_size:
+            if value <= max_size <= i + value:
                 yield i - psize

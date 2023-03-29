@@ -11,7 +11,7 @@ def extractTypeAndName(n, defaultName=None):
     t = n.type
     d = 0
 
-    while isinstance(t, c_ast.PtrDecl) or isinstance(t, c_ast.ArrayDecl):
+    while isinstance(t, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         d += 1
         children = dict(t.children())
         t = children["type"]
@@ -19,11 +19,7 @@ def extractTypeAndName(n, defaultName=None):
     if isinstance(t, c_ast.FuncDecl):
         return extractTypeAndName(t)
 
-    if (
-        isinstance(t.type, c_ast.Struct)
-        or isinstance(t.type, c_ast.Union)
-        or isinstance(t.type, c_ast.Enum)
-    ):
+    if isinstance(t.type, (c_ast.Struct, c_ast.Union, c_ast.Enum)):
         typename = t.type.name
     else:
         typename = t.type.names[0]

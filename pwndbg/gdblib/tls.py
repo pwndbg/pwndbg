@@ -1,8 +1,6 @@
 """
 Getting Thread Local Storage (TLS) information.
 """
-import sys
-from types import ModuleType
 
 import gdb
 
@@ -12,101 +10,51 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
+from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 
-class module(ModuleType):
-    """Getting Thread Local Storage (TLS) information."""
-
-    _errno_offset = None
-
-    def get_tls_base_via_errno_location(self) -> int:
-        """Heuristically determine the base address of the TLS."""
-        if pwndbg.gdblib.symbol.address(
-            "__errno_location"
-        ) is None or pwndbg.gdblib.arch.current not in (
-            "x86-64",
-            "i386",
-            "arm",
-        ):
-            # Note: We doesn't implement this for aarch64 because its TPIDR_EL0 register seems always work
-            # If oneday we can't get TLS base via TPIDR_EL0, we should implement this for aarch64
-            return 0
-        already_lock = gdb.parameter("scheduler-locking") == "on"
-        old_config = gdb.parameter("scheduler-locking")
-        if not already_lock:
-            gdb.execute("set scheduler-locking on")
-        errno_addr = int(gdb.parse_and_eval("(int *)__errno_location()"))
-        if not already_lock:
-            gdb.execute("set scheduler-locking %s" % old_config)
-
-        if not self._errno_offset:
-            __errno_location_instr = pwndbg.disasm.near(
-                pwndbg.gdblib.symbol.address("__errno_location"), 5, show_prev_insns=False
-            )
-            if pwndbg.gdblib.arch.current == "x86-64":
-                for instr in __errno_location_instr:
-                    # Find something like: mov rax, qword ptr [rip + disp]
-                    if instr.mnemonic == "mov":
-                        self._errno_offset = pwndbg.gdblib.memory.s64(instr.next + instr.disp)
-                        break
-            elif pwndbg.gdblib.arch.current == "i386":
-                for instr in __errno_location_instr:
-                    # Find something like: mov eax, dword ptr [eax + disp]
-                    # (disp is a negative value)
-                    if instr.mnemonic == "mov":
-                        # base offset is from the first `add eax` after `call __x86.get_pc_thunk.bx`
-                        base_offset_instr = next(
-                            instr for instr in __errno_location_instr if instr.mnemonic == "add"
-                        )
-                        base_offset = base_offset_instr.address + base_offset_instr.operands[1].int
-                        self._errno_offset = pwndbg.gdblib.memory.s32(base_offset + instr.disp)
-                        break
-            elif pwndbg.gdblib.arch.current == "arm":
-                ldr_instr = None
-                for instr in __errno_location_instr:
-                    if not ldr_instr and instr.mnemonic == "ldr":
-                        ldr_instr = instr
-                    elif ldr_instr and instr.mnemonic == "add":
-                        offset = ldr_instr.operands[1].mem.disp
-                        offset = pwndbg.gdblib.memory.s32((ldr_instr.address + 4 & -4) + offset)
-                        self._errno_offset = pwndbg.gdblib.memory.s32(instr.address + 4 + offset)
-                        break
-        if not self._errno_offset:
-            raise OSError("Can not find tls base")
-        return errno_addr - self._errno_offset
-
-    @property
-    def address(self) -> int:
-        """Get the base address of TLS."""
-        if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "aarch64", "arm"):
-            # Not supported yet
-            return 0
-
-        tls_base = 0
-
-        if pwndbg.gdblib.arch.current == "x86-64":
-            tls_base = int(pwndbg.gdblib.regs.fsbase)
-        elif pwndbg.gdblib.arch.current == "i386":
-            tls_base = int(pwndbg.gdblib.regs.gsbase)
-        elif pwndbg.gdblib.arch.current == "aarch64":
-            tls_base = int(pwndbg.gdblib.regs.TPIDR_EL0)
-
-        # Sometimes, we need to get TLS base via errno location for the following reason:
-        # For x86-64, fsbase might be 0 if we are remotely debugging and the GDB version <= 8.X
-        # For i386, gsbase might be 0 if we are remotely debugging
-        # For arm (32-bit), we doesn't have other choice
-        # Note: aarch64 seems doesn't have this issue
-        is_valid_tls_base = (
-            pwndbg.gdblib.vmmap.find(tls_base) is not None
-            and tls_base % pwndbg.gdblib.arch.ptrsize == 0
-        )
-        return tls_base if is_valid_tls_base else self.get_tls_base_via_errno_location()
-
-    def reset(self) -> None:
-        # We should reset the offset when we attach to a new process
-        self._errno_offset = None
+def __call_pthread_self() -> int:
+    """Get the address of TLS by calling pthread_self()."""
+    if pwndbg.gdblib.symbol.address("pthread_self") is None:
+        return 0
+    try:
+        return int(parse_and_eval_with_scheduler_lock("(void *)pthread_self()"))
+    except gdb.error:
+        return 0
 
 
-# To prevent garbage collection
-tether = sys.modules[__name__]
-sys.modules[__name__] = module(__name__, "")
+def find_address_with_pthread_self() -> int:
+    """Get the address of TLS with pthread_self()."""
+    if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
+        # Note: we should support aarch64 if it's possible that TPIDR_EL0 register can not be accessed.
+        return 0
+    result = __call_pthread_self()
+    if result <= 0:
+        # pthread_self() is not valid
+        return 0
+
+    # pthread_self() is defined as: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_self.c#L22
+    # THREAD_SELF is defined as:
+    # i386: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/i386/nptl/tls.h#L234
+    # x86-64: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/x86_64/nptl/tls.h#L181
+    # arm: https://elixir.bootlin.com/glibc/latest/source/sysdeps/arm/nptl/tls.h#L76
+    # For i386 and x86-64, the return value of the pthread_self() is the address of TLS, because the value is self reference of the TLS: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_create.c#L671
+    # But for arm, the implementation of THREAD_SELF is different, we need to add sizeof(struct pthread) to the result to get the address of TLS.
+
+    if pwndbg.gdblib.arch.current == "arm":
+        # 0x4c0 is sizeof(struct pthread)
+        # TODO: we might need to adjust the value if the size of struct pthread is changed in the future.
+        result += 0x4C0
+    return result
+
+
+def find_address_with_register() -> int:
+    """Get the address of TLS with register."""
+    if pwndbg.gdblib.arch.current == "x86-64":
+        return int(pwndbg.gdblib.regs.fsbase)
+    elif pwndbg.gdblib.arch.current == "i386":
+        return int(pwndbg.gdblib.regs.gsbase)
+    elif pwndbg.gdblib.arch.current == "aarch64":
+        return int(pwndbg.gdblib.regs.TPIDR_EL0)
+    # TODO: is it possible that we can get the address of TLS with register on arm?
+    return 0

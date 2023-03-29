@@ -1,9 +1,9 @@
 import argparse
 import subprocess
 
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.radare2
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches radare2.", epilog="Example: r2 -- -S -AA")
@@ -21,7 +21,7 @@ parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to
 )
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False) -> None:
-    filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+    filename = pwndbg.gdblib.file.get_proc_exe_file()
 
     # Build up the command line to run
     cmd = ["radare2"]

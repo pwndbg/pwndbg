@@ -9,7 +9,6 @@ supplemental information sources (e.g. active IDA Pro connection).
 
 import string
 
-import pwndbg.color as color
 import pwndbg.color.enhance as E
 import pwndbg.disasm
 import pwndbg.gdblib.arch
@@ -19,6 +18,7 @@ import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.memoize
+from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]

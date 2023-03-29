@@ -20,7 +20,7 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
+    sudo apt-get install -y git gdb gdbserver python3-dev python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
@@ -63,11 +63,24 @@ install_emerge() {
 install_pacman() {
     sudo pacman -Syy --noconfirm || true
     sudo pacman -S --noconfirm git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
-    echo "set debuginfod enabled on" >> ~/.gdbinit
+    if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
+        echo "set debuginfod enabled on" >> ~/.gdbinit
+    fi
 }
 
 PYTHON=''
 INSTALLFLAGS=''
+
+# Check for the presence of the initializer line in the user's ~/.gdbinit file
+if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+    # Ask the user if they want to proceed and override the initializer line
+    read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
+
+    # If the user does not want to proceed, exit the script
+    if [[ "$answer" != "y" ]]; then
+        exit 0
+    fi
+fi
 
 if osx || [ "$1" == "--user" ]; then
     INSTALLFLAGS="--user"
@@ -154,7 +167,16 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 # Install Python dependencies
 ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
-# Load Pwndbg into GDB on every launch.
-if ! grep pwndbg ~/.gdbinit &> /dev/null; then
-    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
+# Comment old configs out
+if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+    if ! osx; then
+        sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+    else
+        # In BSD sed we need to pass ' ' to indicate that no backup file should be created
+        sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+    fi
+
 fi
+
+# Load Pwndbg into GDB on every launch.
+echo "source $PWD/gdbinit.py" >> ~/.gdbinit

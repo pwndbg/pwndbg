@@ -38,8 +38,6 @@ def guess_numbers_base(num: str):
 
 
 def address_range_explicit(section):
-    global parser
-
     try:
         begin, end = section.split(":")
 
@@ -55,9 +53,7 @@ def address_range_explicit(section):
 
 
 def address_range(section):
-    global parser
-
-    if section == "*" or section == "any":
+    if section in ("*", "any"):
         return (0, pwndbg.gdblib.arch.ptrmask)
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
@@ -90,7 +86,7 @@ def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
         return None
 
     for r in rs:
-        if pointee >= r.begin and pointee < r.end:
+        if r.begin <= pointee < r.end:
             return pointee
 
     return None

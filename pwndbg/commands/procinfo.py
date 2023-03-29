@@ -6,6 +6,7 @@ import pwndbg.gdblib.file
 import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 """
@@ -73,9 +74,6 @@ class Process:
         self.pid = pid
         self.tid = tid
 
-        # Precalculate
-        self.status
-
     @property
     @pwndbg.lib.memoize.reset_on_stop
     def selinux(self):
@@ -93,14 +91,13 @@ class Process:
             if not line:
                 continue
 
-            k_v = line.split(None, 1)
+            k_v = line.split(maxsplit=1)
 
             if len(k_v) == 1:
                 k_v.append(b"")
 
             k, v = k_v
 
-            # Python3 ftw!
             k = k.decode("latin-1")
             v = v.decode("latin-1")
 
@@ -129,7 +126,7 @@ class Process:
 
             # capability sets
             if k in ["capeff", "capinh", "capprm", "capbnd"]:
-                orig = v
+                orig: int = v
                 v = []
                 for i in range(max(capabilities) + 1):
                     if (orig >> i) & 1 == 1:
@@ -195,7 +192,15 @@ def procinfo() -> None:
     """
     Display information about the running process.
     """
-    exe = str(pwndbg.auxv.get()["AT_EXECFN"])
+    if pwndbg.gdblib.qemu.is_qemu():
+        print(
+            message.error(
+                "QEMU target detected: showing result for the qemu process"
+                " - so it will be a bit inaccurate (excessive for the parts"
+                " used directly by the qemu process)"
+            )
+        )
+    exe = pwndbg.auxv.get()["AT_EXECFN"]
     print("%-10s %r" % ("exe", exe))
 
     proc = Process()

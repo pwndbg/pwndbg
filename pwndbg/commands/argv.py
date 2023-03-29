@@ -47,12 +47,13 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def envp(name=None):
-    if name is not None:
-        gdb.execute('p $environ("%s")' % name)
-        return
     """
     Prints out the contents of the environment.
     """
+    if name is not None:
+        gdb.execute('p $environ("%s")' % name)
+        return
+
     start = pwndbg.gdblib.argv.envp
     n = pwndbg.gdblib.argv.envc + 1
 
@@ -65,7 +66,7 @@ class argv_function(gdb.Function):
     """
 
     def __init__(self) -> None:
-        super(argv_function, self).__init__("argv")
+        super().__init__("argv")
 
     def invoke(self, number=0):
         number = int(number)
@@ -88,7 +89,7 @@ class envp_function(gdb.Function):
     """
 
     def __init__(self) -> None:
-        super(envp_function, self).__init__("envp")
+        super().__init__("envp")
 
     def invoke(self, number=0):
         number = int(number)
@@ -111,7 +112,7 @@ class argc_function(gdb.Function):
     """
 
     def __init__(self) -> None:
-        super(argc_function, self).__init__("argc")
+        super().__init__("argc")
 
     def invoke(self, number=0):
         return pwndbg.gdblib.argv.argc
@@ -126,7 +127,7 @@ class environ_function(gdb.Function):
     """
 
     def __init__(self) -> None:
-        super(environ_function, self).__init__("environ")
+        super().__init__("environ")
 
     def invoke(self, name):
         name = name.string() + "="

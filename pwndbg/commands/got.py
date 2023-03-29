@@ -4,7 +4,6 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.file
-import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
@@ -23,21 +22,19 @@ def got(name_filter="") -> None:
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
     jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())
-    if not len(jmpslots):
+    if not jmpslots:
         print(message.error("NO JUMP_SLOT entries available in the GOT"))
         return
 
     if "PIE enabled" in pie_status:
-        bin_base = pwndbg.gdblib.elf.exe().address
+        bin_base = pwndbg.gdblib.proc.binary_base_addr
 
     relro_color = message.off
     if "Partial" in relro_status:
         relro_color = message.warn
     elif "Full" in relro_status:
         relro_color = message.on
-    print(
-        "\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots))
-    )
+    print("GOT protection: %s | GOT functions: %d" % (relro_color(relro_status), len(jmpslots)))
 
     for line in jmpslots:
         address, info, rtype, value, name = line.split()[:5]

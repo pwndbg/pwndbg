@@ -8,7 +8,6 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.file
-import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
@@ -24,8 +23,8 @@ Note that the mprotect syscall may fail for various reasons
 can be decoded with the `errno <value>` command.
 
 Examples:
-    mprotect $rsp PROT_READ|PROT_WRITE|PROT_EXEC
-    mprotect some_symbol PROT_NONE
+    mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
+    mprotect some_symbol 0x1000 PROT_NONE
 """,
 )
 parser.add_argument(
@@ -53,9 +52,9 @@ prot_dict = {
 def prot_str_to_val(protstr):
     """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
     prot_int = 0
-    for k in prot_dict:
+    for k, v in prot_dict.items():
         if k in protstr:
-            prot_int |= prot_dict[k]
+            prot_int |= v
     return prot_int
 
 

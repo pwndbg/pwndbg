@@ -60,16 +60,25 @@ def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
     if lookup:
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
-        if type(lookup) in [gdb.Value, int]:
+        if isinstance(lookup, (gdb.Value, int)):
             lookup = int(lookup).to_bytes(length, pwndbg.gdblib.arch.endian)
-        elif type(lookup) is str:
+        elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
 
         if len(lookup) != length:
-            print(message.error(f"Lookup pattern must be {length} bytes"))
+            print(
+                message.error(
+                    f"Lookup pattern must be {length} bytes (use `-n <length>` to lookup pattern of different length)"
+                )
+            )
             return
 
-        print(message.notice(f"Lookup value: {str(lookup)}"))
+        hexstr = "0x" + lookup.hex()
+        print(
+            message.notice(
+                f"Finding cyclic pattern of {length} bytes: {str(lookup)} (hex: {hexstr})"
+            )
+        )
 
         if any(c not in alphabet for c in lookup):
             print(message.error("Pattern contains characters not present in the alphabet"))
@@ -80,7 +89,7 @@ def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
         if offset == -1:
             print(message.error("Given lookup pattern does not exist in the sequence"))
         else:
-            print(message.success(offset))
+            print(message.success(f"Found at offset {offset}"))
     else:
         sequence = cyclic(int(count), alphabet, length)
         print(sequence.decode())

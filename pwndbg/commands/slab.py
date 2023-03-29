@@ -96,17 +96,17 @@ def get_flags_list(flags: int):
 
 
 class IndentContextManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.indent = 0
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.indent += 1
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
         self.indent -= 1
         assert self.indent >= 0
 
-    def print(self, *a, **kw):
+    def print(self, *a, **kw) -> None:
         print("    " * self.indent, *a, **kw)
 
 
@@ -129,7 +129,7 @@ def _rx(val: int) -> str:
 
 def print_slab(
     slab: gdb.Value, freelist: Union[Iterator[int], List[int]], indent, verbose, is_partial
-):
+) -> None:
     page_address = int(slab.address)
     virt_address = pwndbg.gdblib.kernel.page_to_virt(page_address)
     indent.print(f"- {C.green('Slab')} @ {_yx(virt_address)} [{_rx(page_address)}]:")
@@ -157,7 +157,7 @@ def print_slab(
                     indent.print("-", _yx(int(entry)))
 
 
-def print_cpu_cache(cpu_cache, offset, random, cpu_partial, indent, verbose):
+def print_cpu_cache(cpu_cache, offset, random, cpu_partial, indent, verbose) -> None:
     address = int(cpu_cache)
     indent.print(f"{C.green('Per-CPU Data')} @ {_yx(address)}:")
     with indent:
@@ -195,7 +195,7 @@ def print_cpu_cache(cpu_cache, offset, random, cpu_partial, indent, verbose):
             indent.print("Partial Slabs: (none)")
 
 
-def slab_info(name: str, verbose: bool):
+def slab_info(name: str, verbose: bool) -> None:
     cache = pwndbg.gdblib.kernel.slab.get_cache(name)
 
     if cache is None:
@@ -231,7 +231,7 @@ def slab_info(name: str, verbose: bool):
         # TODO: print_node_cache
 
 
-def slab_list(filter_):
+def slab_list(filter_) -> None:
     results = []
     for cache in pwndbg.gdblib.kernel.slab.caches():
         name = cache["name"].string()

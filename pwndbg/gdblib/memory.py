@@ -114,6 +114,22 @@ def peek(address):
     return None
 
 
+@pwndbg.lib.memoize.reset_on_stop
+def is_readable_address(address):
+    """is_readable_address(address) -> bool
+
+    Check if the address can be read by GDB.
+
+    Arguments:
+        address(int): Address to read
+
+    Returns:
+        :class:`bool`: Whether the address is readable.
+    """
+    # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
+    return pwndbg.gdblib.vmmap.find(address) is not None and peek(address) is not None
+
+
 def poke(address) -> bool:
     """poke(address)
 

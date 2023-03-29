@@ -29,10 +29,9 @@ def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
 
 
-try:
-    gdb.Frame.read_register
+if hasattr(gdb.Frame, "read_register"):
     get_register = gdb79_get_register
-except AttributeError:
+else:
     get_register = gdb77_get_register
 
 
@@ -71,7 +70,7 @@ class module(ModuleType):
             return None
 
     def __setattr__(self, attr, val):
-        if attr == "last" or attr == "previous":
+        if attr in ("last", "previous"):
             return super().__setattr__(attr, val)
         else:
             # Not catching potential gdb.error as this should never
@@ -94,7 +93,7 @@ class module(ModuleType):
 
         return item
 
-    def __contains__(self, reg):
+    def __contains__(self, reg) -> bool:
         regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
         return reg in regs
 
@@ -195,7 +194,7 @@ class module(ModuleType):
 
         # For GDB >= 8.x we can use get_register directly
         # Elsewhere we have to get the register via ptrace
-        if get_register == gdb79_get_register:
+        if pwndbg.gdblib.arch.current == "x86-64" and get_register == gdb79_get_register:
             return get_register(regname)
 
         # We can't really do anything if the process is remote.
@@ -230,7 +229,7 @@ sys.modules[__name__] = module(__name__, "")
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
 def update_last() -> None:
-    M = sys.modules[__name__]
+    M: module = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
     if pwndbg.gdblib.config.show_retaddr_reg:

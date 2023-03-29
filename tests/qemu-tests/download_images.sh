@@ -1,7 +1,28 @@
 #!/bin/bash
 
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemux86-64/bzImage-qemux86-64.bin
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemux86-64/core-image-minimal-dev-qemux86-64-20221114164338.rootfs.ext4
+set -o errexit
 
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemuarm64/Image-qemuarm64.bin
-wget https://downloads.yoctoproject.org/releases/yocto/yocto-4.1.1/machines/qemu/qemuarm64/core-image-minimal-dev-qemuarm64-20221114170418.rootfs.ext4
+CWD=$(dirname -- "$0")
+OUT_DIR="${CWD}/images"
+URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
+
+mkdir -p "${OUT_DIR}"
+
+for arch in x86_64 arm64; do
+    file="rootfs-${arch}.img"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="vmlinux-linux-${arch}"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="vmlinux-ack-${arch}"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+done
+
+for kernel_type in ack linux; do
+    file="bzImage-${kernel_type}-x86_64"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+
+    file="Image-${kernel_type}-arm64"
+    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+done

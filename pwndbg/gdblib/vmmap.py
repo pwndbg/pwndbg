@@ -6,7 +6,6 @@ The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
-import os
 from typing import Any
 from typing import List
 from typing import Optional
@@ -88,13 +87,25 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
         return tuple()
-    pages = []
-    pages.extend(proc_pid_maps())
 
-    if (
-        not pages
-        and pwndbg.gdblib.qemu.is_qemu_kernel()
-        and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+    if is_corefile():
+        return tuple(coredump_maps())
+
+    proc_maps = proc_pid_maps()
+
+    # The `proc_maps` is usually a tuple of Page objects but it can also be:
+    #   None    - when /proc/$pid/maps does not exist/is not available
+    #   tuple() - when the process has no maps yet which happens only during its very early init
+    #             (usually when we attach to a process)
+    if proc_maps is not None:
+        return proc_maps
+
+    pages = []
+    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
+        "i386",
+        "x86-64",
+        "aarch64",
+        "riscv:rv64",
     ):
 
         # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
@@ -112,12 +123,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
-    if not pages and is_corefile():
-        pages.extend(coredump_maps())
-
-    # TODO/FIXME: Do we still need it after coredump_maps()?
-    # Add tests for other cases and see if this is needed e.g. for QEMU user
-    # if not, remove the code below & cleanup other parts of Pwndbg codebase
+    # TODO/FIXME: Add tests for  QEMU-user targets when this is needed
     if not pages:
         # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
@@ -338,13 +344,14 @@ def proc_pid_maps():
     Parse the contents of /proc/$PID/maps on the server.
 
     Returns:
-        A list of pwndbg.lib.memory.Page objects.
+        A tuple of pwndbg.lib.memory.Page objects or None if
+        /proc/$pid/maps doesn't exist or when we debug a qemu-user target
     """
 
     # If we debug remotely a qemu-user or qemu-system target,
     # there is no point of hitting things further
     if pwndbg.gdblib.qemu.is_qemu():
-        return tuple()
+        return None
 
     # Example /proc/$pid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -381,16 +388,20 @@ def proc_pid_maps():
         except (OSError, gdb.error):
             continue
     else:
+        return None
+
+    # Process hasn't been fully created yet; it is in Z (zombie) state
+    if data == "":
         return tuple()
 
     pages = []
     for line in data.splitlines():
-        maps, perm, offset, dev, inode_objfile = line.split(None, 4)
+        maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
 
         start, stop = maps.split("-")
 
         try:
-            inode, objfile = inode_objfile.split(None, 1)
+            inode, objfile = inode_objfile.split(maxsplit=1)
         except Exception:
             # Name unnamed anonymous pages so they can be used e.g. with search commands
             objfile = "[anon_" + start[:-3] + "]"
@@ -491,7 +502,7 @@ def kernel_vmmap_via_monitor_info_mem():
                         + "`help show kernel-vmmap` for other options."
                     )
                 )
-            return tuple()
+            return tuple()  # pylint: disable=lost-exception
 
     lines = monitor_info_mem.splitlines()
 
@@ -604,7 +615,7 @@ def info_files():
     # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
     seen_files = set()
-    pages = list()
+    pages = []
     main_exe = ""
 
     for line in pwndbg.gdblib.info.files().splitlines():
@@ -612,7 +623,7 @@ def info_files():
 
         # The name of the main executable
         if line.startswith("`"):
-            exename, filetype = line.split(None, 1)
+            exename, filetype = line.split(maxsplit=1)
             main_exe = exename.strip("`,'")
             continue
 
@@ -620,8 +631,8 @@ def info_files():
         if not line.startswith("0x"):
             continue
 
-        # start, stop, _, segment, _, filename = line.split(None,6)
-        fields = line.split(None, 6)
+        # start, stop, _, segment, _, filename = line.split(maxsplit=6)
+        fields = line.split(maxsplit=6)
         vaddr = int(fields[0], 16)
 
         if len(fields) == 5:
@@ -687,8 +698,7 @@ def find_boundaries(addr, name="", min=0):
     start = pwndbg.gdblib.memory.find_lower_boundary(addr)
     end = pwndbg.gdblib.memory.find_upper_boundary(addr)
 
-    if start < min:
-        start = min
+    start = max(start, min)
 
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
 
@@ -726,10 +736,3 @@ def check_aslr():
     # access to procfs.
     output = gdb.execute("show disable-randomization", to_string=True)
     return ("is off." in output), "show disable-randomization"
-
-
-@pwndbg.gdblib.events.cont
-def mark_pc_as_executable() -> None:
-    mapping = find(pwndbg.gdblib.regs.pc)
-    if mapping and not mapping.execute:
-        mapping.flags |= os.X_OK

@@ -21,6 +21,13 @@ import pwndbg.lib.config
 
 config = pwndbg.lib.config.Config()
 
+# GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+IS_GDB_GTE_9 = True
+if not hasattr(gdb, "PARAM_ZUINTEGER"):
+    gdb.PARAM_ZUINTEGER = "PARAM_ZUINTEGER"
+    gdb.PARAM_ZUINTEGER_UNLIMITED = "PARAM_ZUINTEGER_UNLIMITED"
+    IS_GDB_GTE_9 = False
+
 
 # See this for details about the API of `gdb.Parameter`:
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
@@ -33,6 +40,12 @@ class Parameter(gdb.Parameter):
         self.show_doc = "Show " + param.set_show_doc + "."
         self.__doc__ = param.help_docstring or None
 
+        self.init_super(param)
+        self.param = param
+        self.value = param.value
+
+    def __init_super_gdb_gte_9(self, param: pwndbg.lib.config.Parameter) -> None:
+        """Initializes the super class for GDB >= 9"""
         if param.param_class == gdb.PARAM_ENUM:
             super().__init__(
                 param.name,
@@ -40,10 +53,19 @@ class Parameter(gdb.Parameter):
                 param.param_class,
                 param.enum_sequence,
             )
-        else:
-            super().__init__(param.name, gdb.COMMAND_SUPPORT, param.param_class)
-        self.param = param
-        self.value = param.value
+            return
+        super().__init__(param.name, gdb.COMMAND_SUPPORT, param.param_class)
+
+    def __init_super_gdb_lt_9(self, param: pwndbg.lib.config.Parameter) -> None:
+        """Initializes the super class for GDB < 9"""
+        # GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+        if param.param_class in (gdb.PARAM_ZUINTEGER, gdb.PARAM_ZUINTEGER_UNLIMITED):
+            super().__init__(param.name, gdb.COMMAND_SUPPORT, pwndbg.lib.config.PARAM_CLASSES[int])
+            return
+        # the logic after this line is the same as GDB >= 9
+        self.__init_super_gdb_gte_9(param)
+
+    init_super = __init_super_gdb_gte_9 if IS_GDB_GTE_9 else __init_super_gdb_lt_9
 
     @property
     def native_value(self):
@@ -55,9 +77,8 @@ class Parameter(gdb.Parameter):
             self.param.default, param_class=self.param.param_class
         )
 
-    def get_set_string(self) -> str:
-        """Handles the GDB `set <param>` command"""
-
+    def __get_set_string_gdb_gte_9(self) -> str:
+        """Handles the GDB `set <param>` command for GDB >= 9"""
         # GDB will set `self.value` to the user's input
         if self.value is None and self.param.param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
             # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
@@ -78,14 +99,38 @@ class Parameter(gdb.Parameter):
 
         return "Set %s to %r." % (self.param.set_show_doc, self.native_value)
 
-    def get_show_string(self, svalue) -> str:
-        """Handles the GDB `show <param>` command"""
+    def __get_set_string_gdb_le_9(self) -> str:
+        """Handles the GDB `set <param>` command for GDB < 9"""
+        if (self.param.param_class == gdb.PARAM_ZUINTEGER and self.value < 0) or (  # type: ignore
+            self.param.param_class == gdb.PARAM_ZUINTEGER_UNLIMITED and self.value < -1  # type: ignore
+        ):
+            err = "integer %d out of range" % self.value  # type: ignore
+            # Restore the old value
+            self.value = self.param.value
+            # GDB < 9 is too buggy, it won't handle `gdb.GdbError`..., so we return a string here
+            return err
+        # the logic after this line is the same as GDB >= 9
+        return self.__get_set_string_gdb_gte_9()
+
+    get_set_string = __get_set_string_gdb_gte_9 if IS_GDB_GTE_9 else __get_set_string_gdb_le_9
+
+    def __get_show_string_gdb_gte_9(self, svalue) -> str:
+        """Handles the GDB `show <param>` command for GDB >= 9"""
         more_information_hint = " See `help set %s` for more information." % self.param.name
         return "%s is %r.%s" % (
             self.param.set_show_doc.capitalize(),
             svalue,
             more_information_hint if self.__doc__ else "",
         )
+
+    def __get_show_string_gdb_le_9(self, svalue) -> str:
+        """Handles the GDB `show <param>` command for GDB < 9"""
+        if self.param.param_class == gdb.PARAM_ZUINTEGER_UNLIMITED and self.value == -1:
+            svalue = "unlimited"
+        # the logic after this line is the same as GDB >= 9
+        return self.__get_show_string_gdb_gte_9(svalue)
+
+    get_show_string = __get_show_string_gdb_gte_9 if IS_GDB_GTE_9 else __get_show_string_gdb_le_9
 
     @staticmethod
     def _value_to_gdb_native(value, param_class=None):

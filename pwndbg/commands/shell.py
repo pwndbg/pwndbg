@@ -4,8 +4,9 @@ Wrapper for shell commands.
 
 import os
 
+from pwnlib.util.misc import which
+
 import pwndbg.commands
-import pwndbg.lib.which
 from pwndbg.commands import CommandCategory
 
 pwncmd_names = ["asm", "constgrep", "disasm", "pwn", "unhex"]
@@ -61,8 +62,8 @@ shellcmd_names = [
     "zsh",
 ]
 
-pwncmds = list(filter(pwndbg.lib.which.which, pwncmd_names))
-shellcmds = list(filter(pwndbg.lib.which.which, shellcmd_names))
+pwncmds = list(filter(which, pwncmd_names))
+shellcmds = list(filter(which, shellcmd_names))
 
 
 def register_shell_function(cmd, deprecated=False) -> None:

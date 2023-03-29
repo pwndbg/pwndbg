@@ -2,6 +2,7 @@ import argparse
 import ctypes
 
 import gdb
+from tabulate import tabulate
 
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
@@ -80,7 +81,15 @@ def format_bin(bins: Bins, verbose=False, offset=None):
             formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
 
         if isinstance(size, int):
-            size = hex(size)
+            if bins_type == BinType.LARGE:
+                start_size, end_size = allocator.largebin_size_range_from_index(size)
+                size = hex(start_size) + "-"
+                if end_size != pwndbg.gdblib.arch.ptrmask:
+                    size += hex(end_size)
+                else:
+                    size += "\u221e"  # Unicode "infinity"
+            else:
+                size = hex(size)
 
         if is_chain_corrupted:
             line = message.hint(size) + message.error(" [corrupted]") + "\n"
@@ -101,6 +110,26 @@ def format_bin(bins: Bins, verbose=False, offset=None):
         result.append(message.hint("empty"))
 
     return result
+
+
+def print_no_arena_found_error(tid=None):
+    if tid is None:
+        tid = pwndbg.gdblib.proc.thread_id
+    print(
+        message.notice(
+            f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+        )
+    )
+
+
+def print_no_tcache_bins_found_error(tid=None):
+    if tid is None:
+        tid = pwndbg.gdblib.proc.thread_id
+    print(
+        message.notice(
+            f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+        )
+    )
 
 
 parser = argparse.ArgumentParser(
@@ -141,6 +170,10 @@ def heap(addr=None, verbose=False, simple=False) -> None:
             chunk = chunk.next_chunk()
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print_no_arena_found_error()
+            return
         h = arena.active_heap
 
         for chunk in h:
@@ -168,6 +201,16 @@ def arena(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        tid = pwndbg.gdblib.proc.thread_id
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print_no_arena_found_error(tid)
+            return
+        print(
+            message.notice(
+                f"Arena for thread {message.hint(tid)} is located at: {message.hint(hex(arena.address))}"
+            )
+        )
 
     print(arena._gdbValue)  # Breaks encapsulation, find a better way.
 
@@ -182,8 +225,53 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.heap.current
-    for ar in allocator.arenas:
-        print(ar)
+    arenas = allocator.arenas
+
+    table = []
+    headers = [
+        "arena type",
+        "arena address",
+        "heap address",
+        "map start",
+        "map end",
+        "perm",
+        "size",
+        "offset",
+        "file",
+    ]
+
+    for arena in arenas:
+        arena_type, text_color = (
+            ("main_arena", message.success)
+            if arena.is_main_arena
+            else ("non-main arena", message.hint)
+        )
+        first_heap = arena.heaps[0]
+
+        row = [
+            text_color(arena_type),
+            text_color(hex(arena.address)),
+            text_color(hex(first_heap.start)),
+        ]
+
+        for mapping_data in str(pwndbg.gdblib.vmmap.find(first_heap.start)).split():
+            row.append(M.c.heap(mapping_data))
+
+        table.append(row)
+
+        for extra_heap in arena.heaps[1:]:
+            row = [
+                "",
+                text_color("\u21b3"),  # Unicode "downwards arrow with tip rightwards"
+                text_color(hex(extra_heap.start)),
+            ]
+
+            for mapping_data in str(pwndbg.gdblib.vmmap.find(extra_heap.start)).split():
+                row.append(M.c.heap(mapping_data))
+
+            table.append(row)
+
+    print(tabulate(table, headers, stralign="right"))
 
 
 parser = argparse.ArgumentParser(
@@ -206,7 +294,18 @@ def tcache(addr=None) -> None:
     """
     allocator = pwndbg.heap.current
     tcache = allocator.get_tcache(addr)
-    print(tcache)
+    # if the current thread doesn't allocate the arena, tcache will be NULL
+    tid = pwndbg.gdblib.proc.thread_id
+    if tcache:
+        print(
+            message.notice(
+                f"tcache is pointing to: {message.hint(hex(tcache.address))} for thread {message.hint(tid)}"
+            )
+        )
+    else:
+        print_no_tcache_bins_found_error(tid)
+    if tcache:
+        print(tcache)
 
 
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
@@ -219,6 +318,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.heap.current
+    print(message.notice("mp_ struct at: ") + message.hint(hex(allocator.mp.address)))
     print(allocator.mp)
 
 
@@ -245,6 +345,10 @@ def top_chunk(addr=None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print_no_arena_found_error()
+            return
 
     malloc_chunk(arena.top)
 
@@ -293,7 +397,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
                 headers_to_print.append(message.off("Top chunk"))
 
         if not chunk.is_top_chunk and arena:
-
             bins_list = [
                 allocator.fastbins(arena.address),
                 allocator.smallbins(arena.address),
@@ -356,7 +459,13 @@ def bins(addr=None, tcache_addr=None) -> None:
     default to the current thread's arena and tcache.
     """
     if pwndbg.heap.current.has_tcache():
-        tcachebins(tcache_addr)
+        if tcache_addr is None and pwndbg.heap.current.thread_cache is None:
+            print_no_tcache_bins_found_error()
+        else:
+            tcachebins(tcache_addr)
+    if addr is None and pwndbg.heap.current.thread_arena is None:
+        print_no_arena_found_error()
+        return
     fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
@@ -385,6 +494,7 @@ def fastbins(addr=None, verbose=True) -> None:
     fastbins = allocator.fastbins(addr)
 
     if fastbins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(fastbins, verbose)
@@ -416,6 +526,7 @@ def unsortedbin(addr=None, verbose=True) -> None:
     unsortedbin = allocator.unsortedbin(addr)
 
     if unsortedbin is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(unsortedbin, verbose)
@@ -447,6 +558,7 @@ def smallbins(addr=None, verbose=False) -> None:
     smallbins = allocator.smallbins(addr)
 
     if smallbins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(smallbins, verbose)
@@ -478,6 +590,7 @@ def largebins(addr=None, verbose=False) -> None:
     largebins = allocator.largebins(addr)
 
     if largebins is None:
+        print_no_arena_found_error()
         return
 
     formatted_bins = format_bin(largebins, verbose)
@@ -512,6 +625,7 @@ def tcachebins(addr=None, verbose=False) -> None:
     tcachebins = allocator.tcachebins(addr)
 
     if tcachebins is None:
+        print_no_tcache_bins_found_error()
         return
 
     formatted_bins = format_bin(tcachebins, verbose, offset=allocator.tcache_next_offset)
@@ -632,7 +746,8 @@ parser = argparse.ArgumentParser(
 
 Default to the current arena's active heap.""",
 )
-parser.add_argument(
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
@@ -641,18 +756,25 @@ parser.add_argument(
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
-    "--naive",
-    "-n",
+    "--beyond_top",
+    "-b",
     action="store_true",
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
 parser.add_argument(
-    "--display_all",
-    "-a",
+    "--no_truncate",
+    "-n",
     action="store_true",
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
+)
+group.add_argument(
+    "--all_chunks",
+    "-a",
+    action="store_true",
+    default=False,
+    help=" Display all chunks (Ignore the default-visualize-chunk-number configuration).",
 )
 
 
@@ -660,7 +782,9 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None:
+def vis_heap_chunks(
+    addr=None, count=None, beyond_top=None, no_truncate=None, all_chunks=None
+) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.heap.current
 
@@ -670,6 +794,10 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         arena = heap_region.arena
     else:
         arena = allocator.thread_arena
+        # arena might be None if the current thread doesn't allocate the arena
+        if arena is None:
+            print_no_arena_found_error()
+            return
         heap_region = arena.active_heap
         cursor = heap_region.start
 
@@ -680,8 +808,12 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
     cursor_backup = cursor
     chunk = Chunk(cursor)
 
-    for _ in range(count + 1):
-        # Don't read beyond the heap mapping if --naive or corrupted heap.
+    chunk_id = 0
+    while True:
+        if not all_chunks and chunk_id == count + 1:
+            break
+
+        # Don't read beyond the heap mapping if --beyond_top or corrupted heap.
         if cursor not in heap_region:
             chunk_delims.append(heap_region.end)
             break
@@ -695,12 +827,13 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         else:
             chunk_delims.append(cursor)
 
-        if (chunk.is_top_chunk and not naive) or (cursor == heap_region.end - ptr_size * 2):
+        if (chunk.is_top_chunk and not beyond_top) or (cursor == heap_region.end - ptr_size * 2):
             chunk_delims.append(cursor + ptr_size * 2)
             break
 
         cursor += chunk.real_size
         chunk = Chunk(cursor)
+        chunk_id += 1
 
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
@@ -752,7 +885,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
         while cursor != stop:
             # skip the middle part of a huge chunk
             if (
-                not display_all
+                not no_truncate
                 and half_max_size > 0
                 and begin_addr + half_max_size <= cursor < end_addr - half_max_size
             ):
@@ -777,9 +910,7 @@ def vis_heap_chunks(addr=None, count=None, naive=None, display_all=None) -> None
 
             asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
             if printed % 2 == 0:
-                out += (
-                    "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if len(labels) else "")
-                )
+                out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
                 asc = ""
                 labels = []
 
@@ -852,6 +983,10 @@ def try_free(addr) -> None:
     # constants
     allocator = pwndbg.heap.current
     arena = allocator.thread_arena
+    # arena might be None if the current thread doesn't allocate the arena
+    if arena is None:
+        print_no_arena_found_error()
+        return
 
     aligned_lsb = allocator.malloc_align_mask.bit_length()
     size_sz = allocator.size_sz
@@ -950,9 +1085,9 @@ def try_free(addr) -> None:
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
         if tc_idx < allocator.mp["tcache_bins"]:
             print(message.notice("Tcache checks"))
-            e = addr + 2 * size_sz
-            e += allocator.tcache_entry.keys().index("key") * ptr_size
-            e = pwndbg.gdblib.memory.pvoid(e)
+            e = addr + 2 * size_sz  # type: ignore[misc]
+            e += allocator.tcache_entry.keys().index("key") * ptr_size  # type: ignore[misc]
+            e = pwndbg.gdblib.memory.pvoid(e)  # type: ignore[misc]
             tcache_addr = int(allocator.thread_cache.address)
             if e == tcache_addr:
                 # todo, actually do checks
@@ -1028,7 +1163,7 @@ def try_free(addr) -> None:
                 finalize(errors_found, returned_before_error)
                 return
 
-            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))
+            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))  # type: ignore[index]
             if chunk_fastbin_idx != allocator.fastbin_index(fastbin_top_chunk_size):
                 err = "invalid fastbin entry (free) -> chunk's size is not near top chunk's size\n"
                 err += "    chunk's size == {}, idx == {}\n"
@@ -1215,6 +1350,6 @@ def heap_config(filter_pattern) -> None:
 
     print(
         message.hint(
-            "Some config(e.g. main_arena) will only working when resolve-heap-via-heuristic is `True`"
+            "Some config values (e.g. main_arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )

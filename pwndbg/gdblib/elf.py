@@ -11,10 +11,14 @@ import importlib
 import sys
 from collections import namedtuple
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
+from elftools.elf.relocation import Relocation
+from elftools.elf.relocation import RelocationSection
 
 import pwndbg.auxv
 import pwndbg.gdblib.abi
@@ -169,6 +173,38 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
             continue
         sections.append(dict(sec))
     return sections
+
+
+def dump_section_by_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[int, int, bytes]]:
+    """
+    Dump the content of a section from an ELF file, return the start address, size and content.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        return (section["sh_addr"], section["sh_size"], section.data()) if section else None
+
+
+def dump_relocations_by_section_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[Relocation, ...]]:
+    """
+    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        if section is None or not isinstance(section, RelocationSection):
+            return None
+        return tuple(section.iter_relocations())
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -372,7 +408,7 @@ def map_inner(ei_class, ehdr, objfile):
         # For each page described by this program header
         for page_addr in range(vaddr, vaddr + memsz, pwndbg.lib.memory.PAGE_SIZE):
             if page_addr in pages:
-                page = pages[pages.index(page_addr)]
+                page = pages[pages.index(page_addr)]  # type: ignore[arg-type]
 
                 # Don't ever remove the execute flag.
                 # Sometimes we'll load a read-only area into .text

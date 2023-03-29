@@ -22,7 +22,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def nearpc(pc=None, lines=None, emulate=False):
+def nearpc(pc=None, lines=None, emulate=False) -> None:
     """
     Disassemble near a specified address.
     """
@@ -44,7 +44,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def emulate(pc=None, lines=None, emulate_=True):
+def emulate(pc=None, lines=None, emulate_=True) -> None:
     """
     Like nearpc, but will emulate instructions from the current $PC forward.
     """

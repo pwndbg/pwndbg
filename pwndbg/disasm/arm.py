@@ -26,7 +26,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         return "[%s]" % (", ".join(parts))
 
     def immediate_sz(self, instruction, operand):
-        return "#" + super(DisassemblyAssistant, self).immediate_sz(instruction, operand)
+        return "#" + super().immediate_sz(instruction, operand)
 
     def condition(self, instruction):
 

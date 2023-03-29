@@ -54,7 +54,19 @@ nearpc_lines = pwndbg.gdblib.config.add_param(
     "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
 )
 show_args = pwndbg.gdblib.config.add_param(
-    "nearpc-show-args", True, "show call arguments below instruction"
+    "nearpc-show-args", True, "whether to show call arguments below instruction"
+)
+show_opcode_bytes = pwndbg.gdblib.config.add_param(
+    "nearpc-num-opcode-bytes",
+    0,
+    "number of opcode bytes to print for each instruction",
+    param_class=gdb.PARAM_ZUINTEGER,
+)
+opcode_separator_bytes = pwndbg.gdblib.config.add_param(
+    "nearpc-opcode-separator-bytes",
+    1,
+    "number of spaces between opcode bytes",
+    param_class=gdb.PARAM_ZUINTEGER,
 )
 
 
@@ -135,6 +147,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
     prev = None
 
     first_pc = True
+    should_highlight_opcodes = False
 
     # Print out each instruction
     for address_str, symbol, instr in zip(addresses, symbols, instructions):
@@ -161,8 +174,26 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
             first_pc = False
+            should_highlight_opcodes = True
 
-        line = " ".join((prefix, address_str, symbol, asm))
+        opcodes = ""
+        if show_opcode_bytes > 0:
+            opcodes = (opcode_separator_bytes * " ").join(
+                f"{c:02x}" for c in instr.bytes[: int(show_opcode_bytes)]
+            )
+            align = show_opcode_bytes * 2 + 10
+            if opcode_separator_bytes > 0:
+                # add the length of the maximum number of separators to the alignment
+                align += (show_opcode_bytes - 1) * opcode_separator_bytes
+            if len(instr.bytes) > show_opcode_bytes:
+                opcodes += pwndbg.color.gray("...")
+                # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
+                align += 9  # len(pwndbg.color.gray(""))
+            opcodes = opcodes.ljust(align)
+            if should_highlight_opcodes:
+                opcodes = C.highlight(opcodes)
+                should_highlight_opcodes = False
+        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
