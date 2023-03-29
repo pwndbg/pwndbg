@@ -1,3 +1,8 @@
+"""
+Commands for dealing with Linux kernel SLAB memory allocator
+
+Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
+"""
 import argparse
 import sys
 from typing import Iterator
