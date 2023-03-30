@@ -478,15 +478,15 @@ parser = argparse.ArgumentParser(
 
 Default to the current thread's arena.""",
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def fastbins(addr=None, verbose=True) -> None:
+def fastbins(addr=None, verbose=False) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
@@ -510,15 +510,15 @@ parser = argparse.ArgumentParser(
 
 Default to the current thread's arena.""",
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=True, help="Show extra detail.")
+parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def unsortedbin(addr=None, verbose=True) -> None:
+def unsortedbin(addr=None, verbose=False) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
@@ -542,8 +542,8 @@ parser = argparse.ArgumentParser(
 
 Default to the current thread's arena.""",
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -574,8 +574,8 @@ parser = argparse.ArgumentParser(
 
 Default to the current thread's arena.""",
 )
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
-parser.add_argument("verbose", nargs="?", type=bool, default=False, help="Show extra detail.")
+parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -606,12 +606,8 @@ parser = argparse.ArgumentParser(
 
 Default to the current thread's tcache.""",
 )
-parser.add_argument(
-    "addr", nargs="?", type=int, default=None, help="The address of the tcache bins."
-)
-parser.add_argument(
-    "verbose", nargs="?", type=bool, default=False, help="Whether to show more details or not."
-)
+parser.add_argument("addr", nargs="?", type=int, help="The address of the tcache bins.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
