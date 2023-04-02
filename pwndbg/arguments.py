@@ -221,9 +221,12 @@ def format_args(instruction):
 
         # Enhance args display
         if arg.name == "fd" and isinstance(value, int):
-            path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pwndbg.gdblib.proc.pid, value))
-            if path:
-                pretty += " (%s)" % path
+            # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
+            pid = pwndbg.gdblib.proc.pid
+            if pid is not None:
+                path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                if path:
+                    pretty += " (%s)" % path
 
         result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
     return result
