@@ -57,12 +57,19 @@ def _get_version() -> Optional[Tuple[int, ...]]:
         if addr is not None:
             ver = pwndbg.gdblib.memory.string(addr)
             return tuple(int(_) for _ in ver.split(b"."))
-    for addr in pwndbg.search.search(b"GNU C Library"):
-        banner = pwndbg.gdblib.memory.string(addr)
-        ret = re.search(rb"release version (\d+)\.(\d+)", banner)
-        if ret:
-            return tuple(int(_) for _ in ret.groups())
-    return None
+    libc_filename = get_libc_filename_from_info_sharedlibrary()
+    if not libc_filename:
+        return None
+    result = pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".rodata", try_local_path=True)
+    if not result:
+        return None
+    _, _, data = result
+    banner_start = data.find(b"GNU C Library")
+    if banner_start == -1:
+        return None
+    banner = data[banner_start : data.find(b"\x00", banner_start)]
+    ret = re.search(rb"release version (\d+)\.(\d+)", banner)
+    return tuple(int(_) for _ in ret.groups()) if ret else None
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
