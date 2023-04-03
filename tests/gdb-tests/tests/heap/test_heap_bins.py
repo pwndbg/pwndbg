@@ -1,4 +1,5 @@
 import gdb
+import pytest
 
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
@@ -241,7 +242,11 @@ def test_largebins_size_range_32bit_big(start_binary):
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
-    start_binary(tests.binaries.get("initialized_heap_i386_big.out"))
+    try:
+        start_binary(tests.binaries.get("initialized_heap_i386_big.out"))
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
+
     gdb.execute("break break_here")
     gdb.execute("continue")
 
