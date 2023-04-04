@@ -166,7 +166,7 @@ def heap(addr=None, verbose=False, simple=False) -> None:
     if addr is not None:
         chunk = Chunk(addr)
         while chunk is not None:
-            malloc_chunk(chunk.address)
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
             chunk = chunk.next_chunk()
     else:
         arena = allocator.thread_arena
@@ -177,7 +177,7 @@ def heap(addr=None, verbose=False, simple=False) -> None:
         h = arena.active_heap
 
         for chunk in h:
-            malloc_chunk(chunk.address)
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
 
 
 parser = argparse.ArgumentParser(
