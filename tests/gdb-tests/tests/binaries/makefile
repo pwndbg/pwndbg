@@ -38,7 +38,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -110,6 +110,22 @@ tls.i386.out: tls.i386.c
 issue_1565.out: issue_1565.c
 	@echo "[+] Building issue_1565.out"
 	${CC} -g -O0 -o issue_1565.out issue_1565.c -pthread -lpthread
+
+# TODO: Link against a specific GLIBC version >= 2.26
+initialized_heap_i386_big.out: initialized_heap.c
+	@echo "[+] Building initialized_heap_i386_big.out"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target i386-linux-gnu \
+	-o initialized_heap_i386_big.out initialized_heap.c
+
+# TODO: Link against a specific GLIBC version.
+initialized_heap_x64.out: initialized_heap.c
+	@echo "[+] Building initialized_heap_x64.out"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86_64-linux-gnu \
+	-o initialized_heap_x64.out initialized_heap.c
 
 clean :
 	@echo "[+] Cleaning stuff"
