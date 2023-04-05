@@ -84,7 +84,7 @@ for arg in "$@"; do
         --user)
             USER_MODE=1
             ;;
-        -h|--help)
+        -h | --help)
             set +x
             usage
             exit 0
