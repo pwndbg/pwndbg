@@ -69,24 +69,29 @@ install_pacman() {
 }
 
 usage() {
-    echo "Usage: $0 [-u] [-U]"
-    echo "  -u: Install/update dependencies without checking ~/.gdbinit"
-    echo "  -U: Install pip dependencies to the user's home directory"
+    echo "Usage: $0 [--update] [--user]"
+    echo "  --update: Install/update dependencies without checking ~/.gdbinit"
+    echo "  --user: Install pip dependencies to the user's home directory"
 }
 
 UPDATE_MODE=
 USER_MODE=
-while getopts ":uU" opt; do
-    case $opt in
-        u)
+for arg in "$@"; do
+    case $arg in
+        --update)
             UPDATE_MODE=1
             ;;
-        U)
+        --user)
             USER_MODE=1
             ;;
-        \?)
+        -h|--help)
             set +x
-            echo "Invalid option: -$OPTARG" >&2
+            usage
+            exit 0
+            ;;
+        *)
+            set +x
+            echo "Unknown argument: $arg"
             usage
             exit 1
             ;;
