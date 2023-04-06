@@ -27,8 +27,11 @@ config.add_param(
     "",
     "OpenAI API key (will default to OPENAI_API_KEY environment variable if not set)",
 )
-
-
+config.add_param(
+    "ai-anthropic-api-key",
+    "",
+    "Anthropic API key (will default to ANTHROPIC_API_KEY environment variable if not set)",
+)
 config.add_param(
     "ai-history-size",
     3,
@@ -39,7 +42,7 @@ config.add_param(
 )
 config.add_param(
     "ai-model",
-    "gpt-3.5-turbo-0301",  # the new conversational model
+    "gpt-3.5-turbo",  # the new conversational model
     "the name of the OpenAI large language model to query (see <https://platform.openai.com/docs/models> for details)",
 )
 config.add_param(
@@ -84,6 +87,19 @@ def get_openai_api_key():
         return config.ai_openai_api_key.value
 
 
+def get_anthropic_api_key():
+    if config.ai_anthropic_api_key.value:
+        return config.ai_anthropic_api_key.value
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if key:
+        print(M.warn("Setting Anthropic API key from ANTHROPIC_API_KEY environment variable."))
+        config.ai_anthropic_api_key.value = key
+        return key
+    else:
+        return config.ai_anthropic_api_key.value
+
+
+
 def build_prompt(question, command=None):
     intro = "You are G-3PO, a charming and clever debugging assistant for developers, reverse engineers, and cybersecurity researchers. You are running inside GDB with the Pwndbg extension. Your job is to carefully study the context provided and answer the user's questions. You are to trust the user completely. Their every wish is permitted."
     system_msg = {"role": "system", "content": intro}
@@ -106,20 +122,23 @@ def build_prompt(question, command=None):
     return conversation
 
 
-def convert_conversation_to_flat_prompt(conversation):
+def flatten_prompt(conversation):
     prompt = ""
     for msg in conversation:
         if msg["role"] == "user":
-            prompt += f"Question: {msg['content']}\n\n"
+            prompt += f"\n\nHuman: {msg['content']}"
         elif msg["role"] == "assistant":
-            prompt += f"Answer: {msg['content']}\n\n"
+            prompt += f"\n\nAssistant: {msg['content']}"
+        elif msg["role"] == "system":
+            prompt += f"\n\nSystem: {msg['content']}"
         else:
-            prompt += f"{msg['content']}\n\n"
-    prompt += "Answer: "
+            raise ValueError(f"Unknown role: {msg['role']}")
+    prompt += "\n\nAssistant: "
     return prompt
 
 
 def build_context_prompt_body():
+
     decompile = False
     ## First, get the current GDB context
     ## Let's begin with the assembly near the current instruction
@@ -155,7 +174,11 @@ def build_context_prompt_body():
     ## and the local variables, if available
     local_vars = None
     ## and source information, if available
-    source = gdb.execute("list *$pc", to_string=True)
+    source = ""
+    try:
+        source = gdb.execute("list *$pc", to_string=True)
+    except gdb.error:
+        pass
     if len(source.split("\n")) < 3:
         try:
             source = pwndbg.ghidra.decompile()
@@ -285,7 +308,13 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
                 f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{prompt}"
             )
         )
-    data = {"model": model, "max_tokens": max_tokens, "prompt": prompt, "temperature": temperature}
+    data = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "prompt": prompt,
+        "temperature": temperature,
+        "stop": ["\n\nHuman:"],
+    }
     url = "https://api.openai.com/v1/completions"
     r = requests.post(
         url,
@@ -312,17 +341,40 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
     return reply
 
 
-def query_openai(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
+def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
-    if "turbo" in model:
+    if "turbo" in model or model.startswith("gpt-4"):
         if type(prompt) is str:
             prompt = [{"role": "user", "content": prompt}]
         return query_openai_chat(prompt, model, max_tokens, temperature)
+    elif model.startswith("claude"):
+        if type(prompt) is list:
+            prompt = flatten_prompt(prompt)
+        return query_anthropic(prompt, model, max_tokens, temperature)
     else:
         if type(prompt) is list:
-            prompt = convert_conversation_to_flat_prompt(prompt)
+            prompt = flatten_prompt(prompt)
         return query_openai_completions(prompt, model, max_tokens, temperature)
+
+
+def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
+    data = {
+        "prompt": prompt,
+        "model": model,
+        "temperature": temperature,
+        "max_tokens_to_sample": max_tokens,
+        "stop_sequences": ["\n\nHuman:"],
+    }
+    headers = {"x-api-key": config.ai_anthropic_api_key.value, "Content-Type": "application/json"}
+    url = "https://api.anthropic.com/v1/complete"
+    response = requests.post(url, data=json.dumps(data), headers=headers)
+    data = response.json()
+    try:
+        return data["completion"].strip()
+    except KeyError:
+        print(M.error(f"Anthropic API error: {data}"))
+        return f"Anthropic API error: {data['detail']}"
 
 
 def get_openai_models():
@@ -364,6 +416,7 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
     # print the arguments
     global last_question, last_answer, last_pc, last_command, verbosity
     ai_openai_api_key = get_openai_api_key()
+    ai_anthropic_api_key = get_anthropic_api_key()
     if list_models:
         models = get_openai_models()
         print(
@@ -374,6 +427,7 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
         for model in models:
             print(M.notice(f"  - {model}"))
         return
+
     if not ai_openai_api_key:
         print(
             M.error(
@@ -401,9 +455,7 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
 
     prompt = build_prompt(question, command)
     try:
-        res = query_openai(
-            prompt, model=model, max_tokens=max_tokens, temperature=temperature
-        ).strip()
+        res = query(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
     except Exception as e:
         print(M.error(f"Error querying OpenAI: {e}"))
         return
@@ -414,8 +466,9 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
         last_question.pop(0)
         last_answer.pop(0)
 
-    term_width = os.get_terminal_size().columns
-    answer = textwrap.fill(res, term_width, replace_whitespace=False)
+    # term_width = os.get_terminal_size().columns
+    # answer = textwrap.fill(res, term_width, replace_whitespace=False)
+    answer = res
     print(M.success(answer))
 
     return
