@@ -68,11 +68,41 @@ install_pacman() {
     fi
 }
 
+usage() {
+    echo "Usage: $0 [--update] [--user]"
+    echo "  --update: Install/update dependencies without checking ~/.gdbinit"
+    echo "  --user: Install pip dependencies to the user's home directory"
+}
+
+UPDATE_MODE=
+USER_MODE=
+for arg in "$@"; do
+    case $arg in
+        --update)
+            UPDATE_MODE=1
+            ;;
+        --user)
+            USER_MODE=1
+            ;;
+        -h | --help)
+            set +x
+            usage
+            exit 0
+            ;;
+        *)
+            set +x
+            echo "Unknown argument: $arg"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
 PYTHON=''
 INSTALLFLAGS=''
 
 # Check for the presence of the initializer line in the user's ~/.gdbinit file
-if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
     # Ask the user if they want to proceed and override the initializer line
     read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
 
@@ -82,7 +112,7 @@ if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
     fi
 fi
 
-if osx || [ "$1" == "--user" ]; then
+if osx || [ -n "$USER_MODE" ]; then
     INSTALLFLAGS="--user"
 else
     PYTHON="sudo "
@@ -167,16 +197,17 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 # Install Python dependencies
 ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
-# Comment old configs out
-if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
-    if ! osx; then
-        sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
-    else
-        # In BSD sed we need to pass ' ' to indicate that no backup file should be created
-        sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+if [ -z "$UPDATE_MODE" ]; then
+    # Comment old configs out
+    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+        if ! osx; then
+            sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+        else
+            # In BSD sed we need to pass ' ' to indicate that no backup file should be created
+            sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+        fi
     fi
 
+    # Load Pwndbg into GDB on every launch.
+    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
 fi
-
-# Load Pwndbg into GDB on every launch.
-echo "source $PWD/gdbinit.py" >> ~/.gdbinit
