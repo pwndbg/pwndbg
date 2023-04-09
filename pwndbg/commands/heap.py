@@ -479,7 +479,9 @@ parser = argparse.ArgumentParser(
 Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Show all fastbins, including empty ones"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -511,7 +513,9 @@ parser = argparse.ArgumentParser(
 Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help='Show the "all" bin even if it\'s empty'
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -543,7 +547,9 @@ parser = argparse.ArgumentParser(
 Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Show all smallbins, including empty ones"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -575,7 +581,9 @@ parser = argparse.ArgumentParser(
 Default to the current thread's arena.""",
 )
 parser.add_argument("addr", nargs="?", type=int, help="Address of the arena.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Show all largebins, including empty ones"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -607,7 +615,9 @@ parser = argparse.ArgumentParser(
 Default to the current thread's tcache.""",
 )
 parser.add_argument("addr", nargs="?", type=int, help="The address of the tcache bins.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show extra detail.")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Show all tcachebins, including empty ones"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
