@@ -93,8 +93,11 @@ def cpu_feature_capability(feature: int) -> bool:
 
 def uses_5lvl_paging() -> bool:
     X86_FEATURE_LA57 = 16 * 32 + 16
-    return "CONFIG_X86_5LEVEL = y" in kconfig() and "no5lvl" in kcmdline() and \
-        cpu_feature_capability(X86_FEATURE_LA57)
+    return (
+        "CONFIG_X86_5LEVEL = y" in kconfig()
+        and "no5lvl" in kcmdline()
+        and cpu_feature_capability(X86_FEATURE_LA57)
+    )
 
 
 class ArchOps:
@@ -134,7 +137,7 @@ class ArchOps:
         return phys_to_pfn(virt_to_phys(virt))
 
     # phys <-> page
-    
+
     def phys_to_page(self, phys: int) -> int:
         return pfn_to_page(phys_to_pfn(phys))
 
@@ -327,12 +330,14 @@ def pfn_to_page(pfn: int) -> int:
     else:
         raise NotImplementedError()
 
+
 def pfn_to_phys(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_phys(pfn)
     else:
         raise NotImplementedError()
+
 
 def pfn_to_virt(pfn: int) -> int:
     ops = arch_ops()
@@ -364,6 +369,7 @@ def page_to_pfn(page: int) -> int:
         return ops.page_to_pfn(page)
     else:
         raise NotImplementedError()
+
 
 def virt_to_page(virt: int) -> int:
     ops = arch_ops()

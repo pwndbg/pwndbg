@@ -5,7 +5,9 @@ Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
 """
 import argparse
 import sys
-from typing import Iterator, List, Union
+from typing import Iterator
+from typing import List
+from typing import Union
 
 import gdb
 from tabulate import tabulate
@@ -15,8 +17,10 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel.slab
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.kernel import kconfig, per_cpu
-from pwndbg.gdblib.kernel.slab import oo_objects, oo_order
+from pwndbg.gdblib.kernel import kconfig
+from pwndbg.gdblib.kernel import per_cpu
+from pwndbg.gdblib.kernel.slab import oo_objects
+from pwndbg.gdblib.kernel.slab import oo_order
 
 parser = argparse.ArgumentParser(description="Prints information about the SLUB allocator")
 subparsers = parser.add_subparsers(dest="command")
@@ -129,8 +133,12 @@ def _rx(val: int) -> str:
 
 
 def print_slab(
-        slab: gdb.Value, cpu_cache: gdb.Value, slab_cache: gdb.Value, 
-        indent, verbose: bool, is_partial: bool = False
+    slab: gdb.Value,
+    cpu_cache: gdb.Value,
+    slab_cache: gdb.Value,
+    indent,
+    verbose: bool,
+    is_partial: bool = False,
 ) -> None:
     slab_address = int(slab.address)
     offset = int(slab_cache["offset"])
@@ -171,13 +179,13 @@ def print_slab(
                         indent.print("-", hex(int(address)), "(in-use)")
                         continue
                     next_free_idx = cur_freelist.index(address) + 1
-                    next_free = cur_freelist[next_free_idx] if len(cur_freelist) > next_free_idx else 0
+                    next_free = (
+                        cur_freelist[next_free_idx] if len(cur_freelist) > next_free_idx else 0
+                    )
                     indent.print("-", _yx(int(address)), f"(next: {next_free:#018x})")
 
 
-def print_cpu_cache(
-        cpu_cache: gdb.Value, slab_cache: gdb.Value, verbose: bool, indent
-    ) -> None:
+def print_cpu_cache(cpu_cache: gdb.Value, slab_cache: gdb.Value, verbose: bool, indent) -> None:
     indent.print(f"{C.green('Per-CPU Data')} @ {_yx(int(cpu_cache))}:")
     with indent:
         freelist = cpu_cache["freelist"]
@@ -214,7 +222,7 @@ def print_cpu_cache(
             while partial_slab:
                 cur_slab = partial_slab.dereference()
                 print_slab(
-                    cur_slab, 
+                    cur_slab,
                     cpu_cache,
                     slab_cache,
                     indent,
@@ -277,4 +285,3 @@ def slab_list(filter_) -> None:
         )
 
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))
-
