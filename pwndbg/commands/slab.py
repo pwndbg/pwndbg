@@ -5,9 +5,7 @@ Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
 """
 import argparse
 import sys
-from typing import Iterator
-from typing import List
-from typing import Union
+from typing import Iterator, List, Union
 
 import gdb
 from tabulate import tabulate
@@ -17,10 +15,8 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel.slab
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.kernel import kconfig
-from pwndbg.gdblib.kernel import per_cpu
-from pwndbg.gdblib.kernel.slab import oo_objects
-from pwndbg.gdblib.kernel.slab import oo_order
+from pwndbg.gdblib.kernel import kconfig, per_cpu
+from pwndbg.gdblib.kernel.slab import oo_objects, oo_order
 
 parser = argparse.ArgumentParser(description="Prints information about the SLUB allocator")
 subparsers = parser.add_subparsers(dest="command")
@@ -133,52 +129,68 @@ def _rx(val: int) -> str:
 
 
 def print_slab(
-    slab: gdb.Value, freelist: Union[Iterator[int], List[int]], indent, verbose, is_partial
+        slab: gdb.Value, cpu_cache: gdb.Value, slab_cache: gdb.Value, 
+        indent, verbose: bool, is_partial: bool = False
 ) -> None:
-    page_address = int(slab.address)
-    virt_address = pwndbg.gdblib.kernel.page_to_virt(page_address)
-    indent.print(f"- {C.green('Slab')} @ {_yx(virt_address)} [{_rx(page_address)}]:")
+    slab_address = int(slab.address)
+    offset = int(slab_cache["offset"])
+    random = int(slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kconfig() else 0
+    address = pwndbg.gdblib.kernel.page_to_virt(slab_address)
+    indent.print(f"- {C.green('Slab')} @ {_yx(address)} [{_rx(slab_address)}]:")
     with indent:
         if is_partial:
+            freelists = [list(walk_freelist(slab["freelist"], offset, random))]
             inuse = slab["inuse"]
         else:
             # `freelist` is a generator, we need to evaluate it now and save the
             # result in case we want to print it later
-            freelist = list(freelist)
+            freelists = [
+                list(walk_freelist(cpu_cache["freelist"], offset, random)),
+                list(walk_freelist(slab["freelist"], offset, random)),
+            ]
 
             # `inuse` will always equal `objects` for the active slab, so we
             # need to subtract the length of the freelist
-            inuse = int(slab["inuse"]) - len(freelist)
+            inuse = int(slab["inuse"]) - len(freelists[0])
 
-        indent.print(f"{C.blue('In-Use')}: {inuse}/{slab['objects']}")
+        objects = int(slab["objects"])
+        indent.print(f"{C.blue('In-Use')}: {inuse}/{objects}")
 
         indent.print(f"{C.blue('Frozen')}:", slab["frozen"])
         indent.print(f"{C.blue('Freelist')}:", _yx(int(slab["freelist"])))
 
         if verbose:
             with indent:
-                # TODO: Should I print just free objects or all objects?
-                for entry in freelist:
-                    indent.print("-", _yx(int(entry)))
+                size = int(slab_cache["size"])
+                for address in range(address, address + objects * size, size):
+                    if address in freelists[0]:
+                        cur_freelist = freelists[0]
+                    elif len(freelists) > 1 and address in freelists[1]:
+                        cur_freelist = freelists[1]
+                    else:
+                        indent.print("-", hex(int(address)), "(in-use)")
+                        continue
+                    next_free_idx = cur_freelist.index(address) + 1
+                    next_free = cur_freelist[next_free_idx] if len(cur_freelist) > next_free_idx else 0
+                    indent.print("-", _yx(int(address)), f"(next: {next_free:#018x})")
 
 
-def print_cpu_cache(cpu_cache, offset, random, cpu_partial, indent, verbose) -> None:
-    address = int(cpu_cache)
-    indent.print(f"{C.green('Per-CPU Data')} @ {_yx(address)}:")
+def print_cpu_cache(
+        cpu_cache: gdb.Value, slab_cache: gdb.Value, verbose: bool, indent
+    ) -> None:
+    indent.print(f"{C.green('Per-CPU Data')} @ {_yx(int(cpu_cache))}:")
     with indent:
         freelist = cpu_cache["freelist"]
         indent.print(f"{C.blue('Freelist')}:", _yx(int(freelist)))
 
-        # TODO: Is the `if page:` a null pointer check or something else?
-        page = cpu_cache["page"]
-        if page:
+        active_slab = cpu_cache["slab"]
+        if active_slab:
             indent.print(f"{C.green('Active Slab')}:")
             with indent:
-                freelist = walk_freelist(freelist, offset, random)
                 print_slab(
-                    page.dereference(),
-                    # Use the CPU cache freelist for the active slab
-                    freelist,
+                    active_slab.dereference(),
+                    cpu_cache,
+                    slab_cache,
                     indent,
                     verbose,
                     is_partial=False,
@@ -186,16 +198,30 @@ def print_cpu_cache(cpu_cache, offset, random, cpu_partial, indent, verbose) -> 
         else:
             indent.print("Active Slab: (none)")
 
-        slab = cpu_cache["partial"]
-        if slab:
+        partial_slab = cpu_cache["partial"]
+        if partial_slab:
+            # calculate approx obj count in half-full slabs (as done in kernel)
+            # Note, this is a very bad approximation and could/should probably
+            # be replaced by a more exact method or removed from pwndbg
+            oo = oo_objects(slab_cache["oo"]["x"])
+            slabs = int(partial_slab["slabs"])
+            pobjects = (slabs * oo) // 2
+
+            cpu_partial = int(slab_cache["cpu_partial"])
             indent.print(
-                f"{C.green('Partial Slabs')} [{slab['pages']}] [PO: {slab['pobjects']}/{cpu_partial}]:"
+                f"{C.green('Partial Slabs')} [{partial_slab['slabs']}] [PO: ~{pobjects}/{cpu_partial}]:"
             )
-            while slab:
-                page = slab.dereference()
-                freelist = walk_freelist(page["freelist"], offset, random)
-                print_slab(page, freelist, indent, verbose, is_partial=True)
-                slab = page["next"]
+            while partial_slab:
+                cur_slab = partial_slab.dereference()
+                print_slab(
+                    cur_slab, 
+                    cpu_cache,
+                    slab_cache,
+                    indent,
+                    verbose,
+                    is_partial=True,
+                )
+                partial_slab = cur_slab["next"]
         else:
             indent.print("Partial Slabs: (none)")
 
@@ -218,8 +244,7 @@ def slab_info(name: str, verbose: bool) -> None:
         else:
             indent.print(f"{C.blue('Flags')}: (none)")
 
-        offset = int(cache["offset"])
-        indent.print(f"{C.blue('Offset')}:", offset)
+        indent.print(f"{C.blue('Offset')}:", int(cache["offset"]))
         indent.print(f"{C.blue('Size')}:", int(cache["size"]))
         indent.print(f"{C.blue('Align')}:", int(cache["align"]))
         indent.print(f"{C.blue('Object Size')}:", int(cache["object_size"]))
@@ -227,11 +252,7 @@ def slab_info(name: str, verbose: bool) -> None:
         # TODO: Handle multiple CPUs
         cpu_cache = per_cpu(cache["cpu_slab"])
 
-        random = 0
-        if "SLAB_FREELIST_HARDENED" in kconfig():
-            random = int(cache["random"])
-
-        print_cpu_cache(cpu_cache, offset, random, int(cache["cpu_partial"]), indent, verbose)
+        print_cpu_cache(cpu_cache, cache, verbose, indent)
 
         # TODO: print_node_cache
 
@@ -256,3 +277,4 @@ def slab_list(filter_) -> None:
         )
 
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))
+
