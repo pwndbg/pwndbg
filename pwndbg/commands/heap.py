@@ -671,12 +671,12 @@ def find_fake_fast(
     target_address, max_candidate_size=None, align=False, glibc_fastbin_bug=False
 ) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
-    ptrsize = pwndbg.gdblib.arch.ptrsize
     allocator = pwndbg.heap.current
 
+    size_sz = allocator.size_sz
     min_chunk_size = allocator.min_chunk_size
     global_max_fast = allocator.global_max_fast
-    size_field_width = gdb.lookup_type("unsigned int").sizeof if glibc_fastbin_bug else ptrsize
+    size_field_width = gdb.lookup_type("unsigned int").sizeof if glibc_fastbin_bug else size_sz
 
     if max_candidate_size is None:
         max_candidate_size = global_max_fast
@@ -709,7 +709,7 @@ def find_fake_fast(
 
     max_candidate_size &= ~(allocator.malloc_align_mask)
 
-    search_start = target_address - max_candidate_size + ptrsize
+    search_start = target_address - max_candidate_size + size_sz
     search_end = target_address
 
     if pwndbg.gdblib.memory.peek(search_start) is None:
@@ -726,8 +726,8 @@ def find_fake_fast(
             return None
 
     if align:
-        search_start = pwndbg.lib.memory.align_up(search_start, ptrsize)
-        search_start |= ptrsize
+        search_start = pwndbg.lib.memory.align_up(search_start, size_sz)
+        search_start |= size_sz
 
         if search_start > (search_end - size_field_width):
             print(
@@ -758,8 +758,8 @@ def find_fake_fast(
                 continue
 
             candidate_address = search_start + i
-            if (candidate_address + size_field) >= (target_address + ptrsize):
-                malloc_chunk(candidate_address - ptrsize, fake=True)
+            if (candidate_address + size_field) >= (target_address + size_sz):
+                malloc_chunk(candidate_address - size_sz, fake=True)
         else:
             break
 
