@@ -71,15 +71,15 @@ def kcmdline() -> str:
 
 @requires_debug_syms(default="")
 @pwndbg.lib.memoize.reset_on_start
-def kbanner() -> str:
+def kversion() -> str:
     version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
 
 
 @requires_debug_syms()
 @pwndbg.lib.memoize.reset_on_start
-def kversion() -> tuple[int, ...]:
-    return tuple([int(x) for x in kbanner().split()[2].split(".")])
+def krelease() -> tuple[int, ...]:
+    return tuple([int(x) for x in kversion().split()[2].split(".")])
 
 
 @requires_debug_syms()

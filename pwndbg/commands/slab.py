@@ -5,9 +5,6 @@ Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
 """
 import argparse
 import sys
-from typing import Iterator
-from typing import List
-from typing import Union
 
 import gdb
 from tabulate import tabulate
@@ -18,7 +15,7 @@ import pwndbg.commands
 import pwndbg.gdblib.kernel.slab
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel import kconfig
-from pwndbg.gdblib.kernel import kversion
+from pwndbg.gdblib.kernel import krelease
 from pwndbg.gdblib.kernel import per_cpu
 from pwndbg.gdblib.kernel.slab import oo_objects
 from pwndbg.gdblib.kernel.slab import oo_order
@@ -192,7 +189,7 @@ def print_cpu_cache(cpu_cache: gdb.Value, slab_cache: gdb.Value, verbose: bool, 
         freelist = cpu_cache["freelist"]
         indent.print(f"{C.blue('Freelist')}:", _yx(int(freelist)))
 
-        slab_key = "slab" if kversion() >= (5, 17) else "page"
+        slab_key = "slab" if krelease() >= (5, 17) else "page"
         active_slab = cpu_cache[slab_key]
         if active_slab:
             indent.print(f"{C.green('Active Slab')}:")
@@ -210,12 +207,12 @@ def print_cpu_cache(cpu_cache: gdb.Value, slab_cache: gdb.Value, verbose: bool, 
 
         partial_slab = cpu_cache["partial"]
         if partial_slab:
-            slabs_key = "slabs" if kversion() >= (5, 17) else "pages"
-            if kversion() >= (5, 16):
+            slabs_key = "slabs" if krelease() >= (5, 17) else "pages"
+            if krelease() >= (5, 16):
                 # calculate approx obj count in half-full slabs (as done in kernel)
                 # Note, this is a very bad approximation and could/should probably
                 # be replaced by a more exact method or removed from pwndbg
-                oo = oo_objects(slab_cache["oo"]["x"])
+                oo = oo_objects(int(slab_cache["oo"]["x"]))
                 slabs = int(partial_slab[slabs_key])
                 pobjects = (slabs * oo) // 2
             else:
