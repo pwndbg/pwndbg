@@ -9,7 +9,6 @@ import json
 import os
 import pprint
 import re
-import textwrap
 
 import gdb
 import requests
@@ -427,10 +426,10 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
             print(M.notice(f"  - {model}"))
         return
 
-    if not ai_openai_api_key:
+    if not (ai_openai_api_key or ai_anthropic_api_key):
         print(
             M.error(
-                "Please set ai_openai_api_key config parameter in your GDB init file or set the OPENAI_API_KEY environment variable"
+                "At least one of the following must be set:\n- ai_openai_api_key config parameter\n- ai_anthropic_api_key config parameter\n- OPENAI_API_KEY environment variable\n- ANTHROPIC_API_KEY environment variable"
             )
         )
         return
@@ -465,9 +464,6 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
         last_question.pop(0)
         last_answer.pop(0)
 
-    # term_width = os.get_terminal_size().columns
-    # answer = textwrap.fill(res, term_width, replace_whitespace=False)
-    answer = res
-    print(M.success(answer))
+    print(M.success(res))
 
     return
