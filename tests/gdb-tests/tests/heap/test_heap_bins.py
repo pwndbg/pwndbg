@@ -320,3 +320,167 @@ def test_largebins_size_range_32bit_big(start_binary):
 
     for bin_index, size_range in enumerate(command_output):
         assert size_range.split(":")[0] == expected[bin_index]
+
+
+def test_smallbins_sizes_64bit(start_binary):
+    """
+    Ensure the "smallbins" command displays the correct smallbin sizes.
+    This test targets 64-bit architectures.
+    """
+    start_binary(tests.binaries.get("initialized_heap_x64.out"))
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    command_output = gdb.execute("smallbins --verbose", to_string=True).splitlines()[1:]
+
+    expected = [
+        "0x20",
+        "0x30",
+        "0x40",
+        "0x50",
+        "0x60",
+        "0x70",
+        "0x80",
+        "0x90",
+        "0xa0",
+        "0xb0",
+        "0xc0",
+        "0xd0",
+        "0xe0",
+        "0xf0",
+        "0x100",
+        "0x110",
+        "0x120",
+        "0x130",
+        "0x140",
+        "0x150",
+        "0x160",
+        "0x170",
+        "0x180",
+        "0x190",
+        "0x1a0",
+        "0x1b0",
+        "0x1c0",
+        "0x1d0",
+        "0x1e0",
+        "0x1f0",
+        "0x200",
+        "0x210",
+        "0x220",
+        "0x230",
+        "0x240",
+        "0x250",
+        "0x260",
+        "0x270",
+        "0x280",
+        "0x290",
+        "0x2a0",
+        "0x2b0",
+        "0x2c0",
+        "0x2d0",
+        "0x2e0",
+        "0x2f0",
+        "0x300",
+        "0x310",
+        "0x320",
+        "0x330",
+        "0x340",
+        "0x350",
+        "0x360",
+        "0x370",
+        "0x380",
+        "0x390",
+        "0x3a0",
+        "0x3b0",
+        "0x3c0",
+        "0x3d0",
+        "0x3e0",
+        "0x3f0",
+    ]
+
+    for bin_index, bin_size in enumerate(command_output):
+        assert bin_size.split(":")[0] == expected[bin_index]
+
+
+def test_smallbins_sizes_32bit_big(start_binary):
+    """
+    Ensure the "smallbins" command displays the correct smallbin sizes.
+    This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
+    """
+    try:
+        start_binary(tests.binaries.get("initialized_heap_i386_big.out"))
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
+
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    command_output = gdb.execute("smallbins --verbose", to_string=True).splitlines()[1:]
+
+    expected = [
+        "0x10",
+        "0x20",
+        "0x30",
+        "0x40",
+        "0x50",
+        "0x60",
+        "0x70",
+        "0x80",
+        "0x90",
+        "0xa0",
+        "0xb0",
+        "0xc0",
+        "0xd0",
+        "0xe0",
+        "0xf0",
+        "0x100",
+        "0x110",
+        "0x120",
+        "0x130",
+        "0x140",
+        "0x150",
+        "0x160",
+        "0x170",
+        "0x180",
+        "0x190",
+        "0x1a0",
+        "0x1b0",
+        "0x1c0",
+        "0x1d0",
+        "0x1e0",
+        "0x1f0",
+        "0x200",
+        "0x210",
+        "0x220",
+        "0x230",
+        "0x240",
+        "0x250",
+        "0x260",
+        "0x270",
+        "0x280",
+        "0x290",
+        "0x2a0",
+        "0x2b0",
+        "0x2c0",
+        "0x2d0",
+        "0x2e0",
+        "0x2f0",
+        "0x300",
+        "0x310",
+        "0x320",
+        "0x330",
+        "0x340",
+        "0x350",
+        "0x360",
+        "0x370",
+        "0x380",
+        "0x390",
+        "0x3a0",
+        "0x3b0",
+        "0x3c0",
+        "0x3d0",
+        "0x3e0",
+    ]
+
+    for bin_index, bin_size in enumerate(command_output):
+        assert bin_size.split(":")[0] == expected[bin_index]
