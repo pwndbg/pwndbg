@@ -71,9 +71,15 @@ def kcmdline() -> str:
 
 @requires_debug_syms(default="")
 @pwndbg.lib.memoize.reset_on_start
-def kversion() -> str:
+def kbanner() -> str:
     version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
+
+
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
+def kversion() -> tuple[int, ...]:
+    return tuple([int(x) for x in kversion().split()[2].split(".")])
 
 
 @requires_debug_syms()
@@ -85,12 +91,16 @@ def is_kaslr_enabled() -> bool:
     return "nokaslr" not in kcmdline()
 
 
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
 def cpu_feature_capability(feature: int) -> bool:
     boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
     capabilities = boot_cpu_data["x86_capability"]
     return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
 
 
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
 def uses_5lvl_paging() -> bool:
     X86_FEATURE_LA57 = 16 * 32 + 16
     return (
