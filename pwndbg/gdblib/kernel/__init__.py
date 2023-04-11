@@ -79,7 +79,7 @@ def kbanner() -> str:
 @requires_debug_syms()
 @pwndbg.lib.memoize.reset_on_start
 def kversion() -> tuple[int, ...]:
-    return tuple([int(x) for x in kversion().split()[2].split(".")])
+    return tuple([int(x) for x in kbanner().split()[2].split(".")])
 
 
 @requires_debug_syms()
