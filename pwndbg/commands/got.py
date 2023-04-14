@@ -4,39 +4,37 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.file
-import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Show the state of the Global Offset Table")
+parser = argparse.ArgumentParser(description="Show the state of the Global Offset Table.")
 parser.add_argument(
     "name_filter", help="Filter results by passed name.", type=str, nargs="?", default=""
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def got(name_filter=""):
+def got(name_filter="") -> None:
 
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
     jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())
-    if not len(jmpslots):
+    if not jmpslots:
         print(message.error("NO JUMP_SLOT entries available in the GOT"))
         return
 
     if "PIE enabled" in pie_status:
-        bin_base = pwndbg.gdblib.elf.exe().address
+        bin_base = pwndbg.gdblib.proc.binary_base_addr
 
     relro_color = message.off
     if "Partial" in relro_status:
         relro_color = message.warn
     elif "Full" in relro_status:
         relro_color = message.on
-    print(
-        "\nGOT protection: %s | GOT functions: %d\n " % (relro_color(relro_status), len(jmpslots))
-    )
+    print("GOT protection: %s | GOT functions: %d" % (relro_color(relro_status), len(jmpslots)))
 
     for line in jmpslots:
         address, info, rtype, value, name = line.split()[:5]

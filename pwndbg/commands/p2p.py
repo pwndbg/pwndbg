@@ -4,18 +4,20 @@ from typing import Optional
 
 import pwndbg.color
 import pwndbg.commands
+import pwndbg.commands.telescope
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
+from pwndbg.commands import CommandCategory
 
 ts = pwndbg.commands.telescope.telescope
 
 
 class AddrRange:
-    def __init__(self, begin, end):
+    def __init__(self, begin, end) -> None:
         self.begin = begin
         self.end = end
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (self.begin, self.end).__repr__()
 
 
@@ -36,8 +38,6 @@ def guess_numbers_base(num: str):
 
 
 def address_range_explicit(section):
-    global parser
-
     try:
         begin, end = section.split(":")
 
@@ -53,9 +53,7 @@ def address_range_explicit(section):
 
 
 def address_range(section):
-    global parser
-
-    if section == "*" or section == "any":
+    if section in ("*", "any"):
         return (0, pwndbg.gdblib.arch.ptrmask)
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
@@ -72,9 +70,10 @@ def address_range(section):
 
 
 parser = argparse.ArgumentParser(
-    description="Pointer to pointer chain search - "
-    "Searches given mapping for all pointers that point to specified mapping (any chain length > 0 is valid)."
-    "If only one mapping is given it just looks for any pointers in that mapping."
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
+
+Any chain length greater than 0 is valid. If only one mapping is given it just looks for any pointers in that mapping.""",
 )
 
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
@@ -87,7 +86,7 @@ def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
         return None
 
     for r in rs:
-        if pointee >= r.begin and pointee < r.end:
+        if r.begin <= pointee < r.end:
             return pointee
 
     return None
@@ -110,9 +109,9 @@ def p2p_walk(addr, ranges, current_level):
     return p2p_walk(maybe_addr, ranges, current_level + 1)
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: Optional[List] = None):
+def p2p(mapping_names: Optional[List] = None) -> None:
 
     if not mapping_names:
         return

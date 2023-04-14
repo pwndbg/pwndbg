@@ -6,24 +6,26 @@ import argparse
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser()
-parser.description = """Set ignore-count of breakpoint number N to COUNT.
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Set ignore-count of breakpoint number N to COUNT.
 
 While the ignore count is positive, execution will not stop on the breakpoint.
 
-By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint number) will be used."""
-parser.formatter_class = argparse.RawDescriptionHelpFormatter
+By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint number) will be used.""",
+)
 parser.add_argument(
     "bpnum", metavar="N", type=int, default=None, nargs="?", help="The breakpoint number N."
 )
 parser.add_argument("count", metavar="COUNT", type=int, help="The number to set COUNT.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def ignore(bpnum, count):
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.BREAKPOINT)
+def ignore(bpnum, count) -> None:
     bps = gdb.breakpoints()
 
     if not bps:

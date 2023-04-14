@@ -4,18 +4,18 @@ from typing import Dict
 import pwndbg.commands
 from pwndbg.color import message
 
-parser = argparse.ArgumentParser(description="Put comments in assembly code")
+parser = argparse.ArgumentParser(description="Put comments in assembly code.")
 parser.add_argument(
     "--addr", metavar="address", default=None, type=str, help="Address to write comments"
 )
 parser.add_argument("comment", type=str, default=None, help="The text you want to comment")
 
-file_lists = {}  # type:Dict[str,str] #This saves all comments.
+file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def comm(addr=None, comment=None):
+def comm(addr=None, comment=None) -> None:
     if addr is None:
         addr = hex(pwndbg.gdblib.regs.pc)
     try:
@@ -28,14 +28,14 @@ def comm(addr=None, comment=None):
             else:
                 f.write("file:%s=" % pwndbg.gdblib.proc.exe)
                 f.write("%#x:%s\n" % (target, comment))
-                if pwndbg.gdblib.proc.exe not in file_lists.keys():
+                if pwndbg.gdblib.proc.exe not in file_lists:
                     file_lists[pwndbg.gdblib.proc.exe] = {}
                 file_lists[pwndbg.gdblib.proc.exe][hex(target)] = comment
     except Exception:
         print(message.error("Permission denied to create file"))
 
 
-def init():
+def init() -> None:
     try:
         with open(".gdb_comments", "r") as f:
             text = f.read()

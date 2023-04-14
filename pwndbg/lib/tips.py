@@ -1,13 +1,15 @@
 from random import choice
 from typing import List
 
-TIPS = [
+TIPS: List[str] = [
     # GDB hints
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls",
     'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
     "Use GDB's `pi` command to run an interactive Python console where you can use Pwndbg APIs like `pwndbg.gdblib.memory.read(addr, len)`, `pwndbg.gdblib.memory.write(addr, data)`, `pwndbg.gdb.vmmap.get()` and so on!",
     "GDB's `set directories <path>` parameter can be used to debug e.g. glibc sources like the malloc/free functions!",
+    "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
+    'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. If you want only the current thread to run for the function call, use `set scheduler-locking on`',
     # Pwndbg hints
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
@@ -25,7 +27,8 @@ TIPS = [
     "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
-]  # type: List[str]
+    "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration",
+]
 
 
 def get_tip_of_the_day() -> str:

@@ -7,7 +7,7 @@ from pwndbg.lib.arch import Arch
 
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
-ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm")
+ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm", "armcm", "riscv:rv64")
 
 # mapping between gdb and pwntools arch names
 pwnlib_archs_mapping = {
@@ -18,6 +18,8 @@ pwnlib_archs_mapping = {
     "powerpc": "powerpc",
     "sparc": "sparc",
     "arm": "arm",
+    "armcm": "thumb",
+    "riscv:rv64": "riscv",
 }
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
@@ -51,11 +53,8 @@ def _get_arch(ptrsize):
     return arch, ptrsize, endian
 
 
-def update():
-    # We can't just assign to `arch` with a new `Arch` object. Modules that have
-    # already imported it will still have a reference to the old `arch`
-    # object. Instead, we call `__init__` again with the new args
+def update() -> None:
     arch_name, ptrsize, endian = _get_arch(typeinfo.ptrsize)
-    arch.__init__(arch_name, ptrsize, endian)
+    arch.update(arch_name, ptrsize, endian)
     pwnlib.context.context.arch = pwnlib_archs_mapping[arch_name]
     pwnlib.context.context.bits = ptrsize * 8

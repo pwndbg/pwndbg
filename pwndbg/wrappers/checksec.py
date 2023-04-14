@@ -11,7 +11,7 @@ cmd_pwntools = ["pwn", "checksec"]
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 @pwndbg.lib.memoize.reset_on_objfile
 def get_raw_out():
-    local_path = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+    local_path = pwndbg.gdblib.file.get_proc_exe_file()
     try:
         return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file=" + local_path])
     except CalledProcessError:

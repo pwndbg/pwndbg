@@ -89,27 +89,27 @@ class Page:
         return self.vaddr + self.memsz
 
     @property
-    def is_stack(self):
+    def is_stack(self) -> bool:
         return self.objfile == "[stack]"
 
     @property
-    def is_memory_mapped_file(self):
-        return len(self.objfile) > 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
+    def is_memory_mapped_file(self) -> bool:
+        return len(self.objfile) != 0 and self.objfile[0] != "[" and self.objfile != "<pt>"
 
     @property
     def read(self) -> bool:
-        return bool(self.flags & 4)
+        return bool(self.flags & os.R_OK)
 
     @property
     def write(self) -> bool:
-        return bool(self.flags & 2)
+        return bool(self.flags & os.W_OK)
 
     @property
     def execute(self) -> bool:
-        return bool(self.flags & 1)
+        return bool(self.flags & os.X_OK)
 
     @property
-    def rw(self):
+    def rw(self) -> bool:
         return self.read and self.write
 
     @property
@@ -117,7 +117,7 @@ class Page:
         return self.read and self.write and self.execute
 
     @property
-    def permstr(self):
+    def permstr(self) -> str:
         flags = self.flags
         return "".join(
             [
@@ -128,7 +128,7 @@ class Page:
             ]
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
             start=self.vaddr,
             end=self.vaddr + self.memsz,
@@ -139,7 +139,7 @@ class Page:
             width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.__str__())
 
     def __contains__(self, addr: int) -> bool:

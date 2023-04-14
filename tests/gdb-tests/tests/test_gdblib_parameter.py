@@ -14,15 +14,32 @@ import pwndbg.gdblib.config
         ("auto-bool", None, "auto", {"param_class": gdb.PARAM_AUTO_BOOLEAN}),
         ("unlimited-uint", 0, "unlimited", {"param_class": gdb.PARAM_UINTEGER}),
         ("unlimited-int", 0, "unlimited", {"param_class": gdb.PARAM_INTEGER}),
-        # GDB < 9.x does not support PARAM_ZUINTEGER_UNLIMITED
-        ("unlimited-zuint", -1, "unlimited", {"param_class": gdb.PARAM_ZUINTEGER_UNLIMITED})
-        if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
-        else (),
         (
             "enum",
             "enum1",
             "enum1",
             {"param_class": gdb.PARAM_ENUM, "enum_sequence": ["enum1", "enum2", "enum3"]},
+        ),
+        # Note: GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+        (
+            "zuint",
+            0,
+            "0",
+            {
+                "param_class": gdb.PARAM_ZUINTEGER
+                if hasattr(gdb, "PARAM_ZUINTEGER")
+                else "PARAM_ZUINTEGER"
+            },
+        ),
+        (
+            "unlimited-zuint",
+            -1,
+            "unlimited",
+            {
+                "param_class": gdb.PARAM_ZUINTEGER_UNLIMITED
+                if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
+                else "PARAM_ZUINTEGER_UNLIMITED"
+            },
         ),
     ),
 )
@@ -35,10 +52,12 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     param_name = f"test-param-{name_suffix}"
     help_docstring = f"Help docstring for {param_name}"
 
+    set_show_doc = "the value of the foo"
+
     param = pwndbg.gdblib.config.add_param(
         param_name,
         default_value,
-        "some show string",
+        set_show_doc,
         help_docstring=help_docstring,
         **optional_kwargs,
     )
@@ -47,7 +66,10 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     pwndbg.gdblib.config_mod.Parameter(param)
 
     out = gdb.execute(f"show {param_name}", to_string=True)
-    assert out == f"The current value of {param_name!r} is {displayed_value!r}\n"
+    assert (
+        out
+        == f"{set_show_doc.capitalize()} is {displayed_value!r}. See `help set {param_name}` for more information.\n"
+    )
     if (
         optional_kwargs.get("param_class") in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER)
         and default_value == 0
@@ -62,10 +84,10 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     assert param.value == default_value
 
     out = gdb.execute(f"help show {param_name}", to_string=True)
-    assert out == f"Show some show string\n{help_docstring}\n"
+    assert out == f"Show {set_show_doc}.\n{help_docstring}\n"
     assert (
         gdb.execute(f"help set {param_name}", to_string=True)
-        == f"Set some show string\n{help_docstring}\n"
+        == f"Set {set_show_doc}.\n{help_docstring}\n"
     )
 
     # TODO/FIXME: Is there a way to unregister a GDB parameter defined in Python?

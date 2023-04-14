@@ -47,12 +47,12 @@ def test_find_fake_fast_command(start_binary):
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
     unmapped_heap_info = pwndbg.heap.ptmalloc.heap_for_ptr(
-        pwndbg.gdblib.symbol.address("fake_chunk")
+        int(gdb.lookup_global_symbol("fake_chunk").value())
     )
     assert pwndbg.gdblib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145
-    gdb.execute("find_fake_fast (void*)&fake_chunk+0x70")
+    gdb.execute("find_fake_fast fake_chunk+0x80")
 
     target_address = pwndbg.gdblib.symbol.address("target_address")
     assert target_address is not None

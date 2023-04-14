@@ -34,19 +34,19 @@ debug = config.add_param("debug-events", False, "display internal event debuggin
 # very first event which is fired is a 'stop' event.  We need to
 # capture this so that we can fire off all of the 'start' events first.
 class StartEvent:
-    def __init__(self):
-        self.registered = list()
+    def __init__(self) -> None:
+        self.registered: List[Callable] = []
         self.running = False
 
-    def connect(self, function):
+    def connect(self, function) -> None:
         if function not in self.registered:
             self.registered.append(function)
 
-    def disconnect(self, function):
+    def disconnect(self, function) -> None:
         if function in self.registered:
             self.registered.remove(function)
 
-    def on_new_objfile(self):
+    def on_new_objfile(self) -> None:
         if self.running or not gdb.selected_thread():
             return
 
@@ -57,10 +57,10 @@ class StartEvent:
                 sys.stdout.write("%r %s.%s\n" % ("start", function.__module__, function.__name__))
             function()
 
-    def on_exited(self):
+    def on_exited(self) -> None:
         self.running = False
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         self.on_new_objfile()
 
 
@@ -73,25 +73,25 @@ class EventWrapper:
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
 
-    def __init__(self, name):
+    def __init__(self, name) -> None:
         self.name = name
 
         self._event = getattr(gdb.events, self.name, None)
         self._is_real_event = self._event is not None
 
-    def connect(self, func):
+    def connect(self, func) -> None:
         if self._event is not None:
             self._event.connect(func)
 
-    def disconnect(self, func):
+    def disconnect(self, func) -> None:
         if self._event is not None:
             self._event.disconnect(func)
 
     @property
-    def is_real_event(self):
+    def is_real_event(self) -> bool:
         return self._is_real_event
 
-    def invoke_callbacks(self):
+    def invoke_callbacks(self) -> None:
         """
         As an optimization please don't call this if your GDB has this event (check `.is_real_event`).
         """
@@ -206,7 +206,7 @@ def mem_changed(func):
         return func
 
 
-def log_objfiles(ofile=None):
+def log_objfiles(ofile=None) -> None:
     if not (debug and ofile):
         return
 
@@ -219,7 +219,7 @@ def log_objfiles(ofile=None):
 gdb.events.new_objfile.connect(log_objfiles)
 
 
-def after_reload(start=True):
+def after_reload(start=True) -> None:
     if gdb.selected_inferior().pid:
         for f in registered[gdb.events.stop]:
             f()
@@ -232,7 +232,7 @@ def after_reload(start=True):
             f()
 
 
-def on_reload():
+def on_reload() -> None:
     for event, functions in registered.items():
         for function in functions:
             event.disconnect(function)
@@ -240,21 +240,21 @@ def on_reload():
 
 
 @new_objfile
-def _start_newobjfile():
+def _start_newobjfile() -> None:
     gdb.events.start.on_new_objfile()
 
 
 @exit
-def _start_exit():
+def _start_exit() -> None:
     gdb.events.start.on_exited()
 
 
 @stop
-def _start_stop():
+def _start_stop() -> None:
     gdb.events.start.on_stop()
 
 
 @exit
-def _reset_objfiles():
+def _reset_objfiles() -> None:
     global objfile_cache
-    objfile_cache = dict()
+    objfile_cache = {}

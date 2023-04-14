@@ -5,23 +5,23 @@ import argparse
 from pwnlib.asm import asm
 from pwnlib.asm import disasm
 
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.lib.memoize
+from pwndbg.color import message
 
 # Keep old patches made so we can revert them
 patches = {}
 
 
-parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes")
+parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes.")
 parser.add_argument("address", type=int, help="The address to patch")
 parser.add_argument("ins", type=str, help="instruction[s]")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def patch(address, ins):
+def patch(address, ins) -> None:
     new_mem = asm(ins)
 
     old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
@@ -33,13 +33,13 @@ def patch(address, ins):
     pwndbg.lib.memoize.reset()
 
 
-parser2 = argparse.ArgumentParser(description="Revert patch at given address")
+parser2 = argparse.ArgumentParser(description="Revert patch at given address.")
 parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 
 @pwndbg.commands.ArgparsedCommand(parser2)
 @pwndbg.commands.OnlyWhenRunning
-def patch_revert(address):
+def patch_revert(address) -> None:
     if not patches:
         print(message.notice("No patches to revert"))
         return
@@ -56,12 +56,12 @@ def patch_revert(address):
     pwndbg.lib.memoize.reset()
 
 
-parser3 = argparse.ArgumentParser(description="List all patches")
+parser3 = argparse.ArgumentParser(description="List all patches.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser3)
 @pwndbg.commands.OnlyWhenRunning
-def patch_list():
+def patch_list() -> None:
     if not patches:
         print(message.hint("No patches to list"))
         return

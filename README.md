@@ -1,6 +1,7 @@
 # pwndbg
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://choosealicense.com/licenses/mit/)
+[![Unit tests](https://github.com/pwndbg/pwndbg/actions/workflows/tests.yml/badge.svg?branch=dev&event=push)](https://github.com/pwndbg/pwndbg/actions/workflows/tests.yml)
 [![Discord](https://img.shields.io/discord/843809097920413717?label=Discord&style=plastic)](https://discord.gg/x47DssnGwm)
 
 `pwndbg` (/poʊndbæg/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
@@ -38,7 +39,7 @@ cd pwndbg
 ./setup.sh
 ```
 
-Pwndbg is supported on Ubuntu 18.04, 20.04, and 22.04 with GDB 8.1 and later. We do not test on any older versions of Ubuntu, so `pwndbg` may not work on these versions. We may accept pull rrequests fixing issues in older versions on a case by case basis, please discuss this with us on [Discord](https://discord.gg/x47DssnGwm) first. You can also always checkout an older version of `pwndbg` from around the time the Ubuntu version you're interested in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
+Pwndbg is supported on Ubuntu 18.04, 20.04, and 22.04 with GDB 8.1 and later. We do not test on any older versions of Ubuntu, so `pwndbg` may not work on these versions. We may accept pull requests fixing issues in older versions on a case by case basis, please discuss this with us on [Discord](https://discord.gg/x47DssnGwm) first. You can also always checkout an older version of `pwndbg` from around the time the Ubuntu version you're interested in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
 
 Other Linux distributions are also supported via `setup.sh`, including:
 

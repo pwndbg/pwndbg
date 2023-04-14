@@ -4,8 +4,10 @@ Wrapper for shell commands.
 
 import os
 
+from pwnlib.util.misc import which
+
 import pwndbg.commands
-import pwndbg.lib.which
+from pwndbg.commands import CommandCategory
 
 pwncmd_names = ["asm", "constgrep", "disasm", "pwn", "unhex"]
 shellcmd_names = [
@@ -60,12 +62,12 @@ shellcmd_names = [
     "zsh",
 ]
 
-pwncmds = list(filter(pwndbg.lib.which.which, pwncmd_names))
-shellcmds = list(filter(pwndbg.lib.which.which, shellcmd_names))
+pwncmds = list(filter(which, pwncmd_names))
+shellcmds = list(filter(which, shellcmd_names))
 
 
-def register_shell_function(cmd, deprecated=False):
-    def handler(*a):
+def register_shell_function(cmd, deprecated=False) -> None:
+    def handler(*a) -> None:
         if os.fork() == 0:
             os.execvp(cmd, (cmd,) + a)
         os.wait()
@@ -81,7 +83,7 @@ def register_shell_function(cmd, deprecated=False):
     handler.__name__ = str(cmd)
     handler.__doc__ = doc
 
-    pwndbg.commands.Command(handler, shell=True)
+    pwndbg.commands.Command(handler, shell=True, category=CommandCategory.SHELL)
 
 
 for cmd in pwncmds:

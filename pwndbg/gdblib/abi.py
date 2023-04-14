@@ -1,17 +1,16 @@
 import functools
+from typing import Any
+from typing import Optional
 
 import gdb
 
 import pwndbg.color.message as M
-import pwndbg.gdblib.events
 
 abi = None
 linux = False
 
 
-# TODO: Maybe move this to hooks.py?
-@pwndbg.gdblib.events.start
-def update():
+def update() -> None:
     global abi
     global linux
 
@@ -38,8 +37,8 @@ def update():
         msg = M.warn(
             "The bare metal debugging is enabled since gdb's osabi is '%s' which is not 'GNU/Linux'.\n"
             "Ex. the page resolving and memory de-referencing ONLY works on known pages.\n"
-            "This option is based on gdb client compile arguments (by default) and will be corrected if you load an ELF with a '.note.ABI-tag' section.\n"
-            "If you are debugging a program that runs on the Linux ABI, please select the correct gdb client."
+            "This option is based on GDB client compile arguments (by default) and will be corrected if you load an ELF with a '.note.ABI-tag' section.\n"
+            "If you are debugging a program that runs on the Linux ABI, please select the correct GDB client."
             % abi
         )
         print(msg)
@@ -52,7 +51,7 @@ def LinuxOnly(default=None):
 
     def decorator(func):
         @functools.wraps(func)
-        def caller(*args, **kwargs):
+        def caller(*args: int, **kwargs: Any) -> Optional[Any]:
             if linux:
                 return func(*args, **kwargs)
             else:
@@ -61,7 +60,3 @@ def LinuxOnly(default=None):
         return caller
 
     return decorator
-
-
-# Update when starting the gdb to show warning message for non-Linux ABI user.
-update()

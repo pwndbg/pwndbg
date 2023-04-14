@@ -7,6 +7,9 @@ import pwndbg.commands
 import tests
 
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
+TABSTOP_BINARY = tests.binaries.get("tabstop.out")
+SYSCALLS_BINARY = tests.binaries.get("syscalls-x64.out")
+MANGLING_BINARY = tests.binaries.get("symbol_1600_and_752.out")
 
 
 def test_context_disasm_show_fd_filepath(start_binary):
@@ -89,3 +92,133 @@ def test_empty_context_sections(start_binary, sections):
     gdb.execute(f"set context-sections {default_ctx_sects}")
     assert pwndbg.gdblib.config.context_sections.value == default_ctx_sects
     assert gdb.execute("context", to_string=True) != ""
+
+
+def test_source_code_tabstop(start_binary):
+    start_binary(TABSTOP_BINARY)
+
+    # Run until line 6
+    gdb.execute("break tabstop.c:6")
+    gdb.execute("continue")
+
+    # Default context-source-code-tabstop = 8
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4         // test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6                 puts("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
+
+    # Test context-source-code-tabstop = 2
+    gdb.execute("set context-source-code-tabstop 2")
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4   // test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6     puts("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
+
+    # Disable context-source-code-tabstop
+    gdb.execute("set context-source-code-tabstop 0")
+    src = gdb.execute("context code", to_string=True)
+    assert """ 1 #include <stdio.h>\n""" in src
+    assert """ 2 \n""" in src
+    assert """ 3 int main() {\n""" in src
+    assert """ 4 \t// test mix indent\n""" in src
+    assert """ 5         do {\n""" in src
+    assert """ 6 \t\tputs("tab line");\n""" in src
+    assert """ 7         } while (0);\n""" in src
+    assert """ 8         return 0;\n""" in src
+    assert """ 9 }\n""" in src
+    assert """10 \n""" in src
+
+
+def test_context_disasm_syscalls_args_display(start_binary):
+    start_binary(SYSCALLS_BINARY)
+    gdb.execute("nextsyscall")
+    dis = gdb.execute("context disasm", to_string=True)
+    assert dis == (
+        "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x400080 <_start>       mov    eax, 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        " ► 0x400094 <_start+20>    syscall  <SYS_read>\n"
+        "        fd:        0x1337\n"
+        "        buf:       0xdeadbeef\n"
+        "        nbytes:    0x0\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    gdb.execute("nextsyscall")
+    dis = gdb.execute("context disasm", to_string=True)
+    assert dis == (
+        "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
+        "        name:      0x1337\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "   0x4000a5                add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+
+def test_context_backtrace_show_proper_symbol_names(start_binary):
+    start_binary(MANGLING_BINARY)
+    gdb.execute("break A::foo")
+    gdb.execute("continue")
+
+    backtrace = gdb.execute("context backtrace", to_string=True).split("\n")
+
+    assert backtrace[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert (
+        backtrace[1]
+        == "─────────────────────────────────[ BACKTRACE ]──────────────────────────────────"
+    )
+
+    assert re.match(r" ► f 0   0x[0-9a-f]+ A::foo\(int, int\)", backtrace[2])
+
+    # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
+    assert re.match(r"   f 1   0x[0-9a-f]+ A::call_foo\(\)\+\d+", backtrace[3])
+
+    # Match main+87 or similar offset
+    assert re.match(r"   f 2   0x[0-9a-f]+ main\+\d+", backtrace[4])
+
+    # Match __libc_start_main+243 or similar offset
+    # Note: on Ubuntu 22.04 there will be __libc_start_call_main and then __libc_start_main
+    # but on older distros there will be only __libc_start_main
+    # Let's not bother too much about it and make it the last call assertion here
+    assert re.match(
+        r"   f 3   0x[0-9a-f]+ (__libc_start_main|__libc_start_call_main)\+\d+", backtrace[5]
+    )
+
+    assert (
+        backtrace[-2]
+        == "────────────────────────────────────────────────────────────────────────────────"
+    )
+    assert backtrace[-1] == ""

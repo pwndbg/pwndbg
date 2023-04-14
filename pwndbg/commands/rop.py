@@ -7,6 +7,7 @@ import gdb
 
 import pwndbg.commands
 import pwndbg.gdblib.vmmap
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
@@ -16,9 +17,11 @@ parser.add_argument("--grep", type=str, help="String to grep the output for")
 parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ROPgadget")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ropgadget"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["ropgadget"], category=CommandCategory.INTEGRATIONS
+)
 @pwndbg.commands.OnlyWithFile
-def rop(grep, argument):
+def rop(grep, argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:
 
         # If the process is running, dump a corefile so we get actual addresses.

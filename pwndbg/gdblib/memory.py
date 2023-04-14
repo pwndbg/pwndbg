@@ -79,7 +79,7 @@ def readtype(gdb_type, addr):
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
 
-def write(addr, data):
+def write(addr, data) -> None:
     """write(addr, data)
 
     Writes data into the memory of the process being debugged.
@@ -114,7 +114,23 @@ def peek(address):
     return None
 
 
-def poke(address):
+@pwndbg.lib.memoize.reset_on_stop
+def is_readable_address(address):
+    """is_readable_address(address) -> bool
+
+    Check if the address can be read by GDB.
+
+    Arguments:
+        address(int): Address to read
+
+    Returns:
+        :class:`bool`: Whether the address is readable.
+    """
+    # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
+    return pwndbg.gdblib.vmmap.find(address) is not None and peek(address) is not None
+
+
+def poke(address) -> bool:
     """poke(address)
 
     Checks whether an address is writable.
@@ -156,7 +172,7 @@ def string(addr, max=4096):
     return bytearray()
 
 
-def byte(addr):
+def byte(addr: int) -> int:
     """byte(addr) -> int
 
     Read one byte at the specified address
@@ -188,7 +204,7 @@ def uint(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint, addr)
 
 
-def pvoid(addr):
+def pvoid(addr: int) -> int:
     """pvoid(addr) -> int
 
     Read one pointer from the specified address.
@@ -220,7 +236,7 @@ def u32(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint32, addr)
 
 
-def u64(addr):
+def u64(addr: int) -> int:
     """u64(addr) -> int
 
     Read one ``uint64_t`` from the specified address.
@@ -282,7 +298,7 @@ def poi(type, addr):
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def find_upper_boundary(addr, max_pages=1024):
+def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """find_upper_boundary(addr, max_pages=1024) -> int
 
     Brute-force search the upper boundary of a memory mapping,
@@ -330,8 +346,7 @@ def find_lower_boundary(addr, max_pages=1024):
     return addr
 
 
-@pwndbg.gdblib.events.start
-def update_min_addr():
+def update_min_addr() -> None:
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0

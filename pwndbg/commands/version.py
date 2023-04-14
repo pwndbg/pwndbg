@@ -4,9 +4,12 @@ Displays gdb, python and pwndbg versions.
 
 
 import argparse
+import os
 import sys
 from platform import platform
+from subprocess import check_call
 from subprocess import check_output
+from tempfile import NamedTemporaryFile
 from urllib.parse import quote
 
 import gdb
@@ -15,6 +18,7 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.ida
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
 def _gdb_version():
@@ -66,26 +70,28 @@ def all_versions():
     return all_versions
 
 
-@pwndbg.commands.ArgparsedCommand("Displays gdb, python and pwndbg versions.")
-def version():
+@pwndbg.commands.ArgparsedCommand(
+    "Displays GDB, Python, and pwndbg versions.", category=CommandCategory.PWNDBG
+)
+def version() -> None:
     """
-    Displays gdb, python and pwndbg versions.
+    Displays GDB, Python, and pwndbg versions.
     """
     print("\n".join(map(message.system, all_versions())))
 
 
-bugreport_parser = argparse.ArgumentParser(
-    description="""
-    Generate bugreport
-    """
-)
-bugreport_parser.add_argument(
+bugreport_parser = argparse.ArgumentParser(description="Generate a bug report.")
+bugreport_group = bugreport_parser.add_mutually_exclusive_group()
+bugreport_group.add_argument(
     "--run-browser", "-b", action="store_true", help="Open browser on github/issues/new"
 )
+bugreport_group.add_argument(
+    "--use-gh", "-g", action="store_true", help="Create issue using Github CLI"
+)
 
 
-@pwndbg.commands.ArgparsedCommand(bugreport_parser)
-def bugreport(run_browser=False):
+@pwndbg.commands.ArgparsedCommand(bugreport_parser, category=CommandCategory.PWNDBG)
+def bugreport(run_browser=False, use_gh=False):
     ISSUE_TEMPLATE = """
 <!--
 Before reporting a new issue, make sure that we do not have any duplicates already open.
@@ -155,9 +161,16 @@ If it is somehow unavailable, use:
     except FileNotFoundError:
         pass
 
-    max_command_no = (
-        int(gdb.execute("show commands", to_string=True).split("\n")[-2].split()[0]) - 1
-    )
+    max_command_no = 0
+    history_commands = gdb.execute("show commands", to_string=True)
+    if history_commands:
+        history_commands = history_commands.split("\n")
+        if len(history_commands) > 1:
+            # The last element of the list is the `show commands` command we
+            # just ran, so we need to get the second to last one
+            last_command = history_commands[-2]
+            max_command_no = int(last_command.split()[0]) - 1
+
     show_command_size = 10  # 'show command' returns 10 commands
     gdb_current_session_history = {}
     current_command_no = gdb_history_len + 1
@@ -189,7 +202,17 @@ If it is somehow unavailable, use:
     github_issue_url = "https://github.com/pwndbg/pwndbg/issues/new"
     github_issue_body = "?body=" + quote(issue_bugreport)
 
-    if run_browser:
+    if use_gh:
+        try:
+            with NamedTemporaryFile("w", delete=True) as f:
+                f.write(issue_bugreport)
+                f.flush()
+                check_call([os.environ.get("EDITOR", "vi"), f.name])
+                check_call(["gh", "issue", "create", "--body-file", f.name])
+        except Exception:
+            print(please_please_submit + github_issue_url)
+            raise
+    elif run_browser:
         try:
             check_output(["xdg-open", github_issue_url + github_issue_body])
         except Exception:

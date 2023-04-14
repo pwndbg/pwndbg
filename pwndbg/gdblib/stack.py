@@ -7,6 +7,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 """
 
 from typing import Dict
+from typing import Tuple
 
 import gdb
 
@@ -19,14 +20,14 @@ import pwndbg.lib.memoize
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
 # Value is a pwndbg.lib.memory.Page object
-stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+stacks: Dict[Tuple[int, int, int], pwndbg.lib.memory.Page] = {}
 
 # Whether the stack is protected by NX.
 # This is updated automatically by is_executable.
 nx = False
 
 
-def find(address):
+def find(address: int):
     """
     Returns a pwndbg.lib.memory.Page object which corresponds to the
     currently-loaded stack.
@@ -34,12 +35,12 @@ def find(address):
     if not stacks:
         update()
 
-    for stack in stacks:
+    for stack in stacks.values():
         if address in stack:
             return stack
 
 
-def find_upper_stack_boundary(stack_ptr, max_pages=1024):
+def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
     stack_ptr = pwndbg.lib.memory.page_align(int(stack_ptr))
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
@@ -52,7 +53,7 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_stop
-def update():
+def update() -> None:
     """
     For each running thread, updates the known address range
     for its stack.
@@ -109,7 +110,7 @@ def current():
 
 
 @pwndbg.gdblib.events.exit
-def clear():
+def clear() -> None:
     """
     Clears everything we know about any stack memory ranges.
 
@@ -122,7 +123,7 @@ def clear():
 
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.memoize.reset_on_exit
-def is_executable():
+def is_executable() -> bool:
     global nx
     nx = False
 

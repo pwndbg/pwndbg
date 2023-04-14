@@ -10,13 +10,14 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
+from pwndbg.commands import CommandCategory
 
 
-def print_row(name, value, default, docstring, ljust_optname, ljust_value, empty_space=6):
+def print_row(name, value, default, set_show_doc, ljust_optname, ljust_value, empty_space=6):
     name = ljust_colored(name, ljust_optname + empty_space)
     defval = extend_value_with_default(value, default)
     defval = ljust_colored(defval, ljust_value + empty_space)
-    result = " ".join((name, defval, docstring))
+    result = " ".join((name, defval, set_show_doc))
     print(result)
     return result
 
@@ -39,15 +40,13 @@ def get_config_parameters(scope, filter_pattern):
         values = [
             v
             for v in values
-            if filter_pattern in v.name.lower() or filter_pattern in v.docstring.lower()
+            if filter_pattern in v.name.lower() or filter_pattern in v.set_show_doc.lower()
         ]
 
     return values
 
 
-parser = argparse.ArgumentParser(
-    description="Shows pwndbg-specific config. The list can be filtered."
-)
+parser = argparse.ArgumentParser(description="Shows pwndbg-specific configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -57,7 +56,7 @@ parser.add_argument(
 )
 
 
-def display_config(filter_pattern: str, scope: str):
+def display_config(filter_pattern: str, scope: str, has_file_command: bool = True) -> None:
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
@@ -84,32 +83,31 @@ def display_config(filter_pattern: str, scope: str):
             value = repr(v.value)
             default = repr(v.default)
 
-        print_row(v.name, value, default, v.docstring, longest_optname, longest_value)
+        print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_value)
 
     print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
-    print(
-        hint(
-            f"You can generate configuration file using `{scope}file` "
-            "- then put it in your .gdbinit after initializing pwndbg"
+    if has_file_command:
+        print(
+            hint(
+                f"You can generate configuration file using `{scope}file` "
+                "- then put it in your .gdbinit after initializing pwndbg"
+            )
         )
-    )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def config(filter_pattern):
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+def config(filter_pattern) -> None:
     display_config(filter_pattern, "config")
 
 
 configfile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current Pwndbg options"
+    description="Generates a configuration file for the current pwndbg options."
 )
 configfile_parser.add_argument(
-    "--show-all", action="store_true", help="Force displaying of all configs."
+    "--show-all", action="store_true", help="Display all configuration options."
 )
 
-parser = argparse.ArgumentParser(
-    description="Shows pwndbg-specific theme config. The list can be filtered."
-)
+parser = argparse.ArgumentParser(description="Shows pwndbg-specific theme configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -119,30 +117,30 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def theme(filter_pattern):
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+def theme(filter_pattern) -> None:
     display_config(filter_pattern, "theme")
 
 
-@pwndbg.commands.ArgparsedCommand(configfile_parser)
-def configfile(show_all=False):
+@pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
+def configfile(show_all=False) -> None:
     configfile_print_scope("config", show_all)
 
 
 themefile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current Pwndbg theme options"
+    description="Generates a configuration file for the current pwndbg theme options."
 )
 themefile_parser.add_argument(
     "--show-all", action="store_true", help="Force displaying of all theme options."
 )
 
 
-@pwndbg.commands.ArgparsedCommand(themefile_parser)
-def themefile(show_all=False):
+@pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
+def themefile(show_all=False) -> None:
     configfile_print_scope("theme", show_all)
 
 
-def configfile_print_scope(scope, show_all=False):
+def configfile_print_scope(scope, show_all=False) -> None:
     params = pwndbg.gdblib.config.get_params(scope)
 
     if not show_all:
@@ -152,9 +150,15 @@ def configfile_print_scope(scope, show_all=False):
         if not show_all:
             print(hint("Showing only changed values:"))
         for p in params:
-            print("# %s: %s" % (p.name, p.docstring))
-            print("# default: %s" % p.native_default)
-            print("set %s %s" % (p.name, p.native_value))
+            native_default = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
+                p.default, param_class=p.param_class
+            )
+            native_value = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
+                p.value, param_class=p.param_class
+            )
+            print("# %s: %s" % (p.name, p.set_show_doc))
+            print("# default: %s" % native_default)
+            print("set %s %s" % (p.name, native_value))
             print()
     else:
         print(hint("No changed values. To see current values use `%s`." % scope))

@@ -3,13 +3,26 @@ on: [push, pull_request]
 
 jobs:
   docker:
+    strategy:
+      fail-fast: false
+      matrix:
+        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11, archlinux]
+
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-    - name: Build the Docker image
-      run: docker-compose build main
+    - name: Cache for docker images
+      uses: satackey/action-docker-layer-caching@v0.0.11
+      # Ignore the failure of a step and avoid terminating the job.
+      continue-on-error: true
+      with:
+        path: ~/.cache/images
+        key: ${{ matrix.images }}-cache-images-{hash}
 
-    - name: Run the tests in Docker
-      run: docker-compose run main ./tests.sh
+    - name: Docker Build ${{ matrix.images }}
+      run: docker-compose pull ${{ matrix.images }}
+
+    - name: Test on ${{ matrix.images }}
+      run: docker-compose run ${{ matrix.images }} ./tests.sh

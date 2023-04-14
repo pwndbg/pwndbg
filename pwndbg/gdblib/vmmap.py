@@ -6,10 +6,14 @@ The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
 import bisect
-import os
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 import gdb
 
+import pwndbg.color.message as M
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
@@ -26,22 +30,39 @@ import pwndbg.lib.memoize
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages = []
+explored_pages: List[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages = []
+custom_pages: List[pwndbg.lib.memory.Page] = []
 
 
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
     "kernel-vmmap-via-page-tables",
-    True,
-    "When on, it reads vmmap for kernels via page tables, otherwise uses QEMU kernel's `monitor info mem` command",
+    "deprecated",
+    "the deprecated config of the method get kernel vmmap",
+    help_docstring="Deprecated in favor of `kernel-vmmap`",
+)
+
+kernel_vmmap = pwndbg.gdblib.config.add_param(
+    "kernel-vmmap",
+    "page-tables",
+    "the method to get vmmap information when debugging via QEMU kernel",
+    help_docstring="""\
+kernel-vmmap can be:
+page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+monitor        - use QEMU's `monitor info mem` to render vmmap
+none           - disable vmmap rendering; useful if rendering is particularly slow
+
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+""",
+    param_class=gdb.PARAM_ENUM,
+    enum_sequence=["page-tables", "monitor", "none"],
 )
 
 
 @pwndbg.lib.memoize.reset_on_objfile
 @pwndbg.lib.memoize.reset_on_start
-def is_corefile():
+def is_corefile() -> bool:
     """
     For example output use:
         gdb ./tests/binaries/crash_simple.out -ex run -ex 'generate-core-file ./core' -ex 'quit'
@@ -58,29 +79,51 @@ def is_corefile():
 
 @pwndbg.lib.memoize.reset_on_start
 @pwndbg.lib.memoize.reset_on_stop
-def get():
+def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    """
+    Returns a tuple of `Page` objects representing the memory mappings of the
+    target, sorted by virtual address ascending.
+    """
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
         return tuple()
-    pages = []
-    pages.extend(proc_pid_maps())
 
-    if (
-        not pages
-        and pwndbg.gdblib.qemu.is_qemu_kernel()
-        and pwndbg.gdblib.arch.current in ("i386", "x86-64", "aarch64", "riscv:rv64")
+    if is_corefile():
+        return tuple(coredump_maps())
+
+    proc_maps = proc_pid_maps()
+
+    # The `proc_maps` is usually a tuple of Page objects but it can also be:
+    #   None    - when /proc/$pid/maps does not exist/is not available
+    #   tuple() - when the process has no maps yet which happens only during its very early init
+    #             (usually when we attach to a process)
+    if proc_maps is not None:
+        return proc_maps
+
+    pages = []
+    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
+        "i386",
+        "x86-64",
+        "aarch64",
+        "riscv:rv64",
     ):
-        if kernel_vmmap_via_pt:
+
+        # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
+        # That means the user was explicitly setting it themselves and need to
+        # be warned that the option is deprecated
+        if kernel_vmmap_via_pt != "deprecated":
+            print(
+                M.warn(
+                    "`kernel-vmmap-via-page-tables` is deprecated, please use `kernel-vmmap` instead."
+                )
+            )
+
+        if kernel_vmmap == "page-tables":
             pages.extend(kernel_vmmap_via_page_tables())
-        else:
+        elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
-    if not pages and is_corefile():
-        pages.extend(coredump_maps())
-
-    # TODO/FIXME: Do we still need it after coredump_maps()?
-    # Add tests for other cases and see if this is needed e.g. for QEMU user
-    # if not, remove the code below & cleanup other parts of Pwndbg codebase
+    # TODO/FIXME: Add tests for  QEMU-user targets when this is needed
     if not pages:
         # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
@@ -119,7 +162,7 @@ def find(address):
 
 
 @pwndbg.gdblib.abi.LinuxOnly()
-def explore(address_maybe):
+def explore(address_maybe: int) -> Optional[Any]:
     """
     Given a potential address, check to see what permissions it has.
 
@@ -157,18 +200,18 @@ def explore(address_maybe):
 
 # Automatically ensure that all registers are explored on each stop
 # @pwndbg.gdblib.events.stop
-def explore_registers():
+def explore_registers() -> None:
     for regname in pwndbg.gdblib.regs.common:
         find(pwndbg.gdblib.regs[regname])
 
 
 # @pwndbg.gdblib.events.exit
-def clear_explored_pages():
+def clear_explored_pages() -> None:
     while explored_pages:
         explored_pages.pop()
 
 
-def add_custom_page(page):
+def add_custom_page(page) -> None:
     bisect.insort(custom_pages, page)
 
     # Reset all the cache
@@ -177,7 +220,7 @@ def add_custom_page(page):
     pwndbg.lib.memoize.reset()
 
 
-def clear_custom_page():
+def clear_custom_page() -> None:
     while custom_pages:
         custom_pages.pop()
 
@@ -301,13 +344,14 @@ def proc_pid_maps():
     Parse the contents of /proc/$PID/maps on the server.
 
     Returns:
-        A list of pwndbg.lib.memory.Page objects.
+        A tuple of pwndbg.lib.memory.Page objects or None if
+        /proc/$pid/maps doesn't exist or when we debug a qemu-user target
     """
 
     # If we debug remotely a qemu-user or qemu-system target,
     # there is no point of hitting things further
     if pwndbg.gdblib.qemu.is_qemu():
-        return tuple()
+        return None
 
     # Example /proc/$pid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -344,16 +388,20 @@ def proc_pid_maps():
         except (OSError, gdb.error):
             continue
     else:
+        return None
+
+    # Process hasn't been fully created yet; it is in Z (zombie) state
+    if data == "":
         return tuple()
 
     pages = []
     for line in data.splitlines():
-        maps, perm, offset, dev, inode_objfile = line.split(None, 4)
+        maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
 
         start, stop = maps.split("-")
 
         try:
-            inode, objfile = inode_objfile.split(None, 1)
+            inode, objfile = inode_objfile.split(maxsplit=1)
         except Exception:
             # Name unnamed anonymous pages so they can be used e.g. with search commands
             objfile = "[anon_" + start[:-3] + "]"
@@ -381,11 +429,25 @@ def proc_pid_maps():
 def kernel_vmmap_via_page_tables():
     import pt
 
-    p = pt.PageTableDump()
-    p.lazy_init()
-    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
+    retpages: List[pwndbg.lib.memory.Page] = []
 
-    retpages = []
+    p = pt.PageTableDump()
+    try:
+        p.lazy_init()
+    except PermissionError:
+        print(
+            M.error(
+                "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
+                + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama`)"
+            )
+        )
+        return tuple(retpages)
+
+    # If paging is not enabled, we shouldn't attempt to parse page tables
+    if not pwndbg.gdblib.kernel.paging_enabled():
+        return tuple(retpages)
+
+    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
 
     for page in pages:
         start = page.va
@@ -397,6 +459,9 @@ def kernel_vmmap_via_page_tables():
             flags |= 1
         retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<pt>"))
     return tuple(retpages)
+
+
+monitor_info_mem_not_warned = True
 
 
 def kernel_vmmap_via_monitor_info_mem():
@@ -418,11 +483,28 @@ def kernel_vmmap_via_monitor_info_mem():
     # ffff90358009b000-ffff903582200000 0000000002165000 -rw
     # ffff903582200000-ffff903582803000 0000000000603000 -r-
     """
+    global monitor_info_mem_not_warned
+    monitor_info_mem = None
     try:
-        lines = gdb.execute("monitor info mem", to_string=True).splitlines()
-    except gdb.error:
-        # Likely a `gdb.error: "monitor" command not supported by this target.`
-        return tuple()
+        monitor_info_mem = gdb.execute("monitor info mem", to_string=True)
+    finally:
+        # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
+        # not supported by this target`. Newer versions will not throw, but will
+        # return a string starting with 'unknown command:'. We handle both of
+        # these cases in a `finally` block instead of an `except` block.
+        if monitor_info_mem is None or "unknown command" in monitor_info_mem:
+            # TODO: Find out which other architectures don't support this command
+            if pwndbg.gdblib.arch.name == "aarch64":
+                print(
+                    M.error(
+                        f"The {pwndbg.gdblib.arch.name} architecture does"
+                        + " not support the `monitor info mem` command. Run "
+                        + "`help show kernel-vmmap` for other options."
+                    )
+                )
+            return tuple()  # pylint: disable=lost-exception
+
+    lines = monitor_info_mem.splitlines()
 
     # Handle disabled PG
     # This will prevent a crash on abstract architectures
@@ -438,7 +520,19 @@ def kernel_vmmap_via_monitor_info_mem():
         start = int(line[:dash_idx], 16)
         end = int(line[dash_idx + 1 : space_idx], 16)
         size = int(line[space_idx + 1 : rspace_idx], 16)
-        assert end - start == size, "monitor info mem output didn't pass a sanity check"
+        if end - start != size and monitor_info_mem_not_warned:
+            print(
+                M.warn(
+                    (
+                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                        "that end-start==size failed. The values are:\n"
+                        "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
+                        "Note that this warning will not show up again in this Pwndbg/GDB session."
+                    )
+                    % (end, start, size, end - start)
+                )
+            )
+            monitor_info_mem_not_warned = False
         perm = line[rspace_idx + 1 :]
 
         flags = 0
@@ -521,7 +615,7 @@ def info_files():
     # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
     seen_files = set()
-    pages = list()
+    pages = []
     main_exe = ""
 
     for line in pwndbg.gdblib.info.files().splitlines():
@@ -529,7 +623,7 @@ def info_files():
 
         # The name of the main executable
         if line.startswith("`"):
-            exename, filetype = line.split(None, 1)
+            exename, filetype = line.split(maxsplit=1)
             main_exe = exename.strip("`,'")
             continue
 
@@ -537,8 +631,8 @@ def info_files():
         if not line.startswith("0x"):
             continue
 
-        # start, stop, _, segment, _, filename = line.split(None,6)
-        fields = line.split(None, 6)
+        # start, stop, _, segment, _, filename = line.split(maxsplit=6)
+        fields = line.split(maxsplit=6)
         vaddr = int(fields[0], 16)
 
         if len(fields) == 5:
@@ -604,8 +698,7 @@ def find_boundaries(addr, name="", min=0):
     start = pwndbg.gdblib.memory.find_lower_boundary(addr)
     end = pwndbg.gdblib.memory.find_upper_boundary(addr)
 
-    if start < min:
-        start = min
+    start = max(start, min)
 
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
 
@@ -643,10 +736,3 @@ def check_aslr():
     # access to procfs.
     output = gdb.execute("show disable-randomization", to_string=True)
     return ("is off." in output), "show disable-randomization"
-
-
-@pwndbg.gdblib.events.cont
-def mark_pc_as_executable():
-    mapping = find(pwndbg.gdblib.regs.pc)
-    if mapping and not mapping.execute:
-        mapping.flags |= os.X_OK

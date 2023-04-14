@@ -13,11 +13,12 @@ import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
-saved = set()  # type:Set[int]
+saved: Set[int] = set()
 
 
-def print_search_hit(address):
+def print_search_hit(address) -> None:
     """Prints out a single search hit.
 
     Arguments:
@@ -45,9 +46,7 @@ auto_save = pwndbg.gdblib.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    description="""
-Search memory for byte sequences, strings, pointers, and integer values
-"""
+    description="Search memory for byte sequences, strings, pointers, and integer values."
 )
 parser.add_argument(
     "-t",
@@ -130,9 +129,9 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out):
+def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out) -> None:
     global saved
     if next and not saved:
         print(

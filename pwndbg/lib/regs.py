@@ -3,6 +3,7 @@ Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
 import collections
+from typing import List
 
 
 class RegisterSet:
@@ -34,7 +35,7 @@ class RegisterSet:
     retval = None
 
     #: Common registers which should be displayed in the register context
-    common = None
+    common: List[str] = None
 
     #: All valid registers
     all = None
@@ -45,12 +46,12 @@ class RegisterSet:
         stack="sp",
         frame=None,
         retaddr=tuple(),
-        flags=dict(),
+        flags={},
         gpr=tuple(),
         misc=tuple(),
         args=tuple(),
         retval=None,
-    ):
+    ) -> None:
         self.pc = pc
         self.stack = stack
         self.frame = frame
@@ -94,6 +95,25 @@ arm_xpsr_flags = collections.OrderedDict(
     [("N", 31), ("Z", 30), ("C", 29), ("V", 28), ("Q", 27), ("T", 24)]
 )
 
+aarch64_cpsr_flags = collections.OrderedDict(
+    [
+        ("N", 31),
+        ("Z", 30),
+        ("C", 29),
+        ("V", 28),
+        ("Q", 27),
+        ("PAN", 22),
+        ("IL", 20),
+        ("D", 9),
+        ("A", 8),
+        ("I", 7),
+        ("F", 6),
+        # TODO: EL is two bits
+        ("EL", 2),
+        ("SP", 0),
+    ]
+)
+
 arm = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": arm_cpsr_flags},
@@ -111,10 +131,10 @@ armcm = RegisterSet(
     retval="r0",
 )
 
-# FIXME AArch64 does not have a CPSR register
+# AArch64 has a PSTATE register, but GDB represents it as the CPSR register
 aarch64 = RegisterSet(
     retaddr=("lr",),
-    flags={"cpsr": {}},
+    flags={"cpsr": aarch64_cpsr_flags},
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point
     # it's confusing. Think about improving this if frame
@@ -452,10 +472,53 @@ mips = RegisterSet(
     retval="v0",
 )
 
+riscv = RegisterSet(
+    pc="pc",
+    stack="sp",
+    retaddr=("ra",),
+    gpr=(
+        "ra",
+        "gp",
+        "tp",
+        "t0",
+        "t1",
+        "t2",
+        "s0",
+        "s1",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9",
+        "s10",
+        "s11",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+    ),
+    args=("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"),
+    # TODO: make retval a tuple
+    # a1 for second return value
+    retval="a0",
+)
+
 reg_sets = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,
+    "riscv:rv64": riscv,
     "mips": mips,
     "sparc": sparc,
     "arm": arm,

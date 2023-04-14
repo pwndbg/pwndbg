@@ -3,6 +3,8 @@ Determine whether the target is being run under QEMU.
 """
 
 import os
+from typing import Any
+from typing import Optional
 
 import gdb
 import psutil
@@ -14,7 +16,7 @@ from pwndbg.gdblib.events import start
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_qemu():
+def is_qemu() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
 
@@ -28,7 +30,7 @@ def is_qemu():
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_usermode():
+def is_usermode() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
 
@@ -43,7 +45,7 @@ def is_usermode():
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_qemu_usermode():
+def is_qemu_usermode() -> bool:
     """Returns ``True`` if the target remote is being run under
     QEMU usermode emulation."""
 
@@ -51,22 +53,20 @@ def is_qemu_usermode():
 
 
 @pwndbg.lib.memoize.reset_on_stop
-def is_qemu_kernel():
+def is_qemu_kernel() -> bool:
     return is_qemu() and not is_usermode()
 
 
 @start
 @pwndbg.lib.memoize.reset_on_stop
-def root():
-    global binfmt_root
-
+def root() -> Optional[Any]:
     if not is_qemu_usermode():
-        return
+        return None
 
     binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdblib.arch.qemu
 
     if not os.path.isdir(binfmt_root):
-        return
+        return None
 
     gdb.execute("set sysroot " + binfmt_root, from_tty=False)
 

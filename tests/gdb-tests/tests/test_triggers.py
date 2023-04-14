@@ -30,11 +30,15 @@ def test_triggers():
             set_show(param_name, 0)
             set_show(param_name, 1)
             set_show(param_name, -1)
-        elif isinstance(p.value, str):
+        elif isinstance(p.value, str) and p.param_class != gdb.PARAM_ENUM:
             set_show(param_name, "")
             set_show(param_name, "some invalid text")
             set_show(param_name, "red")
             set_show(param_name, "bold,yellow")
+        elif isinstance(p.value, str) and p.param_class == gdb.PARAM_ENUM:
+            # Only valid values are allowed, invalid values will cause an error
+            for enum in p.enum_sequence:
+                set_show(param_name, enum)
         else:
             print(p.value, type(p.value))
             assert False

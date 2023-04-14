@@ -1,8 +1,5 @@
 import tests
-from pwndbg.commands.nearpc import emulate
-from pwndbg.commands.nearpc import nearpc
-from pwndbg.commands.nearpc import pdisass
-from pwndbg.commands.windbg import u
+from pwndbg.gdblib.nearpc import nearpc
 
 EMULATE_DISASM_BINARY = tests.binaries.get("emulate_disasm.out")
 EMULATE_DISASM_LOOP_BINARY = tests.binaries.get("emulate_disasm_loop.out")
@@ -86,12 +83,9 @@ def test_emulate_disasm_loop(start_binary):
     compare_output_without_emu(disasm_without_emu_0x400080)
 
 
-def compare_output_emu(emu_0x400080):
-    assert emulate(to_string=True) == emu_0x400080
+def compare_output_emu(expected_output):
+    assert nearpc(emulate=True) == expected_output
 
 
-def compare_output_without_emu(emu_0x400080):
-    assert nearpc(to_string=True) == emu_0x400080
-    assert emulate(to_string=True, emulate=False) == emu_0x400080
-    assert pdisass(to_string=True) == emu_0x400080
-    assert u(to_string=True) == emu_0x400080
+def compare_output_without_emu(expected_output):
+    assert nearpc() == expected_output

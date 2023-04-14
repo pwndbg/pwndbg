@@ -7,6 +7,7 @@ import re
 import sys
 from types import ModuleType
 from typing import Dict
+from typing import List
 
 import gdb
 
@@ -28,10 +29,9 @@ def gdb79_get_register(name):
     return gdb.selected_frame().read_register(name)
 
 
-try:
-    gdb.Frame.read_register
+if hasattr(gdb.Frame, "read_register"):
     get_register = gdb79_get_register
-except AttributeError:
+else:
     get_register = gdb77_get_register
 
 
@@ -46,7 +46,7 @@ class module(ModuleType):
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> int:
         attr = attr.lstrip("$")
         try:
             # Seriously, gdb? Only accepts uint32.
@@ -70,7 +70,7 @@ class module(ModuleType):
             return None
 
     def __setattr__(self, attr, val):
-        if attr == "last" or attr == "previous":
+        if attr in ("last", "previous"):
             return super().__setattr__(attr, val)
         else:
             # Not catching potential gdb.error as this should never
@@ -79,7 +79,7 @@ class module(ModuleType):
 
     @pwndbg.lib.memoize.reset_on_stop
     @pwndbg.lib.memoize.reset_on_prompt
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> int:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -92,6 +92,10 @@ class module(ModuleType):
             return int(item) & pwndbg.gdblib.arch.ptrmask
 
         return item
+
+    def __contains__(self, reg) -> bool:
+        regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
+        return reg in regs
 
     def __iter__(self):
         regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
@@ -112,7 +116,7 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].common
 
     @property
-    def frame(self):
+    def frame(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].frame
 
     @property
@@ -134,7 +138,7 @@ class module(ModuleType):
     @property
     def all(self):
         regs = reg_sets[pwndbg.gdblib.arch.current]
-        retval = []
+        retval: List[str] = []
         for regset in (
             regs.pc,
             regs.stack,
@@ -190,7 +194,7 @@ class module(ModuleType):
 
         # For GDB >= 8.x we can use get_register directly
         # Elsewhere we have to get the register via ptrace
-        if get_register == gdb79_get_register:
+        if pwndbg.gdblib.arch.current == "x86-64" and get_register == gdb79_get_register:
             return get_register(regname)
 
         # We can't really do anything if the process is remote.
@@ -213,7 +217,7 @@ class module(ModuleType):
 
         return 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<module pwndbg.gdblib.regs>"
 
 
@@ -224,8 +228,8 @@ sys.modules[__name__] = module(__name__, "")
 
 @pwndbg.gdblib.events.cont
 @pwndbg.gdblib.events.stop
-def update_last():
-    M = sys.modules[__name__]
+def update_last() -> None:
+    M: module = sys.modules[__name__]
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
     if pwndbg.gdblib.config.show_retaddr_reg:

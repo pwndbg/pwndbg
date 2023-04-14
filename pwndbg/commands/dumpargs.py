@@ -12,7 +12,7 @@ parser.add_argument("-f", "--force", action="store_true", help="Force displaying
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def dumpargs(force=False):
+def dumpargs(force=False) -> None:
     args = (not force and call_args()) or all_args()
 
     if args:
@@ -35,7 +35,7 @@ def call_args():
     results = []
 
     for arg, value in pwndbg.arguments.get(pwndbg.disasm.one()):
-        code = False if arg.type == "char" else True
+        code = arg.type != "char"
         pretty = pwndbg.chain.format(value, code=code)
         results.append("        %-10s %s" % (arg.name + ":", pretty))
 

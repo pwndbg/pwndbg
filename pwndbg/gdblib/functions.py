@@ -18,14 +18,14 @@ def GdbFunction(only_when_running=False):
 
 
 class _GdbFunction(gdb.Function):
-    def __init__(self, func, only_when_running):
+    def __init__(self, func, only_when_running) -> None:
         self.name = func.__name__
         self.func = func
         self.only_when_running = only_when_running
 
         functions.append(self)
 
-        super(_GdbFunction, self).__init__(self.name)
+        super().__init__(self.name)
 
         functools.update_wrapper(self, func)
         self.__doc__ = func.__doc__

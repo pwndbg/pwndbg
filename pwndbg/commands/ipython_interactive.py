@@ -26,7 +26,7 @@ def switch_to_ipython_env():
 
 
 @pwndbg.commands.ArgparsedCommand("Start an interactive IPython prompt.")
-def ipi():
+def ipi() -> None:
     with switch_to_ipython_env():
         # Use `gdb.execute` to embed IPython into GDB's variable scope
         try:

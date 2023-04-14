@@ -149,6 +149,7 @@ nav:
       - up: commands/misc/up.md
       - down: commands/misc/down.md
       - r2: commands/misc/r2.md
+      - ai: commands/misc/ai.md
 
     - Arm:
       - cpsr: commands/arm/cpsr.md

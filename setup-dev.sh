@@ -2,7 +2,7 @@
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
-echo "# Only works with Ubuntu / APT."
+echo "# Only works with Ubuntu / APT or Arch / Pacman."
 echo "# --------------------------------------"
 
 hook_script_path=".git/hooks/pre-push"
@@ -37,13 +37,6 @@ if [ -t 1 ]; then
     fi
 fi
 
-if [[ -z "$ZIGPATH" ]]; then
-    # If ZIGPATH is not set, set it to $pwd/.zig
-    # In Docker environment this should by default be set to /opt/zig
-    export ZIGPATH="$(pwd)/.zig"
-fi
-echo "ZIGPATH set to $ZIGPATH"
-
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
@@ -57,28 +50,21 @@ linux() {
     uname | grep -i Linux &> /dev/null
 }
 
-install_apt() {
-    sudo apt-get update || true
-    sudo apt-get install -y \
-        nasm \
-        gcc \
-        libc6-dev \
-        curl \
-        build-essential \
-        gdb \
-        parallel
-
-    if [[ "$1" == "22.04" ]]; then
-        sudo apt install shfmt
+set_zigpath() {
+    if [[ -z "$ZIGPATH" ]]; then
+        # If ZIGPATH is not set, set it
+        # In Docker environment this should by default be set to /opt/zig (APT) or /usr/bin (Pacman)
+        export ZIGPATH="$1"
     fi
+    echo "ZIGPATH set to $ZIGPATH"
+}
 
-    test -f /usr/bin/go || sudo apt-ge\t install -y golang
-
+download_zig_binary() {
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
 
-    ZIG_TAR_URL="https://ziglang.org/builds/zig-linux-x86_64-0.10.0-dev.3685+dae7aeb33.tar.xz"
-    ZIG_TAR_SHA256="dfc8f5ecb651342f1fc2b2828362b62f74fadac9931bda785b80bf7ecfcfabb2"
+    ZIG_TAR_URL="https://ziglang.org/download/0.10.1/zig-linux-x86_64-0.10.1.tar.xz"
+    ZIG_TAR_SHA256="6699f0e7293081b42428f32c9d9c983854094bd15fee5489f12c4cf4518cc380"
     curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
     ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
     if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
@@ -92,6 +78,66 @@ install_apt() {
 
     mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
     echo "Zig installed to ${ZIGPATH}"
+}
+
+install_apt() {
+    set_zigpath "$(pwd)/.zig"
+
+    sudo apt-get update || true
+    sudo apt-get install -y \
+        nasm \
+        gcc \
+        libc6-dev \
+        curl \
+        build-essential \
+        gdb \
+        gdb-multiarch \
+        parallel \
+        netcat-openbsd \
+        qemu-system-x86 \
+        qemu-system-arm
+
+    if [[ "$1" == "22.04" ]]; then
+        sudo apt install shfmt
+    fi
+
+    test -f /usr/bin/go || sudo apt-get install -y golang
+
+    download_zig_binary
+}
+
+install_pacman() {
+    set_zigpath "$(pwd)/.zig"
+
+    # add debug repo for glibc-debug
+    cat << EOF | sudo tee -a /etc/pacman.conf
+[core-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[extra-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[community-debug]
+Include = /etc/pacman.d/mirrorlist
+
+[multilib-debug]
+Include = /etc/pacman.d/mirrorlist
+EOF
+
+    sudo pacman -Syu --noconfirm || true
+    sudo pacman -S --noconfirm \
+        nasm \
+        gcc \
+        glibc-debug \
+        curl \
+        base-devel \
+        gdb \
+        parallel \
+        gnu-netcat
+
+    test -f /usr/bin/go || sudo pacman -S --noconfirm go
+
+    download_zig_binary
 }
 
 if linux; then
@@ -108,12 +154,17 @@ if linux; then
             )
             install_apt $ubuntu_version
             ;;
+        "arch")
+            install_pacman
+            ;;
         *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
+            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
             if hash apt; then
                 install_apt
+            elif hash pacman; then
+                install_pacman
             else
-                echo "\"$distro\" is not supported and your distro don't have apt or dnf that we support currently."
+                echo "\"$distro\" is not supported and your distro don't have apt or pacman that we support currently."
                 exit
             fi
             ;;

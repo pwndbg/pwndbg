@@ -21,6 +21,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from typing import Dict
 
 import gdb
 
@@ -34,21 +35,25 @@ from pwndbg.color import message
 gcc_compiler_path = pwndbg.gdblib.config.add_param(
     "gcc-compiler-path",
     "",
-    "Path to the gcc/g++ toolchain for generating imported symbols",
+    "path to the gcc/g++ toolchain for generating imported symbols",
+    param_class=gdb.PARAM_OPTIONAL_FILENAME,
 )
 
 cymbol_editor = pwndbg.gdblib.config.add_param(
-    "cymbol-editor", "", "Path to the editor for editing custom structures"
+    "cymbol-editor",
+    "",
+    "path to the editor for editing custom structures",
+    param_class=gdb.PARAM_OPTIONAL_FILENAME,
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.
-loaded_symbols = {}
+loaded_symbols: Dict[str, str] = {}
 
 # Where generated symbol source files are saved.
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
 
 
-def unload_loaded_symbol(custom_structure_name):
+def unload_loaded_symbol(custom_structure_name) -> None:
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
         gdb.execute(f"remove-symbol-file {custom_structure_symbols_file}")
@@ -106,7 +111,7 @@ def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_fi
     return pwndbg_debug_symbols_output_file
 
 
-def add_custom_structure(custom_structure_name):
+def add_custom_structure(custom_structure_name) -> None:
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
     if os.path.exists(pwndbg_custom_structure_path):
@@ -135,7 +140,7 @@ def add_custom_structure(custom_structure_name):
 
 
 @OnlyWhenStructFileExists
-def edit_custom_structure(custom_structure_name, custom_structure_path):
+def edit_custom_structure(custom_structure_name, custom_structure_path) -> None:
 
     # Lookup an editor to use for editing the custom structure.
     editor_preference = os.getenv("EDITOR")
@@ -169,25 +174,28 @@ def edit_custom_structure(custom_structure_name, custom_structure_path):
 
 
 @OnlyWhenStructFileExists
-def remove_custom_structure(custom_structure_name, custom_structure_path):
+def remove_custom_structure(custom_structure_name, custom_structure_path) -> None:
     unload_loaded_symbol(custom_structure_name)
     os.remove(custom_structure_path)
     print(message.success("Symbols are removed!"))
 
 
 @OnlyWhenStructFileExists
-def load_custom_structure(custom_structure_name, custom_structure_path):
+def load_custom_structure(custom_structure_name, custom_structure_path) -> None:
     unload_loaded_symbol(custom_structure_name)
     pwndbg_debug_symbols_output_file = generate_debug_symbols(custom_structure_path)
     if not pwndbg_debug_symbols_output_file:
         return  # generate_debug_symbols prints on failures
-    gdb.execute(f"add-symbol-file {pwndbg_debug_symbols_output_file}", to_string=True)
+    # Old GDB versions (e.g. 8.2) requires addr argument in add-symbol-file
+    # we set that address to which to load the symbols to 0 since it doesn't matter here
+    # (because we are only loading types information)
+    gdb.execute(f"add-symbol-file {pwndbg_debug_symbols_output_file} 0", to_string=True)
     loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
     print(message.success("Symbols are loaded!"))
 
 
 @OnlyWhenStructFileExists
-def show_custom_structure(custom_structure_name, custom_structure_path):
+def show_custom_structure(custom_structure_name, custom_structure_path) -> None:
     # Call wrapper .func() to avoid memoization.
     highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source.func(
         custom_structure_path
@@ -196,7 +204,7 @@ def show_custom_structure(custom_structure_name, custom_structure_path):
 
 
 parser = argparse.ArgumentParser(
-    description="Add, show, load, edit, or delete custom structures in plain C"
+    description="Add, show, load, edit, or delete custom structures in plain C."
 )
 parser.add_argument(
     "-a",
@@ -241,9 +249,9 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-@pwndbg.commands.OnlyAmd64
+@pwndbg.commands.OnlyWithArch(["x86-64"])
 @pwndbg.commands.OnlyWhenRunning
-def cymbol(add, remove, edit, load, show):
+def cymbol(add, remove, edit, load, show) -> None:
     if add:
         add_custom_structure(add)
     elif remove:

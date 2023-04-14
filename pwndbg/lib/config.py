@@ -1,5 +1,8 @@
 import collections
 from functools import total_ordering
+from typing import Callable
+from typing import DefaultDict
+from typing import Dict
 from typing import List
 
 import gdb
@@ -24,14 +27,20 @@ class Parameter:
         self,
         name,
         default,
-        docstring,
-        help_docstring=None,
+        set_show_doc,
+        *,
+        help_docstring="",
         param_class=None,
         enum_sequence=None,
         scope="config",
-    ):
-        self.docstring = docstring.strip()
-        self.help_docstring = help_docstring.strip() if help_docstring else None
+    ) -> None:
+        # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
+        # The `set_doc` will be "Set the value of the foo."
+        # The `show_doc` will be "Show the value of the foo."
+        # `get_set_string()` will return "Set the value of the foo to VALUE."
+        # `get_show_string()` will return "Show the value of the foo."
+        self.set_show_doc = set_show_doc.strip()
+        self.help_docstring = help_docstring.strip()
         self.name = name
         self.default = default
         self.value = default
@@ -40,13 +49,13 @@ class Parameter:
         self.scope = scope
 
     @property
-    def is_changed(self):
+    def is_changed(self) -> bool:
         return self.value != self.default
 
-    def revert_default(self):
+    def revert_default(self) -> None:
         self.value = self.default
 
-    def attr_name(self):
+    def attr_name(self) -> str:
         """Returns the attribute name associated with this config option,
         i.e. `my-config` has the attribute name `my_config`"""
         return self.name.replace("-", "_")
@@ -55,13 +64,13 @@ class Parameter:
         return getattr(self.value, name)
 
     # Casting
-    def __int__(self):
+    def __int__(self) -> int:
         return int(self.value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.value)
 
     # Compare operators
@@ -83,13 +92,13 @@ class Parameter:
         return self.value < other
 
     # Operators
-    def __add__(self, other):
+    def __add__(self, other: int) -> int:
         return self.value + other
 
     def __radd__(self, other):
         return other + self.value
 
-    def __sub__(self, other):
+    def __sub__(self, other: int) -> int:
         return self.value - other
 
     def __rsub__(self, other):
@@ -98,13 +107,13 @@ class Parameter:
     def __mul__(self, other):
         return self.value * other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: int) -> str:
         return other * self.value
 
     def __div__(self, other):
         return self.value / other
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: int) -> int:
         return self.value // other
 
     def __pow__(self, other):
@@ -113,22 +122,22 @@ class Parameter:
     def __mod__(self, other):
         return self.value % other
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.value)
 
 
 class Config:
-    def __init__(self):
-        self.params = {}
-        self.triggers = collections.defaultdict(lambda: [])
+    def __init__(self) -> None:
+        self.params: Dict[str, Parameter] = {}
+        self.triggers: DefaultDict[str, List[Callable]] = collections.defaultdict(lambda: [])
 
     def add_param(
         self,
         name,
         default,
-        docstring,
+        set_show_doc,
         *,
-        help_docstring=None,
+        help_docstring="",
         param_class=None,
         enum_sequence=None,
         scope="config",
@@ -139,11 +148,11 @@ class Config:
         p = Parameter(
             name,
             default,
-            docstring,
-            help_docstring,
-            param_class,
-            enum_sequence,
-            scope,
+            set_show_doc,
+            help_docstring=help_docstring,
+            param_class=param_class,
+            enum_sequence=enum_sequence,
+            scope=scope,
         )
         return self.add_param_obj(p)
 

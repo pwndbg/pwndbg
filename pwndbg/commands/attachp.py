@@ -6,10 +6,11 @@ from subprocess import check_output
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name or device file.
 
 This command wraps the original GDB `attach` command to add the ability
@@ -27,14 +28,14 @@ Original GDB attach command help:
     program running in the process, looking first in the current working
     directory, or (if not found there) using the source file search path
     (see the "directory" command).  You can also use the "file" command
-    to specify the program, and to load its symbol table."""
+    to specify the program, and to load its symbol table.""",
 )
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def attachp(target):
+def attachp(target) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -79,7 +80,7 @@ def attachp(target):
         print(message.error("Error: %s" % e))
 
 
-def _is_device(path):
+def _is_device(path) -> bool:
     try:
         mode = os.stat(path).st_mode
     except FileNotFoundError:

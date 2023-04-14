@@ -3,7 +3,11 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@v3
@@ -12,11 +16,6 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
-
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
 
     - name: Install dependencies
       run: |

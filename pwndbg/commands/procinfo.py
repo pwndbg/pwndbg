@@ -6,6 +6,8 @@ import pwndbg.gdblib.file
 import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
 import pwndbg.lib.memoize
+from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 """
 PEDA prints it out like this:
@@ -62,7 +64,7 @@ capabilities = {
 
 
 class Process:
-    def __init__(self, pid=None, tid=None):
+    def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
             pid = pwndbg.gdblib.proc.pid
         if tid is None:
@@ -71,9 +73,6 @@ class Process:
             tid = pid
         self.pid = pid
         self.tid = tid
-
-        # Precalculate
-        self.status
 
     @property
     @pwndbg.lib.memoize.reset_on_stop
@@ -92,14 +91,13 @@ class Process:
             if not line:
                 continue
 
-            k_v = line.split(None, 1)
+            k_v = line.split(maxsplit=1)
 
             if len(k_v) == 1:
                 k_v.append(b"")
 
             k, v = k_v
 
-            # Python3 ftw!
             k = k.decode("latin-1")
             v = v.decode("latin-1")
 
@@ -128,7 +126,7 @@ class Process:
 
             # capability sets
             if k in ["capeff", "capinh", "capprm", "capbnd"]:
-                orig = v
+                orig: int = v
                 v = []
                 for i in range(max(capabilities) + 1):
                     if (orig >> i) & 1 == 1:
@@ -178,19 +176,31 @@ class Process:
         return tuple(result)
 
 
-@pwndbg.commands.ArgparsedCommand("Gets the pid.")
+@pwndbg.commands.ArgparsedCommand(
+    "Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS
+)
 @pwndbg.commands.OnlyWhenRunning
-def pid():
+def pid() -> None:
     print(pwndbg.gdblib.proc.pid)
 
 
-@pwndbg.commands.ArgparsedCommand("Display information about the running process.")
+@pwndbg.commands.ArgparsedCommand(
+    "Display information about the running process.", category=CommandCategory.PROCESS
+)
 @pwndbg.commands.OnlyWhenRunning
-def procinfo():
+def procinfo() -> None:
     """
     Display information about the running process.
     """
-    exe = str(pwndbg.auxv.get()["AT_EXECFN"])
+    if pwndbg.gdblib.qemu.is_qemu():
+        print(
+            message.error(
+                "QEMU target detected: showing result for the qemu process"
+                " - so it will be a bit inaccurate (excessive for the parts"
+                " used directly by the qemu process)"
+            )
+        )
+    exe = pwndbg.auxv.get()["AT_EXECFN"]
     print("%-10s %r" % ("exe", exe))
 
     proc = Process()

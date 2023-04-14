@@ -26,7 +26,7 @@ lexer_cache: Dict[str, Any] = {}
 
 
 @pwndbg.gdblib.config.trigger(style)
-def check_style():
+def check_style() -> None:
     global formatter
     try:
         formatter = pygments.formatters.Terminal256Formatter(style=str(style))

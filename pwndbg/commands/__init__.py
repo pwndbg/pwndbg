@@ -1,19 +1,43 @@
 import argparse
 import functools
 import io
+from enum import Enum
 from typing import Dict
 from typing import List
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.exception
+import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
+from pwndbg.color import message
+from pwndbg.heap.ptmalloc import DebugSymsHeap
+from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 commands = []  # type: List[Command]
 command_names = set()
+
+
+class CommandCategory(str, Enum):
+    START = "Start"
+    NEXT = "Step/Next/Continue"
+    CONTEXT = "Context"
+    HEAP = "Heap"
+    BREAKPOINT = "Breakpoint"
+    MEMORY = "Memory"
+    STACK = "Stack"
+    REGISTER = "Register"
+    PROCESS = "Process"
+    LINUX = "Linux/libc/ELF"
+    DISASS = "Disassemble"
+    MISC = "Misc"
+    KERNEL = "Kernel"
+    INTEGRATIONS = "Integrations"
+    WINDBG = "WinDbg"
+    PWNDBG = "pwndbg"
+    SHELL = "Shell"
 
 
 def list_current_commands():
@@ -29,7 +53,7 @@ def list_current_commands():
         line = line.strip()
         # Skip non-command entries
         if (
-            len(line) == 0
+            not line
             or line.startswith("Command class:")
             or line.startswith("Unclassified commands")
         ):
@@ -42,6 +66,11 @@ def list_current_commands():
 
 GDB_BUILTIN_COMMANDS = list_current_commands()
 
+# Set in `reload` command so that we can skip double checking for registration
+# of an already existing command when re-registering GDB CLI commands
+# (there is no way to unregister a command in GDB 12.x)
+pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
+
 
 class Command(gdb.Command):
     """Generic command wrapper"""
@@ -49,15 +78,25 @@ class Command(gdb.Command):
     builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
     history = {}  # type: Dict[int,str]
 
-    def __init__(self, function, prefix=False, command_name=None, shell=False):
-        self.shell = shell
+    def __init__(
+        self,
+        function,
+        prefix=False,
+        command_name=None,
+        shell=False,
+        is_alias=False,
+        aliases=[],
+        category=CommandCategory.MISC,
+    ) -> None:
+        self.is_alias: bool = is_alias
+        self.aliases = aliases
+        self.category = category
+        self.shell: bool = shell
 
         if command_name is None:
             command_name = function.__name__
 
-        super(Command, self).__init__(
-            command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix
-        )
+        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
         self.function = function
 
         if command_name in command_names:
@@ -65,6 +104,7 @@ class Command(gdb.Command):
         if (
             command_name in GDB_BUILTIN_COMMANDS
             and command_name not in self.builtin_override_whitelist
+            and not pwndbg_is_reloading
         ):
             raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
 
@@ -102,7 +142,7 @@ class Command(gdb.Command):
         finally:
             self.repeat = False
 
-    def check_repeated(self, argument, from_tty):
+    def check_repeated(self, argument, from_tty) -> bool:
         """Keep a record of all commands which come from the TTY.
 
         Returns:
@@ -120,9 +160,9 @@ class Command(gdb.Command):
             return False
 
         last_line = lines[-1]
-        number, command = last_line.split(None, 1)
+        number_str, command = last_line.split(maxsplit=1)
         try:
-            number = int(number)
+            number = int(number_str)
         except ValueError:
             # Workaround for a GDB 8.2 bug when show commands return error value
             # See issue #523
@@ -191,7 +231,8 @@ def fix_int(*a, **kw):
 
 
 def fix_int_reraise(*a, **kw):
-    return fix(*a, reraise=True, **kw)
+    # Type error likely due to https://github.com/python/mypy/issues/6799
+    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
 def OnlyWithFile(function):
@@ -206,6 +247,70 @@ def OnlyWithFile(function):
                 print(message.error("%s: There is no file loaded." % function.__name__))
 
     return _OnlyWithFile
+
+
+def OnlyWhenQemuKernel(function):
+    @functools.wraps(function)
+    def _OnlyWhenQemuKernel(*a, **kw):
+        if pwndbg.gdblib.qemu.is_qemu_kernel():
+            return function(*a, **kw)
+        else:
+            print(
+                "%s: This command may only be run when debugging the Linux kernel in QEMU."
+                % function.__name__
+            )
+
+    return _OnlyWhenQemuKernel
+
+
+def OnlyWithArch(arch_names: List[str]):
+    """Decorates function to work only with the specified archictectures."""
+    for arch in arch_names:
+        if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+            raise ValueError(
+                f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
+            )
+
+    def decorator(function):
+        @functools.wraps(function)
+        def _OnlyWithArch(*a, **kw):
+            if pwndbg.gdblib.arch.name in arch_names:
+                return function(*a, **kw)
+            else:
+                arches_str = ", ".join(arch_names)
+                print(
+                    f"%s: This command may only be run on the {arches_str} architecture(s)"
+                    % function.__name__
+                )
+
+        return _OnlyWithArch
+
+    return decorator
+
+
+def OnlyWithKernelDebugSyms(function):
+    @functools.wraps(function)
+    def _OnlyWithKernelDebugSyms(*a, **kw):
+        if pwndbg.gdblib.kernel.has_debug_syms():
+            return function(*a, **kw)
+        else:
+            print(
+                "%s: This command may only be run when debugging a Linux kernel with debug symbols."
+                % function.__name__
+            )
+
+    return _OnlyWithKernelDebugSyms
+
+
+def OnlyWhenPagingEnabled(function):
+    @functools.wraps(function)
+    def _OnlyWhenPagingEnabled(*a, **kw):
+        if pwndbg.gdblib.kernel.paging_enabled():
+            return function(*a, **kw)
+        else:
+            print("%s: This command may only be run when paging is enabled." % function.__name__)
+
+    return _OnlyWhenPagingEnabled
 
 
 def OnlyWhenRunning(function):
@@ -244,23 +349,45 @@ def OnlyWhenHeapIsInitialized(function):
     return _OnlyWhenHeapIsInitialized
 
 
-def OnlyAmd64(function):
-    """Decorates function to work only when pwndbg.gdblib.arch.current == \"x86-64\"."""
-
-    @functools.wraps(function)
-    def _OnlyAmd64(*a, **kw):
-        if pwndbg.gdblib.arch.current == "x86-64":
-            return function(*a, **kw)
-        else:
-            print('%s: Only works with "x86-64" arch.' % function.__name__)
-
-    return _OnlyAmd64
-
-
 # TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
-def _is_statically_linked():
+def _is_statically_linked() -> bool:
     out = gdb.execute("info dll", to_string=True)
     return "No shared libraries loaded at this time." in out
+
+
+def _try2run_heap_command(function, a, kw):
+    e = lambda s: print(message.error(s))
+    w = lambda s: print(message.warn(s))
+    # Note: We will still raise the error for developers when exception-* is set to "on"
+    try:
+        return function(*a, **kw)
+    except SymbolUnresolvableError as err:
+        e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
+        if "thread_arena" == err.symbol:
+            w(
+                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
+                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
+            )
+        else:
+            w(
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
+            )
+        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+            raise err
+        else:
+            pwndbg.exception.inform_verbose_and_debug()
+    except Exception as err:
+        e(f"{function.__name__}: An unknown error occurred when running this command.")
+        if isinstance(pwndbg.heap.current, HeuristicHeap):
+            w(
+                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+            )
+        else:
+            w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
+        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+            raise err
+        else:
+            pwndbg.exception.inform_verbose_and_debug()
 
 
 def OnlyWithResolvedHeapSyms(function):
@@ -268,78 +395,68 @@ def OnlyWithResolvedHeapSyms(function):
     def _OnlyWithResolvedHeapSyms(*a, **kw):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
+        if (
+            isinstance(pwndbg.heap.current, HeuristicHeap)
+            and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            and DebugSymsHeap().can_be_resolved()
+        ):
+            # In auto mode, we will try to use the debug symbols if possible
+            pwndbg.heap.current = DebugSymsHeap()
         if pwndbg.heap.current.can_be_resolved():
-            # Note: We will still raise the error for developers when exception-* is set to "on"
-            try:
-                return function(*a, **kw)
-            except SymbolUnresolvableError as err:
-                e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
-                w(
-                    f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config about `{err.symbol}`."
-                )
-                if (
-                    pwndbg.gdblib.config.exception_verbose
-                    or pwndbg.gdblib.config.exception_debugger
-                ):
-                    raise err
-                else:
-                    pwndbg.exception.inform_verbose_and_debug()
-            except Exception as err:
-                e(f"{function.__name__}: An unknown error occurred when running this command.")
-                if pwndbg.gdblib.config.resolve_heap_via_heuristic:
-                    w(
-                        "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
-                    )
-                else:
-                    w("You can try `set resolve-heap-via-heuristic on` and re-run this command.\n")
-                if (
-                    pwndbg.gdblib.config.exception_verbose
-                    or pwndbg.gdblib.config.exception_debugger
-                ):
-                    raise err
-                else:
-                    pwndbg.exception.inform_verbose_and_debug()
+            return _try2run_heap_command(function, a, kw)
         else:
-            print(message.error(f"{function.__name__}: "), end="")
-            if not pwndbg.gdblib.config.resolve_heap_via_heuristic:
-                if _is_statically_linked():
+            if (
+                isinstance(pwndbg.heap.current, DebugSymsHeap)
+                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            ):
+                # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+                heuristic_heap = HeuristicHeap()
+                if heuristic_heap.can_be_resolved():
+                    pwndbg.heap.current = heuristic_heap
+                    w(
+                        "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+                        "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+                    )
+                    return _try2run_heap_command(function, a, kw)
+                elif _is_statically_linked():
                     e(
-                        "Can't find libc symbols addresses required for this command to work since this is a statically linked binary"
+                        "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                     )
                     w(
-                        """Invoking the `set resolve-heap-via-heuristic on` command to resolve libc symbols via heuristics.
-Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command.
-If this does not work, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."""
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
                     )
-                    gdb.execute("set resolve-heap-via-heuristic on", to_string=True)
-                    return
-
                 else:
-
-                    w(
-                        """This command only works with libc debug symbols which are missing.
-
-They can probably be installed via the package manager of your choice.
-See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
-
-E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 32-bit binaries):
-sudo apt-get install libc6-dbg
-sudo dpkg --add-architecture i386
-sudo apt-get install libc-dbg:i386
-
-If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
-"""
+                    e(
+                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
                     )
                     w(
-                        "pwndbg can still try to use this command without debug symbols after you `set resolve-heap-via-heuristic on`, but the results of those commands may be incorrect in some cases.\n"
-                        "If the output of the heap command is still wrong or gives you erros, the only thing left is to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
                     )
-            elif pwndbg.glibc.get_version() is None:
-                e("Can't resolve the heap since the GLIBC version is not set.")
-                w(
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+            elif (
+                isinstance(pwndbg.heap.current, DebugSymsHeap)
+                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "force"
+            ):
+                e(
+                    "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
                 )
+                w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+            elif pwndbg.glibc.get_version() is None:
+                if _is_statically_linked():
+                    e("Can't resolve the heap since the GLIBC version is not set.")
+                    w(
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                    )
+                else:
+                    e(
+                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
+                    )
+                    w(
+                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                    )
             else:
+                # Note: Should not see this error, but just in case
                 e("An unknown error occurred when resolved the heap.")
                 pwndbg.exception.inform_report_issue(
                     "An unknown error occurred when resolved the heap"
@@ -349,7 +466,14 @@ If you used setup.sh on Arch based distro you'll need to do a power cycle or set
 
 
 class _ArgparsedCommand(Command):
-    def __init__(self, parser, function, command_name=None, *a, **kw):
+    def __init__(
+        self,
+        parser,
+        function,
+        command_name=None,
+        *a,
+        **kw,
+    ) -> None:
         self.parser = parser
         if command_name is None:
             self.parser.prog = function.__name__
@@ -363,7 +487,13 @@ class _ArgparsedCommand(Command):
         # Note: function.__doc__ is used in the `pwndbg [filter]` command display
         function.__doc__ = self.parser.description.strip()
 
-        super(_ArgparsedCommand, self).__init__(function, command_name=command_name, *a, **kw)
+        # Type error likely due to https://github.com/python/mypy/issues/6799
+        super().__init__(  # type: ignore[misc]
+            function,
+            command_name=command_name,
+            *a,
+            **kw,
+        )
 
     def split_args(self, argument):
         argv = gdb.string_to_argv(argument)
@@ -373,7 +503,9 @@ class _ArgparsedCommand(Command):
 class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
-    def __init__(self, parser_or_desc, aliases=[], command_name=None):
+    def __init__(
+        self, parser_or_desc, aliases=[], command_name=None, category=CommandCategory.MISC
+    ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
         """
@@ -383,10 +515,12 @@ class ArgparsedCommand:
             self.parser = parser_or_desc
         self.aliases = aliases
         self._command_name = command_name
-
+        self.category = category
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                action.type = str
             if action.dest == "help":
                 continue
             if action.type in (int, None):
@@ -396,8 +530,16 @@ class ArgparsedCommand:
 
     def __call__(self, function):
         for alias in self.aliases:
-            _ArgparsedCommand(self.parser, function, command_name=alias)
-        return _ArgparsedCommand(self.parser, function, command_name=self._command_name)
+            _ArgparsedCommand(
+                self.parser, function, command_name=alias, is_alias=True, category=self.category
+            )
+        return _ArgparsedCommand(
+            self.parser,
+            function,
+            command_name=self._command_name,
+            aliases=self.aliases,
+            category=self.category,
+        )
 
 
 # We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
@@ -437,7 +579,7 @@ def AddressExpr(s):
     val = sloppy_gdb_parse(s)
 
     if not isinstance(val, int):
-        raise argparse.ArgumentError("Incorrect address (or GDB expression): %s" % s)
+        raise argparse.ArgumentTypeError("Incorrect address (or GDB expression): %s" % s)
 
     return val
 
@@ -453,7 +595,9 @@ def HexOrAddressExpr(s):
         return AddressExpr(s)
 
 
-def load_commands():
+def load_commands() -> None:
+    # pylint: disable=import-outside-toplevel
+    import pwndbg.commands.ai
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.attachp
@@ -466,11 +610,11 @@ def load_commands():
     import pwndbg.commands.cpsr
     import pwndbg.commands.cyclic
     import pwndbg.commands.cymbol
+    import pwndbg.commands.distance
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags
-    import pwndbg.commands.gdbinit
     import pwndbg.commands.ghidra
     import pwndbg.commands.got
     import pwndbg.commands.heap
@@ -478,10 +622,17 @@ def load_commands():
     import pwndbg.commands.ida
     import pwndbg.commands.ignore
     import pwndbg.commands.ipython_interactive
+    import pwndbg.commands.kbase
+    import pwndbg.commands.kchecksec
+    import pwndbg.commands.kcmdline
+    import pwndbg.commands.kconfig
+    import pwndbg.commands.killthreads
+    import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
     import pwndbg.commands.mprotect
+    import pwndbg.commands.nearpc
     import pwndbg.commands.next
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
@@ -491,15 +642,18 @@ def load_commands():
     import pwndbg.commands.procinfo
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
+    import pwndbg.commands.rizin
     import pwndbg.commands.rop
     import pwndbg.commands.ropper
     import pwndbg.commands.search
     import pwndbg.commands.segments
     import pwndbg.commands.shell
+    import pwndbg.commands.slab
     import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
     import pwndbg.commands.tls
+    import pwndbg.commands.valist
     import pwndbg.commands.version
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg

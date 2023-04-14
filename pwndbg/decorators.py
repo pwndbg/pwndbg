@@ -1,4 +1,6 @@
 import functools
+from typing import Any
+from typing import Optional
 
 first_prompt = False
 
@@ -12,7 +14,7 @@ def only_after_first_prompt(value_before=None):
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
             if first_prompt:
                 return func(*args, **kwargs)
             else:
