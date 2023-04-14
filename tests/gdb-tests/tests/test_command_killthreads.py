@@ -45,10 +45,16 @@ def test_command_killthreads_kills_specific_thread(start_binary):
     gdb.execute("run")
     initial_thread_count = len(gdb.selected_inferior().threads())
     # check if thread with id 3 exists
-    wait_until(lambda: len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3]) == 1)
+    wait_until(
+        lambda: len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3])
+        == 1
+    )
     gdb.execute("killthreads 3")
     # check if the thread was killed, and no other thread was killed
-    wait_until(lambda: len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3]) == 0)
+    wait_until(
+        lambda: len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3])
+        == 0
+    )
     assert len(gdb.selected_inferior().threads()) == initial_thread_count - 1
 
     gdb.execute("kill")
