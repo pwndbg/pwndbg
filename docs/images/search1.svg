@@ -1,4 +1,4 @@
-<?xml version="1.0" ?><svg xmlns="http://www.w3.org/2000/svg" class="rich-terminal" viewBox="0 0 1897 269.6">
+<?xml version="1.0" ?><svg xmlns="http://www.w3.org/2000/svg" class="rich-terminal" viewBox="0 0 1995 269.6">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -19,72 +19,72 @@
         font-weight: 700;
     }
 
-    .terminal-703724194-matrix {
+    .terminal-561707677-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-703724194-title {
+    .terminal-561707677-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-703724194-r1 { fill: #d9d9d9 }
-.terminal-703724194-r2 { fill: #f4005f;font-weight: bold }
+    .terminal-561707677-r1 { fill: #d9d9d9 }
+.terminal-561707677-r2 { fill: #f4005f;font-weight: bold }
     </style>
 
     <defs>
-    <clipPath id="terminal-703724194-clip-terminal">
-      <rect x="0" y="0" width="1877.8" height="218.6"/>
+    <clipPath id="terminal-561707677-clip-terminal">
+      <rect x="0" y="0" width="1975.3999999999999" height="218.6"/>
     </clipPath>
-    <clipPath id="terminal-703724194-line-0">
-    <rect x="0" y="1.5" width="1878.8" height="24.65"/>
+    <clipPath id="terminal-561707677-line-0">
+    <rect x="0" y="1.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-1">
-    <rect x="0" y="25.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-1">
+    <rect x="0" y="25.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-2">
-    <rect x="0" y="50.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-2">
+    <rect x="0" y="50.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-3">
-    <rect x="0" y="74.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-3">
+    <rect x="0" y="74.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-4">
-    <rect x="0" y="99.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-4">
+    <rect x="0" y="99.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-5">
-    <rect x="0" y="123.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-5">
+    <rect x="0" y="123.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-6">
-    <rect x="0" y="147.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-6">
+    <rect x="0" y="147.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-703724194-line-7">
-    <rect x="0" y="172.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-561707677-line-7">
+    <rect x="0" y="172.3" width="1976.4" height="24.65"/>
             </clipPath>
     </defs>
 
-    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1895" height="267.6" rx="8"/><text class="terminal-703724194-title" fill="#d9d9d9" text-anchor="middle" x="947" y="27">pwndbg</text>
+    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1993" height="267.6" rx="8"/><text class="terminal-561707677-title" fill="#d9d9d9" text-anchor="middle" x="996" y="27">pwndbg</text>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
         
-    <g transform="translate(9, 41)" clip-path="url(#terminal-703724194-clip-terminal)">
+    <g transform="translate(9, 41)" clip-path="url(#terminal-561707677-clip-terminal)">
     
-    <g class="terminal-703724194-matrix">
-    <text class="terminal-703724194-r1" x="0" y="20" textLength="207.4" clip-path="url(#terminal-703724194-line-0)">$ gdb /usr/bin/ls</text><text class="terminal-703724194-r1" x="1878.8" y="20" textLength="12.2" clip-path="url(#terminal-703724194-line-0)">
-</text><text class="terminal-703724194-r2" x="0" y="44.4" textLength="97.6" clip-path="url(#terminal-703724194-line-1)">pwndbg&gt; </text><text class="terminal-703724194-r1" x="97.6" y="44.4" textLength="73.2" clip-path="url(#terminal-703724194-line-1)">starti</text><text class="terminal-703724194-r1" x="1878.8" y="44.4" textLength="12.2" clip-path="url(#terminal-703724194-line-1)">
-</text><text class="terminal-703724194-r1" x="0" y="68.8" textLength="366" clip-path="url(#terminal-703724194-line-2)">Starting program: /usr/bin/ls </text><text class="terminal-703724194-r1" x="1878.8" y="68.8" textLength="12.2" clip-path="url(#terminal-703724194-line-2)">
-</text><text class="terminal-703724194-r1" x="1878.8" y="93.2" textLength="12.2" clip-path="url(#terminal-703724194-line-3)">
-</text><text class="terminal-703724194-r1" x="0" y="117.6" textLength="195.2" clip-path="url(#terminal-703724194-line-4)">Program stopped.</text><text class="terminal-703724194-r1" x="1878.8" y="117.6" textLength="12.2" clip-path="url(#terminal-703724194-line-4)">
-</text><text class="terminal-703724194-r1" x="0" y="142" textLength="732" clip-path="url(#terminal-703724194-line-5)">0x00007ffff7fc84c0 in ?? () from /lib64/ld-linux-x86-64.so.2</text><text class="terminal-703724194-r1" x="1878.8" y="142" textLength="12.2" clip-path="url(#terminal-703724194-line-5)">
-</text><text class="terminal-703724194-r2" x="0" y="166.4" textLength="97.6" clip-path="url(#terminal-703724194-line-6)">pwndbg&gt; </text><text class="terminal-703724194-r1" x="97.6" y="166.4" textLength="390.4" clip-path="url(#terminal-703724194-line-6)">search -t pointer 0x7fffffffcbb0</text><text class="terminal-703724194-r1" x="1878.8" y="166.4" textLength="12.2" clip-path="url(#terminal-703724194-line-6)">
-</text><text class="terminal-703724194-r1" x="0" y="190.8" textLength="683.2" clip-path="url(#terminal-703724194-line-7)">Searching for value: b'\xb0\xcb\xff\xff\xff\x7f\x00\x00'</text><text class="terminal-703724194-r1" x="1878.8" y="190.8" textLength="12.2" clip-path="url(#terminal-703724194-line-7)">
-</text><text class="terminal-703724194-r2" x="0" y="215.2" textLength="97.6" clip-path="url(#terminal-703724194-line-8)">pwndbg&gt; </text><text class="terminal-703724194-r1" x="1878.8" y="215.2" textLength="12.2" clip-path="url(#terminal-703724194-line-8)">
+    <g class="terminal-561707677-matrix">
+    <text class="terminal-561707677-r1" x="0" y="20" textLength="207.4" clip-path="url(#terminal-561707677-line-0)">$ gdb /usr/bin/ls</text><text class="terminal-561707677-r1" x="1976.4" y="20" textLength="12.2" clip-path="url(#terminal-561707677-line-0)">
+</text><text class="terminal-561707677-r2" x="0" y="44.4" textLength="97.6" clip-path="url(#terminal-561707677-line-1)">pwndbg&gt; </text><text class="terminal-561707677-r1" x="97.6" y="44.4" textLength="73.2" clip-path="url(#terminal-561707677-line-1)">starti</text><text class="terminal-561707677-r1" x="1976.4" y="44.4" textLength="12.2" clip-path="url(#terminal-561707677-line-1)">
+</text><text class="terminal-561707677-r1" x="0" y="68.8" textLength="366" clip-path="url(#terminal-561707677-line-2)">Starting program: /usr/bin/ls </text><text class="terminal-561707677-r1" x="1976.4" y="68.8" textLength="12.2" clip-path="url(#terminal-561707677-line-2)">
+</text><text class="terminal-561707677-r1" x="1976.4" y="93.2" textLength="12.2" clip-path="url(#terminal-561707677-line-3)">
+</text><text class="terminal-561707677-r1" x="0" y="117.6" textLength="195.2" clip-path="url(#terminal-561707677-line-4)">Program stopped.</text><text class="terminal-561707677-r1" x="1976.4" y="117.6" textLength="12.2" clip-path="url(#terminal-561707677-line-4)">
+</text><text class="terminal-561707677-r1" x="0" y="142" textLength="732" clip-path="url(#terminal-561707677-line-5)">0x00007ffff7fe52a0 in ?? () from /lib64/ld-linux-x86-64.so.2</text><text class="terminal-561707677-r1" x="1976.4" y="142" textLength="12.2" clip-path="url(#terminal-561707677-line-5)">
+</text><text class="terminal-561707677-r2" x="0" y="166.4" textLength="97.6" clip-path="url(#terminal-561707677-line-6)">pwndbg&gt; </text><text class="terminal-561707677-r1" x="97.6" y="166.4" textLength="390.4" clip-path="url(#terminal-561707677-line-6)">search -t pointer 0x7fffffffcbb0</text><text class="terminal-561707677-r1" x="1976.4" y="166.4" textLength="12.2" clip-path="url(#terminal-561707677-line-6)">
+</text><text class="terminal-561707677-r1" x="0" y="190.8" textLength="683.2" clip-path="url(#terminal-561707677-line-7)">Searching for value: b'\xb0\xcb\xff\xff\xff\x7f\x00\x00'</text><text class="terminal-561707677-r1" x="1976.4" y="190.8" textLength="12.2" clip-path="url(#terminal-561707677-line-7)">
+</text><text class="terminal-561707677-r2" x="0" y="215.2" textLength="97.6" clip-path="url(#terminal-561707677-line-8)">pwndbg&gt; </text><text class="terminal-561707677-r1" x="1976.4" y="215.2" textLength="12.2" clip-path="url(#terminal-561707677-line-8)">
 </text>
     </g>
     </g>

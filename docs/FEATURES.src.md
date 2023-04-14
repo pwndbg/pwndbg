@@ -7,7 +7,6 @@ Pwndbg has a great deal of useful features.  You can a list of all available com
 An useful summary of the current execution context is printed every time GDB stops (e.g. breakpoint or single-step):
 
 ```pwndbg $GDB /usr/bin/ls
-set environment HOME /home/pwndbg
 pi '---START_RENDER---'
 starti
 pi '---END_RENDER---'
@@ -17,7 +16,6 @@ pi '---END_RENDER---'
 #ANNOTATE {"match":["\\BACKTRACE", "f\\s3"], "text":"Backtrace"}
 q
 ```
-TODO: add links
 
 The context shows:
   - registers
@@ -26,7 +24,7 @@ The context shows:
   - disassembly
   - all pointers are recursively dereferenced
 
-  TODO
+For more advanced usage and customization, see the [Advanced Context](#advanced-context) section.
 
 ## Commands
 
@@ -145,5 +143,31 @@ set context-sections none
 pi '---START_RENDER---'
 entry
 leakfind -p stack
-```
+````
 
+# Advanced Context
+
+The context display can be manually invoked with the `context` command. Additionally, you can only show specific sections, by specifying them as arguments:
+
+```pwndbg $GDB /usr/bin/ls
+set context-sections none
+pi '---START_RENDER---'
+entry
+context reg
+pi '---END_RENDER---'
+#ANNOTATE {"match":["context", "\\sREGISTERS", "RIP\\s"], "text":"Manually print context"}
+````
+
+Available context sections are: `reg`, `disasm`, `code`, `stack`, `backtrace`, `ghidra`, `args`.
+
+You can also customize which sections you want to display every time a command is executed by setting the `context-sections` setting:
+
+```pwndbg $GDB /usr/bin/ls
+pi '---START_RENDER---'
+set context-sections regs disasm
+entry
+set context-sections none
+nexti
+pi '---END_RENDER---'
+#ANNOTATE {"match":["regs disasm"], "text":"Select which sections to print"}
+```

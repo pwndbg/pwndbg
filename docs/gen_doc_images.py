@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.terminal_theme import MONOKAI
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-gdb_common = 'gdb --quiet --ex "source ' + parent_dir + '/gdbinit.py"'
+gdb_common = 'gdb --quiet --ex "source ' + parent_dir + '/gdbinit.py" --ex "set environment HOME /home/pwndbg"'
 
 # rect representing a rectangle with floating point coordinates
 class Rect:
@@ -223,7 +223,6 @@ if __name__ == "__main__":
                 output.append("![](images/" + svg_name + ")\n")
                 i = j
             else:
-
                 # compile c programs which specify a command to compile afer ```c
                 if lines[i].startswith("```c"):
                     compile_cmd = lines[i].split(" ", 1)[1].strip()

@@ -1,4 +1,4 @@
-<?xml version="1.0" ?><svg xmlns="http://www.w3.org/2000/svg" class="rich-terminal" viewBox="0 0 1897 977.1999999999999">
+<?xml version="1.0" ?><svg xmlns="http://www.w3.org/2000/svg" class="rich-terminal" viewBox="0 0 1995 977.1999999999999">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -19,192 +19,192 @@
         font-weight: 700;
     }
 
-    .terminal-1117967909-matrix {
+    .terminal-3235960324-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-1117967909-title {
+    .terminal-3235960324-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-1117967909-r1 { fill: #d9d9d9 }
-.terminal-1117967909-r2 { fill: #f4005f;font-weight: bold }
-.terminal-1117967909-r3 { fill: #fd971f }
-.terminal-1117967909-r4 { fill: #9d65ff }
-.terminal-1117967909-r5 { fill: #f4005f }
-.terminal-1117967909-r6 { fill: #d9d9d9;text-decoration: underline; }
+    .terminal-3235960324-r1 { fill: #d9d9d9 }
+.terminal-3235960324-r2 { fill: #f4005f;font-weight: bold }
+.terminal-3235960324-r3 { fill: #fd971f }
+.terminal-3235960324-r4 { fill: #9d65ff }
+.terminal-3235960324-r5 { fill: #f4005f }
+.terminal-3235960324-r6 { fill: #d9d9d9;text-decoration: underline; }
     </style>
 
     <defs>
-    <clipPath id="terminal-1117967909-clip-terminal">
-      <rect x="0" y="0" width="1877.8" height="926.1999999999999"/>
+    <clipPath id="terminal-3235960324-clip-terminal">
+      <rect x="0" y="0" width="1975.3999999999999" height="926.1999999999999"/>
     </clipPath>
-    <clipPath id="terminal-1117967909-line-0">
-    <rect x="0" y="1.5" width="1878.8" height="24.65"/>
+    <clipPath id="terminal-3235960324-line-0">
+    <rect x="0" y="1.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-1">
-    <rect x="0" y="25.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-1">
+    <rect x="0" y="25.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-2">
-    <rect x="0" y="50.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-2">
+    <rect x="0" y="50.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-3">
-    <rect x="0" y="74.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-3">
+    <rect x="0" y="74.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-4">
-    <rect x="0" y="99.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-4">
+    <rect x="0" y="99.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-5">
-    <rect x="0" y="123.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-5">
+    <rect x="0" y="123.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-6">
-    <rect x="0" y="147.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-6">
+    <rect x="0" y="147.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-7">
-    <rect x="0" y="172.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-7">
+    <rect x="0" y="172.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-8">
-    <rect x="0" y="196.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-8">
+    <rect x="0" y="196.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-9">
-    <rect x="0" y="221.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-9">
+    <rect x="0" y="221.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-10">
-    <rect x="0" y="245.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-10">
+    <rect x="0" y="245.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-11">
-    <rect x="0" y="269.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-11">
+    <rect x="0" y="269.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-12">
-    <rect x="0" y="294.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-12">
+    <rect x="0" y="294.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-13">
-    <rect x="0" y="318.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-13">
+    <rect x="0" y="318.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-14">
-    <rect x="0" y="343.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-14">
+    <rect x="0" y="343.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-15">
-    <rect x="0" y="367.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-15">
+    <rect x="0" y="367.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-16">
-    <rect x="0" y="391.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-16">
+    <rect x="0" y="391.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-17">
-    <rect x="0" y="416.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-17">
+    <rect x="0" y="416.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-18">
-    <rect x="0" y="440.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-18">
+    <rect x="0" y="440.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-19">
-    <rect x="0" y="465.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-19">
+    <rect x="0" y="465.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-20">
-    <rect x="0" y="489.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-20">
+    <rect x="0" y="489.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-21">
-    <rect x="0" y="513.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-21">
+    <rect x="0" y="513.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-22">
-    <rect x="0" y="538.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-22">
+    <rect x="0" y="538.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-23">
-    <rect x="0" y="562.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-23">
+    <rect x="0" y="562.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-24">
-    <rect x="0" y="587.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-24">
+    <rect x="0" y="587.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-25">
-    <rect x="0" y="611.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-25">
+    <rect x="0" y="611.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-26">
-    <rect x="0" y="635.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-26">
+    <rect x="0" y="635.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-27">
-    <rect x="0" y="660.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-27">
+    <rect x="0" y="660.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-28">
-    <rect x="0" y="684.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-28">
+    <rect x="0" y="684.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-29">
-    <rect x="0" y="709.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-29">
+    <rect x="0" y="709.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-30">
-    <rect x="0" y="733.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-30">
+    <rect x="0" y="733.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-31">
-    <rect x="0" y="757.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-31">
+    <rect x="0" y="757.9" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-32">
-    <rect x="0" y="782.3" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-32">
+    <rect x="0" y="782.3" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-33">
-    <rect x="0" y="806.7" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-33">
+    <rect x="0" y="806.7" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-34">
-    <rect x="0" y="831.1" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-34">
+    <rect x="0" y="831.1" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-35">
-    <rect x="0" y="855.5" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-35">
+    <rect x="0" y="855.5" width="1976.4" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-1117967909-line-36">
-    <rect x="0" y="879.9" width="1878.8" height="24.65"/>
+<clipPath id="terminal-3235960324-line-36">
+    <rect x="0" y="879.9" width="1976.4" height="24.65"/>
             </clipPath>
     </defs>
 
-    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1895" height="975.2" rx="8"/><text class="terminal-1117967909-title" fill="#d9d9d9" text-anchor="middle" x="947" y="27">pwndbg</text>
+    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1993" height="975.2" rx="8"/><text class="terminal-3235960324-title" fill="#d9d9d9" text-anchor="middle" x="996" y="27">pwndbg</text>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
         
-    <g transform="translate(9, 41)" clip-path="url(#terminal-1117967909-clip-terminal)">
+    <g transform="translate(9, 41)" clip-path="url(#terminal-3235960324-clip-terminal)">
     
-    <g class="terminal-1117967909-matrix">
-    <text class="terminal-1117967909-r1" x="0" y="20" textLength="207.4" clip-path="url(#terminal-1117967909-line-0)">$ gdb /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="20" textLength="12.2" clip-path="url(#terminal-1117967909-line-0)">
-</text><text class="terminal-1117967909-r2" x="0" y="44.4" textLength="97.6" clip-path="url(#terminal-1117967909-line-1)">pwndbg&gt; </text><text class="terminal-1117967909-r1" x="97.6" y="44.4" textLength="61" clip-path="url(#terminal-1117967909-line-1)">entry</text><text class="terminal-1117967909-r1" x="1878.8" y="44.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-1)">
-</text><text class="terminal-1117967909-r1" x="0" y="68.8" textLength="488" clip-path="url(#terminal-1117967909-line-2)">Temporary breakpoint 1 at 0x555555559ce0</text><text class="terminal-1117967909-r1" x="1878.8" y="68.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-2)">
-</text><text class="terminal-1117967909-r1" x="0" y="93.2" textLength="549" clip-path="url(#terminal-1117967909-line-3)">[Thread debugging using libthread_db enabled]</text><text class="terminal-1117967909-r1" x="1878.8" y="93.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-3)">
-</text><text class="terminal-1117967909-r1" x="0" y="117.6" textLength="744.2" clip-path="url(#terminal-1117967909-line-4)">Using host libthread_db library &quot;/usr/lib/libthread_db.so.1&quot;.</text><text class="terminal-1117967909-r1" x="1878.8" y="117.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-4)">
-</text><text class="terminal-1117967909-r1" x="1878.8" y="142" textLength="12.2" clip-path="url(#terminal-1117967909-line-5)">
-</text><text class="terminal-1117967909-r1" x="0" y="166.4" textLength="622.2" clip-path="url(#terminal-1117967909-line-6)">Temporary breakpoint 1, 0x0000555555559ce0 in ?? ()</text><text class="terminal-1117967909-r1" x="1878.8" y="166.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-6)">
-</text><text class="terminal-1117967909-r2" x="0" y="190.8" textLength="97.6" clip-path="url(#terminal-1117967909-line-7)">pwndbg&gt; </text><text class="terminal-1117967909-r1" x="97.6" y="190.8" textLength="61" clip-path="url(#terminal-1117967909-line-7)">vmmap</text><text class="terminal-1117967909-r1" x="1878.8" y="190.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-7)">
-</text><text class="terminal-1117967909-r1" x="0" y="215.2" textLength="97.6" clip-path="url(#terminal-1117967909-line-8)">LEGEND: </text><text class="terminal-1117967909-r3" x="97.6" y="215.2" textLength="61" clip-path="url(#terminal-1117967909-line-8)">STACK</text><text class="terminal-1117967909-r1" x="158.6" y="215.2" textLength="36.6" clip-path="url(#terminal-1117967909-line-8)"> | </text><text class="terminal-1117967909-r4" x="195.2" y="215.2" textLength="48.8" clip-path="url(#terminal-1117967909-line-8)">HEAP</text><text class="terminal-1117967909-r1" x="244" y="215.2" textLength="36.6" clip-path="url(#terminal-1117967909-line-8)"> | </text><text class="terminal-1117967909-r5" x="280.6" y="215.2" textLength="48.8" clip-path="url(#terminal-1117967909-line-8)">CODE</text><text class="terminal-1117967909-r1" x="329.4" y="215.2" textLength="36.6" clip-path="url(#terminal-1117967909-line-8)"> | </text><text class="terminal-1117967909-r5" x="366" y="215.2" textLength="48.8" clip-path="url(#terminal-1117967909-line-8)">DATA</text><text class="terminal-1117967909-r1" x="414.8" y="215.2" textLength="36.6" clip-path="url(#terminal-1117967909-line-8)"> | </text><text class="terminal-1117967909-r6" x="451.4" y="215.2" textLength="36.6" clip-path="url(#terminal-1117967909-line-8)">RWX</text><text class="terminal-1117967909-r1" x="488" y="215.2" textLength="109.8" clip-path="url(#terminal-1117967909-line-8)"> | RODATA</text><text class="terminal-1117967909-r1" x="1878.8" y="215.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-8)">
-</text><text class="terminal-1117967909-r1" x="0" y="239.6" textLength="768.6" clip-path="url(#terminal-1117967909-line-9)">             Start                End Perm     Size Offset File</text><text class="terminal-1117967909-r1" x="1878.8" y="239.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-9)">
-</text><text class="terminal-1117967909-r1" x="0" y="264" textLength="854" clip-path="url(#terminal-1117967909-line-10)">    0x555555554000     0x555555558000 r--p     4000      0 /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="264" textLength="12.2" clip-path="url(#terminal-1117967909-line-10)">
-</text><text class="terminal-1117967909-r5" x="0" y="288.4" textLength="854" clip-path="url(#terminal-1117967909-line-11)">    0x555555558000     0x555555574000 r-xp    1c000   4000 /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="288.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-11)">
-</text><text class="terminal-1117967909-r1" x="0" y="312.8" textLength="854" clip-path="url(#terminal-1117967909-line-12)">    0x555555574000     0x55555557e000 r--p     a000  20000 /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="312.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-12)">
-</text><text class="terminal-1117967909-r1" x="0" y="337.2" textLength="854" clip-path="url(#terminal-1117967909-line-13)">    0x55555557e000     0x555555580000 r--p     2000  29000 /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="337.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-13)">
-</text><text class="terminal-1117967909-r5" x="0" y="361.6" textLength="854" clip-path="url(#terminal-1117967909-line-14)">    0x555555580000     0x555555581000 rw-p     1000  2b000 /usr/bin/ls</text><text class="terminal-1117967909-r1" x="1878.8" y="361.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-14)">
-</text><text class="terminal-1117967909-r4" x="0" y="386" textLength="793" clip-path="url(#terminal-1117967909-line-15)">    0x555555581000     0x555555582000 rw-p     1000      0 [heap]</text><text class="terminal-1117967909-r1" x="1878.8" y="386" textLength="12.2" clip-path="url(#terminal-1117967909-line-15)">
-</text><text class="terminal-1117967909-r1" x="0" y="410.4" textLength="939.4" clip-path="url(#terminal-1117967909-line-16)">    0x7ffff7c00000     0x7ffff7c22000 r--p    22000      0 /usr/lib/libc.so.6</text><text class="terminal-1117967909-r1" x="1878.8" y="410.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-16)">
-</text><text class="terminal-1117967909-r5" x="0" y="434.8" textLength="939.4" clip-path="url(#terminal-1117967909-line-17)">    0x7ffff7c22000     0x7ffff7da2000 r-xp   180000  22000 /usr/lib/libc.so.6</text><text class="terminal-1117967909-r1" x="1878.8" y="434.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-17)">
-</text><text class="terminal-1117967909-r1" x="0" y="459.2" textLength="939.4" clip-path="url(#terminal-1117967909-line-18)">    0x7ffff7da2000     0x7ffff7df8000 r--p    56000 1a2000 /usr/lib/libc.so.6</text><text class="terminal-1117967909-r1" x="1878.8" y="459.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-18)">
-</text><text class="terminal-1117967909-r1" x="0" y="483.6" textLength="939.4" clip-path="url(#terminal-1117967909-line-19)">    0x7ffff7df8000     0x7ffff7dfc000 r--p     4000 1f8000 /usr/lib/libc.so.6</text><text class="terminal-1117967909-r1" x="1878.8" y="483.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-19)">
-</text><text class="terminal-1117967909-r5" x="0" y="508" textLength="939.4" clip-path="url(#terminal-1117967909-line-20)">    0x7ffff7dfc000     0x7ffff7dfe000 rw-p     2000 1fc000 /usr/lib/libc.so.6</text><text class="terminal-1117967909-r1" x="1878.8" y="508" textLength="12.2" clip-path="url(#terminal-1117967909-line-20)">
-</text><text class="terminal-1117967909-r5" x="0" y="532.4" textLength="915" clip-path="url(#terminal-1117967909-line-21)">    0x7ffff7dfe000     0x7ffff7e0b000 rw-p     d000      0 [anon_7ffff7dfe]</text><text class="terminal-1117967909-r1" x="1878.8" y="532.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-21)">
-</text><text class="terminal-1117967909-r5" x="0" y="556.8" textLength="915" clip-path="url(#terminal-1117967909-line-22)">    0x7ffff7f6d000     0x7ffff7f70000 rw-p     3000      0 [anon_7ffff7f6d]</text><text class="terminal-1117967909-r1" x="1878.8" y="556.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-22)">
-</text><text class="terminal-1117967909-r1" x="0" y="581.2" textLength="1000.4" clip-path="url(#terminal-1117967909-line-23)">    0x7ffff7f70000     0x7ffff7f73000 r--p     3000      0 /usr/lib/libcap.so.2.66</text><text class="terminal-1117967909-r1" x="1878.8" y="581.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-23)">
-</text><text class="terminal-1117967909-r5" x="0" y="605.6" textLength="1000.4" clip-path="url(#terminal-1117967909-line-24)">    0x7ffff7f73000     0x7ffff7f79000 r-xp     6000   3000 /usr/lib/libcap.so.2.66</text><text class="terminal-1117967909-r1" x="1878.8" y="605.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-24)">
-</text><text class="terminal-1117967909-r1" x="0" y="630" textLength="1000.4" clip-path="url(#terminal-1117967909-line-25)">    0x7ffff7f79000     0x7ffff7f7b000 r--p     2000   9000 /usr/lib/libcap.so.2.66</text><text class="terminal-1117967909-r1" x="1878.8" y="630" textLength="12.2" clip-path="url(#terminal-1117967909-line-25)">
-</text><text class="terminal-1117967909-r1" x="0" y="654.4" textLength="1000.4" clip-path="url(#terminal-1117967909-line-26)">    0x7ffff7f7b000     0x7ffff7f7c000 r--p     1000   a000 /usr/lib/libcap.so.2.66</text><text class="terminal-1117967909-r1" x="1878.8" y="654.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-26)">
-</text><text class="terminal-1117967909-r5" x="0" y="678.8" textLength="1000.4" clip-path="url(#terminal-1117967909-line-27)">    0x7ffff7f7c000     0x7ffff7f7d000 rw-p     1000   b000 /usr/lib/libcap.so.2.66</text><text class="terminal-1117967909-r1" x="1878.8" y="678.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-27)">
-</text><text class="terminal-1117967909-r5" x="0" y="703.2" textLength="915" clip-path="url(#terminal-1117967909-line-28)">    0x7ffff7f7d000     0x7ffff7f7f000 rw-p     2000      0 [anon_7ffff7f7d]</text><text class="terminal-1117967909-r1" x="1878.8" y="703.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-28)">
-</text><text class="terminal-1117967909-r1" x="0" y="727.6" textLength="793" clip-path="url(#terminal-1117967909-line-29)">    0x7ffff7fc1000     0x7ffff7fc5000 r--p     4000      0 [vvar]</text><text class="terminal-1117967909-r1" x="1878.8" y="727.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-29)">
-</text><text class="terminal-1117967909-r5" x="0" y="752" textLength="793" clip-path="url(#terminal-1117967909-line-30)">    0x7ffff7fc5000     0x7ffff7fc7000 r-xp     2000      0 [vdso]</text><text class="terminal-1117967909-r1" x="1878.8" y="752" textLength="12.2" clip-path="url(#terminal-1117967909-line-30)">
-</text><text class="terminal-1117967909-r1" x="0" y="776.4" textLength="1073.6" clip-path="url(#terminal-1117967909-line-31)">    0x7ffff7fc7000     0x7ffff7fc8000 r--p     1000      0 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-1117967909-r1" x="1878.8" y="776.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-31)">
-</text><text class="terminal-1117967909-r5" x="0" y="800.8" textLength="1073.6" clip-path="url(#terminal-1117967909-line-32)">    0x7ffff7fc8000     0x7ffff7ff1000 r-xp    29000   1000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-1117967909-r1" x="1878.8" y="800.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-32)">
-</text><text class="terminal-1117967909-r1" x="0" y="825.2" textLength="1073.6" clip-path="url(#terminal-1117967909-line-33)">    0x7ffff7ff1000     0x7ffff7ffb000 r--p     a000  2a000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-1117967909-r1" x="1878.8" y="825.2" textLength="12.2" clip-path="url(#terminal-1117967909-line-33)">
-</text><text class="terminal-1117967909-r1" x="0" y="849.6" textLength="1073.6" clip-path="url(#terminal-1117967909-line-34)">    0x7ffff7ffb000     0x7ffff7ffd000 r--p     2000  34000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-1117967909-r1" x="1878.8" y="849.6" textLength="12.2" clip-path="url(#terminal-1117967909-line-34)">
-</text><text class="terminal-1117967909-r5" x="0" y="874" textLength="1073.6" clip-path="url(#terminal-1117967909-line-35)">    0x7ffff7ffd000     0x7ffff7fff000 rw-p     2000  36000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-1117967909-r1" x="1878.8" y="874" textLength="12.2" clip-path="url(#terminal-1117967909-line-35)">
-</text><text class="terminal-1117967909-r3" x="0" y="898.4" textLength="805.2" clip-path="url(#terminal-1117967909-line-36)">    0x7ffffffde000     0x7ffffffff000 rw-p    21000      0 [stack]</text><text class="terminal-1117967909-r1" x="1878.8" y="898.4" textLength="12.2" clip-path="url(#terminal-1117967909-line-36)">
-</text><text class="terminal-1117967909-r5" x="0" y="922.8" textLength="841.8" clip-path="url(#terminal-1117967909-line-37)">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]</text><text class="terminal-1117967909-r1" x="1878.8" y="922.8" textLength="12.2" clip-path="url(#terminal-1117967909-line-37)">
+    <g class="terminal-3235960324-matrix">
+    <text class="terminal-3235960324-r1" x="0" y="20" textLength="207.4" clip-path="url(#terminal-3235960324-line-0)">$ gdb /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="20" textLength="12.2" clip-path="url(#terminal-3235960324-line-0)">
+</text><text class="terminal-3235960324-r2" x="0" y="44.4" textLength="97.6" clip-path="url(#terminal-3235960324-line-1)">pwndbg&gt; </text><text class="terminal-3235960324-r1" x="97.6" y="44.4" textLength="61" clip-path="url(#terminal-3235960324-line-1)">entry</text><text class="terminal-3235960324-r1" x="1976.4" y="44.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-1)">
+</text><text class="terminal-3235960324-r1" x="0" y="68.8" textLength="488" clip-path="url(#terminal-3235960324-line-2)">Temporary breakpoint 1 at 0x55555555a280</text><text class="terminal-3235960324-r1" x="1976.4" y="68.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-2)">
+</text><text class="terminal-3235960324-r1" x="0" y="93.2" textLength="549" clip-path="url(#terminal-3235960324-line-3)">[Thread debugging using libthread_db enabled]</text><text class="terminal-3235960324-r1" x="1976.4" y="93.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-3)">
+</text><text class="terminal-3235960324-r1" x="0" y="117.6" textLength="744.2" clip-path="url(#terminal-3235960324-line-4)">Using host libthread_db library &quot;/usr/lib/libthread_db.so.1&quot;.</text><text class="terminal-3235960324-r1" x="1976.4" y="117.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-4)">
+</text><text class="terminal-3235960324-r1" x="1976.4" y="142" textLength="12.2" clip-path="url(#terminal-3235960324-line-5)">
+</text><text class="terminal-3235960324-r1" x="0" y="166.4" textLength="622.2" clip-path="url(#terminal-3235960324-line-6)">Temporary breakpoint 1, 0x000055555555a280 in ?? ()</text><text class="terminal-3235960324-r1" x="1976.4" y="166.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-6)">
+</text><text class="terminal-3235960324-r2" x="0" y="190.8" textLength="97.6" clip-path="url(#terminal-3235960324-line-7)">pwndbg&gt; </text><text class="terminal-3235960324-r1" x="97.6" y="190.8" textLength="61" clip-path="url(#terminal-3235960324-line-7)">vmmap</text><text class="terminal-3235960324-r1" x="1976.4" y="190.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-7)">
+</text><text class="terminal-3235960324-r1" x="0" y="215.2" textLength="97.6" clip-path="url(#terminal-3235960324-line-8)">LEGEND: </text><text class="terminal-3235960324-r3" x="97.6" y="215.2" textLength="61" clip-path="url(#terminal-3235960324-line-8)">STACK</text><text class="terminal-3235960324-r1" x="158.6" y="215.2" textLength="36.6" clip-path="url(#terminal-3235960324-line-8)"> | </text><text class="terminal-3235960324-r4" x="195.2" y="215.2" textLength="48.8" clip-path="url(#terminal-3235960324-line-8)">HEAP</text><text class="terminal-3235960324-r1" x="244" y="215.2" textLength="36.6" clip-path="url(#terminal-3235960324-line-8)"> | </text><text class="terminal-3235960324-r5" x="280.6" y="215.2" textLength="48.8" clip-path="url(#terminal-3235960324-line-8)">CODE</text><text class="terminal-3235960324-r1" x="329.4" y="215.2" textLength="36.6" clip-path="url(#terminal-3235960324-line-8)"> | </text><text class="terminal-3235960324-r5" x="366" y="215.2" textLength="48.8" clip-path="url(#terminal-3235960324-line-8)">DATA</text><text class="terminal-3235960324-r1" x="414.8" y="215.2" textLength="36.6" clip-path="url(#terminal-3235960324-line-8)"> | </text><text class="terminal-3235960324-r6" x="451.4" y="215.2" textLength="36.6" clip-path="url(#terminal-3235960324-line-8)">RWX</text><text class="terminal-3235960324-r1" x="488" y="215.2" textLength="109.8" clip-path="url(#terminal-3235960324-line-8)"> | RODATA</text><text class="terminal-3235960324-r1" x="1976.4" y="215.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-8)">
+</text><text class="terminal-3235960324-r1" x="0" y="239.6" textLength="768.6" clip-path="url(#terminal-3235960324-line-9)">             Start                End Perm     Size Offset File</text><text class="terminal-3235960324-r1" x="1976.4" y="239.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-9)">
+</text><text class="terminal-3235960324-r1" x="0" y="264" textLength="854" clip-path="url(#terminal-3235960324-line-10)">    0x555555554000     0x555555558000 r--p     4000      0 /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="264" textLength="12.2" clip-path="url(#terminal-3235960324-line-10)">
+</text><text class="terminal-3235960324-r5" x="0" y="288.4" textLength="854" clip-path="url(#terminal-3235960324-line-11)">    0x555555558000     0x555555570000 r-xp    18000   4000 /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="288.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-11)">
+</text><text class="terminal-3235960324-r1" x="0" y="312.8" textLength="854" clip-path="url(#terminal-3235960324-line-12)">    0x555555570000     0x555555578000 r--p     8000  1c000 /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="312.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-12)">
+</text><text class="terminal-3235960324-r1" x="0" y="337.2" textLength="854" clip-path="url(#terminal-3235960324-line-13)">    0x555555578000     0x55555557a000 r--p     2000  23000 /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="337.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-13)">
+</text><text class="terminal-3235960324-r5" x="0" y="361.6" textLength="854" clip-path="url(#terminal-3235960324-line-14)">    0x55555557a000     0x55555557b000 rw-p     1000  25000 /usr/bin/ls</text><text class="terminal-3235960324-r1" x="1976.4" y="361.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-14)">
+</text><text class="terminal-3235960324-r4" x="0" y="386" textLength="793" clip-path="url(#terminal-3235960324-line-15)">    0x55555557b000     0x55555557c000 rw-p     1000      0 [heap]</text><text class="terminal-3235960324-r1" x="1976.4" y="386" textLength="12.2" clip-path="url(#terminal-3235960324-line-15)">
+</text><text class="terminal-3235960324-r1" x="0" y="410.4" textLength="939.4" clip-path="url(#terminal-3235960324-line-16)">    0x7ffff7c00000     0x7ffff7c22000 r--p    22000      0 /usr/lib/libc.so.6</text><text class="terminal-3235960324-r1" x="1976.4" y="410.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-16)">
+</text><text class="terminal-3235960324-r5" x="0" y="434.8" textLength="939.4" clip-path="url(#terminal-3235960324-line-17)">    0x7ffff7c22000     0x7ffff7d9f000 r-xp   17d000  22000 /usr/lib/libc.so.6</text><text class="terminal-3235960324-r1" x="1976.4" y="434.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-17)">
+</text><text class="terminal-3235960324-r1" x="0" y="459.2" textLength="939.4" clip-path="url(#terminal-3235960324-line-18)">    0x7ffff7d9f000     0x7ffff7df6000 r--p    57000 19f000 /usr/lib/libc.so.6</text><text class="terminal-3235960324-r1" x="1976.4" y="459.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-18)">
+</text><text class="terminal-3235960324-r1" x="0" y="483.6" textLength="939.4" clip-path="url(#terminal-3235960324-line-19)">    0x7ffff7df6000     0x7ffff7dfa000 r--p     4000 1f5000 /usr/lib/libc.so.6</text><text class="terminal-3235960324-r1" x="1976.4" y="483.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-19)">
+</text><text class="terminal-3235960324-r5" x="0" y="508" textLength="939.4" clip-path="url(#terminal-3235960324-line-20)">    0x7ffff7dfa000     0x7ffff7dfc000 rw-p     2000 1f9000 /usr/lib/libc.so.6</text><text class="terminal-3235960324-r1" x="1976.4" y="508" textLength="12.2" clip-path="url(#terminal-3235960324-line-20)">
+</text><text class="terminal-3235960324-r5" x="0" y="532.4" textLength="915" clip-path="url(#terminal-3235960324-line-21)">    0x7ffff7dfc000     0x7ffff7e09000 rw-p     d000      0 [anon_7ffff7dfc]</text><text class="terminal-3235960324-r1" x="1976.4" y="532.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-21)">
+</text><text class="terminal-3235960324-r5" x="0" y="556.8" textLength="915" clip-path="url(#terminal-3235960324-line-22)">    0x7ffff7f6f000     0x7ffff7f72000 rw-p     3000      0 [anon_7ffff7f6f]</text><text class="terminal-3235960324-r1" x="1976.4" y="556.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-22)">
+</text><text class="terminal-3235960324-r1" x="0" y="581.2" textLength="1000.4" clip-path="url(#terminal-3235960324-line-23)">    0x7ffff7f72000     0x7ffff7f75000 r--p     3000      0 /usr/lib/libcap.so.2.68</text><text class="terminal-3235960324-r1" x="1976.4" y="581.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-23)">
+</text><text class="terminal-3235960324-r5" x="0" y="605.6" textLength="1000.4" clip-path="url(#terminal-3235960324-line-24)">    0x7ffff7f75000     0x7ffff7f7b000 r-xp     6000   3000 /usr/lib/libcap.so.2.68</text><text class="terminal-3235960324-r1" x="1976.4" y="605.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-24)">
+</text><text class="terminal-3235960324-r1" x="0" y="630" textLength="1000.4" clip-path="url(#terminal-3235960324-line-25)">    0x7ffff7f7b000     0x7ffff7f7d000 r--p     2000   9000 /usr/lib/libcap.so.2.68</text><text class="terminal-3235960324-r1" x="1976.4" y="630" textLength="12.2" clip-path="url(#terminal-3235960324-line-25)">
+</text><text class="terminal-3235960324-r1" x="0" y="654.4" textLength="1000.4" clip-path="url(#terminal-3235960324-line-26)">    0x7ffff7f7d000     0x7ffff7f7e000 r--p     1000   a000 /usr/lib/libcap.so.2.68</text><text class="terminal-3235960324-r1" x="1976.4" y="654.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-26)">
+</text><text class="terminal-3235960324-r5" x="0" y="678.8" textLength="1000.4" clip-path="url(#terminal-3235960324-line-27)">    0x7ffff7f7e000     0x7ffff7f7f000 rw-p     1000   b000 /usr/lib/libcap.so.2.68</text><text class="terminal-3235960324-r1" x="1976.4" y="678.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-27)">
+</text><text class="terminal-3235960324-r5" x="0" y="703.2" textLength="915" clip-path="url(#terminal-3235960324-line-28)">    0x7ffff7f7f000     0x7ffff7f81000 rw-p     2000      0 [anon_7ffff7f7f]</text><text class="terminal-3235960324-r1" x="1976.4" y="703.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-28)">
+</text><text class="terminal-3235960324-r1" x="0" y="727.6" textLength="793" clip-path="url(#terminal-3235960324-line-29)">    0x7ffff7fc2000     0x7ffff7fc6000 r--p     4000      0 [vvar]</text><text class="terminal-3235960324-r1" x="1976.4" y="727.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-29)">
+</text><text class="terminal-3235960324-r5" x="0" y="752" textLength="793" clip-path="url(#terminal-3235960324-line-30)">    0x7ffff7fc6000     0x7ffff7fc8000 r-xp     2000      0 [vdso]</text><text class="terminal-3235960324-r1" x="1976.4" y="752" textLength="12.2" clip-path="url(#terminal-3235960324-line-30)">
+</text><text class="terminal-3235960324-r1" x="0" y="776.4" textLength="1073.6" clip-path="url(#terminal-3235960324-line-31)">    0x7ffff7fc8000     0x7ffff7fc9000 r--p     1000      0 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-3235960324-r1" x="1976.4" y="776.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-31)">
+</text><text class="terminal-3235960324-r5" x="0" y="800.8" textLength="1073.6" clip-path="url(#terminal-3235960324-line-32)">    0x7ffff7fc9000     0x7ffff7ff1000 r-xp    28000   1000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-3235960324-r1" x="1976.4" y="800.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-32)">
+</text><text class="terminal-3235960324-r1" x="0" y="825.2" textLength="1073.6" clip-path="url(#terminal-3235960324-line-33)">    0x7ffff7ff1000     0x7ffff7ffb000 r--p     a000  29000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-3235960324-r1" x="1976.4" y="825.2" textLength="12.2" clip-path="url(#terminal-3235960324-line-33)">
+</text><text class="terminal-3235960324-r1" x="0" y="849.6" textLength="1073.6" clip-path="url(#terminal-3235960324-line-34)">    0x7ffff7ffb000     0x7ffff7ffd000 r--p     2000  33000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-3235960324-r1" x="1976.4" y="849.6" textLength="12.2" clip-path="url(#terminal-3235960324-line-34)">
+</text><text class="terminal-3235960324-r5" x="0" y="874" textLength="1073.6" clip-path="url(#terminal-3235960324-line-35)">    0x7ffff7ffd000     0x7ffff7fff000 rw-p     2000  35000 /usr/lib/ld-linux-x86-64.so.2</text><text class="terminal-3235960324-r1" x="1976.4" y="874" textLength="12.2" clip-path="url(#terminal-3235960324-line-35)">
+</text><text class="terminal-3235960324-r3" x="0" y="898.4" textLength="805.2" clip-path="url(#terminal-3235960324-line-36)">    0x7ffffffde000     0x7ffffffff000 rw-p    21000      0 [stack]</text><text class="terminal-3235960324-r1" x="1976.4" y="898.4" textLength="12.2" clip-path="url(#terminal-3235960324-line-36)">
+</text><text class="terminal-3235960324-r5" x="0" y="922.8" textLength="841.8" clip-path="url(#terminal-3235960324-line-37)">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]</text><text class="terminal-3235960324-r1" x="1976.4" y="922.8" textLength="12.2" clip-path="url(#terminal-3235960324-line-37)">
 </text>
     </g>
     <rect x="2.0" y="196.7" width="597.8" height="22.650000000000006" fill="none" stroke="#1abc9c" stroke-width="3" rx="5" ry="5"/><text x="612.8" y="209.02499999999998" font-size="40" font-family="monospace" alignment-baseline="middle" fill="#1abc9c">Legend for the colors</text></g>

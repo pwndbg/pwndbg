@@ -7,7 +7,6 @@ Pwndbg has a great deal of useful features.  You can a list of all available com
 An useful summary of the current execution context is printed every time GDB stops (e.g. breakpoint or single-step):
 
 ![](images/context.svg)
-
 The context shows:
   - registers
   - the stack
@@ -15,7 +14,7 @@ The context shows:
   - disassembly
   - all pointers are recursively dereferenced
 
-  TODO
+For more advanced usage and customization, see the [Advanced Context](#advanced-context) section.
 
 ## Commands
 
@@ -76,3 +75,13 @@ You can use the `rop` command to search for ROP gadgets in the current process w
 Finding leak chains can be done using the leakfind command. It recursively scans address ranges for pointers, and reports on all pointers found, recursively dereferencing them.
 
 ![](images/leakfind.svg)
+# Advanced Context
+
+The context display can be manually invoked with the `context` command. Additionally, you can only show specific sections, by specifying them as arguments:
+
+![](images/advanced_context.svg)
+Available context sections are: `reg`, `disasm`, `code`, `stack`, `backtrace`, `ghidra`, `args`.
+
+You can also customize which sections you want to display every time a command is executed by setting the `context-sections` setting:
+
+![](images/advanced_context1.svg)
