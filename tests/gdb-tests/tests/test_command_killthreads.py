@@ -26,7 +26,7 @@ def test_command_killthreads_kills_all_threads_except_current(start_binary):
 
     gdb.execute("break break_here")
     gdb.execute("run")
-    wait_until(lambda: len(gdb.selected_inferior().threads()) != 1)
+    wait_until(lambda: len(gdb.selected_inferior().threads()) == 3)
 
     gdb.execute("killthreads --all")
 
