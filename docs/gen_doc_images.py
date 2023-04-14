@@ -14,14 +14,16 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 gdb_common = 'gdb --quiet --ex "source ' + parent_dir + '/gdbinit.py"'
 
 # rect representing a rectangle with floating point coordinates
-class Rect():
+class Rect:
     def __init__(self, min_x, min_y, max_x, max_y):
         self.min_x = min_x
         self.min_y = min_y
         self.max_x = max_x
         self.max_y = max_y
+
     def __str__(self):
         return f"Rect({self.min_x}, {self.min_y}, {self.max_x}, {self.max_y})"
+
     def extend(self, other):
         if not other.valid():
             return
@@ -35,12 +37,21 @@ class Rect():
         self.min_y = min(self.min_y, other.min_y)
         self.max_x = max(self.max_x, other.max_x)
         self.max_y = max(self.max_y, other.max_y)
+
     def width(self):
         return self.max_x - self.min_x
+
     def height(self):
         return self.max_y - self.min_y
+
     def valid(self):
-        return self.min_x is not None and self.min_y is not None and self.max_x is not None and self.max_y is not None
+        return (
+            self.min_x is not None
+            and self.min_y is not None
+            and self.max_x is not None
+            and self.max_y is not None
+        )
+
 
 def annotate_svg(svg_path, annotations=[]):
     annotation_colors = [
@@ -61,11 +72,11 @@ def annotate_svg(svg_path, annotations=[]):
                 float(rect.getAttribute("y")),
                 float(rect.getAttribute("x")) + float(rect.getAttribute("width")),
                 float(rect.getAttribute("y")) + float(rect.getAttribute("height")),
-            )       
+            )
     # get all <text> elements
     text_elements = doc.getElementsByTagName("text")
     for annotation in annotations:
-      
+
         text_parent = None
         # parse annotation["match"] as regexes
         regexes = [re.compile(regex) for regex in annotation["match"]]
@@ -75,18 +86,20 @@ def annotate_svg(svg_path, annotations=[]):
             text = text_element.firstChild.nodeValue
             # if any of the regexes match, add the annotation
             if any(regex.search(text) for regex in regexes):
-                clipPathId = text_element.getAttribute("clip-path").replace("url(#", "").replace(")", "")
+                clipPathId = (
+                    text_element.getAttribute("clip-path").replace("url(#", "").replace(")", "")
+                )
                 rect = clip_rects[clipPathId]
                 text_parent = text_element.parentNode.parentNode
                 rect.min_x = float(text_element.getAttribute("x"))
                 rect.max_x = rect.min_x + float(text_element.getAttribute("textLength"))
-               
+
                 annotation_rect.extend(rect)
         # add the annotation
         if text_parent is not None:
             rect = doc.createElement("rect")
             rect.setAttribute("x", str(annotation_rect.min_x + 2.0))
-            rect.setAttribute("y",  str(annotation_rect.min_y))
+            rect.setAttribute("y", str(annotation_rect.min_y))
             rect.setAttribute("width", str(annotation_rect.width()))
             rect.setAttribute("height", str(annotation_rect.height() - 2.0))
             rect.setAttribute("fill", "none")
@@ -105,9 +118,9 @@ def annotate_svg(svg_path, annotations=[]):
             text.setAttribute("fill", annotation_colors[0])
             text.appendChild(doc.createTextNode(annotation["text"]))
             text_parent.appendChild(text)
-            
-            annotation_colors.append(annotation_colors.pop(0)) # rotate colors
-            
+
+            annotation_colors.append(annotation_colors.pop(0))  # rotate colors
+
     with open(svg_path, "w") as f:
         f.write(doc.toxml())
 
@@ -143,7 +156,7 @@ def render_cmd(cmd, stdin_input, outfile, cmd_display_as=None):
                 pass
             # end at '---END_RENDER---'
             try:
-                out_str_lines = out_str_lines[: out_str_lines.index("'---END_RENDER---'")-1]
+                out_str_lines = out_str_lines[: out_str_lines.index("'---END_RENDER---'") - 1]
             except ValueError:
                 pass
 
@@ -161,7 +174,10 @@ def render_cmd(cmd, stdin_input, outfile, cmd_display_as=None):
             annotate_svg(outfile, annotations)
             break
 
+
 names_used = []
+
+
 def generate_name(title):
     if title in names_used:
         i = 1
@@ -170,6 +186,7 @@ def generate_name(title):
         title += str(i)
     names_used.append(title)
     return title
+
 
 if __name__ == "__main__":
     # open FEATURES.md and find all the code blocks
