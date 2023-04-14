@@ -716,11 +716,11 @@ def find_fake_fast(
         search_start = pwndbg.lib.memory.page_size_align(search_start)
         if (
             search_start > (search_end - size_field_width)
-            or pwndbg.gdblib.memory.peek(search_start) == None
+            or pwndbg.gdblib.memory.peek(search_start) is None
         ):
             print(
                 message.warn(
-                    f"No fake fast chunk candidates found; memory preceding target address is not readable"
+                    "No fake fast chunk candidates found; memory preceding target address is not readable"
                 )
             )
             return None
@@ -732,7 +732,7 @@ def find_fake_fast(
         if search_start > (search_end - size_field_width):
             print(
                 message.warn(
-                    f"No fake fast chunk candidates found; alignment didn't leave enough space for a size field"
+                    "No fake fast chunk candidates found; alignment didn't leave enough space for a size field"
                 )
             )
             return None
