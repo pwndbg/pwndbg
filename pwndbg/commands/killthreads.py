@@ -33,7 +33,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def killthreads(thread_ids: Optional[List] = None, all: bool = False) -> None:
     if len(thread_ids) == 0 and not all:
-        print(message.error("No thread IDs specified and --all not set"))
+        print(message.error("No thread IDs or --all flag specified"))
         return
 
     if all and len(thread_ids) > 0:
