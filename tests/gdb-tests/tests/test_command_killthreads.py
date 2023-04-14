@@ -1,3 +1,5 @@
+import time
+
 import gdb
 
 import tests
@@ -5,17 +7,31 @@ import tests
 REFERENCE_BINARY_THREADS = tests.binaries.get("multiple_threads.out")
 
 
+def wait_until(predicate: callable, timeout: int = 5):
+    """
+    Waits until the predicate returns True or timeout is reached.
+    """
+    counter = 0
+    while True:
+        if predicate():
+            return True
+        time.sleep(0.1)
+        counter += 0.1
+        if counter > timeout:
+            assert False, "Timeout reached"
+
+
 def test_command_killthreads_kills_all_threads_except_current(start_binary):
     start_binary(REFERENCE_BINARY_THREADS)
 
     gdb.execute("break break_here")
     gdb.execute("run")
-    assert len(gdb.selected_inferior().threads()) != 1
+    wait_until(lambda: len(gdb.selected_inferior().threads()) != 1)
 
     gdb.execute("killthreads --all")
 
     # check if only one thread is left
-    assert len(gdb.selected_inferior().threads()) == 1
+    wait_until(lambda: len(gdb.selected_inferior().threads()) == 1)
 
     gdb.execute("continue")
     exit_code = gdb.execute("print $_exitcode", to_string=True)
