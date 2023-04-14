@@ -63,13 +63,56 @@ install_emerge() {
 install_pacman() {
     sudo pacman -Syy --noconfirm || true
     sudo pacman -S --noconfirm git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
-    echo "set debuginfod enabled on" >> ~/.gdbinit
+    if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
+        echo "set debuginfod enabled on" >> ~/.gdbinit
+    fi
 }
+
+usage() {
+    echo "Usage: $0 [--update] [--user]"
+    echo "  --update: Install/update dependencies without checking ~/.gdbinit"
+    echo "  --user: Install pip dependencies to the user's home directory"
+}
+
+UPDATE_MODE=
+USER_MODE=
+for arg in "$@"; do
+    case $arg in
+        --update)
+            UPDATE_MODE=1
+            ;;
+        --user)
+            USER_MODE=1
+            ;;
+        -h | --help)
+            set +x
+            usage
+            exit 0
+            ;;
+        *)
+            set +x
+            echo "Unknown argument: $arg"
+            usage
+            exit 1
+            ;;
+    esac
+done
 
 PYTHON=''
 INSTALLFLAGS=''
 
-if osx || [ "$1" == "--user" ]; then
+# Check for the presence of the initializer line in the user's ~/.gdbinit file
+if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+    # Ask the user if they want to proceed and override the initializer line
+    read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
+
+    # If the user does not want to proceed, exit the script
+    if [[ "$answer" != "y" ]]; then
+        exit 0
+    fi
+fi
+
+if osx || [ -n "$USER_MODE" ]; then
     INSTALLFLAGS="--user"
 else
     PYTHON="sudo "
@@ -154,7 +197,17 @@ ${PYTHON} -m pip install ${INSTALLFLAGS} --upgrade pip
 # Install Python dependencies
 ${PYTHON} -m pip install ${INSTALLFLAGS} -Ur requirements.txt
 
-# Load Pwndbg into GDB on every launch.
-if ! grep pwndbg ~/.gdbinit &> /dev/null; then
+if [ -z "$UPDATE_MODE" ]; then
+    # Comment old configs out
+    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+        if ! osx; then
+            sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+        else
+            # In BSD sed we need to pass ' ' to indicate that no backup file should be created
+            sed -i ' ' '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
+        fi
+    fi
+
+    # Load Pwndbg into GDB on every launch.
     echo "source $PWD/gdbinit.py" >> ~/.gdbinit
 fi

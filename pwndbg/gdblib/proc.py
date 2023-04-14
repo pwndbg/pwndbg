@@ -9,11 +9,15 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
+from typing import Optional
+from typing import Tuple
 
 import gdb
+from elftools.elf.relocation import Relocation
 
 import pwndbg.gdblib.qemu
 import pwndbg.lib.memoize
+import pwndbg.lib.memory
 
 
 class module(ModuleType):
@@ -39,6 +43,10 @@ class module(ModuleType):
             return i.ptid[1]
 
         return self.pid
+
+    @property
+    def thread_id(self):
+        return gdb.selected_thread().num
 
     @property
     def alive(self) -> bool:
@@ -81,9 +89,66 @@ class module(ModuleType):
         2. gdb -ex "target remote :1234" -ex "pi pwndbg.gdblib.proc.exe"
 
         If you need to process the debugged file use:
-            `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)`
+            `pwndbg.gdblib.file.get_proc_exe_file()`
+            (This will call `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe, try_local_path=True)`)
         """
         return gdb.current_progspace().filename
+
+    @property
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_stop
+    def binary_base_addr(self) -> int:
+        return self.binary_vmmap[0].start
+
+    @property
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_stop
+    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+        return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
+        """
+        Dump .data section of current process's ELF file
+        """
+        return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def dump_relocations_by_section_name(
+        self, section_name: str
+    ) -> Optional[Tuple[Relocation, ...]]:
+        """
+        Dump relocations of a section by section name of current process's ELF file
+        """
+        return pwndbg.gdblib.elf.dump_relocations_by_section_name(
+            self.exe, section_name, try_local_path=True
+        )
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def get_data_section_address(self) -> int:
+        """
+        Find .data section address of current process.
+        """
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
+            if line.endswith(" is .data"):
+                return int(line.split()[0], 16)
+        return 0
+
+    @pwndbg.lib.memoize.reset_on_start
+    @pwndbg.lib.memoize.reset_on_objfile
+    def get_got_section_address(self) -> int:
+        """
+        Find .got section address of current process.
+        """
+        out = pwndbg.gdblib.info.files()
+        for line in out.splitlines():
+            if line.endswith(" is .got"):
+                return int(line.split()[0], 16)
+        return 0
 
     def OnlyWhenRunning(self, func):
         @functools.wraps(func)

@@ -83,3 +83,4 @@ tests/qemu-tests/images
 .vscode/
 
 .zig/
+gdb.txt

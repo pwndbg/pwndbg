@@ -216,12 +216,12 @@ def test_vis_heap_chunk_command(start_binary):
     for omitted_line in omitted_result:
         assert omitted_line in default_result or set(omitted_line) == {"."}
 
-    display_all_result = gdb.execute("vis_heap_chunk -a", to_string=True).splitlines()
-    assert display_all_result == default_result
+    no_truncate_result = gdb.execute("vis_heap_chunk -n", to_string=True).splitlines()
+    assert no_truncate_result == default_result
 
     del default_result
     del omitted_result
-    del display_all_result
+    del no_truncate_result
 
     # Continue, mock overflow changing the chunk size
     gdb.execute("continue")

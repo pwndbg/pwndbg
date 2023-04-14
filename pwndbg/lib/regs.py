@@ -472,10 +472,53 @@ mips = RegisterSet(
     retval="v0",
 )
 
+riscv = RegisterSet(
+    pc="pc",
+    stack="sp",
+    retaddr=("ra",),
+    gpr=(
+        "ra",
+        "gp",
+        "tp",
+        "t0",
+        "t1",
+        "t2",
+        "s0",
+        "s1",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9",
+        "s10",
+        "s11",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+    ),
+    args=("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"),
+    # TODO: make retval a tuple
+    # a1 for second return value
+    retval="a0",
+)
+
 reg_sets = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,
+    "riscv:rv64": riscv,
     "mips": mips,
     "sparc": sparc,
     "arm": arm,

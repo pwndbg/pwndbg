@@ -61,14 +61,15 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
 @pwndbg.lib.memoize.reset_on_objfile
 def get(address: int, gdb_only=False) -> str:
     """
-    Retrieve the name for the symbol located at `address`
+    Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
+    Passing `gdb_only=True`
     """
-    # Fast path
-    if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
-        return ""
+    # Note: we do not return "" on `address < pwndbg.gdblib.memory.MMAP_MIN_ADDR`
+    # because this may be used to find out the symbol name on PIE binaries that weren't started yet
+    # and then their symbol addresses can be found by GDB on their (non-rebased) offsets
 
-    # Don't look up stack addresses
-    if pwndbg.gdblib.stack.find(address):
+    # Fast path: GDB's `info symbol` returns 'Numeric constant too large' here
+    if address >= ((1 << 64) - 1):
         return ""
 
     # This sucks, but there's not a GDB API for this.
@@ -83,19 +84,29 @@ def get(address: int, gdb_only=False) -> str:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
 
-    # Expected format looks like this:
-    # main in section .text of /bin/bash
-    # main + 3 in section .text of /bin/bash
-    # system + 1 in section .text of /lib/x86_64-linux-gnu/libc.so.6
-    # No symbol matches system-1.
-    a, b, c, _ = result.split(maxsplit=3)
+    # If there are newlines, which means that there are multiple symbols for the address
+    # then use the first one (see also #1610)
+    result = result[: result.index("\n")]
 
-    if b == "+":
-        return "%s+%s" % (a, c)
-    if b == "in":
-        return a
+    # See https://github.com/bminor/binutils-gdb/blob/d1702fea87aa62dff7de465464097dba63cc8c0f/gdb/printcmd.c#L1594-L1624
+    # The most often encountered formats looks like this:
+    #   "main in section .text of /bin/bash"
+    #   "main + 3 in section .text of /bin/bash"
+    #   "system + 1 in section .text of /lib/x86_64-linux-gnu/libc.so.6"
+    #   "No symbol matches system-1"
+    # But there are some others that we have to account for as well
+    if " in section " in result:
+        loc_string, _ = result.split(" in section ")
+    elif " in load address range of " in result:
+        loc_string, _ = result.split(" in load address range of ")
+    elif " overlay section " in result:
+        result, _ = result.split(" overlay section ")
+        loc_string, _ = result.split(" in ")
+    else:
+        loc_string = ""
 
-    return ""
+    # If there is 'main + 87' we want to replace it with 'main+87' etc.
+    return loc_string.replace(" + ", "+")
 
 
 @pwndbg.lib.memoize.reset_on_objfile
@@ -170,39 +181,6 @@ def static_linkage_symbol_address(symbol: str) -> int:
         return int(symbol_obj.value().address) if symbol_obj else None
     except gdb.error:
         return None
-
-
-@pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_start
-def _add_main_exe_to_symbols() -> None:
-    if not pwndbg.gdblib.remote.is_remote():
-        return
-
-    if pwndbg.gdblib.android.is_android():
-        return
-
-    exe = pwndbg.gdblib.elf.exe()
-
-    if not exe:
-        return
-
-    addr = exe.address
-
-    if not addr:
-        return
-
-    addr = int(addr)
-
-    mmap = pwndbg.gdblib.vmmap.find(addr)
-    if not mmap:
-        return
-
-    path = mmap.objfile
-    if path and (pwndbg.gdblib.arch.endian == pwndbg.gdblib.arch.native_endian):
-        try:
-            gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
-        except gdb.error:
-            pass
 
 
 @pwndbg.lib.memoize.reset_on_stop

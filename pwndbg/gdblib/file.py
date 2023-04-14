@@ -35,7 +35,14 @@ def remote_files_dir():
     return _remote_files_dir
 
 
-def get_file(path: str) -> str:
+def get_proc_exe_file() -> str:
+    """
+    Returns the local path to the debugged file name.
+    """
+    return get_file(pwndbg.gdblib.proc.exe, try_local_path=True)
+
+
+def get_file(path: str, try_local_path: bool = False) -> str:
     """
     Downloads the specified file from the system where the current process is
     being debugged.
@@ -43,12 +50,17 @@ def get_file(path: str) -> str:
     If the `path` is prefixed with "target:" the prefix is stripped
     (to support remote target paths properly).
 
+    If the `try_local_path` is set to `True` and the `path` exists locally and "target:" prefix is not present, it will return the local path instead of downloading the file.
+
     Returns:
         The local path to the file
     """
-    assert path.startswith("/") or path.startswith("target:"), "get_file called with incorrect path"
+    assert path.startswith(("/", "./")) or path.startswith(
+        "target:"
+    ), "get_file called with incorrect path"
 
-    if path.startswith("target:"):
+    has_target_prefix = path.startswith("target:")
+    if has_target_prefix:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
@@ -59,6 +71,8 @@ def get_file(path: str) -> str:
 
     elif pwndbg.gdblib.remote.is_remote():
         if not pwndbg.gdblib.qemu.is_qemu():
+            if try_local_path and not has_target_prefix and os.path.exists(local_path):
+                return local_path
             local_path = tempfile.mktemp(dir=remote_files_dir())
             error = None
             try:
@@ -71,7 +85,7 @@ def get_file(path: str) -> str:
         else:
             print(
                 message.warn(
-                    "pwndbg.gdblib.file.get(%s) returns local path as we can't download file from QEMU"
+                    "pwndbg.gdblib.file.get_file(%s) returns local path as we can't download file from QEMU"
                     % path
                 )
             )
