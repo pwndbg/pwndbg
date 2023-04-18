@@ -89,11 +89,15 @@ class ArchOps:
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
+    # virt <-> phys
+
     def virt_to_phys(self, virt: int) -> int:
         raise NotImplementedError()
 
     def phys_to_virt(self, phys: int) -> int:
         raise NotImplementedError()
+
+    # phys <-> pfn
 
     def phys_to_pfn(self, phys: int) -> int:
         raise NotImplementedError()
@@ -101,17 +105,37 @@ class ArchOps:
     def pfn_to_phys(self, pfn: int) -> int:
         raise NotImplementedError()
 
-    def phys_to_page(self, phys: int) -> int:
+    # pfn <-> page
+
+    def pfn_to_page(self, phys: int) -> int:
         raise NotImplementedError()
+
+    def page_to_pfn(self, page: int) -> int:
+        raise NotImplementedError()
+
+    # virt <-> pfn
+
+    def virt_to_pfn(self, virt: int) -> int:
+        return phys_to_virt(pfn_to_phys(virt))
+
+    def pfn_to_virt(self, pfn: int) -> int:
+        return phys_to_virt(pfn_to_phys(pfn))
+
+    # phys <-> page
+
+    def phys_to_page(self, phys: int) -> int:
+        return pfn_to_page(phys_to_pfn(phys))
 
     def page_to_phys(self, page: int) -> int:
-        raise NotImplementedError()
+        return pfn_to_phys(page_to_pfn(page))
+
+    # virt <-> page
 
     def virt_to_page(self, virt: int) -> int:
-        return phys_to_page(virt_to_phys(virt))
+        return pfn_to_page(virt_to_pfn(virt))
 
     def page_to_virt(self, page: int) -> int:
-        return phys_to_virt(page_to_phys(page))
+        return pfn_to_virt(page_to_pfn(page))
 
 
 class x86_64Ops(ArchOps):
@@ -138,14 +162,18 @@ class x86_64Ops(ArchOps):
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
+    # virt <-> phys
+
     def virt_to_phys(self, virt: int) -> int:
-        if virt < self.__START_KERNEL_map:
+        if virt < self.START_KERNEL_map:
             return virt - self.PAGE_OFFSET
         else:
-            return (virt - self.__START_KERNEL_MAP) + self.phys_base
+            return (virt - self.START_KERNEL_map) + self.phys_base
 
     def phys_to_virt(self, phys: int) -> int:
         return phys + self.PAGE_OFFSET
+
+    # phys <-> pfn
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.PAGE_SHIFT
@@ -153,11 +181,17 @@ class x86_64Ops(ArchOps):
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.PAGE_SHIFT
 
-    def phys_to_page(self, phys: int) -> int:
-        return (self.STRUCT_PAGE_SIZE * phys_to_pfn(phys)) + self.START_KERNEL_map
+    # pfn <-> page
 
-    def page_to_phys(self, page: int) -> int:
-        return pfn_to_phys((page - self.START_KERNEL_map) >> self.STRUCT_PAGE_SHIFT)
+    def pfn_to_page(self, pfn: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (pfn << self.STRUCT_PAGE_SHIFT) + self.VMEMMAP_START
+
+    def page_to_pfn(self, page: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     def paging_enabled() -> bool:
@@ -191,11 +225,15 @@ class Aarch64Ops(ArchOps):
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
+    # virt <-> phys
+
     def virt_to_phys(self, virt: int) -> int:
         return virt - self.PAGE_OFFSET
 
     def phys_to_virt(self, phys: int) -> int:
         return phys + self.PAGE_OFFSET
+
+    # phys <-> pfn
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.PAGE_SHIFT
@@ -203,11 +241,17 @@ class Aarch64Ops(ArchOps):
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.PAGE_SHIFT
 
-    def phys_to_page(self, phys: int) -> int:
-        return (self.STRUCT_PAGE_SIZE * phys_to_pfn(phys)) + self.VMEMMAP_START
+    # pfn <-> page
 
-    def page_to_phys(self, page: int) -> int:
-        return pfn_to_phys((page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT)
+    def pfn_to_page(self, pfn: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (pfn << self.STRUCT_PAGE_SHIFT) + self.VMEMMAP_START
+
+    def page_to_pfn(self, page: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     def paging_enabled() -> bool:
@@ -222,7 +266,6 @@ _arch_ops: ArchOps = None
 def arch_ops() -> ArchOps:
     global _arch_ops
     if _arch_ops is None:
-        arch_name = pwndbg.gdblib.arch.name
         if pwndbg.gdblib.arch.name == "aarch64":
             _arch_ops = Aarch64Ops()
         elif pwndbg.gdblib.arch.name == "x86-64":
@@ -232,7 +275,6 @@ def arch_ops() -> ArchOps:
 
 
 def per_cpu(addr: gdb.Value, cpu=None):
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
@@ -241,7 +283,6 @@ def per_cpu(addr: gdb.Value, cpu=None):
 
 
 def virt_to_phys(virt: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.virt_to_phys(virt)
@@ -250,7 +291,6 @@ def virt_to_phys(virt: int) -> int:
 
 
 def phys_to_virt(phys: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.phys_to_virt(phys)
@@ -259,7 +299,6 @@ def phys_to_virt(phys: int) -> int:
 
 
 def phys_to_pfn(phys: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.phys_to_pfn(phys)
@@ -268,7 +307,6 @@ def phys_to_pfn(phys: int) -> int:
 
 
 def pfn_to_phys(pfn: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.pfn_to_phys(pfn)
@@ -276,8 +314,23 @@ def pfn_to_phys(pfn: int) -> int:
         raise NotImplementedError()
 
 
+def pfn_to_page(pfn: int) -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.pfn_to_page(pfn)
+    else:
+        raise NotImplementedError()
+
+
+def page_to_pfn(page: int) -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.page_to_pfn(page)
+    else:
+        raise NotImplementedError()
+
+
 def phys_to_page(phys: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.phys_to_page(phys)
@@ -286,7 +339,6 @@ def phys_to_page(phys: int) -> int:
 
 
 def page_to_phys(page: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.page_to_phys(page)
@@ -295,7 +347,6 @@ def page_to_phys(page: int) -> int:
 
 
 def virt_to_page(virt: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.virt_to_page(virt)
@@ -304,10 +355,25 @@ def virt_to_page(virt: int) -> int:
 
 
 def page_to_virt(page: int) -> int:
-    arch_name = pwndbg.gdblib.arch.name
     ops = arch_ops()
     if ops:
         return ops.page_to_virt(page)
+    else:
+        raise NotImplementedError()
+
+
+def pfn_to_virt(pfn: int) -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.pfn_to_virt(pfn)
+    else:
+        raise NotImplementedError()
+
+
+def virt_to_pfn(virt: int) -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.virt_to_pfn(virt)
     else:
         raise NotImplementedError()
 
