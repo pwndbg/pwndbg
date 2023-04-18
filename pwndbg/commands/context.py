@@ -614,7 +614,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
-        pwndbg.lib.memoize.reset()
+        pwndbg.lib.cache.clear_caches()
 
     result = pwndbg.gdblib.nearpc.nearpc(
         lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate)

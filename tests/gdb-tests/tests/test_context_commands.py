@@ -222,3 +222,31 @@ def test_context_backtrace_show_proper_symbol_names(start_binary):
         == "────────────────────────────────────────────────────────────────────────────────"
     )
     assert backtrace[-1] == ""
+
+
+def test_context_disasm_works_properly_with_disasm_flavor_switch(start_binary):
+    start_binary(SYSCALLS_BINARY)
+
+    def assert_intel(out):
+        assert "mov    eax, 0" in out[2]
+        assert "mov    edi, 0x1337" in out[3]
+        assert "mov    esi, 0xdeadbeef" in out[4]
+        assert "mov    ecx, 0x10" in out[5]
+        assert "syscall" in out[6]
+
+    def assert_att(out):
+        assert "mov    movl   $0, %eax" not in out[2]
+        assert "mov    movl   $0x1337, %edi" not in out[3]
+        assert "mov    movl   $0xdeadbeef, %esi" not in out[4]
+        assert "mov    movl   $0x10, %ecx" not in out[5]
+        assert "syscall" in out[6]
+
+    out = gdb.execute("context disasm", to_string=True).split("\n")
+    assert out[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    assert_intel(out)
+
+    gdb.execute("set disassembly-flavor att")
+    assert out[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    assert_att(out)
