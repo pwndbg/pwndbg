@@ -18,7 +18,7 @@ except Exception:
 try:
     release_ver = pwndbg.gdblib.kernel.krelease()
     # release should be int tuple of form: (major, minor, patch)
-    assert(len(release_ver) == 3)
+    assert len(release_ver) == 3
 except Exception:
     traceback.print_exc()
     exit(1)

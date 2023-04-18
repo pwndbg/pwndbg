@@ -1,6 +1,7 @@
 import functools
 import math
 import re
+from typing import Tuple
 
 import gdb
 
@@ -79,7 +80,7 @@ def kversion() -> str:
 
 @requires_debug_syms()
 @pwndbg.lib.memoize.reset_on_start
-def krelease() -> tuple[int, int, int]:
+def krelease() -> Tuple[int, ...]:
     # try to extract (major.minor.patch) version
     match = re.search(r"Linux version (\d+)\.(\d+)\.(\d+)", kversion())
     if match:
