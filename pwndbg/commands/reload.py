@@ -6,7 +6,7 @@ import gdb
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 
 

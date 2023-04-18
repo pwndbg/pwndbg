@@ -4,7 +4,7 @@ import traceback
 
 import gdb
 
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.lib.stdio
 from pwndbg.color import message
 from pwndbg.gdblib import config
@@ -31,7 +31,7 @@ debug = config.add_param(
 )
 
 
-@pwndbg.lib.memoize.forever
+@pwndbg.lib.cache.cache_until("forever")
 def inform_report_issue(exception_msg) -> None:
     """
     Informs user that he can report an issue.
