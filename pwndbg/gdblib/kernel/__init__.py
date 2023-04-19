@@ -108,15 +108,11 @@ class ArchOps:
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
-    # virt <-> phys
-
     def virt_to_phys(self, virt: int) -> int:
         raise NotImplementedError()
 
     def phys_to_virt(self, phys: int) -> int:
         raise NotImplementedError()
-
-    # phys <-> pfn
 
     def phys_to_pfn(self, phys: int) -> int:
         raise NotImplementedError()
@@ -124,15 +120,11 @@ class ArchOps:
     def pfn_to_phys(self, pfn: int) -> int:
         raise NotImplementedError()
 
-    # pfn <-> page
-
     def pfn_to_page(self, phys: int) -> int:
         raise NotImplementedError()
 
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
-
-    # virt <-> pfn
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -140,15 +132,11 @@ class ArchOps:
     def pfn_to_virt(self, pfn: int) -> int:
         return phys_to_virt(pfn_to_phys(pfn))
 
-    # phys <-> page
-
     def phys_to_page(self, phys: int) -> int:
         return pfn_to_page(phys_to_pfn(phys))
 
     def page_to_phys(self, page: int) -> int:
         return pfn_to_phys(page_to_pfn(page))
-
-    # virt <-> page
 
     def virt_to_page(self, virt: int) -> int:
         return pfn_to_page(virt_to_pfn(virt))
@@ -182,8 +170,6 @@ class x86_64Ops(ArchOps):
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
-    # virt <-> phys
-
     def virt_to_phys(self, virt: int) -> int:
         if virt < self.START_KERNEL_map:
             return virt - self.PAGE_OFFSET
@@ -196,15 +182,11 @@ class x86_64Ops(ArchOps):
             return x + self.START_KERNEL_map
         return phys + self.PAGE_OFFSET
 
-    # phys <-> pfn
-
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.PAGE_SHIFT
 
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.PAGE_SHIFT
-
-    # pfn <-> page
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -248,23 +230,17 @@ class Aarch64Ops(ArchOps):
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
-    # virt <-> phys
-
     def virt_to_phys(self, virt: int) -> int:
         return virt - self.PAGE_OFFSET
 
     def phys_to_virt(self, phys: int) -> int:
         return phys + self.PAGE_OFFSET
 
-    # phys <-> pfn
-
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.PAGE_SHIFT
 
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.PAGE_SHIFT
-
-    # pfn <-> page
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
