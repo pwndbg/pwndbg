@@ -998,9 +998,9 @@ def bin_labels_mapping(collections):
             chunks = b.fd_chain
             for chunk_addr in chunks:
                 labels_mapping.setdefault(chunk_addr, []).append(
-                        "{:s}[{:s}][{:d}{}]".format(
-                            bins_type, size, chunks.index(chunk_addr), count or ""
-                        )
+                    "{:s}[{:s}][{:d}{}]".format(
+                        bins_type, size, chunks.index(chunk_addr), count or ""
+                    )
                 )
 
     return labels_mapping
