@@ -85,6 +85,25 @@ def is_kaslr_enabled() -> bool:
     return "nokaslr" not in kcmdline()
 
 
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
+def cpu_feature_capability(feature: int) -> bool:
+    boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
+    capabilities = boot_cpu_data["x86_capability"]
+    return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
+
+
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
+def uses_5lvl_paging() -> bool:
+    X86_FEATURE_LA57 = 16 * 32 + 16
+    return (
+        "CONFIG_X86_5LEVEL = y" in kconfig()
+        and "no5lvl" in kcmdline()
+        and cpu_feature_capability(X86_FEATURE_LA57)
+    )
+
+
 class ArchOps:
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
@@ -116,7 +135,7 @@ class ArchOps:
     # virt <-> pfn
 
     def virt_to_pfn(self, virt: int) -> int:
-        return phys_to_virt(pfn_to_phys(virt))
+        return phys_to_pfn(virt_to_phys(virt))
 
     def pfn_to_virt(self, pfn: int) -> int:
         return phys_to_virt(pfn_to_phys(pfn))
@@ -140,15 +159,16 @@ class ArchOps:
 
 class x86_64Ops(ArchOps):
     def __init__(self) -> None:
-        if "X86_5LEVEL" in kconfig() and "no5lvl" not in kcmdline():
-            raise NotImplementedError("Level 5 page table support is not implemented")
+        if uses_5lvl_paging():
+            self.PAGE_OFFSET = 0xFF11000000000000
+            self.VMEMMAP_START = 0xFFD4000000000000
+        else:
+            self.PAGE_OFFSET = 0xFFFF888000000000
+            self.VMEMMAP_START = 0xFFFFEA0000000000
 
         self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
 
-        self.PAGE_OFFSET = 0xFFFF888000000000
-        self.PHYSICAL_MASK_SHIFT = 52
-        self.VIRTUAL_MASK_SHIFT = 47
         self.START_KERNEL_map = 0xFFFFFFFF80000000
         self.PAGE_SHIFT = 12
         self.phys_base = 0x1000000
@@ -171,6 +191,9 @@ class x86_64Ops(ArchOps):
             return (virt - self.START_KERNEL_map) + self.phys_base
 
     def phys_to_virt(self, phys: int) -> int:
+        x = phys - self.phys_base
+        if x <= (2**64 - 1) - self.START_KERNEL_map:
+            return x + self.START_KERNEL_map
         return phys + self.PAGE_OFFSET
 
     # phys <-> pfn
