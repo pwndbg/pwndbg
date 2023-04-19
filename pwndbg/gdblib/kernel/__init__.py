@@ -83,7 +83,7 @@ def kversion() -> str:
 def krelease() -> Tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
-        return tuple([int(x) for x in match.groups() if x])
+        return tuple(int(x) for x in match.groups() if x)
     raise Exception("Linux version tuple not found")
 
 
