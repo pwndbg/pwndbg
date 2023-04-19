@@ -159,15 +159,20 @@ class ArchOps:
 class x86_64Ops(ArchOps):
     def __init__(self) -> None:
         if uses_5lvl_paging():
+            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L41
             self.PAGE_OFFSET = 0xFF11000000000000
+            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L131
             self.VMEMMAP_START = 0xFFD4000000000000
         else:
+            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L42
             self.PAGE_OFFSET = 0xFFFF888000000000
+            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L130
             self.VMEMMAP_START = 0xFFFFEA0000000000
 
         self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
 
+        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L50
         self.START_KERNEL_map = 0xFFFFFFFF80000000
         self.PAGE_SHIFT = 12
         self.phys_base = 0x1000000
