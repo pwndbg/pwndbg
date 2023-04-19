@@ -81,15 +81,9 @@ def kversion() -> str:
 @requires_debug_syms()
 @pwndbg.lib.memoize.reset_on_start
 def krelease() -> Tuple[int, ...]:
-    # try to extract (major.minor.patch) version
-    match = re.search(r"Linux version (\d+)\.(\d+)\.(\d+)", kversion())
+    match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
-        return tuple(map(int, match.groups()))
-    # try to extract (major.minor) version and append 0 for patch version
-    match = re.search(r"Linux version (\d+)\.(\d+)", kversion())
-    if match:
-        return tuple(map(int, match.groups())) + (0,)
-    # not found
+        return tuple([int(x) for x in match.groups() if x])
     raise Exception("Linux version tuple not found")
 
 
