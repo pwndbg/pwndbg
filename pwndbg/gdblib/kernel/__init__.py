@@ -1,5 +1,7 @@
 import functools
 import math
+import re
+from typing import Tuple
 
 import gdb
 
@@ -74,6 +76,15 @@ def kcmdline() -> str:
 def kversion() -> str:
     version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
+
+
+@requires_debug_syms()
+@pwndbg.lib.memoize.reset_on_start
+def krelease() -> Tuple[int, ...]:
+    match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
+    if match:
+        return tuple(int(x) for x in match.groups() if x)
+    raise Exception("Linux version tuple not found")
 
 
 @requires_debug_syms()
