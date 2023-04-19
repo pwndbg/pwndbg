@@ -89,7 +89,7 @@ def connect_clear_caching_events(event_tuples):
 _NOT_FOUND_IN_CACHE = object()
 _KWARGS_SEPARATOR = object()
 
-# Global value whether the results from cache are returned or not
+# Global value whether the results from cache are returned or not. Toggled with the `memoize` command.
 IS_CACHING = True
 
 
