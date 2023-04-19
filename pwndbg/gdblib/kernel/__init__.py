@@ -107,6 +107,7 @@ def cpu_feature_capability(feature: int) -> bool:
 @requires_debug_syms()
 @pwndbg.lib.memoize.reset_on_start
 def uses_5lvl_paging() -> bool:
+    # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
     X86_FEATURE_LA57 = 16 * 32 + 16
     return (
         "CONFIG_X86_5LEVEL = y" in kconfig()
