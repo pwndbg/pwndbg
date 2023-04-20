@@ -983,7 +983,7 @@ def bin_labels_mapping(collections):
     We precompute all of them because doing this on demand was too slow and inefficient
     See #1675 for more details
     """
-    labels_mapping = {}
+    labels_mapping: Dict[int, List[str]] = {}
 
     for bins in collections:
         if not bins:
