@@ -168,16 +168,10 @@ class x86_64Ops(ArchOps):
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < self.START_KERNEL_map:
-            return virt - self.PAGE_OFFSET
-        else:
-            return (virt - self.START_KERNEL_map) + self.phys_base
+        return (virt - self.PAGE_OFFSET) % (1 << 64)
 
     def phys_to_virt(self, phys: int) -> int:
-        x = phys - self.phys_base
-        if x <= (2**64 - 1) - self.START_KERNEL_map:
-            return x + self.START_KERNEL_map
-        return phys + self.PAGE_OFFSET
+        return (phys + self.PAGE_OFFSET) % (1 << 64)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.PAGE_SHIFT
