@@ -914,7 +914,7 @@ def vis_heap_chunks(
         >> 1
     )
 
-    bin_labels_map = bin_labels_mapping(bin_collections)
+    bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
