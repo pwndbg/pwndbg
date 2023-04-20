@@ -96,26 +96,6 @@ def is_kaslr_enabled() -> bool:
     return "nokaslr" not in kcmdline()
 
 
-@requires_debug_syms()
-@pwndbg.lib.memoize.reset_on_start
-def cpu_feature_capability(feature: int) -> bool:
-    boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
-    capabilities = boot_cpu_data["x86_capability"]
-    return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
-
-
-@requires_debug_syms()
-@pwndbg.lib.memoize.reset_on_start
-def uses_5lvl_paging() -> bool:
-    # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
-    X86_FEATURE_LA57 = 16 * 32 + 16
-    return (
-        "CONFIG_X86_5LEVEL = y" in kconfig()
-        and "no5lvl" in kcmdline()
-        and cpu_feature_capability(X86_FEATURE_LA57)
-    )
-
-
 class ArchOps:
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
@@ -159,7 +139,7 @@ class ArchOps:
 
 class x86_64Ops(ArchOps):
     def __init__(self) -> None:
-        if uses_5lvl_paging():
+        if self.uses_5lvl_paging():
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L41
             self.PAGE_OFFSET = 0xFF11000000000000
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L131
@@ -218,6 +198,26 @@ class x86_64Ops(ArchOps):
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.gdblib.regs.cr0) & BIT(31) != 0
+
+    @staticmethod
+    @requires_debug_syms()
+    @pwndbg.lib.memoize.reset_on_start
+    def cpu_feature_capability(feature: int) -> bool:
+        boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
+        capabilities = boot_cpu_data["x86_capability"]
+        return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
+
+    @staticmethod
+    @requires_debug_syms()
+    @pwndbg.lib.memoize.reset_on_start
+    def uses_5lvl_paging() -> bool:
+        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
+        X86_FEATURE_LA57 = 16 * 32 + 16
+        return (
+            "CONFIG_X86_5LEVEL = y" in kconfig()
+            and "no5lvl" in kcmdline()
+            and x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57)
+        )
 
 
 class Aarch64Ops(ArchOps):
