@@ -65,6 +65,7 @@ jobs:
       run: |
         ./setup.sh --user
         ./setup-dev.sh --user
+        mkdir .cov
 
     - name: Download images
       run: |
@@ -72,6 +73,15 @@ jobs:
 
     # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
     - name: Run tests
+      working-directory: ./tests/qemu-tests
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests/qemu-tests/tests.sh
+        ./tests.sh --cov
+
+    - name: Process coverage data
+      run: |
+        coverage combine
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
