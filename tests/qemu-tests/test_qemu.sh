@@ -10,5 +10,5 @@ qemu-aarch64 \
 gdb-multiarch \
     -ex "file ./binaries/reference-binary.aarch64.out" \
     -ex "target remote :1234" \
-    -ex "source ./tests/test_qemu_user_aarch64.py" \
+    -ex "source ./tests/user/test_aarch64.py" \
     -ex "quit"
