@@ -141,6 +141,8 @@ run_test() {
         USE_PDB="${USE_PDB}" \
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
+        PWNDBG_ARCH="$ARCH" \
+        PWNDBG_KERNEL_TYPE="$KERNEL_TYPE" \
         run_gdb "${gdb_args[@]}"
     return $?
 }
