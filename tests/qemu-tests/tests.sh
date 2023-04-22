@@ -12,7 +12,7 @@ KERNEL_TYPE=""
 VMLINUX=""
 
 PLATFORMS=(
-    # ARCH KERNEL_TYPE
+    # ARCH KERNEL_TYPE [QEMU_ARGS]
     "x86_64 linux"
     "x86_64 ack"
     "arm64 linux"
@@ -176,7 +176,13 @@ test_system() {
     FAILED_TESTS=()
     echo "============================ Testing $KERNEL_TYPE-$ARCH ============================"
 
-    "${CWD}/run_qemu_system.sh" "$ARCH" "$KERNEL_TYPE" > /dev/null 2>&1 &
+    if [[ ! -z ${QEMU_ARGS} ]]; then
+        echo "Additional QEMU parameters used: '${QEMU_ARGS[*]}'"
+    fi
+
+    echo ""
+
+    "${CWD}/run_qemu_system.sh" --arch="$ARCH" --type="$KERNEL_TYPE" -- "${QEMU_ARGS[@]}" > /dev/null 2>&1 &
 
     init_gdb
     start=$(date +%s)
@@ -211,10 +217,11 @@ test_system() {
 }
 
 for platform in "${PLATFORMS[@]}"; do
-    read -r arch kernel_type <<< "$platform"
+    read -r arch kernel_type qemu_args <<< "$platform"
 
     ARCH="$arch"
     KERNEL_TYPE="$kernel_type"
+    QEMU_ARGS=($qemu_args)
     VMLINUX="${IMAGE_DIR}/vmlinux-${KERNEL_TYPE}-${ARCH}"
 
     test_system

@@ -5,8 +5,9 @@ Displays gdb, python and pwndbg versions.
 
 import argparse
 import os
+import platform
+import re
 import sys
-from platform import platform
 from subprocess import check_call
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
@@ -144,8 +145,18 @@ If it is somehow unavailable, use:
 
     gdb_config = gdb.execute("show configuration", to_string=True).split("\n")
     all_info = all_versions()
+    os_info = platform.system()
 
-    current_setup = "Platform: %s\n" % platform()
+    current_setup = "Platform: %s\n" % platform.platform()
+
+    if os_info.lower() == "linux" and os.path.isfile("/etc/os-release"):
+        with open("/etc/os-release", "r") as os_release:
+            contents = os_release.read()
+            match = re.search('PRETTY_NAME="?([^",\n]+)', contents)
+            if match:
+                os_info = str(match.group(1))
+
+    current_setup += "OS: %s\n" % os_info
     current_setup += "\n".join(all_info)
     current_setup += "\n" + "\n".join(gdb_config)
 
