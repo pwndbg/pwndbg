@@ -1,17 +1,10 @@
+import gdb
+
 import pwndbg
-import pwndbg.commands.kconfig
 from pwndbg.gdblib import kernel
 
-gdb.execute("break start_kernel")
-gdb.execute("continue")
 
-try:
-    pwndbg.commands.kconfig.kconfig()
-except Exception:
-    traceback.print_exc()
-    exit(1)
-
-try:
+def test_gdblib_kernel_archops_address_translation():
     # test address translation functions for LowMem
     min_low_pfn = int(gdb.lookup_global_symbol("min_low_pfn").value())
     max_low_pfn = int(gdb.lookup_global_symbol("max_low_pfn").value())
@@ -26,9 +19,6 @@ try:
         assert kernel.page_to_virt(kernel.virt_to_page(virt)) == virt
         phys = kernel.pfn_to_phys(pfn)
         assert kernel.page_to_phys(kernel.phys_to_page(phys)) == phys
-except Exception:
-    traceback.print_exc()
-    exit(1)
 
 
 def test_gdblib_kernel_krelease():
