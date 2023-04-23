@@ -19,8 +19,7 @@ download() {
 }
 
 if [ -f "${OUT_DIR}/hashsums.txt" ]; then
-    rm -f "${OUT_DIR}/hashsums.txt.old"
-    mv "${OUT_DIR}/hashsums.txt" "${OUT_DIR}/hashsums.txt.old"
+    mv -f "${OUT_DIR}/hashsums.txt" "${OUT_DIR}/hashsums.txt.old"
 fi
 
 wget "${URL}/hashsums.txt" -O "${OUT_DIR}/hashsums.txt"
