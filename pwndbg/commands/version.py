@@ -154,7 +154,7 @@ If it is somehow unavailable, use:
             contents = os_release.read()
             match = re.search('PRETTY_NAME="?([^",\n]+)', contents)
             if match:
-                os_info = str(match.group(1))
+                os_info = match.group(1)
 
     current_setup += "OS: %s\n" % os_info
     current_setup += "\n".join(all_info)
