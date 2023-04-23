@@ -9,18 +9,12 @@ COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
 ARCH=""
 KERNEL_TYPE=""
+KERNEL_VERSION=""
 VMLINUX=""
-
-PLATFORMS=(
-    # ARCH KERNEL_TYPE [QEMU_ARGS]
-    "x86_64 linux"
-    "x86_64 ack"
-    "arm64 linux"
-    "arm64 ack"
-)
 
 CWD=$(dirname -- "$0")
 IMAGE_DIR="${CWD}/images"
+VMLINUX_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux*))
 
 ptrace_scope=$(cat /proc/sys/kernel/yama/ptrace_scope)
 if [[ $ptrace_scope -ne 0 && $(id -u) -ne 0 ]]; then
@@ -143,6 +137,7 @@ run_test() {
         PWNDBG_DISABLE_COLORS=1 \
         PWNDBG_ARCH="$ARCH" \
         PWNDBG_KERNEL_TYPE="$KERNEL_TYPE" \
+        PWNDBG_KERNEL_VERSION="$KERNEL_VERSION" \
         run_gdb "${gdb_args[@]}"
     return $?
 }
@@ -174,15 +169,14 @@ process_output() {
 
 test_system() {
     FAILED_TESTS=()
-    echo "============================ Testing $KERNEL_TYPE-$ARCH ============================"
+    printf "============================ Testing %-20s  ============================\n" "$KERNEL"
 
     if [[ ! -z ${QEMU_ARGS} ]]; then
         echo "Additional QEMU parameters used: '${QEMU_ARGS[*]}'"
     fi
-
     echo ""
 
-    "${CWD}/run_qemu_system.sh" --arch="$ARCH" --type="$KERNEL_TYPE" -- "${QEMU_ARGS[@]}" > /dev/null 2>&1 &
+    "${CWD}/run_qemu_system.sh" --kernel="${KERNEL}" -- "${QEMU_ARGS[@]}" > /dev/null 2>&1 &
 
     init_gdb
     start=$(date +%s)
@@ -216,13 +210,19 @@ test_system() {
     pkill qemu-system
 }
 
-for platform in "${PLATFORMS[@]}"; do
-    read -r arch kernel_type qemu_args <<< "$platform"
+for vmlinux in "${VMLINUX_LIST[@]}"; do
 
-    ARCH="$arch"
-    KERNEL_TYPE="$kernel_type"
-    QEMU_ARGS=($qemu_args)
-    VMLINUX="${IMAGE_DIR}/vmlinux-${KERNEL_TYPE}-${ARCH}"
+    VMLINUX="${IMAGE_DIR}/${vmlinux}"
+    KERNEL=$(echo "${vmlinux}" | sed "s/vmlinux-//")
+    # extract architecture as last dash-separated group of the kernels name
+    ARCH="${KERNEL##*-}"
+    QEMU_ARGS=()
 
     test_system
+
+    if [[ "${ARCH}" == @("x86_64") ]]; then
+        # additional test with extra QEMU flags
+        QEMU_ARGS=(-cpu qemu64,+la57)
+        test_system
+    fi
 done
