@@ -45,8 +45,11 @@ if [[ ! " ${KERNEL_LIST[*]} " =~ " ${KERNEL_NAME} " ]]; then
     help_and_exit
 fi
 
-# extract architecture as last dash-separated group of the kernel's name
+# KERNEL_NAME = <KERNEL_TYPE>-<KERNEL_VERSION>-<ARCH>
+# e.g. "linux-5.10.178-arm64" or "ack-android13-5.10-lts-x86_64"
 ARCH="${KERNEL_NAME##*-}"
+KERNEL_VERSION=$(echo ${KERNEL_NAME} | grep -oP "\d+\.\d+(\.\d+)?(-lts)?")
+KERNEL_TYPE=$(echo ${KERNEL_NAME} | sed "s/-${KERNEL_VERSION}-${ARCH}//")
 
 if [[ "${ARCH}" == @(arm64|aarch64) ]]; then
     ARCH=arm64

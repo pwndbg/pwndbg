@@ -13,7 +13,7 @@ download() {
     hash_old=$(grep "${file}" "${OUT_DIR}/hashsums.txt.old" || true)
     hash_new=$(grep "${file}" "${OUT_DIR}/hashsums.txt")
     # only download file if it doesn't exist or its hashsum has changed
-    if [ ! -f "${OUT_DIR}/${file}" ] || [ "${hash_new}" != "${hash_old}"]; then
+    if [ ! -f "${OUT_DIR}/${file}" ] || [ "${hash_new}" != "${hash_old}" ]; then
         wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
     fi
 }
