@@ -9,7 +9,7 @@ URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
 mkdir -p "${OUT_DIR}"
 
 download() {
-    file="$1"
+    local file="$1"
     hash_old=$(grep "${file}" "${OUT_DIR}/hashsums.txt.old" || true)
     hash_new=$(grep "${file}" "${OUT_DIR}/hashsums.txt")
     # only download file if it doesn't exist or its hashsum has changed
