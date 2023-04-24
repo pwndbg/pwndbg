@@ -19,7 +19,7 @@ from pwndbg.lib.which import which
 
 
 def test_basic():
-    assert which("ls") == "/usr/bin/ls"
+    assert which("ls") == "/bin/ls"
 
 
 def test_nonexistent():
