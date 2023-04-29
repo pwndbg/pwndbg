@@ -4,19 +4,19 @@ e.g. execution stops because of a SIGINT or breakpoint, or a
 new library/objfile are loaded, etc.
 """
 
+from collections import UserDict
 from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Tuple
-from collections import UserDict
 
 # Set to enable print logging of cache hits/misses/clears
 NO_DEBUG, DEBUG_GET, DEBUG_CLEAR, DEBUG_SET = 0, 1, 2, 4
 # combine the flags with | operator
-debug = DEBUG_CLEAR
+debug = NO_DEBUG
 # debug_name can be used to filter cache results by a given name
-debug_name = 'regs'
+debug_name = "regs"
 
 
 class DebugCacheDict(UserDict):
@@ -49,7 +49,6 @@ class DebugCacheDict(UserDict):
         self.data.clear()
         self.hits = 0
         self.misses = 0
-
 
 
 class _CacheUntilEvent:

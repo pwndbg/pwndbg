@@ -49,24 +49,24 @@ def on_stop() -> None:
 import pwndbg.lib.cache
 
 pwndbg.lib.cache.connect_clear_caching_events(
-    (
-        (
-            "stop",
-            (
-                pwndbg.gdblib.events.stop,
-                pwndbg.gdblib.events.mem_changed,
-                pwndbg.gdblib.events.reg_changed,
-            ),
+    {
+        # Any cache that should be cleared when the program is stopped should also be cleared
+        # if the user does an operation to modify memory or registers while the program is stopped.
+        # We don't do this for the other events, because they hopefully don't change memory or
+        # registers
+        "stop": (
+            pwndbg.gdblib.events.stop,
+            pwndbg.gdblib.events.mem_changed,
+            pwndbg.gdblib.events.reg_changed,
         ),
-        ("exit", (pwndbg.gdblib.events.exit,)),
-        ("objfile", (pwndbg.gdblib.events.new_objfile,)),
-        ("start", (pwndbg.gdblib.events.start,)),
-        ("cont", (pwndbg.gdblib.events.cont,)),
-        ("thread", (pwndbg.gdblib.events.thread,)),
-        ("prompt", (pwndbg.gdblib.events.before_prompt,)),
-        ("forever", ()),
-        # ("while_running": (pwndbg.gdblib.events.start, pwndbg.gdbliv.events.exit)),
-    )
+        "exit": (pwndbg.gdblib.events.exit,),
+        "objfile": (pwndbg.gdblib.events.new_objfile,),
+        "start": (pwndbg.gdblib.events.start,),
+        "cont": (pwndbg.gdblib.events.cont,),
+        "thread": (pwndbg.gdblib.events.thread,),
+        "prompt": (pwndbg.gdblib.events.before_prompt,),
+        "forever": (),
+    }
 )
 
 

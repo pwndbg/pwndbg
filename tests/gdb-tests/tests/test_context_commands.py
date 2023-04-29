@@ -243,10 +243,14 @@ def test_context_disasm_works_properly_with_disasm_flavor_switch(start_binary):
 
     out = gdb.execute("context disasm", to_string=True).split("\n")
     assert out[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
-    assert out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    assert (
+        out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    )
     assert_intel(out)
 
     gdb.execute("set disassembly-flavor att")
     assert out[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
-    assert out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    assert (
+        out[1] == "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────"
+    )
     assert_att(out)
