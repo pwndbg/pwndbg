@@ -889,7 +889,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def arenas(self):
         """Return a tuple of all current arenas."""
         arenas = []
@@ -927,42 +927,35 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def heap_info(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def malloc_chunk(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def malloc_state(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def tcache_perthread_struct(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def tcache_entry(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def mallinfo(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
     def malloc_par(self):
         raise NotImplementedError()
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_alignment(self):
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
         if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
@@ -983,32 +976,31 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         )
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def size_sz(self):
         """Corresponds to SIZE_SZ in glibc malloc.c"""
         return pwndbg.gdblib.arch.ptrsize
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_align_mask(self):
         """Corresponds to MALLOC_ALIGN_MASK in glibc malloc.c"""
         return self.malloc_alignment - 1
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def minsize(self):
         """Corresponds to MINSIZE in glibc malloc.c"""
         return self.min_chunk_size
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def min_chunk_size(self):
         """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.gdblib.arch.ptrsize * 4
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
-    @pwndbg.lib.memoize.reset_on_thread
+    @pwndbg.lib.cache.cache_until("objfile", "thread")
     def multithreaded(self):
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.gdblib.symbol.address("__libc_multiple_threads")
@@ -1051,7 +1043,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             return None
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def tcache_next_offset(self):
         return self.tcache_entry.keys().index("next") * pwndbg.gdblib.arch.ptrsize
 
@@ -1410,37 +1402,37 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         return self._global_max_fast
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def heap_info(self):
         return pwndbg.gdblib.typeinfo.load("heap_info")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_chunk(self):
         return pwndbg.gdblib.typeinfo.load("struct malloc_chunk")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_state(self):
         return pwndbg.gdblib.typeinfo.load("struct malloc_state")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def tcache_perthread_struct(self):
         return pwndbg.gdblib.typeinfo.load("struct tcache_perthread_struct")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def tcache_entry(self):
         return pwndbg.gdblib.typeinfo.load("struct tcache_entry")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def mallinfo(self):
         return pwndbg.gdblib.typeinfo.load("struct mallinfo")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_par(self):
         return pwndbg.gdblib.typeinfo.load("struct malloc_par")
 
@@ -1924,38 +1916,38 @@ class HeuristicHeap(GlibcMemoryAllocator):
         return default
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def heap_info(self):
         return self.struct_module.HeapInfo
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_chunk(self):
         return self.struct_module.MallocChunk
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_state(self):
         return self.struct_module.MallocState
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def tcache_perthread_struct(self):
         return self.struct_module.TcachePerthreadStruct
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def tcache_entry(self):
         return self.struct_module.TcacheEntry
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def mallinfo(self):
         # TODO/FIXME: Currently, we don't need to create a new class for `struct mallinfo` because we never use it.
         raise NotImplementedError("`struct mallinfo` is not implemented yet.")
 
     @property
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("objfile")
     def malloc_par(self):
         return self.struct_module.MallocPar
 

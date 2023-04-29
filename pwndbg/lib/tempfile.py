@@ -5,10 +5,10 @@ Common helper and cache for pwndbg tempdir
 import os
 import tempfile
 
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 
-@pwndbg.lib.memoize.forever
+@pwndbg.lib.cache.cache_until("forever")
 def tempdir():
     """
     Returns a safe and unpredictable temporary directory with pwndbg prefix.
@@ -16,7 +16,7 @@ def tempdir():
     return tempfile.mkdtemp(prefix="pwndbg-")
 
 
-@pwndbg.lib.memoize.forever
+@pwndbg.lib.cache.cache_until("forever")
 def cachedir(namespace=None):
     """
     Returns and potentially creates a persistent safe cachedir location

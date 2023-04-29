@@ -7,8 +7,8 @@ import sys
 
 import gdb
 
+import pwndbg.lib.cache
 import pwndbg.lib.gcc
-import pwndbg.lib.memoize
 import pwndbg.lib.tempfile
 
 module = sys.modules[__name__]

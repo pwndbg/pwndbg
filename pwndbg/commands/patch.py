@@ -7,7 +7,7 @@ from pwnlib.asm import disasm
 
 import pwndbg.commands
 import pwndbg.gdblib.memory
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.color import message
 
 # Keep old patches made so we can revert them
@@ -30,7 +30,7 @@ def patch(address, ins) -> None:
 
     pwndbg.gdblib.memory.write(address, new_mem)
 
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
 parser2 = argparse.ArgumentParser(description="Revert patch at given address.")
@@ -53,7 +53,7 @@ def patch_revert(address) -> None:
         old, _new = patches[address]
         pwndbg.gdblib.memory.write(address, old)
 
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
 parser3 = argparse.ArgumentParser(description="List all patches.")

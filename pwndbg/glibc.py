@@ -19,7 +19,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.search
 
 safe_lnk = pwndbg.gdblib.config.add_param(
@@ -49,8 +49,7 @@ def get_version() -> Optional[Tuple[int, ...]]:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def _get_version() -> Optional[Tuple[int, ...]]:
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.gdblib.symbol.address("__libc_version")
@@ -73,8 +72,7 @@ def _get_version() -> Optional[Tuple[int, ...]]:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
@@ -112,8 +110,7 @@ def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
     """
     Dump .data section of libc ELF file
@@ -126,8 +123,7 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def dump_relocations_by_section_name(section_name: str) -> Optional[Tuple[Relocation, ...]]:
     """
     Dump relocations of a section by section name of libc ELF file
@@ -142,8 +138,7 @@ def dump_relocations_by_section_name(section_name: str) -> Optional[Tuple[Reloca
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def get_data_section_address() -> int:
     """
     Find .data section address of libc
@@ -161,8 +156,7 @@ def get_data_section_address() -> int:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def get_got_section_address() -> int:
     """
     Find .got section address of libc
