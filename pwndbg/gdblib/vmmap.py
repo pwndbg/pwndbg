@@ -215,7 +215,7 @@ def add_custom_page(page) -> None:
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
 def clear_custom_page() -> None:
@@ -225,7 +225,7 @@ def clear_custom_page() -> None:
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")

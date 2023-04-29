@@ -35,7 +35,7 @@ debug = config.add_param(
 def inform_report_issue(exception_msg) -> None:
     """
     Informs user that he can report an issue.
-    The use of `memoize` makes it reporting only once for a given exception message.
+    The use of caching makes it reporting only once for a given exception message.
     """
     print(
         message.notice(

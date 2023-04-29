@@ -30,8 +30,7 @@ def patch(address, ins) -> None:
 
     pwndbg.gdblib.memory.write(address, new_mem)
 
-    pwndbg.lib.memoize.reset()
-
+    pwndbg.lib.cache.clear_caches()
 
 parser2 = argparse.ArgumentParser(description="Revert patch at given address.")
 parser2.add_argument("address", type=int, help="Address to revert patch on")
@@ -53,8 +52,7 @@ def patch_revert(address) -> None:
         old, _new = patches[address]
         pwndbg.gdblib.memory.write(address, old)
 
-    pwndbg.lib.memoize.reset()
-
+    pwndbg.lib.cache.clear_caches()
 
 parser3 = argparse.ArgumentParser(description="List all patches.")
 
