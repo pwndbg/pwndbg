@@ -141,7 +141,7 @@ Feel free to update the list below!
 
 * We have a wrapper for GDB's events in `pwndbg/events.py` - thx to that we can e.g. invoke something based upon some event
 
-* We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/memoize.py` - just check its usages
+* We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/lib/cache.py` - just check its usages
 
 * To block a function before the first prompt was displayed use the `pwndbg.decorators.only_after_first_prompt` decorator.
 

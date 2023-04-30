@@ -15,7 +15,7 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
@@ -52,7 +52,7 @@ def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
 
 
 @pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def update() -> None:
     """
     For each running thread, updates the known address range
@@ -101,7 +101,7 @@ def update() -> None:
             curr_thread.switch()
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def current():
     """
     Returns the bounds for the stack for the current thread.
@@ -122,7 +122,7 @@ def clear() -> None:
 
 
 @pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_exit
+@pwndbg.lib.cache.cache_until("exit")
 def is_executable() -> bool:
     global nx
     nx = False

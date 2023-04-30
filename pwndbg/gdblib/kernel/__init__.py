@@ -7,8 +7,8 @@ import gdb
 
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
+import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
-import pwndbg.lib.memoize
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig = None
 
@@ -18,7 +18,7 @@ def BIT(shift: int):
     return 1 << shift
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def has_debug_syms() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
@@ -56,7 +56,7 @@ def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     return pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
 
 
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     global _kconfig
     if _kconfig is None:
@@ -65,21 +65,21 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
 
 
 @requires_debug_syms(default="")
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     cmdline_addr = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.symbol.address("saved_command_line"))
     return pwndbg.gdblib.memory.string(cmdline_addr).decode("ascii")
 
 
 @requires_debug_syms(default="")
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
     version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
 
 
 @requires_debug_syms()
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def krelease() -> Tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
@@ -88,7 +88,7 @@ def krelease() -> Tuple[int, ...]:
 
 
 @requires_debug_syms()
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def is_kaslr_enabled() -> bool:
     if "CONFIG_RANDOMIZE_BASE" not in kconfig():
         return False
@@ -281,7 +281,7 @@ _arch_ops: ArchOps = None
 
 
 @requires_debug_syms(default={})
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def arch_ops() -> ArchOps:
     global _arch_ops
     if _arch_ops is None:

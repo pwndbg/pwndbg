@@ -15,7 +15,7 @@ import pwndbg.gdblib.remote
 from pwndbg.gdblib.events import start
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def is_qemu() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
@@ -29,7 +29,7 @@ def is_qemu() -> bool:
     return "ENABLE=" in response
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def is_usermode() -> bool:
     if not pwndbg.gdblib.remote.is_remote():
         return False
@@ -44,7 +44,7 @@ def is_usermode() -> bool:
     return "Text=" in response
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def is_qemu_usermode() -> bool:
     """Returns ``True`` if the target remote is being run under
     QEMU usermode emulation."""
@@ -52,13 +52,13 @@ def is_qemu_usermode() -> bool:
     return is_qemu() and is_usermode()
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def is_qemu_kernel() -> bool:
     return is_qemu() and not is_usermode()
 
 
 @start
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def root() -> Optional[Any]:
     if not is_qemu_usermode():
         return None
@@ -73,7 +73,7 @@ def root() -> Optional[Any]:
     return binfmt_root
 
 
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def pid():
     """Find the PID of the qemu usermode binary which we are
     talking to.

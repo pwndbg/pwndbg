@@ -15,7 +15,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.lib.regs import reg_sets
 
 
@@ -44,8 +44,7 @@ ARCH_GET_GS = 0x1004
 class module(ModuleType):
     last: Dict[str, int] = {}
 
-    @pwndbg.lib.memoize.reset_on_stop
-    @pwndbg.lib.memoize.reset_on_prompt
+    @pwndbg.lib.cache.cache_until("stop", "prompt")
     def __getattr__(self, attr: str) -> int:
         attr = attr.lstrip("$")
         try:
@@ -77,8 +76,7 @@ class module(ModuleType):
             # be called in a case when this can throw
             gdb.execute(f"set ${attr} = {val}")
 
-    @pwndbg.lib.memoize.reset_on_stop
-    @pwndbg.lib.memoize.reset_on_prompt
+    @pwndbg.lib.cache.cache_until("stop", "prompt")
     def __getitem__(self, item: str) -> int:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
@@ -178,16 +176,16 @@ class module(ModuleType):
         return delta
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def fsbase(self):
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def gsbase(self):
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def _fs_gs_helper(self, regname, which):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directly for GDB < 8."""

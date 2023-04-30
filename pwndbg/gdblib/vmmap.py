@@ -26,7 +26,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -60,8 +60,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("objfile", "start")
 def is_corefile() -> bool:
     """
     For example output use:
@@ -77,8 +76,7 @@ def is_corefile() -> bool:
     return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("start", "stop")
 def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
@@ -147,7 +145,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(pages)
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def find(address):
     if address is None:
         return None
@@ -217,7 +215,7 @@ def add_custom_page(page) -> None:
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
 def clear_custom_page() -> None:
@@ -227,11 +225,10 @@ def clear_custom_page() -> None:
     # Reset all the cache
     # We can not reset get() only, since the result may be used by others.
     # TODO: avoid flush all caches
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
 
 
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("objfile", "start")
 def coredump_maps():
     """
     Parses `info proc mappings` and `maintenance info sections`
@@ -337,8 +334,7 @@ def coredump_maps():
     return tuple(pages)
 
 
-@pwndbg.lib.memoize.reset_on_start
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("start", "stop")
 def proc_pid_maps():
     """
     Parse the contents of /proc/$PID/maps on the server.
@@ -425,7 +421,7 @@ def proc_pid_maps():
     return tuple(pages)
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_page_tables():
     import pt
 
@@ -549,7 +545,7 @@ def kernel_vmmap_via_monitor_info_mem():
     return tuple(pages)
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def info_sharedlibrary():
     """
     Parses the output of `info sharedlibrary`.
@@ -595,7 +591,7 @@ def info_sharedlibrary():
     return tuple(sorted(pages))
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def info_files():
     # Example of `info files` output:
     # Symbols from "/bin/bash".
@@ -653,7 +649,7 @@ def info_files():
     return tuple(pages)
 
 
-@pwndbg.lib.memoize.reset_on_exit
+@pwndbg.lib.cache.cache_until("exit")
 def info_auxv(skip_exe=False):
     """
     Extracts the name of the executable from the output of the command

@@ -97,8 +97,7 @@ class AUXV(dict):
         return str({k: v for k, v in self.items() if v is not None})
 
 
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("objfile", "start")
 def get():
     return use_info_auxv() or walk_stack() or AUXV()
 

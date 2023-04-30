@@ -114,7 +114,7 @@ def peek(address):
     return None
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def is_readable_address(address):
     """is_readable_address(address) -> bool
 
@@ -297,7 +297,7 @@ def poi(type, addr):
     return gdb.Value(addr).cast(type.pointer()).dereference()
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """find_upper_boundary(addr, max_pages=1024) -> int
 
@@ -323,7 +323,7 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     return addr
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def find_lower_boundary(addr, max_pages=1024):
     """find_lower_boundary(addr, max_pages=1024) -> int
 

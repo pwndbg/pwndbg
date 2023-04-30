@@ -11,7 +11,10 @@ class Config(types.ModuleType):
 
         return wrapper
 
-    def add_param(self, *args):
+    def add_param(self, *args, **kwargs):
+        pass
+
+    def add_param_obj(self, *args, **kwargs):
         pass
 
     def init_params(self):

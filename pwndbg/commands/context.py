@@ -614,7 +614,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
-        pwndbg.lib.memoize.reset()
+        pwndbg.lib.cache.clear_caches()
 
     result = pwndbg.gdblib.nearpc.nearpc(
         lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate)
@@ -647,7 +647,7 @@ pwndbg.gdblib.config.add_param(
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
 
 
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def get_highlight_source(filename):
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
@@ -890,7 +890,7 @@ context_sections = {
 }
 
 
-@pwndbg.lib.memoize.forever
+@pwndbg.lib.cache.cache_until("forever")
 def _is_rr_present() -> bool:
     """
     Checks whether rr project is present (so someone launched e.g. `rr replay <some-recording>`)
