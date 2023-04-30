@@ -97,6 +97,13 @@ def is_kaslr_enabled() -> bool:
 
 
 class ArchOps:
+    # More information on the physical memory model of the Linux kernel and
+    # especially the mapping between pages and page frame numbers (pfn) can
+    # be found at https://docs.kernel.org/mm/memory-model.html
+    # The provided link also includes guidance on detecting the memory model in
+    # use through kernel configuration, enabling support for additional models
+    # in the page_to_pfn() and pfn_to_page() methods in the future.
+
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
