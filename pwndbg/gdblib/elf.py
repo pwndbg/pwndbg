@@ -432,14 +432,15 @@ def map_inner(ei_class, ehdr, objfile):
     # for binaries that are relocatable / type DYN.
     if ET_DYN == int(ehdr.e_type):
         for page in pages:
-            page.vaddr += base
+            page.start += base
+            page.end += base
 
     # Merge contiguous sections of memory together
     pages.sort()
     prev = pages[0]
     for page in list(pages[1:]):
-        if (prev.flags & PF_W) == (page.flags & PF_W) and prev.vaddr + prev.memsz == page.vaddr:
-            prev.memsz += page.memsz
+        if (prev.flags & PF_W) == (page.flags & PF_W) and prev.end == page.start:
+            prev.size += page.size
             pages.remove(page)
         else:
             prev = page
@@ -449,8 +450,8 @@ def map_inner(ei_class, ehdr, objfile):
     gaps = []
     for i in range(len(pages) - 1):
         a, b = pages[i : i + 2]
-        a_end = a.vaddr + a.memsz
-        b_begin = b.vaddr
+        a_end = a.end
+        b_begin = b.start
         if a_end != b_begin:
             gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset))
 

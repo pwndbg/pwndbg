@@ -96,12 +96,12 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False) -> None:
     print_vmmap_table_header()
     if len(pages) == 1 and isinstance(gdbval_or_str, integer_types):
         page = pages[0]
-        print(M.get(page.vaddr, text=str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)))
+        print(M.get(page.start, text=str(page) + " +0x%x" % (int(gdbval_or_str) - page.start)))
     else:
         for page in pages:
             if (executable and not page.execute) or (writable and not page.write):
                 continue
-            print(M.get(page.vaddr, text=str(page)))
+            print(M.get(page.start, text=str(page)))
 
     if pwndbg.gdblib.qemu.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")

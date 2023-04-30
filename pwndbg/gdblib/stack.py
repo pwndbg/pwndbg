@@ -93,10 +93,11 @@ def update() -> None:
 
             # If we *DO* already know about this thread, just
             # update the lower boundary if it got any lower.
-            low = min(page.vaddr, sp_low)
-            if low != page.vaddr:
-                page.memsz += page.vaddr - low
-                page.vaddr = low
+            low = min(page.start, sp_low)
+            if low != page.start:
+                page.size += page.start - low
+                page.start = low
+                page.end = page.start + page.size
     finally:
         if curr_thread:
             curr_thread.switch()

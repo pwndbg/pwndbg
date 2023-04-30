@@ -138,7 +138,7 @@ def probeleak(
                 right_text = "(%s) %s + 0x%x + 0x%x (outside of the page)" % (
                     page.permstr,
                     mod_name,
-                    page.memsz,
+                    page.size,
                     p - page.end,
                 )
             elif p < page.start:

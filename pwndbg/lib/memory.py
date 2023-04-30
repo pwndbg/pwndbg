@@ -57,36 +57,19 @@ class Page:
     one page of memory.
     """
 
-    vaddr = 0  #: Starting virtual address
-    memsz = 0  #: Size of the address space, in bytes
-    flags = 0  #: Flags set by the ELF file, see PF_X, PF_R, PF_W
-    offset = 0  #: Offset into the original ELF file that the data is loaded from
-    objfile = ""  #: Path to the ELF on disk
+    __slots__ = ("start", "end", "size", "flags", "offset", "objfile")
 
     def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "") -> None:
-        self.vaddr = start
-        self.memsz = size
+        # Mapping start address
+        self.start = start
+        # Address beyond mapping - the last effective address is self.end-1
+        # It is the same as displayed in /proc/<pid>/maps
+        self.end = start + size
+
+        self.size = size
         self.flags = flags
         self.offset = offset
         self.objfile = objfile
-
-        # if self.rwx:
-        # self.flags = self.flags ^ 1
-
-    @property
-    def start(self) -> int:
-        """
-        Mapping start address.
-        """
-        return self.vaddr
-
-    @property
-    def end(self) -> int:
-        """
-        Address beyond mapping. So the last effective address is self.end-1
-        It is the same as displayed in /proc/<pid>/maps
-        """
-        return self.vaddr + self.memsz
 
     @property
     def is_stack(self) -> bool:
@@ -130,10 +113,10 @@ class Page:
 
     def __str__(self) -> str:
         return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
-            start=self.vaddr,
-            end=self.vaddr + self.memsz,
+            start=self.start,
+            end=self.start + self.size,
             permstr=self.permstr,
-            size=self.memsz,
+            size=self.size,
             offset=self.offset,
             objfile=self.objfile or "",
             width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
@@ -146,10 +129,10 @@ class Page:
         return self.start <= addr < self.end
 
     def __eq__(self, other) -> bool:
-        return self.vaddr == getattr(other, "vaddr", other)
+        return self.start == getattr(other, "start", other)
 
     def __lt__(self, other) -> bool:
-        return self.vaddr < getattr(other, "vaddr", other)
+        return self.start < getattr(other, "start", other)
 
     def __hash__(self):
-        return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))
+        return hash((self.start, self.end, self.size, self.flags, self.offset, self.objfile))

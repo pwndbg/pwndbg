@@ -35,8 +35,8 @@ def kbase() -> None:
         # TODO: Check if the supervisor bit is set for aarch64
         if not mapping.execute:
             continue
-        b = pwndbg.gdblib.memory.byte(mapping.vaddr)
+        b = pwndbg.gdblib.memory.byte(mapping.start)
 
         if b == magic:
-            print(M.success(f"Found virtual base address: {mapping.vaddr:#x}"))
+            print(M.success(f"Found virtual base address: {mapping.start:#x}"))
             break

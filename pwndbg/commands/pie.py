@@ -52,9 +52,9 @@ def translate_addr(offset, module):
         )
         return
 
-    first_page = min(pages, key=lambda page: page.vaddr)
+    first_page = min(pages, key=lambda page: page.start)
 
-    addr = first_page.vaddr + offset
+    addr = first_page.start + offset
 
     if not any(addr in p for p in pages):
         print(

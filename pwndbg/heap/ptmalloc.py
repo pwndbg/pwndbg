@@ -383,8 +383,8 @@ class Heap:
                         allocator.malloc_state.sizeof, allocator.malloc_alignment
                     )
 
-                heap_region.memsz = heap_region.end - start
-                heap_region.vaddr = start
+                heap_region.size = heap_region.end - start
+                heap_region.start = start
                 self._memory_region = heap_region
                 self._gdbValue = heap_info
             elif main_arena.non_contiguous:
@@ -1462,8 +1462,8 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         )
 
         sbrk_region = self.get_region(sbrk_base)
-        sbrk_region.memsz = sbrk_region.end - sbrk_base
-        sbrk_region.vaddr = sbrk_base
+        sbrk_region.size = sbrk_region.end - sbrk_base
+        sbrk_region.start = sbrk_base
 
         return sbrk_region
 
@@ -1991,8 +1991,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 )
 
                 sbrk_region = self.get_region(sbrk_base)
-                sbrk_region.memsz = self.get_region(sbrk_base).end - sbrk_base
-                sbrk_region.vaddr = sbrk_base
+                sbrk_region.size = self.get_region(sbrk_base).end - sbrk_base
+                sbrk_region.start = sbrk_base
 
                 return sbrk_region
             else:

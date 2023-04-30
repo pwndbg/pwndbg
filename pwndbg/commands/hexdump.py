@@ -33,7 +33,7 @@ def address_or_module_name(s):
         module_name = gdbval_or_str
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.gdblib.vmmap.get()))
         if pages:
-            return pages[0].vaddr
+            return pages[0].start
         else:
             raise argparse.ArgumentTypeError("Could not find pages for module %s" % module_name)
     elif isinstance(gdbval_or_str, (int, gdb.Value)):

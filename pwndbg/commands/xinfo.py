@@ -38,11 +38,11 @@ def xinfo_stack(page, addr) -> None:
     frame = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
     frame_mapping = pwndbg.gdblib.vmmap.find(frame)
 
-    print_line("Stack Top", addr, page.vaddr, addr - page.vaddr, "+")
+    print_line("Stack Top", addr, page.start, addr - page.start, "+")
     print_line("Stack End", addr, page.end, page.end - addr, "-")
     print_line("Stack Pointer", addr, sp, addr - sp, "+")
 
-    if frame_mapping and page.vaddr == frame_mapping.vaddr:
+    if frame_mapping and page.start == frame_mapping.start:
         print_line("Frame Pointer", addr, frame, frame - addr, "-")
 
     canary_value = pwndbg.commands.canary.canary_value()[0]
@@ -65,16 +65,16 @@ def xinfo_mmap_file(page, addr) -> None:
 
     file_name = page.objfile
     objpages = filter(lambda p: p.objfile == file_name, pwndbg.gdblib.vmmap.get())
-    first = sorted(objpages, key=lambda p: p.vaddr)[0]
+    first = sorted(objpages, key=lambda p: p.start)[0]
 
     # print offset from ELF base load address
-    rva = addr - first.vaddr
-    print_line("File (Base)", addr, first.vaddr, rva, "+")
+    rva = addr - first.start
+    print_line("File (Base)", addr, first.start, rva, "+")
 
     # find possible LOAD segments that designate memory and file backings
     containing_loads = [
         seg
-        for seg in pwndbg.gdblib.elf.get_containing_segments(file_name, first.vaddr, addr)
+        for seg in pwndbg.gdblib.elf.get_containing_segments(file_name, first.start, addr)
         if seg["p_type"] == "PT_LOAD"
     ]
 
@@ -92,7 +92,7 @@ def xinfo_mmap_file(page, addr) -> None:
     else:
         print("{} {} = [not file backed]".format("File (Disk)".rjust(20), M.get(addr)))
 
-    containing_sections = pwndbg.gdblib.elf.get_containing_sections(file_name, first.vaddr, addr)
+    containing_sections = pwndbg.gdblib.elf.get_containing_sections(file_name, first.start, addr)
     if len(containing_sections) > 0:
         print("\n Containing ELF sections:")
         for sec in containing_sections:
@@ -101,7 +101,7 @@ def xinfo_mmap_file(page, addr) -> None:
 
 def xinfo_default(page, addr) -> None:
     # Just print the distance to the beginning of the mapping
-    print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
+    print_line("Mapped Area", addr, page.start, addr - page.start, "+")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
