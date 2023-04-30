@@ -69,7 +69,7 @@ jobs:
 
     - name: Set up cache for QEMU images
       id: qemu-cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ./tests/qemu-tests/images
         key: ${{ matrix.os }}-cache-qemu-images
