@@ -204,7 +204,6 @@ class x86_64Ops(ArchOps):
 
     @staticmethod
     @requires_debug_syms()
-    @pwndbg.lib.memoize.reset_on_start
     def cpu_feature_capability(feature: int) -> bool:
         boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
         capabilities = boot_cpu_data["x86_capability"]
@@ -212,7 +211,6 @@ class x86_64Ops(ArchOps):
 
     @staticmethod
     @requires_debug_syms()
-    @pwndbg.lib.memoize.reset_on_start
     def uses_5lvl_paging() -> bool:
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
         X86_FEATURE_LA57 = 16 * 32 + 16
