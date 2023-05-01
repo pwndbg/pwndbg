@@ -8,21 +8,23 @@ URL="https://github.com/gsingh93/linux-exploit-dev-env/releases/latest/download"
 
 mkdir -p "${OUT_DIR}"
 
-for arch in x86_64 arm64; do
-    file="rootfs-${arch}.img"
-    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+download() {
+    local file="$1"
+    hash_old=$(grep "${file}" "${OUT_DIR}/hashsums.txt.old" || true)
+    hash_new=$(grep "${file}" "${OUT_DIR}/hashsums.txt")
+    # only download file if it doesn't exist or its hashsum has changed
+    if [ ! -f "${OUT_DIR}/${file}" ] || [ "${hash_new}" != "${hash_old}" ]; then
+        wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+    fi
+}
 
-    file="vmlinux-linux-${arch}"
-    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
+if [ -f "${OUT_DIR}/hashsums.txt" ]; then
+    mv -f "${OUT_DIR}/hashsums.txt" "${OUT_DIR}/hashsums.txt.old"
+fi
 
-    file="vmlinux-ack-${arch}"
-    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
-done
+wget "${URL}/hashsums.txt" -O "${OUT_DIR}/hashsums.txt"
 
-for kernel_type in ack linux; do
-    file="bzImage-${kernel_type}-x86_64"
-    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
-
-    file="Image-${kernel_type}-arm64"
-    wget "${URL}/${file}" -O "${OUT_DIR}/${file}"
-done
+while read -r hash file; do
+    echo "Downloading ${file}..."
+    download "${file}"
+done < "${OUT_DIR}/hashsums.txt"

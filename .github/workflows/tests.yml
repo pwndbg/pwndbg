@@ -67,6 +67,13 @@ jobs:
         ./setup-dev.sh --user
         mkdir .cov
 
+    - name: Set up cache for QEMU images
+      id: qemu-cache
+      uses: actions/cache@v3
+      with:
+        path: ./tests/qemu-tests/images
+        key: ${{ matrix.os }}-cache-qemu-images
+
     - name: Download images
       run: |
         ./tests/qemu-tests/download_images.sh

@@ -4,28 +4,27 @@ ARCH=""
 KERNEL_TYPE=""
 CMDLINE=""
 
-VALID_ARCHS=("x86_64" "arm64" "aarch64")
-VALID_TYPES=("linux" "ack")
+CWD=$(dirname -- "$0")
+IMAGE_DIR="${CWD}/images"
+
+KERNEL_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux* | sed "s/vmlinux-//"))
 
 help_and_exit() {
     echo "Usage: $0 [options] [-- other qemu options]"
     echo ""
-    echo "  --arch=<ARCH>      select the architecture to run"
-    echo "          possible values: [${VALID_ARCHS[*]}]"
-    echo ""
-    echo "  --type=<TYPE>      select the kernel type to run"
-    echo "          possible values: [${VALID_TYPES[*]}]"
-    echo ""
-    echo "  --append=<CMDLINE> append something to the kernel's cmdline."
+    echo "  --kernel=<KERNEL>       select kernel to run"
+    echo "  --append=<CMDLINE>      append something to the kernel's cmdline."
     echo ""
     echo "Options after '--' will be passed to QEMU."
+    echo ""
+    echo "Available kernels:"
+    printf "\t%s\n" "${KERNEL_LIST[@]}"
     exit 1
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --arch=*) ARCH="${1#--arch=}" ;;
-        --type=*) KERNEL_TYPE="${1#--type=}" ;;
+        --kernel=*) KERNEL_NAME="${1#--kernel=}" ;;
         --append=*) CMDLINE="${CMDLINE} ${1#--append=}" ;;
         -h | --help) help_and_exit ;;
         --)
@@ -37,43 +36,38 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-CWD=$(dirname -- "$0")
-IMAGE_DIR="${CWD}/images"
-
-if [ -z "$ARCH" ]; then
+if [ -z "${KERNEL_NAME}" ]; then
     help_and_exit
 fi
 
-if [[ ! " ${VALID_ARCHS[*]} " =~ " ${ARCH} " ]]; then
-    echo "Invalid arch '${ARCH}'"
+if [[ ! " ${KERNEL_LIST[*]} " =~ " ${KERNEL_NAME} " ]]; then
+    echo "Invalid kernel '${KERNEL_NAME}'"
     help_and_exit
 fi
 
-if [[ ! " ${VALID_TYPES[*]} " =~ " ${KERNEL_TYPE} " ]]; then
-    echo "Invalid kernel type '${KERNEL_TYPE}'"
-    help_and_exit
-fi
+# KERNEL_NAME = <KERNEL_TYPE>-<KERNEL_VERSION>-<ARCH>
+# e.g. "linux-5.10.178-arm64" or "ack-android13-5.10-lts-x86_64"
+ARCH="${KERNEL_NAME##*-}"
+KERNEL_VERSION=$(echo ${KERNEL_NAME} | grep -oP "\d+\.\d+(\.\d+)?(-lts)?")
+KERNEL_TYPE=$(echo ${KERNEL_NAME} | sed "s/-${KERNEL_VERSION}-${ARCH}//")
 
 if [[ "${ARCH}" == @(arm64|aarch64) ]]; then
     ARCH=arm64
     QEMU_BIN=qemu-system-aarch64
-    KERNEL="${IMAGE_DIR}/Image-${KERNEL_TYPE}-arm64"
-    ROOTFS="${IMAGE_DIR}/rootfs-arm64.img"
+    CMDLINE="console=ttyAMA0 root=/dev/vda nokaslr ${CMDLINE}"
 
     QEMU_ARGS=(
         -cpu max
         -machine virt
-        -append "console=ttyAMA0 root=/dev/vda nokaslr ${CMDLINE}"
     )
 elif [ "$ARCH" == "x86_64" ]; then
     QEMU_BIN=qemu-system-x86_64
-    KERNEL="${IMAGE_DIR}/bzImage-${KERNEL_TYPE}-x86_64"
-    ROOTFS="${IMAGE_DIR}/rootfs-x86_64.img"
-
-    QEMU_ARGS=(
-        -append "8250.nr_uarts=1 console=ttyS0 root=/dev/vda nokaslr ${CMDLINE}"
-    )
+    CMDLINE="8250.nr_uarts=1 console=ttyS0 root=/dev/vda nokaslr ${CMDLINE}"
+    QEMU_ARGS=()
 fi
+
+KERNEL=$(echo ${IMAGE_DIR}/*Image-${KERNEL_NAME})
+ROOTFS=$(echo ${IMAGE_DIR}/*-${ARCH}.img)
 
 QEMU_ARGS+=(
     -kernel $KERNEL
@@ -85,4 +79,4 @@ QEMU_ARGS+=(
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
 
-$QEMU_BIN "${QEMU_ARGS[@]}"
+$QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

@@ -7,20 +7,9 @@ ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
-ARCH=""
-KERNEL_TYPE=""
-VMLINUX=""
-
-PLATFORMS=(
-    # ARCH KERNEL_TYPE [QEMU_ARGS]
-    "x86_64 linux"
-    "x86_64 ack"
-    "arm64 linux"
-    "arm64 ack"
-)
-
 CWD=$(dirname -- "$0")
 IMAGE_DIR="${CWD}/images"
+VMLINUX_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux*))
 
 ptrace_scope=$(cat /proc/sys/kernel/yama/ptrace_scope)
 if [[ $ptrace_scope -ne 0 && $(id -u) -ne 0 ]]; then
@@ -96,7 +85,10 @@ done
 
 gdb_load_pwndbg=(--command "$GDB_INIT_PATH" -ex "set exception-verbose on")
 run_gdb() {
-    if [[ "$ARCH" == x86_64 ]]; then
+    local arch="$1"
+    shift
+
+    if [[ "${arch}" == x86_64 ]]; then
         GDB=gdb
     else
         GDB=gdb-multiarch
@@ -109,7 +101,7 @@ run_gdb() {
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
 gdb_args=(--command pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(run_gdb "${gdb_args[@]}")
+TESTS_COLLECT_OUTPUT=$(run_gdb "x86_64" "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -122,15 +114,22 @@ fi
 TESTS_LIST=($(echo -E "$TESTS_COLLECT_OUTPUT" | grep -o "tests/.*::.*" | grep "${TEST_NAME_FILTER}"))
 
 init_gdb() {
-    gdb_connect_qemu=(-ex "file ${VMLINUX}" -ex "target remote :1234")
-    gdb_args=("${gdb_connect_qemu[@]}" -ex 'break start_kernel' -ex 'continue')
-    run_gdb "${gdb_args[@]}" > /dev/null 2>&1
+    local kernel_type="$1"
+    local kernel_version="$2"
+    local arch="$3"
+
+    gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :1234")
+    gdb_args=("${gdb_connect_qemu[@]}" -ex 'break *start_kernel' -ex 'continue')
+    run_gdb "${arch}" "${gdb_args[@]}" > /dev/null 2>&1
 }
 
 run_test() {
     test_case="$1"
+    local kernel_type="$2"
+    local kernel_version="$3"
+    local arch="$4"
 
-    gdb_connect_qemu=(-ex "file ${VMLINUX}" -ex "target remote :1234")
+    gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :1234")
     gdb_args=("${gdb_connect_qemu[@]}" --command pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
@@ -141,9 +140,10 @@ run_test() {
         USE_PDB="${USE_PDB}" \
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
-        PWNDBG_ARCH="$ARCH" \
-        PWNDBG_KERNEL_TYPE="$KERNEL_TYPE" \
-        run_gdb "${gdb_args[@]}"
+        PWNDBG_ARCH="${arch}" \
+        PWNDBG_KERNEL_TYPE="${kernel_type}" \
+        PWNDBG_KERNEL_VERSION="${kernel_version}" \
+        run_gdb "${arch}" "${gdb_args[@]}"
     return $?
 }
 
@@ -173,22 +173,27 @@ process_output() {
 }
 
 test_system() {
+    local kernel_type="$1"
+    local kernel_version="$2"
+    local arch="$3"
+    shift 3
+    local qemu_args=("$@")
+
     FAILED_TESTS=()
-    echo "============================ Testing $KERNEL_TYPE-$ARCH ============================"
+    printf "============================ Testing %-20s  ============================\n" "${kernel_type}-${kernel_version}-${arch}"
 
-    if [[ ! -z ${QEMU_ARGS} ]]; then
-        echo "Additional QEMU parameters used: '${QEMU_ARGS[*]}'"
+    if [[ ! -z ${qemu_args} ]]; then
+        echo "Additional QEMU parameters used: '${qemu_args[*]}'"
     fi
-
     echo ""
 
-    "${CWD}/run_qemu_system.sh" --arch="$ARCH" --type="$KERNEL_TYPE" -- "${QEMU_ARGS[@]}" > /dev/null 2>&1 &
+    "${CWD}/run_qemu_system.sh" --kernel="${kernel_type}-${kernel_version}-${arch}" -- "${qemu_args[@]}" > /dev/null 2>&1 &
 
-    init_gdb
+    init_gdb "${kernel_type}" "${kernel_version}" "${arch}"
     start=$(date +%s)
 
     for t in "${TESTS_LIST[@]}"; do
-        output=$(run_test "$t")
+        output=$(run_test "$t" "${kernel_type}" "${kernel_version}" "${arch}")
         process_output "$output"
     done
 
@@ -216,13 +221,19 @@ test_system() {
     pkill qemu-system
 }
 
-for platform in "${PLATFORMS[@]}"; do
-    read -r arch kernel_type qemu_args <<< "$platform"
+for vmlinux in "${VMLINUX_LIST[@]}"; do
+    KERNEL=$(echo "${vmlinux}" | sed "s/vmlinux-//")
+    # extract architecture as last dash-separated group of the kernels name
+    ARCH="${KERNEL##*-}"
+    KERNEL_VERSION=$(echo ${KERNEL} | grep -oP "\d+\.\d+(\.\d+)?(-lts)?")
+    KERNEL_TYPE=$(echo ${KERNEL} | sed "s/-${KERNEL_VERSION}-${ARCH}//")
+    QEMU_ARGS=()
 
-    ARCH="$arch"
-    KERNEL_TYPE="$kernel_type"
-    QEMU_ARGS=($qemu_args)
-    VMLINUX="${IMAGE_DIR}/vmlinux-${KERNEL_TYPE}-${ARCH}"
+    test_system "${KERNEL_TYPE}" "${KERNEL_VERSION}" "${ARCH}" ${QEMU_ARGS}
 
-    test_system
+    if [[ "${ARCH}" == @("x86_64") ]]; then
+        # additional test with extra QEMU flags
+        QEMU_ARGS=(-cpu qemu64,+la57)
+        test_system "${KERNEL_TYPE}" "${KERNEL_VERSION}" "${ARCH}" "${QEMU_ARGS[@]}"
+    fi
 done
