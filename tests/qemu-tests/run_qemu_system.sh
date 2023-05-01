@@ -54,18 +54,16 @@ KERNEL_TYPE=$(echo ${KERNEL_NAME} | sed "s/-${KERNEL_VERSION}-${ARCH}//")
 if [[ "${ARCH}" == @(arm64|aarch64) ]]; then
     ARCH=arm64
     QEMU_BIN=qemu-system-aarch64
+    CMDLINE="console=ttyAMA0 root=/dev/vda nokaslr ${CMDLINE}"
 
     QEMU_ARGS=(
         -cpu max
         -machine virt
-        -append "console=ttyAMA0 root=/dev/vda nokaslr ${CMDLINE}"
     )
 elif [ "$ARCH" == "x86_64" ]; then
     QEMU_BIN=qemu-system-x86_64
-
-    QEMU_ARGS=(
-        -append "8250.nr_uarts=1 console=ttyS0 root=/dev/vda nokaslr ${CMDLINE}"
-    )
+    CMDLINE="8250.nr_uarts=1 console=ttyS0 root=/dev/vda nokaslr ${CMDLINE}"
+    QEMU_ARGS=()
 fi
 
 KERNEL=$(echo ${IMAGE_DIR}/*Image-${KERNEL_NAME})
@@ -81,4 +79,4 @@ QEMU_ARGS+=(
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
 
-$QEMU_BIN "${QEMU_ARGS[@]}"
+$QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

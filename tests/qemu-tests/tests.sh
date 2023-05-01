@@ -117,10 +117,9 @@ init_gdb() {
     local kernel_type="$1"
     local kernel_version="$2"
     local arch="$3"
-    local qemu_args=$4
 
     gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :1234")
-    gdb_args=("${gdb_connect_qemu[@]}" -ex 'break start_kernel' -ex 'continue')
+    gdb_args=("${gdb_connect_qemu[@]}" -ex 'break *start_kernel' -ex 'continue')
     run_gdb "${arch}" "${gdb_args[@]}" > /dev/null 2>&1
 }
 
@@ -177,7 +176,8 @@ test_system() {
     local kernel_type="$1"
     local kernel_version="$2"
     local arch="$3"
-    local qemu_args=$4
+    shift 3
+    local qemu_args=("$@")
 
     FAILED_TESTS=()
     printf "============================ Testing %-20s  ============================\n" "${kernel_type}-${kernel_version}-${arch}"
@@ -234,6 +234,6 @@ for vmlinux in "${VMLINUX_LIST[@]}"; do
     if [[ "${ARCH}" == @("x86_64") ]]; then
         # additional test with extra QEMU flags
         QEMU_ARGS=(-cpu qemu64,+la57)
-        test_system "${KERNEL_TYPE}" "${KERNEL_VERSION}" "${ARCH}" ${QEMU_ARGS}
+        test_system "${KERNEL_TYPE}" "${KERNEL_VERSION}" "${ARCH}" "${QEMU_ARGS[@]}"
     fi
 done
