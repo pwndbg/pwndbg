@@ -17,7 +17,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.ida
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.color import message
 
 try:
@@ -61,7 +61,7 @@ VariableInstructionSizeMax = {
 backward_cache: DefaultDict = collections.defaultdict(lambda: None)
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_disassembler_cached(arch, ptrsize, endian, extra=None):
     arch = CapstoneArch[arch]
 
@@ -140,7 +140,7 @@ class SimpleInstruction:
         self.condition = False
 
 
-@pwndbg.lib.memoize.reset_on_cont
+@pwndbg.lib.cache.cache_until("cont")
 def get_one_instruction(address):
     if pwndbg.gdblib.arch.current not in CapstoneArch:
         return SimpleInstruction(address)

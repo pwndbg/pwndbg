@@ -6,7 +6,7 @@ import gdb
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 
 
@@ -37,5 +37,5 @@ def reinit_pwndbg() -> None:
     """
     Makes pwndbg reinitialize all state.
     """
-    pwndbg.lib.memoize.reset()
+    pwndbg.lib.cache.clear_caches()
     pwndbg.gdblib.events.after_reload()

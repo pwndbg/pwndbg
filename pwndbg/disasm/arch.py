@@ -2,7 +2,7 @@ import gdb
 from capstone import *  # noqa: F403
 
 import pwndbg.gdblib.symbol
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 debug = False
 

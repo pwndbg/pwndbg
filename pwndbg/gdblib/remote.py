@@ -5,11 +5,10 @@ Information about whether the debuggee is local (under GDB) or remote
 
 import gdb
 
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("objfile", "start")
 def is_remote() -> bool:
     # Example:
     # pwndbg> maintenance print target-stack

@@ -27,8 +27,8 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
+import pwndbg.lib.cache
 import pwndbg.lib.elftypes
-import pwndbg.lib.memoize
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -84,7 +84,7 @@ def read(typ, address, blob=None):
     return obj
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_elf_info(filepath):
     """
     Parse and return ELFInfo.
@@ -118,7 +118,7 @@ def get_elf_info(filepath):
         return ELFInfo(header, sections, segments)
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_elf_info_rebased(filepath, vaddr):
     """
     Parse and return ELFInfo with all virtual addresses rebased to vaddr
@@ -208,7 +208,7 @@ def dump_relocations_by_section_name(
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def exe():
     """
     Return a loaded ELF header object pointing to the Ehdr of the
@@ -220,7 +220,7 @@ def exe():
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def entry() -> int:
     """
     Return the address of the entry point for the main executable.
@@ -260,7 +260,7 @@ def load(pointer):
 ehdr_type_loaded = 0
 
 
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def reset_ehdr_type_loaded() -> None:
     global ehdr_type_loaded
     ehdr_type_loaded = 0

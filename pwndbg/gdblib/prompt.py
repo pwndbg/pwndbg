@@ -6,7 +6,7 @@ import gdb
 import pwndbg.decorators
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.profiling
 from pwndbg.color import disable_colors
 from pwndbg.color import message

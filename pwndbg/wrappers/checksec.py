@@ -1,7 +1,7 @@
 from subprocess import CalledProcessError
 
 import pwndbg.commands
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.wrappers
 
 cmd_name = "checksec"
@@ -9,7 +9,7 @@ cmd_pwntools = ["pwn", "checksec"]
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_raw_out():
     local_path = pwndbg.gdblib.file.get_proc_exe_file()
     try:

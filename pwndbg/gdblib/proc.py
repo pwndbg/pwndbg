@@ -16,7 +16,7 @@ import gdb
 from elftools.elf.relocation import Relocation
 
 import pwndbg.gdblib.qemu
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 
 
@@ -95,27 +95,23 @@ class module(ModuleType):
         return gdb.current_progspace().filename
 
     @property
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("start", "stop")
     def binary_base_addr(self) -> int:
         return self.binary_vmmap[0].start
 
     @property
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("start", "stop")
     def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("start", "objfile")
     def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
         """
         Dump .data section of current process's ELF file
         """
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("start", "objfile")
     def dump_relocations_by_section_name(
         self, section_name: str
     ) -> Optional[Tuple[Relocation, ...]]:
@@ -126,8 +122,7 @@ class module(ModuleType):
             self.exe, section_name, try_local_path=True
         )
 
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("start", "objfile")
     def get_data_section_address(self) -> int:
         """
         Find .data section address of current process.
@@ -138,8 +133,7 @@ class module(ModuleType):
                 return int(line.split()[0], 16)
         return 0
 
-    @pwndbg.lib.memoize.reset_on_start
-    @pwndbg.lib.memoize.reset_on_objfile
+    @pwndbg.lib.cache.cache_until("start", "objfile")
     def get_got_section_address(self) -> int:
         """
         Find .got section address of current process.

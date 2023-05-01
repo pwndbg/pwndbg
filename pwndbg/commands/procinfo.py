@@ -5,7 +5,7 @@ import pwndbg.commands
 import pwndbg.gdblib.file
 import pwndbg.gdblib.net
 import pwndbg.gdblib.proc
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -75,14 +75,14 @@ class Process:
         self.tid = tid
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def selinux(self):
         path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
         raw = pwndbg.gdblib.file.get(path)
         return raw.decode().rstrip("\x00").strip()
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def status(self):
         raw = pwndbg.gdblib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
@@ -137,7 +137,7 @@ class Process:
         return status
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def open_files(self):
         fds = {}
 
@@ -150,7 +150,7 @@ class Process:
         return fds
 
     @property
-    @pwndbg.lib.memoize.reset_on_stop
+    @pwndbg.lib.cache.cache_until("stop")
     def connections(self):
         # Connections look something like this:
         # socket:[102422]

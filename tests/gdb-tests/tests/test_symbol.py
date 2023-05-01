@@ -58,7 +58,7 @@ def test_symbol_duplicated_symbols_issue_1610():
     assert out[2] == ""
 
     # Make sure to clear cache!
-    pwndbg.gdblib.symbol.get.clear()
+    pwndbg.gdblib.symbol.get.cache.clear()
 
     # Real test assert - this should not crash!
     assert pwndbg.gdblib.symbol.get(main_addr) == "main"
