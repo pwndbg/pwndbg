@@ -1,10 +1,20 @@
+import os
+
 import gdb
 import pytest
 
 import pwndbg
 from pwndbg.gdblib import kernel
 
+ARCH = os.getenv("PWNDBG_ARCH")
+KERNEL_TYPE = os.getenv("PWNDBG_KERNEL_TYPE")
+KERNEL_VERSION = os.getenv("PWNDBG_KERNEL_VERSION")
 
+
+@pytest.mark.skipif(
+    ARCH in ["x86_64"] and KERNEL_TYPE in ["linux"] and KERNEL_VERSION.startswith("5"),
+    reason="global pfn symbols missing. further investigation required",  # TODO: fix
+)
 def test_gdblib_kernel_archops_address_translation():
     # test address translation functions for LowMem
     min_low_pfn = int(gdb.lookup_global_symbol("min_low_pfn").value())
