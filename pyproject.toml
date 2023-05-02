@@ -2,6 +2,47 @@
 line-length = 100
 extend-exclude = "gdb-pt-dump"
 
+[tool.ruff]
+exclude = ["gdb-pt-dump"]
+ignore = [
+    "A003",
+    "E402",
+    "E501",
+    "E731",
+    "F405",
+    "F811",
+    "F821",
+    "F841",
+    "W505",
+]
+line-length = 100
+select = [
+    "A",
+    "E",
+    "F",
+    "W",
+]
+
+[tool.ruff.flake8-builtins]
+builtins-ignorelist = [
+    "all",
+    "bin",
+    "breakpoint",
+    "copyright",
+    "dir",
+    "exit",
+    "format",
+    "hex",
+    "map",
+    "max",
+    "min",
+    "next",
+    "type",
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
 [tool.mypy]
 strict_optional = false
 check_untyped_defs = true
