@@ -942,7 +942,8 @@ def vis_heap_chunks(
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = pwndbg.gdblib.arch.unpack(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            data = pwndbg.gdblib.memory.read(cursor, ptr_size)
+            cell = pwndbg.gdblib.arch.unpack(data)
             cell_hex = "\t0x{:0{n}x}".format(cell, n=ptr_size * 2)
 
             out += color_func(cell_hex)
@@ -952,7 +953,7 @@ def vis_heap_chunks(
             if cursor == arena.top:
                 labels.append("Top chunk")
 
-            asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            asc += bin_ascii(data)
             if printed % 2 == 0:
                 out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
                 asc = ""
