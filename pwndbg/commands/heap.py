@@ -1,9 +1,10 @@
 import argparse
 import ctypes
+from typing import Dict
+from typing import List
 
 import gdb
 from tabulate import tabulate
-from typing import Dict, List
 
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
