@@ -15,7 +15,8 @@ arches = {
     "mips": mips,
     "x86-64": amd64,
     "aarch64": aarch64,
-    "riscv:rv64": riscv64,
+    "rv32": riscv64,
+    "rv64": riscv64,
 }
 
 

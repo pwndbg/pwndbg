@@ -8,6 +8,7 @@ import re
 import capstone as C
 import gdb
 import unicorn as U
+import unicorn.riscv_const
 
 import pwndbg.disasm
 import pwndbg.gdblib.arch
@@ -36,6 +37,8 @@ arch_to_UC = {
     "arm": U.UC_ARCH_ARM,
     "aarch64": U.UC_ARCH_ARM64,
     # 'powerpc': U.UC_ARCH_PPC,
+    "rv32": U.UC_ARCH_RISCV,
+    "rv64": U.UC_ARCH_RISCV,
 }
 
 arch_to_UC_consts = {
@@ -45,6 +48,8 @@ arch_to_UC_consts = {
     "sparc": parse_consts(U.sparc_const),
     "arm": parse_consts(U.arm_const),
     "aarch64": parse_consts(U.arm64_const),
+    "rv32": parse_consts(U.riscv_const),
+    "rv64": parse_consts(U.riscv_const),
 }
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
@@ -56,6 +61,8 @@ arch_to_CS = {
     "arm": C.CS_ARCH_ARM,
     "aarch64": C.CS_ARCH_ARM64,
     # 'powerpc': C.CS_ARCH_PPC,
+    "rv32": C.CS_ARCH_RISCV,
+    "rv64": C.CS_ARCH_RISCV,
 }
 
 DEBUG = False
@@ -87,6 +94,7 @@ arch_to_SYSCALL = {
     U.UC_ARCH_ARM: [C.arm_const.ARM_INS_SVC],
     U.UC_ARCH_ARM64: [C.arm64_const.ARM64_INS_SVC],
     U.UC_ARCH_PPC: [C.ppc_const.PPC_INS_SC],
+    U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
 
 blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss", "fsbase", "gsbase"]
