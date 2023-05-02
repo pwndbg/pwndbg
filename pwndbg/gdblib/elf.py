@@ -273,32 +273,38 @@ def get_ehdr(pointer):
     We expect the `pointer` to be an address from the binary.
     """
 
-    # This just does not work :(
-    if pwndbg.gdblib.qemu.is_qemu():
-        return None, None
-
-    vmmap = pwndbg.gdblib.vmmap.find(pointer)
     base = None
 
-    # If there is no vmmap for the requested address, we can't do much
-    # (e.g. it could have been unmapped for whatever reason)
-    if vmmap is None:
-        return None, None
-
-    # We first check if the beginning of the page contains the ELF magic
-    if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
-        base = vmmap.start
-
-    # The page did not have ELF magic; it may be that .text and binary start are split
-    # into two pages, so let's get the first page from the pointer's page objfile
+    if pwndbg.gdblib.qemu.is_qemu():
+        # Only check if the beginning of the page contains the ELF magic,
+        # since we cannot get the memory map in qemu-user.
+        page_start = pwndbg.lib.memory.page_align(pointer)
+        if pwndbg.gdblib.memory.read(page_start, 4, partial=True) == b"\x7fELF":
+            base = page_start
+        else:
+            return None, None
     else:
-        for v in pwndbg.gdblib.vmmap.get():
-            if v.objfile == vmmap.objfile:
-                vmmap = v
-                break
+        vmmap = pwndbg.gdblib.vmmap.find(pointer)
 
+        # If there is no vmmap for the requested address, we can't do much
+        # (e.g. it could have been unmapped for whatever reason)
+        if vmmap is None:
+            return None, None
+
+        # We first check if the beginning of the page contains the ELF magic
         if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
             base = vmmap.start
+
+        # The page did not have ELF magic; it may be that .text and binary start are split
+        # into two pages, so let's get the first page from the pointer's page objfile
+        else:
+            for v in pwndbg.gdblib.vmmap.get():
+                if v.objfile == vmmap.objfile:
+                    vmmap = v
+                    break
+
+            if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
+                base = vmmap.start
 
     if base is None:
         # For non linux ABI, the ELF header may not exist at all

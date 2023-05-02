@@ -675,7 +675,13 @@ def info_auxv(skip_exe=False):
     phdr = auxv.AT_PHDR
 
     if not skip_exe and (entry or phdr):
-        pages.extend(pwndbg.gdblib.elf.map(entry or phdr, exe_name))
+        for addr in [entry, phdr]:
+            if not addr:
+                continue
+            new_pages = pwndbg.gdblib.elf.map(addr, exe_name)
+            if new_pages:
+                pages.extend(new_pages)
+                break
 
     if base:
         pages.extend(pwndbg.gdblib.elf.map(base, "[linker]"))
