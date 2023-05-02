@@ -1,5 +1,7 @@
 import argparse
 import ctypes
+from typing import Dict
+from typing import List
 
 import gdb
 from tabulate import tabulate
@@ -914,6 +916,8 @@ def vis_heap_chunks(
         >> 1
     )
 
+    bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
@@ -940,17 +944,18 @@ def vis_heap_chunks(
             if printed % 2 == 0:
                 out += "\n0x%x" % cursor
 
-            cell = pwndbg.gdblib.arch.unpack(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            data = pwndbg.gdblib.memory.read(cursor, ptr_size)
+            cell = pwndbg.gdblib.arch.unpack(data)
             cell_hex = "\t0x{:0{n}x}".format(cell, n=ptr_size * 2)
 
             out += color_func(cell_hex)
             printed += 1
 
-            labels.extend(bin_labels(cursor, bin_collections))
+            labels.extend(bin_labels_map.get(cursor, []))
             if cursor == arena.top:
                 labels.append("Top chunk")
 
-            asc += bin_ascii(pwndbg.gdblib.memory.read(cursor, ptr_size))
+            asc += bin_ascii(data)
             if printed % 2 == 0:
                 out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
                 asc = ""
@@ -975,8 +980,14 @@ def bin_ascii(bs):
     return "".join(chr(c) if c in valid_chars else "." for c in bs)
 
 
-def bin_labels(addr, collections):
-    labels = []
+def bin_labels_mapping(collections):
+    """
+    Returns all potential bin labels for all potential addresses
+    We precompute all of them because doing this on demand was too slow and inefficient
+    See #1675 for more details
+    """
+    labels_mapping: Dict[int, List[str]] = {}
+
     for bins in collections:
         if not bins:
             continue
@@ -989,14 +1000,13 @@ def bin_labels(addr, collections):
             count = "/{:d}".format(b.count) if bins_type == BinType.TCACHE else None
             chunks = b.fd_chain
             for chunk_addr in chunks:
-                if addr == chunk_addr:
-                    labels.append(
-                        "{:s}[{:s}][{:d}{}]".format(
-                            bins_type, size, chunks.index(addr), count or ""
-                        )
+                labels_mapping.setdefault(chunk_addr, []).append(
+                    "{:s}[{:s}][{:d}{}]".format(
+                        bins_type, size, chunks.index(chunk_addr), count or ""
                     )
+                )
 
-    return labels
+    return labels_mapping
 
 
 try_free_parser = argparse.ArgumentParser(
