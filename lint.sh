@@ -29,7 +29,7 @@ done
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py"
-LINT_TOOLS="isort black flake8 vermin"
+LINT_TOOLS="isort black ruff vermin"
 
 if ! type ${LINT_TOOLS} &> /dev/null; then
     PIP_CMD="pip install -Ur dev-requirements.txt"
@@ -58,7 +58,7 @@ fi
 # Checking minimum python version
 vermin -vvv --no-tips -q -t=3.6 --violations ./pwndbg/
 
-flake8 --show-source ${LINT_FILES}
+ruff check --show-source ${LINT_FILES}
 
 if [ -x "$(command -v mypy)" ]; then
     mypy pwndbg
