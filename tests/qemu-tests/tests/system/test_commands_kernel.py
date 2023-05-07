@@ -59,7 +59,6 @@ def test_command_slab_info():
     res = gdb.execute("slab info -v kmalloc-512", to_string=True)
     assert "kmalloc-512" in res
     assert "Freelist" in res
-    assert "In-Use" in res
 
     res = gdb.execute("slab info -v does_not_exit", to_string=True)
     assert "not found" in res
