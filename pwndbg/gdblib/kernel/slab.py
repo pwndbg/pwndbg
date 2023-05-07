@@ -16,6 +16,15 @@ def get_cache(target_name: str):
             return slab_cache
 
 
+def get_slab_key() -> str:
+    # In Linux kernel version 5.17 a slab struct was introduced instead of the previous page struct
+    try:
+        gdb.lookup_type("struct slab")
+        return "slab"
+    except gdb.error:
+        return "page"
+
+
 OO_SHIFT = 16
 OO_MASK = (1 << OO_SHIFT) - 1
 
