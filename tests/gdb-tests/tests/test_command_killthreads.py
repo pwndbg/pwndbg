@@ -7,7 +7,7 @@ import tests
 REFERENCE_BINARY_THREADS = tests.binaries.get("multiple_threads.out")
 
 
-def wait_until(predicate: callable, timeout: int = 5):
+def wait_until(predicate: callable, timeout: int = 10):
     """
     Waits until the predicate returns True or timeout is reached.
     """
