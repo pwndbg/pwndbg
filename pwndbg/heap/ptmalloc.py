@@ -1,7 +1,13 @@
 import copy
 import importlib
 from collections import OrderedDict
-from enum import Enum
+
+try:
+    # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
+    from enum import ReprEnum as Enum
+except ImportError:
+    from enum import Enum
+
 from typing import Any
 from typing import Callable
 from typing import Dict
