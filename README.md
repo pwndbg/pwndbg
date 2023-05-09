@@ -66,7 +66,9 @@ For further info about features/functionalities, see [FEATURES](FEATURES.md).
 
 ## Who?
 
-Pwndbg is an open-source project, written and maintained by [many contributors](https://github.com/pwndbg/pwndbg/graphs/contributors)!
+Pwndbg is an open-source project, maintained by [many contributors](https://github.com/pwndbg/pwndbg/graphs/contributors)!
+
+Pwndbg was originally created by [Zach Riggle](https://github.com/zachriggle), who is no longer with us. We want to thank Zach for all of his contributions to Pwndbg and the wider security community.
 
 Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md) or [join our Discord server](https://discord.gg/x47DssnGwm)!
 
