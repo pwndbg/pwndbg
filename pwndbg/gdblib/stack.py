@@ -62,6 +62,7 @@ def update() -> None:
     try:
         for thread in gdb.selected_inferior().threads():
             thread.switch()
+            pwndbg.gdblib.regs.__getattr__.cache.clear()
             sp = pwndbg.gdblib.regs.sp
 
             # Skip if sp is None or 0
