@@ -51,4 +51,14 @@ def test_command_slab_list():
 
 
 def test_command_slab_info():
-    pass  # TODO
+    if not pwndbg.gdblib.kernel.has_debug_syms():
+        res = gdb.execute("slab info kmalloc-512", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    res = gdb.execute("slab info -v kmalloc-512", to_string=True)
+    assert "kmalloc-512" in res
+    assert "Freelist" in res
+
+    res = gdb.execute("slab info -v does_not_exit", to_string=True)
+    assert "not found" in res
