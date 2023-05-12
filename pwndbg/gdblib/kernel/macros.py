@@ -22,7 +22,7 @@ def for_each_entry(head, typename, field):
 
 def _arr(x: gdb.Value, n: int) -> gdb.Value:
     """returns the nth element of type x, starting at address of x"""
-    ptr = x.address.case(x.type.pointer())
+    ptr = x.address.cast(x.type.pointer())
     return (ptr + n).dereference()
 
 
