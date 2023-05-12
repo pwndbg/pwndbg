@@ -973,11 +973,12 @@ def vis_heap_chunks(
         )
 
 
-def bin_ascii(bs):
-    from string import printable
+from string import printable
+valid_chars = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
-    valid_chars = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
+def bin_ascii(bs):
     return "".join(chr(c) if c in valid_chars else "." for c in bs)
+
 
 
 def bin_labels_mapping(collections):
