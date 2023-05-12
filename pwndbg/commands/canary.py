@@ -38,34 +38,16 @@ def canary() -> None:
     )
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
-    current_thread = pwndbg.proc.current_thread_id()
-    current_rsp = pwndbg.regs.rsp
-    stack_canaries = []
-
-    for stack in pwndbg.stack.stacks.values():
-        stack_start = stack.start
-        stack_end = stack.end
-        if stack_start <= current_rsp < stack_end:
-            stack_canaries = list(
-                pwndbg.search.search(pwndbg.gdblib.arch.pack(global_canary), mappings=[stack])
-            )
-            break
-
-    if not stack_canaries:
-        print(message.warn("No valid canaries found on the current stack."))
-        return
-
-    print(
-        message.success(
-            f"Found valid canaries on the current stack (thread {current_thread}):"
+    stack_canaries = list(
+        pwndbg.search.search(
+            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.gdblib.stack.stacks.values()
         )
     )
 
+    if not stack_canaries:
+        print(message.warn("No valid canaries found on the stacks."))
+        return
+
+    print(message.success("Found valid canaries on the stacks:"))
     for stack_canary in stack_canaries:
-        offset_from_rsp = stack_canary - current_rsp
-        print(
-            message.address(
-                f"Canary at offset {offset_from_rsp:#x} from RSP: {stack_canary:#x}"
-            )
-        )
         pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
