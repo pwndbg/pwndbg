@@ -23,16 +23,13 @@ def canary_value():
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Print out the current stack canary.", category=CommandCategory.STACK
+    "Print out the current stack canary.",
+    category=CommandCategory.STACK,
+    aliases=("canary",),
 )
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.aliases("can")
-@pwndbg.commands.add_argument(
-    "--all",
-    "-a",
-    action="store_true",
-    help="Display all canaries for all threads.",
-)
+@pwndbg.commands.aliases("canary")
+@pwndbg.commands.with_argparser
 def canary(all: bool = False) -> None:
     global_canary, at_random = canary_value()
 
@@ -41,61 +38,47 @@ def canary(all: bool = False) -> None:
         return
 
     print(
-        message.notice(
-            "AT_RANDOM = %#x # points to (not masked) global canary value" % at_random
+        message.notice("AT_RANDOM = %#x # points to (not masked) global canary value" % at_random)
+    )
+    print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
+
+    stack_canaries = list(
+        pwndbg.search.search(
+            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.gdblib.stack.stacks.values()
         )
     )
-    print(
-        message.notice(
-            "Canary    = 0x%x (may be incorrect on != glibc)" % global_canary
-        )
-    )
+
+    if not stack_canaries:
+        print(message.warn("No valid canaries found on the stacks."))
+        return
 
     if not all:
-        # Display canary for current thread
-        stack_canary = find_canary_for_thread(pwndbg.procinfo.procs[0].tid)
-        if not stack_canary:
-            print(
-                message.warn(
-                    "No valid canary found on the stack for current thread."
-                )
-            )
+        current_thread = pwndbg.proc.current_thread
+        current_rsp = int(pwndbg.regs.rsp)
+        stack_canaries = [x for x in stack_canaries if x >= current_rsp]
+        stack_canaries.sort()
+
+        if not stack_canaries:
+            print(message.warn("No valid canaries found on the current stack."))
             return
 
-        print(
-            message.success(
-                f"Found valid canary on the stack for current thread ({pwndbg.procinfo.procs[0].tid}):"
+        print(message.success("Found valid canaries on the current stack:"))
+        for stack_canary in stack_canaries:
+            offset = current_rsp - stack_canary
+            print(
+                "Thread ID: %d, Address: %#x, Offset from RSP: %#x"
+                % (current_thread.id, stack_canary, offset)
             )
-        )
-        pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
-
+            pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
     else:
-        # Display canaries for all threads
-        found_canaries = False
-        for proc in pwndbg.procinfo.procs:
-            stack_canary = find_canary_for_thread(proc.tid)
-            if stack_canary:
-                found_canaries = True
-                print(
-                    message.success(
-                        f"Found valid canary on the stack for thread {proc.tid}:"
-                    )
-                )
-                pwndbg.commands.telescope.telescope(
-                    address=stack_canary, count=1
-                )
+        print(message.success("Found valid canaries on the stacks:"))
+        for stack in pwndbg.gdblib.stack.stacks.values():
+            print(f"Stack {stack.id}:")
+            stack_canaries = list(pwndbg.search.search(pwndbg.gdblib.arch.pack(global_canary), mappings=[stack]))
+            if not stack_canaries:
+                print(message.warn(f"No valid canaries found on stack {stack.id}."))
+                continue
 
-        if not found_canaries:
-            print(message.warn("No valid canaries found on the stacks."))
-
-
-def find_canary_for_thread(thread_id):
-    for stack in pwndbg.gdblib.stack.stacks.values():
-        if stack.thread_id == thread_id:
-            rsp = pwndbg.regs.rsp
-            canary_address = stack.sp - pwndbg.arch.ptrsize
-            if canary_address >= rsp:
-                return pwndbg.memory.u(canary_address)
-
-    return None
-
+            for stack_canary in stack_canaries:
+                offset = stack.rsp - stack_canary
+                print(f"\tAddress: {stack_canary:#x}, Offset from RSP: {offset:#
