@@ -309,13 +309,12 @@ def slab_contains(address: str) -> None:
         print(M.error(f"Could not parse '{address}'"))
         return
 
-    # TODO: handle cases when min_low_pfn and max_low_pfn symbols are not found
-    min_low_pfn = gdb.lookup_global_symbol("min_low_pfn")
-    max_low_pfn = gdb.lookup_global_symbol("max_low_pfn")
+    min_pfn = 0
+    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
 
-    start_addr = pwndbg.gdblib.kernel.pfn_to_virt(int(min_low_pfn.value()))
+    start_addr = pwndbg.gdblib.kernel.pfn_to_virt(min_pfn)
     end_addr = pwndbg.gdblib.kernel.pfn_to_virt(
-        int(max_low_pfn.value()) + pwndbg.gdblib.kernel.arch_ops().page_size()
+        max_pfn + pwndbg.gdblib.kernel.arch_ops().page_size()
     )
 
     if not start_addr <= addr <= end_addr:
