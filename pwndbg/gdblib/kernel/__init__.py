@@ -104,6 +104,9 @@ class ArchOps:
     # use through kernel configuration, enabling support for additional models
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
+    def page_size(self) -> int:
+        raise NotImplementedError()
+
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
@@ -164,6 +167,9 @@ class x86_64Ops(ArchOps):
         self.START_KERNEL_map = 0xFFFFFFFF80000000
         self.PAGE_SHIFT = 12
         self.phys_base = 0x1000000
+
+    def page_size(self) -> int:
+        return 1 << self.PAGE_SHIFT
 
     def per_cpu(self, addr: gdb.Value, cpu=None):
         if cpu is None:
@@ -228,7 +234,6 @@ class Aarch64Ops(ArchOps):
 
         self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
         self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
-        self.PAGE_SIZE = 1 << self.PAGE_SHIFT
 
         self.PHYS_OFFSET = pwndbg.gdblib.memory.u(pwndbg.gdblib.symbol.address("memstart_addr"))
         self.PAGE_OFFSET = (-1 << self.VA_BITS) + 2**64
@@ -238,6 +243,9 @@ class Aarch64Ops(ArchOps):
         VMEMMAP_SIZE = (PAGE_END - self.PAGE_OFFSET) >> (self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT)
 
         self.VMEMMAP_START = (-VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+
+    def page_size(self) -> int:
+        return 1 << self.PAGE_SHIFT
 
     def per_cpu(self, addr: gdb.Value, cpu=None):
         if cpu is None:
