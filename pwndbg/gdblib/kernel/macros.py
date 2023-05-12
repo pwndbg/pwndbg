@@ -32,7 +32,7 @@ def compound_head(page: gdb.Value) -> gdb.Value:
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L249
     head = page["compound_head"]
     if int(head) & 1:
-        return (head - 1).cast(page.type.pointer())
+        return (head - 1).cast(page.type.pointer()).dereference()
 
     pg_head = int(gdb.lookup_static_symbol("PG_head").value())
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212
@@ -41,6 +41,6 @@ def compound_head(page: gdb.Value) -> gdb.Value:
 
         head = next_page["compound_head"]
         if int(head) & 1:
-            return (head - 1).cast(page.type.pointer())
+            return (head - 1).cast(page.type.pointer()).dereference()
 
     return page
