@@ -317,7 +317,7 @@ def slab_contains(address: str) -> None:
         max_pfn + pwndbg.gdblib.kernel.arch_ops().page_size()
     )
 
-    if not start_addr <= addr <= end_addr:
+    if not start_addr <= addr < end_addr:
         print(M.error(f"{addr:#x}: address out of range"))
         return
 
