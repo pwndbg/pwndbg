@@ -221,8 +221,8 @@ class x86_64Ops(ArchOps):
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
         X86_FEATURE_LA57 = 16 * 32 + 16
         return (
-            "CONFIG_X86_5LEVEL = y" in kconfig()
-            and "no5lvl" in kcmdline()
+            kconfig().get("CONFIG_X86_5LEVEL") == "y"
+            and "no5lvl" not in kcmdline()
             and x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57)
         )
 
