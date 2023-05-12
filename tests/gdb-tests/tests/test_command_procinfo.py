@@ -1,7 +1,7 @@
 import os
 import shutil
-import subprocess
 import signal
+import subprocess
 
 import gdb
 
