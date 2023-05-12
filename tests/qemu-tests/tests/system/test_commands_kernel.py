@@ -62,3 +62,20 @@ def test_command_slab_info():
 
     res = gdb.execute("slab info -v does_not_exit", to_string=True)
     assert "not found" in res
+
+
+def test_command_slab_contains():
+    if not pwndbg.gdblib.kernel.has_debug_syms():
+        res = gdb.execute("slab contains 0x123", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    slab_cache = "kmalloc-512"
+
+    # retrieve a valid slab object address (first address from freelist)
+    info = gdb.execute(f"slab info -v {slab_cache}", to_string=True)
+    addr = __import__("re").findall(r"- (0x[0-9a-fA-F]+)", info)[0]
+
+    res = gdb.execute(f"slab contains {addr}", to_string=True)
+
+    assert f"{addr} @ {slab_cache}" in res, f"{info}"
