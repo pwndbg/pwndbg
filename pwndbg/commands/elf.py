@@ -16,20 +16,42 @@ def elfsections() -> None:
         elffile = ELFFile(f)
         sections = []
         for section in elffile.iter_sections():
-            start = section["sh_addr"]
-
+            start = section["sh_offset"]
+            end = start + section["sh_size"]
+            vm_start = section["sh_addr"]
+            vm_end = vm_start + section["sh_size"]
+            perm = format_section_flags(section["sh_flags"])
             # Don't print sections that aren't mapped into memory
-            if start == 0:
+            if vm_start == 0:
                 continue
 
-            size = section["sh_size"]
-            sections.append((start, start + size, section.name))
+            sections.append((section.name, start, end, vm_start, vm_end, perm))
 
         sections.sort()
 
-        for start, end, name in sections:
-            print("%#x - %#x " % (start, end), name)
+        print("%-20s %-20s %-20s %-20s %-20s %-20s" % 
+              ("Section Name", "File Offset Start", "File Offset End", 
+               "VMMap Address Start", "VMMap Address End", "Permissions"))
+        for name, start, end, vm_start, vm_end, perm in sections:
+            print("%-20s %#-20x %#-20x %#-20x %#-20x %-20s" % 
+                  (name, start, end, vm_start, vm_end, perm))
 
+
+def format_section_flags(flags):
+    res = ""
+    if flags & 0x01:
+        res += "X"
+    else:
+        res += "-"
+    if flags & 0x02:
+        res += "W"
+    else:
+        res += "-"
+    if flags & 0x04:
+        res += "R"
+    else:
+        res += "-"
+    return res
 
 @pwndbg.commands.ArgparsedCommand(
     "Prints any symbols found in the .got.plt section if it exists.",
