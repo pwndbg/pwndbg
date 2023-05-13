@@ -18,11 +18,13 @@ def test_command_procinfo(start_binary):
     assert nc_path is not None, "netcat is not installed"
 
     # Spawn netcat
-    netcat_process = subprocess.Popen([nc_path, "-l", "-p", "31337"],
-                                      stdin=subprocess.DEVNULL,
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL,
-                                      start_new_session=True)
+    netcat_process = subprocess.Popen(
+        [nc_path, "-l", "-p", "31337"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
 
     bin_path = gdb.execute("pi pwndbg.gdblib.proc.exe", to_string=True).strip("\n")
     pid = gdb.execute("pi pwndbg.gdblib.proc.pid", to_string=True).strip("\n")
