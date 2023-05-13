@@ -131,7 +131,7 @@ if linux; then
         "clear-linux-os")
             install_swupd
             ;;
-        "opensuse-leap")
+        "opensuse-leap" | "opensuse-tumbleweed")
             install_zypper
             ;;
         "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda")
