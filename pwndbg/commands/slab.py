@@ -156,20 +156,17 @@ def slab_info(name: str, verbose: bool) -> None:
 
 
 def slab_list(filter_) -> None:
-    results = []
-    for slab_cache in pwndbg.gdblib.kernel.slab.caches():
-        name = slab_cache.name
-        if filter_ and filter_ not in name:
-            continue
-        results.append(
-            [
-                name,
-                slab_cache.oo_objects,
-                slab_cache.size,
-                slab_cache.object_size,
-                slab_cache.inuse,
-                slab_cache.oo_order,
-            ]
-        )
+    results = [
+        [
+            slab_cache.name,
+            slab_cache.oo_objects,
+            slab_cache.size,
+            slab_cache.object_size,
+            slab_cache.inuse,
+            slab_cache.oo_order,
+        ]
+        for slab_cache in pwndbg.gdblib.kernel.slab.caches()
+        if not filter_ or filter_ in slab_cache.name
+    ]
 
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))

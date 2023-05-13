@@ -68,13 +68,7 @@ _flags = {
 
 
 def get_flags_list(flags: int) -> List[str]:
-    flags_list = []
-
-    for flag_name, mask in _flags.items():
-        if flags & mask:
-            flags_list.append(flag_name)
-
-    return flags_list
+    return [flag_name for flag_name, mask in _flags.items() if flags & mask]
 
 
 class Freelist:
@@ -94,6 +88,9 @@ class Freelist:
 
     def __int__(self) -> int:
         return self.start_addr
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
 
     def find_next(self, addr: int) -> int:
         freelist_iter = iter(self)
@@ -223,11 +220,11 @@ class Slab:
         return int(self._slab["objects"])
 
     @property
-    def objects(self) -> List[int]:
+    def objects(self) -> Generator[int, None, None]:
         object_size = self.slab_cache.object_size
         start = self.virt_address
         end = start + self.object_count * object_size
-        return list(range(start, end, object_size))
+        return (i for i in range(start, end, object_size))
 
     @property
     def frozen(self) -> int:
@@ -240,7 +237,7 @@ class Slab:
             # `inuse` will always equal `objects` for the active slab, so we
             # need to subtract the length of the freelists
             for freelist in self.freelists:
-                inuse -= len(list(freelist))
+                inuse -= len(freelist)
         return inuse
 
     @property
