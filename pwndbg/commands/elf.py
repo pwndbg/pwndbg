@@ -29,12 +29,22 @@ def elfsections() -> None:
 
         sections.sort()
 
-        print("%-20s %-20s %-20s %-20s %-20s %-20s" % 
-              ("Section Name", "File Offset Start", "File Offset End", 
-               "VMMap Address Start", "VMMap Address End", "Permissions"))
+        print(
+            "%-20s %-20s %-20s %-20s %-20s %-20s"
+            % (
+                "Section Name",
+                "File Offset Start",
+                "File Offset End",
+                "VMMap Address Start",
+                "VMMap Address End",
+                "Permissions",
+            )
+        )
         for name, start, end, vm_start, vm_end, perm in sections:
-            print("%-20s %#-20x %#-20x %#-20x %#-20x %-20s" % 
-                  (name, start, end, vm_start, vm_end, perm))
+            print(
+                "%-20s %#-20x %#-20x %#-20x %#-20x %-20s"
+                % (name, start, end, vm_start, vm_end, perm)
+            )
 
 
 def format_section_flags(flags):
@@ -52,6 +62,7 @@ def format_section_flags(flags):
     else:
         res += "-"
     return res
+
 
 @pwndbg.commands.ArgparsedCommand(
     "Prints any symbols found in the .got.plt section if it exists.",
