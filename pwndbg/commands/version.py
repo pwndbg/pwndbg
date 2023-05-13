@@ -157,7 +157,7 @@ If it is somehow unavailable, use:
                 os_info = match.group(1)
 
     current_setup += "OS: %s\n" % os_info
-    
+
     # 1. showing osabi
     osabi_info = platform.uname().version
     current_setup += "OS ABI: %s\n" % osabi_info
@@ -190,7 +190,7 @@ If it is somehow unavailable, use:
     # 9. showing height
     height_info = os.get_terminal_size().lines
     current_setup += "Height: %s\n" % height_info
-    
+
     current_setup += "\n".join(all_info)
     current_setup += "\n" + "\n".join(gdb_config)
 
