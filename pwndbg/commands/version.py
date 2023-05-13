@@ -157,40 +157,6 @@ If it is somehow unavailable, use:
                 os_info = match.group(1)
 
     current_setup += "OS: %s\n" % os_info
-    
-    # 1. showing osabi
-    osabi_info = platform.uname().version
-    current_setup += "OS ABI: %s\n" % osabi_info
-
-    # 2. showing architecture
-    arch_info = platform.machine()
-    current_setup += "Architecture: %s\n" % arch_info
-
-    # 3. showing endian
-    endian_info = sys.byteorder
-    current_setup += "Endian: %s\n" % endian_info
-
-    # 4. Depending on current arch -- note that those are only available if given arch is supported by current GDB, like gdb-multiarch
-    if arch_info in ["armv7l", "aarch64"]:
-        arm_info = gdb.execute("show arm", to_string=True)
-        current_setup += "ARM: %s\n" % arm_info
-
-    if arch_info in ["mips", "mips64"]:
-        mips_info = gdb.execute("show mips", to_string=True)
-        current_setup += "MIPS: %s\n" % mips_info
-
-    # 7. showing charset
-    charset_info = sys.getdefaultencoding()
-    current_setup += "Charset: %s\n" % charset_info
-
-    # 8. showing width
-    width_info = os.get_terminal_size().columns
-    current_setup += "Width: %s\n" % width_info
-
-    # 9. showing height
-    height_info = os.get_terminal_size().lines
-    current_setup += "Height: %s\n" % height_info
-    
     current_setup += "\n".join(all_info)
     current_setup += "\n" + "\n".join(gdb_config)
 
