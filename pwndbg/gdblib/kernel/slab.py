@@ -1,22 +1,33 @@
+from typing import Generator
+from typing import List
+from typing import Optional
+from typing import Set
+
 import gdb
 
+from pwndbg.gdblib.kernel import kconfig
+from pwndbg.gdblib.kernel import page_to_virt
+from pwndbg.gdblib.kernel import per_cpu
 from pwndbg.gdblib.kernel.macros import for_each_entry
+from pwndbg.gdblib.kernel.macros import swab
+from pwndbg.gdblib.memory import pvoid
 
 
-def caches():
+def caches() -> Generator["SlabCache", None, None]:
     slab_caches = gdb.lookup_global_symbol("slab_caches").value()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
-        yield slab_cache
+        yield SlabCache(slab_cache)
 
 
-def get_cache(target_name: str):
+def get_cache(target_name: str) -> Optional["SlabCache"]:
     slab_caches = gdb.lookup_global_symbol("slab_caches").value()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
-            return slab_cache
+            return SlabCache(slab_cache)
+    return None
 
 
-def get_slab_key() -> str:
+def slab_struct_type() -> str:
     # In Linux kernel version 5.17 a slab struct was introduced instead of the previous page struct
     try:
         gdb.lookup_type("struct slab")
@@ -35,3 +46,234 @@ def oo_order(x: int) -> int:
 
 def oo_objects(x: int) -> int:
     return int(x) & OO_MASK
+
+
+_flags = {
+    "SLAB_DEBUG_FREE": 0x00000100,
+    "SLAB_RED_ZONE": 0x00000400,
+    "SLAB_POISON": 0x00000800,
+    "SLAB_HWCACHE_ALIGN": 0x00002000,
+    "SLAB_CACHE_DMA": 0x00004000,
+    "SLAB_STORE_USER": 0x00010000,
+    "SLAB_RECLAIM_ACCOUNT": 0x00020000,
+    "SLAB_PANIC": 0x00040000,
+    "SLAB_DESTROY_BY_RCU": 0x00080000,
+    "SLAB_MEM_SPREAD": 0x00100000,
+    "SLAB_TRACE": 0x00200000,
+    "SLAB_DEBUG_OBJECTS": 0x00400000,
+    "SLAB_NOLEAKTRACE": 0x00800000,
+    "SLAB_NOTRACK": 0x01000000,
+    "SLAB_FAILSLAB": 0x02000000,
+}
+
+
+def get_flags_list(flags: int) -> List[str]:
+    flags_list = []
+
+    for flag_name, mask in _flags.items():
+        if flags & mask:
+            flags_list.append(flag_name)
+
+    return flags_list
+
+
+class Freelist:
+    def __init__(self, start_addr: int, offset: int, random: int = 0):
+        self.start_addr = start_addr
+        self.offset = offset
+        self.random = random
+
+    def __iter__(self) -> Generator[int, None, None]:
+        current_object = self.start_addr
+        while current_object:
+            addr = int(current_object)
+            yield current_object
+            current_object = pvoid(addr + self.offset)
+            if self.random:
+                current_object ^= self.random ^ swab(addr + self.offset)
+
+    def __int__(self) -> int:
+        return self.start_addr
+
+    def find_next(self, addr: int) -> int:
+        freelist_iter = iter(self)
+        for obj in freelist_iter:
+            if obj == addr:
+                return next(freelist_iter, 0)
+        return 0
+
+
+class SlabCache:
+    def __init__(self, slab_cache: gdb.Value):
+        self._slab_cache = slab_cache
+
+    @property
+    def address(self) -> int:
+        return int(self._slab_cache)
+
+    @property
+    def name(self) -> str:
+        return self._slab_cache["name"].string()
+
+    @property
+    def offset(self) -> int:
+        return int(self._slab_cache["offset"])
+
+    @property
+    def random(self) -> int:
+        return (
+            int(self._slab_cache["random"]) if kconfig().get("SLAB_FREELIST_HARDENED") == "y" else 0
+        )
+
+    @property
+    def size(self) -> int:
+        return int(self._slab_cache["size"])
+
+    @property
+    def object_size(self) -> int:
+        return int(self._slab_cache["object_size"])
+
+    @property
+    def align(self) -> int:
+        return int(self._slab_cache["align"])
+
+    @property
+    def flags(self) -> List[str]:
+        return get_flags_list(int(self._slab_cache["flags"]))
+
+    @property
+    def cpu_cache(self) -> "CpuCache":
+        cpu_cache = per_cpu(self._slab_cache["cpu_slab"])
+        return CpuCache(cpu_cache, self)
+
+    @property
+    def cpu_partial(self) -> int:
+        return int(self._slab_cache["cpu_partial"])
+
+    @property
+    def inuse(self) -> int:
+        return int(self._slab_cache["inuse"])
+
+    @property
+    def __oo_x(self) -> int:
+        return int(self._slab_cache["oo"]["x"])
+
+    @property
+    def oo_order(self):
+        return oo_order(self.__oo_x)
+
+    @property
+    def oo_objects(self):
+        return oo_objects(self.__oo_x)
+
+
+class CpuCache:
+    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache):
+        self._cpu_cache = cpu_cache
+        self.slab_cache = slab_cache
+
+    @property
+    def address(self) -> int:
+        return int(self._cpu_cache)
+
+    @property
+    def freelist(self) -> Freelist:
+        return Freelist(
+            int(self._cpu_cache["freelist"]),
+            self.slab_cache.offset,
+            self.slab_cache.random,
+        )
+
+    @property
+    def active_slab(self) -> Optional["Slab"]:
+        slab_key = slab_struct_type()
+        _slab = self._cpu_cache[slab_key].dereference()
+        if not _slab:
+            return None
+        return Slab(_slab, self)
+
+    @property
+    def partial_slabs(self) -> List["Slab"]:
+        partial_slabs = list()
+        cur_slab = self._cpu_cache["partial"]
+        while cur_slab:
+            _slab = cur_slab.dereference()
+            partial_slabs.append(Slab(_slab, self, is_partial=True))
+            cur_slab = _slab["next"]
+        return partial_slabs
+
+
+class Slab:
+    def __init__(self, slab: gdb.Value, cpu_cache: CpuCache, is_partial: bool = False):
+        self._slab = slab
+        self.cpu_cache = cpu_cache
+        self.slab_cache = cpu_cache.slab_cache
+        self.is_partial = is_partial
+
+    @property
+    def slab_address(self) -> int:
+        return int(self._slab.address)
+
+    @property
+    def virt_address(self) -> int:
+        return page_to_virt(self.slab_address)
+
+    @property
+    def object_count(self) -> int:
+        return int(self._slab["objects"])
+
+    @property
+    def objects(self) -> List[int]:
+        object_size = self.slab_cache.object_size
+        start = self.virt_address
+        end = start + self.object_count * object_size
+        return list(range(start, end, object_size))
+
+    @property
+    def frozen(self) -> int:
+        return int(self._slab["frozen"])
+
+    @property
+    def inuse(self) -> int:
+        inuse = int(self._slab["inuse"])
+        if not self.is_partial:
+            # `inuse` will always equal `objects` for the active slab, so we
+            # need to subtract the length of the freelists
+            for freelist in self.freelists:
+                inuse -= len(list(freelist))
+        return inuse
+
+    @property
+    def slabs(self) -> int:
+        return int(self._slab[f"{slab_struct_type()}s"])
+
+    @property
+    def pobjects(self) -> int:
+        if not self.is_partial:
+            return 0
+        try:
+            return int(self._slab["pobjects"])
+        except gdb.error:
+            # calculate approx obj count in half-full slabs (as done in kernel)
+            # Note, this is a very bad approximation and could/should probably
+            # be replaced by a more accurate method
+            return (self.slabs * self.slab_cache.oo_objects) // 2
+
+    @property
+    def freelist(self) -> Freelist:
+        return Freelist(
+            int(self._slab["freelist"]),
+            self.slab_cache.offset,
+            self.slab_cache.random,
+        )
+
+    @property
+    def freelists(self) -> List[Freelist]:
+        freelists = [self.freelist]
+        if not self.is_partial:
+            freelists.append(self.cpu_cache.freelist)
+        return freelists
+
+    @property
+    def free_objects(self) -> Set[int]:
+        return {obj for freelist in self.freelists for obj in freelist}
