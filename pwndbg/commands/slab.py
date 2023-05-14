@@ -16,6 +16,8 @@ import pwndbg.gdblib.kernel.slab
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel.slab import CpuCache
 from pwndbg.gdblib.kernel.slab import Slab
+from pwndbg.gdblib.kernel.slab import find_containing_slab_cache
+from pwndbg.gdblib.symbol import parse_and_eval
 
 parser = argparse.ArgumentParser(description="Prints information about the slab allocator")
 subparsers = parser.add_subparsers(dest="command")
@@ -181,31 +183,12 @@ def slab_list(filter_) -> None:
 
 def slab_contains(address: str) -> None:
     """prints the slab_cache associated with the provided address"""
-    try:
-        addr = int(gdb.parse_and_eval(address))
-    except gdb.error:
+
+    parsed_addr = parse_and_eval(address)
+    if not parsed_addr:
         print(M.error(f"Could not parse '{address}'"))
         return
 
-    min_pfn = 0
-    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
-
-    start_addr = pwndbg.gdblib.kernel.pfn_to_virt(min_pfn)
-    end_addr = pwndbg.gdblib.kernel.pfn_to_virt(
-        max_pfn + pwndbg.gdblib.kernel.arch_ops().page_size()
-    )
-
-    if not start_addr <= addr < end_addr:
-        print(M.error(f"{addr:#x}: address out of range"))
-        return
-
-    page = pwndbg.gdblib.kernel.virt_to_page(addr)
-    page = pwndbg.gdblib.memory.poi(gdb.lookup_type("struct page"), page)
-    head = pwndbg.gdblib.kernel.macros.compound_head(page)
-
-    slab_struct_type = gdb.lookup_type(f"struct {pwndbg.gdblib.kernel.slab.get_slab_key()}")
-    slab = head.cast(slab_struct_type)
-
-    slab_cache = slab["slab_cache"]
-
-    print(f"{addr:#x} @", M.hint(f"{slab_cache['name'].string()}"))
+    addr = int(parsed_addr)
+    slab_cache = find_containing_slab_cache(addr)
+    print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))

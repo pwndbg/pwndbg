@@ -5,12 +5,11 @@ from typing import Set
 
 import gdb
 
-from pwndbg.gdblib.kernel import kconfig
-from pwndbg.gdblib.kernel import page_to_virt
-from pwndbg.gdblib.kernel import per_cpu
+from pwndbg.gdblib import kernel
+from pwndbg.gdblib import memory
+from pwndbg.gdblib.kernel.macros import compound_head
 from pwndbg.gdblib.kernel.macros import for_each_entry
 from pwndbg.gdblib.kernel.macros import swab
-from pwndbg.gdblib.memory import pvoid
 
 
 def caches() -> Generator["SlabCache", None, None]:
@@ -82,7 +81,7 @@ class Freelist:
         while current_object:
             addr = int(current_object)
             yield current_object
-            current_object = pvoid(addr + self.offset)
+            current_object = memory.pvoid(addr + self.offset)
             if self.random:
                 current_object ^= self.random ^ swab(addr + self.offset)
 
@@ -119,7 +118,9 @@ class SlabCache:
     @property
     def random(self) -> int:
         return (
-            int(self._slab_cache["random"]) if kconfig().get("SLAB_FREELIST_HARDENED") == "y" else 0
+            int(self._slab_cache["random"])
+            if kernel.kconfig().get("SLAB_FREELIST_HARDENED") == "y"
+            else 0
         )
 
     @property
@@ -140,7 +141,7 @@ class SlabCache:
 
     @property
     def cpu_cache(self) -> "CpuCache":
-        cpu_cache = per_cpu(self._slab_cache["cpu_slab"])
+        cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"])
         return CpuCache(cpu_cache, self)
 
     @property
@@ -191,7 +192,7 @@ class CpuCache:
 
     @property
     def partial_slabs(self) -> List["Slab"]:
-        partial_slabs = list()
+        partial_slabs = []
         cur_slab = self._cpu_cache["partial"]
         while cur_slab:
             _slab = cur_slab.dereference()
@@ -213,7 +214,7 @@ class Slab:
 
     @property
     def virt_address(self) -> int:
-        return page_to_virt(self.slab_address)
+        return kernel.page_to_virt(self.slab_address)
 
     @property
     def object_count(self) -> int:
@@ -274,3 +275,26 @@ class Slab:
     @property
     def free_objects(self) -> Set[int]:
         return {obj for freelist in self.freelists for obj in freelist}
+
+
+def find_containing_slab_cache(addr: int) -> Optional["SlabCache"]:
+    """Find the slab cache associated with the provided address."""
+    min_pfn = 0
+    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
+    page_size = kernel.page_size()
+
+    start_addr = kernel.pfn_to_virt(min_pfn)
+    end_addr = kernel.pfn_to_virt(max_pfn + page_size)
+
+    if not start_addr <= addr < end_addr:
+        # address is out of range
+        return None
+
+    page_type = gdb.lookup_type("struct page")
+    page = memory.poi(page_type, kernel.virt_to_page(addr))
+    head_page = compound_head(page)
+
+    slab_type = gdb.lookup_type(f"struct {slab_struct_type()}")
+    slab = head_page.cast(slab_type)
+
+    return SlabCache(slab["slab_cache"])
