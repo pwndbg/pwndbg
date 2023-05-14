@@ -84,7 +84,7 @@ def get_slab_object_address():
 
     caches = pwndbg.gdblib.kernel.slab.caches()
     for cache in caches:
-        cache_name = cache["name"].string()
+        cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
         matches = re.findall(r"- (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:
