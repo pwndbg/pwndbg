@@ -1,4 +1,5 @@
 import argparse
+import binascii
 import ctypes
 from string import printable
 from typing import Dict
@@ -373,7 +374,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
+def malloc_chunk(addr, fake=False, verbose=False, simple=False, dump=False) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -439,6 +440,11 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             out_fields += message.system(field_to_print) + ": 0x{:02x}\n".format(
                 getattr(chunk, field_to_print)
             )
+
+    if dump:
+        chunk_data = pwndbg.memory.read(chunk.address, chunk.real_size)
+        hexdump = binascii.hexlify(chunk_data).decode()
+        out_fields += "Dump:\n{}\n".format(hexdump)
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
