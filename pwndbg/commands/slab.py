@@ -2,6 +2,7 @@
 Commands for dealing with Linux kernel slab allocator. Currently, only SLUB is supported.
 
 Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
+Some of the code here was inspired from https://github.com/osandov/drgn
 """
 import argparse
 import sys
@@ -25,7 +26,7 @@ if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
     subparsers.required = True
 
 
-parser_list = subparsers.add_parser("list", prog="slab")
+parser_list = subparsers.add_parser("list", prog="slab list")
 parser_list.add_argument(
     "filter_",
     metavar="filter",
@@ -35,21 +36,27 @@ parser_list.add_argument(
 )
 
 # TODO: --cpu, --node, --partial, --active
-parser_info = subparsers.add_parser("info", prog="slab")
+parser_info = subparsers.add_parser("info", prog="slab info")
 parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
+
+parser_contains = subparsers.add_parser("contains", prog="slab contains")
+parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def slab(command, filter_=None, names=None, verbose=False) -> None:
+def slab(command, filter_=None, names=None, verbose=False, addresses=None) -> None:
     if command == "list":
         slab_list(filter_)
     elif command == "info":
         for name in names:
             slab_info(name, verbose)
+    elif command == "contains":
+        for addr in addresses:
+            slab_contains(addr)
 
 
 class IndentContextManager:
@@ -170,3 +177,35 @@ def slab_list(filter_) -> None:
     ]
 
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))
+
+
+def slab_contains(address: str) -> None:
+    """prints the slab_cache associated with the provided address"""
+    try:
+        addr = int(gdb.parse_and_eval(address))
+    except gdb.error:
+        print(M.error(f"Could not parse '{address}'"))
+        return
+
+    min_pfn = 0
+    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
+
+    start_addr = pwndbg.gdblib.kernel.pfn_to_virt(min_pfn)
+    end_addr = pwndbg.gdblib.kernel.pfn_to_virt(
+        max_pfn + pwndbg.gdblib.kernel.arch_ops().page_size()
+    )
+
+    if not start_addr <= addr < end_addr:
+        print(M.error(f"{addr:#x}: address out of range"))
+        return
+
+    page = pwndbg.gdblib.kernel.virt_to_page(addr)
+    page = pwndbg.gdblib.memory.poi(gdb.lookup_type("struct page"), page)
+    head = pwndbg.gdblib.kernel.macros.compound_head(page)
+
+    slab_struct_type = gdb.lookup_type(f"struct {pwndbg.gdblib.kernel.slab.get_slab_key()}")
+    slab = head.cast(slab_struct_type)
+
+    slab_cache = slab["slab_cache"]
+
+    print(f"{addr:#x} @", M.hint(f"{slab_cache['name'].string()}"))

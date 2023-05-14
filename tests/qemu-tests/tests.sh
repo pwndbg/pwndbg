@@ -119,6 +119,8 @@ init_gdb() {
     local arch="$3"
 
     gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :1234")
+    # using 'rest_init' instead of 'start_kernel' to make sure that kernel
+    # initialization has progressed sufficiently for testing purposes
     gdb_args=("${gdb_connect_qemu[@]}" -ex 'break *rest_init' -ex 'continue')
     run_gdb "${arch}" "${gdb_args[@]}" > /dev/null 2>&1
 }
