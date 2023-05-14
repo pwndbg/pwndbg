@@ -175,7 +175,7 @@ If it is somehow unavailable, use:
         arm_info = gdb.execute("show arm", to_string=True)
         current_setup += "ARM: %s\n" % arm_info
 
-    if arch_info in ["mips", "mips64"]:
+    elif arch_info in ["mips", "mips64"]:
         mips_info = gdb.execute("show mips", to_string=True)
         current_setup += "MIPS: %s\n" % mips_info
 
