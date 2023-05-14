@@ -104,6 +104,9 @@ class ArchOps:
     # use through kernel configuration, enabling support for additional models
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
+    def page_size(self) -> int:
+        raise NotImplementedError()
+
     def per_cpu(self, addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
@@ -165,6 +168,9 @@ class x86_64Ops(ArchOps):
         self.PAGE_SHIFT = 12
         self.phys_base = 0x1000000
 
+    def page_size(self) -> int:
+        return 1 << self.PAGE_SHIFT
+
     def per_cpu(self, addr: gdb.Value, cpu=None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
@@ -215,8 +221,8 @@ class x86_64Ops(ArchOps):
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
         X86_FEATURE_LA57 = 16 * 32 + 16
         return (
-            "CONFIG_X86_5LEVEL = y" in kconfig()
-            and "no5lvl" in kcmdline()
+            kconfig().get("CONFIG_X86_5LEVEL") == "y"
+            and "no5lvl" not in kcmdline()
             and x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57)
         )
 
@@ -228,7 +234,6 @@ class Aarch64Ops(ArchOps):
 
         self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
         self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
-        self.PAGE_SIZE = 1 << self.PAGE_SHIFT
 
         self.PHYS_OFFSET = pwndbg.gdblib.memory.u(pwndbg.gdblib.symbol.address("memstart_addr"))
         self.PAGE_OFFSET = (-1 << self.VA_BITS) + 2**64
@@ -237,7 +242,16 @@ class Aarch64Ops(ArchOps):
         PAGE_END = (-1 << (VA_BITS_MIN - 1)) + 2**64
         VMEMMAP_SIZE = (PAGE_END - self.PAGE_OFFSET) >> (self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT)
 
-        self.VMEMMAP_START = (-VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+        if pwndbg.gdblib.kernel.krelease() >= (5, 11):
+            # Linux 5.11 changed the calculation for VMEMMAP_START
+            # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
+            self.VMEMMAP_SHIFT = self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT
+            self.VMEMMAP_START = -(1 << (self.VA_BITS - self.VMEMMAP_SHIFT)) % (1 << 64)
+        else:
+            self.VMEMMAP_START = (-VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+
+    def page_size(self) -> int:
+        return 1 << self.PAGE_SHIFT
 
     def per_cpu(self, addr: gdb.Value, cpu=None):
         if cpu is None:

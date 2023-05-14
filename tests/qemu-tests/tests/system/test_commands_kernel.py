@@ -62,3 +62,31 @@ def test_command_slab_info():
 
     res = gdb.execute("slab info -v does_not_exit", to_string=True)
     assert "not found" in res
+
+
+def test_command_slab_contains():
+    if not pwndbg.gdblib.kernel.has_debug_syms():
+        res = gdb.execute("slab contains 0x123", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    # retrieve a valid slab object address (first address from freelist)
+    addr, slab_cache = get_slab_object_address()
+
+    res = gdb.execute(f"slab contains {addr}", to_string=True)
+    assert f"{addr} @ {slab_cache}" in res
+
+
+def get_slab_object_address():
+    """helper function to get the address of some kmalloc slab object
+    and the associated slab cache name"""
+    import re
+
+    caches = pwndbg.gdblib.kernel.slab.caches()
+    for cache in caches:
+        cache_name = cache["name"].string()
+        info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
+        matches = re.findall(r"- (0x[0-9a-fA-F]+)", info)
+        if len(matches) > 0:
+            return (matches[0], cache_name)
+    raise ValueError("Could not find any slab objects")
