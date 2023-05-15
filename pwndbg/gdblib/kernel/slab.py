@@ -222,10 +222,10 @@ class Slab:
 
     @property
     def objects(self) -> Generator[int, None, None]:
-        object_size = self.slab_cache.object_size
+        size = self.slab_cache.size
         start = self.virt_address
-        end = start + self.object_count * object_size
-        return (i for i in range(start, end, object_size))
+        end = start + self.object_count * size
+        return (i for i in range(start, end, size))
 
     @property
     def frozen(self) -> int:
