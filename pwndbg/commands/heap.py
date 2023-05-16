@@ -155,7 +155,7 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
-parser.add_argument("--dump", action="store_true", help="Print a hexdump of the chunk bytes.")
+
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
@@ -368,6 +368,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
+)
+parser.add_argument(
+    "--dump", action="store_true", help="Print a hexdump of the chunk bytes."
 )
 
 
