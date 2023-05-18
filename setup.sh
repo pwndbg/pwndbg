@@ -25,7 +25,7 @@ install_apt() {
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
         sudo apt-get update || true
-        sudo apt-get install -y libc6-dbg:i386 || true
+        sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386 || true
     fi
 }
 
