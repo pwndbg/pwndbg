@@ -118,9 +118,7 @@ class SlabCache:
     @property
     def random(self) -> int:
         return (
-            int(self._slab_cache["random"])
-            if kernel.kconfig().get("SLAB_FREELIST_HARDENED") == "y"
-            else 0
+            int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
         )
 
     @property
