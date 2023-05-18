@@ -56,9 +56,11 @@ def test_command_slab_info():
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
-    res = gdb.execute("slab info -v kmalloc-512", to_string=True)
-    assert "kmalloc-512" in res
-    assert "Freelist" in res
+    for cache in pwndbg.gdblib.kernel.slab.caches():
+        cache_name = cache.name
+        res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
+        assert cache_name in res
+        assert "Freelist" in res
 
     res = gdb.execute("slab info -v does_not_exit", to_string=True)
     assert "not found" in res
@@ -84,7 +86,7 @@ def get_slab_object_address():
 
     caches = pwndbg.gdblib.kernel.slab.caches()
     for cache in caches:
-        cache_name = cache["name"].string()
+        cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
         matches = re.findall(r"- (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:

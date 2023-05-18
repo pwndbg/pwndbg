@@ -305,6 +305,14 @@ def arch_ops() -> ArchOps:
     return _arch_ops
 
 
+def page_size() -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.page_size()
+    else:
+        raise NotImplementedError()
+
+
 def per_cpu(addr: gdb.Value, cpu=None):
     ops = arch_ops()
     if ops:
