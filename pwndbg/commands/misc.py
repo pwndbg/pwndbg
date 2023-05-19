@@ -28,6 +28,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="errno", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibraryLoaded("libc.so")
 def errno_(err) -> None:
     if err is None:
         # Try to get the `errno` variable value

@@ -24,6 +24,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithLibraryLoaded("libc.so")
 def tls(pthread_self=False) -> None:
     tls_base = (
         pwndbg.gdblib.tls.find_address_with_register()

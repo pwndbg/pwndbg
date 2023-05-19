@@ -8,6 +8,7 @@ from typing import List
 import gdb
 
 import pwndbg.exception
+import pwndbg.gdblib.info
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.regs
 import pwndbg.heap
@@ -284,6 +285,24 @@ def OnlyWithArch(arch_names: List[str]):
                 )
 
         return _OnlyWithArch
+
+    return decorator
+
+
+def OnlyWithLibraryLoaded(library):
+    """Decorates function to work only when the specified library is loaded."""
+
+    def decorator(function):
+        @functools.wraps(function)
+        def _OnlyWithLibraryLoaded(*a, **kw):
+            if library in pwndbg.gdblib.info.sharedlibrary():
+                return function(*a, **kw)
+            else:
+                print(
+                    f"%s: This command may only be run when {library} is loaded" % function.__name__
+                )
+
+        return _OnlyWithLibraryLoaded
 
     return decorator
 
