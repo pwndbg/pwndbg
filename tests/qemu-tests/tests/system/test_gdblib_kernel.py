@@ -1,6 +1,5 @@
 import os
 
-import gdb
 import pytest
 
 import pwndbg
@@ -11,14 +10,11 @@ KERNEL_TYPE = os.getenv("PWNDBG_KERNEL_TYPE")
 KERNEL_VERSION = os.getenv("PWNDBG_KERNEL_VERSION")
 
 
-@pytest.mark.skipif(
-    ARCH in ["x86_64"] and KERNEL_TYPE in ["linux"] and KERNEL_VERSION.startswith("5"),
-    reason="global pfn symbols missing. further investigation required",  # TODO: fix
-)
+@pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_gdblib_kernel_archops_address_translation():
     # test address translation functions for LowMem
-    min_low_pfn = int(gdb.lookup_global_symbol("min_low_pfn").value())
-    max_low_pfn = int(gdb.lookup_global_symbol("max_low_pfn").value())
+    min_low_pfn = int(pwndbg.gdblib.symbol.parse_and_eval("(long)min_low_pfn"))
+    max_low_pfn = int(pwndbg.gdblib.symbol.parse_and_eval("(long)max_low_pfn"))
     pfns = [min_low_pfn, max_low_pfn]
 
     for pfn in pfns:
