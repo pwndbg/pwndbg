@@ -23,7 +23,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"], category=CommandCategory.LINUX)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None) -> None:
     start = pwndbg.gdblib.argv.argv

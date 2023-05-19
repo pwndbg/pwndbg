@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description="Prints determined arguments for ca
 parser.add_argument("-f", "--force", action="store_true", help="Force displaying of all arguments.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"])
 @pwndbg.commands.OnlyWhenRunning
 def dumpargs(force=False) -> None:
     args = (not force and call_args()) or all_args()
