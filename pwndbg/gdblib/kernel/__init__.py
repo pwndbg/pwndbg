@@ -305,6 +305,7 @@ def arch_ops() -> ArchOps:
     return _arch_ops
 
 
+@requires_debug_syms()
 def page_size() -> int:
     ops = arch_ops()
     if ops:
@@ -313,6 +314,7 @@ def page_size() -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def per_cpu(addr: gdb.Value, cpu=None):
     ops = arch_ops()
     if ops:
@@ -321,6 +323,7 @@ def per_cpu(addr: gdb.Value, cpu=None):
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def virt_to_phys(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -329,6 +332,7 @@ def virt_to_phys(virt: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def phys_to_virt(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -337,6 +341,7 @@ def phys_to_virt(phys: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def phys_to_pfn(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -345,6 +350,7 @@ def phys_to_pfn(phys: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def pfn_to_phys(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -353,6 +359,7 @@ def pfn_to_phys(pfn: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def pfn_to_page(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -361,6 +368,7 @@ def pfn_to_page(pfn: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def page_to_pfn(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -369,6 +377,7 @@ def page_to_pfn(page: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def phys_to_page(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -377,6 +386,7 @@ def phys_to_page(phys: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -385,6 +395,7 @@ def page_to_phys(page: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def virt_to_page(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -393,6 +404,7 @@ def virt_to_page(virt: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def page_to_virt(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -401,6 +413,7 @@ def page_to_virt(page: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def pfn_to_virt(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -409,6 +422,7 @@ def pfn_to_virt(pfn: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def virt_to_pfn(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -417,6 +431,7 @@ def virt_to_pfn(virt: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
 def paging_enabled() -> bool:
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "x86-64":
