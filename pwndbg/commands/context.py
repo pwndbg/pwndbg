@@ -767,7 +767,7 @@ backtrace_lines = pwndbg.gdblib.config.add_param(
     "context-backtrace-lines", 8, "number of lines to print in the backtrace context"
 )
 backtrace_frame_label = theme.add_param(
-    "backtrace-frame-label", "f ", "frame number label for backtrace"
+    "backtrace-frame-label", "", "frame number label for backtrace"
 )
 
 
