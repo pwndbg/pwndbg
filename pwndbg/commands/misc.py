@@ -71,6 +71,14 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument("--shell", action="store_true", help="Only display shell commands")
 group.add_argument("--all", dest="all_", action="store_true", help="Only display shell commands")
 
+cat_group = parser.add_mutually_exclusive_group()
+cat_group.add_argument(
+    "-c", "--category", type=str, default=None, dest="category_", help="Filter commands by category"
+)
+cat_group.add_argument(
+    "--list-categories", dest="list_categories", action="store_true", help="List command categories"
+)
+
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -81,7 +89,12 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
-def pwndbg_(filter_pattern, shell, all_) -> None:
+def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
+    if list_categories:
+        for category in CommandCategory:
+            print(C.bold(C.green(f"{category.value}")))
+        return
+
     if all_:
         shell_cmds = True
         pwndbg_cmds = True
@@ -108,7 +121,7 @@ def pwndbg_(filter_pattern, shell, all_) -> None:
         table_data[category].append((command_names, docs))
 
     for category in CommandCategory:
-        if category not in table_data:
+        if category not in table_data or category_ and category_.lower() not in category.lower():
             continue
         data = table_data[category]
 
