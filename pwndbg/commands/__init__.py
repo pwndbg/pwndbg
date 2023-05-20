@@ -270,7 +270,7 @@ def OnlyWhenUserspace(function):
             return function(*a, **kw)
         else:
             print(
-                "%s: This command may only be run when not debugging the Linux kernel in QEMU."
+                "%s: This command may only be run when not debugging a QEMU kernel target."
                 % function.__name__
             )
 
