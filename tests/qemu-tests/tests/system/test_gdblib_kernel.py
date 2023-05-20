@@ -44,3 +44,9 @@ def test_gdblib_kernel_krelease():
 @pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_gdblib_kernel_is_kaslr_enabled():
     pwndbg.gdblib.kernel.is_kaslr_enabled()
+
+
+@pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
+def test_gdblib_kernel_nproc():
+    # make sure no exception occurs
+    pwndbg.gdblib.kernel.nproc()

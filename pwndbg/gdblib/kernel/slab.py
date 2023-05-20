@@ -139,8 +139,17 @@ class SlabCache:
 
     @property
     def cpu_cache(self) -> "CpuCache":
-        cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"])
-        return CpuCache(cpu_cache, self)
+        """returns cpu cache associated to current thread"""
+        cpu = gdb.selected_thread().num - 1
+        cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
+        return CpuCache(cpu_cache, self, cpu)
+
+    @property
+    def cpu_caches(self) -> Generator["CpuCache", None, None]:
+        """returns cpu caches for all cpus"""
+        for cpu in range(kernel.nproc()):
+            cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
+            yield CpuCache(cpu_cache, self, cpu)
 
     @property
     def cpu_partial(self) -> int:
@@ -164,9 +173,10 @@ class SlabCache:
 
 
 class CpuCache:
-    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache):
+    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache, cpu: int):
         self._cpu_cache = cpu_cache
         self.slab_cache = slab_cache
+        self.cpu = cpu
 
     @property
     def address(self) -> int:
