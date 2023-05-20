@@ -156,7 +156,6 @@ def slab_info(name: str, verbose: bool) -> None:
         indent.print(f"{C.blue('Align')}: {slab_cache.align}")
         indent.print(f"{C.blue('Object Size')}: {slab_cache.object_size}")
 
-        # TODO: Handle multiple CPUs
         for cpu_cache in slab_cache.cpu_caches:
             print_cpu_cache(cpu_cache, verbose, indent)
 
