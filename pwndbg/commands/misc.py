@@ -70,8 +70,13 @@ parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg co
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--shell", action="store_true", help="Only display shell commands")
 group.add_argument("--all", dest="all_", action="store_true", help="Only display shell commands")
-group.add_argument(
+
+cat_group = parser.add_mutually_exclusive_group()
+cat_group.add_argument(
     "-c", "--category", type=str, default=None, dest="category_", help="Filter commands by category"
+)
+cat_group.add_argument(
+    "--list-categories", dest="list_categories", action="store_true", help="List command categories"
 )
 
 parser.add_argument(
@@ -84,7 +89,12 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
-def pwndbg_(filter_pattern, shell, all_, category_) -> None:
+def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
+    if list_categories:
+        for category in CommandCategory:
+            print(C.bold(C.green(f"{category.value}")))
+        return
+
     if all_:
         shell_cmds = True
         pwndbg_cmds = True
