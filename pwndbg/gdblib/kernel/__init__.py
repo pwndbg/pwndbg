@@ -1,6 +1,7 @@
 import functools
 import math
 import re
+from typing import Optional
 from typing import Tuple
 
 import gdb
@@ -44,6 +45,12 @@ def requires_debug_syms(default=None):
         return func
 
     return decorator
+
+
+@requires_debug_syms(default=1)
+def nproc() -> int:
+    """Returns the number of processing units available, similar to nproc(1)"""
+    return int(gdb.lookup_global_symbol("nr_cpu_ids").value())
 
 
 @requires_debug_syms(default={})
@@ -171,7 +178,7 @@ class x86_64Ops(ArchOps):
     def page_size(self) -> int:
         return 1 << self.PAGE_SHIFT
 
-    def per_cpu(self, addr: gdb.Value, cpu=None):
+    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -253,7 +260,7 @@ class Aarch64Ops(ArchOps):
     def page_size(self) -> int:
         return 1 << self.PAGE_SHIFT
 
-    def per_cpu(self, addr: gdb.Value, cpu=None):
+    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -315,7 +322,7 @@ def page_size() -> int:
 
 
 @requires_debug_syms()
-def per_cpu(addr: gdb.Value, cpu=None):
+def per_cpu(addr: gdb.Value, cpu: Optional[int] = None):
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)

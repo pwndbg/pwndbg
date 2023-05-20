@@ -109,7 +109,7 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
 
 
 def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, indent) -> None:
-    indent.print(f"{C.green('Per-CPU Data')} @ {_yx(cpu_cache.address)}:")
+    indent.print(f"{C.green('kmem_cache_cpu')} @ {_yx(cpu_cache.address)} [CPU {cpu_cache.cpu}]:")
     with indent:
         indent.print(f"{C.blue('Freelist')}:", _yx(int(cpu_cache.freelist)))
 
@@ -156,10 +156,8 @@ def slab_info(name: str, verbose: bool) -> None:
         indent.print(f"{C.blue('Align')}: {slab_cache.align}")
         indent.print(f"{C.blue('Object Size')}: {slab_cache.object_size}")
 
-        # TODO: Handle multiple CPUs
-        cpu_cache = slab_cache.cpu_cache
-
-        print_cpu_cache(cpu_cache, verbose, indent)
+        for cpu_cache in slab_cache.cpu_caches:
+            print_cpu_cache(cpu_cache, verbose, indent)
 
         # TODO: print_node_cache
 
