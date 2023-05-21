@@ -114,7 +114,7 @@ class Page:
     def __str__(self) -> str:
         return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
             start=self.start,
-            end=self.start + self.size,
+            end=self.end,
             permstr=self.permstr,
             size=self.size,
             offset=self.offset,
