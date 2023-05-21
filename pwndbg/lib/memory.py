@@ -129,10 +129,10 @@ class Page:
         return self.start <= addr < self.end
 
     def __eq__(self, other) -> bool:
-        return self.start == getattr(other, "start", other)
+        return self.start == other.start
 
     def __lt__(self, other) -> bool:
-        return self.start < getattr(other, "start", other)
+        return self.start < other.start
 
     def __hash__(self):
         return hash((self.start, self.end, self.size, self.flags, self.offset, self.objfile))
