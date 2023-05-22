@@ -1,5 +1,6 @@
 import argparse
 from typing import Dict
+from typing import Filter
 from typing import Generator
 from typing import List
 from typing import Optional
@@ -57,7 +58,7 @@ def filter_logs(
     logs: Generator[Dict, None, None],
     _facilities: Optional[List[int]] = None,
     _log_levels: Optional[List[int]] = None,
-):
+) -> Filter[Dict]:
     return filter(
         lambda log: (not _facilities or log["facility"] in _facilities)
         and (not _log_levels or log["log_level"] in _log_levels),
