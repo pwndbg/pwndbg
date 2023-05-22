@@ -92,3 +92,12 @@ def get_slab_object_address():
         if len(matches) > 0:
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
+
+
+def test_command_kdmesg():
+    res = gdb.execute("kdmesg", to_string=True)
+
+    if not pwndbg.gdblib.kernel.has_debug_syms():
+        assert "may only be run when debugging a Linux kernel with debug" in res
+    else:
+        assert "[    0.000000]" in res
