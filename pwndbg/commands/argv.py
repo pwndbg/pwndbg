@@ -46,6 +46,7 @@ parser.add_argument(
     parser, aliases=["env", "environ"], category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenUserspace
 def envp(name=None):
     """
     Prints out the contents of the environment.

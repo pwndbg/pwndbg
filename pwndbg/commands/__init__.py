@@ -263,6 +263,20 @@ def OnlyWhenQemuKernel(function):
     return _OnlyWhenQemuKernel
 
 
+def OnlyWhenUserspace(function):
+    @functools.wraps(function)
+    def _OnlyWhenUserspace(*a, **kw):
+        if not pwndbg.gdblib.qemu.is_qemu_kernel():
+            return function(*a, **kw)
+        else:
+            print(
+                "%s: This command may only be run when not debugging a QEMU kernel target."
+                % function.__name__
+            )
+
+    return _OnlyWhenUserspace
+
+
 def OnlyWithArch(arch_names: List[str]):
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:

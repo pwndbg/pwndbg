@@ -185,7 +185,7 @@ test_system() {
     printf "============================ Testing %-20s  ============================\n" "${kernel_type}-${kernel_version}-${arch}"
 
     if [[ ! -z ${qemu_args} ]]; then
-        echo "Additional QEMU parameters used: '${qemu_args[*]}'"
+        echo "Additional QEMU parameters used: '${qemu_args[@]}'"
     fi
     echo ""
 
@@ -235,7 +235,7 @@ for vmlinux in "${VMLINUX_LIST[@]}"; do
 
     if [[ "${ARCH}" == @("x86_64") ]]; then
         # additional test with extra QEMU flags
-        QEMU_ARGS=(-cpu qemu64,+la57)
+        QEMU_ARGS+=(-cpu qemu64,+la57)
         test_system "${KERNEL_TYPE}" "${KERNEL_VERSION}" "${ARCH}" "${QEMU_ARGS[@]}"
     fi
 done

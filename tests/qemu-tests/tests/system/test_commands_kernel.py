@@ -61,6 +61,8 @@ def test_command_slab_info():
         res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
         assert cache_name in res
         assert "Freelist" in res
+        for cpu in range(pwndbg.gdblib.kernel.nproc()):
+            assert f"[CPU {cpu}]" in res
 
     res = gdb.execute("slab info -v does_not_exit", to_string=True)
     assert "not found" in res
