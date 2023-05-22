@@ -56,6 +56,13 @@ class KernelLog:
             text_data = pwndbg.gdblib.memory.read(text_start, text_length)
 
             text = text_data.decode(encoding="utf8", errors="replace")
-            timestamp = int(info["ts_nsec"])
+            timestamp = int(info["ts_nsec"])  # timestamp in nanoseconds
+            log_level = int(info["level"])  # syslog level
+            facility = int(info["facility"])
 
-            yield {"timestamp": timestamp, "text": text}
+            yield {
+                "timestamp": timestamp,
+                "text": text,
+                "log_level": log_level,
+                "facility": facility,
+            }
