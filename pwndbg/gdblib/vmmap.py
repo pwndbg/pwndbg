@@ -372,9 +372,9 @@ def proc_pid_maps():
 
     pid = pwndbg.gdblib.proc.pid
     locations = [
-        "/proc/%s/maps" % pid,
-        "/proc/%s/map" % pid,
-        "/usr/compat/linux/proc/%s/maps" % pid,
+        f"/proc/{pid}/maps",
+        f"/proc/{pid}/map",
+        f"/usr/compat/linux/proc/{pid}/maps",
     ]
 
     for location in locations:

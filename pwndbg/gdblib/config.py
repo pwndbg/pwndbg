@@ -116,7 +116,7 @@ class Parameter(gdb.Parameter):
 
     def __get_show_string_gdb_gte_9(self, svalue) -> str:
         """Handles the GDB `show <param>` command for GDB >= 9"""
-        more_information_hint = " See `help set %s` for more information." % self.param.name
+        more_information_hint = f" See `help set {self.param.name}` for more information."
         return "%s is %r.%s" % (
             self.param.set_show_doc.capitalize(),
             svalue,

@@ -44,13 +44,13 @@ def _get_debug_file_directory():
 
 
 def _set_debug_file_directory(d) -> None:
-    gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
+    gdb.execute(f"set debug-file-directory {d}", to_string=True, from_tty=False)
 
 
 def _add_debug_file_directory(d) -> None:
     current = _get_debug_file_directory()
     if current:
-        _set_debug_file_directory("%s:%s" % (current, d))
+        _set_debug_file_directory(f"{current}:{d}")
     else:
         _set_debug_file_directory(d)
 

@@ -64,20 +64,20 @@ def attachp(target) -> None:
                 pids = []
 
             if not pids:
-                print(message.error("Process %s not found" % target))
+                print(message.error(f"Process {target} not found"))
                 return
 
             if len(pids) > 1:
-                print(message.warn("Found pids: %s (use `attach <pid>`)" % ", ".join(pids)))
+                print(message.warn(f"Found pids: {', '.join(pids)} (use `attach <pid>`)"))
                 return
 
             resolved_target = int(pids[0])
 
-    print(message.on("Attaching to %s" % resolved_target))
+    print(message.on(f"Attaching to {resolved_target}"))
     try:
-        gdb.execute("attach %s" % resolved_target)
+        gdb.execute(f"attach {resolved_target}")
     except gdb.error as e:
-        print(message.error("Error: %s" % e))
+        print(message.error(f"Error: {e}"))
 
 
 def _is_device(path) -> bool:

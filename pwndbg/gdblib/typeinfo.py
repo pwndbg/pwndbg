@@ -81,7 +81,7 @@ def update():
 
     # Rust workaround part 2
     if restore_lang:
-        gdb.execute("set language %s" % restore_lang)
+        gdb.execute(f"set language {restore_lang}")
 
 
 # TODO: Remove this global initialization, or move it somewhere else

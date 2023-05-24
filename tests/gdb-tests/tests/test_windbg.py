@@ -36,8 +36,8 @@ def test_windbg_dX_commands(start_binary):
     # Try `dq` with symbol, &symbol, 0x<address> and <address> without 0x prefix (treated as hex!)
     dq1 = gdb.execute("dq data", to_string=True)
     dq2 = gdb.execute("dq &data", to_string=True)
-    dq3 = gdb.execute("dq %s" % data_addr, to_string=True)
-    dq4 = gdb.execute("dq %s" % data_addr.replace("0x", ""), to_string=True)
+    dq3 = gdb.execute(f"dq {data_addr}", to_string=True)
+    dq4 = gdb.execute(f"dq {data_addr.replace('0x', '')}", to_string=True)
     assert (
         dq1
         == dq2
@@ -54,7 +54,7 @@ def test_windbg_dX_commands(start_binary):
     # Try `dq` with different counts
     dq_count1 = gdb.execute("dq data 2", to_string=True)
     dq_count2 = gdb.execute("dq &data 2", to_string=True)
-    dq_count3 = gdb.execute("dq %s 2" % data_addr, to_string=True)
+    dq_count3 = gdb.execute(f"dq {data_addr} 2", to_string=True)
     assert (
         dq_count1
         == dq_count2
@@ -92,8 +92,8 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     dd1 = gdb.execute("dd data", to_string=True)
     dd2 = gdb.execute("dd &data", to_string=True)
-    dd3 = gdb.execute("dd %s" % data_addr, to_string=True)
-    dd4 = gdb.execute("dd %s" % data_addr.replace("0x", ""), to_string=True)
+    dd3 = gdb.execute(f"dd {data_addr}", to_string=True)
+    dd4 = gdb.execute(f"dd {data_addr.replace('0x', '')}", to_string=True)
     assert (
         dd1
         == dd2
@@ -120,8 +120,8 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     dw1 = gdb.execute("dw data", to_string=True)
     dw2 = gdb.execute("dw &data", to_string=True)
-    dw3 = gdb.execute("dw %s" % data_addr, to_string=True)
-    dw4 = gdb.execute("dw %s" % data_addr.replace("0x", ""), to_string=True)
+    dw3 = gdb.execute(f"dw {data_addr}", to_string=True)
+    dw4 = gdb.execute(f"dw {data_addr.replace('0x', '')}", to_string=True)
     assert (
         dw1
         == dw2
@@ -153,8 +153,8 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     db1 = gdb.execute("db data", to_string=True)
     db2 = gdb.execute("db &data", to_string=True)
-    db3 = gdb.execute("db %s" % data_addr, to_string=True)
-    db4 = gdb.execute("db %s" % data_addr.replace("0x", ""), to_string=True)
+    db3 = gdb.execute(f"db {data_addr}", to_string=True)
+    db4 = gdb.execute(f"db {data_addr.replace('0x', '')}", to_string=True)
     assert (
         db1
         == db2
@@ -180,8 +180,8 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     dc1 = gdb.execute("dc data", to_string=True)
     dc2 = gdb.execute("dc &data", to_string=True)
-    dc3 = gdb.execute("dc %s" % data_addr, to_string=True)
-    dc4 = gdb.execute("dc %s" % data_addr.replace("0x", ""), to_string=True)
+    dc3 = gdb.execute(f"dc {data_addr}", to_string=True)
+    dc4 = gdb.execute(f"dc {data_addr.replace('0x', '')}", to_string=True)
     assert (
         dc1
         == dc2

@@ -371,7 +371,7 @@ def bd(which="*") -> None:
     if which == "*":
         gdb.execute("disable breakpoints")
     else:
-        gdb.execute("disable breakpoints %s" % which)
+        gdb.execute(f"disable breakpoints {which}")
 
 
 parser = argparse.ArgumentParser(description="Enable the breakpoint with the specified index.")
@@ -388,7 +388,7 @@ def be(which="*") -> None:
     if which == "*":
         gdb.execute("enable breakpoints")
     else:
-        gdb.execute("enable breakpoints %s" % which)
+        gdb.execute(f"enable breakpoints {which}")
 
 
 parser = argparse.ArgumentParser(description="Clear the breakpoint with the specified index.")
@@ -405,7 +405,7 @@ def bc(which="*") -> None:
     if which == "*":
         gdb.execute("delete breakpoints")
     else:
-        gdb.execute("delete breakpoints %s" % which)
+        gdb.execute(f"delete breakpoints {which}")
 
 
 parser = argparse.ArgumentParser(description="Set a breakpoint at the specified address.")

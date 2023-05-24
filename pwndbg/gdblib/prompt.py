@@ -21,7 +21,7 @@ num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.comman
 hint_lines = (
     "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
     % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
-    "created %s GDB functions (can be used with print/break)" % funcs_list_str,
+    f"created {funcs_list_str} GDB functions (can be used with print/break)",
 )
 
 for line in hint_lines:
@@ -88,7 +88,7 @@ def set_prompt() -> None:
         prompt = message.prompt(prompt)
         prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
 
-    gdb.execute("set prompt %s" % prompt)
+    gdb.execute(f"set prompt {prompt}")
 
 
 if pwndbg.gdblib.events.before_prompt_event.is_real_event:

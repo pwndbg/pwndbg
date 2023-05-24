@@ -25,7 +25,7 @@ class OnlyWithCommand:
             if self.cmd_path:
                 return function(*a, **kw)
             else:
-                raise OSError("Could not find command(s) %s in $PATH" % ", ".join(self.all_cmds))
+                raise OSError(f"Could not find command(s) {', '.join(self.all_cmds)} in $PATH")
 
         return _OnlyWithCommand
 

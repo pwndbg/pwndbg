@@ -27,7 +27,7 @@ def rop(grep, argument) -> None:
         # If the process is running, dump a corefile so we get actual addresses.
         if pwndbg.gdblib.proc.alive:
             filename = corefile.name
-            gdb.execute("gcore %s" % filename)
+            gdb.execute(f"gcore {filename}")
         else:
             filename = pwndbg.gdblib.proc.exe
 

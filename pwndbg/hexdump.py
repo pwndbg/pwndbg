@@ -52,9 +52,7 @@ def load_color_scheme() -> None:
     ):
         color_scheme[c] = H.printable("%02x" % c)
         printable[c] = (
-            H.printable("%s" % chr(c))
-            if pwndbg.gdblib.config.hexdump_colorize_ascii
-            else "%s" % chr(c)
+            H.printable(f"{chr(c)}") if pwndbg.gdblib.config.hexdump_colorize_ascii else f"{chr(c)}"
         )
 
     for c in bytearray(b"\x00"):

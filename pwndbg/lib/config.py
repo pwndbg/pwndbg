@@ -182,4 +182,4 @@ class Config:
         if name in self.params:
             return self.params[name]
         else:
-            raise AttributeError("'Config' object has no attribute '%s'" % name)
+            raise AttributeError(f"'Config' object has no attribute '{name}'")

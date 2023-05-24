@@ -37,9 +37,7 @@ def check_style() -> None:
         get_highlight_source._reset()
     except pygments.util.ClassNotFound:
         print(
-            message.warn(
-                "The pygment formatter style '%s' is not found, restore to default" % style
-            )
+            message.warn(f"The pygment formatter style '{style}' is not found, restore to default")
         )
         style.revert_default()
 

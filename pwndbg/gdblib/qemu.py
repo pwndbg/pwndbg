@@ -63,7 +63,7 @@ def root() -> Optional[Any]:
     if not is_qemu_usermode():
         return None
 
-    binfmt_root = "/etc/qemu-binfmt/%s/" % pwndbg.gdblib.arch.qemu
+    binfmt_root = f"/etc/qemu-binfmt/{pwndbg.gdblib.arch.qemu}/"
 
     if not os.path.isdir(binfmt_root):
         return None

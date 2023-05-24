@@ -102,7 +102,7 @@ class Emulator:
         self.arch = pwndbg.gdblib.arch.current
 
         if self.arch not in arch_to_UC:
-            raise NotImplementedError("Cannot emulate code for %s" % self.arch)
+            raise NotImplementedError(f"Cannot emulate code for {self.arch}")
 
         self.consts = arch_to_UC_consts[self.arch]
 
@@ -151,7 +151,7 @@ class Emulator:
             if value == 0:
                 continue
 
-            name = "U.x86_const.UC_X86_REG_%s" % reg.upper()
+            name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             debug("uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
 
@@ -468,7 +468,7 @@ class Emulator:
                 debug("# Could not dump register %r", reg)
                 continue
 
-            name = "U.x86_const.UC_X86_REG_%s" % reg.upper()
+            name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
             debug("uc.reg_read(%(name)s) ==> %(value)x", locals())
 

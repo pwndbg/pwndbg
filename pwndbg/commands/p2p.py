@@ -66,7 +66,7 @@ def address_range(section):
     if pages:
         return [AddrRange(page.start, page.end) for page in pages]
     else:
-        parser.error('Memory page with name "%s" does not exist!' % pwndbg.color.red(section))
+        parser.error(f'Memory page with name "{pwndbg.color.red(section)}" does not exist!')
 
 
 parser = argparse.ArgumentParser(

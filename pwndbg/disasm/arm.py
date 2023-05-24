@@ -23,7 +23,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             scale = op.mem.scale
             parts.append("%s*%#x" % (index, scale))
 
-        return "[%s]" % (", ".join(parts))
+        return f"[{(', '.join(parts))}]"
 
     def immediate_sz(self, instruction, operand):
         return "#" + super().immediate_sz(instruction, operand)

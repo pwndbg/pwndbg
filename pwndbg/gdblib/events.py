@@ -142,7 +142,7 @@ def connect(func, event_handler, name=""):
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile
-            handler = "%s.%s" % (func.__module__, func.__name__)
+            handler = f"{func.__module__}.{func.__name__}"
             path = objfile.filename
             dispatched = objfile_cache.get(path, set())
 
