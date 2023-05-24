@@ -20,7 +20,7 @@ debug_name = "regs"
 
 
 class DebugCacheDict(UserDict):
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.hits = 0
         self.misses = 0
@@ -38,12 +38,12 @@ class DebugCacheDict(UserDict):
             self.misses += 1
             raise
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if debug & DEBUG_SET and (not debug_name or debug_name in self.name):
             print(f"SET {self.name}: {key}={value}")
         self.data[key] = value
 
-    def clear(self):
+    def clear(self) -> None:
         if debug & DEBUG_CLEAR and (not debug_name or debug_name in self.name):
             print(f"CLEAR {self.name} (hits: {self.hits}, misses: {self.misses})")
         self.data.clear()
@@ -52,10 +52,10 @@ class DebugCacheDict(UserDict):
 
 
 class _CacheUntilEvent:
-    def __init__(self):
+    def __init__(self) -> None:
         self.caches = []
 
-    def connect_event_hooks(self, event_hooks):
+    def connect_event_hooks(self, event_hooks) -> None:
         """
         A given cache until event may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
@@ -64,11 +64,11 @@ class _CacheUntilEvent:
         for event_hook in event_hooks:
             event_hook(self.clear)
 
-    def clear(self):
+    def clear(self) -> None:
         for cache in self.caches:
             cache.clear()
 
-    def add_cache(self, cache):
+    def add_cache(self, cache) -> None:
         self.caches.append(cache)
 
 
@@ -85,7 +85,7 @@ _ALL_CACHE_UNTIL_EVENTS = {
 _ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())
 
 
-def connect_clear_caching_events(event_dicts):
+def connect_clear_caching_events(event_dicts) -> None:
     """
     Connect given debugger event hooks to correspoonding _CacheUntilEvent instances
     """

@@ -115,7 +115,7 @@ def peek(address):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def is_readable_address(address):
+def is_readable_address(address) -> bool:
     """is_readable_address(address) -> bool
 
     Check if the address can be read by GDB.
