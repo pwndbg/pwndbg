@@ -154,4 +154,4 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     if len(retval) == 1:
         return retval[0]
 
-    return retval[0] + E.comment(color.strip(" /* {} */".format("; ".join(retval[1:]))))
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))

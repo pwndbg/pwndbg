@@ -380,7 +380,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
-    out_fields = "Addr: {}\n".format(M.get(chunk.address))
+    out_fields = f"Addr: {M.get(chunk.address)}\n"
 
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
@@ -413,7 +413,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             for bins in bins_list:
                 if bins.contains_chunk(chunk.real_size, chunk.address):
                     no_match = False
-                    headers_to_print.append(message.on("Free chunk ({})".format(bins.bin_type)))
+                    headers_to_print.append(message.on(f"Free chunk ({bins.bin_type})"))
                     if not verbose:
                         fields_to_print.update(bins.bin_type.valid_fields())
             if no_match:
@@ -422,7 +422,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
     else:
-        out_fields += "Size: 0x{:02x}\n".format(chunk.size)
+        out_fields += f"Size: 0x{chunk.size:02x}\n"
 
     prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
@@ -435,8 +435,8 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
     fields_ordered = ["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"]
     for field_to_print in fields_ordered:
         if field_to_print in fields_to_print:
-            out_fields += message.system(field_to_print) + ": 0x{:02x}\n".format(
-                getattr(chunk, field_to_print)
+            out_fields += (
+                message.system(field_to_print) + f": 0x{getattr(chunk, field_to_print):02x}\n"
             )
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
@@ -945,7 +945,7 @@ def vis_heap_chunks(
 
             data = pwndbg.gdblib.memory.read(cursor, ptr_size)
             cell = pwndbg.gdblib.arch.unpack(data)
-            cell_hex = "\t0x{:0{n}x}".format(cell, n=ptr_size * 2)
+            cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
 
             out += color_func(cell_hex)
             printed += 1
@@ -996,13 +996,11 @@ def bin_labels_mapping(collections):
             b = bins.bins[size]
             if isinstance(size, int):
                 size = hex(size)
-            count = "/{:d}".format(b.count) if bins_type == BinType.TCACHE else None
+            count = f"/{b.count:d}" if bins_type == BinType.TCACHE else None
             chunks = b.fd_chain
             for chunk_addr in chunks:
                 labels_mapping.setdefault(chunk_addr, []).append(
-                    "{:s}[{:s}][{:d}{}]".format(
-                        bins_type, size, chunks.index(chunk_addr), count or ""
-                    )
+                    f"{bins_type:s}[{size:s}][{chunks.index(chunk_addr):d}{count or ''}]"
                 )
 
     return labels_mapping
@@ -1075,7 +1073,7 @@ def try_free(addr) -> None:
     try:
         chunk = read_chunk(addr)
     except gdb.MemoryError as e:
-        print(message.error("Can't read chunk at address 0x{:x}, memory error".format(addr)))
+        print(message.error(f"Can't read chunk at address 0x{addr:x}, memory error"))
         return
 
     chunk_size = unsigned_size(chunk["size"])
@@ -1108,7 +1106,7 @@ def try_free(addr) -> None:
         err = "free(): invalid pointer -> misaligned chunk\n"
         err += "    LSB of 0x{:x} are 0b{}, should be 0b{}"
         if addr_tmp != addr:
-            err += " (0x{:x} was added to the address)".format(2 * size_sz)
+            err += f" (0x{2 * size_sz:x} was added to the address)"
         err = err.format(addr_tmp, bin(addr_tmp)[-aligned_lsb:], "0" * aligned_lsb)
         print(message.error(err))
         errors_found += 1
@@ -1173,9 +1171,7 @@ def try_free(addr) -> None:
         except gdb.MemoryError as e:
             print(
                 message.error(
-                    "Can't read next chunk at address 0x{:x}, memory error".format(
-                        chunk + chunk_size_unmasked
-                    )
+                    f"Can't read next chunk at address 0x{chunk + chunk_size_unmasked:x}, memory error"
                 )
             )
             finalize(errors_found, returned_before_error)
@@ -1206,9 +1202,7 @@ def try_free(addr) -> None:
             except gdb.MemoryError as e:
                 print(
                     message.error(
-                        "Can't read top fastbin chunk at address 0x{:x}, memory error".format(
-                            fastbin_top_chunk
-                        )
+                        f"Can't read top fastbin chunk at address 0x{fastbin_top_chunk:x}, memory error"
                     )
                 )
                 finalize(errors_found, returned_before_error)
@@ -1262,7 +1256,7 @@ def try_free(addr) -> None:
             next_chunk = read_chunk(next_chunk_addr)
             next_chunk_size = chunksize(unsigned_size(next_chunk["size"]))
         except (OverflowError, gdb.MemoryError) as e:
-            print(message.error("Can't read next chunk at address 0x{:x}".format(next_chunk_addr)))
+            print(message.error(f"Can't read next chunk at address 0x{next_chunk_addr:x}"))
             finalize(errors_found, returned_before_error)
             return
 
@@ -1292,9 +1286,7 @@ def try_free(addr) -> None:
                 prev_chunk = read_chunk(prev_chunk_addr)
                 prev_chunk_size = chunksize(unsigned_size(prev_chunk["size"]))
             except (OverflowError, gdb.MemoryError) as e:
-                print(
-                    message.error("Can't read next chunk at address 0x{:x}".format(prev_chunk_addr))
-                )
+                print(message.error(f"Can't read next chunk at address 0x{prev_chunk_addr:x}"))
                 finalize(errors_found, returned_before_error)
                 return
 
@@ -1317,11 +1309,7 @@ def try_free(addr) -> None:
                 next_next_chunk_addr = next_chunk_addr + next_chunk_size
                 next_next_chunk = read_chunk(next_next_chunk_addr)
             except (OverflowError, gdb.MemoryError) as e:
-                print(
-                    message.error(
-                        "Can't read next chunk at address 0x{:x}".format(next_next_chunk_addr)
-                    )
-                )
+                print(message.error(f"Can't read next chunk at address 0x{next_next_chunk_addr:x}"))
                 finalize(errors_found, returned_before_error)
                 return
 
@@ -1352,16 +1340,12 @@ def try_free(addr) -> None:
                 except (OverflowError, gdb.MemoryError) as e:
                     print(
                         message.error(
-                            "Can't read chunk at 0x{:x}, it is unsorted bin fd".format(
-                                unsorted["fd"]
-                            )
+                            f"Can't read chunk at 0x{unsorted['fd']:x}, it is unsorted bin fd"
                         )
                     )
                     errors_found += 1
             except (OverflowError, gdb.MemoryError) as e:
-                print(
-                    message.error("Can't read unsorted bin chunk at 0x{:x}".format(unsorted_addr))
-                )
+                print(message.error(f"Can't read unsorted bin chunk at 0x{unsorted_addr:x}"))
                 errors_found += 1
 
         else:

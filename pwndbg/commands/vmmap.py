@@ -36,15 +36,7 @@ def print_vmmap_table_header() -> None:
     Prints the table header for the vmmap command.
     """
     print(
-        "{start:>{width}} {end:>{width}} {permstr} {size:>8} {offset:>6} {objfile}".format(
-            start="Start",
-            end="End",
-            permstr="Perm",
-            size="Size",
-            offset="Offset",
-            objfile="File",
-            width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
-        )
+        f"{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'Perm'} {'Size':>8} {'Offset':>6} {'File'}"
     )
 
 
