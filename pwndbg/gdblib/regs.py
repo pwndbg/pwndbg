@@ -158,7 +158,7 @@ class module(ModuleType):
 
     def fix(self, expression):
         for regname in set(self.all + ["sp", "pc"]):
-            expression = re.sub(r"\$?\b%s\b" % regname, r"$" + regname, expression)
+            expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
 
     def items(self):

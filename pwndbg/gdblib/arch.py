@@ -48,7 +48,7 @@ def _get_arch(ptrsize):
             return match, ptrsize, endian
 
     if not_exactly_arch:
-        raise RuntimeError("Could not deduce architecture from: %s" % arch)
+        raise RuntimeError(f"Could not deduce architecture from: {arch}")
 
     return arch, ptrsize, endian
 

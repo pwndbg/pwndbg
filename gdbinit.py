@@ -47,26 +47,22 @@ if virtual_env:
         if len(possible_site_packages) > 1:
             venv_warn("*** Found multiple site packages in virtualenv:")
             for site_pkg in possible_site_packages:
-                venv_warn("    - %s" % site_pkg)
+                venv_warn(f"    - {site_pkg}")
 
             virtualenv_site_packages = possible_site_packages[-1]
-            venv_warn("*** Using the last one: %s" % virtualenv_site_packages)
+            venv_warn(f"*** Using the last one: {virtualenv_site_packages}")
 
         elif len(possible_site_packages) == 1:
             virtualenv_site_packages = possible_site_packages[-1]
-            venv_warn("*** Using the only site packages dir found: %s" % virtualenv_site_packages)
+            venv_warn(f"*** Using the only site packages dir found: {virtualenv_site_packages}")
 
         else:
-            guessed_python_directory = "python%s.%s" % (
-                sys.version_info.major,
-                sys.version_info.minor,
-            )
+            guessed_python_directory = f"python{sys.version_info.major}.{sys.version_info.minor}"
             virtualenv_site_packages = path.join(
                 virtual_env, "lib", guessed_python_directory, "site-packages"
             )
             venv_warn(
-                "***  Not found site-packages in virtualenv, using guessed site packages Python dir: %s"
-                % virtualenv_site_packages
+                f"***  Not found site-packages in virtualenv, using guessed site packages Python dir: {virtualenv_site_packages}"
             )
 
         venv_warn("  Added detected virtualenv's Python site packages to sys.path")

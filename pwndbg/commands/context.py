@@ -106,7 +106,7 @@ def validate_context_sections() -> None:
         config_context_sections.value = ""
         print(
             message.warn(
-                "Sections set to be empty. FYI valid values are: %s" % ", ".join(valid_values)
+                f"Sections set to be empty. FYI valid values are: {', '.join(valid_values)}"
             )
         )
         return
@@ -114,9 +114,7 @@ def validate_context_sections() -> None:
     for section in config_context_sections.split():
         if section not in valid_values:
             print(
-                message.warn(
-                    "Invalid section: %s, valid values: %s" % (section, ", ".join(valid_values))
-                )
+                message.warn(f"Invalid section: {section}, valid values: {', '.join(valid_values)}")
             )
             print(message.warn("(setting none of them like '' will make sections not appear)"))
             config_context_sections.revert_default()
@@ -582,7 +580,7 @@ def get_regs(*regs):
         else:
             desc = pwndbg.chain.format(value)
 
-        result.append("%s%s %s" % (m, regname, desc))
+        result.append(f"{m}{regname} {desc}")
     return result
 
 
@@ -804,7 +802,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     while True:
 
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
-        prefix = " %s" % c.prefix(prefix)
+        prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame.pc())))
         if symbol:
@@ -847,7 +845,7 @@ def save_signal(signal) -> None:
             result.append(message.exit("Exited: %r" % signal.exit_code))
 
     elif isinstance(signal, gdb.SignalEvent):
-        msg = "Program received signal %s" % signal.stop_signal
+        msg = f"Program received signal {signal.stop_signal}"
 
         if signal.stop_signal == "SIGSEGV":
 
@@ -866,7 +864,7 @@ def save_signal(signal) -> None:
 
     elif isinstance(signal, gdb.BreakpointEvent):
         for bkpt in signal.breakpoints:
-            result.append(message.breakpoint("Breakpoint %s" % (bkpt.location)))
+            result.append(message.breakpoint(f"Breakpoint {(bkpt.location)}"))
 
 
 gdb.events.cont.connect(save_signal)

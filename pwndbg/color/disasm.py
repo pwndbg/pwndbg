@@ -44,23 +44,23 @@ def instruction(ins):
 
         # If it's a constant expression, color it directly in the asm.
         if const:
-            asm = "%s <%s>" % (ljust_colored(asm, 36), target)
+            asm = f"{ljust_colored(asm, 36)} <{target}>"
             asm = asm.replace(hex(ins.target), sym or target)
 
         # It's not a constant expression, but we've calculated the target
         # address by emulation or other means (for example showing ret instruction target)
         elif sym:
-            asm = "%s <%s; %s>" % (ljust_colored(asm, 36), target, sym)
+            asm = f"{ljust_colored(asm, 36)} <{target}; {sym}>"
 
         # We were able to calculate the target, but there is no symbol
         # name for it.
         else:
-            asm += "<%s>" % (target)
+            asm += f"<{(target)}>"
 
     # not a branch
     elif ins.symbol:
         if is_branch and not ins.target:
-            asm = "%s <%s>" % (asm, ins.symbol)
+            asm = f"{asm} <{ins.symbol}>"
 
             # XXX: not sure when this ever happens
             asm += "<-- file a pwndbg bug for this"

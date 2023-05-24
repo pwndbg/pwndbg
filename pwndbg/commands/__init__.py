@@ -60,7 +60,7 @@ def list_current_commands():
             continue
         command = line.split()[0]
         existing_commands.add(command)
-    gdb.execute("set pagination %s" % current_pagination)  # Restore original setting
+    gdb.execute(f"set pagination {current_pagination}")  # Restore original setting
     return existing_commands
 
 
@@ -100,13 +100,13 @@ class Command(gdb.Command):
         self.function = function
 
         if command_name in command_names:
-            raise Exception("Cannot add command %s: already exists." % command_name)
+            raise Exception(f"Cannot add command {command_name}: already exists.")
         if (
             command_name in GDB_BUILTIN_COMMANDS
             and command_name not in self.builtin_override_whitelist
             and not pwndbg_is_reloading
         ):
-            raise Exception('Cannot override non-whitelisted built-in command "%s"' % command_name)
+            raise Exception(f'Cannot override non-whitelisted built-in command "{command_name}"')
 
         command_names.add(command_name)
         commands.append(self)
@@ -244,7 +244,7 @@ def OnlyWithFile(function):
             if pwndbg.gdblib.qemu.is_qemu():
                 print(message.error("Could not determine the target binary on QEMU."))
             else:
-                print(message.error("%s: There is no file loaded." % function.__name__))
+                print(message.error(f"{function.__name__}: There is no file loaded."))
 
     return _OnlyWithFile
 
@@ -256,8 +256,7 @@ def OnlyWhenQemuKernel(function):
             return function(*a, **kw)
         else:
             print(
-                "%s: This command may only be run when debugging the Linux kernel in QEMU."
-                % function.__name__
+                f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
             )
 
     return _OnlyWhenQemuKernel
@@ -270,8 +269,7 @@ def OnlyWhenUserspace(function):
             return function(*a, **kw)
         else:
             print(
-                "%s: This command may only be run when not debugging a QEMU kernel target."
-                % function.__name__
+                f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
             )
 
     return _OnlyWhenUserspace
@@ -309,8 +307,7 @@ def OnlyWithKernelDebugSyms(function):
             return function(*a, **kw)
         else:
             print(
-                "%s: This command may only be run when debugging a Linux kernel with debug symbols."
-                % function.__name__
+                f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
 
     return _OnlyWithKernelDebugSyms
@@ -322,7 +319,7 @@ def OnlyWhenPagingEnabled(function):
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
-            print("%s: This command may only be run when paging is enabled." % function.__name__)
+            print(f"{function.__name__}: This command may only be run when paging is enabled.")
 
     return _OnlyWhenPagingEnabled
 
@@ -333,7 +330,7 @@ def OnlyWhenRunning(function):
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
-            print("%s: The program is not being run." % function.__name__)
+            print(f"{function.__name__}: The program is not being run.")
 
     return _OnlyWhenRunning
 
@@ -345,8 +342,7 @@ def OnlyWithTcache(function):
             return function(*a, **kw)
         else:
             print(
-                "%s: This version of GLIBC was not compiled with tcache support."
-                % function.__name__
+                f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
             )
 
     return _OnlyWithTcache
@@ -358,7 +354,7 @@ def OnlyWhenHeapIsInitialized(function):
         if pwndbg.heap.current.is_initialized():
             return function(*a, **kw)
         else:
-            print("%s: Heap is not initialized yet." % function.__name__)
+            print(f"{function.__name__}: Heap is not initialized yet.")
 
     return _OnlyWhenHeapIsInitialized
 
@@ -593,7 +589,7 @@ def AddressExpr(s):
     val = sloppy_gdb_parse(s)
 
     if not isinstance(val, int):
-        raise argparse.ArgumentTypeError("Incorrect address (or GDB expression): %s" % s)
+        raise argparse.ArgumentTypeError(f"Incorrect address (or GDB expression): {s}")
 
     return val
 

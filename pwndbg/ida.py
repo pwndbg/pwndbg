@@ -71,7 +71,7 @@ def init_ida_rpc_client() -> None:
     exception = None  # (type, value, traceback)
     try:
         _ida.here()
-        print(message.success("Pwndbg successfully connected to Ida Pro xmlrpc: %s" % addr))
+        print(message.success(f"Pwndbg successfully connected to Ida Pro xmlrpc: {addr}"))
     except TimeoutError:
         exception = sys.exc_info()
         _ida = None

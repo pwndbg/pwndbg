@@ -28,4 +28,4 @@ __version__ = "2023.03.19"
 b_id = build_id()
 
 if b_id:
-    __version__ += " %s" % b_id
+    __version__ += f" {b_id}"

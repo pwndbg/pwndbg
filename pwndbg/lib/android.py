@@ -89,4 +89,4 @@ def aid_name(uid):  # types: (int) -> str
     else:
         return str(uid)
 
-    return "%s+%s" % (KNOWN_AIDS[closest], uid - closest)
+    return f"{KNOWN_AIDS[closest]}+{uid - closest}"

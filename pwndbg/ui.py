@@ -31,8 +31,7 @@ def check_title_position() -> None:
     if title_position not in valid_values:
         print(
             message.warn(
-                "Invalid title position: %s, must be one of: %s"
-                % (title_position, ", ".join(valid_values))
+                f"Invalid title position: {title_position}, must be one of: {', '.join(valid_values)}"
             )
         )
         title_position.revert_default()

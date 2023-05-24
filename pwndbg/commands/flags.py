@@ -59,4 +59,4 @@ def setflag(flag, value) -> None:
                 )
                 return
 
-    print("The %s not a valid/recognized flag" % flag)
+    print(f"The {flag} not a valid/recognized flag")

@@ -67,7 +67,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         sz = ""
 
         if segment != 0:
-            sz += "%s:" % instruction.reg_name(segment)
+            sz += f"{instruction.reg_name(segment)}:"
 
         if base != 0:
             sz += instruction.reg_name(base)
@@ -88,7 +88,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 sz += " + "
             sz += "%#x" % abs(op.mem.disp)
 
-        sz = "[%s]" % sz
+        sz = f"[{sz}]"
         return sz
 
     def register(self, instruction, operand):

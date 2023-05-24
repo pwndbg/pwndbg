@@ -152,11 +152,11 @@ def probeleak(
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = "%s: %s = %s" % (offset_text, M.get(p, text=p_text), M.get(p, text=right_text))
+            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
 
             symbol = pwndbg.gdblib.symbol.get(p)
             if symbol:
-                text += " (%s)" % symbol
+                text += f" ({symbol})"
             print(text)
 
             find_cnt += 1

@@ -65,7 +65,7 @@ def _which_binutils(util, arch, **kwargs):
 
             # e.g. aarch64-linux-gnu-objdump
             else:
-                pattern = "%s*linux*-%s" % (arch, gutil)
+                pattern = f"{arch}*linux*-{gutil}"
 
             for dir in os.environ["PATH"].split(":"):
                 res = sorted(glob.glob(os.path.join(dir, pattern)))

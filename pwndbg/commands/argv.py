@@ -52,7 +52,7 @@ def envp(name=None):
     Prints out the contents of the environment.
     """
     if name is not None:
-        gdb.execute('p $environ("%s")' % name)
+        gdb.execute(f'p $environ("{name}")')
         return
 
     start = pwndbg.gdblib.argv.envp

@@ -35,10 +35,10 @@ def create_marshaller(use_format=None, just_to_str=False):
         if use_format:
             marshalled = use_format % value
         elif just_to_str:
-            marshalled = "<value><string>%s</string></value>" % escape(str(value))
+            marshalled = f"<value><string>{escape(str(value))}</string></value>"
 
         if DEBUG_MARSHALLING:
-            print("Marshalled: '%s'" % marshalled)
+            print(f"Marshalled: '{marshalled}'")
 
         appender(marshalled)
 
@@ -170,7 +170,7 @@ server.register_function(wrap(decompile_context), "decompile_context")  # suppor
 server.register_function(wrap(versions))
 server.register_introspection_functions()
 
-print("IDA Pro xmlrpc hosted on http://%s:%s" % (host, port))
+print(f"IDA Pro xmlrpc hosted on http://{host}:{port}")
 print("Call `shutdown()` to shutdown the IDA Pro xmlrpc server.")
 
 thread = threading.Thread(target=server.serve_forever)

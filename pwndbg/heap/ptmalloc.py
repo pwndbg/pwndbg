@@ -1755,11 +1755,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     value, address = found
                     print(
                         message.notice(
-                            "Found matching arena address %s at %s\n"
-                            % (
-                                message.hint(hex(value)),
-                                message.hint(hex(address)),
-                            )
+                            f"Found matching arena address {message.hint(hex(value))} at {message.hint(hex(address))}\n"
                         )
                     )
                     arena = Arena(value)
@@ -1768,8 +1764,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
                 print(
                     message.notice(
-                        "Cannot find %s, the arena might be not allocated yet.\n"
-                        % message.hint("thread_arena")
+                        f"Cannot find {message.hint('thread_arena')}, the arena might be not allocated yet.\n"
                     )
                 )
                 return None
@@ -1837,11 +1832,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         value, address = found
                         print(
                             message.notice(
-                                "Found possible tcache at %s with value: %s\n"
-                                % (
-                                    message.hint(hex(address)),
-                                    message.hint(hex(value)),
-                                )
+                                f"Found possible tcache at {message.hint(hex(address))} with value: {message.hint(hex(value))}\n"
                             )
                         )
                         self._thread_cache = self.tcache_perthread_struct(value)

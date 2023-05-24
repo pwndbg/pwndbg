@@ -104,4 +104,4 @@ def format_flags(value, flags, last=None):
             name = flag_changed(name)
         names.append(name)
 
-    return "%s %s %s %s" % (desc, flag_bracket("["), " ".join(names), flag_bracket("]"))
+    return f"{desc} {flag_bracket('[')} {' '.join(names)} {flag_bracket(']')}"

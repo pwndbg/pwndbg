@@ -34,9 +34,9 @@ def xuntil(target) -> None:
     except (TypeError, ValueError):
         # The following gdb command will throw an error if the symbol is not defined.
         try:
-            result = gdb.execute("info address %s" % target, to_string=True, from_tty=False)
+            result = gdb.execute(f"info address {target}", to_string=True, from_tty=False)
         except gdb.error:
-            print(message.error("Unable to resolve %s" % target))
+            print(message.error(f"Unable to resolve {target}"))
             return
         spec = target
 

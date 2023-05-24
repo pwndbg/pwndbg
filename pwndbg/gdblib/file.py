@@ -76,7 +76,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
             local_path = tempfile.mktemp(dir=remote_files_dir())
             error = None
             try:
-                error = gdb.execute('remote get "%s" "%s"' % (path, local_path), to_string=True)
+                error = gdb.execute(f'remote get "{path}" "{local_path}"', to_string=True)
             except gdb.error as e:
                 error = str(e)
 
@@ -85,8 +85,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         else:
             print(
                 message.warn(
-                    "pwndbg.gdblib.file.get_file(%s) returns local path as we can't download file from QEMU"
-                    % path
+                    f"pwndbg.gdblib.file.get_file({path}) returns local path as we can't download file from QEMU"
                 )
             )
 

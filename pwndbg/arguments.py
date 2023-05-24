@@ -226,7 +226,7 @@ def format_args(instruction):
             if pid is not None:
                 path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:
-                    pretty += " (%s)" % path
+                    pretty += f" ({path})"
 
         result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
     return result

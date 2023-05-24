@@ -42,8 +42,7 @@ def get_version() -> Optional[Tuple[int, ...]]:
             return tuple(int(_) for _ in ret.groups())
         else:
             raise ValueError(
-                "Invalid GLIBC version: `%s`, you should provide something like: 2.31 or 2.34"
-                % glibc_version.value
+                f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
             )
     return _get_version()
 
@@ -179,7 +178,7 @@ def OnlyWhenGlibcLoaded(function):
         if get_version() is not None:
             return function(*a, **kw)
         else:
-            print("%s: GLibc not loaded yet." % function.__name__)
+            print(f"{function.__name__}: GLibc not loaded yet.")
 
     return _OnlyWhenGlibcLoaded
 

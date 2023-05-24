@@ -163,7 +163,7 @@ def vmmap_load(filename) -> None:
     if filename is None:
         filename = pwndbg.gdblib.file.get_proc_exe_file()
 
-    print('Load "%s" ...' % filename)
+    print(f'Load "{filename}" ...')
 
     # TODO: Add an argument to let use to choose loading the page information from sections or segments
 
