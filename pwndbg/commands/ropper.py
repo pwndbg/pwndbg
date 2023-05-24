@@ -19,7 +19,6 @@ parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to 
 @pwndbg.commands.OnlyWithFile
 def ropper(argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:
-
         # If the process is running, dump a corefile so we get actual addresses.
         if pwndbg.gdblib.proc.alive:
             filename = corefile.name

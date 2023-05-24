@@ -3,6 +3,8 @@ Reading, writing, and describing memory.
 """
 
 
+from typing import Optional
+
 import gdb
 
 import pwndbg.gdblib.arch
@@ -11,7 +13,6 @@ import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
-from typing import Optional
 
 MMAP_MIN_ADDR = 0x8000
 

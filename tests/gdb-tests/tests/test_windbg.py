@@ -18,7 +18,6 @@ def test_windbg_dX_commands(start_binary):
 
     # Try to fail commands in different way
     for cmd_prefix in ("dq", "dd", "dw", "db"):
-
         # With a non-existent symbol
         cmd = cmd_prefix + " nonexistentsymbol"
         assert gdb.execute(cmd, to_string=True) == (

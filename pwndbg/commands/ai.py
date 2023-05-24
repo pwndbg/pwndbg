@@ -111,7 +111,7 @@ def build_prompt(question, command=None):
 
     conversation = [system_msg, context_msg]
 
-    for (q, a) in zip(last_question, last_answer):
+    for q, a in zip(last_question, last_answer):
         conversation.append({"role": "user", "content": q})
         conversation.append({"role": "assistant", "content": a})
 
@@ -136,7 +136,6 @@ def flatten_prompt(conversation):
 
 
 def build_context_prompt_body():
-
     decompile = False
     ## First, get the current GDB context
     ## Let's begin with the assembly near the current instruction

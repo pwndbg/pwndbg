@@ -218,7 +218,6 @@ def search(type, hex, executable, writable, value, mapping_name, save, next, tru
     for address in pwndbg.search.search(
         value, mappings=mappings, executable=executable, writable=writable
     ):
-
         if save:
             saved.add(address)
 

@@ -800,7 +800,6 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     i = 0
     bt_prefix = "%s" % pwndbg.gdblib.config.backtrace_prefix
     while True:
-
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
@@ -848,7 +847,6 @@ def save_signal(signal) -> None:
         msg = f"Program received signal {signal.stop_signal}"
 
         if signal.stop_signal == "SIGSEGV":
-
             # When users use rr (https://rr-project.org or https://github.com/mozilla/rr)
             # we can't access $_siginfo, so lets just show current pc
             # see also issue 476

@@ -18,7 +18,6 @@ parser.add_argument("address", nargs="?", default="$pc", help="Address to inspec
 
 
 def print_line(name, addr, first, second, op, width=20) -> None:
-
     print(
         f"{name.rjust(width)} {M.get(addr)} = {M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L')))} {op} {second:#x}"
     )

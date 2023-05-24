@@ -29,7 +29,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         return "#" + super().immediate_sz(instruction, operand)
 
     def condition(self, instruction):
-
         # We can't reason about anything except the current instruction
         if instruction.cc == ARM_CC_AL:
             return None
