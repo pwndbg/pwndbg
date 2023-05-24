@@ -75,7 +75,7 @@ def register_shell_function(cmd, deprecated=False) -> None:
             f"This command is deprecated in Pwndbg. Please use the GDB's built-in syntax for running shell commands instead: !{cmd} <args>"
         )
 
-    doc = "Invokes `{}` shell command".format(cmd)
+    doc = f"Invokes `{cmd}` shell command"
     if deprecated:
         doc += " (deprecated)"
 

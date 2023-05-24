@@ -88,11 +88,7 @@ encoding = locale.getpreferredencoding()
 
 if encoding != "UTF-8":
     print("******")
-    print(
-        "Your encoding ({}) is different than UTF-8. pwndbg might not work properly.".format(
-            encoding
-        )
-    )
+    print(f"Your encoding ({encoding}) is different than UTF-8. pwndbg might not work properly.")
     print("You might try launching GDB with:")
     print("    LC_CTYPE=C.UTF-8 gdb")
     print(

@@ -75,9 +75,7 @@ def wrap(f):
             idaapi.execute_sync(work, flags)
 
         if error:
-            msg = "Failed on calling {}.{} with args: {}, kwargs: {}\nException: {}".format(
-                f.__module__, f.__name__, a, kw, str(error[0])
-            )
+            msg = f"Failed on calling {f.__module__}.{f.__name__} with args: {a}, kwargs: {kw}\nException: {str(error[0])}"
             print("[!!!] ERROR:", msg)
             raise error[0]
 

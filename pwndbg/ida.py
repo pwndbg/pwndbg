@@ -63,7 +63,7 @@ def init_ida_rpc_client() -> None:
     if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
         return
 
-    addr = "http://{host}:{port}".format(host=ida_rpc_host, port=ida_rpc_port)
+    addr = f"http://{ida_rpc_host}:{ida_rpc_port}"
 
     _ida = xmlrpc.client.ServerProxy(addr)
     socket.setdefaulttimeout(int(ida_timeout))
@@ -98,9 +98,7 @@ def init_ida_rpc_client() -> None:
                 exc_type, exc_value, _ = exception
                 print(
                     message.error(
-                        "Failed to connect to IDA Pro ({}: {})".format(
-                            exc_type.__qualname__, exc_value
-                        )
+                        f"Failed to connect to IDA Pro ({exc_type.__qualname__}: {exc_value})"
                     )
                 )
                 if exc_type is socket.timeout:

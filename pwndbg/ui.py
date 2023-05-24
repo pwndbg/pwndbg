@@ -60,7 +60,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
 
 def addrsz(address) -> str:
     address = int(address) & pwndbg.gdblib.arch.ptrmask
-    return "%#{}x".format(2 * pwndbg.gdblib.arch.ptrsize) % address
+    return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
 
 
 def get_window_size(target=sys.stdin):
