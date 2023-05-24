@@ -9,7 +9,9 @@ from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Tuple
+from typing import Union
 
 # Set to enable print logging of cache hits/misses/clears
 NO_DEBUG, DEBUG_GET, DEBUG_CLEAR, DEBUG_SET = 0, 1, 2, 4
@@ -51,9 +53,12 @@ class DebugCacheDict(UserDict):
         self.misses = 0
 
 
+Cache = Union[Dict[Tuple[Any], Any], DebugCacheDict]
+
+
 class _CacheUntilEvent:
     def __init__(self) -> None:
-        self.caches = []
+        self.caches: List[Cache] = []
 
     def connect_event_hooks(self, event_hooks) -> None:
         """
@@ -115,7 +120,7 @@ def cache_until(*event_names) -> Callable:
                 "Pass multiple event names to the `cache_until` decorator."
             )
 
-        cache: Dict[Tuple[Any], Any] = {} if not debug else DebugCacheDict(func)
+        cache: Cache = {} if not debug else DebugCacheDict(func)
 
         @wraps(func)
         def decorator(*a, **kw):
