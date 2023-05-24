@@ -41,7 +41,6 @@ c = ColorConfig(
     "backtrace",
     [
         ColorParamSpec("prefix", "none", "color for prefix of current backtrace label"),
-        ColorParamSpec("address", "none", "color for backtrace (address)"),
         ColorParamSpec("symbol", "none", "color for backtrace (symbol)"),
         ColorParamSpec("frame-label", "none", "color for backtrace (frame label)"),
     ],
@@ -805,10 +804,13 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = " %s" % c.prefix(prefix)
-        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame.pc())))
+        frame_pc = frame.pc()
+        stackaddr = M.get((pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)))
+        addrsz = "(" + stackaddr + ") " + M.get(frame_pc)
+        symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame_pc)))
         if symbol:
             addrsz = addrsz + " " + symbol
+
         line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
         line = " ".join(line)
         result.append(line)

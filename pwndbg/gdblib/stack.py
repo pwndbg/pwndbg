@@ -136,3 +136,27 @@ def is_executable() -> bool:
             nx = True
 
     return not nx
+
+
+def find_addr_on_stack(addr):
+    """
+    Scans the stack looking to see if it contains the supplied address.
+
+    If the supplied address is found the location on the stack is returned or 0 if it cannot be found.
+    """
+    stackaddr = 0
+
+    sp = pwndbg.gdblib.regs.sp
+    stack = pwndbg.gdblib.vmmap.find(sp)
+    start = stack.vaddr
+    stop = start + stack.memsz
+    ptrsize = pwndbg.gdblib.arch.ptrsize
+
+    while start < sp < stop:
+        value = pwndbg.gdblib.memory.u(sp)
+        if value == addr:
+            stackaddr = sp
+            break
+        sp += ptrsize
+
+    return stackaddr
