@@ -84,7 +84,7 @@ config_context_sections = pwndbg.gdblib.config.add_param(
 )
 
 # Storing output configuration per section
-outputs = {}  # type: Dict[str,str]
+outputs: Dict[str, str] = {}
 output_settings = {}
 
 

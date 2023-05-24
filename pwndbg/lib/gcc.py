@@ -73,7 +73,7 @@ def _which_binutils(util, arch, **kwargs):
                     return res[0]
 
 
-def _flags(arch_name):  # type: (str) -> List[str]
+def _flags(arch_name: str) -> List[str]:
     if arch_name == "i386":
         return ["-m32"]
     if arch_name.endswith("x86-64"):

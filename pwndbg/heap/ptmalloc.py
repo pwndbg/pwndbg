@@ -85,7 +85,7 @@ class Bin:
 class Bins:
     def __init__(self, bin_type) -> None:
         # `typing.OrderedDict` requires Python 3.7
-        self.bins = OrderedDict()  # type: OrderedDict[Union[int, str], Bin]
+        self.bins: OrderedDict[Union[int, str], Bin] = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
