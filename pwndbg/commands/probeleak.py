@@ -84,7 +84,6 @@ parser.add_argument(
 def probeleak(
     address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
 ) -> None:
-
     address = int(address)
     address &= pwndbg.gdblib.arch.ptrmask
     ptrsize = pwndbg.gdblib.arch.ptrsize

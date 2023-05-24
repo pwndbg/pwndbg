@@ -112,7 +112,6 @@ def p2p_walk(addr, ranges, current_level):
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def p2p(mapping_names: Optional[List] = None) -> None:
-
     if not mapping_names:
         return
 

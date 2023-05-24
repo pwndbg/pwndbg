@@ -16,7 +16,7 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands = []  # type: List[Command]
+commands: "List[Command]" = []
 command_names = set()
 
 
@@ -76,7 +76,7 @@ class Command(gdb.Command):
     """Generic command wrapper"""
 
     builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
-    history = {}  # type: Dict[int,str]
+    history: Dict[int, str] = {}
 
     def __init__(
         self,

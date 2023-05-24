@@ -134,7 +134,6 @@ save_ida()
 
 @GdbFunction()
 def ida(name):
-
     """Evaluate ida.LocByName() on the supplied value."""
     name = name.string()
     result = pwndbg.ida.LocByName(name)

@@ -41,7 +41,7 @@ def setflag(flag, value) -> None:
 
     flag = flag.upper()
     for flag_reg, flags in register_set.flags.items():
-        for (flag_name, flag_bit) in flags.items():
+        for flag_name, flag_bit in flags.items():
             if flag_name == flag:
                 old_flags_reg_value = pwndbg.gdblib.regs[flag_reg]
                 bit_value = 1 << flag_bit

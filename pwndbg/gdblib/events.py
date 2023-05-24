@@ -73,7 +73,7 @@ class EventWrapper:
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
         self._event = getattr(gdb.events, self.name, None)

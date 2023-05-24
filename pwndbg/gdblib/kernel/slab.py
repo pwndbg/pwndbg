@@ -71,7 +71,7 @@ def get_flags_list(flags: int) -> List[str]:
 
 
 class Freelist:
-    def __init__(self, start_addr: int, offset: int, random: int = 0):
+    def __init__(self, start_addr: int, offset: int, random: int = 0) -> None:
         self.start_addr = start_addr
         self.offset = offset
         self.random = random
@@ -100,7 +100,7 @@ class Freelist:
 
 
 class SlabCache:
-    def __init__(self, slab_cache: gdb.Value):
+    def __init__(self, slab_cache: gdb.Value) -> None:
         self._slab_cache = slab_cache
 
     @property
@@ -173,7 +173,7 @@ class SlabCache:
 
 
 class CpuCache:
-    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache, cpu: int):
+    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache, cpu: int) -> None:
         self._cpu_cache = cpu_cache
         self.slab_cache = slab_cache
         self.cpu = cpu
@@ -210,7 +210,7 @@ class CpuCache:
 
 
 class Slab:
-    def __init__(self, slab: gdb.Value, cpu_cache: CpuCache, is_partial: bool = False):
+    def __init__(self, slab: gdb.Value, cpu_cache: CpuCache, is_partial: bool = False) -> None:
         self._slab = slab
         self.cpu_cache = cpu_cache
         self.slab_cache = cpu_cache.slab_cache

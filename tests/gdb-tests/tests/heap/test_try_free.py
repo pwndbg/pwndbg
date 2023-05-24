@@ -38,7 +38,6 @@ def binary_parse_breakpoints(binary_code):
             line_no += 1
             for bug_id, func_name in func_names.items():
                 if f"void {func_name}" in line:
-
                     # find break1 and break2 inside function
                     b1, b2 = None, None
                     while line_no < len(lines) and (b1 is None or b2 is None):
