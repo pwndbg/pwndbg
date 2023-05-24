@@ -16,7 +16,7 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands: List[Command] = []
+commands: "List[Command]" = []
 command_names = set()
 
 

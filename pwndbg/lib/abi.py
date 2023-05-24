@@ -31,15 +31,15 @@ class ABI:
         self.stack_minimum = minimum
 
     @staticmethod
-    def default() -> ABI:
+    def default() -> "ABI":
         return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
-    def syscall() -> ABI:
+    def syscall() -> "ABI":
         return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
-    def sigreturn() -> SigreturnABI:
+    def sigreturn() -> "SigreturnABI":
         return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
 
