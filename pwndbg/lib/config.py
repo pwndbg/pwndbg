@@ -25,7 +25,7 @@ PARAM_CLASSES = {
 class Parameter:
     def __init__(
         self,
-        name,
+        name: str,
         default,
         set_show_doc,
         *,
@@ -60,7 +60,7 @@ class Parameter:
         i.e. `my-config` has the attribute name `my_config`"""
         return self.name.replace("-", "_")
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return getattr(self.value, name)
 
     # Casting
@@ -133,7 +133,7 @@ class Config:
 
     def add_param(
         self,
-        name,
+        name: str,
         default,
         set_show_doc,
         *,
@@ -178,7 +178,7 @@ class Config:
     def get_params(self, scope) -> List[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         if name in self.params:
             return self.params[name]
         else:

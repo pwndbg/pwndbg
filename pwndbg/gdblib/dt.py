@@ -52,7 +52,7 @@ def get_field_by_name(obj, field):
     return obj
 
 
-def happy(typename):
+def happy(typename: str):
     prefix = ""
     if "unsigned" in typename:
         prefix = "u"
