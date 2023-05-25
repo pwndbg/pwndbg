@@ -447,3 +447,17 @@ def paging_enabled() -> bool:
         return Aarch64Ops.paging_enabled()
     else:
         raise NotImplementedError()
+
+
+@requires_debug_syms()
+def num_numa_nodes() -> int:
+    """Returns the number of NUMA nodes that are online on the system"""
+    kc = kconfig()
+    if "CONFIG_NUMA" not in kc:
+        return 1
+
+    max_nodes = 1 << int(kc["CONFIG_NODES_SHIFT"])
+    if max_nodes == 1:
+        return 1
+
+    return int(gdb.lookup_global_symbol("nr_online_nodes").value())
