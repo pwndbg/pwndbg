@@ -62,7 +62,7 @@ backward_cache: DefaultDict = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler_cached(arch, ptrsize, endian, extra=None):
+def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
     arch = CapstoneArch[arch]
 
     if extra is None:

@@ -99,7 +99,7 @@ class FakeGDBField:
     def __init__(
         self,
         bitpos,
-        name,
+        name: str,
         type,
         parent_type,
         enumval=None,

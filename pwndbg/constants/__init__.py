@@ -19,7 +19,7 @@ arches = {
 }
 
 
-def syscall(number, arch):
+def syscall(number: int, arch):
     """
     Given a syscall number and architecture, returns the name of the syscall.
     E.g. execve == 59 on x86-64

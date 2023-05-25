@@ -18,8 +18,6 @@ from pwndbg.gdblib.kernel.slab import CpuCache
 from pwndbg.gdblib.kernel.slab import Slab
 from pwndbg.gdblib.kernel.slab import find_containing_slab_cache
 from pwndbg.gdblib.symbol import parse_and_eval
-from types import TracebackType
-from typing import Optional, Type
 
 parser = argparse.ArgumentParser(description="Prints information about the slab allocator")
 subparsers = parser.add_subparsers(dest="command")
@@ -70,12 +68,7 @@ class IndentContextManager:
     def __enter__(self) -> None:
         self.indent += 1
 
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
         self.indent -= 1
         assert self.indent >= 0
 
