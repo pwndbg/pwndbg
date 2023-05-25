@@ -1020,7 +1020,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
-    def chunk_flags(self, size):
+    def chunk_flags(self, size: int):
         return (
             size & ptmalloc.PREV_INUSE,
             size & ptmalloc.IS_MMAPPED,
@@ -1080,7 +1080,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             return None
 
-    def fastbin_index(self, size):
+    def fastbin_index(self, size: int):
         if pwndbg.gdblib.arch.ptrsize == 8:
             return (size >> 4) - 2
         else:
@@ -1128,7 +1128,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
         safe_lnk = pwndbg.glibc.check_safe_linking()
 
-        def tidx2usize(idx):
+        def tidx2usize(idx: int):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 

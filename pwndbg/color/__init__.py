@@ -132,7 +132,7 @@ disable_colors = theme.add_param(
 
 
 def generateColorFunctionInner(old, new):
-    def wrapper(text):
+    def wrapper(text: str):
         return new(old(text))
 
     return wrapper

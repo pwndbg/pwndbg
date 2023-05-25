@@ -55,7 +55,7 @@ input_group.add_argument("-i", "--infile", default=None, type=str, help="Specify
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="asm")
-def asm(shellcode, format, arch, avoid, infile):
+def asm(shellcode, format, arch, avoid, infile) -> None:
     if infile:
         print(message.warn("Going to read from file: " + infile))
         with open(infile) as file:

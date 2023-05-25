@@ -18,7 +18,7 @@ color_scheme = None
 printable = None
 
 
-def groupby(width, array, fill=None):
+def groupby(width: int, array, fill=None):
     return pwnlib.util.lists.group(width, array, underfull_action="fill", fill_value=fill)
 
 
