@@ -68,7 +68,7 @@ dummy = False
 verbosity = 0
 
 
-def set_dummy_mode(d=True):
+def set_dummy_mode(d=True) -> None:
     global dummy
     dummy = d
     return

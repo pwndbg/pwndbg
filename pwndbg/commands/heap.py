@@ -115,7 +115,7 @@ def format_bin(bins: Bins, verbose=False, offset=None):
     return result
 
 
-def print_no_arena_found_error(tid=None):
+def print_no_arena_found_error(tid=None) -> None:
     if tid is None:
         tid = pwndbg.gdblib.proc.thread_id
     print(
@@ -125,7 +125,7 @@ def print_no_arena_found_error(tid=None):
     )
 
 
-def print_no_tcache_bins_found_error(tid=None):
+def print_no_tcache_bins_found_error(tid=None) -> None:
     if tid is None:
         tid = pwndbg.gdblib.proc.thread_id
     print(

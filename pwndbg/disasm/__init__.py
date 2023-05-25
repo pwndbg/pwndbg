@@ -209,7 +209,7 @@ DO_NOT_EMULATE = {
 }
 
 
-def can_run_first_emulate():
+def can_run_first_emulate() -> bool:
     """
     Disable the emulate config variable if we don't have enough memory to use it
     See https://github.com/pwndbg/pwndbg/issues/1534
