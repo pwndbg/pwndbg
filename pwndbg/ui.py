@@ -70,7 +70,7 @@ def get_window_size(target=sys.stdin):
     if not target.isatty():
         return fallback
     rows, cols = get_cmd_window_size()
-    if rows != None and cols != None:
+    if rows is not None and cols is not None:
         return rows, cols
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg
@@ -78,6 +78,7 @@ def get_window_size(target=sys.stdin):
     except Exception:
         rows, cols = fallback
     return rows, cols
+
 
 def get_cmd_window_size():
     info_out = gdb.execute("info win", to_string=True).split()
