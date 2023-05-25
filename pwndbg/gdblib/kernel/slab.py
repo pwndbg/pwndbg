@@ -152,6 +152,12 @@ class SlabCache:
             yield CpuCache(cpu_cache, self, cpu)
 
     @property
+    def node_caches(self) -> Generator["NodeCache", None, None]:
+        """returns node caches for all NUMA nodes"""
+        for node in range(kernel.num_numa_nodes()):
+            yield NodeCache(self._slab_cache["node"][node], self, node)
+
+    @property
     def cpu_partial(self) -> int:
         return int(self._slab_cache["cpu_partial"])
 
@@ -196,7 +202,7 @@ class CpuCache:
         _slab = self._cpu_cache[slab_key]
         if not _slab:
             return None
-        return Slab(_slab.dereference(), self)
+        return Slab(_slab.dereference(), self, self.slab_cache)
 
     @property
     def partial_slabs(self) -> List["Slab"]:
@@ -204,16 +210,40 @@ class CpuCache:
         cur_slab = self._cpu_cache["partial"]
         while cur_slab:
             _slab = cur_slab.dereference()
-            partial_slabs.append(Slab(_slab, self, is_partial=True))
+            partial_slabs.append(Slab(_slab, self, self.slab_cache, is_partial=True))
             cur_slab = _slab["next"]
         return partial_slabs
 
 
+class NodeCache:
+    def __init__(self, node_cache: gdb.Value, slab_cache: SlabCache, node: int):
+        self._node_cache = node_cache
+        self.slab_cache = slab_cache
+        self.node = node
+
+    @property
+    def address(self) -> int:
+        return int(self._node_cache)
+
+    @property
+    def partial_slabs(self) -> List["Slab"]:
+        ret = []
+        for slab in for_each_entry(self._node_cache["partial"], "struct slab", "slab_list"):
+            ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
+        return ret
+
+
 class Slab:
-    def __init__(self, slab: gdb.Value, cpu_cache: CpuCache, is_partial: bool = False) -> None:
+    def __init__(
+        self,
+        slab: gdb.Value,
+        cpu_cache: Optional[CpuCache],
+        slab_cache: SlabCache,
+        is_partial: bool = False,
+    ) -> None:
         self._slab = slab
         self.cpu_cache = cpu_cache
-        self.slab_cache = cpu_cache.slab_cache
+        self.slab_cache = slab_cache
         self.is_partial = is_partial
 
     @property
