@@ -13,7 +13,7 @@ with pwndbg.lib.stdio.stdio:
     try:
         import ipdb as pdb
     except ImportError:
-        import pdb  # type: ignore
+        import pdb
     try:
         from rich.console import Console
 
