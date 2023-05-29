@@ -131,6 +131,14 @@ except (NameError, AttributeError):
 objfile_cache: Dict[str, Set[str]] = {}
 
 
+class DelayedEventHandler:
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self):
+        self.func()
+
+
 def connect(func, event_handler, name=""):
     if debug:
         print("Connecting", func.__name__, event_handler)
@@ -139,6 +147,15 @@ def connect(func, event_handler, name=""):
     def caller(*a):
         if debug:
             sys.stdout.write("%r %s.%s %r\n" % (name, func.__module__, func.__name__, a))
+
+        def func_caller():
+            try:
+                func()
+            except Exception as e:
+                import pwndbg.exception
+
+                pwndbg.exception.handle()
+                raise e
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile
@@ -152,13 +169,11 @@ def connect(func, event_handler, name=""):
             dispatched.add(handler)
             objfile_cache[path] = dispatched
 
-        try:
-            func()
-        except Exception as e:
-            import pwndbg.exception
-
-            pwndbg.exception.handle()
-            raise e
+            # It does not seem calling gdb.execute during NewObjFileEvent
+            # is (always) safe. Delay execution of the callback.
+            gdb.post_event(DelayedEventHandler(func_caller))
+        else:
+            func_caller()
 
     registered[event_handler].append(caller)
     event_handler.connect(caller)
