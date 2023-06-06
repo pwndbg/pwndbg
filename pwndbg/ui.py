@@ -81,6 +81,18 @@ def get_window_size(target=sys.stdin):
 
 
 def get_cmd_window_size():
+    """Get the size of the command window in TUI mode which could be different than the terminal window width \
+    with horizontal split "tui new-layout hsrc { -horizontal src 1 cmd 1 } 1".
+
+    Possible output of "info win" in TUI mode:
+    (gdb) info win
+    Name       Lines Columns Focus
+    src           77     104 (has focus)
+    cmd           77     105
+
+    Output of "info win" in non-TUI mode:
+    (gdb) info win
+    The TUI is not active."""
     info_out = gdb.execute("info win", to_string=True).split()
     if "cmd" not in info_out:
         # if TUI is not enabled, info win will output "The TUI is not active."
