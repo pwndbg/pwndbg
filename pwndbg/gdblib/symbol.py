@@ -143,10 +143,11 @@ def address(symbol: str) -> int:
         # symbols, so we need to fallback to using `gdb.parse_and_eval`. See
         # https://sourceware.org/pipermail/gdb/2022-October/050362.html
         # (We tried parsing the output of the `info address` before, but there were some issues. See #1628 and #1666)
-        if "'" in symbol:
+        if "\\" in symbol:
             # Is it possible that happens? Probably not, but just in case
-            raise ValueError(f"Symbol {symbol!r} contains a single quote")
-        return int(gdb.parse_and_eval(f"&'{symbol}'"))
+            raise ValueError(f"Symbol {symbol!r} contains a backslash")
+        sanitized_symbol_name = symbol.replace("'", "\\'")
+        return int(gdb.parse_and_eval(f"&'{sanitized_symbol_name}'"))
 
     except gdb.error:
         return None
