@@ -152,16 +152,6 @@ def address(symbol: str) -> int:
     except gdb.error:
         return None
 
-    try:
-        # TODO: We should properly check if we have a connection to the IDA server first
-        address = pwndbg.ida.LocByName(symbol)
-        if address:
-            return address
-    except Exception:
-        pass
-
-    return None
-
 
 @pwndbg.lib.cache.cache_until("objfile", "thread")
 def static_linkage_symbol_address(symbol: str) -> int:
