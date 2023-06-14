@@ -25,7 +25,7 @@ pwnlib_archs_mapping = {
 arch = Arch("i386", typeinfo.ptrsize, "little")
 
 
-def _get_arch(ptrsize):
+def _get_arch(ptrsize: int):
     not_exactly_arch = False
 
     if "little" in gdb.execute("show endian", to_string=True).lower():
@@ -48,7 +48,7 @@ def _get_arch(ptrsize):
             return match, ptrsize, endian
 
     if not_exactly_arch:
-        raise RuntimeError("Could not deduce architecture from: %s" % arch)
+        raise RuntimeError(f"Could not deduce architecture from: {arch}")
 
     return arch, ptrsize, endian
 

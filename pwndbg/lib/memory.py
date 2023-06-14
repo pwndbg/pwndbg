@@ -129,15 +129,7 @@ class Page:
         )
 
     def __str__(self) -> str:
-        return "{start:#{width}x} {end:#{width}x} {permstr} {size:8x} {offset:6x} {objfile}".format(
-            start=self.vaddr,
-            end=self.vaddr + self.memsz,
-            permstr=self.permstr,
-            size=self.memsz,
-            offset=self.offset,
-            objfile=self.objfile or "",
-            width=2 + 2 * pwndbg.gdblib.arch.ptrsize,
-        )
+        return f"{self.vaddr:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.vaddr + self.memsz:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {self.objfile or ''}"
 
     def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.__str__())

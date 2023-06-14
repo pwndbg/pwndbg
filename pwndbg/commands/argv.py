@@ -23,7 +23,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"], category=CommandCategory.LINUX)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None) -> None:
     start = pwndbg.gdblib.argv.argv
@@ -46,12 +46,13 @@ parser.add_argument(
     parser, aliases=["env", "environ"], category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenUserspace
 def envp(name=None):
     """
     Prints out the contents of the environment.
     """
     if name is not None:
-        gdb.execute('p $environ("%s")' % name)
+        gdb.execute(f'p $environ("{name}")')
         return
 
     start = pwndbg.gdblib.argv.envp

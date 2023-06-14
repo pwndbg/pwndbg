@@ -99,7 +99,7 @@ class FakeGDBField:
     def __init__(
         self,
         bitpos,
-        name,
+        name: str,
         type,
         parent_type,
         enumval=None,
@@ -153,7 +153,7 @@ class CStruct2GDB:
         """
         output = "{\n"
         for f in self._c_struct._fields_:
-            output += "  %s = %s,\n" % (f[0], self.read_field(f[0]))
+            output += f"  {f[0]} = {self.read_field(f[0])},\n"
         output += "}"
         return output
 

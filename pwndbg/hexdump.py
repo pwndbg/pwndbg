@@ -18,7 +18,7 @@ color_scheme = None
 printable = None
 
 
-def groupby(width, array, fill=None):
+def groupby(width: int, array, fill=None):
     return pwnlib.util.lists.group(width, array, underfull_action="fill", fill_value=fill)
 
 
@@ -52,9 +52,7 @@ def load_color_scheme() -> None:
     ):
         color_scheme[c] = H.printable("%02x" % c)
         printable[c] = (
-            H.printable("%s" % chr(c))
-            if pwndbg.gdblib.config.hexdump_colorize_ascii
-            else "%s" % chr(c)
+            H.printable(f"{chr(c)}") if pwndbg.gdblib.config.hexdump_colorize_ascii else f"{chr(c)}"
         )
 
     for c in bytearray(b"\x00"):

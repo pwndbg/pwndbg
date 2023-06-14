@@ -141,7 +141,6 @@ def add_custom_structure(custom_structure_name) -> None:
 
 @OnlyWhenStructFileExists
 def edit_custom_structure(custom_structure_name, custom_structure_path) -> None:
-
     # Lookup an editor to use for editing the custom structure.
     editor_preference = os.getenv("EDITOR")
     if not editor_preference:

@@ -13,7 +13,7 @@ with pwndbg.lib.stdio.stdio:
     try:
         import ipdb as pdb
     except ImportError:
-        import pdb  # type: ignore
+        import pdb
     try:
         from rich.console import Console
 
@@ -86,7 +86,7 @@ def handle(name="Error"):
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        print(message.error("Exception occurred: {}: {} ({})".format(name, exc_value, exc_type)))
+        print(message.error(f"Exception occurred: {name}: {exc_value} ({exc_type})"))
 
         inform_verbose_and_debug()
 

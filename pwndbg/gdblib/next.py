@@ -105,11 +105,11 @@ def break_next_call(symbol_regex=None):
             return ins
 
         # return call if we match target address
-        if ins.target_const and re.match("%s$" % symbol_regex, hex(ins.target)):
+        if ins.target_const and re.match(f"{symbol_regex}$", hex(ins.target)):
             return ins
 
         # return call if we match symbol name
-        if ins.symbol and re.match("%s$" % symbol_regex, ins.symbol):
+        if ins.symbol and re.match(f"{symbol_regex}$", ins.symbol):
             return ins
 
 

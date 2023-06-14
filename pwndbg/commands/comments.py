@@ -26,7 +26,7 @@ def comm(addr=None, comment=None) -> None:
                 print(message.error("Invalid Address %#x" % target))
 
             else:
-                f.write("file:%s=" % pwndbg.gdblib.proc.exe)
+                f.write(f"file:{pwndbg.gdblib.proc.exe}=")
                 f.write("%#x:%s\n" % (target, comment))
                 if pwndbg.gdblib.proc.exe not in file_lists:
                     file_lists[pwndbg.gdblib.proc.exe] = {}

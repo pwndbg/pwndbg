@@ -3,6 +3,8 @@ Reading, writing, and describing memory.
 """
 
 
+from typing import Optional
+
 import gdb
 
 import pwndbg.gdblib.arch
@@ -115,7 +117,7 @@ def peek(address):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def is_readable_address(address):
+def is_readable_address(address) -> bool:
     """is_readable_address(address) -> bool
 
     Check if the address can be read by GDB.
@@ -244,7 +246,7 @@ def u64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
-def u(addr, size=None):
+def u(addr, size: Optional[int] = None):
     """u(addr, size=None) -> int
 
     Read one ``unsigned`` integer from the specified address,

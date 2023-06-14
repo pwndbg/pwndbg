@@ -113,8 +113,8 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking)
 
-    arrow_left = c.arrow(" %s " % config_arrow_left)
-    arrow_right = c.arrow(" %s " % config_arrow_right)
+    arrow_left = c.arrow(f" {config_arrow_left} ")
+    arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Colorize the chain
     rest = []
@@ -143,7 +143,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
 
     else:
-        enhanced = c.contiguous_marker("%s" % config_contiguous)
+        enhanced = c.contiguous_marker(f"{config_contiguous}")
 
     if len(chain) == 1:
         return enhanced

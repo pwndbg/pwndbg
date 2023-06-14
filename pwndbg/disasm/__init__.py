@@ -62,7 +62,7 @@ backward_cache: DefaultDict = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler_cached(arch, ptrsize, endian, extra=None):
+def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
     arch = CapstoneArch[arch]
 
     if extra is None:
@@ -209,7 +209,7 @@ DO_NOT_EMULATE = {
 }
 
 
-def can_run_first_emulate():
+def can_run_first_emulate() -> bool:
     """
     Disable the emulate config variable if we don't have enough memory to use it
     See https://github.com/pwndbg/pwndbg/issues/1534

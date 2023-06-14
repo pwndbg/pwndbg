@@ -105,7 +105,6 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         "aarch64",
         "riscv:rv64",
     ):
-
         # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
         # That means the user was explicitly setting it themselves and need to
         # be warned that the option is deprecated
@@ -372,9 +371,9 @@ def proc_pid_maps():
 
     pid = pwndbg.gdblib.proc.pid
     locations = [
-        "/proc/%s/maps" % pid,
-        "/proc/%s/map" % pid,
-        "/usr/compat/linux/proc/%s/maps" % pid,
+        f"/proc/{pid}/maps",
+        f"/proc/{pid}/map",
+        f"/usr/compat/linux/proc/{pid}/maps",
     ]
 
     for location in locations:
@@ -650,7 +649,7 @@ def info_files():
 
 
 @pwndbg.lib.cache.cache_until("exit")
-def info_auxv(skip_exe=False):
+def info_auxv(skip_exe: bool = False):
     """
     Extracts the name of the executable from the output of the command
     "info auxv". Note that if the executable path is a symlink,
@@ -692,7 +691,7 @@ def info_auxv(skip_exe=False):
     return tuple(sorted(pages))
 
 
-def find_boundaries(addr, name="", min=0):
+def find_boundaries(addr, name: str = "", min: int = 0):
     """
     Given a single address, find all contiguous pages
     which are mapped.

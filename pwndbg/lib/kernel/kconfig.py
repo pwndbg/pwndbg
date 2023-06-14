@@ -43,7 +43,7 @@ class Kconfig(UserDict):
 
         return None
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         key = self.get_key(name)
         if key:
             return self.data[key]

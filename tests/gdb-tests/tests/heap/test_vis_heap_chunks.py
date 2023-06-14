@@ -37,7 +37,7 @@ def test_vis_heap_chunk_command(start_binary):
     def hexdump_16B(gdb_symbol):
         from pwndbg.commands.heap import bin_ascii
 
-        first, second = gdb.execute("x/16xb %s" % gdb_symbol, to_string=True).splitlines()
+        first, second = gdb.execute(f"x/16xb {gdb_symbol}", to_string=True).splitlines()
         first = [int(v, 16) for v in first.split(":")[1].split("\t")[1:]]
         second = [int(v, 16) for v in second.split(":")[1].split("\t")[1:]]
 

@@ -6,6 +6,7 @@ Uses IDA when available if there isn't sufficient symbol
 information available.
 """
 import re
+from typing import Optional
 
 import gdb
 
@@ -43,13 +44,13 @@ def _get_debug_file_directory():
 
 
 def _set_debug_file_directory(d) -> None:
-    gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
+    gdb.execute(f"set debug-file-directory {d}", to_string=True, from_tty=False)
 
 
 def _add_debug_file_directory(d) -> None:
     current = _get_debug_file_directory()
     if current:
-        _set_debug_file_directory("%s:%s" % (current, d))
+        _set_debug_file_directory(f"{current}:{d}")
     else:
         _set_debug_file_directory(d)
 
@@ -206,3 +207,11 @@ def selected_frame_source_absolute_filename():
         return None
 
     return symtab.fullname()
+
+
+def parse_and_eval(expression: str) -> Optional[gdb.Value]:
+    """Error handling wrapper for GDBs parse_and_eval function"""
+    try:
+        return gdb.parse_and_eval(expression)
+    except gdb.error:
+        return None

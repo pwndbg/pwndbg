@@ -9,7 +9,9 @@ from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Tuple
+from typing import Union
 
 # Set to enable print logging of cache hits/misses/clears
 NO_DEBUG, DEBUG_GET, DEBUG_CLEAR, DEBUG_SET = 0, 1, 2, 4
@@ -20,7 +22,7 @@ debug_name = "regs"
 
 
 class DebugCacheDict(UserDict):
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.hits = 0
         self.misses = 0
@@ -38,12 +40,12 @@ class DebugCacheDict(UserDict):
             self.misses += 1
             raise
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if debug & DEBUG_SET and (not debug_name or debug_name in self.name):
             print(f"SET {self.name}: {key}={value}")
         self.data[key] = value
 
-    def clear(self):
+    def clear(self) -> None:
         if debug & DEBUG_CLEAR and (not debug_name or debug_name in self.name):
             print(f"CLEAR {self.name} (hits: {self.hits}, misses: {self.misses})")
         self.data.clear()
@@ -51,11 +53,14 @@ class DebugCacheDict(UserDict):
         self.misses = 0
 
 
-class _CacheUntilEvent:
-    def __init__(self):
-        self.caches = []
+Cache = Union[Dict[Tuple[Any], Any], DebugCacheDict]
 
-    def connect_event_hooks(self, event_hooks):
+
+class _CacheUntilEvent:
+    def __init__(self) -> None:
+        self.caches: List[Cache] = []
+
+    def connect_event_hooks(self, event_hooks) -> None:
         """
         A given cache until event may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
@@ -64,11 +69,11 @@ class _CacheUntilEvent:
         for event_hook in event_hooks:
             event_hook(self.clear)
 
-    def clear(self):
+    def clear(self) -> None:
         for cache in self.caches:
             cache.clear()
 
-    def add_cache(self, cache):
+    def add_cache(self, cache) -> None:
         self.caches.append(cache)
 
 
@@ -85,7 +90,7 @@ _ALL_CACHE_UNTIL_EVENTS = {
 _ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())
 
 
-def connect_clear_caching_events(event_dicts):
+def connect_clear_caching_events(event_dicts) -> None:
     """
     Connect given debugger event hooks to correspoonding _CacheUntilEvent instances
     """
@@ -115,7 +120,7 @@ def cache_until(*event_names) -> Callable:
                 "Pass multiple event names to the `cache_until` decorator."
             )
 
-        cache: Dict[Tuple[Any], Any] = {} if not debug else DebugCacheDict(func)
+        cache: Cache = {} if not debug else DebugCacheDict(func)
 
         @wraps(func)
         def decorator(*a, **kw):
