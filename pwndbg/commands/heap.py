@@ -179,6 +179,47 @@ def heap(addr=None, verbose=False, simple=False) -> None:
         for chunk in h:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
 
+## find_chunk ------------------------------------------------------------------ ##
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Try to find if an address is belond to a heap chunk.
+
+If yes -- print chunk. Search all heaps.""",
+)
+parser.add_argument(
+    "addr",
+    type=int,
+    help="Address of the interest.",
+)
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones."
+)
+parser.add_argument(
+    "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def hi(addr, verbose=False, simple=False) -> None:
+    """Iteratively search all heaps for contain current address in their chunks bodys.
+    """
+    allocator = pwndbg.heap.current
+    arenas = allocator.arenas
+
+    for arena in arenas:
+        for heap in arena.heaps:
+            if heap.start <= addr and heap.end > addr:
+                print("heap found\n")
+                for chunk in heap:
+                    if chunk.address <= addr and (chunk.address + chunk.size) > addr:
+                        print("chunk found\n")
+                        malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+
+
+## end find_chunk ------------------------------------------------------------------ ##
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
