@@ -42,7 +42,7 @@ def decompile(func=None):
 
     src = r2.cmdj("pdgj @" + func)
     if not src:
-        raise Exception("Decompile command failed, check if '{}' is a valid target".format(func))
+        raise Exception(f"Decompile command failed, check if '{func}' is a valid target")
 
     current_line_marker = "/*%%PWNDBG_CODE_MARKER%%*/"
     source = src.get("code", "")

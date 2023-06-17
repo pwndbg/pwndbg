@@ -73,7 +73,7 @@ class EventWrapper:
     fire them manually (to invoke them you have to call `invoke_callbacks`).
     """
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
         self._event = getattr(gdb.events, self.name, None)
@@ -142,7 +142,7 @@ def connect(func, event_handler, name=""):
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile
-            handler = "%s.%s" % (func.__module__, func.__name__)
+            handler = f"{func.__module__}.{func.__name__}"
             path = objfile.filename
             dispatched = objfile_cache.get(path, set())
 

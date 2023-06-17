@@ -13,7 +13,7 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 for value1, name1 in dict(access).items():
     for value2, name2 in dict(access).items():
         # novermin
-        access.setdefault(value1 | value2, "%s | %s" % (name1, name2))
+        access.setdefault(value1 | value2, f"{name1} | {name2}")
 
 
 class DisassemblyAssistant:
@@ -240,7 +240,7 @@ class DisassemblyAssistant:
         """
         ins = instruction
         rv = []
-        rv.append("%s %s" % (ins.mnemonic, ins.op_str))
+        rv.append(f"{ins.mnemonic} {ins.op_str}")
 
         for i, group in enumerate(ins.groups):
             rv.append("   groups[%i]   = %s" % (i, groups.get(group, group)))
@@ -255,9 +255,9 @@ class DisassemblyAssistant:
             if op.int is not None:
                 rv.append("            int = %#x" % (op.int))
             if op.symbol is not None:
-                rv.append("            sym = %s" % (op.symbol))
+                rv.append(f"            sym = {(op.symbol)}")
             if op.str is not None:
-                rv.append("            str = %s" % (op.str))
+                rv.append(f"            str = {(op.str)}")
 
         return "\n".join(rv)
 

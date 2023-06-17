@@ -62,7 +62,7 @@ def errno_(err) -> None:
                 return
 
     msg = errno.errorcode.get(int(err), "Unknown error code")
-    print("Errno %s: %s" % (err, msg))
+    print(f"Errno {err}: {msg}")
 
 
 parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg commands.")

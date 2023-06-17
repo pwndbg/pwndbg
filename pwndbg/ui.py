@@ -8,6 +8,8 @@ import struct
 import sys
 import termios
 
+import gdb
+
 import pwndbg.color.context as C
 import pwndbg.gdblib.arch
 from pwndbg.color import ljust_colored
@@ -31,8 +33,7 @@ def check_title_position() -> None:
     if title_position not in valid_values:
         print(
             message.warn(
-                "Invalid title position: %s, must be one of: %s"
-                % (title_position, ", ".join(valid_values))
+                f"Invalid title position: {title_position}, must be one of: {', '.join(valid_values)}"
             )
         )
         title_position.revert_default()
@@ -61,16 +62,46 @@ def banner(title, target=sys.stdin, width=None, extra=""):
 
 def addrsz(address) -> str:
     address = int(address) & pwndbg.gdblib.arch.ptrmask
-    return "%#{}x".format(2 * pwndbg.gdblib.arch.ptrsize) % address
+    return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
 
 
 def get_window_size(target=sys.stdin):
     fallback = (int(os.environ.get("LINES", 20)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
         return fallback
+    rows, cols = get_cmd_window_size()
+    if rows is not None and cols is not None:
+        return rows, cols
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg
         rows, cols = struct.unpack("hh", fcntl.ioctl(target.fileno(), termios.TIOCGWINSZ, b"1234"))
     except Exception:
         rows, cols = fallback
     return rows, cols
+
+
+def get_cmd_window_size():
+    """Get the size of the command window in TUI mode which could be different than the terminal window width \
+    with horizontal split "tui new-layout hsrc { -horizontal src 1 cmd 1 } 1".
+
+    Possible output of "info win" in TUI mode:
+    (gdb) info win
+    Name       Lines Columns Focus
+    src           77     104 (has focus)
+    cmd           77     105
+
+    Output of "info win" in non-TUI mode:
+    (gdb) info win
+    The TUI is not active."""
+    info_out = gdb.execute("info win", to_string=True).split()
+    if "cmd" not in info_out:
+        # if TUI is not enabled, info win will output "The TUI is not active."
+        return None, None
+    # parse cmd window size from the output of "info win"
+    cmd_win_index = info_out.index("cmd")
+    if len(info_out) <= cmd_win_index + 2:
+        return None, None
+    elif not info_out[cmd_win_index + 1].isdigit() and not info_out[cmd_win_index + 2].isdigit():
+        return None, None
+    else:
+        return int(info_out[cmd_win_index + 1]), int(info_out[cmd_win_index + 2])

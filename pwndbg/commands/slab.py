@@ -15,6 +15,7 @@ import pwndbg.commands
 import pwndbg.gdblib.kernel.slab
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel.slab import CpuCache
+from pwndbg.gdblib.kernel.slab import NodeCache
 from pwndbg.gdblib.kernel.slab import Slab
 from pwndbg.gdblib.kernel.slab import find_containing_slab_cache
 from pwndbg.gdblib.symbol import parse_and_eval
@@ -133,6 +134,21 @@ def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, indent) -> None:
             print_slab(partial_slab, indent, verbose)
 
 
+def print_node_cache(node_cache: NodeCache, verbose: bool, indent) -> None:
+    indent.print(
+        f"{C.green('kmem_cache_node')} @ {_yx(node_cache.address)} [NUMA node {node_cache.node}]:"
+    )
+    with indent:
+        partial_slabs = node_cache.partial_slabs
+        if not partial_slabs:
+            indent.print("Partial Slabs: (none)")
+            return
+
+        indent.print(f"{C.green('Partial Slabs')}:")
+        for slab in partial_slabs:
+            print_slab(slab, indent, verbose)
+
+
 def slab_info(name: str, verbose: bool) -> None:
     slab_cache = pwndbg.gdblib.kernel.slab.get_cache(name)
 
@@ -159,7 +175,8 @@ def slab_info(name: str, verbose: bool) -> None:
         for cpu_cache in slab_cache.cpu_caches:
             print_cpu_cache(cpu_cache, verbose, indent)
 
-        # TODO: print_node_cache
+        for node_cache in slab_cache.node_caches:
+            print_node_cache(node_cache, verbose, indent)
 
 
 def slab_list(filter_) -> None:

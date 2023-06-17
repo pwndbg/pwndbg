@@ -87,7 +87,7 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
     symbols = get_symbols_in_region(start, end, filter_text)
 
     if not symbols:
-        print(message.error("No symbols found in section %s" % section_name))
+        print(message.error(f"No symbols found in section {section_name}"))
 
     for symbol, addr in symbols:
         print(hex(int(addr)) + ": " + symbol)

@@ -20,12 +20,12 @@ from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb77_get_register(name):
+def gdb77_get_register(name: str):
     return gdb.parse_and_eval("$" + name)
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb79_get_register(name):
+def gdb79_get_register(name: str):
     return gdb.selected_frame().read_register(name)
 
 
@@ -158,7 +158,7 @@ class module(ModuleType):
 
     def fix(self, expression):
         for regname in set(self.all + ["sp", "pc"]):
-            expression = re.sub(r"\$?\b%s\b" % regname, r"$" + regname, expression)
+            expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
 
     def items(self):
@@ -186,7 +186,7 @@ class module(ModuleType):
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def _fs_gs_helper(self, regname, which):
+    def _fs_gs_helper(self, regname: str, which):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directly for GDB < 8."""
 

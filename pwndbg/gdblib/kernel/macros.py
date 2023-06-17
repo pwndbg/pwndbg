@@ -13,7 +13,7 @@ def container_of(ptr, typename: str, fieldname: str):
     return gdb.Value(obj_addr).cast(ptr_type)
 
 
-def for_each_entry(head, typename, field):
+def for_each_entry(head, typename: str, field):
     addr = head["next"]
     while addr != head.address:
         yield container_of(addr, typename, field)

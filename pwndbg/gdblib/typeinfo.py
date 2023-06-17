@@ -81,7 +81,7 @@ def update():
 
     # Rust workaround part 2
     if restore_lang:
-        gdb.execute("set language %s" % restore_lang)
+        gdb.execute(f"set language {restore_lang}")
 
 
 # TODO: Remove this global initialization, or move it somewhere else
@@ -89,7 +89,7 @@ def update():
 update()
 
 
-def load(name):
+def load(name: str):
     """Load a GDB symbol; note that new symbols can be added with `add-symbol-file` functionality"""
     try:
         return gdb.lookup_type(name)
@@ -97,13 +97,13 @@ def load(name):
         return None
 
 
-def read_gdbvalue(type_name, addr):
+def read_gdbvalue(type_name: str, addr):
     """Read the memory contents at addr and interpret them as a GDB value with the given type"""
     gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
 
-def get_type(size):
+def get_type(size: int):
     return {
         1: pwndbg.gdblib.typeinfo.uint8,
         2: pwndbg.gdblib.typeinfo.uint16,

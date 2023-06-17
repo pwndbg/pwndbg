@@ -18,7 +18,6 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def got(name_filter="") -> None:
-
     relro_status = pwndbg.wrappers.checksec.relro_status()
     pie_status = pwndbg.wrappers.checksec.pie_status()
     jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())

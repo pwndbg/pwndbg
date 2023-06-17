@@ -85,7 +85,7 @@ class Bin:
 class Bins:
     def __init__(self, bin_type) -> None:
         # `typing.OrderedDict` requires Python 3.7
-        self.bins = OrderedDict()  # type: OrderedDict[Union[int, str], Bin]
+        self.bins: OrderedDict[Union[int, str], Bin] = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
@@ -1020,7 +1020,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
-    def chunk_flags(self, size):
+    def chunk_flags(self, size: int):
         return (
             size & ptmalloc.PREV_INUSE,
             size & ptmalloc.IS_MMAPPED,
@@ -1080,7 +1080,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             return None
 
-    def fastbin_index(self, size):
+    def fastbin_index(self, size: int):
         if pwndbg.gdblib.arch.ptrsize == 8:
             return (size >> 4) - 2
         else:
@@ -1128,7 +1128,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
         safe_lnk = pwndbg.glibc.check_safe_linking()
 
-        def tidx2usize(idx):
+        def tidx2usize(idx: int):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
@@ -1755,11 +1755,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     value, address = found
                     print(
                         message.notice(
-                            "Found matching arena address %s at %s\n"
-                            % (
-                                message.hint(hex(value)),
-                                message.hint(hex(address)),
-                            )
+                            f"Found matching arena address {message.hint(hex(value))} at {message.hint(hex(address))}\n"
                         )
                     )
                     arena = Arena(value)
@@ -1768,8 +1764,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
                 print(
                     message.notice(
-                        "Cannot find %s, the arena might be not allocated yet.\n"
-                        % message.hint("thread_arena")
+                        f"Cannot find {message.hint('thread_arena')}, the arena might be not allocated yet.\n"
                     )
                 )
                 return None
@@ -1837,11 +1832,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         value, address = found
                         print(
                             message.notice(
-                                "Found possible tcache at %s with value: %s\n"
-                                % (
-                                    message.hint(hex(address)),
-                                    message.hint(hex(value)),
-                                )
+                                f"Found possible tcache at {message.hint(hex(address))} with value: {message.hint(hex(value))}\n"
                             )
                         )
                         self._thread_cache = self.tcache_perthread_struct(value)

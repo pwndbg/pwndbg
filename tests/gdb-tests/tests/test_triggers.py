@@ -6,9 +6,9 @@ from pwndbg.gdblib import config
 
 
 def set_show(param_name, value):
-    gdb.execute("show %s" % param_name)
-    gdb.execute("set %s %s" % (param_name, value))
-    gdb.execute("show %s" % param_name)
+    gdb.execute(f"show {param_name}")
+    gdb.execute(f"set {param_name} {value}")
+    gdb.execute(f"show {param_name}")
 
 
 def test_triggers():

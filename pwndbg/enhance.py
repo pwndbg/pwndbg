@@ -89,7 +89,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     if exe:
         instr = pwndbg.disasm.one(value)
         if instr:
-            instr = "%s %s" % (instr.mnemonic, instr.op_str)
+            instr = f"{instr.mnemonic} {instr.op_str}"
             if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
@@ -154,4 +154,4 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     if len(retval) == 1:
         return retval[0]
 
-    return retval[0] + E.comment(color.strip(" /* {} */".format("; ".join(retval[1:]))))
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))

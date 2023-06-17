@@ -85,7 +85,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
 
     # Now, generate core file, so we can then test coredump vmmap
     core = tempfile.mktemp()
-    gdb.execute("generate-core-file %s" % core)
+    gdb.execute(f"generate-core-file {core}")
 
     # The test should work fine even if we unload the original binary
     if unload_file:
@@ -93,7 +93,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
 
     #### TEST COREDUMP VMMAP
     # Now, let's load the generated core file
-    gdb.execute("core-file %s" % core)
+    gdb.execute(f"core-file {core}")
 
     old_len_vmmaps = len(vmmaps)
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
