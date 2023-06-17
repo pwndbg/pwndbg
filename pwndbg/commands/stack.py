@@ -26,7 +26,7 @@ def retaddr() -> None:
     # Find all of them on the stack
     start = stack.vaddr
     stop = start + stack.memsz
-    while addresses and start < sp < stop:
+    while addresses and start <= sp < stop:
         value = pwndbg.gdblib.memory.u(sp)
 
         if value in addresses:
