@@ -152,7 +152,7 @@ def find_addr_on_stack(addr):
     stop = start + stack.memsz
     ptrsize = pwndbg.gdblib.arch.ptrsize
 
-    while start < sp < stop:
+    while start <= sp < stop:
         value = pwndbg.gdblib.memory.u(sp)
         if value == addr:
             stackaddr = sp
