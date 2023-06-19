@@ -6,14 +6,6 @@
 
 sem_t sem;
 
-void *thread_function(void *arg)
-{
-    sem_post(&sem);
-    usleep(4000);
-    exit(1);
-    return NULL;
-}
-
 void *useless_thread(void *arg)
 {
     // signal the semaphore to indicate that the thread has started
@@ -37,7 +29,7 @@ int main()
     sem_init(&sem, 0, 0);
 
     pthread_t thread1, thread2;
-    int res1 = pthread_create(&thread1, NULL, thread_function, NULL);
+    int res1 = pthread_create(&thread1, NULL, useless_thread, NULL);
     if (res1 != 0) {
         perror("Thread creation failed");
         exit(EXIT_FAILURE);
