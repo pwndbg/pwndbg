@@ -199,13 +199,16 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
+parser.add_argument(
+    "-a", "--all", action="store_true", help="Do not stop after first hit"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def hi(addr, verbose=False, simple=False) -> None:
+def hi(addr, verbose=False, simple=False, all=False) -> None:
     """Iteratively search all heaps for contain current address in their chunks bodys.
     """
     allocator = pwndbg.heap.current
@@ -217,6 +220,8 @@ def hi(addr, verbose=False, simple=False) -> None:
                 for chunk in heap:
                     if chunk.address <= addr and (chunk.address + chunk.size) > addr:
                         malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+                        if all == False:
+                            return
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
