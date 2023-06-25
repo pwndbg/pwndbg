@@ -3,7 +3,10 @@ Runs a few useful commands which are available under "info".
 """
 
 import re
+from typing import Dict
+from typing import List
 from typing import Optional
+from typing import Tuple
 
 import gdb
 
@@ -48,6 +51,34 @@ def sharedlibrary():
         return gdb.execute("info sharedlibrary", to_string=True)
     except gdb.error:
         return ""
+
+
+def parsed_sharedlibrary() -> Dict[str, Tuple[int, int]]:
+    """
+    Returns a dictionary of shared libraries with their .text section from and to addresses.
+    """
+    lines = sharedlibrary().splitlines()
+    if len(lines) <= 1:
+        return {}
+    result = {}
+    for line in lines:
+        # We only need to parse the lines starting with "0x", for example:
+        # 0x00007fc8fd01b630  0x00007fc8fd19027d  Yes         /lib/x86_64-linux-gnu/libc.so.6
+        # or something like:
+        # 0x00007fc8fd01b630  0x00007fc8fd19027d  Yes (*)     /lib/x86_64-linux-gnu/libc.so.6
+        if not line.startswith("0x"):
+            continue
+        from_, to, _, rest = line.split(maxsplit=3)
+        path = rest.lstrip("(*)").lstrip()
+        result[path] = (int(from_, 0), int(to, 0))
+    return result
+
+
+def sharedlibrary_paths() -> List[str]:
+    """
+    Get the paths of all shared libraries loaded in the process by parsing the output of "info sharedlibrary".
+    """
+    return list(parsed_sharedlibrary().keys())
 
 
 def address(symbol: str) -> Optional[int]:
