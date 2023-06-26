@@ -433,7 +433,7 @@ def kernel_vmmap_via_page_tables():
         print(
             M.error(
                 "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
-                + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama`)"
+                + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
             )
         )
         return tuple(retpages)
