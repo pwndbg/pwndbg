@@ -107,6 +107,7 @@ def get(instruction):
 
         if pwndbg.gdblib.arch.current in ["rv32", "rv64"]:
             target += instruction.address
+            target &= pwndbg.gdblib.arch.ptrmask
 
         name = pwndbg.gdblib.symbol.get(target)
         if not name:

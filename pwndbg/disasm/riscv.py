@@ -63,9 +63,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
+        ptrmask = pwndbg.gdblib.arch.ptrmask
         # JAL is unconditional and independent of current register status
         if instruction.id in [RISCV_INS_JAL, RISCV_INS_C_JAL]:
-            return instruction.address + instruction.op_find(CS_OP_IMM, 1).imm
+            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # We can't reason about anything except the current instruction
         # as the comparison result is dependent on the register state.
@@ -76,14 +77,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups and self._is_condition_taken(
             instruction
         ):
-            return instruction.address + instruction.op_find(CS_OP_IMM, 1).imm
+            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
             target = (
-                self.register(instruction.op_find(CS_OP_REG, 1).reg)
+                self.register(instruction, instruction.op_find(CS_OP_REG, 1))
                 + instruction.op_find(CS_OP_IMM, 1).imm
-            )
+            ) & ptrmask
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
