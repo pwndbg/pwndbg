@@ -122,9 +122,9 @@ def get_disassembler(pc):
         extra = CS_MODE_MIPS32R6
 
     elif pwndbg.gdblib.arch.current == "rv32":
-        extra = CS_MODE_RISCV32 | CS_MODE_RISCVC
+        extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
     elif pwndbg.gdblib.arch.current == "rv64":
-        extra = CS_MODE_RISCV64 | CS_MODE_RISCVC
+        extra = CS_MODE_RISCV64 | CS_MODE_RISCVC  # novermin
 
     else:
         extra = None
