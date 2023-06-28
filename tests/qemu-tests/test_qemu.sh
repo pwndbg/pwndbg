@@ -14,15 +14,12 @@ handle_sigint() {
 }
 trap handle_sigint SIGINT
 
-gdb_args=(-ex 'py import coverage;coverage.process_startup()')
-gdb_args=("${gdb_args[@]}" -ex "target remote :1234")
-
 gdb_load_pwndbg=(--command "$GDB_INIT_PATH" -ex "set exception-verbose on")
 run_gdb() {
     COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
-    COVERAGE_PROCESS_START=$COVERAGERC_PATH \
-    PWNDBG_DISABLE_COLORS=1 \
-    gdb-multiarch --silent --nx --nh "${gdb_load_pwndbg[@]}" "$@" -ex "quit" 2> /dev/null
+        COVERAGE_PROCESS_START=$COVERAGERC_PATH \
+        PWNDBG_DISABLE_COLORS=1 \
+        gdb-multiarch --silent --nx --nh "${gdb_load_pwndbg[@]}" "$@" -ex "quit" 2> /dev/null
     return $?
 }
 
@@ -37,7 +34,8 @@ test_arch() {
     run_gdb \
         -ex "set sysroot /usr/${arch}-linux-gnu/" \
         -ex "file ./binaries/reference-binary.${arch}.out" \
-        "${gdb_args[@]}" \
+        -ex 'py import coverage;coverage.process_startup()' \
+        -ex "target remote :1234" \
         -ex "source ./tests/user/test_${arch}.py"
     local result=$?
     pkill qemu-${arch}
