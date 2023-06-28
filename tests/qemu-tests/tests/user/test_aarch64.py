@@ -6,8 +6,6 @@ import gdb
 import pwndbg
 
 try:
-    gdb.execute("set disable-color on")
-
     gdb.execute("break break_here")
     assert pwndbg.gdblib.symbol.address("main") == 0x5500000A1C
     gdb.execute("continue")
@@ -36,5 +34,5 @@ try:
 
     gdb.execute("nextret", to_string=True)
 except AssertionError:
-    traceback.print_exc()
+    traceback.print_exc(file=sys.stdout)
     sys.exit(1)

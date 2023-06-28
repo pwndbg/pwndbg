@@ -7,8 +7,6 @@ import gdb
 import pwndbg
 
 try:
-    gdb.execute("set disable-color on")
-
     gdb.execute("break 4")
     assert pwndbg.gdblib.symbol.address("main") == 0x4000000668
     gdb.execute("continue")
@@ -19,5 +17,5 @@ try:
     assembly = gdb.execute("nearpc", to_string=True)
     assert re.search(r"s.*'Not enough args'", assembly), assembly
 except AssertionError:
-    traceback.print_exc()
+    traceback.print_exc(file=sys.stdout)
     sys.exit(1)
