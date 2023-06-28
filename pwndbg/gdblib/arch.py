@@ -24,7 +24,12 @@ pwnlib_archs_mapping = {
 # https://github.com/Gallopsled/pwntools/pull/2177
 pwnlib_version = list(map(int, pwnlib.__version__.split(".")[:2]))
 if pwnlib_version[0] == 4 and pwnlib_version[1] < 11:
-    pwnlib_archs_mapping["rv64"] = "riscv"
+    pwnlib_archs_mapping.update(
+        {
+            "rv32": "riscv",
+            "rv64": "riscv",
+        }
+    )
 else:
     pwnlib_archs_mapping.update(
         {
