@@ -128,4 +128,9 @@ int main(void) {
     // range of the target address
     setup_mem(0x100, 0x100);
     break_here();
+
+    // A fastbin chunk with a size that has top 4 bytes clobbered, due to glibc
+    // fastbin size bug, this is still valid
+    setup_mem(0xAABBCCDD00000020, 0x8);
+    break_here();
 }
