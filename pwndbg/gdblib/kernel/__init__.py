@@ -510,7 +510,6 @@ def virt_to_pfn(virt: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms(default=False)
 def paging_enabled() -> bool:
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "i386":
