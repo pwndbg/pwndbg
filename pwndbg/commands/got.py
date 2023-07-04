@@ -54,7 +54,7 @@ parser.add_argument(
     dest="accept_readonly",
 )
 parser.add_argument(
-    "symbol_filter", help="Filter results by passed symbol name.", type=str, nargs="?", default=""
+    "symbol_filter", help="Filter results by symbol name.", type=str, nargs="?", default=""
 )
 
 
