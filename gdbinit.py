@@ -23,7 +23,6 @@ directory = path.abspath(directory)
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 if not venv_path:
     venv_path = os.path.join(directory, ".venv")
-
 site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
 # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)

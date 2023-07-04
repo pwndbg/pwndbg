@@ -174,7 +174,7 @@ fi
 
 # Create Python virtualenv
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./venv"
+    PWNDBG_VENV_PATH="./.venv"
 fi
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 
