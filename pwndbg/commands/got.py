@@ -32,7 +32,7 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "-p",
     "--path",
-    help="Filter results by passed library path.",
+    help="Filter results by library/objfile path.",
     type=str,
     default="",
     dest="path_filter",
