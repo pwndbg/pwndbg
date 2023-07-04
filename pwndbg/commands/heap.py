@@ -419,7 +419,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             if no_match:
                 headers_to_print.append(message.hint("Allocated chunk"))
 
-    size_no_flags = chunk.size & (0xfffffffffffffff - 0b111)
+    size_no_flags = chunk.size & (0xFFFFFFFFFFFFFFF - 0b111)
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
     else:
