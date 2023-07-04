@@ -96,6 +96,8 @@ def get_cmd_window_size():
     try:
         info_out = gdb.execute("info win", to_string=True).split()
     except gdb.error:
+        # Return None if the command is not compiled into GDB
+        # (gdb.error: Undefined info command: "win".  Try "help info")
         return None, None
     if "cmd" not in info_out:
         # if TUI is not enabled, info win will output "The TUI is not active."
