@@ -35,6 +35,8 @@ CapstoneArch = {
     "powerpc": CS_ARCH_PPC,
     "mips": CS_ARCH_MIPS,
     "sparc": CS_ARCH_SPARC,
+    "rv32": CS_ARCH_RISCV,
+    "rv64": CS_ARCH_RISCV,
 }
 
 CapstoneEndian = {
@@ -56,6 +58,8 @@ VariableInstructionSizeMax = {
     "x86-64": 16,
     "i8086": 16,
     "mips": 8,
+    "rv32": 22,
+    "rv64": 22,
 }
 
 backward_cache: DefaultDict = collections.defaultdict(lambda: None)
@@ -116,6 +120,11 @@ def get_disassembler(pc):
         and "isa32r6" in gdb.newest_frame().architecture().name()
     ):
         extra = CS_MODE_MIPS32R6
+
+    elif pwndbg.gdblib.arch.current == "rv32":
+        extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
+    elif pwndbg.gdblib.arch.current == "rv64":
+        extra = CS_MODE_RISCV64 | CS_MODE_RISCVC  # novermin
 
     else:
         extra = None

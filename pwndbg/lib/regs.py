@@ -472,6 +472,28 @@ mips = RegisterSet(
     retval="v0",
 )
 
+# https://riscv.org/technical/specifications/
+# Volume 1, Unprivileged Spec v. 20191213
+# Chapter 25 - RISC-V Assembly Programmer’s Handbook
+# x0        => zero   (Hard-wired zero)
+# x1        => ra     (Return address)
+# x2        => sp     (Stack pointer)
+# x3        => gp     (Global pointer)
+# x4        => tp     (Thread pointer)
+# x5        => t0     (Temporary/alternate link register)
+# x6–7      => t1–2   (Temporaries)
+# x8        => s0/fp  (Saved register/frame pointer)
+# x9        => s1     (Saved register)
+# x10-11    => a0–1   (Function arguments/return values)
+# x12–17    => a2–7   (Function arguments)
+# x18–27    => s2–11  (Saved registers)
+# x28–31    => t3–6   (Temporaries)
+# f0–7      => ft0–7  (FP temporaries)
+# f8–9      => fs0–1  (FP saved registers)
+# f10–11    => fa0–1  (FP arguments/return values)
+# f12–17    => fa2–7  (FP arguments)
+# f18–27    => fs2–11 (FP saved registers)
+# f28–31    => ft8–11 (FP temporaries)
 riscv = RegisterSet(
     pc="pc",
     stack="sp",
@@ -518,7 +540,8 @@ reg_sets = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,
-    "riscv:rv64": riscv,
+    "rv32": riscv,
+    "rv64": riscv,
     "mips": mips,
     "sparc": sparc,
     "arm": arm,

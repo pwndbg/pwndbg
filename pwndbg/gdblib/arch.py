@@ -7,7 +7,7 @@ from pwndbg.lib.arch import Arch
 
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
-ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm", "armcm", "riscv:rv64")
+ARCHS = ("x86-64", "i386", "aarch64", "mips", "powerpc", "sparc", "arm", "armcm", "rv32", "rv64")
 
 # mapping between gdb and pwntools arch names
 pwnlib_archs_mapping = {
@@ -19,8 +19,25 @@ pwnlib_archs_mapping = {
     "sparc": "sparc",
     "arm": "arm",
     "armcm": "thumb",
-    "riscv:rv64": "riscv",
 }
+
+# https://github.com/Gallopsled/pwntools/pull/2177
+pwnlib_version = list(map(int, pwnlib.__version__.split(".")[:2]))
+if pwnlib_version[0] == 4 and pwnlib_version[1] < 11:
+    pwnlib_archs_mapping.update(
+        {
+            "rv32": "riscv",
+            "rv64": "riscv",
+        }
+    )
+else:
+    pwnlib_archs_mapping.update(
+        {
+            "rv32": "riscv32",
+            "rv64": "riscv64",
+        }
+    )
+
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
 

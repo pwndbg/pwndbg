@@ -95,7 +95,10 @@ install_apt() {
         parallel \
         netcat-openbsd \
         qemu-system-x86 \
-        qemu-system-arm
+        qemu-system-arm \
+        qemu-user \
+        gcc-aarch64-linux-gnu \
+        gcc-riscv64-linux-gnu
 
     if [[ "$1" == "22.04" ]]; then
         sudo apt install shfmt

@@ -71,6 +71,7 @@ linux_aarch64 = ABI(["x0", "x1", "x2", "x3"], 16, 0)
 linux_mips = ABI(["$a0", "$a1", "$a2", "$a3"], 4, 0)
 linux_ppc = ABI(["r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"], 4, 0)
 linux_ppc64 = ABI(["r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"], 8, 0)
+linux_riscv32 = ABI(["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"], 4, 0)
 linux_riscv64 = ABI(["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"], 8, 0)
 
 linux_i386_syscall = SyscallABI(["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"], 4, 0)
@@ -80,6 +81,7 @@ linux_aarch64_syscall = SyscallABI(["x8", "x0", "x1", "x2", "x3", "x4", "x5"], 1
 linux_mips_syscall = SyscallABI(["$v0", "$a0", "$a1", "$a2", "$a3"], 4, 0)
 linux_ppc_syscall = SyscallABI(["r0", "r3", "r4", "r5", "r6", "r7", "r8", "r9"], 4, 0)
 linux_ppc64_syscall = SyscallABI(["r0", "r3", "r4", "r5", "r6", "r7", "r8"], 8, 0)
+linux_riscv32_syscall = SyscallABI(["a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"], 4, 0)
 linux_riscv64_syscall = SyscallABI(["a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"], 8, 0)
 
 linux_i386_sigreturn = SigreturnABI(["eax"], 4, 0)
@@ -100,7 +102,8 @@ DEFAULT_ABIS = {
     (32, "mips", "linux"): linux_mips,
     (32, "powerpc", "linux"): linux_ppc,
     (64, "powerpc", "linux"): linux_ppc64,
-    (64, "riscv64", "linux"): linux_riscv64,
+    (32, "rv32", "linux"): linux_riscv32,
+    (64, "rv64", "linux"): linux_riscv64,
 }
 
 SYSCALL_ABIS = {
@@ -112,7 +115,8 @@ SYSCALL_ABIS = {
     (32, "mips", "linux"): linux_mips_syscall,
     (32, "powerpc", "linux"): linux_ppc_syscall,
     (64, "powerpc", "linux"): linux_ppc64_syscall,
-    (64, "riscv64", "linux"): linux_riscv64_syscall,
+    (32, "rv32", "linux"): linux_riscv32_syscall,
+    (64, "rv64", "linux"): linux_riscv64_syscall,
 }
 
 SIGRETURN_ABIS = {

@@ -85,6 +85,11 @@ jobs:
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
 
+    - name: Run qemu-user tests
+      working-directory: ./tests/qemu-tests
+      run: |
+        ./test_qemu.sh
+
     - name: Process coverage data
       run: |
         coverage combine

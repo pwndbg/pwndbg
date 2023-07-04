@@ -103,7 +103,8 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         "i386",
         "x86-64",
         "aarch64",
-        "riscv:rv64",
+        "rv32",
+        "rv64",
     ):
         # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
         # That means the user was explicitly setting it themselves and need to
