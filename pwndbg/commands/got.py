@@ -63,7 +63,7 @@ parser.add_argument(
 def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
     # Show the filters we are using
     if path_filter:
-        print("Filtering by path keyword: " + message.hint(path_filter))
+        print("Filtering by lib/objfile path: " + message.hint(path_filter))
     if symbol_filter:
         print("Filtering by symbol keyword: " + message.hint(symbol_filter))
     if not accept_readonly:
