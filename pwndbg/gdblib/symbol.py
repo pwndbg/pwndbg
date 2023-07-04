@@ -15,7 +15,6 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
-import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
@@ -141,26 +140,17 @@ def address(symbol: str) -> int:
 
     try:
         # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
-        # symbols, so we need to fallback to using `info address`. See
+        # symbols, so we need to fallback to using `gdb.parse_and_eval`. See
         # https://sourceware.org/pipermail/gdb/2022-October/050362.html
-        address = pwndbg.gdblib.info.address(symbol)
-        if address is None or not pwndbg.gdblib.vmmap.find(address):
-            return None
-
-        return address
+        # (We tried parsing the output of the `info address` before, but there were some issues. See #1628 and #1666)
+        if "\\" in symbol:
+            # Is it possible that happens? Probably not, but just in case
+            raise ValueError(f"Symbol {symbol!r} contains a backslash")
+        sanitized_symbol_name = symbol.replace("'", "\\'")
+        return int(gdb.parse_and_eval(f"&'{sanitized_symbol_name}'"))
 
     except gdb.error:
         return None
-
-    try:
-        # TODO: We should properly check if we have a connection to the IDA server first
-        address = pwndbg.ida.LocByName(symbol)
-        if address:
-            return address
-    except Exception:
-        pass
-
-    return None
 
 
 @pwndbg.lib.cache.cache_until("objfile", "thread")
