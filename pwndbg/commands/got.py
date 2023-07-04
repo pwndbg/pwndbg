@@ -48,7 +48,7 @@ group.add_argument(
 parser.add_argument(
     "-r",
     "--show-readonly",
-    help="Set the flag to not filter out read-only entries.",
+    help="Also display read-only entries (which are filtered out by default).",
     action="store_true",
     default=False,
     dest="accept_readonly",
