@@ -65,7 +65,7 @@ def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
     if path_filter:
         print("Filtering by lib/objfile path: " + message.hint(path_filter))
     if symbol_filter:
-        print("Filtering by symbol keyword: " + message.hint(symbol_filter))
+        print("Filtering by symbol name: " + message.hint(symbol_filter))
     if not accept_readonly:
         print("Filtering out read-only entries (display them with -r or --show-readonly)")
 
