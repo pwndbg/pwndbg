@@ -439,7 +439,8 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             continue
         if field_to_print == "size":
             out_fields += (
-                message.system("size") + f": 0x{size_no_flags:02x} (with flag bits: 0x{chunk.size:02x})\n"
+                message.system("size")
+                + f": 0x{size_no_flags:02x} (with flag bits: 0x{chunk.size:02x})\n"
             )
         else:
             out_fields += (
