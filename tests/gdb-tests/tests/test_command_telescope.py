@@ -96,7 +96,7 @@ def test_command_telescope_reverse_skipped_records_shows_input_address(start_bin
     pwndbg.gdblib.memory.write(pwndbg.gdblib.regs.rsp - 8 * 3, b"\x00" * 8 * 4)
 
     expected_str = gdb.execute("print $rsp", to_string=True)
-    expected_value = expected_str.strip("\n").split(" ")[-1]
+    expected_value = pwndbg.gdblib.regs.rsp
     result_str = gdb.execute("telescope -r $rsp", to_string=True)
     result_lines = result_str.strip("\n").split("\n")
 
