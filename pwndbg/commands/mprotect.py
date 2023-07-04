@@ -8,23 +8,24 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.file
-import pwndbg.lib.which
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
+from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import reg_sets
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""
-Calls the mprotect syscall and prints its result value
+Calls the mprotect syscall and prints its result value.
 
 Note that the mprotect syscall may fail for various reasons
 (see `man mprotect`) and a non-zero error return value
 can be decoded with the `errno <value>` command.
 
 Examples:
-    mprotect $rsp PROT_READ|PROT_WRITE|PROT_EXEC
-    mprotect some_symbol PROT_NONE
-"""
+    mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
+    mprotect some_symbol 0x1000 PROT_NONE
+""",
 )
 parser.add_argument(
     "addr", help="Page-aligned address to all mprotect on.", type=pwndbg.commands.sloppy_gdb_parse
@@ -51,16 +52,15 @@ prot_dict = {
 def prot_str_to_val(protstr):
     """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
     prot_int = 0
-    for k in prot_dict:
+    for k, v in prot_dict.items():
         if k in protstr:
-            prot_int |= prot_dict[k]
+            prot_int |= v
     return prot_int
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def mprotect(addr, length, prot):
-
+def mprotect(addr, length, prot) -> None:
     prot_int = prot_str_to_val(prot)
 
     # generate a shellcode that executes the mprotect syscall

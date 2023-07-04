@@ -1,7 +1,5 @@
 import os
 
-from . import div_zero_binary
-
 path = os.path.dirname(__file__)
 
 

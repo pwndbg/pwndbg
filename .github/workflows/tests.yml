@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -32,7 +32,7 @@ jobs:
         echo 'Installed packages:'
         python -m pip freeze
 
-    # We to set `kernel.yama.ptrace_scope=0` for `attachp` command tests
+    # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
       run: |
         mkdir .cov
@@ -48,6 +48,52 @@ jobs:
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
       uses: codecov/codecov-action@v3
-      with:
-        fail_ci_if_error: true
 
+  qemu-tests:
+    runs-on: [ubuntu-22.04]
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Cache for pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ matrix.os }}-cache-pip
+
+    - name: Install dependencies
+      run: |
+        ./setup.sh --user
+        ./setup-dev.sh --user
+        mkdir .cov
+
+    - name: Set up cache for QEMU images
+      id: qemu-cache
+      uses: actions/cache@v3
+      with:
+        path: ./tests/qemu-tests/images
+        key: ${{ matrix.os }}-cache-qemu-images
+
+    - name: Download images
+      run: |
+        ./tests/qemu-tests/download_images.sh
+
+    # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
+    - name: Run tests
+      working-directory: ./tests/qemu-tests
+      run: |
+        sudo sysctl -w kernel.yama.ptrace_scope=0
+        ./tests.sh --cov
+
+    - name: Run qemu-user tests
+      working-directory: ./tests/qemu-tests
+      run: |
+        ./test_qemu.sh
+
+    - name: Process coverage data
+      run: |
+        coverage combine
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3

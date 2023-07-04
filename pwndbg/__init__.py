@@ -1,3 +1,4 @@
+import re
 import signal
 
 import gdb
@@ -18,6 +19,7 @@ try:
     import pwndbg.disasm.jump
     import pwndbg.disasm.mips
     import pwndbg.disasm.ppc
+    import pwndbg.disasm.riscv
     import pwndbg.disasm.sparc
     import pwndbg.disasm.x86
     import pwndbg.heap
@@ -30,40 +32,6 @@ import pwndbg.ui
 
 __version__ = pwndbg.lib.version.__version__
 version = __version__
-
-__all__ = [
-    "arch",
-    "auxv",
-    "chain",
-    "color",
-    "disasm",
-    "dt",
-    "elf",
-    "enhance",
-    "events",
-    "file",
-    "function",
-    "heap",
-    "hexdump",
-    "ida",
-    "info",
-    "leakfind",
-    "linkmap",
-    "malloc",
-    "memoize",
-    "memory",
-    "p2p",
-    "proc",
-    "regs",
-    "remote",
-    "search",
-    "stack",
-    "strings",
-    "symbol",
-    "typeinfo",
-    "ui",
-    "vmmap",
-]
 
 from pwndbg.gdblib import prompt
 
@@ -87,6 +55,11 @@ handle SIGSEGV stop   print nopass
 """.strip() % (
     pwndbg.ui.get_window_size()[1]
 )
+
+# See https://github.com/pwndbg/pwndbg/issues/808
+gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+if gdb_version[0] <= 9:
+    pre_commands += "\nset remote search-memory-packet off"
 
 for line in pre_commands.strip().splitlines():
     gdb.execute(line)

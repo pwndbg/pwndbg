@@ -7,12 +7,12 @@ from typing import Optional
 
 import gdb
 
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 # TODO: Add symbol, threads, dll, program
 
 
-@pwndbg.lib.memoize.reset_on_exit
+@pwndbg.lib.cache.cache_until("exit")
 def proc_mappings():
     try:
         return gdb.execute("info proc mappings", to_string=True)
@@ -20,15 +20,15 @@ def proc_mappings():
         return ""
 
 
-@pwndbg.lib.memoize.reset_on_exit
-def auxv():
+@pwndbg.lib.cache.cache_until("exit")
+def auxv() -> str:
     try:
         return gdb.execute("info auxv", to_string=True)
     except gdb.error:
         return ""
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def files():
     try:
         return gdb.execute("info files", to_string=True)

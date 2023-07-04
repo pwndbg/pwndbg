@@ -77,7 +77,7 @@ sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
 class AUXV(dict):
-    def set(self, const, value):
+    def set(self, const, value) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
@@ -93,12 +93,11 @@ class AUXV(dict):
     def __getattr__(self, attr):
         return self.get(attr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str({k: v for k, v in self.items() if v is not None})
 
 
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("objfile", "start")
 def get():
     return use_info_auxv() or walk_stack() or AUXV()
 
@@ -113,7 +112,7 @@ def use_info_auxv():
     for line in lines:
         match = re.match("([0-9]+) .*? (0x[0-9a-f]+|[0-9]+$)", line)
         if not match:
-            print("Warning: Skipping auxv entry '{}'".format(line))
+            print(f"Warning: Skipping auxv entry '{line}'")
             continue
 
         const, value = int(match.group(1)), int(match.group(2), 0)
@@ -193,53 +192,58 @@ def walk_stack2(offset=0):
     # So we don't walk off the end of the stack
     p -= 2
 
-    # Find a ~guess at where AT_NULL is.
-    #
-    # Coming up from the end of the stack, there will be a
-    # marker at the end which is a single ULONG of zeroes, and then
-    # the ARGV and ENVP data.
-    #
-    # Assuming that the ARGV and ENVP data is formed normally,
-    # (i.e. doesn't include 8-16 consecutive zero-length args)
-    # this should land us at the *END* of AUXV, which is the
-    # AT_NULL vector.
-    while p.dereference() != 0 or (p + 1).dereference() != 0:
-        p -= 2
+    try:
+        # Find a ~guess at where AT_NULL is.
+        #
+        # Coming up from the end of the stack, there will be a
+        # marker at the end which is a single ULONG of zeroes, and then
+        # the ARGV and ENVP data.
+        #
+        # Assuming that the ARGV and ENVP data is formed normally,
+        # (i.e. doesn't include 8-16 consecutive zero-length args)
+        # this should land us at the *END* of AUXV, which is the
+        # AT_NULL vector.
+        while p.dereference() != 0 or (p + 1).dereference() != 0:
+            p -= 2
 
-    # Now we want to continue until we fine, at a minimum, AT_BASE.
-    # While there's no guarantee that this exists, I've not ever found
-    # an instance when it doesn't.
-    #
-    # This check is needed because the above loop isn't
-    # guaranteed to actually get us to AT_NULL, just to some
-    # consecutive NULLs.  QEMU is pretty generous with NULLs.
-    for i in range(1024):
-        if p.dereference() == AT_BASE:
-            break
-        p -= 2
-    else:
+        # Now we want to continue until we fine, at a minimum, AT_BASE.
+        # While there's no guarantee that this exists, I've not ever found
+        # an instance when it doesn't.
+        #
+        # This check is needed because the above loop isn't
+        # guaranteed to actually get us to AT_NULL, just to some
+        # consecutive NULLs.  QEMU is pretty generous with NULLs.
+        for i in range(1024):
+            if p.dereference() == AT_BASE:
+                break
+            p -= 2
+        else:
+            return AUXV()
+
+        # If we continue to p back, we should bump into the
+        # very end of ENVP (and perhaps ARGV if ENVP is empty).
+        #
+        # The highest value for the vector is AT_SYSINFO_EHDR, 33.
+        while (p - 2).dereference() < 37:
+            p -= 2
+
+        # Scan them into our structure
+        auxv = AUXV()
+        while True:
+            const = int((p + 0).dereference()) & pwndbg.gdblib.arch.ptrmask
+            value = int((p + 1).dereference()) & pwndbg.gdblib.arch.ptrmask
+
+            if const == AT_NULL:
+                break
+
+            auxv.set(const, value)
+            p += 2
+
+        return auxv
+    except gdb.MemoryError:
+        # If SP is inaccessible or we went past through stack and haven't found AUXV
+        # then return an empty AUXV...
         return AUXV()
-
-    # If we continue to p back, we should bump into the
-    # very end of ENVP (and perhaps ARGV if ENVP is empty).
-    #
-    # The highest value for the vector is AT_SYSINFO_EHDR, 33.
-    while (p - 2).dereference() < 37:
-        p -= 2
-
-    # Scan them into our structure
-    auxv = AUXV()
-    while True:
-        const = int((p + 0).dereference()) & pwndbg.gdblib.arch.ptrmask
-        value = int((p + 1).dereference()) & pwndbg.gdblib.arch.ptrmask
-
-        if const == AT_NULL:
-            break
-
-        auxv.set(const, value)
-        p += 2
-
-    return auxv
 
 
 def _get_execfn():

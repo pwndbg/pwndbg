@@ -3,6 +3,7 @@ Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
 import collections
+from typing import List
 
 
 class RegisterSet:
@@ -34,7 +35,7 @@ class RegisterSet:
     retval = None
 
     #: Common registers which should be displayed in the register context
-    common = None
+    common: List[str] = None
 
     #: All valid registers
     all = None
@@ -45,12 +46,12 @@ class RegisterSet:
         stack="sp",
         frame=None,
         retaddr=tuple(),
-        flags=dict(),
+        flags={},
         gpr=tuple(),
         misc=tuple(),
         args=tuple(),
         retval=None,
-    ):
+    ) -> None:
         self.pc = pc
         self.stack = stack
         self.frame = frame
@@ -94,6 +95,25 @@ arm_xpsr_flags = collections.OrderedDict(
     [("N", 31), ("Z", 30), ("C", 29), ("V", 28), ("Q", 27), ("T", 24)]
 )
 
+aarch64_cpsr_flags = collections.OrderedDict(
+    [
+        ("N", 31),
+        ("Z", 30),
+        ("C", 29),
+        ("V", 28),
+        ("Q", 27),
+        ("PAN", 22),
+        ("IL", 20),
+        ("D", 9),
+        ("A", 8),
+        ("I", 7),
+        ("F", 6),
+        # TODO: EL is two bits
+        ("EL", 2),
+        ("SP", 0),
+    ]
+)
+
 arm = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": arm_cpsr_flags},
@@ -111,10 +131,10 @@ armcm = RegisterSet(
     retval="r0",
 )
 
-# FIXME AArch64 does not have a CPSR register
+# AArch64 has a PSTATE register, but GDB represents it as the CPSR register
 aarch64 = RegisterSet(
     retaddr=("lr",),
-    flags={"cpsr": {}},
+    flags={"cpsr": aarch64_cpsr_flags},
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point
     # it's confusing. Think about improving this if frame
@@ -452,10 +472,76 @@ mips = RegisterSet(
     retval="v0",
 )
 
+# https://riscv.org/technical/specifications/
+# Volume 1, Unprivileged Spec v. 20191213
+# Chapter 25 - RISC-V Assembly Programmer’s Handbook
+# x0        => zero   (Hard-wired zero)
+# x1        => ra     (Return address)
+# x2        => sp     (Stack pointer)
+# x3        => gp     (Global pointer)
+# x4        => tp     (Thread pointer)
+# x5        => t0     (Temporary/alternate link register)
+# x6–7      => t1–2   (Temporaries)
+# x8        => s0/fp  (Saved register/frame pointer)
+# x9        => s1     (Saved register)
+# x10-11    => a0–1   (Function arguments/return values)
+# x12–17    => a2–7   (Function arguments)
+# x18–27    => s2–11  (Saved registers)
+# x28–31    => t3–6   (Temporaries)
+# f0–7      => ft0–7  (FP temporaries)
+# f8–9      => fs0–1  (FP saved registers)
+# f10–11    => fa0–1  (FP arguments/return values)
+# f12–17    => fa2–7  (FP arguments)
+# f18–27    => fs2–11 (FP saved registers)
+# f28–31    => ft8–11 (FP temporaries)
+riscv = RegisterSet(
+    pc="pc",
+    stack="sp",
+    retaddr=("ra",),
+    gpr=(
+        "ra",
+        "gp",
+        "tp",
+        "t0",
+        "t1",
+        "t2",
+        "s0",
+        "s1",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9",
+        "s10",
+        "s11",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+    ),
+    args=("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"),
+    # TODO: make retval a tuple
+    # a1 for second return value
+    retval="a0",
+)
+
 reg_sets = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,
+    "rv32": riscv,
+    "rv64": riscv,
     "mips": mips,
     "sparc": sparc,
     "arm": arm,

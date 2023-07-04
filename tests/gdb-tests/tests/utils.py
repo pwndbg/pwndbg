@@ -32,7 +32,7 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
 
     command += ["--eval-command", "quit"]
 
-    print("Launching command: %s" % command)
+    print(f"Launching command: {command}")
     output = subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
 
     # Python 3 returns bytes-like object so lets have it consistent
@@ -47,9 +47,3 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
     )
 
     return output
-
-
-def compile_binary(binary_source, binary_out):
-    assert os.path.isfile(binary_source)
-
-    subprocess.check_call(["gcc", binary_source, "-o", binary_out])

@@ -5,6 +5,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 
 def canary_value():
@@ -21,9 +22,11 @@ def canary_value():
     return global_canary, at_random
 
 
-@pwndbg.commands.ArgparsedCommand("Print out the current stack canary.")
+@pwndbg.commands.ArgparsedCommand(
+    "Print out the current stack canary.", category=CommandCategory.STACK
+)
 @pwndbg.commands.OnlyWhenRunning
-def canary():
+def canary() -> None:
     global_canary, at_random = canary_value()
 
     if global_canary is None or at_random is None:

@@ -6,10 +6,11 @@ from subprocess import check_output
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name or device file.
 
 This command wraps the original GDB `attach` command to add the ability
@@ -27,14 +28,14 @@ Original GDB attach command help:
     program running in the process, looking first in the current working
     directory, or (if not found there) using the source file search path
     (see the "directory" command).  You can also use the "file" command
-    to specify the program, and to load its symbol table."""
+    to specify the program, and to load its symbol table.""",
 )
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def attachp(target):
+def attachp(target) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -63,23 +64,23 @@ def attachp(target):
                 pids = []
 
             if not pids:
-                print(message.error("Process %s not found" % target))
+                print(message.error(f"Process {target} not found"))
                 return
 
             if len(pids) > 1:
-                print(message.warn("Found pids: %s (use `attach <pid>`)" % ", ".join(pids)))
+                print(message.warn(f"Found pids: {', '.join(pids)} (use `attach <pid>`)"))
                 return
 
             resolved_target = int(pids[0])
 
-    print(message.on("Attaching to %s" % resolved_target))
+    print(message.on(f"Attaching to {resolved_target}"))
     try:
-        gdb.execute("attach %s" % resolved_target)
+        gdb.execute(f"attach {resolved_target}")
     except gdb.error as e:
-        print(message.error("Error: %s" % e))
+        print(message.error(f"Error: {e}"))
 
 
-def _is_device(path):
+def _is_device(path) -> bool:
     try:
         mode = os.stat(path).st_mode
     except FileNotFoundError:

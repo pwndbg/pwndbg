@@ -7,6 +7,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 """
 
 from typing import Dict
+from typing import Tuple
 
 import gdb
 
@@ -14,19 +15,19 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 # Dictionary of stack ranges.
 # Key is the gdb thread ptid
 # Value is a pwndbg.lib.memory.Page object
-stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+stacks: Dict[Tuple[int, int, int], pwndbg.lib.memory.Page] = {}
 
 # Whether the stack is protected by NX.
 # This is updated automatically by is_executable.
 nx = False
 
 
-def find(address):
+def find(address: int):
     """
     Returns a pwndbg.lib.memory.Page object which corresponds to the
     currently-loaded stack.
@@ -34,12 +35,12 @@ def find(address):
     if not stacks:
         update()
 
-    for stack in stacks:
+    for stack in stacks.values():
         if address in stack:
             return stack
 
 
-def find_upper_stack_boundary(stack_ptr, max_pages=1024):
+def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
     stack_ptr = pwndbg.lib.memory.page_align(int(stack_ptr))
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
@@ -51,8 +52,8 @@ def find_upper_stack_boundary(stack_ptr, max_pages=1024):
 
 
 @pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_stop
-def update():
+@pwndbg.lib.cache.cache_until("stop")
+def update() -> None:
     """
     For each running thread, updates the known address range
     for its stack.
@@ -61,6 +62,7 @@ def update():
     try:
         for thread in gdb.selected_inferior().threads():
             thread.switch()
+            pwndbg.gdblib.regs.__getattr__.cache.clear()
             sp = pwndbg.gdblib.regs.sp
 
             # Skip if sp is None or 0
@@ -100,7 +102,7 @@ def update():
             curr_thread.switch()
 
 
-@pwndbg.lib.memoize.reset_on_stop
+@pwndbg.lib.cache.cache_until("stop")
 def current():
     """
     Returns the bounds for the stack for the current thread.
@@ -109,7 +111,7 @@ def current():
 
 
 @pwndbg.gdblib.events.exit
-def clear():
+def clear() -> None:
     """
     Clears everything we know about any stack memory ranges.
 
@@ -121,8 +123,8 @@ def clear():
 
 
 @pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_exit
-def is_executable():
+@pwndbg.lib.cache.cache_until("exit")
+def is_executable() -> bool:
     global nx
     nx = False
 

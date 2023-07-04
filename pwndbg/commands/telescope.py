@@ -7,16 +7,18 @@ Generally used to print out the stack or register values.
 import argparse
 import collections
 import math
+from typing import List
 
 import pwndbg.chain
 import pwndbg.color.telescope as T
-import pwndbg.color.theme as theme
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
+from pwndbg.color import theme
+from pwndbg.commands import CommandCategory
 
 telescope_lines = pwndbg.gdblib.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
@@ -44,10 +46,7 @@ repeating_marker = theme.add_param(
 
 
 parser = argparse.ArgumentParser(
-    description="""
-    Recursively dereferences pointers starting at the specified address
-    ($sp by default)
-    """
+    description="Recursively dereferences pointers starting at the specified address."
 )
 parser.add_argument(
     "-r",
@@ -59,7 +58,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "address", nargs="?", default=None, type=int, help="The address to telescope at."
+    "address", nargs="?", default="$sp", type=int, help="The address to telescope at."
 )
 
 parser.add_argument(
@@ -67,7 +66,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(address=None, count=telescope_lines, to_string=False, reverse=False):
     """
@@ -130,7 +129,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     # Print everything out
     result = []
     last = None
-    collapse_buffer = []
+    collapse_buffer: List[str] = []
     skipped_padding = (
         2
         + len(offset_delimiter)
@@ -143,7 +142,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     )
 
     # Collapse repeating values exceeding minimum delta.
-    def collapse_repeating_values():
+    def collapse_repeating_values() -> None:
         # The first line was already printed, hence increment by 1
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
             result.append(
@@ -200,7 +199,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
 
 parser = argparse.ArgumentParser(
-    description="dereferences on stack data with specified count and offset."
+    description="Dereferences on stack data with specified count and offset."
 )
 parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
 parser.add_argument(
@@ -212,9 +211,9 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
-def stack(count, offset):
+def stack(count, offset) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
     telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count)

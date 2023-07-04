@@ -18,7 +18,7 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-from pwndbg.commands.nearpc import c as N
+from pwndbg.gdblib.nearpc import c as N
 
 ida_replacements = {
     "__int64": "signed long long int",
@@ -53,15 +53,26 @@ def get_syscall_name(instruction):
         return None
 
     syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
+    syscall_arch = pwndbg.gdblib.arch.current
 
-    # If we are on x86/x64, return no syscall name for other instructions than syscall and int 0x80
+    # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
+    # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
+    # So here, we return no syscall name for other instructions and we also
+    # handle a case when 32-bit syscalls are executed on x64
     if syscall_register in ("eax", "rax"):
         mnemonic = instruction.mnemonic
-        if not (mnemonic == "syscall" or (mnemonic == "int" and instruction.op_str == "0x80")):
+
+        is_32bit = mnemonic == "int" and instruction.op_str == "0x80"
+        if not (mnemonic == "syscall" or is_32bit):
             return None
 
+        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
+        # On x86, the syscall_arch is already i386, so its all fine
+        if is_32bit:
+            syscall_arch = "i386"
+
     syscall_number = getattr(pwndbg.gdblib.regs, syscall_register)
-    return pwndbg.constants.syscall(syscall_number) or "<unk_%d>" % syscall_number
+    return pwndbg.constants.syscall(syscall_number, syscall_arch) or "<unk_%d>" % syscall_number
 
 
 def get(instruction):
@@ -93,6 +104,10 @@ def get(instruction):
 
         if not target:
             return []
+
+        if pwndbg.gdblib.arch.current in ["rv32", "rv64"]:
+            target += instruction.address
+            target &= pwndbg.gdblib.arch.ptrmask
 
         name = pwndbg.gdblib.symbol.get(target)
         if not name:
@@ -210,9 +225,12 @@ def format_args(instruction):
 
         # Enhance args display
         if arg.name == "fd" and isinstance(value, int):
-            path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pwndbg.gdblib.proc.pid, value))
-            if path:
-                pretty += " (%s)" % path
+            # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
+            pid = pwndbg.gdblib.proc.pid
+            if pid is not None:
+                path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                if path:
+                    pretty += f" ({path})"
 
         result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
     return result

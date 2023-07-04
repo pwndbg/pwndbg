@@ -5,13 +5,9 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
-import os
 import re
+from typing import Optional
 
-import elftools.common.exceptions
-import elftools.elf.constants
-import elftools.elf.elffile
-import elftools.elf.segments
 import gdb
 
 import pwndbg.gdblib.android
@@ -19,14 +15,13 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
-import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.vmmap
 import pwndbg.ida
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 
 
 def _get_debug_file_directory():
@@ -47,14 +42,14 @@ def _get_debug_file_directory():
     return ""
 
 
-def _set_debug_file_directory(d):
-    gdb.execute("set debug-file-directory %s" % d, to_string=True, from_tty=False)
+def _set_debug_file_directory(d) -> None:
+    gdb.execute(f"set debug-file-directory {d}", to_string=True, from_tty=False)
 
 
-def _add_debug_file_directory(d):
+def _add_debug_file_directory(d) -> None:
     current = _get_debug_file_directory()
     if current:
-        _set_debug_file_directory("%s:%s" % (current, d))
+        _set_debug_file_directory(f"{current}:{d}")
     else:
         _set_debug_file_directory(d)
 
@@ -63,102 +58,18 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
     _add_debug_file_directory("/usr/lib/debug")
 
 
-_remote_files = {}
-
-
-@pwndbg.gdblib.events.exit
-def _reset_remote_files():
-    global _remote_files
-    _remote_files = {}
-
-
-@pwndbg.gdblib.events.new_objfile
-def _autofetch():
-    """ """
-    if not pwndbg.gdblib.remote.is_remote():
-        return
-
-    if pwndbg.gdblib.qemu.is_qemu_usermode():
-        return
-
-    if pwndbg.gdblib.android.is_android():
-        return
-
-    remote_files_dir = pwndbg.gdblib.file.remote_files_dir()
-    if remote_files_dir not in _get_debug_file_directory().split(":"):
-        _add_debug_file_directory(remote_files_dir)
-
-    for mapping in pwndbg.gdblib.vmmap.get():
-        objfile = mapping.objfile
-
-        # Don't attempt to download things like '[stack]' and '[heap]'
-        if not objfile.startswith("/"):
-            continue
-
-        # Don't re-download things that we have already downloaded
-        if not objfile or objfile in _remote_files:
-            continue
-
-        msg = "Downloading %r from the remote server" % objfile
-        print(msg, end="")
-
-        try:
-            data = pwndbg.gdblib.file.get(objfile)
-            print("\r" + msg + ": OK")
-        except OSError:
-            # The file could not be downloaded :(
-            print("\r" + msg + ": Failed")
-            return
-
-        filename = os.path.basename(objfile)
-        local_path = os.path.join(remote_files_dir, filename)
-
-        with open(local_path, "wb+") as f:
-            f.write(data)
-
-        _remote_files[objfile] = local_path
-
-        base = None
-        for mapping in pwndbg.gdblib.vmmap.get():
-            if mapping.objfile != objfile:
-                continue
-
-            if base is None or mapping.vaddr < base.vaddr:
-                base = mapping
-
-        if not base:
-            continue
-
-        base = base.vaddr
-
-        try:
-            elf = elftools.elf.elffile.ELFFile(open(local_path, "rb"))
-        except elftools.common.exceptions.ELFError:
-            continue
-
-        gdb_command = ["add-symbol-file", local_path, hex(int(base))]
-        for section in elf.iter_sections():
-            name = section.name  # .decode('latin-1')
-            section = section.header
-            if not section.sh_flags & elftools.elf.constants.SH_FLAGS.SHF_ALLOC:
-                continue
-            gdb_command += ["-s", name, hex(int(base + section.sh_addr))]
-
-        print(" ".join(gdb_command))
-        # gdb.execute(' '.join(gdb_command), from_tty=False, to_string=True)
-
-
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get(address: int, gdb_only=False) -> str:
     """
-    Retrieve the name for the symbol located at `address`
+    Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
+    Passing `gdb_only=True`
     """
-    # Fast path
-    if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR or address >= ((1 << 64) - 1):
-        return ""
+    # Note: we do not return "" on `address < pwndbg.gdblib.memory.MMAP_MIN_ADDR`
+    # because this may be used to find out the symbol name on PIE binaries that weren't started yet
+    # and then their symbol addresses can be found by GDB on their (non-rebased) offsets
 
-    # Don't look up stack addresses
-    if pwndbg.gdblib.stack.find(address):
+    # Fast path: GDB's `info symbol` returns 'Numeric constant too large' here
+    if address >= ((1 << 64) - 1):
         return ""
 
     # This sucks, but there's not a GDB API for this.
@@ -173,22 +84,32 @@ def get(address: int, gdb_only=False) -> str:
                 res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
                 return res or ""
 
-    # Expected format looks like this:
-    # main in section .text of /bin/bash
-    # main + 3 in section .text of /bin/bash
-    # system + 1 in section .text of /lib/x86_64-linux-gnu/libc.so.6
-    # No symbol matches system-1.
-    a, b, c, _ = result.split(None, 3)
+    # If there are newlines, which means that there are multiple symbols for the address
+    # then use the first one (see also #1610)
+    result = result[: result.index("\n")]
 
-    if b == "+":
-        return "%s+%s" % (a, c)
-    if b == "in":
-        return a
+    # See https://github.com/bminor/binutils-gdb/blob/d1702fea87aa62dff7de465464097dba63cc8c0f/gdb/printcmd.c#L1594-L1624
+    # The most often encountered formats looks like this:
+    #   "main in section .text of /bin/bash"
+    #   "main + 3 in section .text of /bin/bash"
+    #   "system + 1 in section .text of /lib/x86_64-linux-gnu/libc.so.6"
+    #   "No symbol matches system-1"
+    # But there are some others that we have to account for as well
+    if " in section " in result:
+        loc_string, _ = result.split(" in section ")
+    elif " in load address range of " in result:
+        loc_string, _ = result.split(" in load address range of ")
+    elif " overlay section " in result:
+        result, _ = result.split(" overlay section ")
+        loc_string, _ = result.split(" in ")
+    else:
+        loc_string = ""
 
-    return ""
+    # If there is 'main + 87' we want to replace it with 'main+87' etc.
+    return loc_string.replace(" + ", "+")
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def address(symbol: str) -> int:
     """
     Get the address for `symbol`
@@ -219,30 +140,20 @@ def address(symbol: str) -> int:
 
     try:
         # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
-        # symbols, so we need to fallback to using `info address`. See
+        # symbols, so we need to fallback to using `gdb.parse_and_eval`. See
         # https://sourceware.org/pipermail/gdb/2022-October/050362.html
-        address = pwndbg.gdblib.info.address(symbol)
-        if address is None or not pwndbg.gdblib.vmmap.find(address):
-            return None
-
-        return address
+        # (We tried parsing the output of the `info address` before, but there were some issues. See #1628 and #1666)
+        if "\\" in symbol:
+            # Is it possible that happens? Probably not, but just in case
+            raise ValueError(f"Symbol {symbol!r} contains a backslash")
+        sanitized_symbol_name = symbol.replace("'", "\\'")
+        return int(gdb.parse_and_eval(f"&'{sanitized_symbol_name}'"))
 
     except gdb.error:
         return None
 
-    try:
-        # TODO: We should properly check if we have a connection to the IDA server first
-        address = pwndbg.ida.LocByName(symbol)
-        if address:
-            return address
-    except Exception:
-        pass
 
-    return None
-
-
-@pwndbg.lib.memoize.reset_on_objfile
-@pwndbg.lib.memoize.reset_on_thread
+@pwndbg.lib.cache.cache_until("objfile", "thread")
 def static_linkage_symbol_address(symbol: str) -> int:
     """
     Get the address for static linkage `symbol`
@@ -262,41 +173,7 @@ def static_linkage_symbol_address(symbol: str) -> int:
         return None
 
 
-@pwndbg.gdblib.events.stop
-@pwndbg.lib.memoize.reset_on_start
-def _add_main_exe_to_symbols():
-    if not pwndbg.gdblib.remote.is_remote():
-        return
-
-    if pwndbg.gdblib.android.is_android():
-        return
-
-    exe = pwndbg.gdblib.elf.exe()
-
-    if not exe:
-        return
-
-    addr = exe.address
-
-    if not addr:
-        return
-
-    addr = int(addr)
-
-    mmap = pwndbg.gdblib.vmmap.find(addr)
-    if not mmap:
-        return
-
-    path = mmap.objfile
-    if path and (pwndbg.gdblib.arch.endian == pwndbg.gdblib.arch.native_endian):
-        try:
-            gdb.execute("add-symbol-file %s" % (path,), from_tty=False, to_string=True)
-        except gdb.error:
-            pass
-
-
-@pwndbg.lib.memoize.reset_on_stop
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("stop", "start")
 def selected_frame_source_absolute_filename():
     """
     Retrieve the symbol table’s source absolute file name from the selected frame.
@@ -320,3 +197,11 @@ def selected_frame_source_absolute_filename():
         return None
 
     return symtab.fullname()
+
+
+def parse_and_eval(expression: str) -> Optional[gdb.Value]:
+    """Error handling wrapper for GDBs parse_and_eval function"""
+    try:
+        return gdb.parse_and_eval(expression)
+    except gdb.error:
+        return None

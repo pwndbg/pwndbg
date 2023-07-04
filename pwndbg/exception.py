@@ -4,9 +4,9 @@ import traceback
 
 import gdb
 
-import pwndbg.color.message as message
-import pwndbg.lib.memoize
+import pwndbg.lib.cache
 import pwndbg.lib.stdio
+from pwndbg.color import message
 from pwndbg.gdblib import config
 
 with pwndbg.lib.stdio.stdio:
@@ -14,6 +14,12 @@ with pwndbg.lib.stdio.stdio:
         import ipdb as pdb
     except ImportError:
         import pdb
+    try:
+        from rich.console import Console
+
+        _rich_console = Console()
+    except ImportError:
+        _rich_console = None
 
 verbose = config.add_param(
     "exception-verbose",
@@ -25,11 +31,11 @@ debug = config.add_param(
 )
 
 
-@pwndbg.lib.memoize.forever
-def inform_report_issue(exception_msg):
+@pwndbg.lib.cache.cache_until("forever")
+def inform_report_issue(exception_msg) -> None:
     """
     Informs user that he can report an issue.
-    The use of `memoize` makes it reporting only once for a given exception message.
+    The use of caching makes it reporting only once for a given exception message.
     """
     print(
         message.notice(
@@ -42,7 +48,7 @@ def inform_report_issue(exception_msg):
     )
 
 
-def inform_verbose_and_debug():
+def inform_verbose_and_debug() -> None:
     print(
         message.notice("For more info invoke `")
         + message.hint("set exception-verbose on")
@@ -71,13 +77,16 @@ def handle(name="Error"):
     # Display the error
     if debug or verbose:
         exception_msg = traceback.format_exc()
-        print(exception_msg)
+        if _rich_console:
+            _rich_console.print_exception()
+        else:
+            print(exception_msg)
         inform_report_issue(exception_msg)
 
     else:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        print(message.error("Exception occurred: {}: {} ({})".format(name, exc_value, exc_type)))
+        print(message.error(f"Exception occurred: {name}: {exc_value} ({exc_type})"))
 
         inform_verbose_and_debug()
 
@@ -88,7 +97,7 @@ def handle(name="Error"):
 
 
 @functools.wraps(pdb.set_trace)
-def set_trace():
+def set_trace() -> None:
     """Enable sane debugging in Pwndbg by switching to the "real" stdio."""
     debugger = pdb.Pdb(
         stdin=sys.__stdin__, stdout=sys.__stdout__, skip=["pwndbg.lib.stdio", "pwndbg.exception"]
@@ -100,7 +109,7 @@ pdb.set_trace = set_trace
 
 
 @config.trigger(verbose, debug)
-def update():
+def update() -> None:
     if verbose or debug:
         command = "set python print-stack full"
     else:

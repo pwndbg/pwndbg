@@ -1,5 +1,5 @@
-import pwndbg.color.theme as theme
 from pwndbg.color import generateColorFunction
+from pwndbg.color import theme
 from pwndbg.gdblib import config
 
 config_prefix_color = theme.add_color_param(
@@ -104,4 +104,4 @@ def format_flags(value, flags, last=None):
             name = flag_changed(name)
         names.append(name)
 
-    return "%s %s %s %s" % (desc, flag_bracket("["), " ".join(names), flag_bracket("]"))
+    return f"{desc} {flag_bracket('[')} {' '.join(names)} {flag_bracket(']')}"

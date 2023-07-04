@@ -2,16 +2,17 @@ import functools
 import subprocess
 from subprocess import STDOUT
 
+from pwnlib.util.misc import which
+
 import pwndbg.commands
-import pwndbg.lib.which
 
 
 class OnlyWithCommand:
-    def __init__(self, *commands):
+    def __init__(self, *commands) -> None:
         self.all_cmds = list(map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands))
         for command in commands:
             self.cmd = command if isinstance(command, list) else [command]
-            self.cmd_path = pwndbg.lib.which.which(self.cmd[0])
+            self.cmd_path = which(self.cmd[0])
             if self.cmd_path:
                 break
 
@@ -24,7 +25,7 @@ class OnlyWithCommand:
             if self.cmd_path:
                 return function(*a, **kw)
             else:
-                raise OSError("Could not find command(s) %s in $PATH" % ", ".join(self.all_cmds))
+                raise OSError(f"Could not find command(s) {', '.join(self.all_cmds)} in $PATH")
 
         return _OnlyWithCommand
 

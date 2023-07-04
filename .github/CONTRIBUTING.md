@@ -1,6 +1,6 @@
 ### Contributing
 
-Contributions to Pwndbg are always welcome! If you want to get more familiar with project idea/structure/whatever - [here are some developer notes](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md). If something is not clear, feel free to ask in a github issue!
+Contributions to Pwndbg are always welcome! If you want to get more familiar with project idea/structure/whatever - [here are some developer notes](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md). If something is not clear, feel free to ask either in a GitHub issue or on our [Discord server](https://discord.gg/x47DssnGwm)!
 
 If you want to help, fork the project, hack your changes and create a pull request.
 
@@ -13,19 +13,12 @@ Some guides:
 
 ### Versioning and releases
 
-* There are three branches: `stable`, `beta` and `dev`
+* We use only one branch: `dev` and create tags for releases
 * Each developer works on his own fork
-* Only bug-fixes will be merged into either `stable` or `beta`
-* Every release, merges are cascaded `stable -> beta -> dev`
-* After merging, a new minor-point-release (`1.X`) is created for `stable`
 * Releases occur on predetermined schedule
-* Bugs _are not fixed_ on releases older than the current `stable` (i.e. `0.9` is never fixed)
-* Mid-cycle releases get a patch version bump (`1.1.X`) when bugs affecting `stable` or `beta` are found
-* Pull requests which fix bugs target the oldest branch they affect (e.g. `stable`).
-* There might be occassional cherry-picks if something is fixed in a later branch and we don't notice/forget that it should really target an earlier branch.
-* Documentation fixes, CI fixes, CHANGELOG/README fixes and other tiny fixes does not trigger a new point release.
+* Bugs _are not fixed_ on releases: they are merged to dev branch and will be released with a new tag/release
 
 ### Contact
 
 If you want to talk with other contributors and pwndbg users 
-join us at our irc channel: #pwndbg at freenode.
+join us at our [Discord server](https://discord.gg/x47DssnGwm)!

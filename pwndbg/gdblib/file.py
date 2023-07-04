@@ -11,20 +11,19 @@ import tempfile
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
+from pwndbg.color import message
 
 _remote_files_dir = None
 
 
-@pwndbg.gdblib.events.exit
-def reset_remote_files():
+def reset_remote_files() -> None:
     global _remote_files_dir
 
     if _remote_files_dir is not None:
         shutil.rmtree(_remote_files_dir)
-        remote_files_dir = None
+        _remote_files_dir = None
 
 
 def remote_files_dir():
@@ -36,7 +35,14 @@ def remote_files_dir():
     return _remote_files_dir
 
 
-def get_file(path):
+def get_proc_exe_file() -> str:
+    """
+    Returns the local path to the debugged file name.
+    """
+    return get_file(pwndbg.gdblib.proc.exe, try_local_path=True)
+
+
+def get_file(path: str, try_local_path: bool = False) -> str:
     """
     Downloads the specified file from the system where the current process is
     being debugged.
@@ -44,12 +50,17 @@ def get_file(path):
     If the `path` is prefixed with "target:" the prefix is stripped
     (to support remote target paths properly).
 
+    If the `try_local_path` is set to `True` and the `path` exists locally and "target:" prefix is not present, it will return the local path instead of downloading the file.
+
     Returns:
         The local path to the file
     """
-    assert path.startswith("/") or path.startswith("target:"), "get_file called with incorrect path"
+    assert path.startswith(("/", "./")) or path.startswith(
+        "target:"
+    ), "get_file called with incorrect path"
 
-    if path.startswith("target:"):
+    has_target_prefix = path.startswith("target:")
+    if has_target_prefix:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
@@ -60,27 +71,28 @@ def get_file(path):
 
     elif pwndbg.gdblib.remote.is_remote():
         if not pwndbg.gdblib.qemu.is_qemu():
+            if try_local_path and not has_target_prefix and os.path.exists(local_path):
+                return local_path
             local_path = tempfile.mktemp(dir=remote_files_dir())
             error = None
             try:
-                error = gdb.execute('remote get "%s" "%s"' % (path, local_path), to_string=True)
+                error = gdb.execute(f'remote get "{path}" "{local_path}"', to_string=True)
             except gdb.error as e:
-                error = e
+                error = str(e)
 
             if error:
                 raise OSError("Could not download remote file %r:\n" "Error: %s" % (path, error))
         else:
             print(
                 message.warn(
-                    "pwndbg.gdblib.file.get(%s) returns local path as we can't download file from QEMU"
-                    % path
+                    f"pwndbg.gdblib.file.get_file({path}) returns local path as we can't download file from QEMU"
                 )
             )
 
     return local_path
 
 
-def get(path):
+def get(path: str) -> bytes:
     """
     Retrieves the contents of the specified file on the system
     where the current process is being debugged.
@@ -108,7 +120,9 @@ def readlink(path):
 
     if is_qemu:
         if not os.path.exists(path):
-            path = os.path.join(pwndbg.gdblib.qemu.root(), path)
+            # The or "" is needed since .root() may return None
+            # Then we just use the path (it can also be absolute too)
+            path = os.path.join(pwndbg.gdblib.qemu.root() or "", path)
 
     if is_qemu or not pwndbg.gdblib.remote.is_remote():
         try:
@@ -133,13 +147,10 @@ def readlink(path):
 
     result = gdb.execute(cmd % path, from_tty=False, to_string=True)
 
-    """
-    sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
-    received: "Fc;pipe:[98420]"
-
-    sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
-    received: "F-1,2"
-    """
+    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
+    # received: "Fc;pipe:[98420]"
+    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
+    # received: "F-1,2"
 
     _, data = result.split("\n", 1)
 

@@ -19,16 +19,12 @@ jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, ca
 interrupts = set((capstone.CS_GRP_INT,))
 
 
-@pwndbg.gdblib.events.exit
-def clear_temp_breaks():
+def clear_temp_breaks() -> None:
     if not pwndbg.gdblib.proc.alive:
-        breakpoints = gdb.breakpoints()
-        if breakpoints:
-            for bp in breakpoints:
-                if (
-                    bp.temporary and not bp.visible
-                ):  # visible is used instead of internal because older gdb's don't support internal
-                    bp.delete()
+        for bp in gdb.breakpoints():
+            # visible is used instead of internal because older gdb's don't support internal
+            if bp.temporary and not bp.visible:
+                bp.delete()
 
 
 def next_int(address=None):
@@ -109,11 +105,11 @@ def break_next_call(symbol_regex=None):
             return ins
 
         # return call if we match target address
-        if ins.target_const and re.match("%s$" % symbol_regex, hex(ins.target)):
+        if ins.target_const and re.match(f"{symbol_regex}$", hex(ins.target)):
             return ins
 
         # return call if we match symbol name
-        if ins.symbol and re.match("%s$" % symbol_regex, ins.symbol):
+        if ins.symbol and re.match(f"{symbol_regex}$", ins.symbol):
             return ins
 
 
@@ -132,7 +128,7 @@ def break_next_ret(address=None):
             return ins
 
 
-def break_on_program_code():
+def break_on_program_code() -> bool:
     """
     Breaks on next instruction that belongs to process' objfile code
 
@@ -166,7 +162,7 @@ def break_on_program_code():
     return False
 
 
-def break_on_next(address=None):
+def break_on_next(address=None) -> None:
     address = address or pwndbg.gdblib.regs.pc
     ins = pwndbg.disasm.one(address)
 

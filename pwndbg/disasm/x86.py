@@ -67,7 +67,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         sz = ""
 
         if segment != 0:
-            sz += "%s:" % instruction.reg_name(segment)
+            sz += f"{instruction.reg_name(segment)}:"
 
         if base != 0:
             sz += instruction.reg_name(base)
@@ -88,19 +88,19 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 sz += " + "
             sz += "%#x" % abs(op.mem.disp)
 
-        sz = "[%s]" % sz
+        sz = f"[{sz}]"
         return sz
 
     def register(self, instruction, operand):
         if operand.value.reg != X86_REG_RIP:
-            return super(DisassemblyAssistant, self).register(instruction, operand)
+            return super().register(instruction, operand)
 
         return instruction.address + instruction.size
 
     def next(self, instruction, call=False):
         # Only enhance 'ret'
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
-            return super(DisassemblyAssistant, self).next(instruction, call)
+            return super().next(instruction, call)
 
         # Stop disassembling at RET if we won't know where it goes to
         if instruction.address != pwndbg.gdblib.regs.pc:

@@ -6,15 +6,17 @@ import pwndbg.commands
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.vmmap
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 options = {"on": "off", "off": "on"}
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Check the current ASLR status, or turn it on/off.
 
 Does not take effect until the program is restarted.
-"""
+""",
 )
 parser.add_argument(
     "state",
@@ -25,10 +27,10 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def aslr(state=None):
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+def aslr(state=None) -> None:
     if state:
-        gdb.execute("set disable-randomization %s" % options[state], from_tty=False, to_string=True)
+        gdb.execute(f"set disable-randomization {options[state]}", from_tty=False, to_string=True)
 
         if pwndbg.gdblib.proc.alive:
             print("Change will take effect when the process restarts")
@@ -42,4 +44,4 @@ def aslr(state=None):
     else:
         status = message.off("???")
 
-    print("ASLR is %s (%s)" % (status, method))
+    print(f"ASLR is {status} ({method})")

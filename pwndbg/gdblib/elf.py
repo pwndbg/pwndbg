@@ -10,10 +10,15 @@ import ctypes
 import importlib
 import sys
 from collections import namedtuple
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
+from elftools.elf.relocation import Relocation
+from elftools.elf.relocation import RelocationSection
 
 import pwndbg.auxv
 import pwndbg.gdblib.abi
@@ -22,8 +27,8 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
+import pwndbg.lib.cache
 import pwndbg.lib.elftypes
-import pwndbg.lib.memoize
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -49,7 +54,7 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
 
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
-def update():
+def update() -> None:
     importlib.reload(pwndbg.lib.elftypes)
 
     if pwndbg.gdblib.arch.ptrsize == 4:
@@ -79,7 +84,7 @@ def read(typ, address, blob=None):
     return obj
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_elf_info(filepath):
     """
     Parse and return ELFInfo.
@@ -113,7 +118,7 @@ def get_elf_info(filepath):
         return ELFInfo(header, sections, segments)
 
 
-@pwndbg.lib.memoize.reset_on_objfile
+@pwndbg.lib.cache.cache_until("objfile")
 def get_elf_info_rebased(filepath, vaddr):
     """
     Parse and return ELFInfo with all virtual addresses rebased to vaddr
@@ -170,8 +175,40 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
     return sections
 
 
+def dump_section_by_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[int, int, bytes]]:
+    """
+    Dump the content of a section from an ELF file, return the start address, size and content.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        return (section["sh_addr"], section["sh_size"], section.data()) if section else None
+
+
+def dump_relocations_by_section_name(
+    filepath: str, section_name: str, try_local_path: bool = False
+) -> Optional[Tuple[Relocation, ...]]:
+    """
+    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    """
+    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    local_path = pwndbg.gdblib.file.get_file(filepath, try_local_path=try_local_path)
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+        section = elffile.get_section_by_name(section_name)
+        if section is None or not isinstance(section, RelocationSection):
+            return None
+        return tuple(section.iter_relocations())
+
+
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
+@pwndbg.lib.cache.cache_until("start")
 def exe():
     """
     Return a loaded ELF header object pointing to the Ehdr of the
@@ -183,8 +220,8 @@ def exe():
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.memoize.reset_on_start
-def entry():
+@pwndbg.lib.cache.cache_until("start")
+def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
@@ -223,8 +260,8 @@ def load(pointer):
 ehdr_type_loaded = 0
 
 
-@pwndbg.lib.memoize.reset_on_start
-def reset_ehdr_type_loaded():
+@pwndbg.lib.cache.cache_until("start")
+def reset_ehdr_type_loaded() -> None:
     global ehdr_type_loaded
     ehdr_type_loaded = 0
 
@@ -236,32 +273,38 @@ def get_ehdr(pointer):
     We expect the `pointer` to be an address from the binary.
     """
 
-    # This just does not work :(
-    if pwndbg.gdblib.qemu.is_qemu():
-        return None, None
-
-    vmmap = pwndbg.gdblib.vmmap.find(pointer)
     base = None
 
-    # If there is no vmmap for the requested address, we can't do much
-    # (e.g. it could have been unmapped for whatever reason)
-    if vmmap is None:
-        return None, None
-
-    # We first check if the beginning of the page contains the ELF magic
-    if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
-        base = vmmap.start
-
-    # The page did not have ELF magic; it may be that .text and binary start are split
-    # into two pages, so let's get the first page from the pointer's page objfile
+    if pwndbg.gdblib.qemu.is_qemu():
+        # Only check if the beginning of the page contains the ELF magic,
+        # since we cannot get the memory map in qemu-user.
+        page_start = pwndbg.lib.memory.page_align(pointer)
+        if pwndbg.gdblib.memory.read(page_start, 4, partial=True) == b"\x7fELF":
+            base = page_start
+        else:
+            return None, None
     else:
-        for v in pwndbg.gdblib.vmmap.get():
-            if v.objfile == vmmap.objfile:
-                vmmap = v
-                break
+        vmmap = pwndbg.gdblib.vmmap.find(pointer)
 
-        if pwndbg.gdblib.memory.read(vmmap.start, 4) == b"\x7fELF":
+        # If there is no vmmap for the requested address, we can't do much
+        # (e.g. it could have been unmapped for whatever reason)
+        if vmmap is None:
+            return None, None
+
+        # We first check if the beginning of the page contains the ELF magic
+        if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
             base = vmmap.start
+
+        # The page did not have ELF magic; it may be that .text and binary start are split
+        # into two pages, so let's get the first page from the pointer's page objfile
+        else:
+            for v in pwndbg.gdblib.vmmap.get():
+                if v.objfile == vmmap.objfile:
+                    vmmap = v
+                    break
+
+            if pwndbg.gdblib.memory.read(vmmap.start, 4, partial=True) == b"\x7fELF":
+                base = vmmap.start
 
     if base is None:
         # For non linux ABI, the ELF header may not exist at all
@@ -351,7 +394,7 @@ def map_inner(ei_class, ehdr, objfile):
     # Entries are processed in-order so that later entries
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for phdr in iter_phdrs(ehdr):
         memsz = int(phdr.p_memsz)
 
@@ -371,7 +414,7 @@ def map_inner(ei_class, ehdr, objfile):
         # For each page described by this program header
         for page_addr in range(vaddr, vaddr + memsz, pwndbg.lib.memory.PAGE_SIZE):
             if page_addr in pages:
-                page = pages[pages.index(page_addr)]
+                page = pages[pages.index(page_addr)]  # type: ignore[arg-type]
 
                 # Don't ever remove the execute flag.
                 # Sometimes we'll load a read-only area into .text

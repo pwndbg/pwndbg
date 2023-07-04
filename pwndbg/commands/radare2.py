@@ -1,11 +1,12 @@
 import argparse
 import subprocess
 
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.radare2
+from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Launches radare2", epilog="Example: r2 -- -S -AA")
+parser = argparse.ArgumentParser(description="Launches radare2.", epilog="Example: r2 -- -S -AA")
 parser.add_argument("--no-seek", action="store_true", help="Do not seek to current pc")
 parser.add_argument(
     "--no-rebase",
@@ -15,10 +16,12 @@ parser.add_argument(
 parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to radare")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["radare2"])
+@pwndbg.commands.ArgparsedCommand(
+    parser, aliases=["radare2"], category=CommandCategory.INTEGRATIONS
+)
 @pwndbg.commands.OnlyWithFile
-def r2(arguments, no_seek=False, no_rebase=False):
-    filename = pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe)
+def r2(arguments, no_seek=False, no_rebase=False) -> None:
+    filename = pwndbg.gdblib.file.get_proc_exe_file()
 
     # Build up the command line to run
     cmd = ["radare2"]
@@ -43,15 +46,15 @@ def r2(arguments, no_seek=False, no_rebase=False):
 
 
 parser = argparse.ArgumentParser(
-    description="Execute stateful radare2 commands through r2pipe",
+    description="Execute stateful radare2 commands through r2pipe.",
     epilog="Example: r2pipe pdf sym.main",
 )
 parser.add_argument("arguments", nargs="+", type=str, help="Arguments to pass to r2pipe")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
-def r2pipe(arguments):
+def r2pipe(arguments) -> None:
     try:
         r2 = pwndbg.radare2.r2pipe()
         print(r2.cmd(" ".join(arguments)))

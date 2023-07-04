@@ -6,6 +6,7 @@ import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.regs
 import pwndbg.radare2
+import pwndbg.rizin
 
 
 def decompile(func=None):
@@ -13,19 +14,24 @@ def decompile(func=None):
     Return the source of the given function decompiled by ghidra.
 
     If no function is given, decompile the function within the current pc.
-    This function requires radare2, r2pipe and r2ghidra.
+    This function requires radare2, r2pipe and r2ghidra, or their related rizin counterparts.
 
     Raises Exception if any fatal error occurs.
     """
     try:
         r2 = pwndbg.radare2.r2pipe()
     except ImportError:
-        raise Exception("r2pipe not available, but required for r2->ghidra bridge")
+        try:
+            r2 = pwndbg.rizin.rzpipe()
+        except ImportError:
+            raise Exception("r2pipe or rzpipe not available, but required for r2/rz->ghidra bridge")
 
     # LD -> list supported decompilers (e cmd.pdc=?)
     # Outputs for example: pdc\npdg
     if "pdg" not in r2.cmd("LD").split("\n"):
-        raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
+        raise Exception(
+            "radare2/rizin plugin r2ghidra/rzghidra must be installed and available from r2/rz"
+        )
 
     if not func:
         func = (
@@ -36,7 +42,7 @@ def decompile(func=None):
 
     src = r2.cmdj("pdgj @" + func)
     if not src:
-        raise Exception("Decompile command failed, check if '{}' is a valid target".format(func))
+        raise Exception(f"Decompile command failed, check if '{func}' is a valid target")
 
     current_line_marker = "/*%%PWNDBG_CODE_MARKER%%*/"
     source = src.get("code", "")

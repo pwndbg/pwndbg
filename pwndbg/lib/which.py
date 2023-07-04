@@ -32,7 +32,7 @@ import os
 import stat
 
 
-def which(name, all=False):
+def which(name: str, all: bool = False):
     """which(name, flags = os.X_OK, all = False) -> str or str set
 
     Works as the system command ``which``; searches $PATH for ``name`` and
@@ -62,7 +62,9 @@ def which(name, all=False):
     try:
         path = os.environ["PATH"]
     except KeyError:
-        log.exception("Environment variable $PATH is not set")
+        print("Environment variable $PATH is not set")
+        return None
+
     for p in path.split(os.pathsep):
         p = os.path.join(p, name)
         if os.access(p, os.X_OK):

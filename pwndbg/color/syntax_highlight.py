@@ -26,7 +26,7 @@ lexer_cache: Dict[str, Any] = {}
 
 
 @pwndbg.gdblib.config.trigger(style)
-def check_style():
+def check_style() -> None:
     global formatter
     try:
         formatter = pygments.formatters.Terminal256Formatter(style=str(style))
@@ -34,12 +34,10 @@ def check_style():
         # Reset the highlighted source cache
         from pwndbg.commands.context import get_highlight_source
 
-        get_highlight_source._reset()
+        get_highlight_source.cache.clear()
     except pygments.util.ClassNotFound:
         print(
-            message.warn(
-                "The pygment formatter style '%s' is not found, restore to default" % style
-            )
+            message.warn(f"The pygment formatter style '{style}' is not found, restore to default")
         )
         style.revert_default()
 

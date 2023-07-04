@@ -48,7 +48,7 @@ Elf64_Xword = ctypes.c_uint64
 Elf64_Sxword = ctypes.c_int64
 
 
-AT_CONSTANTS = {
+AT_CONSTANTS: Dict[int, str] = {
     0: "AT_NULL",  # /* End of vector */
     1: "AT_IGNORE",  # /* Entry should be ignored */
     2: "AT_EXECFD",  # /* File descriptor of program */
@@ -82,7 +82,7 @@ AT_CONSTANTS = {
     35: "AT_L1D_CACHESHAPE",
     36: "AT_L2_CACHESHAPE",
     37: "AT_L3_CACHESHAPE",
-}  # type: Dict[int,str]
+}
 
 
 class constants:

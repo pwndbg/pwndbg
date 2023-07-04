@@ -37,7 +37,7 @@ def test_vis_heap_chunk_command(start_binary):
     def hexdump_16B(gdb_symbol):
         from pwndbg.commands.heap import bin_ascii
 
-        first, second = gdb.execute("x/16xb %s" % gdb_symbol, to_string=True).splitlines()
+        first, second = gdb.execute(f"x/16xb {gdb_symbol}", to_string=True).splitlines()
         first = [int(v, 16) for v in first.split(":")[1].split("\t")[1:]]
         second = [int(v, 16) for v in second.split(":")[1].split("\t")[1:]]
 
@@ -68,6 +68,16 @@ def test_vis_heap_chunk_command(start_binary):
         )
     expected.append("%#x\t0x0000000000000000" % heap_iter())
     assert result == expected
+
+    ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
+    gdb.execute("set default-visualize-chunk-number 1")
+    assert pwndbg.gdblib.config.default_visualize_chunk_number == 1
+    result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    assert result == expected
+    gdb.execute(
+        "set default-visualize-chunk-number %d"
+        % pwndbg.gdblib.config.default_visualize_chunk_number.default
+    )
 
     del result
 
@@ -206,12 +216,12 @@ def test_vis_heap_chunk_command(start_binary):
     for omitted_line in omitted_result:
         assert omitted_line in default_result or set(omitted_line) == {"."}
 
-    display_all_result = gdb.execute("vis_heap_chunk -a", to_string=True).splitlines()
-    assert display_all_result == default_result
+    no_truncate_result = gdb.execute("vis_heap_chunk -n", to_string=True).splitlines()
+    assert no_truncate_result == default_result
 
     del default_result
     del omitted_result
-    del display_all_result
+    del no_truncate_result
 
     # Continue, mock overflow changing the chunk size
     gdb.execute("continue")

@@ -41,28 +41,23 @@ class Connection(inode):
 
     family = None
 
-    def __str__(self):
-        return "%s %s:%s => %s:%s (%s)" % (
-            self.family,
-            self.lhost,
-            self.lport,
-            self.rhost,
-            self.rport,
-            self.status,
+    def __str__(self) -> str:
+        return (
+            f"{self.family} {self.lhost}:{self.lport} => {self.rhost}:{self.rport} ({self.status})"
         )
 
-    def __repr__(self):
-        return 'Connection("%s")' % self
+    def __repr__(self) -> str:
+        return f'Connection("{self}")'
 
 
 class UnixSocket(inode):
     path = "(anonymous)"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "unix %r" % self.path
 
-    def __repr__(self):
-        return "UnixSocket(%s)" % self
+    def __repr__(self) -> str:
+        return f"UnixSocket({self})"
 
 
 def tcp(data: str):
@@ -146,12 +141,17 @@ def unix(data: str):
         return []
 
     result = []
-    for line in data.splitlines()[1:]:
+    # Note: it is super important to split by "\n" instead of .splitlines() here
+    # because there may be a line like this:
+    # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    # and splitlines will also split by \r which we do not want here
+    # We also finish at -1 index since with .split() the empty last line is kept in the result
+    for line in data.split("\n")[1:-1]:
         """
         Num       RefCount Protocol Flags    Type St Inode Path
         0000000000000000: 00000002 00000000 00010000 0005 01  1536 /dev/socket/msm_irqbalance
         """
-        fields = line.split(None, 7)
+        fields = line.split(maxsplit=7)
 
         u = UnixSocket()
         if len(fields) >= 8:
@@ -191,11 +191,11 @@ class Netlink(inode):
     eth = 0
     pid = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")
 
-    def __repr__(self):
-        return "Netlink(%s)" % self
+    def __repr__(self) -> str:
+        return f"Netlink({self})"
 
 
 def netlink(data: str):

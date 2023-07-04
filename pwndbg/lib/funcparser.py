@@ -11,7 +11,7 @@ def extractTypeAndName(n, defaultName=None):
     t = n.type
     d = 0
 
-    while isinstance(t, c_ast.PtrDecl) or isinstance(t, c_ast.ArrayDecl):
+    while isinstance(t, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         d += 1
         children = dict(t.children())
         t = children["type"]
@@ -19,11 +19,7 @@ def extractTypeAndName(n, defaultName=None):
     if isinstance(t, c_ast.FuncDecl):
         return extractTypeAndName(t)
 
-    if (
-        isinstance(t.type, c_ast.Struct)
-        or isinstance(t.type, c_ast.Union)
-        or isinstance(t.type, c_ast.Enum)
-    ):
+    if isinstance(t.type, (c_ast.Struct, c_ast.Union, c_ast.Enum)):
         typename = t.type.name
     else:
         typename = t.type.names[0]
@@ -39,8 +35,8 @@ Function = collections.namedtuple("Function", ("type", "derefcnt", "name", "args
 Argument = collections.namedtuple("Argument", ("type", "derefcnt", "name"))
 
 
-def Stringify(X):
-    return "%s %s %s" % (X.type, X.derefcnt * "*", X.name)
+def Stringify(X) -> str:
+    return f"{X.type} {X.derefcnt * '*'} {X.name}"
 
 
 def ExtractFuncDecl(node, verbose=False):
@@ -72,7 +68,7 @@ def ExtractAllFuncDecls(ast, verbose=False):
     Functions = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
-        def visit_FuncDecl(self, node, *a):
+        def visit_FuncDecl(self, node, *a) -> None:
             f = ExtractFuncDecl(node, verbose)
             Functions[f.name] = f
 

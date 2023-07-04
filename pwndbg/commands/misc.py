@@ -1,19 +1,21 @@
 import argparse
 import errno
+from collections import defaultdict
 
 import gdb
 
 import pwndbg.auxv
+import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
+from pwndbg.commands import CommandCategory
+from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
 
 parser = argparse.ArgumentParser(
-    description="""
-Converts errno (or argument) to its string representation.
-"""
+    description="Converts errno (or argument) to its string representation."
 )
 parser.add_argument(
     "err",
@@ -24,9 +26,9 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="errno")
+@pwndbg.commands.ArgparsedCommand(parser, command_name="errno", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def errno_(err):
+def errno_(err) -> None:
     if err is None:
         # Try to get the `errno` variable value
         # if it does not exist, get the errno variable from its location
@@ -43,7 +45,11 @@ def errno_(err):
                 if errno_loc_gotplt is None or pwndbg.gdblib.vmmap.find(
                     pwndbg.gdblib.memory.pvoid(errno_loc_gotplt)
                 ):
-                    err = int(gdb.parse_and_eval("*((int *(*) (void)) __errno_location) ()"))
+                    err = int(
+                        parse_and_eval_with_scheduler_lock(
+                            "*((int *(*) (void)) __errno_location) ()"
+                        )
+                    )
                 else:
                     print(
                         "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"
@@ -56,18 +62,22 @@ def errno_(err):
                 return
 
     msg = errno.errorcode.get(int(err), "Unknown error code")
-    print("Errno %s: %s" % (err, msg))
+    print(f"Errno {err}: {msg}")
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Prints out a list of all pwndbg commands. The list can be optionally filtered if filter_pattern is passed.
-"""
-)
+parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg commands.")
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--shell", action="store_true", help="Only display shell commands")
 group.add_argument("--all", dest="all_", action="store_true", help="Only display shell commands")
+
+cat_group = parser.add_mutually_exclusive_group()
+cat_group.add_argument(
+    "-c", "--category", type=str, default=None, dest="category_", help="Filter commands by category"
+)
+cat_group.add_argument(
+    "--list-categories", dest="list_categories", action="store_true", help="List command categories"
+)
 
 parser.add_argument(
     "filter_pattern",
@@ -78,8 +88,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg")
-def pwndbg_(filter_pattern, shell, all_):
+@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
+def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
+    if list_categories:
+        for category in CommandCategory:
+            print(C.bold(C.green(f"{category.value}")))
+        return
+
     if all_:
         shell_cmds = True
         pwndbg_cmds = True
@@ -90,27 +105,34 @@ def pwndbg_(filter_pattern, shell, all_):
         shell_cmds = False
         pwndbg_cmds = True
 
-    for name, docs in list_and_filter_commands(filter_pattern, pwndbg_cmds, shell_cmds):
-        print("%-20s %s" % (name, docs))
+    from tabulate import tabulate
 
+    table_data = defaultdict(lambda: [])
+    for name, aliases, category, docs in list_and_filter_commands(
+        filter_pattern, pwndbg_cmds, shell_cmds
+    ):
+        alias_str = ""
+        aliases_len = 0
+        if aliases:
+            aliases = map(C.blue, aliases)
+            alias_str = f" [{', '.join(aliases)}]"
 
-parser = argparse.ArgumentParser(description="""Print the distance between the two arguments.""")
-parser.add_argument("a", type=int, help="The first address.")
-parser.add_argument("b", type=int, help="The second address.")
+        command_names = C.green(name) + alias_str
+        table_data[category].append((command_names, docs))
 
+    for category in CommandCategory:
+        if category not in table_data or category_ and category_.lower() not in category.lower():
+            continue
+        data = table_data[category]
 
-@pwndbg.commands.ArgparsedCommand(parser)
-def distance(a, b):
-    """Print the distance between the two arguments"""
-    a = int(a) & pwndbg.gdblib.arch.ptrmask
-    b = int(b) & pwndbg.gdblib.arch.ptrmask
-
-    distance = b - a
-
-    print(
-        "%#x->%#x is %#x bytes (%#x words)"
-        % (a, b, distance, distance // pwndbg.gdblib.arch.ptrsize)
-    )
+        category_header = C.bold(C.green(category + " Commands"))
+        alias_header = C.bold(C.blue("Aliases"))
+        print(
+            tabulate(
+                data, headers=[f"{category_header} [{alias_header}]", f"{C.bold('Description')}"]
+            )
+        )
+        print()
 
 
 def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
@@ -131,6 +153,10 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
         if not c.shell and not pwndbg_cmds:
             continue
 
+        # Don't print aliases
+        if c.is_alias:
+            continue
+
         name = c.__name__
         docs = c.__doc__
 
@@ -140,6 +166,6 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
             docs = docs.splitlines()[0]
 
         if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
-            results.append((name, docs))
+            results.append((name, c.aliases, c.category, docs))
 
     return results

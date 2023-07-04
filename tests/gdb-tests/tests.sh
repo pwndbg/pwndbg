@@ -1,5 +1,21 @@
 #!/bin/bash
 
+#set -o errexit
+set -o pipefail
+
+# env_parallel will fail if there are too many environment variables, so we need
+# to use `--session` or `--record-env`, and only `--record-env` is supported on
+# the version of `parallel` on Ubuntu 20.04 and earlier. The directory also
+# needs to be created for CI
+mkdir -p ~/.parallel
+. $(which env_parallel.bash)
+
+# Workaround for Ubuntu 20.04/18.04 CI. If no aliases are defined
+# `env_parallel --record-env` will have non-zero exit code for older versions of
+# `parallel`, so we define a dummy alias here
+alias __dummy=foo
+env_parallel --record-env
+
 ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
@@ -32,7 +48,8 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -p | --pdb)
             USE_PDB=1
-            echo "Will run tests with Python debugger"
+            SERIAL=1
+            echo "Will run tests in serial and with Python debugger"
             shift
             ;;
         -c | --cov)
@@ -76,7 +93,7 @@ if [[ -z "$ZIGPATH" ]]; then
 fi
 echo "ZIGPATH set to $ZIGPATH"
 
-(cd ./tests/binaries && make clean && make all) || exit 1
+(cd ./tests/binaries && make all) || exit 1
 
 run_gdb() {
     gdb --silent --nx --nh "$@" --eval-command quit
@@ -111,9 +128,10 @@ run_test() {
         PWNDBG_LAUNCH_TEST="${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         run_gdb "${gdb_args[@]}"
+    retval=$?
 
     if [ "$SERIAL" -ne 1 ]; then
-        exit $?
+        exit $retval
     fi
 }
 
@@ -145,18 +163,6 @@ parse_output_file() {
     fi
 }
 
-JOBLOG_PATH="$(mktemp)"
-echo ""
-echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
-
-if [[ $KEEP -ne 1 ]]; then
-    echo " (use --keep it to persist it)"
-else
-    echo ""
-fi
-
-. $(which env_parallel.bash)
-
 start=$(date +%s)
 
 if [ $SERIAL -eq 1 ]; then
@@ -164,7 +170,18 @@ if [ $SERIAL -eq 1 ]; then
         run_test "$t"
     done
 else
-    env_parallel --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel parse_output_file {}
+    JOBLOG_PATH="$(mktemp)"
+    echo ""
+    echo -n "Running tests in parallel and using a joblog in $JOBLOG_PATH"
+
+    if [[ $KEEP -ne 1 ]]; then
+        echo " (use --keep it to persist it)"
+    else
+        echo ""
+    fi
+
+    # The `--env _` is required when using `--record-env`
+    env_parallel --env _ --output-as-files --joblog $JOBLOG_PATH run_test ::: "${TESTS_LIST[@]}" | env_parallel --env _ parse_output_file {}
 fi
 
 end=$(date +%s)

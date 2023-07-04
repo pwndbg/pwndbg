@@ -58,7 +58,7 @@ def test_command_telescope_n_records(start_binary):
 
     n = 3
     gdb.execute("entry")
-    result = gdb.execute("telescope $rsp {}".format(n), to_string=True).strip().splitlines()
+    result = gdb.execute(f"telescope $rsp {n}", to_string=True).strip().splitlines()
     assert len(result) == n
 
 
