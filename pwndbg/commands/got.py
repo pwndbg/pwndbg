@@ -67,7 +67,7 @@ def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
     if symbol_filter:
         print("Filtering by symbol keyword: " + message.hint(symbol_filter))
     if not accept_readonly:
-        print("Filtering out read-only entries.")
+        print("Filtering out read-only entries (display them with -r or --show-readonly)")
 
     if path_filter or not accept_readonly or symbol_filter:
         print()
