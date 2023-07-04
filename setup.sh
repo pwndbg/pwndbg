@@ -172,16 +172,14 @@ if ! osx; then
     PYTHON+="${PYVER}"
 fi
 
-# Make sure that pip is available
-if ! ${PYTHON} -m pip -V; then
-    ${PYTHON} -m ensurepip --upgrade
-fi
+# Create Python virtualenv
+${PYTHON} -m venv -- ./.venv
+PYTHON=./.venv/bin/python
 
 # Upgrade pip itself
 ${PYTHON} -m pip install --upgrade pip
 
 # Create Python virtual environment and install dependencies in it
-${PYTHON} -m venv -- ./.venv
 ./.venv/bin/pip install -Ur ./requirements.txt
 
 if [ -z "$UPDATE_MODE" ]; then
