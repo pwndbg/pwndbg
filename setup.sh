@@ -173,14 +173,19 @@ if ! osx; then
 fi
 
 # Create Python virtualenv
-${PYTHON} -m venv -- ./.venv
-PYTHON=./.venv/bin/python
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./venv"
+fi
+echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
+
+${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
+PYTHON=${PWNDBG_VENV_PATH}/bin/python
 
 # Upgrade pip itself
 ${PYTHON} -m pip install --upgrade pip
 
 # Create Python virtual environment and install dependencies in it
-./.venv/bin/pip install -Ur ./requirements.txt
+${PWNDBG_VENV_PATH}/bin/pip install -Ur ./requirements.txt
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out

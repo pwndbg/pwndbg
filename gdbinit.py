@@ -20,16 +20,20 @@ directory = path.expanduser(directory)
 directory = path.abspath(directory)
 
 # Get virtualenv's site-packages path
-site_pkgs_path = glob(os.path.join(directory, "./.venv/lib/*/site-packages"))[0]
-sys.path.insert(0, site_pkgs_path)
+venv_path = os.environ.get("PWNDBG_VENV_PATH")
+if not venv_path:
+    venv_path = os.path.join(directory, ".venv")
+
+site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
 # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
-bin_path = os.path.join(directory, "./.venv/bin")
+bin_path = os.path.join(venv_path, "bin")
 os.environ["PATH"] = bin_path + os.path.sep + os.environ.get("PATH")
 
 # Add gdb-pt-dump directory to sys.path so it can be imported
 gdbpt = path.join(directory, "gdb-pt-dump")
 sys.path.append(directory)
+sys.path.append(site_pkgs_path)
 sys.path.append(gdbpt)
 
 # warn if the user has different encoding than utf-8
