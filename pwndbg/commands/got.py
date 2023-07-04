@@ -40,7 +40,7 @@ group.add_argument(
 group.add_argument(
     "-a",
     "--all",
-    help="Parse all libraries including the target executable.",
+    help="Process all libs/obfjiles including the target executable.",
     action="store_true",
     default=False,
     dest="all_",
