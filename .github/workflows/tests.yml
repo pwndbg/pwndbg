@@ -42,7 +42,7 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        pip install coverage[toml]
+        pip install --user coverage[toml]
         coverage combine
         coverage xml
 
