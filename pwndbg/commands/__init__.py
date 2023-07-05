@@ -660,6 +660,7 @@ def load_commands() -> None:
     import pwndbg.commands.segments
     import pwndbg.commands.shell
     import pwndbg.commands.slab
+    import pwndbg.commands.spray
     import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
