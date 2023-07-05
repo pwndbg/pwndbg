@@ -10,6 +10,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.vmmap
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
@@ -61,6 +62,11 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
+    if pwndbg.gdblib.qemu.is_qemu_usermode():
+        print(
+            "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
+        )
+        print()
     # Show the filters we are using
     if path_filter:
         print("Filtering by lib/objfile path: " + message.hint(path_filter))
