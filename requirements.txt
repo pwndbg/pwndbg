@@ -1,3 +1,4 @@
+setuptools-rust; python_version < '3.7'
 capstone==5.0.0rc4
 psutil==5.9.5
 pwntools==4.10.0
