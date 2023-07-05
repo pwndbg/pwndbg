@@ -21,7 +21,7 @@ def test_commands_plt_gotplt_got_when_no_sections(start_binary):
     # got.py command
     out = gdb.execute("got", to_string=True).splitlines()
     assert len(out) == 4
-    assert out[0] == "Filtering out read-only entries."
+    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / NO_SECTS_BINARY}:"
     assert out[3] == "GOT protection: No RELRO | Found 0 GOT entries passing the filter"
@@ -74,7 +74,7 @@ def test_command_got_for_target_binary(binary_name, is_pie):
 
     # Before resolving symbols' addresses, .got and .got.plt are writable
     assert len(out) == 7
-    assert out[0] == "Filtering out read-only entries."
+    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
     assert out[3] == "GOT protection: Full RELRO | Found 3 GOT entries passing the filter"
@@ -96,7 +96,7 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     # Try filtering out entries with "puts"
     out = gdb.execute("got -r puts", to_string=True).splitlines()
     assert len(out) == 5
-    assert out[0] == "Filtering by symbol keyword: puts"
+    assert out[0] == "Filtering by symbol name: puts"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
     assert out[3] == "GOT protection: Full RELRO | Found 1 GOT entries passing the filter"
@@ -113,8 +113,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     # Before loading libc, we can't find .got.plt of libc
     out = gdb.execute("got -p libc", to_string=True).splitlines()
     assert len(out) == 6
-    assert out[0] == "Filtering by path keyword: libc"
-    assert out[1] == "Filtering out read-only entries."
+    assert out[0] == "Filtering by lib/objfile path: libc"
+    assert out[1] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[2] == ""
     assert out[3] == "No shared library matching the path filter found."
     assert out[4] == "Available shared libraries:"
@@ -126,8 +126,8 @@ def test_command_got_for_target_binary_and_loaded_library():
 
     # After loading libc, we can find .got.plt of libc
     out = gdb.execute("got -p libc", to_string=True).splitlines()
-    assert out[0] == "Filtering by path keyword: libc"
-    assert out[1] == "Filtering out read-only entries."
+    assert out[0] == "Filtering by lib/objfile path: libc"
+    assert out[1] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[2] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[3])
     m = re.match(
@@ -141,7 +141,7 @@ def test_command_got_for_target_binary_and_loaded_library():
 
     # Try showing read-only entries of libc also
     out = gdb.execute("got -p libc -r", to_string=True).splitlines()
-    assert out[0] == "Filtering by path keyword: libc"
+    assert out[0] == "Filtering by lib/objfile path: libc"
     assert out[1] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[2])
     m = re.match(
@@ -155,9 +155,9 @@ def test_command_got_for_target_binary_and_loaded_library():
 
     # Try filtering out libc's entries with "ABS"
     out = gdb.execute("got -p libc ABS", to_string=True).splitlines()
-    assert out[0] == "Filtering by path keyword: libc"
-    assert out[1] == "Filtering by symbol keyword: ABS"
-    assert out[2] == "Filtering out read-only entries."
+    assert out[0] == "Filtering by lib/objfile path: libc"
+    assert out[1] == "Filtering by symbol name: ABS"
+    assert out[2] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[3] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[4])
     m = re.match(
@@ -171,8 +171,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     # Try filtering out path with "l", which should match every library
     # First should be ld-linux-x86-64.so.2
     out = gdb.execute("got -p l", to_string=True).splitlines()
-    assert out[0] == "Filtering by path keyword: l"
-    assert out[1] == "Filtering out read-only entries."
+    assert out[0] == "Filtering by lib/objfile path: l"
+    assert out[1] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[2] == ""
     assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[3])
     m = re.match(
@@ -197,7 +197,7 @@ def test_command_got_for_target_binary_and_loaded_library():
     # Check -a option list target binary's GOT also all loaded libraries' GOT
     # First should be target binary
     out = gdb.execute("got -a", to_string=True).splitlines()
-    assert out[0] == "Filtering out read-only entries."
+    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
     assert out[3] == "GOT protection: Full RELRO | Found 0 GOT entries passing the filter"
@@ -227,7 +227,7 @@ def test_command_got_for_target_binary_and_loaded_library():
 
     # Check got -a -r puts can show the puts entry in target binary's GOT
     out = gdb.execute("got -a -r puts", to_string=True).splitlines()
-    assert out[0] == "Filtering by symbol keyword: puts"
+    assert out[0] == "Filtering by symbol name: puts"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
     assert out[3] == "GOT protection: Full RELRO | Found 1 GOT entries passing the filter"
