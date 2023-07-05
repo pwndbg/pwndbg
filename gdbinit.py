@@ -23,11 +23,16 @@ directory = path.abspath(directory)
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 if not venv_path:
     venv_path = os.path.join(directory, ".venv")
+
+if not os.path.exists(venv_path):
+    print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
+    sys.exit(1)
+
 site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
 # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
 bin_path = os.path.join(venv_path, "bin")
-os.environ["PATH"] = bin_path + os.path.sep + os.environ.get("PATH")
+os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
 
 # Add gdb-pt-dump directory to sys.path so it can be imported
 gdbpt = path.join(directory, "gdb-pt-dump")
