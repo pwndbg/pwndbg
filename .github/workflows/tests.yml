@@ -19,8 +19,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        ./setup.sh --user
-        ./setup-dev.sh --user
+        ./setup.sh
+        ./setup-dev.sh
         pip install --user coveralls
 
     - name: Python version info
@@ -64,8 +64,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        ./setup.sh --user
-        ./setup-dev.sh --user
+        ./setup.sh
+        ./setup-dev.sh
         mkdir .cov
 
     - name: Set up cache for QEMU images
