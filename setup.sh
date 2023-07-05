@@ -69,20 +69,15 @@ install_pacman() {
 }
 
 usage() {
-    echo "Usage: $0 [--update] [--user]"
+    echo "Usage: $0 [--update]"
     echo "  --update: Install/update dependencies without checking ~/.gdbinit"
-    echo "  --user: Install pip dependencies to the user's home directory"
 }
 
 UPDATE_MODE=
-USER_MODE=
 for arg in "$@"; do
     case $arg in
         --update)
             UPDATE_MODE=1
-            ;;
-        --user)
-            USER_MODE=1
             ;;
         -h | --help)
             set +x
