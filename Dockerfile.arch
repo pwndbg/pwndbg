@@ -19,6 +19,8 @@ ENV ZIGPATH=/opt/zig
 
 # TODO/FIXME: Remove me. This is only for a test.
 RUN curl -vvv geo.mirror.pkgbuild.com
+RUN curl -vvv https://geo.mirror.pkgbuild.com
+
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
