@@ -17,6 +17,9 @@ ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
 
+# TODO/FIXME: Remove me. This is only for a test.
+RUN curl -vvv geo.mirror.pkgbuild.com
+
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     pacman -Syu --noconfirm && \
