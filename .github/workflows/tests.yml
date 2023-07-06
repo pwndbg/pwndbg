@@ -43,6 +43,8 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       run: |
         ./.venv/bin/pip install coverage[toml]
+        ls -la ./
+        ls -la ./.cov
         ./.venv/bin/coverage combine
         ./.venv/bin/coverage xml
 
