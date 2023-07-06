@@ -1,9 +1,6 @@
 import codecs
-import os
 import re
 import subprocess
-
-launched_locally = not (os.environ.get("PWNDBG_GITHUB_ACTIONS_TEST_RUN"))
 
 
 def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout=None):
