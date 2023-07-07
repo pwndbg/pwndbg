@@ -21,11 +21,11 @@ parser.add_argument("--value", help="Value to spray memory with", type=str, requ
 @pwndbg.commands.ArgparsedCommand(parser)
 def spray(addr, length, value) -> None:
     if length == 0:
-        last_page = pwndbg.gdblib.vmmap.find(addr)
-        if last_page is None:
-            print(M.error("Invalid address, can't find end of vmmap"))
+        page = pwndbg.gdblib.vmmap.find(addr)
+        if page is None:
+            print(M.error(f"Invalid address {addr}: can't find vmmap containing it to determine the spray length"))
             return
-        length = last_page.end - int(addr)
+        length = page.end - int(addr)
 
     value_bytes = b""
 
