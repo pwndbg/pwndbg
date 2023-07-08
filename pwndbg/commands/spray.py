@@ -15,7 +15,12 @@ parser.add_argument(
     nargs="?",
     default=0,
 )
-parser.add_argument("--value", help="Value to spray memory with", type=str, required=False)
+parser.add_argument(
+    "--value",
+    help="Value to spray memory with, when prefixed with '0x' treated as hex string encoded big-endian",
+    type=str,
+    required=False,
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
@@ -23,7 +28,11 @@ def spray(addr, length, value) -> None:
     if length == 0:
         page = pwndbg.gdblib.vmmap.find(addr)
         if page is None:
-            print(M.error(f"Invalid address {addr}: can't find vmmap containing it to determine the spray length"))
+            print(
+                M.error(
+                    f"Invalid address {addr}: can't find vmmap containing it to determine the spray length"
+                )
+            )
             return
         length = page.end - int(addr)
 
