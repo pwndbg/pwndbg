@@ -30,6 +30,8 @@ jobs:
         ./.venv/bin/python -V
         echo 'Installed packages:'
         ./.venv/bin/python -m pip freeze
+        echo 'CI coverage version:'
+        gdb --batch -ex 'py import coverage; print(coverage.__version__)'
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
