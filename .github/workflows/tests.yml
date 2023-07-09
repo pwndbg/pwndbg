@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-22.04] #, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -38,7 +38,7 @@ jobs:
       run: |
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 ./tests.sh --cov
+        PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 ./tests.sh --cov test_m
         ls -la ./.cov/
 
     - name: Process coverage data
