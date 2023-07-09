@@ -96,6 +96,7 @@ echo "ZIGPATH set to $ZIGPATH"
 (cd ./tests/binaries && make all) || exit 1
 
 run_gdb() {
+    echo "WILL RUN: gdb --silent --nx --nh \"$@\" --eval-command quit"
     gdb --silent --nx --nh "$@" --eval-command quit
 }
 
