@@ -37,6 +37,7 @@ jobs:
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
         PWNDBG_GITHUB_ACTIONS_TEST_RUN=1 ./tests.sh --cov
+        ls -la ./.cov/
 
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
