@@ -38,7 +38,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -134,6 +134,9 @@ clean :
 	@echo "[+] Cleaning stuff"
 	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO) *.out *.o
 
+linked_lists.out: linked-lists.c
+	@echo "[+] Building $<"
+	${ZIGCC} -fpie -g -o $@ $<
 
 reference_bin_pie.out: reference-binary.c
 	@echo "[+] Building reference_bin_pie.out"
