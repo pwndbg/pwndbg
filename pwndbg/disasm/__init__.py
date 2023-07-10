@@ -9,6 +9,8 @@ from typing import List
 from typing import Union
 
 import capstone
+import capstone.arm
+import capstone.arm64
 import gdb
 from capstone import *  # noqa: F403
 
@@ -200,6 +202,34 @@ def get(address, instructions=1):
         retval.append(i)
 
     return retval
+
+
+# Istructions that aren't classified as CS_GRP_CALL, but that we'd still
+# like to be treated as such inside pwndbg.
+EXTRA_CALL_INSTRUCTIONS = {
+    CS_ARCH_ARM: {capstone.arm.ARM_INS_BL, capstone.arm.ARM_INS_BLX},
+    CS_ARCH_ARM64: {capstone.arm64.ARM64_INS_BL, capstone.arm64.ARM64_INS_BLR},
+}
+
+
+def is_call(instruction):
+    """
+    Whether an instruction is a call instruction.
+
+    The instructions capstone considers to be calls (through CS_GRP_CALL) aren't
+    necessarily the same as the instructions we'd like to consider to be calls.
+    While there is considerable overlap between the two, relying entirely on
+    CS_GRP_CALL can make us miss instructions like `bl` on ARM.
+    """
+
+    if CS_GRP_CALL in instruction.groups:
+        # This is unambigously a call.
+        return True
+
+    cs = pwndbg.disasm.get_disassembler(instruction.address)
+    if cs.arch in EXTRA_CALL_INSTRUCTIONS:
+        return instruction.id in EXTRA_CALL_INSTRUCTIONS[cs.arch]
+    return False
 
 
 # These instruction types should not be emulated through, either

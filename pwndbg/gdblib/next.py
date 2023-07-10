@@ -97,7 +97,7 @@ def break_next_call(symbol_regex=None):
             break
 
         # continue if not a call
-        if capstone.CS_GRP_CALL not in ins.groups:
+        if not pwndbg.disasm.is_call(ins):
             continue
 
         # return call if we don't search for a symbol

@@ -3,7 +3,6 @@ Allows describing functions, specifically enumerating arguments which
 may be passed in a combination of registers and stack values.
 """
 import gdb
-from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain
@@ -90,7 +89,7 @@ def get(instruction):
     if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
-    if CS_GRP_CALL in instruction.groups:
+    if pwndbg.disasm.is_call(instruction):
         try:
             abi = pwndbg.lib.abi.ABI.default()
         except KeyError:
