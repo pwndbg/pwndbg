@@ -21,16 +21,15 @@ jobs:
       run: |
         ./setup.sh
         ./setup-dev.sh
-        pip install --user coveralls
 
     - name: Python version info
       run: |
         echo 'GDB py:'
         gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
         echo 'Installed py:'
-        python -V
+        ./.venv/bin/python -V
         echo 'Installed packages:'
-        python -m pip freeze
+        ./.venv/bin/python -m pip freeze
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
@@ -42,9 +41,8 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        pip install coverage[toml]
-        coverage combine
-        coverage xml
+        ./.venv/bin/coverage combine
+        ./.venv/bin/coverage xml
 
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
@@ -93,8 +91,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        coverage combine
-        coverage xml
+        ./.venv/bin/coverage combine
+        ./.venv/bin/coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
