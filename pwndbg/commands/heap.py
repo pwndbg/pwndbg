@@ -419,11 +419,10 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             if no_match:
                 headers_to_print.append(message.hint("Allocated chunk"))
 
-    size_no_flags = chunk.size & (0xFFFFFFFFFFFFFFF - 0b111)
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
     else:
-        out_fields += f"Size: 0x{size_no_flags:02x} (with flag bits: 0x{chunk.size:02x})\n"
+        out_fields += f"Size: 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
 
     prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
@@ -440,7 +439,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
         if field_to_print == "size":
             out_fields += (
                 message.system("size")
-                + f": 0x{size_no_flags:02x} (with flag bits: 0x{chunk.size:02x})\n"
+                + f": 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
             )
         else:
             out_fields += (
