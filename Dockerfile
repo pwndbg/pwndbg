@@ -16,6 +16,7 @@ WORKDIR /pwndbg
 ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
+ENV PWNDBG_VENV_PATH=/venv
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
@@ -43,4 +44,3 @@ RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
 ADD . /pwndbg/
 
 RUN git submodule update --init --recursive
-

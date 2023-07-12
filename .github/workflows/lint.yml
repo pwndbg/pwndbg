@@ -1,5 +1,5 @@
 name: Lint
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   lint:
@@ -19,8 +19,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        ./setup.sh --user
-        ./setup-dev.sh --user
+        ./setup.sh
+        ./setup-dev.sh
 
     - name: Run linters
       run: |

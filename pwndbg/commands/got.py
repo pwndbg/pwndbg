@@ -1,54 +1,177 @@
 import argparse
 
+from elftools.elf.elffile import ELFFile
+
 import pwndbg.chain
+import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
+import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
+import pwndbg.gdblib.info
+import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
+import pwndbg.gdblib.vmmap
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.wrappers.readelf import RelocationType
 
-parser = argparse.ArgumentParser(description="Show the state of the Global Offset Table.")
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Show the state of the Global Offset Table.
+
+Examples:
+    got
+    got puts
+    got -p libc
+    got -a
+""",
+)
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
+    "-p",
+    "--path",
+    help="Filter results by library/objfile path.",
+    type=str,
+    default="",
+    dest="path_filter",
+)
+group.add_argument(
+    "-a",
+    "--all",
+    help="Process all libs/obfjiles including the target executable.",
+    action="store_true",
+    default=False,
+    dest="all_",
+)
 parser.add_argument(
-    "name_filter", help="Filter results by passed name.", type=str, nargs="?", default=""
+    "-r",
+    "--show-readonly",
+    help="Also display read-only entries (which are filtered out by default).",
+    action="store_true",
+    default=False,
+    dest="accept_readonly",
+)
+parser.add_argument(
+    "symbol_filter", help="Filter results by symbol name.", type=str, nargs="?", default=""
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def got(name_filter="") -> None:
-    relro_status = pwndbg.wrappers.checksec.relro_status()
-    pie_status = pwndbg.wrappers.checksec.pie_status()
-    jmpslots = list(pwndbg.wrappers.readelf.get_jmpslots())
-    if not jmpslots:
-        print(message.error("NO JUMP_SLOT entries available in the GOT"))
+def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
+    if pwndbg.gdblib.qemu.is_qemu_usermode():
+        print(
+            "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
+        )
+        print()
+    # Show the filters we are using
+    if path_filter:
+        print("Filtering by lib/objfile path: " + message.hint(path_filter))
+    if symbol_filter:
+        print("Filtering by symbol name: " + message.hint(symbol_filter))
+    if not accept_readonly:
+        print("Filtering out read-only entries (display them with -r or --show-readonly)")
+
+    if path_filter or not accept_readonly or symbol_filter:
+        print()
+
+    # Calculate the base address
+    if not path_filter:
+        first_print = False
+        _got(pwndbg.gdblib.proc.exe, accept_readonly, symbol_filter)
+    else:
+        first_print = True
+
+    if not all_ and not path_filter:
         return
+    # TODO: We might fail to find shared libraries if GDB can't find them (can't show them in `info sharedlibrary`)
+    paths = pwndbg.gdblib.info.sharedlibrary_paths()
+    for path in paths:
+        if path_filter not in path:
+            continue
+        if not first_print:
+            print()
+        first_print = False
+        _got(path, accept_readonly, symbol_filter)
 
-    if "PIE enabled" in pie_status:
-        bin_base = pwndbg.gdblib.proc.binary_base_addr
+    # Maybe user have a typo or something in the path filter, show the available shared libraries
+    if first_print and path_filter:
+        print(message.error("No shared library matching the path filter found."))
+        if paths:
+            print(message.notice("Available shared libraries:"))
+            for path in paths:
+                print("    " + path)
 
+
+def _got(path, accept_readonly, symbol_filter) -> None:
+    # Maybe download the file from remote
+    local_path = pwndbg.gdblib.file.get_file(path, try_local_path=True)
+
+    relro_status = pwndbg.wrappers.checksec.relro_status(local_path)
+    pie_status = pwndbg.wrappers.checksec.pie_status(local_path)
+    got_entry = pwndbg.wrappers.readelf.get_got_entry(local_path)
+
+    # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
+    # TODO/FIXME: Maybe a -v option to show more information will be better
+    outputs = []
+    if path == pwndbg.gdblib.proc.exe:
+        bin_base_offset = pwndbg.gdblib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
+    else:
+        # TODO/FIXME: Is there a better way to get the base address of the loaded shared library?
+        # I guess parsing the vmmap result might also work, but what if it's not reliable or not available? (e.g. debugging with qemu-user)
+        text_section_addr = pwndbg.gdblib.info.parsed_sharedlibrary()[path][0]
+        with open(local_path, "rb") as f:
+            bin_base_offset = (
+                text_section_addr - ELFFile(f).get_section_by_name(".text").header["sh_addr"]
+            )
+
+    # Parse the output of readelf line by line
+    for category, lines in got_entry.items():
+        for line in lines:
+            # line might be something like:
+            # 00000000001ec018  0000000000000025 R_X86_64_IRELATIVE                        a0480
+            # or something like:
+            # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
+            offset, _, rtype, *rest = line.split()[:5]
+            if len(rest) == 1:
+                value = rest[0]
+                name = ""
+            else:
+                value, name = rest
+            address = int(offset, 16) + bin_base_offset
+            # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
+            if not accept_readonly and not pwndbg.gdblib.vmmap.find(address).write:
+                continue
+            if not name and category == RelocationType.IRELATIVE:
+                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
+                # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
+                if pwndbg.gdblib.arch.name == "i386":
+                    name = "*ABS*"
+                else:
+                    name = f"*ABS*+0x{int(value, 16):x}"
+            if symbol_filter not in name:
+                continue
+            outputs.append(
+                {
+                    "name": name or "????",
+                    "address": address,
+                }
+            )
+    # By sorting the outputs by address, we can get a more intuitive output
+    outputs.sort(key=lambda x: x["address"])
     relro_color = message.off
     if "Partial" in relro_status:
         relro_color = message.warn
     elif "Full" in relro_status:
         relro_color = message.on
-    print("GOT protection: %s | GOT functions: %d" % (relro_color(relro_status), len(jmpslots)))
-
-    for line in jmpslots:
-        address, info, rtype, value, name = line.split()[:5]
-
-        if name_filter not in name:
-            continue
-
-        address_val = int(address, 16)
-
-        if (
-            "PIE enabled" in pie_status
-        ):  # if PIE, address is only the offset from the binary base address
-            address_val = bin_base + address_val
-
-        got_address = pwndbg.gdblib.memory.pvoid(address_val)
+    print(f"State of the GOT of {message.notice(path)}:")
+    print(
+        f"GOT protection: {relro_color(relro_status)} | Found {message.hint(len(outputs))} GOT entries passing the filter"
+    )
+    for output in outputs:
         print(
-            "[0x%x] %s -> %s" % (address_val, message.hint(name), pwndbg.chain.format(got_address))
+            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"
         )

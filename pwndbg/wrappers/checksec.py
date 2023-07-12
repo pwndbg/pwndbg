@@ -10,8 +10,7 @@ cmd_pwntools = ["pwn", "checksec"]
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 @pwndbg.lib.cache.cache_until("objfile")
-def get_raw_out():
-    local_path = pwndbg.gdblib.file.get_proc_exe_file()
+def get_raw_out(local_path: str) -> str:
     try:
         return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file=" + local_path])
     except CalledProcessError:
@@ -24,9 +23,9 @@ def get_raw_out():
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
-def relro_status():
+def relro_status(local_path: str) -> str:
     relro = "No RELRO"
-    out = get_raw_out()
+    out = get_raw_out(local_path)
 
     if "Full RELRO" in out:
         relro = "Full RELRO"
@@ -37,9 +36,9 @@ def relro_status():
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
-def pie_status():
+def pie_status(local_path) -> str:
     pie = "No PIE"
-    out = get_raw_out()
+    out = get_raw_out(local_path)
 
     if "PIE enabled" in out:
         pie = "PIE enabled"

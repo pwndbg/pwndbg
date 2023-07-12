@@ -81,6 +81,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         telescope.offset = 0
 
     address = int(address if address else pwndbg.gdblib.regs.sp) & pwndbg.gdblib.arch.ptrmask
+    input_address = address
     count = max(int(count), 1) & pwndbg.gdblib.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
     separator = T.separator(offset_separator)
@@ -179,7 +180,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         # Buffer repeating values.
         if skip_repeating_values:
             value = pwndbg.gdblib.memory.pvoid(addr)
-            if last == value:
+            if last == value and addr != input_address:
                 collapse_buffer.append(line)
                 continue
             collapse_repeating_values()

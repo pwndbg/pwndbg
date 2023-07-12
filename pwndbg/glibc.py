@@ -76,19 +76,8 @@ def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
     """
-    # Try to parse the output of `info sharedlibrary`:
-    # pwndbg> |info sharedlibrary| grep libc
-    # 0x00007f9ade418700  0x00007f9ade58f47d  Yes         ./libc.so.6
-    # Or:
-    # pwndbg> |info sharedlibrary| grep libc
-    # 0x00007f9ade418700  0x00007f9ade58f47d  Yes (*)     ./libc.so.6
     possible_libc_path = []
-    for line in pwndbg.gdblib.info.sharedlibrary().splitlines()[1:]:
-        if line.startswith("("):
-            # footer line:
-            # (*): Shared library is missing debugging information.
-            break
-        path = line.split(maxsplit=3)[-1].lstrip("(*)").lstrip()
+    for path in pwndbg.gdblib.info.sharedlibrary_paths():
         basename = os.path.basename(
             path[7:] if path.startswith("target:") else path
         )  # "target:" prefix is for remote debugging
