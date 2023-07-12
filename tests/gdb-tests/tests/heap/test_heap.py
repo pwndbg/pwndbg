@@ -15,7 +15,13 @@ HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
 def generate_expected_malloc_chunk_output(chunks):
     expected = {}
 
-    size = int(chunks['allocated']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['allocated'].type.fields()) else 'size'])
+    size = int(
+        chunks["allocated"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["allocated"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["allocated"] = [
         "Allocated chunk | PREV_INUSE",
@@ -24,7 +30,13 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
-    size = int(chunks['tcache']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['tcache'].type.fields()) else 'size'])
+    size = int(
+        chunks["tcache"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["tcache"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["tcache"] = [
         f"Free chunk ({'tcachebins' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
@@ -34,7 +46,13 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
-    size = int(chunks['fast']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['fast'].type.fields()) else 'size'])
+    size = int(
+        chunks["fast"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["fast"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["fast"] = [
         "Free chunk (fastbins) | PREV_INUSE",
@@ -44,7 +62,13 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
-    size = int(chunks['small']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['small'].type.fields()) else 'size'])
+    size = int(
+        chunks["small"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["small"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["small"] = [
         "Free chunk (smallbins) | PREV_INUSE",
@@ -55,7 +79,13 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
-    size = int(chunks['large']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['large'].type.fields()) else 'size'])
+    size = int(
+        chunks["large"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["large"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["large"] = [
         "Free chunk (largebins) | PREV_INUSE",
@@ -68,7 +98,13 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
-    size = int(chunks['unsorted']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['unsorted'].type.fields()) else 'size'])
+    size = int(
+        chunks["unsorted"][
+            "mchunk_size"
+            if "mchunk_size" in (f.name for f in chunks["unsorted"].type.fields())
+            else "size"
+        ]
+    )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["unsorted"] = [
         "Free chunk (unsortedbin) | PREV_INUSE",
