@@ -68,10 +68,10 @@ def test_find_fake_fast_command(start_binary):
 
     # setup_mem(0x2F, 0x8)
     result = gdb.execute("find_fake_fast &target_address", to_string=True)
-    check_result(result, 0x2F)
+    check_result(result, 0x28)
 
     result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
-    check_result(result, 0x2F)
+    check_result(result, 0x28)
     gdb.execute("continue")
 
     # setup_mem(0x20, 0x9)

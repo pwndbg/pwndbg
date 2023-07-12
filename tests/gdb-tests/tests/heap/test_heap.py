@@ -14,42 +14,53 @@ HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
 
 def generate_expected_malloc_chunk_output(chunks):
     expected = {}
+
+    size = int(chunks['allocated']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['allocated'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["allocated"] = [
         "Allocated chunk | PREV_INUSE",
         f"Addr: {chunks['allocated'].address}",
-        f"Size: 0x{int(chunks['allocated']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['allocated'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         "",
     ]
 
+    size = int(chunks['tcache']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['tcache'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["tcache"] = [
         f"Free chunk ({'tcachebins' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
         f"Addr: {chunks['tcache'].address}",
-        f"Size: 0x{int(chunks['tcache']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['tcache'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['tcache']['fd']):02x}",
         "",
     ]
 
+    size = int(chunks['fast']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['fast'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["fast"] = [
         "Free chunk (fastbins) | PREV_INUSE",
         f"Addr: {chunks['fast'].address}",
-        f"Size: 0x{int(chunks['fast']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['fast'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['fast']['fd']):02x}",
         "",
     ]
 
+    size = int(chunks['small']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['small'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["small"] = [
         "Free chunk (smallbins) | PREV_INUSE",
         f"Addr: {chunks['small'].address}",
-        f"Size: 0x{int(chunks['small']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['small'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['small']['fd']):02x}",
         f"bk: 0x{int(chunks['small']['bk']):02x}",
         "",
     ]
 
+    size = int(chunks['large']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['large'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["large"] = [
         "Free chunk (largebins) | PREV_INUSE",
         f"Addr: {chunks['large'].address}",
-        f"Size: 0x{int(chunks['large']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['large'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['large']['fd']):02x}",
         f"bk: 0x{int(chunks['large']['bk']):02x}",
         f"fd_nextsize: 0x{int(chunks['large']['fd_nextsize']):02x}",
@@ -57,10 +68,12 @@ def generate_expected_malloc_chunk_output(chunks):
         "",
     ]
 
+    size = int(chunks['unsorted']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['unsorted'].type.fields()) else 'size'])
+    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["unsorted"] = [
         "Free chunk (unsortedbin) | PREV_INUSE",
         f"Addr: {chunks['unsorted'].address}",
-        f"Size: 0x{int(chunks['unsorted']['mchunk_size' if 'mchunk_size' in (f.name for f in chunks['unsorted'].type.fields()) else 'size']):02x}",
+        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['unsorted']['fd']):02x}",
         f"bk: 0x{int(chunks['unsorted']['bk']):02x}",
         "",
