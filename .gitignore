@@ -84,3 +84,6 @@ tests/qemu-tests/images
 
 .zig/
 gdb.txt
+
+# venv
+.venv/

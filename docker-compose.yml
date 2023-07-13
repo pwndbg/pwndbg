@@ -1,14 +1,16 @@
 version: "3.8"
 services:
-  main: &base-spec
+  base: &base-spec
     build: .
-    volumes:
-      - .:/pwndbg
     platform: linux/amd64
     security_opt:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
+  main:
+    <<: *base-spec
+    volumes:
+      - .:/pwndbg
 
   ubuntu18.04:
     <<: *base-spec
