@@ -67,6 +67,55 @@ def next_branch(address=None):
     return None
 
 
+def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
+    """
+    Finds the next instruction that matches the arguments between the given
+    address and the branch closest to it.
+    """
+    if address is None:
+        address = pwndbg.gdblib.regs.pc
+
+    ins = pwndbg.disasm.one(address)
+    while ins:
+        # Check whether or not the mnemonic matches if it was specified.
+        mnemonic_match = True
+        if mnemonic is not None:
+            mnemonic_match = False
+            if ins.mnemonic.casefold() == mnemonic.casefold():
+                mnemonic_match = True
+
+        # Check whether or not the operands match if they were specified.
+        op_str_match = True
+        if op_str is not None:
+            op_str_match = False
+
+            # Remove whitespace and fold the case of both targets.
+            ops = "".join(ins.op_str.split()).casefold()
+            if isinstance(op_str, str):
+                op_str = "".join(op_str.split()).casefold()
+            elif isinstance(op_str, list):
+                tmp = []
+                for op in op_str:
+                    tmp.extend(op.split())
+                op_str = "".join(tmp).casefold()
+            else:
+                raise ValueError("op_str value is of an unsupported type")
+            op_str_match = ops == op_str
+
+        # If all of the parameters that were specified match, this is the
+        # instruction we want to stop at.
+        if mnemonic_match and op_str_match:
+            return ins
+
+        if set(ins.groups) & jumps:
+            # No matching instruction until the next branch, and we're
+            # not trying to match the branch instruction itself.
+            return None
+
+        ins = pwndbg.disasm.one(ins.next)
+    return None
+
+
 def break_next_branch(address=None):
     ins = next_branch(address)
 
@@ -126,6 +175,52 @@ def break_next_ret(address=None):
 
         if capstone.CS_GRP_RET in ins.groups:
             return ins
+
+
+def break_on_next_matching_instruction(mnemonic=None, op_str=None) -> bool:
+    """
+    Breaks on next instuction that matches the arguments.
+    """
+    # Make sure we have something to break on.
+    if mnemonic is None and op_str is None:
+        return False
+
+    while pwndbg.gdblib.proc.alive:
+        # Break on signal as it may be a segfault
+        if pwndbg.gdblib.proc.stopped_with_signal:
+            return False
+
+        ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
+        if ins is not None:
+            if ins.address != pwndbg.gdblib.regs.pc:
+                print("Found instruction")
+                # Only set breakpoints at a different PC location, otherwise we
+                # will continue until we hit a breakpoint that's not related to
+                # this opeeration, or the program halts.
+                gdb.Breakpoint("*%#x" % ins.address, internal=True, temporary=True)
+                gdb.execute("continue", from_tty=False, to_string=True)
+                return ins
+            else:
+                # We don't want to be spinning in place, nudge execution forward
+                # and try again.
+                pass
+        else:
+            # Move to the next branch instruction.
+            print("Moving to next branch")
+            nb = next_branch(pwndbg.gdblib.regs.pc)
+            if nb is not None:
+                if nb.address != pwndbg.gdblib.regs.pc:
+                    # Stop right at the next branch instruction.
+                    gdb.Breakpoint("*%#x" % nb.address, internal=True, temporary=True)
+                    gdb.execute("continue", from_tty=False, to_string=True)
+                else:
+                    # Nudge execution so we take the branch we're on top of.
+                    pass
+
+        if pwndbg.gdblib.proc.alive:
+            gdb.execute("si")
+
+    return False
 
 
 def break_on_program_code() -> bool:
