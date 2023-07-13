@@ -20,6 +20,7 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.abi
     import pwndbg.gdblib.android
     import pwndbg.gdblib.argv
+    import pwndbg.gdblib.bpoint
     import pwndbg.gdblib.ctypes
     import pwndbg.gdblib.elf
     import pwndbg.gdblib.events
