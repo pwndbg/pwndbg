@@ -23,7 +23,7 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[str]]:
 
     entries: Dict[RelocationType, List[str]] = {category: [] for category in RelocationType}
     for line in readelf_out.splitlines():
-        if not line or not line[0].isdigit():
+        if not line or not line[0].isdigit() or " " not in line:
             continue
         category = line.split()[2]
         # TODO/FIXME: There's a bug here, somehow the IRELATIVE relocation might point to somewhere in .data.rel.ro, which is not in .got or .got.plt
