@@ -120,9 +120,6 @@ Include = /etc/pacman.d/mirrorlist
 [extra-debug]
 Include = /etc/pacman.d/mirrorlist
 
-[community-debug]
-Include = /etc/pacman.d/mirrorlist
-
 [multilib-debug]
 Include = /etc/pacman.d/mirrorlist
 EOF

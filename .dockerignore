@@ -1,2 +1,16 @@
 # venv
 .venv/
+
+# ignore binaries that are potentially tainted by the host system
+# E.g. the binary could reference source code on the host system
+# this is a problem because inside docker we won't have access to
+# the host system
+tests/**/binaries/*.o
+tests/**/binaries/*.out
+tests/**/binaries/gosample.x*
+tests/**/binaries/div_zero_binary/core
+tests/**/binaries/div_zero_binary/binary
+!tests/**/binaries/*.go
+
+# ignore QEMU test images (could also be tainted)
+tests/qemu-tests/images

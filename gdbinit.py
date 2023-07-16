@@ -2,6 +2,7 @@ import cProfile
 import glob
 import locale
 import os
+import site
 import sys
 import time
 from glob import glob
@@ -30,6 +31,14 @@ if not os.path.exists(venv_path):
 
 site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
+# add virtualenv's site-packages to sys.path and run .pth files
+site.addsitedir(site_pkgs_path)
+
+# remove existing, system-level site-packages from sys.path
+for site_packages in site.getsitepackages():
+    if site_packages in sys.path:
+        sys.path.remove(site_packages)
+
 # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
 bin_path = os.path.join(venv_path, "bin")
 os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
@@ -37,7 +46,6 @@ os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
 # Add gdb-pt-dump directory to sys.path so it can be imported
 gdbpt = path.join(directory, "gdb-pt-dump")
 sys.path.append(directory)
-sys.path.append(site_pkgs_path)
 sys.path.append(gdbpt)
 
 # warn if the user has different encoding than utf-8

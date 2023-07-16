@@ -131,7 +131,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[2] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[3])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[4]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[4],
     )
     got_entries_count = int(m.group(1))
     assert got_entries_count > 0
@@ -145,7 +146,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[1] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[2])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[3]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[3],
     )
     assert int(m.group(1)) > got_entries_count  # We should have more entries now
     got_entries_count = int(m.group(1))
@@ -161,7 +163,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[3] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[4])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[5]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[5],
     )
     got_entries_count = int(m.group(1))
     assert len(out) == (6 + got_entries_count)
@@ -176,18 +179,20 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[2] == ""
     assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[3])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[4]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[4],
     )
     got_entries_count = int(m.group(1))
     for i in range(got_entries_count):
         assert re.match(r"\[0x[0-9a-f]+\] .* -> .*", out[5 + i])
-    assert out[5 + i + 1] == ""
+    assert out[5 + got_entries_count] == ""
 
     # Second should be libc.so.6
-    out = out[5 + i + 2 :]
+    out = out[5 + got_entries_count + 1 :]
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[0])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[1]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[1],
     )
     got_entries_count = int(m.group(1))
     assert len(out) == (2 + got_entries_count)
@@ -207,18 +212,20 @@ def test_command_got_for_target_binary_and_loaded_library():
     # Second should be ld-linux-x86-64.so.2
     assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[0])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[1]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[1],
     )
     got_entries_count = int(m.group(1))
     for i in range(got_entries_count):
         assert re.match(r"\[0x[0-9a-f]+\] .* -> .*", out[2 + i])
-    assert out[2 + i + 1] == ""
-    out = out[2 + i + 2 :]
+    assert out[2 + got_entries_count] == ""
+    out = out[2 + got_entries_count + 1 :]
 
     # Third should be libc.so.6
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[0])
     m = re.match(
-        r"GOT protection: Partial RELRO \| Found (\d+) GOT entries passing the filter", out[1]
+        r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
+        out[1],
     )
     got_entries_count = int(m.group(1))
     assert len(out) == (2 + got_entries_count)
@@ -234,8 +241,12 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert re.match(r"\[0x[0-9a-f]+\] puts@GLIBC_[0-9.]+ -> .*", out[4])
     assert out[5] == ""
     assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[6])
-    assert out[7] == "GOT protection: Partial RELRO | Found 0 GOT entries passing the filter"
+    assert re.match(
+        r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[7]
+    )
     assert out[8] == ""
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[9])
-    assert out[10] == "GOT protection: Partial RELRO | Found 0 GOT entries passing the filter"
+    assert re.match(
+        r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[10]
+    )
     assert len(out) == 11

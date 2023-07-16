@@ -6,8 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # archlinux is removed for now until we use virtualenv for deps install
-        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11]
+        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11, archlinux]
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -23,7 +22,7 @@ jobs:
         key: ${{ matrix.images }}-cache-images-{hash}
 
     - name: Docker Build ${{ matrix.images }}
-      run: docker-compose pull ${{ matrix.images }}
+      run: docker-compose build ${{ matrix.images }}
 
     - name: Test on ${{ matrix.images }}
       run: docker-compose run ${{ matrix.images }} ./tests.sh
