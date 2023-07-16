@@ -185,10 +185,10 @@ def test_command_got_for_target_binary_and_loaded_library():
     got_entries_count = int(m.group(1))
     for i in range(got_entries_count):
         assert re.match(r"\[0x[0-9a-f]+\] .* -> .*", out[5 + i])
-    assert out[5 + i + 1] == ""
+    assert out[5 + got_entries_count] == ""
 
     # Second should be libc.so.6
-    out = out[5 + i + 2 :]
+    out = out[5 + got_entries_count + 1 :]
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[0])
     m = re.match(
         r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
@@ -218,8 +218,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     got_entries_count = int(m.group(1))
     for i in range(got_entries_count):
         assert re.match(r"\[0x[0-9a-f]+\] .* -> .*", out[2 + i])
-    assert out[2 + i + 1] == ""
-    out = out[2 + i + 2 :]
+    assert out[2 + got_entries_count] == ""
+    out = out[2 + got_entries_count + 1 :]
 
     # Third should be libc.so.6
     assert re.match(r"State of the GOT of .*/libc.so.6:", out[0])
