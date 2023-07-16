@@ -6,8 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # archlinux is removed for now until we use virtualenv for deps install
-        images: [archlinux]
+        images: [ubuntu18.04, ubuntu20.04, ubuntu22.04, debian10, debian11, archlinux]
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
