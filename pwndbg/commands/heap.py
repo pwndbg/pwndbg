@@ -422,7 +422,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
     if verbose:
         fields_to_print.update(["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"])
     else:
-        out_fields += f"Size: 0x{chunk.size:02x}\n"
+        out_fields += f"Size: 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
 
     prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
@@ -434,7 +434,14 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
 
     fields_ordered = ["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"]
     for field_to_print in fields_ordered:
-        if field_to_print in fields_to_print:
+        if field_to_print not in fields_to_print:
+            continue
+        if field_to_print == "size":
+            out_fields += (
+                message.system("size")
+                + f": 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
+            )
+        else:
             out_fields += (
                 message.system(field_to_print) + f": 0x{getattr(chunk, field_to_print):02x}\n"
             )
