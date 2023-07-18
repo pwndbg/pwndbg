@@ -72,6 +72,7 @@ def spray(addr, length, value, only_funcptrs) -> None:
                     addresses_written += 1
                 except gdb.MemoryError as e:
                     print(M.error(e))
+                    return
         print(M.notice(f"Overwritten {addresses_written} function pointers"))
     else:
         try:
