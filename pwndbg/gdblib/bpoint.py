@@ -15,7 +15,7 @@ class Breakpoint(gdb.Breakpoint):
 
     def stop(self):
         # Clear the cache for the stop event.
-        pwndbg.gdblib.regs.__getattr__.cache.clear()
+        pwndbg.lib.cache.clear_cache("stop")
         return self.should_stop()
 
     def should_stop(self):
