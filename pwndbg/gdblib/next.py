@@ -14,6 +14,8 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
 
+from itertools import chain
+
 jumps = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET}
 
 interrupts = {capstone.CS_GRP_INT}
@@ -91,7 +93,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
             if isinstance(op_str, str):
                 op_str = "".join(op_str.split()).casefold()
             elif isinstance(op_str, list):
-                op_str = "".join(op.split() for op in op_str).casefold()
+                op_str = "".join(chain.from_iterable(op.split() for op in op_str).casefold()
             else:
                 raise ValueError("op_str value is of an unsupported type")
             op_str_match = ops == op_str
