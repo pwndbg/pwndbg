@@ -163,3 +163,7 @@ def cache_until(*event_names) -> Callable:
 def clear_caches() -> None:
     for cache in _ALL_CACHE_UNTIL_EVENTS.values():
         cache.clear()
+
+
+def clear_cache(cache_name) -> None:
+    _ALL_CACHE_UNTIL_EVENTS[cache_name].clear()
