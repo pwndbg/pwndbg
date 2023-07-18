@@ -22,7 +22,12 @@ parser.add_argument(
     type=str,
     required=False,
 )
-parser.add_argument("-x", "--only-funcptrs", help="Spray only addresses whose values points to executable pages", action="store_true")
+parser.add_argument(
+    "-x",
+    "--only-funcptrs",
+    help="Spray only addresses whose values points to executable pages",
+    action="store_true",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
