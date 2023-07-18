@@ -1,4 +1,5 @@
 import argparse
+import struct
 
 import gdb
 from pwnlib.util.cyclic import cyclic
@@ -21,10 +22,16 @@ parser.add_argument(
     type=str,
     required=False,
 )
+parser.add_argument(
+    "-x",
+    "--only-funcptrs",
+    help="Spray only addresses whose values points to executable pages",
+    action="store_true",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def spray(addr, length, value) -> None:
+def spray(addr, length, value, only_funcptrs) -> None:
     if length == 0:
         page = pwndbg.gdblib.vmmap.find(addr)
         if page is None:
@@ -52,7 +59,28 @@ def spray(addr, length, value) -> None:
     else:
         value_bytes = cyclic(length, n=pwndbg.gdblib.arch.ptrsize)
 
-    try:
-        pwndbg.gdblib.memory.write(addr, value_bytes)
-    except gdb.MemoryError as e:
-        print(M.error(e))
+    if only_funcptrs:
+        try:
+            mem = pwndbg.gdblib.memory.read(addr, length)
+        except gdb.MemoryError as e:
+            print(M.error(e))
+            return
+
+        addresses_written = 0
+        ptrsize = pwndbg.gdblib.arch.ptrsize
+        for i in range(0, len(mem) - length % ptrsize, ptrsize):
+            ptr_candidate = struct.unpack(pwndbg.gdblib.arch.fmt, mem[i : i + ptrsize])[0]
+            page = pwndbg.gdblib.vmmap.find(ptr_candidate)
+            if page is not None and page.execute:
+                try:
+                    pwndbg.gdblib.memory.write(addr + i, value_bytes[i : i + ptrsize])
+                    addresses_written += 1
+                except gdb.MemoryError as e:
+                    print(M.error(e))
+                    return
+        print(M.notice(f"Overwritten {addresses_written} function pointers"))
+    else:
+        try:
+            pwndbg.gdblib.memory.write(addr, value_bytes)
+        except gdb.MemoryError as e:
+            print(M.error(e))
