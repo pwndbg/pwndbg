@@ -59,6 +59,7 @@ def spray(addr, length, value, only_funcptrs) -> None:
             mem = pwndbg.gdblib.memory.read(addr, length)
         except gdb.MemoryError as e:
             print(M.error(e))
+            return
 
         addresses_written = 0
         ptrsize = pwndbg.gdblib.arch.ptrsize
