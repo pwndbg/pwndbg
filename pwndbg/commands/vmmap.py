@@ -15,6 +15,7 @@ from pwndbg.commands import CommandCategory
 
 integer_types = (int, gdb.Value)
 
+
 def pages_filter(gdbval_or_str):
     # returns a module filter
     if isinstance(gdbval_or_str, str):
@@ -67,14 +68,21 @@ parser.add_argument(
 )
 parser.add_argument("-w", "--writable", action="store_true", help="Display writable maps only")
 parser.add_argument("-x", "--executable", action="store_true", help="Display executable maps only")
-parser.add_argument("-A", "--lines-after", type=int, help="Number of pages to display after result", default=1)
-parser.add_argument("-B", "--lines-before", type=int, help="Number of pages to display before result", default=1)
+parser.add_argument(
+    "-A", "--lines-after", type=int, help="Number of pages to display after result", default=1
+)
+parser.add_argument(
+    "-B", "--lines-before", type=int, help="Number of pages to display before result", default=1
+)
+
 
 @pwndbg.commands.ArgparsedCommand(
     parser, aliases=["lm", "address", "vprot", "libs"], category=CommandCategory.MEMORY
 )
 @pwndbg.commands.OnlyWhenRunning
-def vmmap(gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1) -> None:
+def vmmap(
+    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1
+) -> None:
     pages = pwndbg.gdblib.vmmap.get()
 
     if gdbval_or_str:
@@ -88,14 +96,14 @@ def vmmap(gdbval_or_str=None, writable=False, executable=False, lines_after=1, l
             matched_index = pages.index(matched_page)
 
             # Include number of pages preceeding the matched page
-            for before_index in range(1, lines_before+1):
+            for before_index in range(1, lines_before + 1):
                 if matched_index - before_index >= 0:
-                    filtered_pages.insert(0, pages[matched_index-before_index])
-            
+                    filtered_pages.insert(0, pages[matched_index - before_index])
+
             # Include number of pages proceeding the matched page
-            for after_index in range(1, lines_after+1):
+            for after_index in range(1, lines_after + 1):
                 if matched_index + after_index < len(pages) - 1:
-                    filtered_pages.append(pages[matched_index+after_index])
+                    filtered_pages.append(pages[matched_index + after_index])
 
         pages = filtered_pages
 
