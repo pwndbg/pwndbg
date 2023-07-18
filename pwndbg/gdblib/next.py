@@ -14,9 +14,9 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
 
-jumps = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET))
+jumps = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET}
 
-interrupts = set((capstone.CS_GRP_INT,))
+interrupts = {capstone.CS_GRP_INT}
 
 
 def clear_temp_breaks() -> None:
@@ -42,9 +42,10 @@ def next_int(address=None):
 
     ins = pwndbg.disasm.one(address)
     while ins:
-        if set(ins.groups) & jumps:
+        ins_groups = set(ins.groups)
+        if ins_groups & jumps:
             return None
-        if set(ins.groups) & interrupts:
+        elif ins_groups & interrupts:
             return ins
         ins = pwndbg.disasm.one(ins.next)
 
@@ -77,14 +78,10 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
 
     ins = pwndbg.disasm.one(address)
     while ins:
-        # Check whether or not the mnemonic matches if it was specified.
-        mnemonic_match = True
-        if mnemonic is not None:
-            mnemonic_match = False
-            if ins.mnemonic.casefold() == mnemonic.casefold():
-                mnemonic_match = True
+        # Check whether or not the mnemonic matches if it was specified
+        mnemonic_match = ins.mnemonic.casefold() == mnemonic.casefold() if mnemonic else True
 
-        # Check whether or not the operands match if they were specified.
+        # Check whether or not the operands match if they were specified
         op_str_match = True
         if op_str is not None:
             op_str_match = False
@@ -94,10 +91,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
             if isinstance(op_str, str):
                 op_str = "".join(op_str.split()).casefold()
             elif isinstance(op_str, list):
-                tmp = []
-                for op in op_str:
-                    tmp.extend(op.split())
-                op_str = "".join(tmp).casefold()
+                op_str = "".join(op.split() for op in op.str).casefold()
             else:
                 raise ValueError("op_str value is of an unsupported type")
             op_str_match = ops == op_str
