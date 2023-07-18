@@ -130,6 +130,8 @@ def break_next_interrupt(address=None):
 
 
 def break_next_call(symbol_regex=None):
+    symbol_regex = re.compile(symbol_regex) if symbol_regex else None
+
     while pwndbg.gdblib.proc.alive:
         # Break on signal as it may be a segfault
         if pwndbg.gdblib.proc.stopped_with_signal:
@@ -144,16 +146,15 @@ def break_next_call(symbol_regex=None):
         if capstone.CS_GRP_CALL not in ins.groups:
             continue
 
-        # return call if we don't search for a symbol
-        if not symbol_regex:
-            return ins
-
-        # return call if we match target address
-        if ins.target_const and re.match(f"{symbol_regex}$", hex(ins.target)):
-            return ins
-
-        # return call if we match symbol name
-        if ins.symbol and re.match(f"{symbol_regex}$", ins.symbol):
+        # return call if we:
+        # 1) don't search for a symbol
+        # 2) match target address
+        # 3) match symbol name
+        if (
+            not symbol_regex
+            or (ins.target_const and symbol_regex.match(hex(ins.target)))
+            or (ins.symbol and symbol_regex.match(ins.symbol))
+        ):
             return ins
 
 
