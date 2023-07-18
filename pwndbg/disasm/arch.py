@@ -37,6 +37,10 @@ class DisassemblyAssistant:
         }
 
     @staticmethod
+    def for_current_arch():
+        return DisassemblyAssistant.assistants.get(pwndbg.gdblib.arch.current, None)
+
+    @staticmethod
     def enhance(instruction) -> None:
         enhancer = DisassemblyAssistant.assistants.get(
             pwndbg.gdblib.arch.current, generic_assistant
