@@ -4,6 +4,7 @@ instruction of some type (call, branch, etc.)
 """
 
 import re
+from itertools import chain
 
 import capstone
 import gdb
@@ -13,8 +14,6 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
-
-from itertools import chain
 
 jumps = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET}
 
