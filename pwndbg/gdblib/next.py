@@ -91,7 +91,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
             if isinstance(op_str, str):
                 op_str = "".join(op_str.split()).casefold()
             elif isinstance(op_str, list):
-                op_str = "".join(op.split() for op in op.str).casefold()
+                op_str = "".join(op.split() for op in op_str).casefold()
             else:
                 raise ValueError("op_str value is of an unsupported type")
             op_str_match = ops == op_str
