@@ -765,7 +765,7 @@ def find_fake_fast(
         candidate = search_region[i : i + size_field_width]
 
         if len(candidate) == size_field_width:
-            size_field = pwndbg.gdblib.arch.unpack(candidate)
+            size_field = pwndbg.gdblib.arch.unpack_size(candidate, size_field_width)
             size_field &= ~(allocator.malloc_align_mask)
 
             if size_field < min_chunk_size or size_field > max_candidate_size:
