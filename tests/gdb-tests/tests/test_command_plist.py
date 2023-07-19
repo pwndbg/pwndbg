@@ -15,9 +15,9 @@ def startup(start_binary):
     gdb.execute("up")
 
 
-def test_command_chain_flat_no_flags(start_binary):
+def test_command_plist_flat_no_flags(start_binary):
     """
-    Tests the chain for a non-nested linked list
+    Tests the plist for a non-nested linked list
     """
     startup(start_binary)
 
@@ -37,13 +37,13 @@ def test_command_chain_flat_no_flags(start_binary):
 }"""
     )
 
-    result_str = gdb.execute("chain node_a next", to_string=True)
+    result_str = gdb.execute("plist node_a next", to_string=True)
     assert expected_out.match(result_str) is not None
 
 
-def test_command_chain_flat_field(start_binary):
+def test_command_plist_flat_field(start_binary):
     """
-    Tests the chain command for a non-nested linked list with field flag
+    Tests the plist command for a non-nested linked list with field flag
     """
     startup(start_binary)
 
@@ -55,13 +55,13 @@ def test_command_chain_flat_field(start_binary):
 """
     )
 
-    result_str = gdb.execute("chain node_a next -f value", to_string=True)
+    result_str = gdb.execute("plist node_a next -f value", to_string=True)
     assert expected_out.match(result_str) is not None
 
 
-def test_command_chain_flat_sentinel(start_binary):
+def test_command_plist_flat_sentinel(start_binary):
     """
-    Tests the chain command for a non-nested linked list with field flag
+    Tests the plist command for a non-nested linked list with field flag
     """
     startup(start_binary)
 
@@ -78,13 +78,13 @@ def test_command_chain_flat_sentinel(start_binary):
 }"""
     )
 
-    result_str = gdb.execute(f"chain node_a next -s {sentinel}", to_string=True)
+    result_str = gdb.execute(f"plist node_a next -s {sentinel}", to_string=True)
     assert expected_out.match(result_str) is not None
 
 
-def test_command_chain_nested_direct(start_binary):
+def test_command_plist_nested_direct(start_binary):
     """
-    Tests the chain for a nested linked list pointing to the outer structure
+    Tests the plist for a nested linked list pointing to the outer structure
     """
     startup(start_binary)
 
@@ -110,13 +110,13 @@ def test_command_chain_nested_direct(start_binary):
 }"""
     )
 
-    result_str = gdb.execute("chain inner_b_node_a -i inner next", to_string=True)
+    result_str = gdb.execute("plist inner_b_node_a -i inner next", to_string=True)
     assert expected_out.match(result_str) is not None
 
 
-def test_command_chain_nested_indirect(start_binary):
+def test_command_plist_nested_indirect(start_binary):
     """
-    Tests the chain for a nested linked list pointing to the inner structure
+    Tests the plist for a nested linked list pointing to the inner structure
     """
     startup(start_binary)
 
@@ -142,5 +142,5 @@ def test_command_chain_nested_indirect(start_binary):
 }"""
     )
 
-    result_str = gdb.execute("chain inner_a_node_a -i inner next", to_string=True)
+    result_str = gdb.execute("plist inner_a_node_a -i inner next", to_string=True)
     assert expected_out.match(result_str) is not None

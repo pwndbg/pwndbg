@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
 
 This command traverses the linked list beginning at a given element, dumping its
 contents and the contents of all the elements that come after it in the list.
-Traversal is configurable and can handle multiple types of chains, but will
+Traversal is configurable and can handle multiple types of linked lists, but will
 always stop when a cycle is detected.
 
 The path to the first element can be any GDB expression that evaluates to either
@@ -48,7 +48,7 @@ struct node node_b = { 1, &node_c };
 struct node node_a = { 0, &node_b };
 ```
 
-pwndbg> chain node_a next
+pwndbg> plist node_a next
 0x4000011050 <node_a>: {
   value = 0,
   next = 0x4000011040 <node_b>
@@ -77,7 +77,7 @@ struct inner_a_node inner_a_node_b = { 1, { &inner_a_node_c.inner } };
 struct inner_a_node inner_a_node_a = { 0, { &inner_a_node_b.inner } };
 ```
 
-pwndbg> chain inner_a_node_a -i inner next
+pwndbg> plist inner_a_node_a -i inner next
 0x4000011070 <inner_a_node_a>: {
   value = 0,
   inner = {
@@ -113,7 +113,7 @@ struct inner_b_node inner_b_node_b = { 1, { &inner_b_node_c } };
 struct inner_b_node inner_b_node_a = { 0, { &inner_b_node_b } };
 ```
 
-pwndbg> chain inner_b_node_a -i inner next
+pwndbg> plist inner_b_node_a -i inner next
 0x4000011090 <inner_b_node_a>: {
   value = 0,
   inner = {
@@ -138,10 +138,10 @@ pwndbg> chain inner_b_node_a -i inner next
 parser.add_argument(
     "path",
     type=str,
-    help="The first element of the chain",
+    help="The first element of the linked list",
 )
 parser.add_argument(
-    "next", type=str, help="The name of the field pointing to the next element in the chain"
+    "next", type=str, help="The name of the field pointing to the next element in the list"
 )
 parser.add_argument(
     "-s",
@@ -167,8 +167,8 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="chain")
-def chain(path, next, sentinel, inner_name, field_name) -> None:
+@pwndbg.commands.ArgparsedCommand(parser, command_name="plist")
+def plist(path, next, sentinel, inner_name, field_name) -> None:
     # Have GDB parse the path for us and check if it's valid.
     try:
         first = gdb.parse_and_eval(path)
@@ -222,7 +222,7 @@ def chain(path, next, sentinel, inner_name, field_name) -> None:
             return
 
     # Resolve the pointer to the next structure, wherever it may be, and make
-    # sure that we can use it to traverse the chain.
+    # sure that we can use it to traverse the linked list.
     next_ptr_loc = first
     next_ptr_name = next
     try:
@@ -373,8 +373,8 @@ def chain(path, next, sentinel, inner_name, field_name) -> None:
 
             print(f"{target_address:#x} {symbol}: {value}")
         except gdb.error as e:
-            print(message.error(f"Cannot dereference 0x{address:#x} for chain link #{i + 1}: {e}"))
-            print(message.error("Is the chain corrupted or is the sentinel value wrong?"))
+            print(message.error(f"Cannot dereference 0x{address:#x} for list link #{i + 1}: {e}"))
+            print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))
             return
 
 
