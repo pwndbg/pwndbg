@@ -56,7 +56,7 @@ else
 fi
 
 # Checking minimum python version
-vermin -vvv --no-tips -q -t=3.6 --violations ./pwndbg/
+vermin -vvv --no-tips -q -t=3.8 --violations ./pwndbg/
 
 ruff check --show-source ${LINT_FILES}
 
