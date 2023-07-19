@@ -1,6 +1,5 @@
 import struct
 import sys
-from typing import Optional
 
 from typing_extensions import Literal
 
