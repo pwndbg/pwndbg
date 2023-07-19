@@ -10,7 +10,7 @@ set -o pipefail
 mkdir -p ~/.parallel
 . $(which env_parallel.bash)
 
-# Workaround for Ubuntu 20.04/18.04 CI. If no aliases are defined
+# Workaround for Ubuntu 20.04 CI. If no aliases are defined
 # `env_parallel --record-env` will have non-zero exit code for older versions of
 # `parallel`, so we define a dummy alias here
 alias __dummy=foo

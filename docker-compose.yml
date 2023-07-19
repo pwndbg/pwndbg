@@ -12,14 +12,6 @@ services:
     volumes:
       - .:/pwndbg
 
-  ubuntu18.04:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        image: ubuntu:18.04
-
   ubuntu20.04:
     <<: *base-spec
     build:
