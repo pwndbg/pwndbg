@@ -110,6 +110,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
         assert len(vmmaps) == old_len_vmmaps - 1
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
+        # (note: we don't support Debian 10 anymore, so this code may be removed in the future)
         assert len(vmmaps) == old_len_vmmaps - 2
         binary_map = next(i for i in expected_maps if CRASH_SIMPLE_BINARY in i[-1])
         expected_maps.remove(binary_map)

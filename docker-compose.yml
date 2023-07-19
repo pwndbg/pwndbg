@@ -36,14 +36,6 @@ services:
       args:
         image: ubuntu:22.04
 
-  debian10:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        image: debian:10
-
   debian11:
     <<: *base-spec
     build:
