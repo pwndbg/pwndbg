@@ -124,7 +124,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     def assert_maps():
         for vmmap, expected_map in zip(vmmaps, expected_maps):
             # On different Ubuntu versions, we end up with different results
-            # Ubuntu 18.04: vmmap.objfile for binary vmmap has binary file path
+            # Ubuntu 18.04*: vmmap.objfile for binary vmmap has binary file path
             # Ubuntu 22.04: the same vmmap is named as 'loadX'
             # The difference comes from the fact that the `info proc mappings`
             # command returns different results on the two.
@@ -136,6 +136,10 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
             # it becomes r-xp and can be readable when we target the coredump
             # Likely, this is because on x86/x64 you can't set memory to be
             # eXecute only, and maybe generate-core-file was able to dump it?
+            #
+            # *NOTE: Ubuntu 18.04 is not supported anymore; leaving this code here
+            # but feel free to remove it in the future if it is not needed anymore
+            # for future versions
             if vmmap[-1] == expected_map[-1] == "[vsyscall]":
                 assert vmmap[:2] == expected_map[:2]  # start, end
                 assert vmmap[3] == expected_map[3] or vmmap[3] in ("r-xp", "--xp")
