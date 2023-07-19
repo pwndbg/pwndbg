@@ -86,8 +86,6 @@ def vmmap(
     pages = pwndbg.gdblib.vmmap.get()
 
     if gdbval_or_str:
-        filter_predicate = pages_filter(gdbval_or_str)
-
         # Find matching page in memory
         filtered_pages = list(filter(pages_filter(gdbval_or_str), pages))
 
