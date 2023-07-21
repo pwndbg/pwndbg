@@ -135,7 +135,7 @@ EOF
         parallel \
         gnu-netcat
 
-    test -f /usr/bin/go || sudo pacman -S --noconfirm go
+    command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
     download_zig_binary
 }
