@@ -295,7 +295,7 @@ class c_malloc_state_2_12(Structure):
     """
     This class represents malloc_state struct for GLIBC < 2.22 as a ctypes struct.
 
-    https://github.com/bminor/glibc/blob/glibc-2.23/malloc/malloc.c#L1686-L1724
+    https://github.com/bminor/glibc/blob/glibc-2.12/malloc/malloc.c#L2362-L2400
 
     struct malloc_state {
     /* Serialize access.  */
@@ -424,10 +424,10 @@ class MallocState(CStruct2GDB):
     """
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
-
-    if pwndbg.glibc.get_version() >= (2, 27):
+    _version = pwndbg.glibc.get_version()
+    if _version >= (2, 27):
         _c_struct = c_malloc_state_2_27
-    elif pwndbg.glibc.get_version() >= (2, 23):
+    elif _version >= (2, 23):
         _c_struct = c_malloc_state_2_26
     else:
         _c_struct = c_malloc_state_2_12
@@ -909,14 +909,14 @@ class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
-
-    if pwndbg.glibc.get_version() >= (2, 35):
+    _version = pwndbg.glibc.get_version()
+    if _version >= (2, 35):
         _c_struct = c_malloc_par_2_35
-    elif pwndbg.glibc.get_version() >= (2, 26):
+    elif _version >= (2, 26):
         _c_struct = c_malloc_par_2_26
-    elif pwndbg.glibc.get_version() >= (2, 24):
+    elif _version >= (2, 24):
         _c_struct = c_malloc_par_2_24
-    elif pwndbg.glibc.get_version() >= (2, 15):
+    elif _version >= (2, 15):
         _c_struct = c_malloc_par_2_23
     else:
         _c_struct = c_malloc_par_2_12
@@ -953,4 +953,3 @@ if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_mall
     DEFAULT_MP_.tcache_max_bytes = (TCACHE_MAX_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 if(MallocPar._c_struct == c_malloc_par_2_12):
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE
-    
