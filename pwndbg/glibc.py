@@ -21,6 +21,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.heap
 import pwndbg.lib.cache
 import pwndbg.search
+from pwndbg.color import message
 
 safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking",
@@ -30,21 +31,28 @@ safe_lnk = pwndbg.gdblib.config.add_param(
 )
 
 glibc_version = pwndbg.gdblib.config.add_param(
-    "glibc", "", "GLIBC version for heuristics", scope="heap"
+    "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
 )
+
+
+@pwndbg.gdblib.config.trigger(glibc_version)
+def set_glibc_version() -> None:
+    ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+    if ret:
+        glibc_version.value = tuple(map(int, ret.groups()))
+        return
+
+    print(
+        message.warn(
+            f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
+        )
+    )
+    glibc_version.revert_default()
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 def get_version() -> Optional[Tuple[int, ...]]:
-    if glibc_version.value:
-        ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
-        if ret:
-            return tuple(int(_) for _ in ret.groups())
-        else:
-            raise ValueError(
-                f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
-            )
-    return _get_version()
+    return glibc_version or _get_version()
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
