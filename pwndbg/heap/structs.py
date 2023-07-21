@@ -22,10 +22,11 @@ def fastbin_index(size: int) -> int:
         return (size >> 3) - 2
 
 
+GLIBC_VERSION = pwndbg.glibc.get_version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.gdblib.arch.ptrsize
 MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
-if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+if pwndbg.gdblib.arch.current == "i386" and GLIBC_VERSION >= (2, 26):
     # i386 will override it to 16 when GLIBC version >= 2.26
     # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
     MALLOC_ALIGN = 16
@@ -424,10 +425,9 @@ class MallocState(CStruct2GDB):
     """
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
-    _version = pwndbg.glibc.get_version()
-    if _version >= (2, 27):
+    if GLIBC_VERSION >= (2, 27):
         _c_struct = c_malloc_state_2_27
-    elif _version >= (2, 23):
+    elif GLIBC_VERSION >= (2, 23):
         _c_struct = c_malloc_state_2_26
     else:
         _c_struct = c_malloc_state_2_12
@@ -554,7 +554,7 @@ class TcachePerthreadStruct(CStruct2GDB):
     This class represents tcache_perthread_struct with interface compatible with `gdb.Value`.
     """
 
-    if pwndbg.glibc.get_version() >= (2, 30):
+    if GLIBC_VERSION >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
         _c_struct = c_tcache_perthread_struct_2_29
@@ -598,7 +598,7 @@ class TcacheEntry(CStruct2GDB):
     This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
     """
 
-    if pwndbg.glibc.get_version() >= (2, 29):
+    if GLIBC_VERSION >= (2, 29):
         _c_struct = c_tcache_entry_2_29
     else:
         _c_struct = c_tcache_entry_2_28
@@ -656,6 +656,7 @@ class c_malloc_par_2_23(Structure):
         ("max_total_mem", c_size_t),
         ("sbrk_base", c_pvoid),
     ]
+
 
 class c_malloc_par_2_12(Structure):
     """
@@ -909,14 +910,13 @@ class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
-    _version = pwndbg.glibc.get_version()
-    if _version >= (2, 35):
+    if GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
-    elif _version >= (2, 26):
+    elif GLIBC_VERSION >= (2, 26):
         _c_struct = c_malloc_par_2_26
-    elif _version >= (2, 24):
+    elif GLIBC_VERSION >= (2, 24):
         _c_struct = c_malloc_par_2_24
-    elif _version >= (2, 15):
+    elif GLIBC_VERSION >= (2, 15):
         _c_struct = c_malloc_par_2_23
     else:
         _c_struct = c_malloc_par_2_12
@@ -951,5 +951,5 @@ if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_mall
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
     DEFAULT_MP_.tcache_bins = TCACHE_MAX_BINS
     DEFAULT_MP_.tcache_max_bytes = (TCACHE_MAX_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
-if(MallocPar._c_struct == c_malloc_par_2_12):
+if MallocPar._c_struct == c_malloc_par_2_12:
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE
