@@ -292,7 +292,7 @@ class c_malloc_state_2_26(Structure):
 
 
 class c_malloc_state_2_12(Structure):
-    """
+        """
     This class represents malloc_state struct for GLIBC < 2.22 as a ctypes struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.23/malloc/malloc.c#L1686-L1724
@@ -336,6 +336,19 @@ class c_malloc_state_2_12(Structure):
     INTERNAL_SIZE_T system_mem;
     INTERNAL_SIZE_T max_system_mem;
     };"""
+    _fields_ = [
+        ("mutex", ctypes.c_int32),
+        ("flags", ctypes.c_int32),
+        ("fastbinsY", c_pvoid * NFASTBINS),
+        ("top", c_pvoid),
+        ("last_remainder", c_pvoid),
+        ("bins", c_pvoid * (NBINS * 2 - 2)),
+        ("binmap", ctypes.c_int32 * BINMAPSIZE),
+        ("next", c_pvoid),
+        ("next_free", c_pvoid),
+        ("system_mem", c_size_t),
+        ("max_system_mem", c_size_t),
+    ]
 
 
 class c_malloc_state_2_27(Structure):
