@@ -104,7 +104,7 @@ install_apt() {
         sudo apt install shfmt
     fi
 
-    test -f /usr/bin/go || sudo apt-get install -y golang
+    command -v go &> /dev/null || sudo apt-get install -y golang
 
     download_zig_binary
 }
@@ -135,7 +135,7 @@ EOF
         parallel \
         gnu-netcat
 
-    test -f /usr/bin/go || sudo pacman -S --noconfirm go
+    command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
     download_zig_binary
 }
