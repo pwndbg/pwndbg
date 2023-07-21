@@ -425,6 +425,7 @@ class MallocState(CStruct2GDB):
     """
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
+
     if GLIBC_VERSION >= (2, 27):
         _c_struct = c_malloc_state_2_27
     elif GLIBC_VERSION >= (2, 23):
@@ -910,6 +911,7 @@ class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
+
     if GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
     elif GLIBC_VERSION >= (2, 26):
