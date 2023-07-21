@@ -104,7 +104,7 @@ install_apt() {
         sudo apt install shfmt
     fi
 
-    test -f /usr/bin/go || sudo apt-get install -y golang
+    command -v go &> /dev/null || sudo apt-get install -y golang
 
     download_zig_binary
 }
