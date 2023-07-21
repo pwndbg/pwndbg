@@ -337,6 +337,7 @@ class c_malloc_state_2_12(Structure):
     INTERNAL_SIZE_T system_mem;
     INTERNAL_SIZE_T max_system_mem;
     };"""
+
     _fields_ = [
         ("mutex", ctypes.c_int32),
         ("flags", ctypes.c_int32),
