@@ -292,7 +292,7 @@ class c_malloc_state_2_26(Structure):
 
 
 class c_malloc_state_2_12(Structure):
-        """
+    """
     This class represents malloc_state struct for GLIBC < 2.22 as a ctypes struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.23/malloc/malloc.c#L1686-L1724
