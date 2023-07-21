@@ -62,7 +62,7 @@ class _CacheUntilEvent:
 
     def connect_event_hooks(self, event_hooks) -> None:
         """
-        A given cache until event may require multiple debugger events
+        A given _CacheUntilEvent object may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
         by `stop`, `mem_changed` and `reg_changed` events.
         """

@@ -96,6 +96,12 @@ def write(addr, data) -> None:
     # Throws an exception if can't access memory
     gdb.selected_inferior().write_memory(addr, data)
 
+    # Clear caches which are hooked to gdb.MemoryChanged events
+    # We do this explicitly because `write_memory` does not fire off
+    # the gdb.MemoryChanged event (see #1818)
+    pwndbg.lib.cache.clear_cache("stop")
+    pwndbg.lib.cache.clear_cache("cont")
+
 
 def peek(address):
     """peek(address) -> str
