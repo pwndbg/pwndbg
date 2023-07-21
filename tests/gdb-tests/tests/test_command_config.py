@@ -18,7 +18,7 @@ def test_config():
 def test_config_filtering():
     out = gdb.execute("config context-code-lines", to_string=True).splitlines()
 
-    assert re.match(r"Name\s+Value\s+\(Def\)\s+Documentation", out[0])
+    assert re.match(r"Name\s+Value\s+\(Default\)\s+Documentation", out[0])
     assert re.match(r"-+", out[1])
     assert re.match(
         r"context-code-lines\s+10\s+number of additional lines to print in the code context", out[2]
