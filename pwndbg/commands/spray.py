@@ -21,10 +21,17 @@ parser.add_argument(
     type=str,
     required=False,
 )
+parser.add_argument(
+    "-x",
+    "--only-funcptrs",
+    help="Spray only addresses whose values points to executable pages",
+    action="store_true",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def spray(addr, length, value) -> None:
+@pwndbg.commands.OnlyWhenRunning
+def spray(addr, length, value, only_funcptrs) -> None:
     if length == 0:
         page = pwndbg.gdblib.vmmap.find(addr)
         if page is None:
@@ -53,6 +60,19 @@ def spray(addr, length, value) -> None:
         value_bytes = cyclic(length, n=pwndbg.gdblib.arch.ptrsize)
 
     try:
-        pwndbg.gdblib.memory.write(addr, value_bytes)
+        if only_funcptrs:
+            mem = pwndbg.gdblib.memory.read(addr, length)
+
+            addresses_written = 0
+            ptrsize = pwndbg.gdblib.arch.ptrsize
+            for i in range(0, len(mem) - (length % ptrsize), ptrsize):
+                ptr_candidate = pwndbg.gdblib.arch.unpack(mem[i : i + ptrsize])
+                page = pwndbg.gdblib.vmmap.find(ptr_candidate)
+                if page is not None and page.execute:
+                    pwndbg.gdblib.memory.write(addr + i, value_bytes[i : i + ptrsize])
+                    addresses_written += 1
+            print(M.notice(f"Overwritten {addresses_written} function pointers"))
+        else:
+            pwndbg.gdblib.memory.write(addr, value_bytes)
     except gdb.MemoryError as e:
         print(M.error(e))

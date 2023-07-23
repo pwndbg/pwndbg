@@ -62,7 +62,11 @@ pwndbg.lib.cache.connect_clear_caching_events(
         "exit": (pwndbg.gdblib.events.exit,),
         "objfile": (pwndbg.gdblib.events.new_objfile,),
         "start": (pwndbg.gdblib.events.start,),
-        "cont": (pwndbg.gdblib.events.cont,),
+        "cont": (
+            pwndbg.gdblib.events.cont,
+            pwndbg.gdblib.events.mem_changed,
+            pwndbg.gdblib.events.reg_changed,
+        ),
         "thread": (pwndbg.gdblib.events.thread,),
         "prompt": (pwndbg.gdblib.events.before_prompt,),
         "forever": (),

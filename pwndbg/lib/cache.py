@@ -62,7 +62,7 @@ class _CacheUntilEvent:
 
     def connect_event_hooks(self, event_hooks) -> None:
         """
-        A given cache until event may require multiple debugger events
+        A given _CacheUntilEvent object may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
         by `stop`, `mem_changed` and `reg_changed` events.
         """
@@ -163,3 +163,7 @@ def cache_until(*event_names) -> Callable:
 def clear_caches() -> None:
     for cache in _ALL_CACHE_UNTIL_EVENTS.values():
         cache.clear()
+
+
+def clear_cache(cache_name) -> None:
+    _ALL_CACHE_UNTIL_EVENTS[cache_name].clear()

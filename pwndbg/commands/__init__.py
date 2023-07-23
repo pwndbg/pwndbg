@@ -613,6 +613,7 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.attachp
     import pwndbg.commands.auxv
+    import pwndbg.commands.branch
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -649,6 +650,7 @@ def load_commands() -> None:
     import pwndbg.commands.patch
     import pwndbg.commands.peda
     import pwndbg.commands.pie
+    import pwndbg.commands.plist
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
     import pwndbg.commands.radare2
