@@ -104,7 +104,6 @@ def vmmap(
         for matched_page in filtered_pages:
             # Append matched page
             pages_to_display.append(matched_page)
-            index_in_displayed = len(pages_to_display)
             matched_index = total_pages.index(matched_page)
 
             # Include number of pages preceeding the matched page
@@ -114,9 +113,7 @@ def vmmap(
                     matched_index - before_index >= 0
                     and total_pages[matched_index - before_index] not in pages_to_display
                 ):
-                    pages_to_display.insert(
-                        index_in_displayed - 1, total_pages[matched_index - before_index]
-                    )
+                    pages_to_display.append(total_pages[matched_index - before_index])
 
             # Include number of pages proceeding the matched page
             for after_index in range(1, lines_after + 1):
@@ -126,7 +123,8 @@ def vmmap(
                 ):
                     pages_to_display.append(total_pages[matched_index + after_index])
 
-        total_pages = pages_to_display
+        # Sort results by address
+        total_pages = sorted(pages_to_display, key=lambda page: page.vaddr)
 
     if not total_pages:
         print("There are no mappings for specified address or module.")
