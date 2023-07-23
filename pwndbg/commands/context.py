@@ -877,7 +877,12 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
         line = f" {selected} {thread.global_num}\t"
         line += f'"{pwndbg.color.cyan(thread.name)}" ' + (" " * padding)
-        line += f"{status}: {M.get(frame.pc())} "
+        line = (
+            f" {selected} {thread.global_num}\t"
+            f'"{pwndbg.color.cyan(thread.name)}" '
+            f"{" " * padding}"
+            f"{status}: {M.get(frame.pc())} "
+        )
         if symbol:
             line += f"<{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
         out.append(line)
