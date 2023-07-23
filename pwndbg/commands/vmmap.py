@@ -15,6 +15,7 @@ from pwndbg.commands import CommandCategory
 
 integer_types = (int, gdb.Value)
 
+
 def pages_filter(gdbval_or_str):
     # returns a module filter
     if isinstance(gdbval_or_str, str):
