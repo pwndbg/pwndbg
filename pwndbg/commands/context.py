@@ -834,6 +834,56 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
 last_signal: List[str] = []
 
 
+def get_thread_status(thread):
+    if thread.is_running():
+        return pwndbg.color.light_green("running")
+    elif thread.is_stopped():
+        return pwndbg.color.yellow("stopped")
+    elif thread.is_exited():
+        return pwndbg.color.gray("exited ")
+    else:
+        return "unknown"
+
+
+def context_threads(with_banner=True, target=sys.stdout, width=None):
+    threads = gdb.selected_inferior().threads()[::-1]
+
+    selected_thread = gdb.selected_thread()
+    selected_frame = gdb.selected_frame()
+
+    out = []
+    max_name_length = 0
+
+    for thread in threads:
+        if len(thread.name) > max_name_length:
+            max_name_length = len(thread.name)
+
+    for thread in threads:
+        thread.switch()
+        frame = gdb.selected_frame()
+
+        selected = " ►" if thread is selected_thread else "  "
+
+        symbol = pwndbg.gdblib.symbol.get(frame.pc())
+        status = get_thread_status(thread)
+
+        padding = max_name_length - len(thread.name)
+
+        line = f" {selected} {thread.global_num}\t"
+        line += f'"{pwndbg.color.cyan(thread.name)}" ' + (" " * padding)
+        line += f"{status}: {M.get(frame.pc())} "
+        if symbol:
+            line += f"<{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+        out.append(line)
+
+    out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
+
+    selected_thread.switch()
+    selected_frame.select()
+
+    return out
+
+
 def save_signal(signal) -> None:
     global last_signal
     last_signal = result = []
@@ -883,6 +933,7 @@ context_sections = {
     "b": context_backtrace,
     "e": context_expressions,
     "g": context_ghidra,
+    "t": context_threads,
 }
 
 
