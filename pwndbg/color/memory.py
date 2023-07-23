@@ -16,7 +16,7 @@ c = ColorConfig(
 )
 
 
-def get(address, text=None) -> str:
+def get(address, text=None, prefix=None) -> str:
     """
     Returns a colorized string representing the provided address.
 
@@ -24,6 +24,7 @@ def get(address, text=None) -> str:
         address(int): Address to look up
         text(str): Optional text to use in place of the address
               in the return value string.
+        prefix(str): Optional text to set at beginning in the return value string.
     """
     address = int(address)
 
@@ -50,6 +51,10 @@ def get(address, text=None) -> str:
         text = hex(int(address))
     if text is None:
         text = str(int(address))
+
+    if prefix:
+        # Replace first N characters with the provided prefix
+        text = prefix + text[len(prefix) :]
 
     return color(text)
 

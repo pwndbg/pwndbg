@@ -83,42 +83,72 @@ parser.add_argument(
 def vmmap(
     gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1
 ) -> None:
-    pages = pwndbg.gdblib.vmmap.get()
+    lookaround_lines_limit = 64
 
-    if gdbval_or_str:
+    # Implement a sane limit
+    lines_after = min(lookaround_lines_limit, lines_after)
+    lines_before = min(lookaround_lines_limit, lines_before)
+
+    # All displayed pages, including lines after and lines before
+    total_pages = pwndbg.gdblib.vmmap.get()
+
+    # Filtered memory pages, indicated by an backtrace arrow in results
+    filtered_pages = list()
+
+    # Only filter when -A and -B arguments are valid
+    if gdbval_or_str and lines_after >= 0 and lines_before >= 0:
         # Find matching page in memory
-        filtered_pages = list(filter(pages_filter(gdbval_or_str), pages))
+        filtered_pages = list(filter(pages_filter(gdbval_or_str), total_pages))
+        pages_to_display = list()
 
-        if filtered_pages:
-            matched_page = filtered_pages[0]
-            matched_index = pages.index(matched_page)
+        for matched_page in filtered_pages:
+            # Append matched page
+            pages_to_display.append(matched_page)
+            matched_index = total_pages.index(matched_page)
 
             # Include number of pages preceeding the matched page
             for before_index in range(1, lines_before + 1):
-                if matched_index - before_index >= 0:
-                    filtered_pages.insert(0, pages[matched_index - before_index])
+                # Guard index, and only insert the page if it is not displayed yet
+                if (
+                    matched_index - before_index >= 0
+                    and total_pages[matched_index - before_index] not in pages_to_display
+                ):
+                    pages_to_display.append(total_pages[matched_index - before_index])
 
             # Include number of pages proceeding the matched page
             for after_index in range(1, lines_after + 1):
-                if matched_index + after_index < len(pages) - 1:
-                    filtered_pages.append(pages[matched_index + after_index])
+                if (
+                    matched_index + after_index < len(total_pages) - 1
+                    and total_pages[matched_index + after_index] not in pages_to_display
+                ):
+                    pages_to_display.append(total_pages[matched_index + after_index])
 
-        pages = filtered_pages
+        # Sort results by address
+        total_pages = sorted(pages_to_display, key=lambda page: page.vaddr)
 
-    if not pages:
+    if not total_pages:
         print("There are no mappings for specified address or module.")
         return
 
     print(M.legend())
     print_vmmap_table_header()
-    if len(pages) == 1 and isinstance(gdbval_or_str, integer_types):
-        page = pages[0]
-        print(M.get(page.vaddr, text=str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)))
-    else:
-        for page in pages:
-            if (executable and not page.execute) or (writable and not page.write):
-                continue
-            print(M.get(page.vaddr, text=str(page)))
+
+    for page in total_pages:
+        if (executable and not page.execute) or (writable and not page.write):
+            continue
+
+        backtrace_prefix = None
+        display_text = str(page)
+
+        if page in filtered_pages:
+            # If page was one of the original results, add an arrow for clarity
+            backtrace_prefix = str(pwndbg.gdblib.config.backtrace_prefix)
+
+            # If the page is the only filtered page, insert offset
+            if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
+                display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
+
+        print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
     if pwndbg.gdblib.qemu.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
