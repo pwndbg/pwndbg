@@ -833,14 +833,20 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
 
 last_signal: List[str] = []
 
+thread_status_messages = {
+    "running": pwndbg.color.light_green("running"),
+    "stopped": pwndbg.color.yellow("stopped"),
+    "exited": pwndbg.color.gray("exited "),
+}
+
 
 def get_thread_status(thread):
     if thread.is_running():
-        return pwndbg.color.light_green("running")
+        return thread_status_messages["running"]
     elif thread.is_stopped():
-        return pwndbg.color.yellow("stopped")
+        return thread_status_messages["stopped"]
     elif thread.is_exited():
-        return pwndbg.color.gray("exited ")
+        return thread_status_messages["exited"]
     else:
         return "unknown"
 
