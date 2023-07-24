@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -ex
 
 # If we are a root in a container and `sudo` doesn't exist
@@ -106,7 +106,7 @@ if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit
     read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
 
     # If the user does not want to proceed, exit the script
-    if [ "$answer" != "y" ]; then
+    if [[ "$answer" != "y" ]]; then
         exit 0
     fi
 fi
@@ -178,7 +178,7 @@ if ! osx; then
 fi
 
 # Create Python virtualenv
-if [ -z "${PWNDBG_VENV_PATH}" ]; then
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
