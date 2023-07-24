@@ -143,9 +143,9 @@ if linux; then
                 }
             fi
             ;;
-	"freebsd")
-		install_freebsd
-		;;
+        "freebsd")
+            install_freebsd
+            ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
             if hash apt; then
