@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 
 # If we are a root in a container and `sudo` doesn't exist
@@ -66,6 +66,11 @@ install_pacman() {
     if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
         echo "set debuginfod enabled on" >> ~/.gdbinit
     fi
+}
+
+install_freebsd() {
+    sudo pkg install git gdb python py39-pip cmake gmake
+    which rustc || sudo pkg install rust
 }
 
 usage() {
@@ -138,6 +143,9 @@ if linux; then
                 }
             fi
             ;;
+        "freebsd")
+            install_freebsd
+            ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
             if hash apt; then
@@ -163,6 +171,7 @@ git submodule update --init --recursive
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
 PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+
 if ! osx; then
     PYTHON+="${PYVER}"
 fi
