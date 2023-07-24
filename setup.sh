@@ -68,6 +68,11 @@ install_pacman() {
     fi
 }
 
+install_freebsd() {
+    sudo pkg install git gdb python py39-pip cmake gmake
+    which rustc || sudo pkg install rust
+}
+
 usage() {
     echo "Usage: $0 [--update]"
     echo "  --update: Install/update dependencies without checking ~/.gdbinit"
@@ -101,7 +106,7 @@ if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit
     read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
 
     # If the user does not want to proceed, exit the script
-    if [[ "$answer" != "y" ]]; then
+    if [ "$answer" != "y" ]; then
         exit 0
     fi
 fi
@@ -138,6 +143,9 @@ if linux; then
                 }
             fi
             ;;
+	"freebsd")
+		install_freebsd
+		;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
             if hash apt; then
@@ -162,13 +170,15 @@ git submodule update --init --recursive
 
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
-PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)') ||
+	PYTHON=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+
 if ! osx; then
     PYTHON+="${PYVER}"
 fi
 
 # Create Python virtualenv
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+if [ -z "${PWNDBG_VENV_PATH}" ]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
