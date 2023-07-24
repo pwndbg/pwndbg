@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -ex
 
 # If we are a root in a container and `sudo` doesn't exist
