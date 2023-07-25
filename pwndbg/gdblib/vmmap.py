@@ -453,7 +453,8 @@ def kernel_vmmap_via_page_tables():
             flags |= 2
         if page.pwndbg_is_executable():
             flags |= 1
-        retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<pt>"))
+        objfile = f"[pt_{hex(start)[2:-3]}]"
+        retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
     return tuple(retpages)
 
 
