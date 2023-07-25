@@ -8,9 +8,6 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import Tuple
-
 import gdb
 
 import pwndbg.gdblib.abi

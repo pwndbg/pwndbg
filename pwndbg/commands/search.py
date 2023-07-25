@@ -5,7 +5,6 @@ import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands

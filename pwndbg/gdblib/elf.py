@@ -12,9 +12,6 @@ import ctypes
 import importlib
 import sys
 from collections import namedtuple
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS

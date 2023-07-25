@@ -30,7 +30,6 @@
 from __future__ import annotations
 
 import ctypes
-from typing import Dict
 
 import pwndbg.gdblib.ctypes
 

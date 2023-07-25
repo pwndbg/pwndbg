@@ -3,7 +3,6 @@ from __future__ import annotations
 import os.path
 import re
 from typing import Any
-from typing import Dict
 
 import pygments
 import pygments.formatters

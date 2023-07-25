@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 import gdb
 from capstone import *  # noqa: F403
 

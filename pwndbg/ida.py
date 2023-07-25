@@ -13,9 +13,6 @@ import time
 import traceback
 import xmlrpc.client
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 import gdb
 

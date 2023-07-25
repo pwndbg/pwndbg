@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
 
 import pwndbg.commands
 from pwndbg.color import message

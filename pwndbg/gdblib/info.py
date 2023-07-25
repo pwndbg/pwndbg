@@ -5,10 +5,6 @@ Runs a few useful commands which are available under "info".
 from __future__ import annotations
 
 import re
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import gdb
 

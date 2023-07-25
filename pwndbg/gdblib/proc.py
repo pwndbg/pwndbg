@@ -11,8 +11,6 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation

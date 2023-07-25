@@ -5,7 +5,6 @@ standardized interface to registers like "sp" and "pc".
 from __future__ import annotations
 
 import collections
-from typing import List
 
 
 class RegisterSet:

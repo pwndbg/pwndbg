@@ -8,7 +8,6 @@ from __future__ import annotations
 import glob
 import os
 import platform
-from typing import List
 
 from pwndbg.lib.arch import Arch
 

@@ -8,8 +8,6 @@ import ctypes
 import re
 import sys
 from types import ModuleType
-from typing import Dict
-from typing import List
 
 import gdb
 

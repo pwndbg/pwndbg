@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from random import choice
-from typing import List
 
 TIPS: list[str] = [
     # GDB hints

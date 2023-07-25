@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from typing import Generator
-from typing import List
-from typing import Optional
-from typing import Set
 
 import gdb
 

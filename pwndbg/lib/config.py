@@ -4,8 +4,6 @@ import collections
 from functools import total_ordering
 from typing import Callable
 from typing import DefaultDict
-from typing import Dict
-from typing import List
 
 import gdb
 

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import zlib
 from collections import UserDict
-from typing import Dict
-from typing import Optional
 
 
 def parse_config(config_text: bytes) -> dict[str, str]:

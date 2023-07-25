@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import argparse
 import queue
-from typing import Dict
-from typing import List
 
 import gdb
 

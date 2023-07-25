@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import bisect
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import gdb
 

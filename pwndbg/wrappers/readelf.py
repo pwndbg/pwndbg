@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict
-from typing import List
 
 import pwndbg.wrappers
 

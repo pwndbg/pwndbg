@@ -7,8 +7,6 @@ from __future__ import annotations
 import functools
 import os
 import re
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation

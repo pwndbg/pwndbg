@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import collections
 import math
-from typing import List
 
 import pwndbg.chain
 import pwndbg.color.telescope as T

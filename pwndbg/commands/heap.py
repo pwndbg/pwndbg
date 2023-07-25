@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import ctypes
 from string import printable
-from typing import Dict
-from typing import List
 
 import gdb
 from tabulate import tabulate

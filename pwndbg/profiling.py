@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import cProfile
 import time
-from typing import Optional
 
 profiler = None
 

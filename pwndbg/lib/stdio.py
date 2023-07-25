@@ -6,9 +6,7 @@ which prevent output from appearing on-screen inside of certain event handlers.
 from __future__ import annotations
 
 import sys
-from typing import List
 from typing import TextIO
-from typing import Tuple
 
 
 class Stdio:

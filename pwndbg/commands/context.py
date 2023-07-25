@@ -6,8 +6,6 @@ import os
 import sys
 from collections import defaultdict
 from typing import DefaultDict
-from typing import Dict
-from typing import List
 
 import gdb
 
