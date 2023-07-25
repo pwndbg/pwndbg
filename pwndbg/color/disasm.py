@@ -71,7 +71,7 @@ def instruction(ins):
 
             # display symbol as mem text if no inline replacement was made
             mem_text = ins.symbol if inlined_sym == asm else None
-            asm = "{} <{}>".format(ljust_colored(inlined_sym, 36), M.get(ins.symbol_addr, mem_text))
+            asm = f"{ljust_colored(inlined_sym, 36)} <{M.get(ins.symbol_addr, mem_text)}>"
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:

@@ -18,7 +18,7 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands: List[Command] = []
+commands: list[Command] = []
 command_names = set()
 
 
@@ -185,7 +185,7 @@ class Command(gdb.Command):
         try:
             return self.function(*args, **kwargs)
         except TypeError as te:
-            print("{!r}: {}".format(self.function.__name__.strip(), self.function.__doc__.strip()))
+            print(f"{self.function.__name__.strip()!r}: {self.function.__doc__.strip()}")
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)

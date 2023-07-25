@@ -56,7 +56,9 @@ class StartEvent:
 
         for function in self.registered:
             if debug:
-                sys.stdout.write("{!r} {}.{}\n".format("start", function.__module__, function.__name__))
+                sys.stdout.write(
+                    "{!r} {}.{}\n".format("start", function.__module__, function.__name__)
+                )
             function()
 
     def on_exited(self) -> None:
@@ -140,7 +142,7 @@ def connect(func, event_handler, name=""):
     @wraps(func)
     def caller(*a):
         if debug:
-            sys.stdout.write("{!r} {}.{} {!r}\n".format(name, func.__module__, func.__name__, a))
+            sys.stdout.write(f"{name!r} {func.__module__}.{func.__name__} {a!r}\n")
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile

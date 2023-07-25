@@ -53,7 +53,7 @@ def test_vis_heap_chunk_command(start_binary):
         nonlocal dq2
         dq1, dq2 = map(pwndbg.gdblib.memory.u64, (addr, addr + 8))
 
-        formatted = "{:#x}\t{:#018x}\t{:#018x}\t{}".format(addr, dq1, dq2, hexdump)
+        formatted = f"{addr:#x}\t{dq1:#018x}\t{dq2:#018x}\t{hexdump}"
         formatted += suffix
 
         return formatted
@@ -62,7 +62,7 @@ def test_vis_heap_chunk_command(start_binary):
 
     expected = [
         "",
-        "{:#x}\t0x0000000000000000\t{:#018x}\t{}".format(heap_iter(0), first_chunk_size | 1, first_hexdump),
+        f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
     ]
     for _ in range(first_chunk_size // 16 - 1):
         expected.append(

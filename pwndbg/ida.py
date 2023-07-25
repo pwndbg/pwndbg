@@ -497,7 +497,7 @@ def print_member(sid, offset) -> None:
     mname = GetMemberName(sid, offset) or "(no name)"
     msize = GetMemberSize(sid, offset) or 0
     mflag = GetMemberFlag(sid, offset) or 0
-    print("    +{:#x} - {} [{:#x} bytes]".format(offset, mname, msize))
+    print(f"    +{offset:#x} - {mname} [{msize:#x} bytes]")
 
 
 def print_structs() -> None:
@@ -507,7 +507,7 @@ def print_structs() -> None:
         name = GetStrucName(sid)
         size = GetStrucSize(sid)
 
-        print("{} - {:#x} bytes".format(name, size))
+        print(f"{name} - {size:#x} bytes")
 
         offset = 0
         while offset < size:

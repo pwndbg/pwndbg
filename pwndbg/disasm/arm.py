@@ -23,7 +23,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if op.mem.index != 0:
             index = pwndbg.gdblib.regs[instruction.reg_name(op.mem.index)]
             scale = op.mem.scale
-            parts.append("{}*{:#x}".format(index, scale))
+            parts.append(f"{index}*{scale:#x}")
 
         return f"[{(', '.join(parts))}]"
 

@@ -112,7 +112,7 @@ def probeleak(
     if not data:
         print(
             message.error(
-                "Couldn't read memory at 0x{:x}. See 'probeleak -h' for the usage.".format(address)
+                f"Couldn't read memory at 0x{address:x}. See 'probeleak -h' for the usage."
             )
         )
         return
@@ -149,7 +149,7 @@ def probeleak(
                     page.start - p,
                 )
             else:
-                right_text = "({}) {} + 0x{:x}".format(page.permstr, mod_name, p - page.start)
+                right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
@@ -165,4 +165,4 @@ def probeleak(
                 break
 
     if not found:
-        print(message.hint("No leaks found at 0x{:x}-0x{:x} :(".format(address, address + count)))
+        print(message.hint(f"No leaks found at 0x{address:x}-0x{address + count:x} :("))

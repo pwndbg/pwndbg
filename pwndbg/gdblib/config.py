@@ -99,7 +99,7 @@ class Parameter(gdb.Parameter):
         if not pwndbg.decorators.first_prompt:
             return ""
 
-        return "Set {} to {!r}.".format(self.param.set_show_doc, self.native_value)
+        return f"Set {self.param.set_show_doc} to {self.native_value!r}."
 
     def __get_set_string_gdb_le_9(self) -> str:
         """Handles the GDB `set <param>` command for GDB < 9"""

@@ -178,7 +178,7 @@ class Emulator:
         if reg:
             return self.uc.reg_read(reg)
 
-        raise AttributeError("AttributeError: {!r} object has no attribute {!r}".format(self, name))
+        raise AttributeError(f"AttributeError: {self!r} object has no attribute {name!r}")
 
     def update_pc(self, pc=None) -> None:
         if pc is None:

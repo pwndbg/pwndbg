@@ -29,7 +29,7 @@ def comm(addr=None, comment=None) -> None:
 
             else:
                 f.write(f"file:{pwndbg.gdblib.proc.exe}=")
-                f.write("{:#x}:{}\n".format(target, comment))
+                f.write(f"{target:#x}:{comment}\n")
                 if pwndbg.gdblib.proc.exe not in file_lists:
                     file_lists[pwndbg.gdblib.proc.exe] = {}
                 file_lists[pwndbg.gdblib.proc.exe][hex(target)] = comment

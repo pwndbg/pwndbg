@@ -30,7 +30,7 @@ def elfsections() -> None:
         sections.sort()
 
         for start, end, name in sections:
-            print("{:#x} - {:#x} ".format(start, end), name)
+            print(f"{start:#x} - {end:#x} ", name)
 
 
 @pwndbg.commands.ArgparsedCommand(

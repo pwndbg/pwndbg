@@ -80,7 +80,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 sz += " + "
 
             index = pwndbg.gdblib.regs[instruction.reg_name(index)]
-            sz += "{}*{:#x}".format(index, scale)
+            sz += f"{index}*{scale:#x}"
             arith = True
 
         if op.mem.disp != 0:
