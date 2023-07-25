@@ -2,6 +2,8 @@
 Emulation assistance from Unicorn.
 """
 
+from __future__ import annotations
+
 import binascii
 import re
 
@@ -176,7 +178,7 @@ class Emulator:
         if reg:
             return self.uc.reg_read(reg)
 
-        raise AttributeError("AttributeError: %r object has no attribute %r" % (self, name))
+        raise AttributeError("AttributeError: {!r} object has no attribute {!r}".format(self, name))
 
     def update_pc(self, pc=None) -> None:
         if pc is None:

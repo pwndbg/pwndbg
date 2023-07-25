@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 
 from pycparser import CParser  # type: ignore

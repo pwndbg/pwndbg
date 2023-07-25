@@ -2,6 +2,8 @@
 Dumps all pwndbg-specific configuration points.
 """
 
+from __future__ import annotations
+
 import argparse
 
 import pwndbg.commands

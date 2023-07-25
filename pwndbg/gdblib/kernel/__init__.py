@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import math
 import re
@@ -89,7 +91,7 @@ def kversion() -> str:
 
 @requires_debug_syms()
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> Tuple[int, ...]:
+def krelease() -> tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
         return tuple(int(x) for x in match.groups() if x)
@@ -219,7 +221,7 @@ class i386Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         raise NotImplementedError()
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -261,7 +263,7 @@ class x86_64Ops(x86Ops):
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L50
         return 12
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -330,7 +332,7 @@ class Aarch64Ops(ArchOps):
     def page_size(self) -> int:
         return 1 << self.PAGE_SHIFT
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -394,7 +396,7 @@ def page_size() -> int:
 
 
 @requires_debug_syms()
-def per_cpu(addr: gdb.Value, cpu: Optional[int] = None):
+def per_cpu(addr: gdb.Value, cpu: int | None = None):
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from random import choice
 from typing import List
 
-TIPS: List[str] = [
+TIPS: list[str] = [
     # GDB hints
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls",

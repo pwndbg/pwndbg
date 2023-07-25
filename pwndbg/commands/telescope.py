@@ -4,6 +4,8 @@ Prints out pointer chains starting at some address in memory.
 Generally used to print out the stack or register values.
 """
 
+from __future__ import annotations
+
 import argparse
 import collections
 import math
@@ -129,7 +131,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     # Print everything out
     result = []
     last = None
-    collapse_buffer: List[str] = []
+    collapse_buffer: list[str] = []
     skipped_padding = (
         2
         + len(offset_delimiter)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import ctypes
 from string import printable
@@ -922,7 +924,7 @@ def vis_heap_chunks(
         >> 1
     )
 
-    bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
+    bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
@@ -992,7 +994,7 @@ def bin_labels_mapping(collections):
     We precompute all of them because doing this on demand was too slow and inefficient
     See #1675 for more details
     """
-    labels_mapping: Dict[int, List[str]] = {}
+    labels_mapping: dict[int, list[str]] = {}
 
     for bins in collections:
         if not bins:

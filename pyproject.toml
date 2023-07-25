@@ -85,6 +85,7 @@ profile = "black"
 force_single_line = true
 known_third_party = ["capstone", "unicorn", "psutil", "pycparser", "gdb"]
 extend_skip_glob = ["gdb-pt-dump/*"]
+add_imports = "from __future__ import annotations"
 
 [tool.coverage.run]
 branch = true

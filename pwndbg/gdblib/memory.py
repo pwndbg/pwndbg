@@ -3,6 +3,8 @@ Reading, writing, and describing memory.
 """
 
 
+from __future__ import annotations
+
 from typing import Optional
 
 import gdb
@@ -246,7 +248,7 @@ def u64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
-def u(addr, size: Optional[int] = None):
+def u(addr, size: int | None = None):
     """u(addr, size=None) -> int
 
     Read one ``unsigned`` integer from the specified address,

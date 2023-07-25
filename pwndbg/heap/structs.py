@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ctypes
 
 import gdb
@@ -164,7 +166,7 @@ class CStruct2GDB:
         Returns the value of the specified field as a `gdb.Value`.
         """
         field_address = self.get_field_address(field)
-        field_type = next((f for f in self._c_struct._fields_ if f[0] == field))[1]
+        field_type = next(f for f in self._c_struct._fields_ if f[0] == field)[1]
         if hasattr(field_type, "_length_"):  # f is a ctypes Array
             t = C2GDB_MAPPING[field_type._type_]
             return pwndbg.gdblib.memory.poi(t.array(field_type._length_ - 1), field_address)

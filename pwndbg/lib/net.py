@@ -3,6 +3,8 @@ Re-implements some psutil functionality to be able to get information from
 remote debugging sessions.
 """
 
+from __future__ import annotations
+
 import binascii
 import socket
 

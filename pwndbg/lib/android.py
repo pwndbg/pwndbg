@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 KNOWN_AIDS = {
     0: "AID_ROOT",
     1000: "AID_SYSTEM",

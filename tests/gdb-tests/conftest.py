@@ -2,6 +2,8 @@
 This file should consist of global test fixtures.
 """
 
+from __future__ import annotations
+
 import gdb
 import pytest
 

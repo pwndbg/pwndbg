@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import importlib
 from collections import OrderedDict
@@ -85,7 +87,7 @@ class Bin:
 class Bins:
     def __init__(self, bin_type) -> None:
         # `typing.OrderedDict` requires Python 3.7
-        self.bins: OrderedDict[Union[int, str], Bin] = OrderedDict()
+        self.bins: OrderedDict[int | str, Bin] = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
@@ -1484,8 +1486,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self) -> None:
         super().__init__()
         self._structs_module = None
-        self._thread_arena_values: Dict[int, int] = {}
-        self._thread_caches: Dict[int, Any] = {}
+        self._thread_arena_values: dict[int, int] = {}
+        self._thread_caches: dict[int, Any] = {}
 
     @property
     def struct_module(self):
@@ -1662,7 +1664,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_tls_reference_in_got_section(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Optional[Tuple[int, int]]:
+    ) -> tuple[int, int] | None:
         """Brute force the TLS-reference in the .got section to that can pass the validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
@@ -1694,7 +1696,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_thread_local_variable_near_tls_base(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Optional[Tuple[int, int]]:
+    ) -> tuple[int, int] | None:
         """Brute force the thread-local variable near the TLS base address that can pass the validator."""
         print(
             message.notice(

@@ -6,6 +6,8 @@ This is necessary for when access to /proc is restricted, or when
 working on a BSD system which simply does not have /proc.
 """
 
+from __future__ import annotations
+
 import ctypes
 import importlib
 import sys
@@ -177,7 +179,7 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
 
 def dump_section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> Optional[Tuple[int, int, bytes]]:
+) -> tuple[int, int, bytes] | None:
     """
     Dump the content of a section from an ELF file, return the start address, size and content.
     """
@@ -192,7 +194,7 @@ def dump_section_by_name(
 
 def dump_relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> Optional[Tuple[Relocation, ...]]:
+) -> tuple[Relocation, ...] | None:
     """
     Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
     """
@@ -394,7 +396,7 @@ def map_inner(ei_class, ehdr, objfile):
     # Entries are processed in-order so that later entries
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
-    pages: List[pwndbg.lib.memory.Page] = []
+    pages: list[pwndbg.lib.memory.Page] = []
     for phdr in iter_phdrs(ehdr):
         memsz = int(phdr.p_memsz)
 

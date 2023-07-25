@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import cProfile
 import time
 from typing import Optional
@@ -5,7 +7,7 @@ from typing import Optional
 profiler = None
 
 
-def init(p: cProfile.Profile, _start_time: Optional[float]) -> None:
+def init(p: cProfile.Profile, _start_time: float | None) -> None:
     global profiler
     profiler = Profiler(p)
     profiler._start_time = _start_time
@@ -14,7 +16,7 @@ def init(p: cProfile.Profile, _start_time: Optional[float]) -> None:
 class Profiler:
     def __init__(self, p: cProfile.Profile) -> None:
         self._profiler = p
-        self._start_time: Optional[float] = None
+        self._start_time: float | None = None
 
     def print_time_elapsed(self):
         assert self._start_time is not None

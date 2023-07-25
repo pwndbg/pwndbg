@@ -8,6 +8,8 @@ We need to catch on the fly.  We do this by swapping out the base classes of the
 Structure type, and incurring a performance penalty for foreign-endianness targets.
 """
 
+from __future__ import annotations
+
 import ctypes
 import sys
 

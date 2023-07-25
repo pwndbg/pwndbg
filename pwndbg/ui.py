@@ -2,6 +2,8 @@
 A few helpers for making things print pretty-like.
 """
 
+from __future__ import annotations
+
 import fcntl
 import os
 import struct
@@ -44,7 +46,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
     if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
         _height, width = get_window_size(target=target if target != sys.stdout else sys.stdin)
     if title:
-        title = "%s%s%s%s" % (
+        title = "{}{}{}{}".format(
             config.banner_title_surrounding_left,
             C.banner_title(title),
             extra,

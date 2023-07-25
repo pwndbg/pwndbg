@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import struct
 import types
 
 
 class Amd64Arch(types.ModuleType):
     def __init__(self, module_name):
-        super(Amd64Arch, self).__init__(module_name)
+        super().__init__(module_name)
 
         self.ptrsize = 8
         self.ptrmask = (1 << 8 * self.ptrsize) - 1

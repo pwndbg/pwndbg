@@ -5,6 +5,8 @@ address ranges with various ELF files and permissions.
 The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
+from __future__ import annotations
+
 import bisect
 from typing import Any
 from typing import List
@@ -30,10 +32,10 @@ import pwndbg.lib.cache
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages: List[pwndbg.lib.memory.Page] = []
+explored_pages: list[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages: List[pwndbg.lib.memory.Page] = []
+custom_pages: list[pwndbg.lib.memory.Page] = []
 
 
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
@@ -77,7 +79,7 @@ def is_corefile() -> bool:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
@@ -160,7 +162,7 @@ def find(address):
 
 
 @pwndbg.gdblib.abi.LinuxOnly()
-def explore(address_maybe: int) -> Optional[Any]:
+def explore(address_maybe: int) -> Any | None:
     """
     Given a potential address, check to see what permissions it has.
 
@@ -425,7 +427,7 @@ def proc_pid_maps():
 def kernel_vmmap_via_page_tables():
     import pt
 
-    retpages: List[pwndbg.lib.memory.Page] = []
+    retpages: list[pwndbg.lib.memory.Page] = []
 
     p = pt.PageTableDump()
     try:

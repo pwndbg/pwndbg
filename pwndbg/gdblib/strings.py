@@ -3,6 +3,8 @@ Functionality for resolving ASCII printable strings within
 the debuggee's address space.
 """
 
+from __future__ import annotations
+
 import string
 
 import gdb

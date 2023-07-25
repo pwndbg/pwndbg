@@ -2,6 +2,8 @@
 Search the address space for byte patterns.
 """
 
+from __future__ import annotations
+
 import gdb
 
 import pwndbg.gdblib.arch

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import string
 
 import pwndbg.auxv
@@ -121,7 +123,7 @@ class Process:
                 v = int(v)
 
             # uid and gid and groups
-            elif all((s.isdigit() for s in v.split())):
+            elif all(s.isdigit() for s in v.split()):
                 v = list(map(int, v.split()))
 
             # capability sets

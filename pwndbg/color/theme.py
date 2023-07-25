@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.lib.config
 from pwndbg.gdblib import config
 

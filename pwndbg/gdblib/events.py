@@ -4,6 +4,8 @@ when various events occur to the debuggee (e.g. STOP on SIGINT)
 by using a decorator.
 """
 
+from __future__ import annotations
+
 import sys
 from functools import partial
 from functools import wraps
@@ -35,7 +37,7 @@ debug = config.add_param("debug-events", False, "display internal event debuggin
 # capture this so that we can fire off all of the 'start' events first.
 class StartEvent:
     def __init__(self) -> None:
-        self.registered: List[Callable] = []
+        self.registered: list[Callable] = []
         self.running = False
 
     def connect(self, function) -> None:
@@ -54,7 +56,7 @@ class StartEvent:
 
         for function in self.registered:
             if debug:
-                sys.stdout.write("%r %s.%s\n" % ("start", function.__module__, function.__name__))
+                sys.stdout.write("{!r} {}.{}\n".format("start", function.__module__, function.__name__))
             function()
 
     def on_exited(self) -> None:
@@ -106,7 +108,7 @@ gdb.events.before_prompt = before_prompt_event
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: Dict[Any, List[Callable]] = {
+registered: dict[Any, list[Callable]] = {
     gdb.events.exited: [],
     gdb.events.cont: [],
     gdb.events.new_objfile: [],
@@ -128,7 +130,7 @@ except (NameError, AttributeError):
 # objects are loaded.  This greatly slows down the debugging session.
 # In order to combat this, we keep track of which objfiles have been loaded
 # this session, and only emit objfile events for each *new* file.
-objfile_cache: Dict[str, Set[str]] = {}
+objfile_cache: dict[str, set[str]] = {}
 
 
 def connect(func, event_handler, name=""):
@@ -138,7 +140,7 @@ def connect(func, event_handler, name=""):
     @wraps(func)
     def caller(*a):
         if debug:
-            sys.stdout.write("%r %s.%s %r\n" % (name, func.__module__, func.__name__, a))
+            sys.stdout.write("{!r} {}.{} {!r}\n".format(name, func.__module__, func.__name__, a))
 
         if a and isinstance(a[0], gdb.NewObjFileEvent):
             objfile = a[0].new_objfile

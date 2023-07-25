@@ -1,6 +1,8 @@
 """
 Command to print the virtual memory map a la /proc/self/maps.
 """
+from __future__ import annotations
+
 import argparse
 
 import gdb

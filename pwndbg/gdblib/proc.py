@@ -4,6 +4,8 @@ are not fulfilled by other modules and some process/gdb flow
 related information.
 """
 
+from __future__ import annotations
+
 import functools
 import sys
 from types import ModuleType
@@ -101,11 +103,11 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
-    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    def binary_vmmap(self) -> tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
+    def dump_elf_data_section(self) -> tuple[int, int, bytes] | None:
         """
         Dump .data section of current process's ELF file
         """
@@ -114,7 +116,7 @@ class module(ModuleType):
     @pwndbg.lib.cache.cache_until("start", "objfile")
     def dump_relocations_by_section_name(
         self, section_name: str
-    ) -> Optional[Tuple[Relocation, ...]]:
+    ) -> tuple[Relocation, ...] | None:
         """
         Dump relocations of a section by section name of current process's ELF file
         """

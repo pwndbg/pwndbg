@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import argparse
 import ast
 import os
 import sys
 from collections import defaultdict
-from io import open
 from typing import DefaultDict
 from typing import Dict
 from typing import List
@@ -84,7 +85,7 @@ config_context_sections = pwndbg.gdblib.config.add_param(
 )
 
 # Storing output configuration per section
-outputs: Dict[str, str] = {}
+outputs: dict[str, str] = {}
 output_settings = {}
 
 
@@ -387,7 +388,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, Dict] = defaultdict(dict)
+    result_settings: DefaultDict[str, dict] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -508,7 +509,7 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     if pwndbg.gdblib.config.show_compact_regs:
         regs = compact_regs(regs, target=target, width=width)
 
-    info = " / show-flags %s / show-compact-regs %s" % (
+    info = " / show-flags {} / show-compact-regs {}".format(
         "on" if pwndbg.gdblib.config.show_flags else "off",
         "on" if pwndbg.gdblib.config.show_compact_regs else "off",
     )
@@ -621,7 +622,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
-    info = " / %s / set emulate %s" % (
+    info = " / {} / set emulate {}".format(
         pwndbg.gdblib.arch.current,
         "on" if bool(pwndbg.gdblib.config.emulate) else "off",
     )
@@ -676,7 +677,7 @@ def get_filename_and_formatted_source():
 
     try:
         source = get_highlight_source(filename)
-    except IOError:
+    except OSError:
         return "", []
 
     if not source:
@@ -831,7 +832,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal: List[str] = []
+last_signal: list[str] = []
 
 thread_status_messages = {
     "running": pwndbg.color.light_green("running"),

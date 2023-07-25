@@ -2,6 +2,8 @@
 Find a chain of leaks given some starting address.
 """
 
+from __future__ import annotations
+
 import argparse
 import queue
 from typing import Dict
@@ -50,7 +52,7 @@ def get_rec_addr_string(addr, visited_map):
 # Useful for debugging. Prints a map of child -> (parent, parent_start)
 def dbg_print_map(maps) -> None:
     for child, parent_info in maps.items():
-        print("0x%x + (0x%x, 0x%x)" % (child, parent_info[0], parent_info[1]))
+        print("0x{:x} + (0x{:x}, 0x{:x})".format(child, parent_info[0], parent_info[1]))
 
 
 parser = argparse.ArgumentParser(
@@ -165,7 +167,7 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map: Dict[int, List[str]] = {}
+    output_map: dict[int, list[str]] = {}
     arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
 
     for child in visited_map:

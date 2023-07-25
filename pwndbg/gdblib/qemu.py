@@ -2,6 +2,8 @@
 Determine whether the target is being run under QEMU.
 """
 
+from __future__ import annotations
+
 import os
 from typing import Any
 from typing import Optional
@@ -59,7 +61,7 @@ def is_qemu_kernel() -> bool:
 
 @start
 @pwndbg.lib.cache.cache_until("stop")
-def root() -> Optional[Any]:
+def root() -> Any | None:
     if not is_qemu_usermode():
         return None
 
@@ -79,7 +81,7 @@ def pid():
     talking to.
     """
     # Find all inodes in our process which are connections.
-    targets = set(c.raddr for c in psutil.Process().connections())
+    targets = {c.raddr for c in psutil.Process().connections()}
 
     # No targets? :(
     if not targets:

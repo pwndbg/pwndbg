@@ -4,6 +4,8 @@ debugging a remote process over SSH or similar, where e.g.
 /proc/FOO/maps is needed from the remote system.
 """
 
+from __future__ import annotations
+
 import binascii
 import os
 import shutil

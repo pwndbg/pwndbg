@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 
@@ -91,7 +93,7 @@ def piebase(offset=None, module=None) -> None:
     addr = translate_addr(offset, module)
 
     if addr is not None:
-        print("Calculated VA from %s = 0x%x" % (module, addr))
+        print("Calculated VA from {} = 0x{:x}".format(module, addr))
     else:
         print(message.error("Could not calculate VA on current target."))
 

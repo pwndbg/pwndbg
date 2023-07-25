@@ -2,6 +2,8 @@
 Launches the target process after setting a breakpoint at a convenient
 entry point.
 """
+from __future__ import annotations
+
 import argparse
 from argparse import RawTextHelpFormatter
 from shlex import quote

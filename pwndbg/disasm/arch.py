@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gdb
 from capstone import *  # noqa: F403
 
