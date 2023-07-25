@@ -70,3 +70,5 @@ pwndbg.profiling.init(_profiler, _start_time)
 if environ.get("PWNDBG_PROFILE") == "1":
     pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
     pwndbg.profiling.profiler.start()
+
+pwndbg.heap_tracking.install()

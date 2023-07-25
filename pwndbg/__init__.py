@@ -6,6 +6,7 @@ import gdb
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib
+import pwndbg.heap_tracking
 from pwndbg.commands import load_commands
 from pwndbg.gdblib import load_gdblib
 
