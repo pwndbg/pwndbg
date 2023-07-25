@@ -1,3 +1,52 @@
+"""
+Heap Tracking
+
+This module implements runtime tracking of the heap, allowing pwndbg to detect
+heap related misbehavior coming from an inferior in real time, which lets us
+catch UAF bugs, double frees (and more), and report them to the user.
+
+# Approach
+The approach used starting with using breakpoints to hook into the following
+libc symbols: `malloc`, `free`, `calloc`, and `realloc`. Each hook has a
+reference to a shared instance of the `Tracker` class, which is responsible for
+handling the tracking of the chunks of memory from the heap.
+
+The tracker keeps two sorted maps of chunks, for freed and in use chunks, keyed
+by their base address. Newly allocated chunks are added to the map of in use
+chunks right before an allocating call returns, and newly freed chunks are moved
+from the map of in use chunks to the map of free ones right before a freeing
+call returns. The tracker is also responsible for installing watchpoints for
+free chunks when they're added to the free chunk map and deleting them when
+their corresponding chunks are removed from the map.
+
+Additionally, because going through the data structures inside of libc to
+determine whether a chunk is free or not is, more often than not, a fairly slow
+operation, this module will only do so when it determines its view of the chunks
+has diverged from the one in libc in a way that would affect behavior. When such
+a diffence is detected, this module will rebuild the chunk maps in the range it
+determines to have been affected.
+
+Currently, the way it does this is by deleting and querying from libc the new
+status of all chunks that overlap the region of a new allocation when it detects
+that allocation overlaps chunks it previously considered free.
+
+This approach lets us avoid a lot of the following linked lists that comes with
+trying to answer the allocation status of a chunk, by keeping at hand as much
+known-good information as possible about them. Keep in mind that, although it is
+much faster than going to libc every time we need to know the allocation status
+of a chunk, this approach does have drawbacks when it comes to memory usage.
+
+# Compatibility
+Currently module assumes the inferior is using GLibc.
+
+There are points along the code in this module where the assumptions it makes
+are explicitly documented and checked to be valid for the current inferior, so
+that it may be immediately clear to the user that something has gone wrong if
+they happen to not be valid. However, be aware that there may be assumptions
+that were not made explicit.
+
+"""
+
 import gdb
 from sortedcontainers import SortedDict
 
@@ -74,6 +123,8 @@ class Tracker:
         self.memory_management_calls[thread] = False
 
     def malloc(self, chunk):
+        print(f"Allocated {chunk.size:#x} byte chunk at {chunk.address:#x}")
+
         # malloc()s may arbitrarily change the structure of freed blocks, to the
         # point our chunk maps may become invalid, so, we update them here if
         # anything looks wrong.
@@ -85,15 +136,24 @@ class Tracker:
                 # Include the element to the left in the update.
                 lo_i -= 1
 
+        print("    map:")
+        for ch in self.free_chunks:
+            print(f"        {self.free_chunks[ch].address:#x} ({self.free_chunks[ch].size} bytes)")
+        print(f"    lo_i: {lo_i}")
+        print(f"    hi_i: {hi_i}")
+
         if lo_i != hi_i:
             # The newly registered chunk overlaps with chunks we had registered
             # previously, which means our libc shuffled some things around and
             # so we need to update our view of the chunks.
             lo_chunk = self.free_chunks.peekitem(index=lo_i)[1]
-            hi_chunk = self.free_chunks.peekitem(index=hi_i)[1]
+            hi_chunk = self.free_chunks.peekitem(index=hi_i - 1)[1]
 
             lo_addr = lo_chunk.address
             hi_addr = hi_chunk.address + hi_chunk.size
+
+            print(f"    lo_addr: {lo_addr:#x}")
+            print(f"    hi_addr: {hi_addr:#x}")
 
             lo_heap = pwndbg.heap.ptmalloc.Heap(lo_addr)
             hi_heap = pwndbg.heap.ptmalloc.Heap(hi_addr - 1)
@@ -139,19 +199,24 @@ class Tracker:
                 bins_list.append(allocator.tcachebins(None))
             bins_list = [x for x in bins_list if x is not None]
 
+            print(f"Chunks in heap {lo_heap.start:#x}-{lo_heap.end:#x}:")
             for ch in lo_heap:
                 # Check for range overlap.
                 ch_lo_addr = ch.address
                 ch_hi_addr = ch.address + ch.size
 
-                lo_in_range = ch_lo_addr >= lo_addr and ch_lo_addr < hi_addr
-                hi_in_range = ch_hi_addr <= hi_addr and ch_hi_addr > lo_addr
+                print(f"        {ch.address:#x} ({ch.real_size} bytes)", end="")
+
+                lo_in_range = ch_lo_addr < hi_addr
+                hi_in_range = ch_hi_addr > lo_addr
 
                 if not lo_in_range or not hi_in_range:
                     # No range overlap.
+                    print(" (out of range)")
                     continue
 
                 # Check if the chunk is free.
+                found = False
                 for b in bins_list:
                     if b.contains_chunk(ch.real_size, ch.address):
                         # The chunk is free. Add it to the free list and install
@@ -159,11 +224,16 @@ class Tracker:
                         nch = Chunk(ch.address, ch.size, ch.real_size, 0)
                         wp = FreeChunkWatchpoint(nch, self)
 
+                        print(" (free)")
+
                         self.free_chunks[ch.address] = nch
                         self.free_wps[ch.address] = wp
 
                         # Move on to the next chunk.
+                        found = True
                         break
+                if not found:
+                    print(" (in use)")
 
         self.alloc_chunks[chunk.address] = chunk
 

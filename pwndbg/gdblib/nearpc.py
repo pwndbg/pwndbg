@@ -180,7 +180,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
         # the user anything we can figure out about the memory it's trying to
         # access.
         mem_access = ""
-        if instr.address == pc:
+        if instr.address == pc and False:
             accesses = []
             for operand in instr.operands:
                 if operand.type != CS_OP_MEM:
