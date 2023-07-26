@@ -12,7 +12,7 @@ import pwndbg.gdblib.config
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
-from pwndbg.color.lexer import PwntoolsLexer
+from pwnlib.lexer import PwntoolsLexer
 
 pwndbg.gdblib.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
 style = theme.add_param(
