@@ -2,11 +2,11 @@
 Get information about the GLibc
 """
 
+from __future__ import annotations
+
 import functools
 import os
 import re
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -51,13 +51,13 @@ def set_glibc_version() -> None:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def get_version() -> Optional[Tuple[int, ...]]:
+def get_version() -> tuple[int, ...] | None:
     return glibc_version or _get_version()
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _get_version() -> Optional[Tuple[int, ...]]:
+def _get_version() -> tuple[int, ...] | None:
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
@@ -80,7 +80,7 @@ def _get_version() -> Optional[Tuple[int, ...]]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
+def get_libc_filename_from_info_sharedlibrary() -> str | None:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
     """
@@ -107,7 +107,7 @@ def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
+def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     Dump .data section of libc ELF file
     """
@@ -120,7 +120,7 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> Optional[Tuple[Relocation, ...]]:
+def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
     """
     Dump relocations of a section by section name of libc ELF file
     """

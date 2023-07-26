@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os.path
 import re
 from typing import Any
-from typing import Dict
 
 import pygments
 import pygments.formatters
@@ -22,7 +23,7 @@ style = theme.add_param(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache: Dict[str, Any] = {}
+lexer_cache: dict[str, Any] = {}
 
 
 @pwndbg.gdblib.config.trigger(style)

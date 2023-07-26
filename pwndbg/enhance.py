@@ -7,6 +7,8 @@ dependent on page permissions, the contents of the data, and any
 supplemental information sources (e.g. active IDA Pro connection).
 """
 
+from __future__ import annotations
+
 import string
 
 import pwndbg.color.enhance as E
@@ -35,7 +37,7 @@ def int_str(value: int) -> str:
     packed = pwndbg.gdblib.arch.pack(int(value))
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
-            retval = "%s (%r)" % (retval, str(packed.decode("ascii", "ignore")))
+            retval = "{} ({!r})".format(retval, str(packed.decode("ascii", "ignore")))
 
     return retval
 

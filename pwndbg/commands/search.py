@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import argparse
 import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -15,7 +16,7 @@ import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-saved: Set[int] = set()
+saved: set[int] = set()
 
 
 def print_search_hit(address) -> None:

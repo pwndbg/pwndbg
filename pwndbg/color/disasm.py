@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import capstone
 
 import pwndbg.chain
@@ -10,7 +12,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color.message import on
 
-capstone_branch_groups = set((capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP))
+capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
 
 c = ColorConfig(
     "disasm",
@@ -69,7 +71,7 @@ def instruction(ins):
 
             # display symbol as mem text if no inline replacement was made
             mem_text = ins.symbol if inlined_sym == asm else None
-            asm = "%s <%s>" % (ljust_colored(inlined_sym, 36), M.get(ins.symbol_addr, mem_text))
+            asm = f"{ljust_colored(inlined_sym, 36)} <{M.get(ins.symbol_addr, mem_text)}>"
 
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:

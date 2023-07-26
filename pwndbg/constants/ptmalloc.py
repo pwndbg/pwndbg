@@ -1,4 +1,6 @@
 # Heap flags
+from __future__ import annotations
+
 PREV_INUSE = 1
 IS_MMAPPED = 2
 NON_MAIN_ARENA = 4

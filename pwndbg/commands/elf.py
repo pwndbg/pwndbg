@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.commands
@@ -28,7 +30,7 @@ def elfsections() -> None:
         sections.sort()
 
         for start, end, name in sections:
-            print("%#x - %#x " % (start, end), name)
+            print(f"{start:#x} - {end:#x} ", name)
 
 
 @pwndbg.commands.ArgparsedCommand(

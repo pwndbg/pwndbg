@@ -4,6 +4,8 @@ Put all functions defined for gdb in here.
 This file might be changed into a module in the future.
 """
 
+from __future__ import annotations
+
 import functools
 
 import gdb

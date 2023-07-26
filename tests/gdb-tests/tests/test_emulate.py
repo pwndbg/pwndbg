@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import tests
 from pwndbg.gdblib.nearpc import nearpc
 

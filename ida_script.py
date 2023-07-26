@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
+from __future__ import annotations
 
 import datetime
 import threading
@@ -46,7 +45,7 @@ def create_marshaller(use_format=None, just_to_str=False):
 
 
 xmlclient.Marshaller.dispatch[type(1 << 63)] = create_marshaller("<value><i8>%d</i8></value>")
-xmlclient.Marshaller.dispatch[type(0)] = create_marshaller("<value><i8>%d</i8></value>")
+xmlclient.Marshaller.dispatch[int] = create_marshaller("<value><i8>%d</i8></value>")
 xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = "127.0.0.1"

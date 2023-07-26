@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from os import environ
 
@@ -45,7 +47,7 @@ def initial_hook(*a) -> None:
             + message.system(" (disable with %s)" % message.notice("set show-tips off"))
             + message.prompt(" -------")
         )
-        print((colored_tip))
+        print(colored_tip)
     pwndbg.decorators.first_prompt = True
 
     prompt_hook(*a)

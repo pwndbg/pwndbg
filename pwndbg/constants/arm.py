@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .constant import Constant
 
 __NR_OABI_SYSCALL_BASE = Constant("__NR_OABI_SYSCALL_BASE", 0x900000)

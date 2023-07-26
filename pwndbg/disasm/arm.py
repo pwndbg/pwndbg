@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 
@@ -21,7 +23,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if op.mem.index != 0:
             index = pwndbg.gdblib.regs[instruction.reg_name(op.mem.index)]
             scale = op.mem.scale
-            parts.append("%s*%#x" % (index, scale))
+            parts.append(f"{index}*{scale:#x}")
 
         return f"[{(', '.join(parts))}]"
 

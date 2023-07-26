@@ -5,8 +5,9 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
+from __future__ import annotations
+
 import re
-from typing import Optional
 
 import gdb
 
@@ -199,7 +200,7 @@ def selected_frame_source_absolute_filename():
     return symtab.fullname()
 
 
-def parse_and_eval(expression: str) -> Optional[gdb.Value]:
+def parse_and_eval(expression: str) -> gdb.Value | None:
     """Error handling wrapper for GDBs parse_and_eval function"""
     try:
         return gdb.parse_and_eval(expression)

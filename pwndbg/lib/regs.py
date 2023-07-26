@@ -2,8 +2,9 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+from __future__ import annotations
+
 import collections
-from typing import List
 
 
 class RegisterSet:
@@ -35,7 +36,7 @@ class RegisterSet:
     retval = None
 
     #: Common registers which should be displayed in the register context
-    common: List[str] = None
+    common: list[str] = None
 
     #: All valid registers
     all = None
@@ -68,12 +69,11 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = set(i for i in misc) | set(flags) | set(self.retaddr) | set(self.common)
+        self.all = {i for i in misc} | set(flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
 
     def __iter__(self):
-        for r in self.all:
-            yield r
+        yield from self.all
 
 
 arm_cpsr_flags = collections.OrderedDict(

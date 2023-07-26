@@ -2,6 +2,8 @@
 Wrapper for shell commands.
 """
 
+from __future__ import annotations
+
 import os
 
 from pwnlib.util.misc import which

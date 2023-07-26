@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 from collections import namedtuple
@@ -142,7 +144,7 @@ ColorParamSpec = namedtuple("ColorParamSpec", ["name", "default", "doc"])
 
 
 class ColorConfig:
-    def __init__(self, namespace: str, params: List[ColorParamSpec]) -> None:
+    def __init__(self, namespace: str, params: list[ColorParamSpec]) -> None:
         self._namespace = namespace
         self._params = {}
         for param in params:

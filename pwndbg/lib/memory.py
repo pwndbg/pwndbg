@@ -2,6 +2,8 @@
 Reading, writing, and describing memory.
 """
 
+from __future__ import annotations
+
 import os
 
 import pwndbg.gdblib.arch
@@ -132,7 +134,7 @@ class Page:
         return f"{self.vaddr:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.vaddr + self.memsz:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {self.objfile or ''}"
 
     def __repr__(self) -> str:
-        return "%s(%r)" % (self.__class__.__name__, self.__str__())
+        return f"{self.__class__.__name__}({self.__str__()!r})"
 
     def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end

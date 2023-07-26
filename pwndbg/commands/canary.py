@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope

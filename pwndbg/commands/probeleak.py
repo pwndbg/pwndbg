@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import math
 import os
@@ -110,7 +112,7 @@ def probeleak(
     if not data:
         print(
             message.error(
-                "Couldn't read memory at 0x%x. See 'probeleak -h' for the usage." % (address,)
+                f"Couldn't read memory at 0x{address:x}. See 'probeleak -h' for the usage."
             )
         )
         return
@@ -134,20 +136,20 @@ def probeleak(
                 mod_name = "[anon]"
 
             if p >= page.end:
-                right_text = "(%s) %s + 0x%x + 0x%x (outside of the page)" % (
+                right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
                     page.permstr,
                     mod_name,
                     page.memsz,
                     p - page.end,
                 )
             elif p < page.start:
-                right_text = "(%s) %s - 0x%x (outside of the page)" % (
+                right_text = "({}) {} - 0x{:x} (outside of the page)".format(
                     page.permstr,
                     mod_name,
                     page.start - p,
                 )
             else:
-                right_text = "(%s) %s + 0x%x" % (page.permstr, mod_name, p - page.start)
+                right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
@@ -163,4 +165,4 @@ def probeleak(
                 break
 
     if not found:
-        print(message.hint("No leaks found at 0x%x-0x%x :(" % (address, address + count)))
+        print(message.hint(f"No leaks found at 0x{address:x}-0x{address + count:x} :("))

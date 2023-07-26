@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gdb
 import pytest
 
@@ -123,20 +125,20 @@ def test_nearpc_opcode_bytes(start_binary, opcode_bytes):
     gdb.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
     dis = gdb.execute("nearpc", to_string=True)
     expected = (
-        "   0x400080 {0} <_start>       mov    eax, 0\n"
-        "   0x400085 {1} <_start+5>     mov    edi, 0x1337\n"
-        "   0x40008a {2} <_start+10>    mov    esi, 0xdeadbeef\n"
-        "   0x40008f {3} <_start+15>    mov    ecx, 0x10\n"
-        " ► 0x400094 {4} <_start+20>    syscall  <SYS_read>\n"
+        "   0x400080 {} <_start>       mov    eax, 0\n"
+        "   0x400085 {} <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a {} <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f {} <_start+15>    mov    ecx, 0x10\n"
+        " ► 0x400094 {} <_start+20>    syscall  <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0x0\n"
-        "   0x400096 {5} <_start+22>    mov    eax, 0xa\n"
-        "   0x40009b {6} <_start+27>    int    0x80\n"
-        "   0x40009d {7}                add    byte ptr [rax], al\n"
-        "   0x40009f {8}                add    byte ptr [rax], al\n"
-        "   0x4000a1 {9}                add    byte ptr [rax], al\n"
-        "   0x4000a3 {10}                add    byte ptr [rax], al\n"
+        "   0x400096 {} <_start+22>    mov    eax, 0xa\n"
+        "   0x40009b {} <_start+27>    int    0x80\n"
+        "   0x40009d {}                add    byte ptr [rax], al\n"
+        "   0x40009f {}                add    byte ptr [rax], al\n"
+        "   0x4000a1 {}                add    byte ptr [rax], al\n"
+        "   0x4000a3 {}                add    byte ptr [rax], al\n"
     ).format(*OPCODE_BYTES_TESTS_EXPECTED_OUTPUT[opcode_bytes])
     assert dis == expected
 
@@ -149,20 +151,20 @@ def test_nearpc_opcode_seperator(start_binary, separator_bytes):
     gdb.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
     dis = gdb.execute("nearpc", to_string=True)
     excepted = (
-        "   0x400080 {0} <_start>       mov    eax, 0\n"
-        "   0x400085 {1} <_start+5>     mov    edi, 0x1337\n"
-        "   0x40008a {2} <_start+10>    mov    esi, 0xdeadbeef\n"
-        "   0x40008f {3} <_start+15>    mov    ecx, 0x10\n"
-        " ► 0x400094 {4} <_start+20>    syscall  <SYS_read>\n"
+        "   0x400080 {} <_start>       mov    eax, 0\n"
+        "   0x400085 {} <_start+5>     mov    edi, 0x1337\n"
+        "   0x40008a {} <_start+10>    mov    esi, 0xdeadbeef\n"
+        "   0x40008f {} <_start+15>    mov    ecx, 0x10\n"
+        " ► 0x400094 {} <_start+20>    syscall  <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0x0\n"
-        "   0x400096 {5} <_start+22>    mov    eax, 0xa\n"
-        "   0x40009b {6} <_start+27>    int    0x80\n"
-        "   0x40009d {7}                add    byte ptr [rax], al\n"
-        "   0x40009f {8}                add    byte ptr [rax], al\n"
-        "   0x4000a1 {9}                add    byte ptr [rax], al\n"
-        "   0x4000a3 {10}                add    byte ptr [rax], al\n"
+        "   0x400096 {} <_start+22>    mov    eax, 0xa\n"
+        "   0x40009b {} <_start+27>    int    0x80\n"
+        "   0x40009d {}                add    byte ptr [rax], al\n"
+        "   0x40009f {}                add    byte ptr [rax], al\n"
+        "   0x4000a1 {}                add    byte ptr [rax], al\n"
+        "   0x4000a3 {}                add    byte ptr [rax], al\n"
     ).format(*OPCODE_SEPERATOR_TESTS_EXPECTED_OUTPUT[separator_bytes])
     assert dis == excepted
 

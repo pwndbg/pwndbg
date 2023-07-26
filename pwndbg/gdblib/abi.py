@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import functools
 from typing import Any
-from typing import Optional
 
 import gdb
 
@@ -51,7 +52,7 @@ def LinuxOnly(default=None):
 
     def decorator(func):
         @functools.wraps(func)
-        def caller(*args: int, **kwargs: Any) -> Optional[Any]:
+        def caller(*args: int, **kwargs: Any) -> Any | None:
             if linux:
                 return func(*args, **kwargs)
             else:

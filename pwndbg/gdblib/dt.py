@@ -2,6 +2,8 @@
 Prints structures in a manner similar to Windbg's "dt" command.
 """
 
+from __future__ import annotations
+
 import re
 
 import gdb

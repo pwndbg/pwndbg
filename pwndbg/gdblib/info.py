@@ -2,11 +2,9 @@
 Runs a few useful commands which are available under "info".
 """
 
+from __future__ import annotations
+
 import re
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import gdb
 
@@ -53,7 +51,7 @@ def sharedlibrary():
         return ""
 
 
-def parsed_sharedlibrary() -> Dict[str, Tuple[int, int]]:
+def parsed_sharedlibrary() -> dict[str, tuple[int, int]]:
     """
     Returns a dictionary of shared libraries with their .text section from and to addresses.
     """
@@ -74,14 +72,14 @@ def parsed_sharedlibrary() -> Dict[str, Tuple[int, int]]:
     return result
 
 
-def sharedlibrary_paths() -> List[str]:
+def sharedlibrary_paths() -> list[str]:
     """
     Get the paths of all shared libraries loaded in the process by parsing the output of "info sharedlibrary".
     """
     return list(parsed_sharedlibrary().keys())
 
 
-def address(symbol: str) -> Optional[int]:
+def address(symbol: str) -> int | None:
     try:
         res = gdb.execute(f"info address {symbol}", to_string=True)
         return int(re.search("0x[0-9a-fA-F]+", res).group(), 0)

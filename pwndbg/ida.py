@@ -3,6 +3,8 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
+from __future__ import annotations
+
 import errno
 import functools
 import socket
@@ -11,9 +13,6 @@ import time
 import traceback
 import xmlrpc.client
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 import gdb
 
@@ -40,7 +39,7 @@ ida_timeout = pwndbg.gdblib.config.add_param(
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-xmlrpc.client.Marshaller.dispatch[type(0)] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
+xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 _ida = None
 
@@ -128,7 +127,7 @@ class withIDA:
         self.fn = fn
         functools.update_wrapper(self, fn)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any | None:
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:
@@ -254,7 +253,7 @@ def Anterior(addr):
     hexrays_prefix = b"\x01\x04; "
     lines = []
     for i in range(10):
-        r: Optional[bytes] = _ida.get_extra_cmt(addr, 0x3E8 + i)  # E_PREV
+        r: bytes | None = _ida.get_extra_cmt(addr, 0x3E8 + i)  # E_PREV
         if not r:
             break
         if r.startswith(hexrays_prefix):
@@ -280,7 +279,7 @@ def GetBptEA(i):
     return _ida.get_bpt_ea(i)
 
 
-_breakpoints: List[gdb.Breakpoint] = []
+_breakpoints: list[gdb.Breakpoint] = []
 
 
 @pwndbg.gdblib.events.cont
@@ -288,7 +287,7 @@ _breakpoints: List[gdb.Breakpoint] = []
 @withIDA
 def UpdateBreakpoints() -> None:
     # XXX: Remove breakpoints from IDA when the user removes them.
-    current = set(eval(b.location.lstrip("*")) for b in _breakpoints)
+    current = {eval(b.location.lstrip("*")) for b in _breakpoints}
     want = set(GetBreakpoints())
 
     for addr in current - want:
@@ -483,7 +482,7 @@ class IDC:
 
     def __init__(self) -> None:
         if available():
-            data: Dict = _ida.eval(self.query)
+            data: dict = _ida.eval(self.query)
             self.__dict__.update(data)
 
 
@@ -495,7 +494,7 @@ def print_member(sid, offset) -> None:
     mname = GetMemberName(sid, offset) or "(no name)"
     msize = GetMemberSize(sid, offset) or 0
     mflag = GetMemberFlag(sid, offset) or 0
-    print("    +%#x - %s [%#x bytes]" % (offset, mname, msize))
+    print(f"    +{offset:#x} - {mname} [{msize:#x} bytes]")
 
 
 def print_structs() -> None:
@@ -505,7 +504,7 @@ def print_structs() -> None:
         name = GetStrucName(sid)
         size = GetStrucSize(sid)
 
-        print("%s - %#x bytes" % (name, size))
+        print(f"{name} - {size:#x} bytes")
 
         offset = 0
         while offset < size:

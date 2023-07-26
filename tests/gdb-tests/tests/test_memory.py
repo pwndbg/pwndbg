@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.stack
 import tests

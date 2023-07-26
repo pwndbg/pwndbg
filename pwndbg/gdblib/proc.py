@@ -4,13 +4,13 @@ are not fulfilled by other modules and some process/gdb flow
 related information.
 """
 
+from __future__ import annotations
+
 import functools
 import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -101,20 +101,18 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
-    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    def binary_vmmap(self) -> tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
+    def dump_elf_data_section(self) -> tuple[int, int, bytes] | None:
         """
         Dump .data section of current process's ELF file
         """
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_relocations_by_section_name(
-        self, section_name: str
-    ) -> Optional[Tuple[Relocation, ...]]:
+    def dump_relocations_by_section_name(self, section_name: str) -> tuple[Relocation, ...] | None:
         """
         Dump relocations of a section by section name of current process's ELF file
         """

@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Dict
-from typing import List
 
 import pwndbg.wrappers
 
@@ -16,12 +16,12 @@ class RelocationType(Enum):
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
-def get_got_entry(local_path: str) -> Dict[RelocationType, List[str]]:
+def get_got_entry(local_path: str) -> dict[RelocationType, list[str]]:
     # --wide is for showing the full information, e.g.: R_X86_64_JUMP_SLOT instead of R_X86_64_JUMP_SLO
     cmd = get_got_entry.cmd + ["--relocs", "--wide", local_path]
     readelf_out = pwndbg.wrappers.call_cmd(cmd)
 
-    entries: Dict[RelocationType, List[str]] = {category: [] for category in RelocationType}
+    entries: dict[RelocationType, list[str]] = {category: [] for category in RelocationType}
     for line in readelf_out.splitlines():
         if not line or not line[0].isdigit() or " " not in line:
             continue

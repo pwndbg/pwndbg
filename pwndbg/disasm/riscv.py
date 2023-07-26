@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 
@@ -7,7 +9,7 @@ import pwndbg.gdblib.regs
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture):
-        super(DisassemblyAssistant, self).__init__(architecture)
+        super().__init__(architecture)
         self.architecture = architecture
 
     def _is_condition_taken(self, instruction):
@@ -26,7 +28,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             src1_signed = src1_unsigned - ((src1_unsigned & 0x80000000_00000000) << 1)
             src2_signed = src2_unsigned - ((src2_unsigned & 0x80000000_00000000) << 1)
         else:
-            raise NotImplementedError("architecture '{}' not implemented".format(self.architecture))
+            raise NotImplementedError(f"architecture '{self.architecture}' not implemented")
 
         return {
             RISCV_INS_BEQ: src1_signed == src2_signed,

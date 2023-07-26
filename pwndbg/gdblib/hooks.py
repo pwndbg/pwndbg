@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file

@@ -4,12 +4,13 @@ e.g. execution stops because of a SIGINT or breakpoint, or a
 new library/objfile are loaded, etc.
 """
 
+from __future__ import annotations
+
 from collections import UserDict
 from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import List
 from typing import Tuple
 from typing import Union
 
@@ -58,7 +59,7 @@ Cache = Union[Dict[Tuple[Any], Any], DebugCacheDict]
 
 class _CacheUntilEvent:
     def __init__(self) -> None:
-        self.caches: List[Cache] = []
+        self.caches: list[Cache] = []
 
     def connect_event_hooks(self, event_hooks) -> None:
         """
@@ -125,7 +126,7 @@ def cache_until(*event_names) -> Callable:
         @wraps(func)
         def decorator(*a, **kw):
             if IS_CACHING:
-                key: Tuple[Any] = (a, _KWARGS_SEPARATOR, *kw.items())
+                key: tuple[Any] = (a, _KWARGS_SEPARATOR, *kw.items())
 
                 # Check if the value is in the cache; if we have a cache miss,
                 # we return a special singleton object `_NOT_FOUND_IN_CACHE`. This way

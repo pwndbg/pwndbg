@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pygments.lexer import RegexLexer
 from pygments.lexer import include
 from pygments.token import Comment

@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 import pwndbg.gdblib.arch
 
@@ -10,7 +10,7 @@ class ABI:
 
     #: List or registers which should be filled with arguments before
     #: spilling onto the stack.
-    register_arguments: List[str] = []
+    register_arguments: list[str] = []
 
     #: Minimum alignment of the stack.
     #: The value used is min(context.bytes, stack_alignment)
@@ -31,15 +31,15 @@ class ABI:
         self.stack_minimum = minimum
 
     @staticmethod
-    def default() -> "ABI":
+    def default() -> ABI:
         return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
-    def syscall() -> "ABI":
+    def syscall() -> ABI:
         return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
-    def sigreturn() -> "SigreturnABI":
+    def sigreturn() -> SigreturnABI:
         return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
 

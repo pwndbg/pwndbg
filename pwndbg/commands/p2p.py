@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 import argparse
-from typing import List
-from typing import Optional
 
 import pwndbg.color
 import pwndbg.commands
@@ -79,7 +79,7 @@ Any chain length greater than 0 is valid. If only one mapping is given it just l
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
 
 
-def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
+def maybe_points_to_ranges(ptr: int, rs: list[AddrRange]):
     try:
         pointee = pwndbg.gdblib.memory.pvoid(ptr)
     except Exception:
@@ -111,7 +111,7 @@ def p2p_walk(addr, ranges, current_level):
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: Optional[List] = None) -> None:
+def p2p(mapping_names: list | None = None) -> None:
     if not mapping_names:
         return
 

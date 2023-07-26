@@ -4,6 +4,8 @@ GPT-3 large language model and asks it a question supplied by the user. It then
 displays GPT-3's response to that question to the user.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os

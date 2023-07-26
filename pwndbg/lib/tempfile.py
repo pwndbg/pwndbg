@@ -2,6 +2,8 @@
 Common helper and cache for pwndbg tempdir
 """
 
+from __future__ import annotations
+
 import os
 import tempfile
 

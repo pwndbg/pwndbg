@@ -3,6 +3,8 @@ Commands for setting temporary breakpoints on the next
 instruction of some type (call, branch, etc.)
 """
 
+from __future__ import annotations
+
 import re
 from itertools import chain
 

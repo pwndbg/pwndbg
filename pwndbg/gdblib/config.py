@@ -14,6 +14,8 @@ module, for example:
     >>> int(pwndbg.gdblib.config.example_value)
     7
 """
+from __future__ import annotations
+
 import gdb
 
 import pwndbg.decorators
@@ -97,7 +99,7 @@ class Parameter(gdb.Parameter):
         if not pwndbg.decorators.first_prompt:
             return ""
 
-        return "Set %s to %r." % (self.param.set_show_doc, self.native_value)
+        return f"Set {self.param.set_show_doc} to {self.native_value!r}."
 
     def __get_set_string_gdb_le_9(self) -> str:
         """Handles the GDB `set <param>` command for GDB < 9"""
@@ -117,7 +119,7 @@ class Parameter(gdb.Parameter):
     def __get_show_string_gdb_gte_9(self, svalue) -> str:
         """Handles the GDB `show <param>` command for GDB >= 9"""
         more_information_hint = f" See `help set {self.param.name}` for more information."
-        return "%s is %r.%s" % (
+        return "{} is {!r}.{}".format(
             self.param.set_show_doc.capitalize(),
             svalue,
             more_information_hint if self.__doc__ else "",

@@ -2,12 +2,12 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+from __future__ import annotations
+
 import ctypes
 import re
 import sys
 from types import ModuleType
-from typing import Dict
-from typing import List
 
 import gdb
 
@@ -42,7 +42,7 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
-    last: Dict[str, int] = {}
+    last: dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
     def __getattr__(self, attr: str) -> int:
@@ -97,8 +97,7 @@ class module(ModuleType):
 
     def __iter__(self):
         regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
-        for item in regs:
-            yield item
+        yield from regs
 
     @property
     def current(self):
@@ -136,7 +135,7 @@ class module(ModuleType):
     @property
     def all(self):
         regs = reg_sets[pwndbg.gdblib.arch.current]
-        retval: List[str] = []
+        retval: list[str] = []
         for regset in (
             regs.pc,
             regs.stack,

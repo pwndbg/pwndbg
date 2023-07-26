@@ -2,6 +2,8 @@
 Hexdump implementation, ~= stolen from pwntools.
 """
 
+from __future__ import annotations
+
 import math
 import string
 

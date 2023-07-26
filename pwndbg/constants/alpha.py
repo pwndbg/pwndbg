@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .constant import Constant
 
 __NR_osf_syscall = Constant("__NR_osf_syscall", 0)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 Add, load, show, edit, or delete symbols for custom structures.
@@ -15,13 +14,14 @@ favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment v
 to find the path to the default text editor.
 """
 
+from __future__ import annotations
+
 import argparse
 import functools
 import os
 import subprocess
 import sys
 import tempfile
-from typing import Dict
 
 import gdb
 
@@ -47,7 +47,7 @@ cymbol_editor = pwndbg.gdblib.config.add_param(
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.
-loaded_symbols: Dict[str, str] = {}
+loaded_symbols: dict[str, str] = {}
 
 # Where generated symbol source files are saved.
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
@@ -94,7 +94,7 @@ def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_fi
     gcc_cmd = gcc_flags + gcc_extra_flags
 
     try:
-        subprocess.run(gcc_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run(gcc_cmd, capture_output=True, check=True)
     except subprocess.CalledProcessError as exception:
         print(message.error(exception))
         print(

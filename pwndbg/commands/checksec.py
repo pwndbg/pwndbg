@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.commands
 import pwndbg.gdblib.file
 import pwndbg.wrappers.checksec

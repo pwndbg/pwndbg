@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
