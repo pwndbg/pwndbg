@@ -802,7 +802,9 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         frame_pc = frame.pc()
-        stackaddr = M.get((pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)))
+        frame_pc_on_stack = pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)
+        padded_text = "0x" + hex(frame_pc_on_stack)[2:].zfill(pwndbg.gdblib.arch.ptrsize * 2)
+        stackaddr = M.get(frame_pc_on_stack, padded_text)
         addrsz = "(" + stackaddr + ") " + M.get(frame_pc)
         symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame_pc)))
         if symbol:
