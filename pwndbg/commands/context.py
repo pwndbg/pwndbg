@@ -800,7 +800,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     bt_prefix = "%s" % pwndbg.gdblib.config.backtrace_prefix
     while True:
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
-        prefix = " %s" % c.prefix(prefix)
+        prefix = f" {c.prefix(prefix)}"
         frame_pc = frame.pc()
         stackaddr = M.get((pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)))
         addrsz = "(" + stackaddr + ") " + M.get(frame_pc)
