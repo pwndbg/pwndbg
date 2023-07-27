@@ -138,7 +138,7 @@ def is_executable() -> bool:
     return not nx
 
 
-def find_addr_on_stack(addr):
+def find_addr_on_stack(addr) -> int:
     """
     Scans the stack looking to see if it contains the supplied address.
 
