@@ -125,7 +125,7 @@ Include = /etc/pacman.d/mirrorlist
 EOF
 
     sudo pacman -Syu --noconfirm || true
-    sudo pacman -S --noconfirm \
+    sudo pacman -S --needed --noconfirm \
         nasm \
         gcc \
         glibc-debug \
