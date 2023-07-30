@@ -78,7 +78,7 @@ config_output = pwndbg.gdblib.config.add_param(
 )
 config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions",
+    "regs disasm code ghidra stack backtrace expressions threads",
     "which context sections are displayed (controls order)",
 )
 
@@ -852,6 +852,9 @@ def get_thread_status(thread):
 
 def context_threads(with_banner=True, target=sys.stdout, width=None):
     threads = gdb.selected_inferior().threads()[::-1]
+
+    if len(threads) < 2:
+        return []
 
     selected_thread = gdb.selected_thread()
     selected_frame = gdb.selected_frame()
