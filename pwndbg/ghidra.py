@@ -28,12 +28,12 @@ def decompile(func=None):
         if r2decompiler == "radare2":
             r2 = pwndbg.radare2.r2pipe()
             # LD -> list supported decompilers (e cmd.pdc=?)
+            # Outputs for example: pdc\npdg
             if "pdg" not in r2.cmd("LD").split("\n"):
                 raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
         elif r2decompiler == "rizin":
             r2 = pwndbg.rizin.rzpipe()
             # Lc -> list core plugins
-            # Outputs for example: pdc\npdg
             if "ghidra" not in r2.cmd("Lc"):
                 raise Exception("rizin plugin rzghidra must be installed and available from rz")
         else:
