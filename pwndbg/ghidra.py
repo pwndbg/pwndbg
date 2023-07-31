@@ -22,7 +22,7 @@ def set_r2decompiler() -> None:
         return
     print(
         message.warn(
-            f"Invalid r2decompiler : `{r2decompiler.value}`, you should select from (radare2/rizin)"
+            f"Invalid r2decompiler: `{r2decompiler.value}`, please select from radare2 or rizin"
         )
     )
     r2decompiler.revert_default()
