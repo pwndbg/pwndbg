@@ -9,10 +9,23 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.regs
 import pwndbg.radare2
 import pwndbg.rizin
+from pwndbg.color import message
 
 r2decompiler = pwndbg.gdblib.config.add_param(
     "r2decompiler", "radare2", "framework that your ghidra plugin installed (radare2/rizin)"
 )
+
+
+@pwndbg.gdblib.config.trigger(r2decompiler)
+def set_r2decompiler() -> None:
+    if r2decompiler.value in ["radare2", "rizin"]:
+        return
+    print(
+        message.warn(
+            f"Invalid r2decompiler : `{r2decompiler.value}`, you should select from (radare2/rizin)"
+        )
+    )
+    r2decompiler.revert_default()
 
 
 def decompile(func=None):
