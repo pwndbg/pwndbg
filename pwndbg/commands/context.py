@@ -864,11 +864,9 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     color_length = 9  # len(pwndbg.color.cyan(""))
 
     for thread in threads:
-        name = thread.name
-        if name is None:
-            name = "null"
-        if len(name) > max_name_length:
-            max_name_length = len(name)
+        name = thread.name or ""
+        if name_len := len(name) > max_name_length:
+            max_name_length = name_len
 
     for thread in threads:
         thread.switch()
@@ -879,21 +877,17 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         symbol = pwndbg.gdblib.symbol.get(frame.pc())
         status = get_thread_status(thread)
 
-        name = thread.name
-        if name is None:
-            name = pwndbg.color.gray("null")
-        else:
-            name = pwndbg.color.cyan(thread.name)
+        name = pwndbg.color.cyan(thread.name) if thread.name is not None else ""
         padding = max_name_length - len(name) + color_length
 
         line = (
             f" {selected} {thread.global_num}\t"
             f'"{name}" '
             f'{" " * padding}'
-            f"{status}: {M.get(frame.pc())} "
+            f"{status}: {M.get(frame.pc())}"
         )
         if symbol:
-            line += f"<{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+            line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
         out.append(line)
 
     out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
