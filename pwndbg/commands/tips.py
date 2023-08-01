@@ -22,4 +22,4 @@ def tips(all: bool) -> None:
 
 
 def __color_tip(tip: str) -> str:
-    return re.sub("`(.*?)`", lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day())
+    return re.sub("`(.*?)`", lambda s: message.warn(s.group()[1:-1]), tip)
