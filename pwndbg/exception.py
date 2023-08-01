@@ -39,7 +39,7 @@ def inform_unmet_dependencies(errors) -> None:
     """
     Informs user about unmet dependencies
     """
-    msg = message.error("You appear to have unmet dependencies.\n")
+    msg = message.error("You appear to have unmet Pwndbg dependencies.\n")
     for e in errors:
         if isinstance(e, pkg_resources.DistributionNotFound):
             msg += message.notice(f"- required {e.args[0]}, but not installed\n")
