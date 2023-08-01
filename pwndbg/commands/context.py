@@ -861,6 +861,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     out = []
     max_name_length = 0
+    color_length = 9  # len(pwndbg.color.cyan(""))
 
     for thread in threads:
         name = thread.name
@@ -883,7 +884,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
             name = pwndbg.color.gray("null")
         else:
             name = pwndbg.color.cyan(thread.name)
-        padding = max_name_length - len(name)
+        padding = max_name_length - len(name) + color_length
 
         line = (
             f" {selected} {thread.global_num}\t"
