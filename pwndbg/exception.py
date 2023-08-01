@@ -46,7 +46,8 @@ def inform_unmet_dependencies(errors) -> None:
         else:
             msg += message.notice(f"- required {e.args[1]}, installed: {e.args[0]}\n")
     msg += message.notice("Consider running: ")
-    msg += message.hint("`setup.sh`\n")
+    msg += message.hint("`setup.sh` ")
+    msg += message.notice("from Pwndbg project directory.\n")
     print(msg)
 
 
