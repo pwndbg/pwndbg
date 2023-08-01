@@ -29,6 +29,17 @@ TIPS: list[str] = [
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
     "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration",
+    "Use the `vmmap -B <number>` to display <number> of maps before specified one",
+    "Use the `vmmap -A <number>` to display <number> of maps after specified one",
+    "Using `killall` command you can kill all threads except selected one",
+    "Use the `spray` command to spray memory with cyclic pattern or specified value",
+    "You can patch memory with your own assembly instructions with `patch <address> <assembly>`",
+    "Want to NOP some instructions? Use `patch <address> 'nop; nop; nop'`",
+    "`heap_config` shows heap related configuration",
+    "`break-if-taken` and `break-if-not-taken` commands sets breakpoints after jump instruction if jump happened or not",
+    "`stepuntilasm` steps program forward until matching instruction occures",
+    "Use `plist` command to dump elements of linked list",
+    "If your program has multiple threads they will be displayed by default or in `context threads`",
 ]
 
 
