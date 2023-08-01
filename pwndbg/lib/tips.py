@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
 from random import choice
+
+from pwndbg.color import message
 
 TIPS: list[str] = [
     # GDB hints
@@ -44,3 +47,7 @@ TIPS: list[str] = [
 
 def get_tip_of_the_day() -> str:
     return choice(TIPS)
+
+
+def color_tip(tip: str) -> str:
+    return re.sub("`(.*?)`", lambda s: message.warn(s.group()[1:-1]), tip)
