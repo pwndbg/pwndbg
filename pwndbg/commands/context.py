@@ -861,12 +861,11 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     out = []
     max_name_length = 0
-    color_length = 9  # len(pwndbg.color.cyan(""))
 
     for thread in threads:
         name = thread.name or ""
-        if name_len := len(name) > max_name_length:
-            max_name_length = name_len
+        if len(name) > max_name_length:
+            max_name_length = len(name)
 
     for thread in threads:
         thread.switch()
@@ -877,12 +876,12 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         symbol = pwndbg.gdblib.symbol.get(frame.pc())
         status = get_thread_status(thread)
 
-        name = pwndbg.color.cyan(thread.name) if thread.name is not None else ""
-        padding = max_name_length - len(name) + color_length
+        name = thread.name if thread.name is not None else ""
+        padding = max_name_length - len(name)
 
         line = (
             f" {selected} {thread.global_num}\t"
-            f'"{name}" '
+            f'"{pwndbg.color.cyan(name)}" '
             f'{" " * padding}'
             f"{status}: {M.get(frame.pc())}"
         )
