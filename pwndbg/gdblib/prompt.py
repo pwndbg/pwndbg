@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from os import environ
 
 import gdb
@@ -12,6 +11,7 @@ import pwndbg.lib.cache
 import pwndbg.profiling
 from pwndbg.color import disable_colors
 from pwndbg.color import message
+from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
 funcs_list_str = ", ".join(message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions)
@@ -39,9 +39,7 @@ cur = None
 
 def initial_hook(*a) -> None:
     if show_tip and not pwndbg.decorators.first_prompt:
-        colored_tip = re.sub(
-            "`(.*?)`", lambda s: message.warn(s.group()[1:-1]), get_tip_of_the_day()
-        )
+        colored_tip = color_tip(get_tip_of_the_day())
         print(
             message.prompt("------- tip of the day")
             + message.system(" (disable with %s)" % message.notice("set show-tips off"))
