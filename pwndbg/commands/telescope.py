@@ -115,7 +115,9 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
         for page in pwndbg.gdblib.vmmap.get():
             if sp in page and bp not in page:
-                print("Cannot display stack frame because base pointer is not on the same page with stack pointer")
+                print(
+                    "Cannot display stack frame because base pointer is not on the same page with stack pointer"
+                )
                 return
 
         address = sp
