@@ -20,19 +20,8 @@ from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb77_get_register(name: str):
-    return gdb.parse_and_eval("$" + name)
-
-
-@pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb79_get_register(name: str):
+def gdb_get_register(name: str):
     return gdb.selected_frame().read_register(name)
-
-
-if hasattr(gdb.Frame, "read_register"):
-    get_register = gdb79_get_register
-else:
-    get_register = gdb77_get_register
 
 
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
@@ -48,21 +37,15 @@ class module(ModuleType):
     def __getattr__(self, attr: str) -> int:
         attr = attr.lstrip("$")
         try:
-            # Seriously, gdb? Only accepts uint32.
-            if "eflags" in attr or "cpsr" in attr:
-                value = gdb77_get_register(attr)
-                value = value.cast(pwndbg.gdblib.typeinfo.uint32)
-            else:
-                value = get_register(attr)
-                if value is None and attr.lower() == "xpsr":
-                    value = get_register("xPSR")
-                size = pwndbg.gdblib.typeinfo.unsigned.get(
-                    value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
-                )
-                value = value.cast(size)
-                if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
-                    value += self.cs * 16
-
+            value = gdb_get_register(attr)
+            if value is None and attr.lower() == "xpsr":
+                value = gdb_get_register("xPSR")
+            size = pwndbg.gdblib.typeinfo.unsigned.get(
+                value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
+            )
+            value = value.cast(size)
+            if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
+                value += self.cs * 16
             value = int(value)
             return value & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
@@ -186,13 +169,10 @@ class module(ModuleType):
 
     @pwndbg.lib.cache.cache_until("stop")
     def _fs_gs_helper(self, regname: str, which):
-        """Supports fetching based on segmented addressing, a la fs:[0x30].
-        Requires ptrace'ing the child directly for GDB < 8."""
+        """Supports fetching based on segmented addressing, a la fs:[0x30]."""
 
-        # For GDB >= 8.x we can use get_register directly
-        # Elsewhere we have to get the register via ptrace
-        if pwndbg.gdblib.arch.current == "x86-64" and get_register == gdb79_get_register:
-            return get_register(regname)
+        if pwndbg.gdblib.arch.current == "x86-64":
+            return gdb_get_register(regname)
 
         # We can't really do anything if the process is remote.
         if pwndbg.gdblib.remote.is_remote():
