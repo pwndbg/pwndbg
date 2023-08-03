@@ -115,10 +115,9 @@ registered: dict[Any, list[Callable]] = {
     gdb.events.start: [],
     gdb.events.new_thread: [],
     gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
+    gdb.events.memory_changed: [],
+    gdb.events.register_changed: []
 }
-
-registered[gdb.events.memory_changed] = []
-registered[gdb.events.register_changed] = []
 
 
 # When performing remote debugging, gdbserver is very noisy about which
