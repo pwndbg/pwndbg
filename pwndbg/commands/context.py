@@ -798,12 +798,13 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     frame = newest_frame
     i = 0
     bt_prefix = "%s" % pwndbg.gdblib.config.backtrace_prefix
+    zero_fill_amount = pwndbg.gdblib.arch.ptrsize * 2
     while True:
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         frame_pc = frame.pc()
         frame_pc_on_stack = pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)
-        padded_text = "0x" + hex(frame_pc_on_stack)[2:].zfill(pwndbg.gdblib.arch.ptrsize * 2)
+        padded_text = "0x" + hex(frame_pc_on_stack)[2:].zfill(zero_fill_amount)
         stackaddr = M.get(frame_pc_on_stack, padded_text)
         addrsz = f"({stackaddr}) {M.get(frame_pc)}"
         symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame_pc)))
