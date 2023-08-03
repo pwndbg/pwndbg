@@ -86,7 +86,7 @@ Start the debugged program stopping at its entrypoint address.
 
 Note that the entrypoint may not be the first instruction executed
 by the program. If you want to stop on the first executed instruction,
-use the GDB's `starti` command (added in GDB 8.1).
+use the GDB's `starti` command.
 
 Args may include "*", or "[...]"; they are expanded using the
 shell that will start the program (specified by the "$SHELL" environment
