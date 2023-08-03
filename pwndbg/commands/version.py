@@ -25,10 +25,7 @@ from pwndbg.commands import CommandCategory
 
 
 def _gdb_version():
-    try:
-        return gdb.VERSION  # GDB >= 8.1 (or earlier?)
-    except AttributeError:
-        return gdb.execute("show version", to_string=True).split("\n")[0]
+    return gdb.VERSION
 
 
 def _py_version():
