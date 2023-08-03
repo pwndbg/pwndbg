@@ -805,7 +805,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         frame_pc_on_stack = pwndbg.gdblib.stack.find_addr_on_stack(frame_pc)
         padded_text = "0x" + hex(frame_pc_on_stack)[2:].zfill(pwndbg.gdblib.arch.ptrsize * 2)
         stackaddr = M.get(frame_pc_on_stack, padded_text)
-        addrsz = "(" + stackaddr + ") " + M.get(frame_pc)
+        addrsz = f"({stackaddr}) {M.get(frame_pc)}"
         symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame_pc)))
         if symbol:
             addrsz = addrsz + " " + symbol
