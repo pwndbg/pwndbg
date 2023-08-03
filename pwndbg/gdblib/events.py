@@ -117,12 +117,8 @@ registered: dict[Any, list[Callable]] = {
     gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
 }
 
-# GDB 7.9 and above only
-try:
-    registered[gdb.events.memory_changed] = []
-    registered[gdb.events.register_changed] = []
-except (NameError, AttributeError):
-    pass
+registered[gdb.events.memory_changed] = []
+registered[gdb.events.register_changed] = []
 
 
 # When performing remote debugging, gdbserver is very noisy about which
