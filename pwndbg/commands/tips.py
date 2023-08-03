@@ -8,7 +8,7 @@ from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
 parser = argparse.ArgumentParser(description="Shows tips.")
-parser.add_argument("--all", action="store_true", help="Show all tips.")
+parser.add_argument("-a", "--all", action="store_true", help="Show all tips.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
