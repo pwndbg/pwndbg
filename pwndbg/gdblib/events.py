@@ -116,7 +116,7 @@ registered: dict[Any, list[Callable]] = {
     gdb.events.new_thread: [],
     gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
     gdb.events.memory_changed: [],
-    gdb.events.register_changed: []
+    gdb.events.register_changed: [],
 }
 
 
