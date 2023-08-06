@@ -37,6 +37,9 @@ RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py && mkdir gdb-pt-dum
 RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
     ./setup.sh
 
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg && rm -rf gdb-pt-dump
+
 # Comment these lines if you won't run the tests.
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
