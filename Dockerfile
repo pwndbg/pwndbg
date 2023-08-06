@@ -25,10 +25,13 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     rm -rf /var/lib/apt/lists/* && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
     apt-get update && \
-    apt-get install -y vim git
+    apt-get install -y vim
 
-ADD . /pwndbg/
-RUN git submodule update --init --recursive
+ADD ./setup.sh /pwndbg/
+ADD ./poetry.lock /pwndbg/
+ADD ./pyproject.toml /pwndbg/
+ADD ./dev-requirements.txt /pwndbg/
+RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py && mkdir gdb-pt-dump && touch gdb-pt-dump/empty.py
 
 # The `git submodule` is commented because it refreshes all the sub-modules in the project
 # but at this time we only need the essentials for the set up. It will execute at the end.
@@ -40,3 +43,7 @@ ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
+
+ADD . /pwndbg/
+
+RUN git submodule update --init --recursive

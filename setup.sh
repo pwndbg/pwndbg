@@ -191,6 +191,17 @@ ${PYTHON} -m pip install --upgrade pip
 # Create Python virtual environment and install dependencies in it
 ${PWNDBG_VENV_PATH}/bin/pip install -U .
 
+# pyproject.toml install itself "pwndbg"/"gdb-pt-dump" into site-packages, for "caching" dockerfile we need remove it
+PYTHON_VERSION=$(ls "${PWNDBG_VENV_PATH}/lib/")
+CHECK_PATH="${PWNDBG_VENV_PATH}/lib/${PYTHON_VERSION}/site-packages/pwndbg/empty.py"
+if [ -f "$CHECK_PATH" ]; then
+    rm -rf "$(dirname "$CHECK_PATH")"
+fi
+CHECK_PATH="${PWNDBG_VENV_PATH}/lib/${PYTHON_VERSION}/site-packages/gdb-pt-dump/empty.py"
+if [ -f "$CHECK_PATH" ]; then
+    rm -rf "$(dirname "$CHECK_PATH")"
+fi
+
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
     if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
