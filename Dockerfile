@@ -25,11 +25,11 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     rm -rf /var/lib/apt/lists/* && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
     apt-get update && \
-    apt-get install -y vim
+    apt-get install -y vim git
 
-ADD ./setup.sh /pwndbg/
-ADD ./requirements.txt /pwndbg/
-ADD ./dev-requirements.txt /pwndbg/
+ADD . /pwndbg/
+RUN git submodule update --init --recursive
+
 # The `git submodule` is commented because it refreshes all the sub-modules in the project
 # but at this time we only need the essentials for the set up. It will execute at the end.
 RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
@@ -40,7 +40,3 @@ ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
-
-ADD . /pwndbg/
-
-RUN git submodule update --init --recursive
