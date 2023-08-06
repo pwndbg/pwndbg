@@ -189,7 +189,7 @@ PYTHON=${PWNDBG_VENV_PATH}/bin/python
 ${PYTHON} -m pip install --upgrade pip
 
 # Create Python virtual environment and install dependencies in it
-${PWNDBG_VENV_PATH}/bin/pip install -Ur ./requirements.txt
+${PWNDBG_VENV_PATH}/bin/pip install -U .
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
