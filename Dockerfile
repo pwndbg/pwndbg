@@ -31,6 +31,8 @@ ADD ./setup.sh /pwndbg/
 ADD ./poetry.lock /pwndbg/
 ADD ./pyproject.toml /pwndbg/
 ADD ./dev-requirements.txt /pwndbg/
+
+# pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py && mkdir gdb-pt-dump && touch gdb-pt-dump/empty.py
 
 # The `git submodule` is commented because it refreshes all the sub-modules in the project
