@@ -63,7 +63,8 @@ let
 
       makeWrapper ${gdb}/bin/gdb $out/bin/pwndbg \
         --add-flags "--quiet --eval-command=\"set charset UTF-8\" --eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py" \
-        --prefix PATH : ${binPath}
+        --prefix PATH : ${binPath} \
+	--set LC_CTYPE C.UTF-8
     '';
 
     meta = {
