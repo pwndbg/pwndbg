@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import functools
+import os
 import sys
 import traceback
 
 import gdb
+import pkg_resources
 
 import pwndbg.lib.cache
 import pwndbg.lib.stdio
@@ -31,6 +33,41 @@ verbose = config.add_param(
 debug = config.add_param(
     "exception-debugger", False, "whether to debug exceptions raised in Pwndbg commands"
 )
+
+
+def inform_unmet_dependencies(errors) -> None:
+    """
+    Informs user about unmet dependencies
+    """
+    msg = message.error("You appear to have unmet Pwndbg dependencies.\n")
+    for e in errors:
+        if isinstance(e, pkg_resources.DistributionNotFound):
+            msg += message.notice(f"- required {e.args[0]}, but not installed\n")
+        else:
+            msg += message.notice(f"- required {e.args[1]}, installed: {e.args[0]}\n")
+    msg += message.notice("Consider running: ")
+    msg += message.hint("`setup.sh` ")
+    msg += message.notice("from Pwndbg project directory.\n")
+    print(msg)
+
+
+@pwndbg.lib.cache.cache_until("forever")
+def check_dependencies():
+    """
+    Checks if there are any unmet dependencies in requirements.txt
+    """
+    project_path = os.path.dirname(os.path.abspath(__file__))
+    requirements_path = os.path.join(project_path, os.pardir, "requirements.txt")
+    with open(requirements_path, "r") as f:
+        errors = []
+        for line in f.readlines():
+            try:
+                pkg_resources.require(line)
+            except (pkg_resources.VersionConflict, pkg_resources.DistributionNotFound) as e:
+                errors.append(e)
+
+        if errors:
+            inform_unmet_dependencies(errors)
 
 
 @pwndbg.lib.cache.cache_until("forever")
@@ -75,6 +112,9 @@ def handle(name="Error"):
         e = E(V)
         e.__traceback__ = T
         raise e
+
+    # Check dependencies against requirements.txt and warn user
+    check_dependencies()
 
     # Display the error
     if debug or verbose:

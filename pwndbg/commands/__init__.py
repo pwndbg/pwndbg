@@ -163,12 +163,7 @@ class Command(gdb.Command):
 
         last_line = lines[-1]
         number_str, command = last_line.split(maxsplit=1)
-        try:
-            number = int(number_str)
-        except ValueError:
-            # Workaround for a GDB 8.2 bug when show commands return error value
-            # See issue #523
-            return False
+        number = int(number_str)
 
         # A new command was entered by the user
         if number not in Command.history:
@@ -668,6 +663,7 @@ def load_commands() -> None:
     import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
+    import pwndbg.commands.tips
     import pwndbg.commands.tls
     import pwndbg.commands.valist
     import pwndbg.commands.version

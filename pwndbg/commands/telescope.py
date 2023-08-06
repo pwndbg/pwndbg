@@ -59,6 +59,15 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "-f",
+    "--frame",
+    dest="frame",
+    action="store_true",
+    default=False,
+    help="Show the stack frame, from rsp to rbp",
+)
+
+parser.add_argument(
     "address", nargs="?", default="$sp", type=int, help="The address to telescope at."
 )
 
@@ -69,7 +78,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False, reverse=False):
+def telescope(address=None, count=telescope_lines, to_string=False, reverse=False, frame=False):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
@@ -95,6 +104,24 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     # Allow invocation of telescope -r to dump previous addresses
     if reverse:
         address -= (count - 1) * ptrsize
+
+    # Allow invocation of telescope -f (--frame) to dump frame addresses
+    if frame:
+        sp = pwndbg.gdblib.regs.sp
+        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+        if sp > bp:
+            print("Cannot display stack frame because base pointer is below stack pointer")
+            return
+
+        for page in pwndbg.gdblib.vmmap.get():
+            if sp in page and bp not in page:
+                print(
+                    "Cannot display stack frame because base pointer is not on the same page with stack pointer"
+                )
+                return
+
+        address = sp
+        count = int((bp - sp) / ptrsize) + 1
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
     if int(address) <= int(count):

@@ -102,3 +102,62 @@ def test_command_telescope_reverse_skipped_records_shows_input_address(start_bin
     result_lines = result_str.strip("\n").split("\n")
 
     assert expected_value in result_lines[-1]
+
+
+def test_command_telescope_frame(start_binary):
+    """
+    Tests telescope --frame
+    """
+    start_binary(TELESCOPE_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    rsp = hex(pwndbg.gdblib.regs.sp)
+    rbp = hex(pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame])
+
+    result_str = gdb.execute("telescope --frame", to_string=True)
+    result_lines = result_str.strip().split("\n")
+
+    assert rsp in result_lines[0]
+    assert rbp in result_lines[-1]
+
+
+def test_command_telescope_frame_bp_below_sp(start_binary):
+    """
+    Tests telescope --frame when base pointer is below stack pointer
+    """
+    start_binary(TELESCOPE_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+    gdb.execute("memoize")  # turn off cache
+
+    pwndbg.gdblib.regs.sp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame] + 1
+
+    result_str = gdb.execute("telescope --frame", to_string=True)
+
+    assert "Cannot display stack frame because base pointer is below stack pointer" in result_str
+
+
+def test_command_telescope_frame_bp_sp_different_vmmaps(start_binary):
+    """
+    Tests telescope --frame when base pointer and stack pointer are on different vmmap pages
+    """
+    start_binary(TELESCOPE_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+    gdb.execute("memoize")  # turn off cache
+
+    pages = pwndbg.gdblib.vmmap.get()
+
+    pwndbg.gdblib.regs.sp = pages[0].start
+    pwndbg.gdblib.regs.bp = pages[1].start
+
+    result_str = gdb.execute("telescope --frame", to_string=True)
+
+    assert (
+        "Cannot display stack frame because base pointer is not on the same page with stack pointer"
+        in result_str
+    )

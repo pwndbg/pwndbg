@@ -78,7 +78,7 @@ config_output = pwndbg.gdblib.config.add_param(
 )
 config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions",
+    "regs disasm code ghidra stack backtrace expressions threads",
     "which context sections are displayed (controls order)",
 )
 
@@ -853,6 +853,9 @@ def get_thread_status(thread):
 def context_threads(with_banner=True, target=sys.stdout, width=None):
     threads = gdb.selected_inferior().threads()[::-1]
 
+    if len(threads) < 2:
+        return []
+
     selected_thread = gdb.selected_thread()
     selected_frame = gdb.selected_frame()
 
@@ -860,8 +863,9 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     max_name_length = 0
 
     for thread in threads:
-        if len(thread.name) > max_name_length:
-            max_name_length = len(thread.name)
+        name = thread.name or ""
+        if len(name) > max_name_length:
+            max_name_length = len(name)
 
     for thread in threads:
         thread.switch()
@@ -872,16 +876,17 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         symbol = pwndbg.gdblib.symbol.get(frame.pc())
         status = get_thread_status(thread)
 
-        padding = max_name_length - len(thread.name)
+        name = thread.name if thread.name is not None else ""
+        padding = max_name_length - len(name)
 
         line = (
             f" {selected} {thread.global_num}\t"
-            f'"{pwndbg.color.cyan(thread.name)}" '
+            f'"{pwndbg.color.cyan(name)}" '
             f'{" " * padding}'
-            f"{status}: {M.get(frame.pc())} "
+            f"{status}: {M.get(frame.pc())}"
         )
         if symbol:
-            line += f"<{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+            line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
         out.append(line)
 
     out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
