@@ -21,6 +21,7 @@ import pwndbg.commands.telescope
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap_tracking
 import pwndbg.gdblib.nearpc
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
@@ -79,7 +80,7 @@ config_output = pwndbg.gdblib.config.add_param(
 )
 config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions",
+    "regs disasm code ghidra stack backtrace expressions heap-tracker",
     "which context sections are displayed (controls order)",
 )
 
@@ -515,6 +516,19 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
 
+def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
+    if not pwndbg.gdblib.heap_tracking.is_enabled():
+        return []
+
+    banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
+
+    if pwndbg.gdblib.heap_tracking.last_issue is not None:
+        info = [f"Detected the following potential issue: {pwndbg.gdblib.heap_tracking.last_issue}"]
+        pwndbg.gdblib.heap_tracking.last_issue = None
+    else:
+        info = ["Nothing to report."]
+
+    return banner + info if with_banner else info
 
 parser = argparse.ArgumentParser(description="Print out all registers and enhance the information.")
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
@@ -883,6 +897,7 @@ context_sections = {
     "b": context_backtrace,
     "e": context_expressions,
     "g": context_ghidra,
+    "h": context_heap_tracker,
 }
 
 
