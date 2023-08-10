@@ -54,20 +54,34 @@ import pwndbg.gdblib
 from pwndbg.color import message
 
 MALLOC_NAME = "malloc"
+CALLOC_NAME = "calloc"
+REALLOC_NAME = "realloc"
 FREE_NAME = "free"
 
 last_issue = None
 
+
 def is_enabled() -> bool:
+    """
+    Whether the heap tracker in enabled.
+    """
     global malloc_enter
     global free_enter
 
     installed = [malloc_enter is not None, free_enter is not None]
-    
+
     # Make sure we're not in an inconsistent state.
     assert all(installed) == any(installed)
 
     return any(installed)
+
+
+def is_available(name: str) -> bool:
+    """
+    Checks whether a given symbol is available.
+    """
+    return pwndbg.gdblib.symbol.address(name) is not None
+
 
 class FreeChunkWatchpoint(gdb.Breakpoint):
     def __init__(self, chunk, tracker):
@@ -80,9 +94,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
         else:
             loc = f"*(char[{chunk.size}]*){chunk.address:#x}"
 
-        super().__init__(
-            loc, type=gdb.BP_WATCHPOINT, internal=True
-        )
+        super().__init__(loc, type=gdb.BP_WATCHPOINT, internal=True)
 
     def stop(self):
         pwndbg.lib.cache.clear_cache("stop")
@@ -96,7 +108,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
         if self.tracker.is_performing_memory_management():
             # We explicitly allow this operation.
             return False
-        
+
         global last_issue
         last_issue = message.error("Use after free")
 
@@ -140,22 +152,23 @@ class Tracker:
 
     def enter_memory_management(self, name):
         thread = gdb.selected_thread().global_num
-        
+
         # We don't support re-entry.
         if thread in self.memory_management_calls:
-            assert not self.memory_management_calls[thread], \
-                f"in {name}(): re-entrant calls are not supported"
+            assert not self.memory_management_calls[
+                thread
+            ], f"in {name}(): re-entrant calls are not supported"
 
         print(f"Thread {thread} entered memory management")
         self.memory_management_calls[thread] = True
 
     def exit_memory_management(self):
         thread = gdb.selected_thread().global_num
-        
+
         # Make sure we're not doing anything wrong.
         if thread in self.memory_management_calls:
             assert self.memory_management_calls[thread]
-        
+
         print(f"Thread {thread} exited memory management")
         self.memory_management_calls[thread] = False
 
@@ -240,12 +253,10 @@ class Tracker:
                 print(f"Chunks in heap {lo_heap.start:#x}-{lo_heap.end:#x}:")
                 for ch in lo_heap:
                     # Check for range overlap.
-                    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                     ch_lo_addr = ch.address
                     ch_hi_addr = ch.address + ch.size
-                    print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
                     ch.address
-                
+
                 for ch in lo_heap:
                     # Check for range overlap.
                     ch_lo_addr = ch.address
@@ -281,7 +292,7 @@ class Tracker:
                         print(" (in use)")
         except IndexError as e:
             import traceback
-            import sys
+
             traceback.print_exc()
 
         self.alloc_chunks[chunk.address] = chunk
@@ -309,11 +320,45 @@ class MallocEnterBreakpoint(gdb.Breakpoint):
         pwndbg.lib.cache.clear_cache("stop")
         requested_size = pwndbg.arguments.argument(0)
         self.tracker.enter_memory_management(MALLOC_NAME)
-        MallocExitBreakpoint(self.tracker, requested_size)
+        AllocExitBreakpoint(self.tracker, requested_size)
         return False
 
 
-class MallocExitBreakpoint(gdb.FinishBreakpoint):
+class CallocEnterBreakpoint(gdb.Breakpoint):
+    def __init__(self, tracker):
+        super().__init__(CALLOC_NAME, internal=True)
+        self.tracker = tracker
+
+    def stop(self):
+        pwndbg.lib.cache.clear_cache("stop")
+
+        num_elements = pwndbg.arguments.argument(0)
+        element_size = pwndbg.arguments.argument(1)
+        requested_size = element_size * num_elements
+
+        self.tracker.enter_memory_management(CALLOC_NAME)
+        AllocExitBreakpoint(self.tracker, requested_size)
+        return False
+
+
+def get_chunk(address, requested_size):
+    """
+    Reads a chunk from a given address.
+    """
+    ty = pwndbg.gdblib.typeinfo.ppvoid
+    size = int(pwndbg.gdblib.memory.poi(ty, address - ty.sizeof))
+
+    # GLibc bakes the chunk flags in the lowest 3 bits of the size value,
+    # so, we separate them here.
+    FLAGS_BITMASK = 7
+
+    flags = size & 7
+    size ^= flags
+
+    return Chunk(address, size, requested_size, flags)
+
+
+class AllocExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, requested_size):
         super().__init__(internal=True)
         self.requested_size = requested_size
@@ -332,27 +377,77 @@ class MallocExitBreakpoint(gdb.FinishBreakpoint):
             self.tracker.exit_memory_management()
             return False
 
-        ty = pwndbg.gdblib.typeinfo.ppvoid
-        size = int(pwndbg.gdblib.memory.poi(ty, ret_ptr - ty.sizeof))
-
-        # GLibc bakes the chunk flags in the lowest 3 bits of the size value,
-        # so, we separate them here.
-        FLAGS_BITMASK = 7
-
-        flags = size & 7
-        size ^= flags
-
-        chunk = Chunk(ret_ptr, size, self.requested_size, flags)
+        chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
         print(
-            f"Allocated {size} byte chunk ({self.requested_size} bytes requested) starting at {ret_ptr:#x}"
+            f"Allocated {chunk.size} byte chunk ({self.requested_size} bytes requested) starting at {ret_ptr:#x}"
         )
 
         self.tracker.exit_memory_management()
         return False
 
     def out_of_scope(self):
-        print(message.warn(f"warning: could not follow allocation request of {self.requested_size} bytes"))
+        print(
+            message.warn(
+                f"warning: could not follow allocation request of {self.requested_size} bytes"
+            )
+        )
+        self.tracker.exit_memory_management()
+
+
+class ReallocEnterBreakpoint(gdb.Breakpoint):
+    def __init__(self, tracker):
+        super().__init__(REALLOC_NAME, internal=True)
+        self.tracker = tracker
+
+    def stop(self):
+        pwndbg.lib.cache.clear_cache("stop")
+
+        freed_pointer = pwndbg.arguments.argument(0)
+        requested_size = pwndbg.arguments.argument(1)
+
+        self.tracker.enter_memory_management(REALLOC_NAME)
+        ReallocExitBreakpoint(self.tracker, freed_pointer, requested_size)
+        return False
+
+
+class ReallocExitBreakpoint(gdb.FinishBreakpoint):
+    def __init__(self, tracker, freed_ptr, requested_size):
+        super().__init__(internal=True)
+        self.freed_ptr = freed_ptr
+        self.requested_size = requested_size
+        self.tracker = tracker
+
+    def stop(self):
+        pwndbg.lib.cache.clear_cache("stop")
+        if not in_program_code_stack():
+            # Untracked.
+            self.tracker.exit_memory_management()
+            return False
+
+        print(
+            f"Trying to realloc chunk starting at {self.freed_ptr:#x} to have {self.requested_size} bytes"
+        )
+
+        # Figure out what the reallocated pointer is.
+        ret_ptr = int(self.return_value)
+        malloc = lambda: self.tracker.malloc(get_chunk(ret_ptr, self.requested_size))
+        if ret_ptr == 0:
+            # No change.
+            malloc = None
+
+        if not self.tracker.free(self.freed_ptr):
+            # This is a chunk we'd never seen before.
+            malloc()
+            self.tracker.exit_memory_management()
+            return True
+
+        malloc()
+        self.tracker.exit_memory_management()
+        return False
+
+    def out_of_scope(self):
+        print(message.warn(f"warning: could not follow free request for chunk {self.ptr:#x}"))
         self.tracker.exit_memory_management()
 
 
@@ -391,7 +486,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
         return False
-    
+
     def out_of_scope(self):
         print(message.warn(f"warning: could not follow free request for chunk {self.ptr:#x}"))
         self.tracker.exit_memory_management()
@@ -412,12 +507,18 @@ def in_program_code_stack():
         frame = frame.older()
     return False
 
+
 # These variables track the currently installed heap tracker.
 malloc_enter = None
+calloc_enter = None
+realloc_enter = None
 free_enter = None
+
 
 def install(disable_hardware_whatchpoints=True):
     global malloc_enter
+    global calloc_enter
+    global realloc_enter
     global free_enter
 
     if is_enabled():
@@ -426,8 +527,8 @@ def install(disable_hardware_whatchpoints=True):
 
     # Make sure the required functions are available.
     required_symbols = [MALLOC_NAME, FREE_NAME]
-    available = [(pwndbg.gdblib.symbol.address(name) is not None) for name in required_symbols]
-    
+    available = [is_available(name) for name in required_symbols]
+
     if not all(available):
         print(message.error("The following required symbols are not available:"))
         for name in (x[0] for x in zip(required_symbols, available) if not x[1]):
@@ -441,7 +542,7 @@ def install(disable_hardware_whatchpoints=True):
     # present in the system have enough capabilities for them to be useful to
     # us in this module, seeing as what they can do varies considerably between
     # systems and failures are fairly quiet and, thus, hard to detect[1].
-    # Because of this, we opt to disable them by default for the sake of 
+    # Because of this, we opt to disable them by default for the sake of
     # consistency and so that we don't have to chase silent failures.
     #
     # [1]: https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html
@@ -453,7 +554,9 @@ def install(disable_hardware_whatchpoints=True):
         print("They may be re-enabled with `set can-use-hw-watchpoints 1`")
         print()
     else:
-        print(message.warn("Hardware watchpoints have not been disabled, silent errors may happen."))
+        print(
+            message.warn("Hardware watchpoints have not been disabled, silent errors may happen.")
+        )
         print()
 
     # Install the heap tracker.
@@ -462,10 +565,19 @@ def install(disable_hardware_whatchpoints=True):
     malloc_enter = MallocEnterBreakpoint(tracker)
     free_enter = FreeEnterBreakpoint(tracker)
 
+    if is_available(CALLOC_NAME):
+        calloc_enter = CallocEnterBreakpoint(tracker)
+
+    if is_available(REALLOC_NAME):
+        realloc_enter = ReallocEnterBreakpoint(tracker)
+
     print("Heap tracker installed.")
+
 
 def uninstall():
     global malloc_enter
+    global calloc_enter
+    global realloc_enter
     global free_enter
 
     if is_enabled():
@@ -475,7 +587,13 @@ def uninstall():
         malloc_enter = None
         free_enter = None
 
+        if calloc_enter is not None:
+            calloc_enter.delete()
+            calloc_enter = None
+        if realloc_enter is not None:
+            realloc_enter.delete()
+            realloc_enter = None
+
         print("Heap tracker removed.")
     else:
         print("Nothing to do.")
-

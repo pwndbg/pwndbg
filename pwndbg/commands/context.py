@@ -516,6 +516,7 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
 
+
 def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
     if not pwndbg.gdblib.heap_tracking.is_enabled():
         return []
@@ -529,6 +530,7 @@ def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
         info = ["Nothing to report."]
 
     return banner + info if with_banner else info
+
 
 parser = argparse.ArgumentParser(description="Print out all registers and enhance the information.")
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
