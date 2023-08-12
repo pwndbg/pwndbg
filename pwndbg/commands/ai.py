@@ -22,6 +22,8 @@ from pwndbg.commands import CommandCategory
 from pwndbg.commands import context
 from pwndbg.gdblib import config
 from pwndbg.gdblib import regs as REGS
+import litellm
+from litellm import completion
 
 config.add_param(
     "ai-openai-api-key",
@@ -343,18 +345,9 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
 def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
-    if "turbo" in model or model.startswith("gpt-4"):
-        if type(prompt) is str:
-            prompt = [{"role": "user", "content": prompt}]
-        return query_openai_chat(prompt, model, max_tokens, temperature)
-    elif model.startswith("claude"):
-        if type(prompt) is list:
-            prompt = flatten_prompt(prompt)
-        return query_anthropic(prompt, model, max_tokens, temperature)
-    else:
-        if type(prompt) is list:
-            prompt = flatten_prompt(prompt)
-        return query_openai_completions(prompt, model, max_tokens, temperature)
+    if type(prompt) is str:
+        prompt = [{"role": "user", "content": prompt}]
+    return completion(model=model, messages=prompt, max_tokens=max_tokens, temperature=temperature)['choices'][0]['message']['content']
 
 
 def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
