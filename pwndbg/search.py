@@ -58,7 +58,21 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
             if length <= 0:
                 break
 
-            start = i.search_memory(start, length, searchfor)
+            try:
+                start = i.search_memory(start, length, searchfor)
+            except gdb.error as e:
+                # While remote debugging on an embedded device and searching
+                # through a large memory region (~512mb), gdb may return an error similar
+                # to `error: Invalid hex digit 116`, even though the search
+                # itself is ok. It seems to have to do with a timeout.
+                print(f"WARN: gdb.search_memory failed with: {e}")
+                if e.args[0].startswith("Invalid hex digit"):
+                    print(
+                        "WARN: This is possibly related to a timeout. Connection is likely broken."
+                    )
+                    break
+                start = None
+                pass
 
             if start is None:
                 break
