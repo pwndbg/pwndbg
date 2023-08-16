@@ -50,8 +50,13 @@ else:
 
     # Add gdb-pt-dump directory to sys.path so it can be imported
     gdbpt = path.join(directory, "gdb-pt-dump")
-    sys.path.append(directory)
-    sys.path.append(gdbpt)
+    sys.path.insert(0, directory)
+    sys.path.insert(1, gdbpt)
+
+    # Push virtualenv's site-packages to the front
+    sys.path.remove(site_pkgs_path)
+    sys.path.insert(2, site_pkgs_path)
+
 
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
