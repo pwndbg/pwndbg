@@ -169,7 +169,8 @@ class module(ModuleType):
 
     @pwndbg.lib.cache.cache_until("stop")
     def _fs_gs_helper(self, regname: str, which):
-        """Supports fetching based on segmented addressing, a la fs:[0x30]."""
+        """Supports fetching based on segmented addressing, a la fs:[0x30].
+        Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.gdblib.arch.current == "x86-64":
             return gdb_get_register(regname)
