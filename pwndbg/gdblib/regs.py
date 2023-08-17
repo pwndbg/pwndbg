@@ -44,7 +44,7 @@ class module(ModuleType):
                 value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
             )
             value = value.cast(size)
-            if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
+            if attr == "pc" and pwndbg.gdblib.arch.current == "i8086":
                 value += self.cs * 16
             value = int(value)
             return value & pwndbg.gdblib.arch.ptrmask
