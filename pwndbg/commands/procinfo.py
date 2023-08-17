@@ -87,7 +87,8 @@ class Process:
     @pwndbg.lib.cache.cache_until("stop")
     def cmdline(self):
         raw = pwndbg.gdblib.file.get(f"/proc/{self.pid}/cmdline")
-        return f"'{raw.decode()}'"
+        cmdline = raw.decode().rstrip("\x00").strip()
+        return f"'{cmdline}'"
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -223,7 +224,7 @@ def procinfo() -> None:
     if not proc.status:
         return
 
-    # print("%-10s %s" % ("cmdline", proc.something))
+    print("%-10s %s" % ("cmdline", proc.cmdline))
 
     print("%-10s %s" % ("cwd", proc.cwd))
 
