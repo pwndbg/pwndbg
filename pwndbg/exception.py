@@ -52,25 +52,6 @@ def inform_unmet_dependencies(errors) -> None:
 
 
 @pwndbg.lib.cache.cache_until("forever")
-def check_dependencies():
-    """
-    Checks if there are any unmet dependencies in requirements.txt
-    """
-    project_path = os.path.dirname(os.path.abspath(__file__))
-    requirements_path = os.path.join(project_path, os.pardir, "requirements.txt")
-    with open(requirements_path, "r") as f:
-        errors = []
-        for line in f.readlines():
-            try:
-                pkg_resources.require(line)
-            except (pkg_resources.VersionConflict, pkg_resources.DistributionNotFound) as e:
-                errors.append(e)
-
-        if errors:
-            inform_unmet_dependencies(errors)
-
-
-@pwndbg.lib.cache.cache_until("forever")
 def inform_report_issue(exception_msg) -> None:
     """
     Informs user that he can report an issue.
@@ -112,9 +93,6 @@ def handle(name="Error"):
         e = E(V)
         e.__traceback__ = T
         raise e
-
-    # Check dependencies against requirements.txt and warn user
-    check_dependencies()
 
     # Display the error
     if debug or verbose:
