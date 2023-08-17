@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import os
 import sys
 import traceback
 
