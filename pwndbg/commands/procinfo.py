@@ -85,6 +85,18 @@ class Process:
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
+    def cmdline(self):
+        raw = pwndbg.gdblib.file.get(f"/proc/{self.pid}/cmdline")
+        return f"'{raw.decode()}'"
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def cwd(self):
+        link = pwndbg.gdblib.file.readlink(f"/proc/{self.pid}/cwd")
+        return f"'{link}'"
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
     def status(self):
         raw = pwndbg.gdblib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
@@ -210,6 +222,10 @@ def procinfo() -> None:
     # qemu-usermode fail!
     if not proc.status:
         return
+
+    # print("%-10s %s" % ("cmdline", proc.something))
+
+    print("%-10s %s" % ("cwd", proc.cwd))
 
     files = dict(proc.open_files)
 
