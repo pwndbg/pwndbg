@@ -189,7 +189,7 @@ PYTHON=${PWNDBG_VENV_PATH}/bin/python
 ${PYTHON} -m pip install --upgrade pip
 
 # Create Python virtual environment and install dependencies in it
-${PWNDBG_VENV_PATH}/bin/pip install -U .
+${PWNDBG_VENV_PATH}/bin/pip install -e .
 
 # pyproject.toml install itself "pwndbg"/"gdb-pt-dump" into site-packages, for "caching" dockerfile we need remove it
 PYTHON_VERSION=$(ls "${PWNDBG_VENV_PATH}/lib/")
