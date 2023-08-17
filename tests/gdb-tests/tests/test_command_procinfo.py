@@ -38,7 +38,7 @@ def test_command_procinfo(start_binary):
     res_list = result.split("\n")
 
     assert bin_path in res_list[0]
-    assert pid in res_list[1]
+    assert pid in res_list[2]
     assert "127.0.0.1:31337" in result
 
     # Close netcat
