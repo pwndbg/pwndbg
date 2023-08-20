@@ -9,8 +9,8 @@ from subprocess import check_output
 import gdb
 
 import pwndbg.commands
-from pwndbg.commands import CommandCategory
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
