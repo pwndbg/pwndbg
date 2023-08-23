@@ -85,7 +85,7 @@ def patch_list() -> None:
             message.hint("Patch at"),
             message.warn("%#x:" % addr),
             message.hint("\n  from:"),
-            message.warn(' '.join(old_insns.replace("\n", "; ").split())),
+            message.warn(" ".join(old_insns.replace("\n", "; ").split())),
             message.hint("\n  to  :"),
-            message.warn(' '.join(new_insns.replace("\n", "; ").split())),
+            message.warn(" ".join(new_insns.replace("\n", "; ").split())),
         )
