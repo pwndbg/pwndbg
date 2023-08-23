@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 import string
 
 import pwndbg.auxv
@@ -87,8 +88,7 @@ class Process:
     @pwndbg.lib.cache.cache_until("stop")
     def cmdline(self):
         raw = pwndbg.gdblib.file.get(f"/proc/{self.pid}/cmdline")
-        cmdline = raw.decode().rstrip("\x00").strip()
-        return f"'{cmdline}'"
+        return " ".join(map(shlex.quote, raw.decode().split("\x00")))
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
