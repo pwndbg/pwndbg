@@ -13,6 +13,7 @@ import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.regs
 import pwndbg.lib.cache
 
 
@@ -153,3 +154,28 @@ def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
     curr_thread.switch()
 
     return stacks
+
+
+def yield_return_addresses():
+    sp = pwndbg.gdblib.regs.sp
+    stack = pwndbg.gdblib.vmmap.find(sp)
+
+    # Enumerate all return addresses
+    frame = gdb.newest_frame()
+    addresses = []
+    while frame:
+        addresses.append(frame.pc())
+        frame = frame.older()
+
+    # Find all of them on the stack
+    start = stack.vaddr
+    stop = start + stack.memsz
+    while addresses and start < sp < stop:
+        value = pwndbg.gdblib.memory.u(sp)
+
+        if value in addresses:
+            index = addresses.index(value)
+            del addresses[:index]
+            yield sp
+
+        sp += pwndbg.gdblib.arch.ptrsize
