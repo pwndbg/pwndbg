@@ -67,44 +67,6 @@ class StartEvent:
 
 gdb.events.start = StartEvent()
 
-
-class EventWrapper:
-    """
-    Wrapper for GDB events which may not exist on older GDB versions but we still can
-    fire them manually (to invoke them you have to call `invoke_callbacks`).
-    """
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-        self._event = getattr(gdb.events, self.name, None)
-        self._is_real_event = self._event is not None
-
-    def connect(self, func) -> None:
-        if self._event is not None:
-            self._event.connect(func)
-
-    def disconnect(self, func) -> None:
-        if self._event is not None:
-            self._event.disconnect(func)
-
-    @property
-    def is_real_event(self) -> bool:
-        return self._is_real_event
-
-    def invoke_callbacks(self) -> None:
-        """
-        As an optimization please don't call this if your GDB has this event (check `.is_real_event`).
-        """
-        for f in registered[self]:
-            f()
-
-
-# Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
-before_prompt_event = EventWrapper("before_prompt")
-gdb.events.before_prompt = before_prompt_event
-
-
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
 registered: dict[Any, list[Callable]] = {
