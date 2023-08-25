@@ -89,15 +89,4 @@ def set_prompt() -> None:
         prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
 
     gdb.execute(f"set prompt {prompt}")
-
-
-if pwndbg.gdblib.events.before_prompt_event.is_real_event:
     gdb.prompt_hook = initial_hook
-
-else:
-    # Old GDBs doesn't have gdb.events.before_prompt, so we will emulate it using gdb.prompt_hook
-    def extended_prompt_hook(*a):
-        pwndbg.gdblib.events.before_prompt_event.invoke_callbacks()
-        return prompt_hook(*a)
-
-    gdb.prompt_hook = extended_prompt_hook
