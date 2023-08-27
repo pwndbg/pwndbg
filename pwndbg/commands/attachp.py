@@ -60,6 +60,7 @@ def attachp(target) -> None:
         else:
             try:
                 pids = check_output(["pidof", target]).decode().rstrip("\n").split(" ")
+                pidsData = []
             except FileNotFoundError:
                 print(message.error("Error: did not find `pidof` command"))
                 return
@@ -71,7 +72,26 @@ def attachp(target) -> None:
                 return
 
             if len(pids) > 1:
-                print(message.warn(f"Found pids: {', '.join(pids)} (use `attach <pid>`)"))
+                pidsData.append("{:<8} {:<15} {:<51} {:<51}".format("PID", "USER", "COMMAND", "PROCESS TREE"))
+                for pid in pids:
+                    pid = int(pid)
+
+                    user = check_output(["ps", "-o", "user=", "-p", str(pid)]).decode().strip()
+                    command = check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode().strip()[:40] 
+                    process_tree = check_output(["pstree", "-p", str(pid)]).decode().strip()[:40] 
+
+                    if len(command) >= 40:
+                        command = command[:38] + "--(truncated)"
+
+                    if len(process_tree) >= 40:
+                        process_tree = process_tree[:38] + "--(truncated)"
+
+                    pidsData.append("{:<8} {:<15} {:<51} {:<51}".format(pid, user, command, process_tree))
+
+                # Format the final output message
+                final_output = "\n".join(pidsData)
+                print(message.warn("\n".join(pidsData)))
+                print(message.warn(f"\n Found pids: {', '.join(pids)} (use `attach <pid>`)"))
                 return
 
             resolved_target = int(pids[0])

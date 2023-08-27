@@ -77,12 +77,30 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
 
     matches = re.search(r"Found pids: ([0-9]+), ([0-9]+) \(use `attach <pid>`\)", result).groups()
     matches = list(map(int, matches))
+    pid_strings = [str(pid_value) for pid_value in matches]
     matches.sort()
 
     expected_pids = [pid, process.pid]
     expected_pids.sort()
 
     assert matches == expected_pids
+    expected_template = f"""\
+        pwndbg: loaded ### pwndbg commands and ### shell commands. Type pwndbg [--shell | --all] [filter] for a list.
+        pwndbg: created $rebase, $ida GDB functions (can be used with print/break)
+        PID                USER    COMMAND                        PROCESS TREE
+        {pid_strings[0]}   root    {binary_path}        {binary_name}({pid_strings[0]})
+        {pid_strings[1]}   root    {binary_path}        {binary_name}({pid_strings[1]})
+
+        Found pids: {', '.join(pid_strings)} (use `attach <pid>`)
+"""
+# Remove spaces from the captured output and expected template
+    captured_output_no_spaces = result.replace(" ", "")
+    expected_template_no_spaces = expected_template.replace(" ", "")
+
+    # Now assert that the modified templates match
+    print(result)
+    assert captured_output_no_spaces == expected_template_no_spaces
+
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
