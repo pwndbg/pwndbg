@@ -98,7 +98,6 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
     expected_template_no_spaces = expected_template.replace(" ", "")
 
     # Now assert that the modified templates match
-    print(result)
     assert captured_output_no_spaces == expected_template_no_spaces
 
 
