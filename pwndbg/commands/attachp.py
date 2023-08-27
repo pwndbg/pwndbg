@@ -72,13 +72,17 @@ def attachp(target) -> None:
                 return
 
             if len(pids) > 1:
-                pidsData.append("{:<8} {:<15} {:<51} {:<51}".format("PID", "USER", "COMMAND", "PROCESS TREE"))
+                pidsData.append(
+                    "{:<8} {:<15} {:<51} {:<51}".format("PID", "USER", "COMMAND", "PROCESS TREE")
+                )
                 for pid in pids:
                     pid = int(pid)
 
                     user = check_output(["ps", "-o", "user=", "-p", str(pid)]).decode().strip()
-                    command = check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode().strip()[:40] 
-                    process_tree = check_output(["pstree", "-p", str(pid)]).decode().strip()[:40] 
+                    command = (
+                        check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode().strip()[:40]
+                    )
+                    process_tree = check_output(["pstree", "-p", str(pid)]).decode().strip()[:40]
 
                     if len(command) >= 40:
                         command = command[:38] + "--(truncated)"
@@ -86,7 +90,9 @@ def attachp(target) -> None:
                     if len(process_tree) >= 40:
                         process_tree = process_tree[:38] + "--(truncated)"
 
-                    pidsData.append("{:<8} {:<15} {:<51} {:<51}".format(pid, user, command, process_tree))
+                    pidsData.append(
+                        "{:<8} {:<15} {:<51} {:<51}".format(pid, user, command, process_tree)
+                    )
 
                 # Format the final output message
                 final_output = "\n".join(pidsData)

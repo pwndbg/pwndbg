@@ -93,13 +93,12 @@ def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary
 
         Found pids: {', '.join(pid_strings)} (use `attach <pid>`)
 """
-# Remove spaces from the captured output and expected template
+    # Remove spaces from the captured output and expected template
     captured_output_no_spaces = result.replace(" ", "")
     expected_template_no_spaces = expected_template.replace(" ", "")
 
     # Now assert that the modified templates match
     assert captured_output_no_spaces == expected_template_no_spaces
-
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
