@@ -89,4 +89,4 @@ def set_prompt() -> None:
         prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
 
     gdb.execute(f"set prompt {prompt}")
-    gdb.prompt_hook = initial_hook
+gdb.prompt_hook = initial_hook
