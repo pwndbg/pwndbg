@@ -12,7 +12,17 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 
 
-def search(searchfor, mappings=None, start=None, end=None, executable=False, writable=False):
+def search(
+    searchfor,
+    mappings=None,
+    start=None,
+    end=None,
+    step=None,
+    aligned=None,
+    limit=None,
+    executable=False,
+    writable=False,
+):
     """Search inferior memory for a byte sequence.
 
     Arguments:
@@ -21,6 +31,9 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
             By default, uses all available mappings.
         start(int): First address to search, inclusive.
         end(int): Last address to search, exclusive.
+        step(int): Size of memory region to skip each result
+        aligned(int): Strict byte alignment for search result
+        limit(int): Maximum number of results to return
         executable(bool): Restrict search to executable pages
         writable(bool): Restrict search to writable pages
 
@@ -30,6 +43,7 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
     i = gdb.selected_inferior()
 
     maps = mappings or pwndbg.gdblib.vmmap.get()
+    found_count = 0
 
     if end and start:
         assert start < end, "Last address to search must be greater then first address"
@@ -37,13 +51,17 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
     elif start:
         maps = [m for m in maps if start in m]
     elif end:
-        maps = [m for m in maps if end - 1 in m]
+        maps = [m for m in maps if (end - 1) in m]
 
     if executable:
         maps = [m for m in maps if m.execute]
 
     if writable:
         maps = [m for m in maps if m.write]
+
+    if len(maps) == 0:
+        print("No applicable memory regions found to search in.")
+        return
 
     for vmmap in maps:
         start = vmmap.start
@@ -81,10 +99,25 @@ def search(searchfor, mappings=None, start=None, end=None, executable=False, wri
             # e.g. -1073733344, which supposed to be 0xffffffffc0002120 in kernel.
             start &= 0xFFFFFFFFFFFFFFFF
 
+            # Ignore results that don't match required alignment
+            if aligned and start & (aligned - 1):
+                start = pwndbg.lib.memory.round_up(start, aligned)
+                continue
+
             # For some reason, search_memory will return a positive hit
             # when it's unable to read memory.
             if not pwndbg.gdblib.memory.peek(start):
                 break
 
             yield start
-            start += len(searchfor)
+            found_count += 1
+            if limit and found_count == limit:
+                break
+
+            if step is not None:
+                start = pwndbg.lib.memory.round_down(start, step) + step
+            else:
+                if aligned:
+                    start = pwndbg.lib.memory.round_up(start + len(searchfor), aligned)
+                else:
+                    start += len(searchfor)
