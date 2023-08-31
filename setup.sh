@@ -127,7 +127,7 @@ if linux; then
         "opensuse-leap" | "opensuse-tumbleweed")
             install_zypper
             ;;
-        "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda")
+        "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda" | "cachyos")
             install_pacman
             echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
             echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
