@@ -75,6 +75,9 @@ def is_corefile() -> bool:
     return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
+inside_no_proc_maps_search = False
+
+
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     """
@@ -96,7 +99,6 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     #             (usually when we attach to a process)
     if proc_maps is not None:
         return proc_maps
-
     pages = []
     if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
         "i386",
@@ -121,7 +123,9 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
             pages.extend(kernel_vmmap_via_monitor_info_mem())
 
     # TODO/FIXME: Add tests for  QEMU-user targets when this is needed
-    if not pages:
+    global inside_no_proc_maps_search
+    if not pages and not inside_no_proc_maps_search:
+        inside_no_proc_maps_search = True
         # If debuggee is launched from a symlink the debuggee memory maps will be
         # labeled with symlink path while in normal scenario the /proc/pid/maps
         # labels debuggee memory maps with real path (after symlinks).
@@ -137,6 +141,7 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
             pages.extend(info_files())
 
         pages.extend(pwndbg.gdblib.stack.stacks.values())
+        inside_no_proc_maps_search = False
 
     pages.extend(explored_pages)
     pages.extend(custom_pages)
