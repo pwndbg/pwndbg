@@ -79,7 +79,7 @@ def test_command_search_byte_width(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    result_str = gdb.execute(f"search --byte 0xef -w", to_string=True)
+    result_str = gdb.execute("search --byte 0xef -w", to_string=True)
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("[anon_"):
@@ -97,7 +97,7 @@ def test_command_search_word_width(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    result_str = gdb.execute(f"search --word 0xbeef -w", to_string=True)
+    result_str = gdb.execute("search --word 0xbeef -w", to_string=True)
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("[anon_"):
@@ -115,7 +115,7 @@ def test_command_search_dword_width(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    result_str = gdb.execute(f"search --dword 0xd00dbeef -w", to_string=True)
+    result_str = gdb.execute("search --dword 0xd00dbeef -w", to_string=True)
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("[anon_"):
@@ -133,7 +133,7 @@ def test_command_search_qword_width(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    result_str = gdb.execute(f"search --dword 0x00000000d00dbeef -w", to_string=True)
+    result_str = gdb.execute("search --dword 0x00000000d00dbeef -w", to_string=True)
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("[anon_"):
@@ -151,7 +151,7 @@ def test_command_search_rwx(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    result_str = gdb.execute(f"search --dword 0x00000000d00dbeef -w -x", to_string=True)
+    result_str = gdb.execute("search --dword 0x00000000d00dbeef -w -x", to_string=True)
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("[anon_"):
