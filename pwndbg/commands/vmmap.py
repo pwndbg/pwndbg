@@ -108,7 +108,7 @@ def vmmap(
             matched_index = total_pages.index(matched_page)
 
             # Include number of pages preceeding the matched page
-            for before_index in range(1, lines_before + 1):
+            for before_index in range(0, lines_before + 1):
                 # Guard index, and only insert the page if it is not displayed yet
                 if (
                     matched_index - before_index >= 0
