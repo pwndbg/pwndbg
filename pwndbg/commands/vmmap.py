@@ -105,7 +105,6 @@ def vmmap(
 
         for matched_page in filtered_pages:
             # Append matched page
-            pages_to_display.append(matched_page)
             matched_index = total_pages.index(matched_page)
 
             # Include number of pages preceeding the matched page
