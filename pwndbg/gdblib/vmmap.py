@@ -434,7 +434,7 @@ def kernel_vmmap_via_page_tables():
     p = pt.PageTableDump()
     try:
         p.lazy_init()
-    except PermissionError:
+    except Exception:
         print(
             M.error(
                 "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
