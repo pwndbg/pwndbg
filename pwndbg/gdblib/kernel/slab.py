@@ -4,6 +4,7 @@ from typing import Generator
 
 import gdb
 
+import pwndbg.color.message as M
 from pwndbg.gdblib import kernel
 from pwndbg.gdblib import memory
 from pwndbg.gdblib.kernel.macros import compound_head
@@ -116,6 +117,12 @@ class SlabCache:
 
     @property
     def random(self) -> int:
+        if not kernel.kconfig():
+            try:
+                return int(self._slab_cache["random"])
+            except gdb.error:
+                return 0
+
         return (
             int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
         )
