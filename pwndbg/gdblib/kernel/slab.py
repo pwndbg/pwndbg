@@ -4,7 +4,6 @@ from typing import Generator
 
 import gdb
 
-import pwndbg.color.message as M
 from pwndbg.gdblib import kernel
 from pwndbg.gdblib import memory
 from pwndbg.gdblib.kernel.macros import compound_head
