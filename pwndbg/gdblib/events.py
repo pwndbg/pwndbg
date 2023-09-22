@@ -179,15 +179,19 @@ gdb.events.new_objfile.connect(log_objfiles)
 
 def after_reload(start=True) -> None:
     if gdb.selected_inferior().pid:
-        for f in registered[gdb.events.stop]:
-            f()
-        for f in registered[gdb.events.start]:
-            if start:
+        if gdb.events.stop in registered:
+            for f in registered[gdb.events.stop]:
                 f()
-        for f in registered[gdb.events.new_objfile]:
-            f()
-        for f in registered[gdb.events.before_prompt]:
-            f()
+        if gdb.events.start in registered:
+            for f in registered[gdb.events.start]:
+                if start:
+                    f()
+        if gdb.events.new_objfile in registered:
+            for f in registered[gdb.events.new_objfile]:
+                f()
+        if gdb.events.before_prompt in registered:
+            for f in registered[gdb.events.before_prompt]:
+                f()
 
 
 def on_reload() -> None:
