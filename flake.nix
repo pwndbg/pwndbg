@@ -9,6 +9,7 @@
 
   outputs = { self, nixpkgs, poetry2nix }:
     let
+      // Self contained packages for: Debian, RHEL-like (yum, rpm), Alpine, Arch packages
       forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
       forPortables = nixpkgs.lib.genAttrs [ "deb" "rpm" "apk" "archlinux" ];
 
