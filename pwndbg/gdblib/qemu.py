@@ -67,6 +67,7 @@ def exec_file_supported() -> bool:
 
     return "exec-file" in response
 
+
 @start
 @pwndbg.lib.cache.cache_until("stop")
 def root() -> Any | None:
