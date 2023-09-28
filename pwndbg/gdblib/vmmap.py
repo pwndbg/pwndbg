@@ -368,7 +368,7 @@ def info_proc_maps():
             # Assume "rw-p" on older gdb versions
             if len(split_line) < 6:
                 start, _end, size, offset, objfile = split_line
-                perm = 'rwxp'
+                perm = "rwxp"
             else:
                 start, _end, size, offset, perm, objfile = split_line
             start, size, offset = int(start, 16), int(size, 16), int(offset, 16)
@@ -386,6 +386,7 @@ def info_proc_maps():
         pages.append(pwndbg.lib.memory.Page(start, size, flags, offset, objfile))
 
     return tuple(pages)
+
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def proc_pid_maps():
