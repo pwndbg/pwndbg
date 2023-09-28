@@ -50,9 +50,5 @@
         // (portableDrvs system)
         // (tarballDrv system)
       );
-
-      devShell = forAllSystems (system: {
-        }
-      );
   };
 }
