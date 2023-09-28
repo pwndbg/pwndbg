@@ -21,24 +21,9 @@ pwnlib_archs_mapping = {
     "sparc": "sparc",
     "arm": "arm",
     "armcm": "thumb",
+    "rv32": "riscv32",
+    "rv64": "riscv64",
 }
-
-# https://github.com/Gallopsled/pwntools/pull/2177
-pwnlib_version = list(map(int, pwnlib.__version__.split(".")[:2]))
-if pwnlib_version[0] == 4 and pwnlib_version[1] < 11:
-    pwnlib_archs_mapping.update(
-        {
-            "rv32": "riscv",
-            "rv64": "riscv",
-        }
-    )
-else:
-    pwnlib_archs_mapping.update(
-        {
-            "rv32": "riscv32",
-            "rv64": "riscv64",
-        }
-    )
 
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
