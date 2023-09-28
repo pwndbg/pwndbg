@@ -161,7 +161,7 @@ def vmmap(
     # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
     if pwndbg.gdblib.qemu.is_qemu_usermode() and gdb_version[0] < 12:
         print(
-            "\n[GDB <=12.1 detected - vmmap cannot fetch permission information, defaulting to rwx]"
+            "\n[GDB <12.1 detected - vmmap cannot fetch permission information, defaulting to rwx]"
         )
 
 
