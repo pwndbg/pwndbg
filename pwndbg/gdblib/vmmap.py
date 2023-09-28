@@ -91,7 +91,7 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     if is_corefile():
         return tuple(coredump_maps())
 
-    if pwndbg.gdblib.qemu.is_qemu_usermode():
+    if pwndbg.gdblib.qemu.is_qemu_usermode() and pwndbg.gdblib.qemu.exec_file_supported():
         proc_maps = info_proc_maps()
     else:
         proc_maps = proc_pid_maps()
