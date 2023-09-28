@@ -363,7 +363,7 @@ def info_proc_maps():
         try:
             split_line = line.split()
 
-            # Permission info is only available in GDB versions >=12
+            # Permission info is only available in GDB versions >=12.1
             # https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
             # Assume "rw-p" on older gdb versions
             if len(split_line) < 6:
