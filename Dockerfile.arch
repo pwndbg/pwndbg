@@ -35,7 +35,8 @@ RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py && mkdir gdb-pt-dum
 # The `git submodule` is commented because it refreshes all the sub-modules in the project
 # but at this time we only need the essentials for the set up. It will execute at the end.
 RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
-    echo 'n' | ./setup.sh
+    sed -i 's/read -p "Do you want to do a full system update?/#read/' ./setup.sh && \
+    ./setup.sh
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg && rm -rf gdb-pt-dump
