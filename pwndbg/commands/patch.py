@@ -78,8 +78,8 @@ def patch_list() -> None:
 
     print(message.hint("Patches:"))
     for addr, (old, new) in patches.items():
-        old_insns = disasm(old)
-        new_insns = disasm(new)
+        old_insns = disasm(old, byte=False, offset=False)
+        new_insns = disasm(new, byte=False, offset=False)
 
         print(
             message.hint("Patch at"),
