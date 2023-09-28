@@ -136,6 +136,9 @@ def address(symbol: str) -> int:
         # this case before calling `gdb.lookup_symbol`
         skipped_exceptions.append("Cannot find thread-local")
 
+        # This reproduced on GDB 12.1 and caused #1878
+        skipped_exceptions.append("symbol requires a frame to compute its value")
+
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
 
