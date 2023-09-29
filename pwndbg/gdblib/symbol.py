@@ -131,14 +131,12 @@ def address(symbol: str) -> int:
             # investigate why this is happening and see if we can explicitly check
             # for it with `gdb.selected_frame()`
             "No frame selected",
-
             # If we try to look up a TLS variable when there is no TLS, this
             # exception occurs. Ideally we should come up with a way to check for
             # this case before calling `gdb.lookup_symbol`
             "Cannot find thread-local",
-
             # This reproduced on GDB 12.1 and caused #1878
-            "Symbol requires a frame to compute its value"
+            "Symbol requires a frame to compute its value",
         )
 
         if all(x not in str(e) for x in skipped_exceptions):
