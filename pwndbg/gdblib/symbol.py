@@ -24,6 +24,8 @@ import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.cache
 
+skipped_exceptions = None
+
 
 def _get_debug_file_directory():
     """
