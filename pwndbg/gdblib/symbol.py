@@ -121,23 +121,25 @@ def address(symbol: str) -> int:
             return int(symbol_obj.value().address)
     except gdb.error as e:
         # Symbol lookup only throws exceptions on errors, not if it failed to
-        # lookup a symbol. We want to raise these errors so we can handle them
+        # look up a symbol. We want to raise these errors so we can handle them
         # properly, but there are some we haven't figured out how to fix yet, so
         # we ignore those here
-        skipped_exceptions = []
+        global skipped_exceptions
 
-        # This is exception is being thrown by the Go typeinfo tests, we should
-        # investigate why this is happening and see if we can explicitly check
-        # for it with `gdb.selected_frame()`
-        skipped_exceptions.append("No frame selected")
+        skipped_exceptions = (
+            # This exception is being thrown by the Go typeinfo tests, we should
+            # investigate why this is happening and see if we can explicitly check
+            # for it with `gdb.selected_frame()`
+            "No frame selected",
 
-        # If we try to look up a TLS variable when there is no TLS, this
-        # exception occurs. Ideally we should come up with a way to check for
-        # this case before calling `gdb.lookup_symbol`
-        skipped_exceptions.append("Cannot find thread-local")
+            # If we try to look up a TLS variable when there is no TLS, this
+            # exception occurs. Ideally we should come up with a way to check for
+            # this case before calling `gdb.lookup_symbol`
+            "Cannot find thread-local",
 
-        # This reproduced on GDB 12.1 and caused #1878
-        skipped_exceptions.append("symbol requires a frame to compute its value")
+            # This reproduced on GDB 12.1 and caused #1878
+            "Symbol requires a frame to compute its value"
+        )
 
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
