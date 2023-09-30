@@ -12,6 +12,8 @@ import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
+from tabulate import tabulate
+
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name or device file.
@@ -72,9 +74,7 @@ def attachp(target) -> None:
                 return
 
             if len(pids) > 1:
-                pidsData.append(
-                    "{:<8} {:<15} {:<51} {:<51}".format("PID", "USER", "COMMAND", "PROCESS TREE")
-                )
+                pidsData.append(["PID", "USER", "COMMAND", "PROCESS TREE"])
                 for pid in pids:
                     pid = int(pid)
 
@@ -90,13 +90,10 @@ def attachp(target) -> None:
                     if len(process_tree) >= 40:
                         process_tree = process_tree[:38] + "--(truncated)"
 
-                    pidsData.append(
-                        "{:<8} {:<15} {:<51} {:<51}".format(pid, user, command, process_tree)
-                    )
+                pidsData.append([pid, user, command, process_tree])
 
                 # Format the final output message
-                final_output = "\n".join(pidsData)
-                print(message.warn("\n".join(pidsData)))
+                print(tabulate(pidsData, headers="firstrow", tablefmt="grid"))
                 print(message.warn(f"\n Found pids: {', '.join(pids)} (use `attach <pid>`)"))
                 return
 
