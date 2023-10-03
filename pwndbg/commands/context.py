@@ -857,7 +857,6 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         return []
 
     selected_thread = gdb.selected_thread()
-    selected_frame = gdb.selected_frame()
 
     out = []
     max_name_length = 0
@@ -892,7 +891,6 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
 
     selected_thread.switch()
-    selected_frame.select()
 
     return out
 
