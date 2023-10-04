@@ -81,6 +81,11 @@ config_context_sections = pwndbg.gdblib.config.add_param(
     "regs disasm code ghidra stack backtrace expressions threads",
     "which context sections are displayed (controls order)",
 )
+config_max_threads_display = pwndbg.gdblib.config.add_param(
+    "context-max-threads",
+    4,
+    "maximum number of threads displayed by the context command",
+)
 
 # Storing output configuration per section
 outputs: dict[str, str] = {}
@@ -851,22 +856,24 @@ def get_thread_status(thread):
 
 
 def context_threads(with_banner=True, target=sys.stdout, width=None):
-    threads = gdb.selected_inferior().threads()[::-1]
+    all_threads = gdb.selected_inferior().threads()[::-1]
+    displayed_threads = all_threads[: int(config_max_threads_display)]
+    num_threads_not_shown = len(all_threads) - len(displayed_threads)
 
-    if len(threads) < 2:
+    if len(displayed_threads) < 2:
         return []
 
     original_thread = gdb.selected_thread()
 
-    out = [pwndbg.ui.banner("threads", target=target, width=width)]
+    out = [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
     max_name_length = 0
 
-    for thread in threads:
+    for thread in displayed_threads:
         name = thread.name or ""
         if len(name) > max_name_length:
             max_name_length = len(name)
 
-    for thread in filter(lambda t: t.is_valid(), threads):
+    for thread in filter(lambda t: t.is_valid(), displayed_threads):
         selected = " ►" if thread is original_thread else "  "
         name = thread.name if thread.name is not None else ""
         padding = max_name_length - len(name)
@@ -891,6 +898,13 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
                 line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
 
         out.append(line)
+
+    if num_threads_not_shown:
+        out.append(
+            pwndbg.lib.tips.color_tip(
+                f"Not showing {num_threads_not_shown} threads. Use `set context-max-threads <number of threads>` to change this."
+            )
+        )
 
     original_thread.switch()
 
