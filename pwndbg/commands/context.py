@@ -866,7 +866,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         if len(name) > max_name_length:
             max_name_length = len(name)
 
-    for thread in threads:
+    for thread in filter(lambda t: t.is_valid(), threads):
         thread.switch()
         frame = gdb.selected_frame()
 
