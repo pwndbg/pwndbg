@@ -856,7 +856,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     if len(threads) < 2:
         return []
 
-    selected_thread = gdb.selected_thread()
+    original_thread = gdb.selected_thread()
 
     out = []
     max_name_length = 0
@@ -870,7 +870,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         thread.switch()
         frame = gdb.selected_frame()
 
-        selected = " ►" if thread is selected_thread else "  "
+        selected = " ►" if thread is original_thread else "  "
 
         symbol = pwndbg.gdblib.symbol.get(frame.pc())
         status = get_thread_status(thread)
@@ -890,7 +890,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
 
-    selected_thread.switch()
+    original_thread.switch()
 
     return out
 
