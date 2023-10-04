@@ -858,7 +858,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     original_thread = gdb.selected_thread()
 
-    out = []
+    out = [pwndbg.ui.banner("threads", target=target, width=width)]
     max_name_length = 0
 
     for thread in threads:
@@ -891,8 +891,6 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
                 line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
 
         out.append(line)
-
-    out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
 
     original_thread.switch()
 
