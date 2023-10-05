@@ -888,12 +888,12 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
         if thread.is_stopped():
             thread.switch()
-            frame = gdb.selected_frame()
+            pc = gdb.selected_frame().pc()
 
-            pc = M.get(frame.pc())
-            symbol = pwndbg.gdblib.symbol.get(frame.pc())
+            pc_colored = M.get(pc)
+            symbol = pwndbg.gdblib.symbol.get(pc)
 
-            line += f"{pc}"
+            line += f"{pc_colored}"
             if symbol:
                 line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
 
