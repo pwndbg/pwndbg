@@ -856,14 +856,29 @@ def get_thread_status(thread):
 
 
 def context_threads(with_banner=True, target=sys.stdout, width=None):
+    try:
+        original_thread = gdb.selected_thread()
+    except SystemError:
+        original_thread = None
+
     all_threads = gdb.selected_inferior().threads()[::-1]
-    displayed_threads = all_threads[: int(config_max_threads_display)]
+
+    displayed_threads = []
+
+    if original_thread is not None and original_thread.is_valid():
+        displayed_threads.append(original_thread)
+
+    for thread in all_threads:
+        if len(displayed_threads) >= int(config_max_threads_display):
+            break
+
+        if thread.is_valid() and thread is not original_thread:
+            displayed_threads.append(thread)
+
     num_threads_not_shown = len(all_threads) - len(displayed_threads)
 
     if len(displayed_threads) < 2:
         return []
-
-    original_thread = gdb.selected_thread()
 
     out = [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
     max_name_length = 0
@@ -902,11 +917,12 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     if num_threads_not_shown:
         out.append(
             pwndbg.lib.tips.color_tip(
-                f"Not showing {num_threads_not_shown} threads. Use `set context-max-threads <number of threads>` to change this."
+                f"Not showing {num_threads_not_shown} thread(s). Use `set context-max-threads <number of threads>` to change this."
             )
         )
 
-    original_thread.switch()
+    if original_thread is not None and original_thread.is_valid():
+        original_thread.switch()
 
     return out
 
