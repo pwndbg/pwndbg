@@ -4,7 +4,6 @@ Command to print the virtual memory map a la /proc/self/maps.
 from __future__ import annotations
 
 import argparse
-import re
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -15,6 +14,7 @@ import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
+from pwndbg.gdblib import gdb_version
 
 integer_types = (int, gdb.Value)
 
@@ -154,8 +154,6 @@ def vmmap(
 
     if pwndbg.gdblib.qemu.is_qemu() and not pwndbg.gdblib.qemu.exec_file_supported():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
-
-    gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 
     # Only GDB versions >=12 report permission info in info proc mappings. On older versions, we fallback on "rwx".
     # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc

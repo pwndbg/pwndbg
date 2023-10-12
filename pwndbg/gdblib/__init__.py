@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+import re
+
+import gdb
+
 from pwndbg.gdblib import arch as arch_mod
 from pwndbg.gdblib import config as config_mod
 from pwndbg.gdblib.arch import arch
@@ -11,6 +15,9 @@ from pwndbg.gdblib.config import config
 regs = None
 
 __all__ = ["ctypes", "memory", "typeinfo"]
+
+# Export parsed GDB version
+gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 
 
 # TODO: should the imports above be moved here?
