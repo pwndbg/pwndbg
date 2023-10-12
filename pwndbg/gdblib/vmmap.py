@@ -91,9 +91,12 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     if is_corefile():
         return tuple(coredump_maps())
 
-    if pwndbg.gdblib.qemu.is_qemu_usermode() and pwndbg.gdblib.qemu.exec_file_supported():
+    proc_maps = None
+    if pwndbg.gdblib.qemu.is_qemu_usermode():
+        # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_pid_maps
         proc_maps = info_proc_maps()
-    else:
+
+    if not proc_maps:
         proc_maps = proc_pid_maps()
 
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
