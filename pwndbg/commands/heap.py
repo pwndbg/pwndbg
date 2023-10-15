@@ -184,9 +184,7 @@ def heap(addr=None, verbose=False, simple=False) -> None:
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Try to find if an address is belond to a heap chunk.
-
-If yes -- print chunk. Search all heaps.""",
+    description="""Try to find if an address belonds to a heap chunk. If yes -- print chunk. Search all heaps.""",
 )
 parser.add_argument(
     "addr",
@@ -200,28 +198,37 @@ parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
 parser.add_argument(
-    "-a", "--all", action="store_true", help="Do not stop after first hit"
+    "-f", "--fast", action="store_true", help="Be fast and not accurate, or be slow and accurate"
 )
-
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def hi(addr, verbose=False, simple=False, all=False) -> None:
+def hi(addr, verbose=False, simple=False, fast=False) -> None:
     """Iteratively search all heaps for contain current address in their chunks bodys.
     """
     allocator = pwndbg.heap.current
-    arenas = allocator.arenas
+    sbrk_region = allocator.get_sbrk_heap_region()
+    if fast or addr in sbrk_region:
+        heap = Heap(addr)
+        for chunk in heap:
+            if chunk.real_size and chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
+                malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+                break
+        return
 
-    for arena in arenas:
+    # this is the only solution I was able to found, which *DOES NOT* return false-positive results
+    for arena in allocator.arenas:
+        # since addr is not in sbrk_region using native stuff :)
+        if arena.is_main_arena:
+            continue
         for heap in arena.heaps:
-            if heap.start <= addr and heap.end > addr:
+            if addr in heap:
                 for chunk in heap:
-                    if chunk.address <= addr and (chunk.address + chunk.size) > addr:
+                    if chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
                         malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-                        if all == False:
-                            return
+                        return
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
