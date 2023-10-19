@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import collections
 import math
+from typing import DefaultDict
 
 import pwndbg.chain
 import pwndbg.color.telescope as T
@@ -33,6 +34,9 @@ skip_repeating_values_minimum = pwndbg.gdblib.config.add_param(
     "telescope-skip-repeating-val-minimum",
     3,
     "minimum amount of repeated values before skipping lines",
+)
+print_framepointer_offset = pwndbg.gdblib.config.add_param(
+    "telescope-framepointer-offset", True, "print offset to framepointer for each address, if sufficiently small"
 )
 
 offset_separator = theme.add_param(
@@ -105,7 +109,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     if reverse:
         address -= (count - 1) * ptrsize
 
-    # Allow invocation of telescope -f (--frame) to dump frame addresses
+    # Allow invocation of telescope -f (--frame) to dump all addresses in a frame
     if frame:
         sp = pwndbg.gdblib.regs.sp
         bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
@@ -130,7 +134,8 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         count -= address
         count = max(math.ceil(count / ptrsize), 1)
 
-    reg_values = collections.defaultdict(lambda: [])
+    # Map of address to register string
+    reg_values: DefaultDict[int, list[str]] = collections.defaultdict(lambda: [])
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
 
@@ -138,17 +143,18 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     stop = address + (count * ptrsize)
     step = ptrsize
 
-    # Find all registers which show up in the trace
-    regs = {}
+    # Find all registers which show up in the trace, map address to regs
+    regs: dict[int, str] = {}
     for i in range(start, stop, step):
         values = list(reg_values[i])
 
+        # Find all regs that point to somewhere in the current ptrsize step
         for width in range(1, pwndbg.gdblib.arch.ptrsize):
             values.extend("%s-%i" % (r, width) for r in reg_values[i + width])
 
         regs[i] = " ".join(values)
 
-    # Find the longest set of register information
+    # Find the longest set of register information (length of string), used for padding
     if regs:
         longest_regs = max(map(len, regs.values()))
     else:
@@ -183,24 +189,36 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
             result.extend(collapse_buffer)
         collapse_buffer.clear()
 
+    bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+
+    def regs_or_frame_offset(addr):
+        offset = addr - bp
+
+        if not print_framepointer_offset or len(regs[addr]) > 1 or not -0xFFF <= offset <= 0xFFF:
+            return " " + T.register(regs[addr].ljust(longest_regs))
+        else:
+            # If offset to frame pointer as hex fits in hex 3 digits, print it
+            return ("%+04x" % (offset)).ljust(longest_regs + 1)
+
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.gdblib.memory.peek(addr):
             collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
 
-        line = " ".join(
+        line = T.offset(
+            "%02x%s%04x%s"
+            % (
+                i + telescope.offset,
+                delimiter,
+                addr - start + (telescope.offset * ptrsize),
+                separator,
+            )
+        )
+
+        line += " ".join(
             (
-                T.offset(
-                    "%02x%s%04x%s"
-                    % (
-                        i + telescope.offset,
-                        delimiter,
-                        addr - start + (telescope.offset * ptrsize),
-                        separator,
-                    )
-                ),
-                T.register(regs[addr].ljust(longest_regs)),
+                regs_or_frame_offset(addr),
                 pwndbg.chain.format(addr),
             )
         )
