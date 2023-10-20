@@ -247,6 +247,14 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 parser = argparse.ArgumentParser(
     description="Dereferences on stack data with specified count and offset."
 )
+parser.add_argument(
+    "-f",
+    "--frame",
+    dest="frame",
+    action="store_true",
+    default=False,
+    help="Show the stack frame, from rsp to rbp",
+)
 parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
 parser.add_argument(
     "offset",
@@ -259,10 +267,35 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
-def stack(count, offset) -> None:
+def stack(count, offset, frame) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
-    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count)
+    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame)
+
+
+
+
+
+parser = argparse.ArgumentParser(
+    description="Dereferences on stack data, printing the entire stack frame with specified count and offset ."
+)
+parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
+parser.add_argument(
+    "offset",
+    nargs="?",
+    default=0,
+    type=int,
+    help="Element offset from $sp (support negative offset)",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
+@pwndbg.commands.OnlyWhenRunning
+def stackf(count, offset) -> None:
+    ptrsize = pwndbg.gdblib.typeinfo.ptrsize
+    telescope.repeat = stack.repeat
+    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=True)
+
 
 
 telescope.last_address = 0
