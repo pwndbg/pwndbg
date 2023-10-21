@@ -36,7 +36,9 @@ skip_repeating_values_minimum = pwndbg.gdblib.config.add_param(
     "minimum amount of repeated values before skipping lines",
 )
 print_framepointer_offset = pwndbg.gdblib.config.add_param(
-    "telescope-framepointer-offset", True, "print offset to framepointer for each address, if sufficiently small"
+    "telescope-framepointer-offset",
+    True,
+    "print offset to framepointer for each address, if sufficiently small",
 )
 
 offset_separator = theme.add_param(
@@ -274,9 +276,6 @@ def stack(count, offset, frame) -> None:
     telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame)
 
 
-
-
-
 parser = argparse.ArgumentParser(
     description="Dereferences on stack data, printing the entire stack frame with specified count and offset ."
 )
@@ -296,7 +295,6 @@ def stackf(count, offset) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
     telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=True)
-
 
 
 telescope.last_address = 0
