@@ -194,6 +194,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     def regs_or_frame_offset(addr):
         offset = addr - bp
 
+        # len(regs[addr]) == 1 if no registers pointer to address
         if not print_framepointer_offset or len(regs[addr]) > 1 or not -0xFFF <= offset <= 0xFFF:
             return " " + T.register(regs[addr].ljust(longest_regs))
         else:
