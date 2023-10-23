@@ -191,17 +191,9 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
             result.extend(collapse_buffer)
         collapse_buffer.clear()
 
-    bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
-
-    def regs_or_frame_offset(addr):
-        offset = addr - bp
-
-        # len(regs[addr]) == 1 if no registers pointer to address
-        if not print_framepointer_offset or len(regs[addr]) > 1 or not -0xFFF <= offset <= 0xFFF:
-            return " " + T.register(regs[addr].ljust(longest_regs))
-        else:
-            # If offset to frame pointer as hex fits in hex 3 digits, print it
-            return ("%+04x" % (offset)).ljust(longest_regs + 1)
+    bp = None
+    if print_framepointer_offset and pwndbg.gdblib.regs.frame is not None:
+        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
 
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.gdblib.memory.peek(addr):
@@ -217,11 +209,9 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
                 addr - start + (telescope.offset * ptrsize),
                 separator,
             )
-        )
-
-        line += " ".join(
+        ) + " ".join(
             (
-                regs_or_frame_offset(addr),
+                regs_or_frame_offset(addr, bp, regs, longest_regs),
                 pwndbg.chain.format(addr),
             )
         )
@@ -245,6 +235,16 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         print("\n".join(result))
 
     return result
+
+
+def regs_or_frame_offset(addr: int, bp: int | None, regs: dict[int, str], longest_regs: int) -> str:
+    # bp only set if print_framepointer_offset=True
+    # len(regs[addr]) == 1 if no registers pointer to address
+    if bp is None or len(regs[addr]) > 1 or not -0xFFF <= addr - bp <= 0xFFF:
+        return " " + T.register(regs[addr].ljust(longest_regs))
+    else:
+        # If offset to frame pointer as hex fits in hex 3 digits, print it
+        return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)
 
 
 parser = argparse.ArgumentParser(
