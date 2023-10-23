@@ -22,11 +22,9 @@ def distance(a, b) -> None:
         total_pages = pwndbg.gdblib.vmmap.get()
 
         if not total_pages:
-            print(
-                "There are no memory pages in `vmmap`"
-            )
+            print("There are no memory pages in `vmmap`")
             return
-        
+
         # Find the page the address belongs to
         for page in total_pages:
             if a >= page.vaddr and a < page.end:
