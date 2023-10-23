@@ -21,10 +21,16 @@ def distance(a, b) -> None:
     if b is None:
         total_pages = pwndbg.gdblib.vmmap.get()
 
+        if not total_pages:
+            print(
+                "There are no memory pages in `vmmap`"
+            )
+            return
+        
         # Find the page the address belongs to
         for page in total_pages:
             if a >= page.vaddr and a < page.end:
-                # a is a gdb.Value, explicitely convert to it
+                # a is a gdb.Value, explicitely convert to int
                 distance = int(a) - page.vaddr
 
                 display_text = "%#x->%#x is %#x bytes (%#x words)" % (
