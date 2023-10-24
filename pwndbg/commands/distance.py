@@ -19,29 +19,22 @@ def distance(a, b) -> None:
     """Print the distance between the two arguments"""
 
     if b is None:
-        total_pages = pwndbg.gdblib.vmmap.get()
+        page = pwndbg.gdblib.vmmap.find(a)
 
-        if not total_pages:
-            print("There are no memory pages in `vmmap`")
-            return
+        if not page:
+            print("%#x does not belong to a mapped page in memory" % (a))
+        else:
+            # a is a gdb.Value, explicitely convert to int
+            distance = int(a) - page.vaddr
 
-        # Find the page the address belongs to
-        for page in total_pages:
-            if a >= page.vaddr and a < page.end:
-                # a is a gdb.Value, explicitely convert to int
-                distance = int(a) - page.vaddr
+            display_text = "%#x->%#x is %#x bytes (%#x words)" % (
+                page.vaddr,
+                a,
+                distance,
+                distance // pwndbg.gdblib.arch.ptrsize,
+            )
 
-                display_text = "%#x->%#x is %#x bytes (%#x words)" % (
-                    page.vaddr,
-                    a,
-                    distance,
-                    distance // pwndbg.gdblib.arch.ptrsize,
-                )
-
-                print(M.get(page.vaddr, text=display_text))
-                return
-
-        print("%#x does not belong to a mapped page in memory" % (a))
+            print(M.get(page.vaddr, text=display_text))
     else:
         a = int(a) & pwndbg.gdblib.arch.ptrmask
         b = int(b) & pwndbg.gdblib.arch.ptrmask
