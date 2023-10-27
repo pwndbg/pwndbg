@@ -198,37 +198,27 @@ parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
 parser.add_argument(
-    "-f", "--fast", action="store_true", help="Be fast and not accurate, or be slow and accurate"
+    "-f", "--fake", action="store_true", help="Allow fake chunks. If not set (default) would only display real chunks, else would try to display any memory as chunk."
 )
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
-def hi(addr, verbose=False, simple=False, fast=False) -> None:
+def hi(addr, verbose=False, simple=False, fake=False) -> None:
     """Iteratively search all heaps for contain current address in their chunks bodys.
     """
     allocator = pwndbg.heap.current
-    sbrk_region = allocator.get_sbrk_heap_region()
-    if fast or addr in sbrk_region:
-        heap = Heap(addr)
-        for chunk in heap:
-            if chunk.real_size and chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
-                malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-                break
+    #sbrk_region = allocator.get_sbrk_heap_region()
+    #if fast or addr in sbrk_region:
+    heap = Heap(addr)
+    if fake is False and heap.arena is None:
         return
-
-    # this is the only solution I was able to found, which *DOES NOT* return false-positive results
-    for arena in allocator.arenas:
-        # since addr is not in sbrk_region using native stuff :)
-        if arena.is_main_arena:
-            continue
-        for heap in arena.heaps:
-            if addr in heap:
-                for chunk in heap:
-                    if chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
-                        malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-                        return
+    for chunk in heap:
+        if chunk.real_size and chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            break
+    return
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
