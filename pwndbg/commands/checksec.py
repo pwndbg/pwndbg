@@ -9,7 +9,7 @@ import pwndbg.wrappers.checksec
 
 
 def color_line(line: str) -> str:
-    return (
+    return pwndbg.color.normal(
         line.replace("*", pwndbg.color.green("*"))
         .replace(":", f":{pwndbg.color.GREEN}")
         .replace("No", f"{pwndbg.color.RED}No")
