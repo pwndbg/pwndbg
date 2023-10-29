@@ -34,7 +34,7 @@ else:
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
 
-    site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
+    site_pkgs_path = glob(os.path.join(venv_path, sys.platlibdir, "*/site-packages"))[0]
 
     # add virtualenv's site-packages to sys.path and run .pth files
     site.addsitedir(site_pkgs_path)
