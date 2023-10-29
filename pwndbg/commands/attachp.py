@@ -7,12 +7,11 @@ from subprocess import CalledProcessError
 from subprocess import check_output
 
 import gdb
+from tabulate import tabulate
 
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-
-from tabulate import tabulate
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,

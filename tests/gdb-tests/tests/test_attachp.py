@@ -6,9 +6,9 @@ import subprocess
 import tempfile
 
 import pytest
+from tabulate import tabulate
 
 from .utils import run_gdb_with_script
-from tabulate import tabulate
 
 can_attach = False
 
