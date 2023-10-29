@@ -37,10 +37,11 @@ Original GDB attach command help:
 )
 
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
+parser.add_argument("--show_all", action="store_true", help="showing all output process tree and command")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(target) -> None:
+def attachp(target, show_all=False) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -80,11 +81,11 @@ def attachp(target) -> None:
 
                     user = check_output(["ps", "-o", "user=", "-p", str(pid)]).decode().strip()
                     command = (
-                        check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode().strip()[:40]
+                        check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode()
                     )
-                    process_tree = get_process_tree(pid, max_depth=2)
+                    process_tree = get_process_tree(pid, max_depth=2, full=show_all)
 
-                    if len(command) >= 40:
+                    if len(command) >= 40 and not show_all:
                         command = command[:38] + "--(truncated)"
 
                     pidsData.append([pid, user, command, process_tree])
@@ -103,10 +104,10 @@ def attachp(target) -> None:
         print(message.error(f"Error: {e}"))
 
 
-def get_process_tree(pid, max_depth=2, indent=0):
+def get_process_tree(pid, max_depth=2, indent=0, full=False):
     def build_tree(process, depth):
-        if depth > max_depth:
-            return ""
+        if depth > max_depth and not full:
+            return
 
         process_info = process.as_dict(attrs=['pid', 'name'])
         process_str = " " * indent + f"{process_info['name']}({process_info['pid']}) \n"
