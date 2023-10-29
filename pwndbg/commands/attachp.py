@@ -90,7 +90,7 @@ def attachp(target) -> None:
                     if len(process_tree) >= 40:
                         process_tree = process_tree[:38] + "--(truncated)"
 
-                pidsData.append([pid, user, command, process_tree])
+                    pidsData.append([pid, user, command, process_tree])
 
                 # Format the final output message
                 print(tabulate(pidsData, headers="firstrow", tablefmt="grid"))
