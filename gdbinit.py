@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import cProfile
-import glob
 import locale
 import os
 import site
 import sys
 import time
-from glob import glob
 from os import environ
 from os import path
 
@@ -30,33 +28,23 @@ else:
     if not venv_path:
         venv_path = os.path.join(directory, ".venv")
 
-    if not os.path.exists(venv_path):
+    activate_this = os.path.join(venv_path, "bin/activate_this.py")
+
+    if not os.path.exists(activate_this):
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
 
-    site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
-
-    # add virtualenv's site-packages to sys.path and run .pth files
-    site.addsitedir(site_pkgs_path)
+    exec(open(activate_this).read(), {"__file__": activate_this})
 
     # remove existing, system-level site-packages from sys.path
     for site_packages in site.getsitepackages():
         if site_packages in sys.path:
             sys.path.remove(site_packages)
 
-    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
-    bin_path = os.path.join(venv_path, "bin")
-    os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
-
     # Add gdb-pt-dump directory to sys.path so it can be imported
     gdbpt = path.join(directory, "gdb-pt-dump")
     sys.path.insert(0, directory)
     sys.path.insert(1, gdbpt)
-
-    # Push virtualenv's site-packages to the front
-    sys.path.remove(site_pkgs_path)
-    sys.path.insert(2, site_pkgs_path)
-
 
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
