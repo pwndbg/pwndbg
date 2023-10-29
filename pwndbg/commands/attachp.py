@@ -7,6 +7,7 @@ from subprocess import CalledProcessError
 from subprocess import check_output
 
 import gdb
+import psutil
 from tabulate import tabulate
 
 import pwndbg.commands
@@ -81,7 +82,7 @@ def attachp(target) -> None:
                     command = (
                         check_output(["ps", "-o", "cmd=", "-p", str(pid)]).decode().strip()[:40]
                     )
-                    process_tree = check_output(["pstree", "-p", str(pid)]).decode().strip()[:40]
+                    process_tree = get_process_tree(pid, max_depth=2)
 
                     if len(command) >= 40:
                         command = command[:38] + "--(truncated)"
@@ -103,6 +104,29 @@ def attachp(target) -> None:
         gdb.execute(f"attach {resolved_target}")
     except gdb.error as e:
         print(message.error(f"Error: {e}"))
+
+
+def get_process_tree(pid, max_depth=2, indent=0):
+    def build_tree(process, depth):
+        if depth > max_depth:
+            return ""
+
+        process_info = process.as_dict(attrs=['pid', 'name'])
+        process_str = " " * indent + f"{process_info['name']}({process_info['pid']}) \n"
+
+        if depth < max_depth:
+            for child in process.children():
+                child_str = build_tree(child, depth + 1)
+                if child_str:
+                    process_str += child_str
+
+        return process_str
+
+    try:
+        root_process = psutil.Process(pid)
+        return build_tree(root_process, 0)
+    except psutil.NoSuchProcess:
+        return ""
 
 
 def _is_device(path) -> bool:
