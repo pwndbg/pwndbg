@@ -16,7 +16,6 @@ def color_line(line: str) -> str:
     )
 
 
-NEW_LINE = "\n"
 
 
 def color_lines(output: str) -> str:
