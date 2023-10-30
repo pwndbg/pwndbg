@@ -19,7 +19,7 @@ def color_line(line: str) -> str:
 
 
 def color_lines(output: str) -> str:
-    return NEW_LINE.join(list(map(color_line, output.split(NEW_LINE))))
+    return "\n".join(map(color_line, output.split(NEW_LINE)))
 
 
 @pwndbg.commands.ArgparsedCommand("Prints out the binary security settings using `checksec`.")
