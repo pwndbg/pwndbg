@@ -81,6 +81,11 @@ config_context_sections = pwndbg.gdblib.config.add_param(
     "regs disasm code ghidra stack backtrace expressions threads",
     "which context sections are displayed (controls order)",
 )
+config_max_threads_display = pwndbg.gdblib.config.add_param(
+    "context-max-threads",
+    4,
+    "maximum number of threads displayed by the context command",
+)
 
 # Storing output configuration per section
 outputs: dict[str, str] = {}
@@ -851,48 +856,73 @@ def get_thread_status(thread):
 
 
 def context_threads(with_banner=True, target=sys.stdout, width=None):
-    threads = gdb.selected_inferior().threads()[::-1]
+    try:
+        original_thread = gdb.selected_thread()
+    except SystemError:
+        original_thread = None
 
-    if len(threads) < 2:
+    all_threads = gdb.selected_inferior().threads()[::-1]
+
+    displayed_threads = []
+
+    if original_thread is not None and original_thread.is_valid():
+        displayed_threads.append(original_thread)
+
+    for thread in all_threads:
+        if len(displayed_threads) >= int(config_max_threads_display):
+            break
+
+        if thread.is_valid() and thread is not original_thread:
+            displayed_threads.append(thread)
+
+    num_threads_not_shown = len(all_threads) - len(displayed_threads)
+
+    if len(displayed_threads) < 2:
         return []
 
-    selected_thread = gdb.selected_thread()
-    selected_frame = gdb.selected_frame()
-
-    out = []
+    out = [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
     max_name_length = 0
 
-    for thread in threads:
+    for thread in displayed_threads:
         name = thread.name or ""
         if len(name) > max_name_length:
             max_name_length = len(name)
 
-    for thread in threads:
-        thread.switch()
-        frame = gdb.selected_frame()
-
-        selected = " ►" if thread is selected_thread else "  "
-
-        symbol = pwndbg.gdblib.symbol.get(frame.pc())
-        status = get_thread_status(thread)
-
+    for thread in filter(lambda t: t.is_valid(), displayed_threads):
+        selected = " ►" if thread is original_thread else "  "
         name = thread.name if thread.name is not None else ""
         padding = max_name_length - len(name)
+        status = get_thread_status(thread)
 
         line = (
             f" {selected} {thread.global_num}\t"
             f'"{pwndbg.color.cyan(name)}" '
             f'{" " * padding}'
-            f"{status}: {M.get(frame.pc())}"
+            f"{status}: "
         )
-        if symbol:
-            line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+
+        if thread.is_stopped():
+            thread.switch()
+            pc = gdb.selected_frame().pc()
+
+            pc_colored = M.get(pc)
+            symbol = pwndbg.gdblib.symbol.get(pc)
+
+            line += f"{pc_colored}"
+            if symbol:
+                line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+
         out.append(line)
 
-    out.insert(0, pwndbg.ui.banner("threads", target=target, width=width))
+    if num_threads_not_shown:
+        out.append(
+            pwndbg.lib.tips.color_tip(
+                f"Not showing {num_threads_not_shown} thread(s). Use `set context-max-threads <number of threads>` to change this."
+            )
+        )
 
-    selected_thread.switch()
-    selected_frame.select()
+    if original_thread is not None and original_thread.is_valid():
+        original_thread.switch()
 
     return out
 

@@ -58,6 +58,16 @@ def is_qemu_kernel() -> bool:
     return is_qemu() and not is_usermode()
 
 
+@pwndbg.lib.cache.cache_until("stop")
+def exec_file_supported() -> bool:
+    """Returns ``True`` if the remote target understands the 'qXfer:exec-file:read' packet.
+    A check for this feature is done in vmmap code, to warn against running legacy Qemu versions.
+    """
+    response = gdb.execute("maintenance packet qSupported", to_string=True, from_tty=False)
+
+    return "exec-file" in response
+
+
 @start
 @pwndbg.lib.cache.cache_until("stop")
 def root() -> Any | None:

@@ -67,7 +67,7 @@ install_pacman() {
     if [[ "$answer" == "y" ]]; then
         sudo pacman -Syu || true
     fi
-    sudo pacman -S --needed git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
+    sudo pacman -S --noconfirm --needed git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
     if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
         echo "set debuginfod enabled on" >> ~/.gdbinit
     fi

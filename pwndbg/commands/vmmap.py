@@ -14,6 +14,7 @@ import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
+from pwndbg.gdblib import gdb_version
 
 integer_types = (int, gdb.Value)
 
@@ -151,8 +152,15 @@ def vmmap(
 
         print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
-    if pwndbg.gdblib.qemu.is_qemu():
+    if pwndbg.gdblib.qemu.is_qemu() and not pwndbg.gdblib.qemu.exec_file_supported():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
+
+    # Only GDB versions >=12 report permission info in info proc mappings. On older versions, we fallback on "rwx".
+    # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
+    if pwndbg.gdblib.qemu.is_qemu_usermode() and gdb_version[0] < 12:
+        print(
+            "\n[GDB <12.1 detected - vmmap cannot fetch permission information, defaulting to rwx]"
+        )
 
 
 parser = argparse.ArgumentParser(description="Add virtual memory map page.")

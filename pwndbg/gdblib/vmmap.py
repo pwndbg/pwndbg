@@ -91,7 +91,13 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     if is_corefile():
         return tuple(coredump_maps())
 
-    proc_maps = proc_pid_maps()
+    proc_maps = None
+    if pwndbg.gdblib.qemu.is_qemu_usermode():
+        # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_pid_maps
+        proc_maps = info_proc_maps()
+
+    if not proc_maps:
+        proc_maps = proc_pid_maps()
 
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
     #   None    - when /proc/$pid/maps does not exist/is not available
@@ -334,6 +340,53 @@ def coredump_maps():
                 page.flags |= 6
                 page.offset = 0
                 break
+
+    return tuple(pages)
+
+
+@pwndbg.lib.cache.cache_until("start", "stop")
+def info_proc_maps():
+    """
+    Parse the result of info proc mappings.
+    Returns:
+        A tuple of pwndbg.lib.memory.Page objects or None if
+        info proc mapping is not supported on the target.
+    """
+
+    try:
+        info_proc_mappings = pwndbg.gdblib.info.proc_mappings().splitlines()
+    except gdb.error:
+        # On qemu user emulation, we may get: gdb.error: Not supported on this target.
+        info_proc_mappings = []
+
+    pages = []
+    for line in info_proc_mappings:
+        # We look for lines like:
+        # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
+        try:
+            split_line = line.split()
+
+            # Permission info is only available in GDB versions >=12.1
+            # https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
+            # Assume "rw-p" on older gdb versions
+            if len(split_line) < 6:
+                start, _end, size, offset, objfile = split_line
+                perm = "rwxp"
+            else:
+                start, _end, size, offset, perm, objfile = split_line
+            start, size, offset = int(start, 16), int(size, 16), int(offset, 16)
+        except (IndexError, ValueError):
+            continue
+
+        flags = 0
+        if "r" in perm:
+            flags |= 4
+        if "w" in perm:
+            flags |= 2
+        if "x" in perm:
+            flags |= 1
+
+        pages.append(pwndbg.lib.memory.Page(start, size, flags, offset, objfile))
 
     return tuple(pages)
 
