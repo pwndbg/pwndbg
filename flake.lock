@@ -66,13 +66,13 @@
       "locked": {
         "lastModified": 1691333779,
         "narHash": "sha256-sCPemHLepJxZwYpAIs6RfgYVO8SlutWq2yc3lZgXvko=",
-        "owner": "disconnect3d",
+        "owner": "nix-community",
         "repo": "poetry2nix",
         "rev": "a2e7c3522d79ec28a2d41bf8ea19ced88f882a05",
         "type": "github"
       },
       "original": {
-        "owner": "disconnect3d",
+        "owner": "nix-community",
         "repo": "poetry2nix",
         "type": "github"
       }
