@@ -1,0 +1,35 @@
+name: Check lock files
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+
+jobs:
+  lock_flake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: check flake.lock
+      run: nix flake lock --no-update-lock-file
+
+  lock_poetry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: install poetry
+      run: nix profile install nixpkgs#poetry
+
+    - name: check poetry.lock
+      run: poetry check --lock
+
