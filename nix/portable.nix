@@ -20,7 +20,7 @@ dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd 
 export PYTHONHOME="$dir"
 export PYTHONPYCACHEPREFIX="$dir/cache/"
 export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
-exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --eval-command="set charset UTF-8" --eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
+exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --early-init-eval-command="set charset UTF-8" --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
   '';
   # for cache: pwndbg --eval-command="py import compileall; compileall.compile_dir('/usr/lib/pwndbg/'); exit()"
 
@@ -47,10 +47,12 @@ exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --eval-command="set charset UTF
     chmod -R +w $out
 
     cp -rf ${pwndbg.src}/pwndbg $out/pwndbg/lib/${python3.libPrefix}/site-packages/
-    cp -rf ${pwndbg.src}/gdb-pt-dump $out/pwndbg/lib/${python3.libPrefix}/site-packages/
     cp ${pwndbg.src}/gdbinit.py $out/pwndbg/exe/
 
     cp ${pwndbgBundleBin} $out/pwndbg/bin/pwndbg
+
+    # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
+    substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/subprocess.py --replace "'${pkgs.bash}/bin/sh'" "'/bin/sh'"
   '';
 in
   portable

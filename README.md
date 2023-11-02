@@ -39,6 +39,12 @@ cd pwndbg
 ./setup.sh
 ```
 
+Or install via the Nix package manager (you can use Nix on any distribution):
+```shell
+nix shell github:pwndbg/pwndbg
+pwndbg ./your-binnary
+```
+
 Pwndbg is supported on Ubuntu 20.04, and 22.04 with GDB 9.2 and later. We do not test on any older versions of Ubuntu, so `pwndbg` may not work on these versions (for Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)). We may accept pull requests fixing issues in older versions on a case by case basis, please discuss this with us on [Discord](https://discord.gg/x47DssnGwm) first. You can also always checkout an older version of `pwndbg` from around the time the Ubuntu version you're interested in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
 
 Other Linux distributions are also supported via `setup.sh`, including:
