@@ -17,7 +17,6 @@ def color_line(line: str) -> str:
 
 
 
-
 def color_lines(output: str) -> str:
     return "\n".join(map(color_line, output.split(NEW_LINE)))
 
