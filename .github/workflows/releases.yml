@@ -18,18 +18,18 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build pwndbg
-      run: nix build '.?submodules=1#pwndbg' -o result-pwndbg
+      run: nix build '.#pwndbg' -o result-pwndbg
 
     - name: build rpm
-      run: nix build '.?submodules=1#rpm' -o dist-rpm
+      run: nix build '.#rpm' -o dist-rpm
     - name: build deb
-      run: nix build '.?submodules=1#deb' -o dist-deb
+      run: nix build '.#deb' -o dist-deb
     - name: build apk
-      run: nix build '.?submodules=1#apk' -o dist-apk
+      run: nix build '.#apk' -o dist-apk
     - name: build archlinux
-      run: nix build '.?submodules=1#archlinux' -o dist-archlinux
+      run: nix build '.#archlinux' -o dist-archlinux
     - name: build tarball
-      run: nix build '.?submodules=1#tarball' -o dist-tarball
+      run: nix build '.#tarball' -o dist-tarball
 
     - name: release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1

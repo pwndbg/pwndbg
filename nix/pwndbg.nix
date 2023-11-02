@@ -18,6 +18,9 @@ let
     overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
       pip = python3.pkgs.pip;  # fix infinite loop in nix, look here: https://github.com/nix-community/poetry2nix/issues/1184#issuecomment-1644878841
       unicorn = python3.pkgs.unicorn;  # fix build for aarch64 (but it will use same version like in nixpkgs)
+      pt = super.pt.overridePythonAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ [ super.poetry-core ];
+      });
       capstone = super.capstone.overridePythonAttrs (old: {
         # fix darwin
         preBuild = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
@@ -47,8 +50,6 @@ let
     src = pkgs.lib.sourceByRegex inputs.pwndbg [
       "pwndbg"
       "pwndbg/.*"
-      "gdb-pt-dump"
-      "gdb-pt-dump/.*"
       "gdbinit.py"
     ];
 
@@ -57,14 +58,14 @@ let
     installPhase = ''
       mkdir -p $out/share/pwndbg
 
-      cp -r gdbinit.py pwndbg gdb-pt-dump $out/share/pwndbg
+      cp -r gdbinit.py pwndbg $out/share/pwndbg
 
       ln -s ${pyEnv} $out/share/pwndbg/.venv
 
       makeWrapper ${gdb}/bin/gdb $out/bin/pwndbg \
-        --add-flags "--quiet --eval-command=\"set charset UTF-8\" --eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py" \
+        --add-flags "--quiet --early-init-eval-command=\"set charset UTF-8\" --early-init-eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py" \
         --prefix PATH : ${binPath} \
-	--set LC_CTYPE C.UTF-8
+        --set LC_CTYPE C.UTF-8
     '';
 
     meta = {

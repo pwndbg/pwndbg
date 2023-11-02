@@ -15,7 +15,7 @@
 
       pkgsBySystem = forAllSystems (system: import nixpkgs {
         inherit system;
-        overlays = [ poetry2nix.overlay ];
+        overlays = [ poetry2nix.overlays.default ];
       });
       pkgUtil = forAllSystems (system: import ./nix/bundle/pkg.nix {
         pkgs = pkgsBySystem.${system};

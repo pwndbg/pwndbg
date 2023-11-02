@@ -485,6 +485,21 @@ files = [
 test = ["enum34", "ipaddress", "mock", "pywin32", "wmi"]
 
 [[package]]
+name = "pt"
+version = "1.0.0"
+description = "`gdb-pt-dump` is a gdb script to examine the address space of a QEMU-based virtual machine."
+optional = false
+python-versions = "^3.8"
+files = []
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/patryk4815/gdb-pt-dump"
+reference = "a5e363316adb977d2c3a12fae3697ce20bece898"
+resolved_reference = "a5e363316adb977d2c3a12fae3697ce20bece898"
+
+[[package]]
 name = "pwntools"
 version = "4.11.0"
 description = "Pwntools CTF framework and exploit development library."
@@ -776,4 +791,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "bcbb1f8025aab6dd658b42dca35f538619945d0a5fdeb826b289aec75425c0db"
+content-hash = "2fbe1e759f4fb2b01443c788c30672cae00b0954b0713b1b9f38bbc217a0a333"
