@@ -1304,7 +1304,7 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             is_chain_corrupted = True
         elif len(chain_fd) < 2 or len(chain_bk) < 2:
             # Chains containing less than two entries are corrupted, as the smallest
-            # chain (an empty bin) would look like something like `[main_arena+88, 0]`.
+            # chain (an empty bin) would look something like `[main_arena+88, 0]`.
             is_chain_corrupted = True
         elif len(chain_fd) == len(chain_bk) == 2 and chain_fd == chain_bk and chain_fd[-1] == 0:
             # Check if bin[index] points to itself (is empty)
