@@ -184,7 +184,7 @@ def heap(addr=None, verbose=False, simple=False) -> None:
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Try to find if an address belonds to a heap chunk. If yes -- print chunk. Search all heaps.""",
+    description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
 )
 parser.add_argument(
     "addr",
@@ -198,19 +198,19 @@ parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
 parser.add_argument(
-    "-f", "--fake", action="store_true", help="Allow fake chunks. If not set (default) would only display real chunks, else would try to display any memory as chunk."
+    "-f",
+    "--fake",
+    action="store_true",
+    help="Allow fake chunks. If set, displays any memory as a heap chunk (even if its not a real chunk).",
 )
 
+ 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def hi(addr, verbose=False, simple=False, fake=False) -> None:
-    """Iteratively search all heaps for contain current address in their chunks bodys.
-    """
     allocator = pwndbg.heap.current
-    #sbrk_region = allocator.get_sbrk_heap_region()
-    #if fast or addr in sbrk_region:
     heap = Heap(addr)
     if fake is False and heap.arena is None:
         return
@@ -218,7 +218,7 @@ def hi(addr, verbose=False, simple=False, fake=False) -> None:
         if chunk.real_size and chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
             break
-    return
+
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
