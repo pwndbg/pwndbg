@@ -75,7 +75,8 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         if not pwndbg.gdblib.qemu.is_qemu():
             if try_local_path and not has_target_prefix and os.path.exists(local_path):
                 return local_path
-            local_path = tempfile.mktemp(dir=remote_files_dir())
+            fd, local_path = tempfile.mkstemp(dir=remote_files_dir())
+            os.close(fd)
             error = None
             try:
                 error = gdb.execute(f'remote get "{path}" "{local_path}"', to_string=True)
