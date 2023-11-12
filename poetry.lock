@@ -310,13 +310,13 @@ sortedcontainers = ">=2.0,<3.0"
 
 [[package]]
 name = "mako"
-version = "1.2.4"
+version = "1.3.0"
 description = "A super-fast templating language that borrows the best ideas from the existing templating languages."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "Mako-1.2.4-py3-none-any.whl", hash = "sha256:c97c79c018b9165ac9922ae4f32da095ffd3c4e6872b45eded42926deea46818"},
-    {file = "Mako-1.2.4.tar.gz", hash = "sha256:d60a3903dc3bb01a18ad6a89cdbe2e4eadc69c0bc8ef1e3773ba53d44c3f7a34"},
+    {file = "Mako-1.3.0-py3-none-any.whl", hash = "sha256:57d4e997349f1a92035aa25c17ace371a4213f2ca42f99bee9a602500cfd54d9"},
+    {file = "Mako-1.3.0.tar.gz", hash = "sha256:e3a9d388fd00e87043edbe8792f45880ac0114e9c4adc69f6e9bfb2c55e3b11b"},
 ]
 
 [package.dependencies]
@@ -495,9 +495,9 @@ develop = false
 
 [package.source]
 type = "git"
-url = "https://github.com/patryk4815/gdb-pt-dump"
-reference = "a5e363316adb977d2c3a12fae3697ce20bece898"
-resolved_reference = "a5e363316adb977d2c3a12fae3697ce20bece898"
+url = "https://github.com/martinradev/gdb-pt-dump"
+reference = "89ea252f6efc5d75eacca16fc17ff8966a389690"
+resolved_reference = "89ea252f6efc5d75eacca16fc17ff8966a389690"
 
 [[package]]
 name = "pwntools"
@@ -791,4 +791,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "2fbe1e759f4fb2b01443c788c30672cae00b0954b0713b1b9f38bbc217a0a333"
+content-hash = "b740143a65268236eb16f18509a5b264a2f1b54cf213869867414664cff9d6dc"
