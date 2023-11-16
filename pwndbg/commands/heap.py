@@ -182,9 +182,10 @@ def heap(addr=None, verbose=False, simple=False) -> None:
         for chunk in h:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
 
+
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Try to find if an address belonds to a heap chunk. If yes -- print chunk. Search all heaps.""",
+    description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
 )
 parser.add_argument(
     "addr",
@@ -198,27 +199,39 @@ parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
 parser.add_argument(
-    "-f", "--fake", action="store_true", help="Allow fake chunks. If not set (default) would only display real chunks, else would try to display any memory as chunk."
+    "-f",
+    "--fake",
+    action="store_true",
+    help="Allow fake chunks. If set, displays any memory as a heap chunk (even if its not a real chunk).",
 )
+
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 def hi(addr, verbose=False, simple=False, fake=False) -> None:
-    """Iteratively search all heaps for contain current address in their chunks bodys.
-    """
-    allocator = pwndbg.heap.current
-    #sbrk_region = allocator.get_sbrk_heap_region()
-    #if fast or addr in sbrk_region:
-    heap = Heap(addr)
+    try:
+        heap = Heap(addr)
+    except:
+        print(f"The provided address {hex(addr)} cannot be interpreted as a heap!")
+        return
+
     if fake is False and heap.arena is None:
         return
+
     for chunk in heap:
-        if chunk.real_size and chunk.address <= addr and (chunk.address + chunk.real_size) > addr:
+        if addr in chunk:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            if verbose:
+                start = chunk.address + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse else 0x00)
+                print(f"Your address: {hex(addr)}")
+                print(f"Head offset: {hex(addr - start)}")
+                if chunk.is_top_chunk is False:
+                    end = start + chunk.real_size + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                    print(f"Tail offset: {hex(end - addr)}")
             break
-    return
+
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
