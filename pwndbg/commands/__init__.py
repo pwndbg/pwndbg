@@ -658,6 +658,7 @@ def load_commands() -> None:
     import pwndbg.commands.search
     import pwndbg.commands.segments
     import pwndbg.commands.shell
+    import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
     import pwndbg.commands.stack
