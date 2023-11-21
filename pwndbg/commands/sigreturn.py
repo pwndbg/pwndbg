@@ -15,7 +15,7 @@ from pwndbg.lib.regs import amd64 as amd64_regset
 parser = argparse.ArgumentParser(description="Display the SigreturnFrame at the specific address")
 
 parser.add_argument(
-    "address", nargs="?", default=None, type=int, help="The address to read the frame"
+    "address", nargs="?", default=None, type=int, help="The address to read the frame from"
 )
 
 parser.add_argument(
@@ -24,7 +24,7 @@ parser.add_argument(
     dest="display_all",
     action="store_true",
     default=False,
-    help="Show all values in the frame in addition to registers",
+    help="Show all values in the frame in addition to common registers",
 )
 
 
@@ -93,10 +93,10 @@ SIGRETURN_REGISTERS_x86_64 = set(
 def sigreturn_x86_64(address: int, display_all: bool):
     ptr_size = 8  # x86_64
 
-    # Offset by -8, where the frame begins (in relation to stack pointer)
+    # Offset by -8, where the frame begins (in relation to stack pointer when `syscall` is executed)
+    # The pointer before stack pointer is the address of the signal trampoline
     mem = pwndbg.gdblib.memory.read(address - 8, SIGRETURN_FRAME_SIZE_x86_64)
 
-    # The pointer before stack pointer is address of signal trampoline
     # Display registers
     for reg, offset in SIGRETURN_FRAME_LAYOUT_x86_64.items():
         if reg in SIGRETURN_REGISTERS_x86_64:
