@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import collections
 
 import pwndbg.color.context as C
+import pwndbg.color.memory as M
 import pwndbg.color.message
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+from pwndbg.lib.regs import amd64 as amd64_regset
 
 parser = argparse.ArgumentParser(description="Display the SigreturnFrame at the specific address")
 
@@ -40,92 +43,78 @@ def sigreturn(address: int = None, display_all=False):
         )
 
 
-SIGRETURN_FRAME_SIZE_x86_64 = 248
+SIGRETURN_FRAME_SIZE_x86_64 = 256
 
-# Registers layout from pwntools: https://github.com/Gallopsled/pwntools/blob/e4d3c82501c03de44458ae498a830fe66594f66d/pwnlib/rop/srop.py#L256
-SIGRETURN_FRAME_LAYOUT_x86_64 = {
-    "uc_flags": 0,
-    "&uc": 8,
-    "uc_stack.ss_sp": 16,
-    "uc_stack.ss_flags": 24,
-    "uc_stack.ss_size": 32,
-    "r8": 40,
-    "r9": 48,
-    "r10": 56,
-    "r11": 64,
-    "r12": 72,
-    "r13": 80,
-    "r14": 88,
-    "r15": 96,
-    "rdi": 104,
-    "rsi": 112,
-    "rbp": 120,
-    "rbx": 128,
-    "rdx": 136,
-    "rax": 144,
-    "rcx": 152,
-    "rsp": 160,
-    "rip": 168,
-    "eflags": 176,
-    "csgsfs": 184,
-    "err": 192,
-    "trapno": 200,
-    "oldmask": 208,
-    "cr2": 216,
-    "&fpstate": 224,
-    "__reserved": 232,
-    "sigmask": 240,
-}
+# Original registers layout from pwntools, modified below : https://github.com/Gallopsled/pwntools/blob/e4d3c82501c03de44458ae498a830fe66594f66d/pwnlib/rop/srop.py#L256
+# Offsets and names from "CONFIG_X86_64 struct rt_sigframe, Linux Kernel /arch/x86/include/asm/sigframe.h
+SIGRETURN_FRAME_LAYOUT_x86_64 = collections.OrderedDict(
+    [
+        ("&pretcode", 0),
+        ("uc_flags", 8),
+        ("&uc", 16),
+        ("uc_stack.ss_sp", 24),
+        ("uc_stack.ss_flags", 32),
+        ("uc_stack.ss_size", 40),
+        ("r8", 48),
+        ("r9", 56),
+        ("r10", 64),
+        ("r11", 72),
+        ("r12", 80),
+        ("r13", 88),
+        ("r14", 96),
+        ("r15", 104),
+        ("rdi", 112),
+        ("rsi", 120),
+        ("rbp", 128),
+        ("rbx", 136),
+        ("rdx", 144),
+        ("rax", 152),
+        ("rcx", 160),
+        ("rsp", 168),
+        ("rip", 176),
+        ("eflags", 184),
+        ("csgsfs", 192),
+        ("err", 200),
+        ("trapno", 208),
+        ("oldmask", 216),
+        ("cr2", 224),
+        ("&fpstate", 232),
+        ("__reserved", 240),
+        ("sigmask", 248),
+    ]
+)
 
-SIGRETURN_REGISTERS_x86_64 = [
-    "r8",
-    "r9",
-    "r10",
-    "r11",
-    "r12",
-    "r13",
-    "r14",
-    "r15",
-    "rdi",
-    "rsi",
-    "rbp",
-    "rbx",
-    "rdx",
-    "rax",
-    "rcx",
-    "rsp",
-    "rip",
-]
+# Core registers
+SIGRETURN_REGISTERS_x86_64 = set(
+    [*amd64_regset.gpr, amd64_regset.frame, amd64_regset.stack, amd64_regset.pc]
+)
 
 
 def sigreturn_x86_64(address: int, display_all: bool):
-    # TODO: make print output a lot nicer (similar to regs, with all the colors)
-    # TODO: do a validation check to ensure the frame is valid
-    # https://www.cs.vu.nl/~herbertb/papers/srop_sp14.pdf
-    # page 8 - code segment register should be 0x33
-    #  fpstate points to the saved floating point state, or NULL
+    ptr_size = 8  # x86_64
 
-    # x86_64
-    ptr_size = 8
+    # Offset by -8, where the frame begins (in relation to stack pointer)
+    mem = pwndbg.gdblib.memory.read(address - 8, SIGRETURN_FRAME_SIZE_x86_64)
 
+    # The pointer before stack pointer is address of signal trampoline
     # Display registers
-    mem = pwndbg.gdblib.memory.read(address, SIGRETURN_FRAME_SIZE_x86_64)
+    for reg, offset in SIGRETURN_FRAME_LAYOUT_x86_64.items():
+        if reg in SIGRETURN_REGISTERS_x86_64:
+            regname = C.register(reg.ljust(4).upper())
+            value = pwndbg.gdblib.arch.unpack(mem[offset : offset + ptr_size])
+            desc = pwndbg.chain.format(value)
 
-    for reg in SIGRETURN_REGISTERS_x86_64:
-        offset = SIGRETURN_FRAME_LAYOUT_x86_64[reg]
-        regname = C.register(reg.ljust(4).upper())
+            print(f"{regname} {desc}")
 
-        value = pwndbg.gdblib.arch.unpack(mem[offset : offset + ptr_size])
-        desc = pwndbg.chain.format(value)
+        elif reg == "eflags":
+            regname = C.register("eflags".ljust(4).upper())
+            value = pwndbg.gdblib.arch.unpack(mem[offset : offset + ptr_size])
+            reg_flags = pwndbg.gdblib.regs.flags["eflags"]
+            desc = C.format_flags(value, reg_flags)
 
-        print(f"{regname} {desc}")
+            print(f"{regname} {desc}")
 
-    # Display eflags
-    regname = C.register("eflags".ljust(4).upper())
-    eflags_offset = SIGRETURN_FRAME_LAYOUT_x86_64["eflags"]
-    value = pwndbg.gdblib.arch.unpack(mem[eflags_offset : eflags_offset + ptr_size])
-    reg_flags = pwndbg.gdblib.regs.flags["eflags"]
+        elif display_all:
+            desc = pwndbg.gdblib.arch.unpack(mem[offset : offset + ptr_size])
 
-    desc = C.format_flags(value, reg_flags)
-
-    print(f"{regname} {desc}")
+            print(f"{reg} {M.get(desc)}")
