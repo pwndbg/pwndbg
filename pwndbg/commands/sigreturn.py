@@ -42,7 +42,8 @@ def sigreturn(address: int = None, display_all=False):
 
 SIGRETURN_FRAME_SIZE_x86_64 = 256
 
-# Grab frame values from pwntools, offsets and names are from "CONFIG_X86_64 struct rt_sigframe, Linux Kernel /arch/x86/include/asm/sigframe.h
+# Grab frame values from pwntools. Offsets are defined as the offset to stack pointer when syscall instruction is called
+# Offsets and names are from "CONFIG_X86_64 struct rt_sigframe, Linux Kernel /arch/x86/include/asm/sigframe.h
 SIGRETURN_FRAME_LAYOUT_x86_64 = sorted(
     [(-8, "&pretcode")] + list(pwnlib.rop.srop.SigreturnFrame(arch="amd64").registers.items())
 )
