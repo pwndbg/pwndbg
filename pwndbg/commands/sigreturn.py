@@ -66,11 +66,9 @@ SIGRETURN_REGISTERS_x86_64 = {
 }
 
 
-
-
 def print_value(string: str, address: int, print_address):
     addr = ""
-    if(print_address):
+    if print_address:
         addr = f"{M.get(address)}: "
     print(f"{addr}{string}")
 
@@ -94,14 +92,13 @@ def sigreturn_x86_64(address: int, display_all: bool, print_address: bool):
         if reg in SIGRETURN_REGISTERS_x86_64:
             desc = pwndbg.chain.format(value)
 
-            print_value(f"{regname} {desc}", address+stack_offset, print_address)
+            print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
         elif reg == "eflags":
             reg_flags = pwndbg.gdblib.regs.flags["eflags"]
             desc = C.format_flags(value, reg_flags)
 
-            print_value(f"{regname} {desc}", address+stack_offset, print_address)
+            print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
         elif display_all:
-
-            print_value(f"{reg} {M.get(value)}", address+stack_offset, print_address)
+            print_value(f"{reg} {M.get(value)}", address + stack_offset, print_address)
