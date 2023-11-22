@@ -28,16 +28,25 @@ parser.add_argument(
     help="Show all values in the frame in addition to common registers",
 )
 
+parser.add_argument(
+    "-p",
+    "--print",
+    dest="print_address",
+    action="store_true",
+    default=False,
+    help="Show addresses of frame values",
+)
+
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithArch(["x86-64"])
-def sigreturn(address: int = None, display_all=False):
+def sigreturn(address: int = None, display_all=False, print_address=False):
     address = pwndbg.gdblib.regs.sp if address is None else address
 
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "x86-64":
-        sigreturn_x86_64(address, display_all)
+        sigreturn_x86_64(address, display_all, print_address)
 
 
 SIGRETURN_FRAME_SIZE_x86_64 = 256
@@ -57,7 +66,16 @@ SIGRETURN_REGISTERS_x86_64 = {
 }
 
 
-def sigreturn_x86_64(address: int, display_all: bool):
+
+
+def print_value(string: str, address: int, print_address):
+    addr = ""
+    if(print_address):
+        addr = f"{M.get(address)}: "
+    print(f"{addr}{string}")
+
+
+def sigreturn_x86_64(address: int, display_all: bool, print_address: bool):
     ptr_size = pwndbg.gdblib.arch.ptrsize
 
     # Offset to the stack pointer where the frame values really begins. Start reading memory there.
@@ -66,23 +84,24 @@ def sigreturn_x86_64(address: int, display_all: bool):
 
     mem = pwndbg.gdblib.memory.read(address + frame_start_offset, SIGRETURN_FRAME_SIZE_x86_64)
 
-    for offset, reg in SIGRETURN_FRAME_LAYOUT_x86_64:
+    for stack_offset, reg in SIGRETURN_FRAME_LAYOUT_x86_64:
         # Subtract the offset of start of frame, to get the correct offset into "mem"
-        offset -= frame_start_offset
+        mem_offset = stack_offset - frame_start_offset
 
         regname = C.register(reg.ljust(4).upper())
-        value = pwndbg.gdblib.arch.unpack(mem[offset : offset + ptr_size])
+        value = pwndbg.gdblib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
 
         if reg in SIGRETURN_REGISTERS_x86_64:
             desc = pwndbg.chain.format(value)
 
-            print(f"{regname} {desc}")
+            print_value(f"{regname} {desc}", address+stack_offset, print_address)
 
         elif reg == "eflags":
             reg_flags = pwndbg.gdblib.regs.flags["eflags"]
             desc = C.format_flags(value, reg_flags)
 
-            print(f"{regname} {desc}")
+            print_value(f"{regname} {desc}", address+stack_offset, print_address)
 
         elif display_all:
-            print(f"{reg} {M.get(value)}")
+
+            print_value(f"{reg} {M.get(value)}", address+stack_offset, print_address)
