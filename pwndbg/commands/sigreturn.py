@@ -12,24 +12,26 @@ import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-from pwndbg.lib.regs import amd64, arm, aarch64, i386
-
+from pwndbg.lib.regs import aarch64
+from pwndbg.lib.regs import amd64
+from pwndbg.lib.regs import arm
+from pwndbg.lib.regs import i386
 
 # Grab frame values from pwntools. Offsets are defined as the offset to stack pointer when syscall instruction is called
 # Offsets and names are from Linux kernel source. For example x86_64 is defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel /arch/x86/include/asm/sigframe.h)
-SIGRETURN_FRAME_LAYOUTS: dict[str,list[Tuple[int, str]]] = {
-    "x86-64":[(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items()),
-    "i386":list(pwnlib.rop.srop.registers["i386"].items()),
-    "aarch64":list(pwnlib.rop.srop.registers["aarch64"].items()),
-    "arm":list(pwnlib.rop.srop.registers["arm"].items()),
+SIGRETURN_FRAME_LAYOUTS: dict[str, list[Tuple[int, str]]] = {
+    "x86-64": [(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items()),
+    "i386": list(pwnlib.rop.srop.registers["i386"].items()),
+    "aarch64": list(pwnlib.rop.srop.registers["aarch64"].items()),
+    "arm": list(pwnlib.rop.srop.registers["arm"].items()),
 }
 
 # Always print these registers (as well as flag register, eflags / cpsr)
 SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
-    "x86-64":{ *amd64.gpr, amd64.frame, amd64.stack, amd64.pc },
-    "i386": { *i386.gpr,i386.frame, i386.stack, i386.pc },
-    "aarch64": { *aarch64.gpr, "sp", "pc"},
-    "arm": { *arm.gpr, "fp" "ip", "sp", "lr", "pc" },
+    "x86-64": {*amd64.gpr, amd64.frame, amd64.stack, amd64.pc},
+    "i386": {*i386.gpr, i386.frame, i386.stack, i386.pc},
+    "aarch64": {*aarch64.gpr, "sp", "pc"},
+    "arm": {*arm.gpr, "fp" "ip", "sp", "lr", "pc"},
 }
 
 
@@ -89,7 +91,7 @@ def sigreturn(address: int = None, display_all=False, print_address=False):
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
-        elif reg in pwndbg.gdblib.regs.flags: # eflags or cpsr
+        elif reg in pwndbg.gdblib.regs.flags:  # eflags or cpsr
             reg_flags = pwndbg.gdblib.regs.flags[reg]
             desc = C.format_flags(value, reg_flags)
 
