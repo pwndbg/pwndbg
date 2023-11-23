@@ -21,12 +21,15 @@ SIGRETURN_FRAME_LAYOUTS: dict[str,list[Tuple[int, str]]] = {
     "x86-64":[(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items()),
     "i386":list(pwnlib.rop.srop.registers["i386"].items()),
     "aarch64":list(pwnlib.rop.srop.registers["aarch64"].items()),
+    "arm":list(pwnlib.rop.srop.registers["arm"].items()),
 }
 
+# Always print these registers (as well as flag register, eflags / cpsr)
 SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
     "x86-64":{ *amd64.gpr, amd64.frame, amd64.stack, amd64.pc },
     "i386": { *i386.gpr,i386.frame, i386.stack, i386.pc },
     "aarch64": { *aarch64.gpr, "sp", "pc"},
+    "arm": { *arm.gpr, "fp" "ip", "sp", "lr", "pc" },
 }
 
 
@@ -57,7 +60,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64"])
+@pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def sigreturn(address: int = None, display_all=False, print_address=False):
     address = pwndbg.gdblib.regs.sp if address is None else address
 
@@ -86,8 +89,8 @@ def sigreturn(address: int = None, display_all=False, print_address=False):
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
-        elif reg == "eflags":
-            reg_flags = pwndbg.gdblib.regs.flags["eflags"]
+        elif reg in pwndbg.gdblib.regs.flags: # eflags or cpsr
+            reg_flags = pwndbg.gdblib.regs.flags[reg]
             desc = C.format_flags(value, reg_flags)
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
