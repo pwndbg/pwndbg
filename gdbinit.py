@@ -20,7 +20,7 @@ if environ.get("PWNDBG_PROFILE") == "1":
 
 # Get virtualenv's site-packages path
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
-if venv_path == "PWNDBG_PLEASE_SKIP_VENV":
+if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
     pass
 else:
     directory, file = path.split(__file__)
