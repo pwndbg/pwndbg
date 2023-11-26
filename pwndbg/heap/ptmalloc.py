@@ -338,9 +338,9 @@ class Chunk:
             return None
 
     def __contains__(self, addr: int) -> bool:
-        '''
+        """
         This allow us to avoid extra constructions like 'if strart_addr <= ptr <= end_addr', etc.
-        '''
+        """
         size_field_address = self._gdbValue[self.__match_renamed_field("size")].address
         start_address = size_field_address if self.prev_inuse else self.address
 

@@ -228,7 +228,11 @@ def hi(addr, verbose=False, simple=False, fake=False) -> None:
                 print(f"Your address: {hex(addr)}")
                 print(f"Head offset: {hex(addr - start)}")
                 if chunk.is_top_chunk is False:
-                    end = start + chunk.real_size + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                    end = (
+                        start
+                            + chunk.real_size
+                            + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                    )
                     print(f"Tail offset: {hex(end - addr)}")
             break
 
