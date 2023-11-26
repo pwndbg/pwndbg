@@ -1,11 +1,6 @@
 name: Releases
 
-on:
-  push:
-    branches:
-      - dev
-    tags:
-      - '*'
+on: pull_request
 
 jobs:
   releases-x86_64:
