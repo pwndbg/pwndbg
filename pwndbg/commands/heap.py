@@ -230,8 +230,8 @@ def hi(addr, verbose=False, simple=False, fake=False) -> None:
                 if chunk.is_top_chunk is False:
                     end = (
                         start
-                            + chunk.real_size
-                            + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                        + chunk.real_size
+                        + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
                     )
                     print(f"Tail offset: {hex(end - addr)}")
             break
