@@ -213,7 +213,7 @@ parser.add_argument(
 def hi(addr, verbose=False, simple=False, fake=False) -> None:
     try:
         heap = Heap(addr)
-    except exception as E:
+    except Exception as E:
         print(f"The provided address {hex(addr)} cannot be interpreted as a heap!\n{E}\n")
         return
 
