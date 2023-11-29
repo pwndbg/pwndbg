@@ -6,7 +6,7 @@ import re
 import subprocess
 from subprocess import CompletedProcess
 import time
-import multiprocessing
+import concurrent.futures
 from typing import Tuple
 
 
@@ -29,9 +29,7 @@ def makeBinaries():
 
 
 def run_gdb(gdb_args : list[str], env=None, capture_output=True) -> CompletedProcess[str]:
-    # print("Running gdb with args: " + str(args))
     env = os.environ if env is None else env
-    # subprocess.run(['gdb', '--batch', '-ex', 'py import coverage; print(coverage.__version__)'], check=True)
     return subprocess.run(['gdb', '--silent', '--nx', '--nh'] + gdb_args + ['--eval-command', 'quit'], env=env, capture_output=capture_output,text=True)
 
 def getTestsList(collect_only : bool, test_name_filter : str) -> list[str]:
@@ -72,83 +70,43 @@ def run_test(test_case: str, args: argparse.Namespace) -> Tuple[CompletedProcess
     env['PWNDBG_LAUNCH_TEST'] = test_case
     env['PWNDBG_DISABLE_COLORS'] = '1'
     result = run_gdb(gdb_args, env=env, capture_output=not args.serial)
-    if result.returncode == 1:
-        print(result.stdout)
-    # print(result.stdout)
     return (result, test_case)
-    # retval = result.returncode
-    # print(result.stdout, end='', flush=True)
-    # print(retval)
-    # if serial:
-    #     exit(retval)
-
-def parse_output_file(output_file, args: argparse.Namespace):
-    with open(output_file, 'r') as f:
-        content = f.read()
-
-    # Extract the test name and result using regex
-    pattern = re.compile(r'(tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)')
-    matches = pattern.findall(content)
-    testname, result = matches[0][0], matches[-1][2]
-
-    testfile = testname.split('::')[0]
-    testname = testname.split('::')[1]
-
-    print(f'{testname:<70} {result}')
-
-    # Only show the output of failed tests unless the verbose flag was used
-    if args.verbose or 'FAIL' in result:
-        print('')
-        with open(output_file, 'r') as f:
-            print(f.read())
-        print('')
-
-    if not args.keep:
-        # Delete the temporary file created by `parallel`
-        os.remove(output_file)
-    else:
-        print(output_file)
 
 def run_tests_and_print_stats(tests_list : list[str], args : argparse.Namespace):
     start = time.time()
     test_results :list[Tuple[CompletedProcess[str], str]] = []
+
+    def handle_parallel_test_result(test_result : Tuple[CompletedProcess[str], str]):
+        test_results.append(test_result)
+        (process, _) = test_result
+        content = process.stdout
+
+        # Extract the test name and result using regex
+        testname = re.search(r'^(tests/[^ ]+)', content, re.MULTILINE)[0]
+        result = re.search(r'(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)', content, re.MULTILINE)[0]
+
+        (_, testname) = testname.split('::')
+        print(f'{testname:<70} {result}')
+
+        # Only show the output of failed tests unless the verbose flag was used
+        if args.verbose or 'FAIL' in result:
+            print('')
+            print(content)
+
     if args.serial:
-         test_results = [run_test(test, args) for test in tests_list]
+        test_results = [run_test(test, args) for test in tests_list]
     else:
-        with multiprocessing.Pool() as pool:
-            test_results = pool.starmap(run_test, [(test, args) for test in tests_list])
-
-
-    # if args.serial:
-    #     for t in tests_list:
-    #         run_test(t, args)
-    # else:
-    #     with tempfile.NamedTemporaryFile(delete=False) as f:
-    #         JOBLOG_PATH = f.name
-    #     print("")
-    #     print(f"Running tests in parallel and using a joblog in {JOBLOG_PATH}", end="")
-    #     if not args.keep:
-    #         print(" (use --keep it to persist it)")
-    #     else:
-    #         print("")
-
-    #     # The `--env _` is required when using `--record-env`
-    #     cmd1 = f'env_parallel --env _ --output-as-files --joblog {JOBLOG_PATH} run_test ::: {" ".join(TESTS_LIST)}'
-    #     cmd2 = f'env_parallel --env _ parse_output_file {JOBLOG_PATH}'
-    #     subprocess.run(cmd1, shell=True)
-    #     subprocess.run(cmd2, shell=True)
-
+        print("")
+        print("Running tests in parallel")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            for test in tests_list:
+                executor.submit(run_test, test, args).add_done_callback(lambda future: handle_parallel_test_result(future.result()))
+        
     end = time.time()
     seconds = int(end - start)
     print(f"Tests completed in {seconds} seconds")
 
-    # # TODO: This doesn't work with serial
-    # # The seventh column in the joblog is the exit value and the tenth is the test name
-    # with open(JOBLOG_PATH, 'r') as f:
-    #     content = f.read()
-    # FAILED_TESTS = [line.split()[9] for line in content.splitlines() if line.split()[6] == '1']
-
-    failed_tests = [(test_result, test_case) for test_result, test_case in test_results if test_result.returncode != 0]
+    failed_tests = [(process, _) for (process, _) in test_results if process.returncode != 0]
     num_tests_failed = len(failed_tests)
     num_tests_passed_or_skipped = len(tests_list) - num_tests_failed
 
@@ -161,40 +119,26 @@ def run_tests_and_print_stats(tests_list : list[str], args : argparse.Namespace)
 
     if num_tests_failed != 0:
         print("")
-        print(f"Failing tests: {', '.join([failed_test_name for _, failed_test_name in failed_tests])}")
+        print(f"Failing tests: {' '.join([failed_test_name for _, failed_test_name in failed_tests])}")
         exit(1)
-
-    # if not args.keep:
-    #     # Delete the temporary joblog file
-    #     os.remove(JOBLOG_PATH)
-    # else:
-    #     print(f"Not removing the {JOBLOG_PATH} since --keep was passed")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run tests.')
     parser.add_argument('-p', '--pdb', action='store_true', help='enable pdb (Python debugger) post mortem debugger on failed tests')
     parser.add_argument('-c', '--cov', action='store_true', help='enable codecov')
     parser.add_argument('-v', '--verbose', action='store_true', help='display all test output instead of just failing test output')
-    parser.add_argument('-k', '--keep', action='store_true', help="don't delete the temporary files containing the command output")
     parser.add_argument('-s', '--serial', action='store_true', help='run tests one at a time instead of in parallel')
     parser.add_argument('--collect-only', action='store_true', help='only show the output of test collection, don\'t run any tests')
     parser.add_argument('test_name_filter', nargs='?', help='run only tests that match the regex', default='.*')
     return parser.parse_args()
 if __name__ == '__main__':
-    # TODO: --pdb implies --serial
     args = parse_args()
     if args.cov:
         print("Will run codecov")
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
-    if args.serial and args.keep:
-        print("--keep and --serial is incompatible")
-        exit(1)
-    print(args)
     ensureZigPath()
     makeBinaries()
     tests: list[str] = getTestsList(args.collect_only, args.test_name_filter)
-    # print(tests)
-    # run_test(tests[0], args.cov, args.pdb)
     run_tests_and_print_stats(tests, args)
