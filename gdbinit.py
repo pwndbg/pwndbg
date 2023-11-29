@@ -18,15 +18,18 @@ if environ.get("PWNDBG_PROFILE") == "1":
     _start_time = time.time()
     _profiler.enable()
 
+directory, file = path.split(__file__)
+directory = path.expanduser(directory)
+directory = path.abspath(directory)
+
+# Add pwndbg directory to sys.path so it can be imported
+sys.path.insert(0, directory)
+
 # Get virtualenv's site-packages path
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
     pass
 else:
-    directory, file = path.split(__file__)
-    directory = path.expanduser(directory)
-    directory = path.abspath(directory)
-
     if not venv_path:
         venv_path = os.path.join(directory, ".venv")
 
@@ -47,9 +50,6 @@ else:
     # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
     bin_path = os.path.join(venv_path, "bin")
     os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
-
-    # Add pwndbg directory to sys.path so it can be imported
-    sys.path.insert(0, directory)
 
     # Push virtualenv's site-packages to the front
     sys.path.remove(site_pkgs_path)
