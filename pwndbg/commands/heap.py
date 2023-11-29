@@ -185,6 +185,60 @@ def heap(addr=None, verbose=False, simple=False) -> None:
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
+    description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
+)
+parser.add_argument(
+    "addr",
+    type=int,
+    help="Address of the interest.",
+)
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones."
+)
+parser.add_argument(
+    "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
+)
+parser.add_argument(
+    "-f",
+    "--fake",
+    action="store_true",
+    help="Allow fake chunks. If set, displays any memory as a heap chunk (even if its not a real chunk).",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def hi(addr, verbose=False, simple=False, fake=False) -> None:
+    try:
+        heap = Heap(addr)
+    except Exception as E:
+        print(f"The provided address {hex(addr)} cannot be interpreted as a heap!\n{E}\n")
+        return
+
+    if fake is False and heap.arena is None:
+        return
+
+    for chunk in heap:
+        if addr in chunk:
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            if verbose:
+                start = chunk.address + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse else 0x00)
+                print(f"Your address: {hex(addr)}")
+                print(f"Head offset: {hex(addr - start)}")
+                if chunk.is_top_chunk is False:
+                    end = (
+                        start
+                        + chunk.real_size
+                        + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                    )
+                    print(f"Tail offset: {hex(end - addr)}")
+            break
+
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena.
 
 Default to the current thread's arena.""",
