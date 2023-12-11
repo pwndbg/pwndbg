@@ -640,6 +640,7 @@ def load_commands() -> None:
     import pwndbg.commands.leakfind
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
+    import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
