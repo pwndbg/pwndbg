@@ -32,8 +32,6 @@ def exec_syscall(syscall, arg0=None, arg1=None, arg2=None, arg3=None, arg4=None,
     )
     syscall_bin = pwnlib.asm.asm(syscall_asm)
 
-    print(syscall_asm)
-
     # Run the syscall and pass its return value onward to the caller.
     return exec_shellcode(
         syscall_bin, 
@@ -64,6 +62,7 @@ def exec_shellcode(blob, restore_context=True, capture=None):
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
     registers = {reg: pwndbg.gdblib.regs[reg] for reg in preserve_set}
+    starting_address = registers[register_set.pc]
 
     # Make sure the blob fits in the rest of the space we have in this page.
     #
@@ -71,7 +70,7 @@ def exec_shellcode(blob, restore_context=True, capture=None):
     # all of the pages currently mapped as executable for this. There is no
     # technical limitation stopping us from doing that, but seeing as doing it
     # is harder to make sure it works correctly, we don't (for now, at least).
-    page = pwndbg.gdblib.vmmap.find(registers[register_set.pc])
+    page = pwndbg.gdblib.vmmap.find(starting_address)
     assert page is not None
 
     clearance = (page.vaddr + page.memsz) - len(blob) - 1
@@ -80,14 +79,13 @@ def exec_shellcode(blob, restore_context=True, capture=None):
         raise RuntimeError(f"Not enough space to execute code as inferior: \
             need at least {len(blob)} bytes, have {clearance} bytes available")
 
-    blob_offset = registers[register_set.pc]
 
     # Swap the code in the range with our shellcode.
-    existing_code = pwndbg.gdblib.memory.read(blob_offset, len(blob))
-    pwndbg.gdblib.memory.write(blob_offset, blob)
+    existing_code = pwndbg.gdblib.memory.read(starting_address, len(blob))
+    pwndbg.gdblib.memory.write(starting_address, blob)
 
     # Execute.
-    bp = gdb.Breakpoint(f"*0x{blob_offset+len(blob):x}", internal=True, temporary=True)
+    bp = gdb.Breakpoint(f"*{starting_address+len(blob):#x}", internal=True, temporary=True)
     gdb.execute("continue")
 
     # Give the caller a chance to collect information from the environment
@@ -98,8 +96,8 @@ def exec_shellcode(blob, restore_context=True, capture=None):
 
     # Restore the code and the program counter and, if requested, the rest of
     # the registers.
-    pwndbg.gdblib.memory.write(blob_offset, existing_code)
-    setattr(pwndbg.gdblib.regs, register_set.pc, registers[register_set.pc])
+    pwndbg.gdblib.memory.write(starting_address, existing_code)
+    setattr(pwndbg.gdblib.regs, register_set.pc, starting_address)
     if restore_context:
         for reg, val in registers.items():
             setattr(pwndbg.gdblib.regs, reg, val)

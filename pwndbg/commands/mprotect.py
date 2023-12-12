@@ -69,5 +69,5 @@ def mprotect(addr, length, prot) -> None:
     ret = pwndbg.gdblib.shellcode.exec_syscall(
         "SYS_mprotect", int(pwndbg.lib.memory.page_align(addr)), int(length), int(prot_int)
     )
-    print("mprotect returned %d (%s)" % (ret, current_regs.retval))
+    print(f"mprotect returned {ret}")
 
