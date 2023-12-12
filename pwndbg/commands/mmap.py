@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import bisect
-
-import gdb
-import pwnlib
-from pwnlib import asm
 
 import pwndbg.chain
 import pwndbg.color.message as message
@@ -17,7 +12,6 @@ import pwndbg.lib.memory
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.regs import reg_sets
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -29,7 +23,7 @@ Note that the mmap syscall may fail for various reasons
 will not be a valid pointer.
 
 PROT values: NONE (0), READ (1), WRITE (2), EXEC (4)
-MAP values: SHARED (1), PRIVATE (2), SHARED_VALIDATE (3), FIXED (0x10), 
+MAP values: SHARED (1), PRIVATE (2), SHARED_VALIDATE (3), FIXED (0x10),
             ANONYMOUS (0x20)
 
 Flags and protection values can be either a string containing the names of the
@@ -38,14 +32,14 @@ protection and flag numbers.
 
 Examples:
     mmap 0x0 4096 PROT_READ|PROT_WRITE|PROT_EXEC MAP_PRIVATE|MAP_ANONYMOUS -1 0
-     - Maps a new private+anonymous page with RWX permissions at a location 
+     - Maps a new private+anonymous page with RWX permissions at a location
        decided by the kernel.
 
     mmap 0x0 4096 PROT_READ MAP_PRIVATE 10 0
      - Maps 4096 bytes of the file pointed to by file descriptor number 10 with
        read permission at a location decided by the kernel.
 
-    mmap 0xdeadbeef 0x1000 
+    mmap 0xdeadbeef 0x1000
      - Maps a new private+anonymous page with RWX permissions at a page boundary
        near 0xdeadbeef.
 """,
@@ -59,42 +53,38 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "prot", 
-    help="Prot string as in mmap(2). Eg. \"PROT_READ|PROT_EXEC\".",
+    "prot",
+    help='Prot string as in mmap(2). Eg. "PROT_READ|PROT_EXEC".',
     type=str,
     nargs="?",
-    default="7"
+    default="7",
 )
 parser.add_argument(
-    "flags", 
-    help="Flags string as in mmap(2). Eg. \"MAP_PRIVATE|MAP_ANONYMOUS\".", 
+    "flags",
+    help='Flags string as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS".',
     type=str,
     nargs="?",
-    default="0x22"
+    default="0x22",
 )
 parser.add_argument(
-    "fd", 
+    "fd",
     help="File descriptor of the file to be mapped, or -1 if using MAP_ANONYMOUS.",
     type=int,
     nargs="?",
-    default=-1
+    default=-1,
 )
 parser.add_argument(
     "offset",
     help="Offset from the start of the file, in bytes, if using file based mapping.",
     type=int,
     nargs="?",
-    default=0
+    default=0,
 )
 parser.add_argument(
-    "--quiet", "-q",
-    help="Disable address validity warnings and hints",
-    action="store_true"
+    "--quiet", "-q", help="Disable address validity warnings and hints", action="store_true"
 )
 parser.add_argument(
-    "--force", "-f",
-    help="Force potentially unsafe actions to happen",
-    action="store_true"
+    "--force", "-f", help="Force potentially unsafe actions to happen", action="store_true"
 )
 
 
@@ -113,6 +103,7 @@ flag_dict = {
     "MAP_ANONYMOUS": 0x20,
 }
 
+
 def prot_str_to_val(protstr):
     """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
     prot_int = 0
@@ -121,6 +112,7 @@ def prot_str_to_val(protstr):
             prot_int |= v
     return prot_int
 
+
 def flag_str_to_val(flagstr):
     """Heuristic to convert MAP_SHARED|MAP_FIXED to integer value."""
     flag_int = 0
@@ -128,6 +120,7 @@ def flag_str_to_val(flagstr):
         if k in flagstr:
             flag_int |= v
     return flag_int
+
 
 def parse_str_or_int(val, parser):
     """
@@ -145,18 +138,19 @@ def parse_str_or_int(val, parser):
         # Getting here is a bug, we shouldn't be seeing other types at all.
         raise TypeError("invalid type for value: {type(val)}")
 
+
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=False) -> None:
     try:
         prot_int = parse_str_or_int(prot, prot_str_to_val)
     except ValueError as e:
-        print(message.error(f"Invalid protection value \"{prot}\": {e}")) 
+        print(message.error(f'Invalid protection value "{prot}": {e}'))
 
     try:
         flag_int = parse_str_or_int(flags, flag_str_to_val)
     except ValueError as e:
-        print(message.error(f"Invalid flags value \"{flags}\": {e}")) 
+        print(message.error(f'Invalid flags value "{flags}": {e}'))
 
     aligned_addr = int(pwndbg.lib.memory.page_align(addr))
     if flag_int & flag_dict["MAP_FIXED"] != 0:
@@ -168,11 +162,15 @@ def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=F
         # to fail because the address is not properly aligned.
         addr = int(addr)
         if addr != aligned_addr and not quiet:
-            print(message.warn(f"""\
+            print(
+                message.warn(
+                    f"""\
 Address {addr:#x} is not properly aligned. Calling mmap with MAP_FIXED and an
 unaligned address is likely to fail. Consider using the address {aligned_addr:#x}
 instead.\
-"""))
+"""
+                )
+            )
 
         page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
         collisions = []
@@ -187,31 +185,46 @@ instead.\
 
         if len(collisions) > 0:
             m = message.error if not force else message.warn
-            
+
             if not force or not quiet:
-                print(m(f"""\
+                print(
+                    m(
+                        f"""\
 Trying to mmap with MAP_FIXED for an address range that collides with {len(collisions)}
 existing range{'s' if len(collisions) > 1 else ''}:\
-"""))
+"""
+                    )
+                )
                 for c in collisions:
                     print(m(f"    {c}"))
-                print(m("""
+                print(
+                    m(
+                        """
 This operation is destructive and will delete all of the listed mappings.\
-"""))
+"""
+                    )
+                )
             if not force:
-                print(m("Run this command again with `--force` if you still \
-wish to proceed."))
+                print(
+                    m(
+                        "Run this command again with `--force` if you still \
+wish to proceed."
+                    )
+                )
                 return
 
     elif int(addr) != aligned_addr and not quiet:
         # Highlight to the user that the address they've specified is likely to
         # be changed by the kernel.
-        print(message.warn(f"""\
+        print(
+            message.warn(
+                f"""\
 Address {addr:#x} is not properly aligned. It is likely to be changed to an
 aligned address by the kernel automatically. If this is not desired, consider
 using the address {aligned_addr:#x} instead.\
-"""))
-
+"""
+            )
+        )
 
     pointer = pwndbg.gdblib.shellcode.exec_syscall(
         "SYS_mmap",
@@ -220,8 +233,7 @@ using the address {aligned_addr:#x} instead.\
         prot_int,
         flag_int,
         int(fd),
-        int(offset)
+        int(offset),
     )
 
     print(f"mmap returned {pointer:#x}")
-

@@ -2,10 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-import pwnlib
-from pwnlib import asm
-
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.enhance
@@ -14,7 +10,6 @@ import pwndbg.gdblib.shellcode
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.regs import reg_sets
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -70,4 +65,3 @@ def mprotect(addr, length, prot) -> None:
         "SYS_mprotect", int(pwndbg.lib.memory.page_align(addr)), int(length), int(prot_int)
     )
     print(f"mprotect returned {ret}")
-

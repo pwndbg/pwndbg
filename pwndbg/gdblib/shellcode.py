@@ -2,14 +2,18 @@
 Shellcode
 
 This module implements functionality that allows for the execution of a small
-amount of code in the context of the inferior. 
+amount of code in the context of the inferior.
 
 """
 
+from __future__ import annotations
+
 import gdb
-import pwndbg
 import pwnlib.asm
 import pwnlib.shellcraft
+
+import pwndbg
+
 
 def _get_syscall_return_value():
     """
@@ -20,23 +24,21 @@ def _get_syscall_return_value():
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.gdblib.arch.current]
     return pwndbg.gdblib.regs[register_set.retval]
 
-def exec_syscall(syscall, arg0=None, arg1=None, arg2=None, arg3=None, arg4=None,
-    arg5=None, arg6=None):
+
+def exec_syscall(
+    syscall, arg0=None, arg1=None, arg2=None, arg3=None, arg4=None, arg5=None, arg6=None
+):
     """
     Tries executing the given syscall in the context of the inferior.
     """
-    
+
     # Build machine code that runs the requested syscall.
-    syscall_asm = pwnlib.shellcraft.syscall(
-        syscall, arg0, arg1, arg2, arg3, arg4, arg5
-    )
+    syscall_asm = pwnlib.shellcraft.syscall(syscall, arg0, arg1, arg2, arg3, arg4, arg5)
     syscall_bin = pwnlib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
-    return exec_shellcode(
-        syscall_bin, 
-        restore_context=True, 
-        capture=_get_syscall_return_value)
+    return exec_shellcode(syscall_bin, restore_context=True, capture=_get_syscall_return_value)
+
 
 def exec_shellcode(blob, restore_context=True, capture=None):
     """
@@ -57,7 +59,7 @@ def exec_shellcode(blob, restore_context=True, capture=None):
     not cause the inferior to misbehave. Otherwise, it is fairly easy to crash
     or currupt the memory in the inferior.
     """
- 
+
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.gdblib.arch.current]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
@@ -76,9 +78,10 @@ def exec_shellcode(blob, restore_context=True, capture=None):
     clearance = (page.vaddr + page.memsz) - len(blob) - 1
     if clearance < 0:
         # The page isn't large enough to hold our shellcode.
-        raise RuntimeError(f"Not enough space to execute code as inferior: \
-            need at least {len(blob)} bytes, have {clearance} bytes available")
-
+        raise RuntimeError(
+            f"Not enough space to execute code as inferior: \
+            need at least {len(blob)} bytes, have {clearance} bytes available"
+        )
 
     # Swap the code in the range with our shellcode.
     existing_code = pwndbg.gdblib.memory.read(starting_address, len(blob))
@@ -103,4 +106,3 @@ def exec_shellcode(blob, restore_context=True, capture=None):
             setattr(pwndbg.gdblib.regs, reg, val)
 
     return captured
-
