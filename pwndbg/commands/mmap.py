@@ -136,7 +136,7 @@ def parse_str_or_int(val, parser):
         return val
     else:
         # Getting here is a bug, we shouldn't be seeing other types at all.
-        raise TypeError("invalid type for value: {type(val)}")
+        raise TypeError(f"invalid type for value: {type(val)}")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
