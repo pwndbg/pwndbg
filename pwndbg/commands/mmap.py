@@ -146,7 +146,7 @@ def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=F
         prot_int = parse_str_or_int(prot, prot_str_to_val)
     except ValueError as e:
         print(message.error(f'Invalid protection value "{prot}": {e}'))
-        return        
+        return
 
     try:
         flag_int = parse_str_or_int(flags, flag_str_to_val)
@@ -188,7 +188,7 @@ instead.\
             # in order to quickly reject all of the items we could never hit
             # (all of those such that `vm[i].end < page.start`).
             #
-            # The target Python version as of the writing (3.8) does not support 
+            # The target Python version as of the writing (3.8) does not support
             # `bissect.bissect_left(key=*)`, and cooking up our own
             # implementation feels overkill for something that could just be
             # fixed later with a version bump.
@@ -199,7 +199,7 @@ instead.\
                 if cand.start >= page.end:
                     # No more collisions are possible.
                     break
-            
+
             if len(collisions) > 0:
                 m = message.error
                 print(
@@ -250,4 +250,4 @@ using the address {aligned_addr:#x} instead.\
         int(offset),
     )
 
-    print(f"mmap returned {pointer:#x}")
+    print(f"{pointer:#x}")
