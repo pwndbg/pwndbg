@@ -172,21 +172,34 @@ instead.\
                 )
             )
 
-        page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
-        collisions = []
-        vm = pwndbg.gdblib.vmmap.get()
-        for i in range(len(vm)):
-            cand = vm[i]
-            if cand.end > page.start and cand.start < page.end:
-                collisions.append(cand)
-            if cand.start >= page.end:
-                # No more collisions are possible.
-                break
+        # Collision checking can get expensive for some combinations of number
+        # of existing mappings and size of maps. If the user is using `--force`,
+        # it's fair to assume they know what they're doing enough that we don't
+        # need to bother them with any of this information, and get a nice
+        # speedup as a bonus.
+        if not force:
+            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
+            collisions = []
+            vm = pwndbg.gdblib.vmmap.get()
 
-        if len(collisions) > 0:
-            m = message.error if not force else message.warn
-
-            if not force or not quiet:
+            # FIXME: The ends of the maps are sorted. We could bisect the array
+            # in order to quickly reject all of the items we could never hit
+            # (all of those such that `vm[i].end < page.start`).
+            #
+            # The target Python version as of the writing (3.8) does not support 
+            # `bissect.bissect_left(key=*)`, and cooking up our own
+            # implementation feels overkill for something that could just be
+            # fixed later with a version bump.
+            for i in range(len(vm)):
+                cand = vm[i]
+                if cand.end > page.start and cand.start < page.end:
+                    collisions.append(cand)
+                if cand.start >= page.end:
+                    # No more collisions are possible.
+                    break
+            
+            if len(collisions) > 0:
+                m = message.error
                 print(
                     m(
                         f"""\
@@ -204,7 +217,6 @@ This operation is destructive and will delete all of the listed mappings.\
 """
                     )
                 )
-            if not force:
                 print(
                     m(
                         "Run this command again with `--force` if you still \
