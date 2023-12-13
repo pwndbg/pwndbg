@@ -127,7 +127,7 @@ def parse_str_or_int(val, parser):
     Try parsing a string with one of the parsers above or by converting it to
     an int, or passes the value through if it is already an integer.
     """
-    if type(val) == str:
+    if type(val) is str:
         candidate = parser(val)
         if candidate != 0:
             return candidate
