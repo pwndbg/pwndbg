@@ -54,7 +54,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "prot",
-    help='Prot string as in mmap(2). Eg. "PROT_READ|PROT_EXEC".',
+    help='Prot enum or int as in mmap(2). Eg. "PROT_READ|PROT_EXEC" or 7 (for RWX).',
     type=str,
     nargs="?",
     default="7",
