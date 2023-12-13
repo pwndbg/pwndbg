@@ -54,14 +54,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "prot",
-    help='Prot string as in mmap(2). Eg. "PROT_READ|PROT_EXEC".',
+    help='Prot enum or int as in mmap(2). Eg. "PROT_READ|PROT_EXEC" or 7 (for RWX).',
     type=str,
     nargs="?",
     default="7",
 )
 parser.add_argument(
     "flags",
-    help='Flags string as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS".',
+    help='Flags enum or int as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS" or 0x22.',
     type=str,
     nargs="?",
     default="0x22",
@@ -127,16 +127,16 @@ def parse_str_or_int(val, parser):
     Try parsing a string with one of the parsers above or by converting it to
     an int, or passes the value through if it is already an integer.
     """
-    if type(val) == str:
+    if type(val) is str:
         candidate = parser(val)
         if candidate != 0:
             return candidate
         return int(val, 0)
-    elif type(val) == int:
+    elif type(val) is int:
         return val
     else:
         # Getting here is a bug, we shouldn't be seeing other types at all.
-        raise TypeError("invalid type for value: {type(val)}")
+        raise TypeError(f"invalid type for value: {type(val)}")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
@@ -146,11 +146,13 @@ def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=F
         prot_int = parse_str_or_int(prot, prot_str_to_val)
     except ValueError as e:
         print(message.error(f'Invalid protection value "{prot}": {e}'))
+        return        
 
     try:
         flag_int = parse_str_or_int(flags, flag_str_to_val)
     except ValueError as e:
         print(message.error(f'Invalid flags value "{flags}": {e}'))
+        return
 
     aligned_addr = int(pwndbg.lib.memory.page_align(addr))
     if flag_int & flag_dict["MAP_FIXED"] != 0:
