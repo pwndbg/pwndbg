@@ -152,6 +152,7 @@ def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=F
         flag_int = parse_str_or_int(flags, flag_str_to_val)
     except ValueError as e:
         print(message.error(f'Invalid flags value "{flags}": {e}'))
+        return
 
     aligned_addr = int(pwndbg.lib.memory.page_align(addr))
     if flag_int & flag_dict["MAP_FIXED"] != 0:
