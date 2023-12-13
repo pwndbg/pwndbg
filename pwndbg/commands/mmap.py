@@ -61,7 +61,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "flags",
-    help='Flags string as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS".',
+    help='Flags enum or int as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS" or 0x22.',
     type=str,
     nargs="?",
     default="0x22",
