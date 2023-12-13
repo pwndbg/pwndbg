@@ -132,7 +132,7 @@ def parse_str_or_int(val, parser):
         if candidate != 0:
             return candidate
         return int(val, 0)
-    elif type(val) == int:
+    elif type(val) is int:
         return val
     else:
         # Getting here is a bug, we shouldn't be seeing other types at all.
