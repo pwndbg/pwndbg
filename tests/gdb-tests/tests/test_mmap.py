@@ -10,7 +10,7 @@ SMALL_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
 
 def test_mmap_executes_properly(start_binary):
     """
-    Tests the mprotect command
+    Tests the mmap command
     """
     start_binary(SMALL_BINARY)
 
