@@ -5,14 +5,14 @@ import gdb
 import pwndbg
 import tests
 
-SMALL_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
+USE_FDS_BINARY = tests.binaries.get("use-fds.out")
 
 
 def test_mmap_executes_properly(start_binary):
     """
     Tests the mmap command
     """
-    start_binary(SMALL_BINARY)
+    start_binary(USE_FDS_BINARY)
 
     pc = pwndbg.gdblib.regs.pc
     page_size = pwndbg.lib.memory.PAGE_SIZE
@@ -39,7 +39,6 @@ def test_mmap_executes_properly(start_binary):
 
     # Check basic private+anonymous page mmap.
     ptr = int(gdb.execute(f"mmap 0x0 {page_size}", to_string=True), 0)
-    print(f"{ptr:#x}")
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
 
@@ -56,10 +55,27 @@ def test_mmap_executes_properly(start_binary):
         ),
         0,
     )
-    print(f"{ptr:#x}")
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
     assert ptr == base_addr
+
+    # Continue the program until just before close(2) is called.
+    gdb.execute("break use-fds.c:16")
+    gdb.execute("continue")
+
+    # Retrieve the file descriptor number and map it to memory.
+    fd_num = int(gdb.newest_frame().read_var("fd"))
+    ptr = int(gdb.execute(f"mmap 0x0 16 PROT_READ MAP_PRIVATE {fd_num} 0", to_string=True), 0)
+    assert not is_mmap_error(ptr)
+    assert has_correct_perms(ptr, "r")
+
+    # Load the 16 bytes read in by the read() call in the program, as well as
+    # the first 16 bytes present in our newly created memory map, and compare
+    # them.
+    data_ptr = int(gdb.newest_frame().read_var("buf").address)
+    data_local = pwndbg.gdblib.memory.read(data_ptr, 16)
+    data_mapped = pwndbg.gdblib.memory.read(ptr, 16)
+    assert data_local == data_mapped
 
 
 def test_cannot_run_mmap_when_not_running(start_binary):
