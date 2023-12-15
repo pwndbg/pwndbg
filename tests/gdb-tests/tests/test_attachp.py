@@ -75,7 +75,7 @@ def test_attachp_command_attaches_to_procname_resolve_none(launched_bash_binary)
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolve-method none", f"attachp {binary_name}"]
+        pyafter=["set attachp-resolution-method none", f"attachp {binary_name}"]
     )
 
     process.kill()
@@ -103,7 +103,7 @@ def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolve-method none", f"attachp --no-truncate {binary_name}"]
+        pyafter=["set attachp-resolution-method none", f"attachp --no-truncate {binary_name}"]
     )
 
     process.kill()
@@ -132,7 +132,7 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolve-method ask", f"attachp {binary_name}"], stdin_input=b"0\n1\n"
+        pyafter=["set attachp-resolution-method ask", f"attachp {binary_name}"], stdin_input=b"0\n1\n"
     )
 
     process.kill()
@@ -163,7 +163,7 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_first(launched_bash_binary):
+def test_attachp_command_attaches_to_procname_resolve_oldest(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
     process = subprocess.Popen(
@@ -172,7 +172,7 @@ def test_attachp_command_attaches_to_procname_resolve_first(launched_bash_binary
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolve-method first", f"attachp {binary_name}"]
+        pyafter=["set attachp-resolution-method oldest", f"attachp {binary_name}"]
     )
 
     process.kill()
@@ -184,7 +184,7 @@ def test_attachp_command_attaches_to_procname_resolve_first(launched_bash_binary
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_last(launched_bash_binary):
+def test_attachp_command_attaches_to_procname_resolve_newest(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
     process = subprocess.Popen(
@@ -193,7 +193,7 @@ def test_attachp_command_attaches_to_procname_resolve_last(launched_bash_binary)
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolve-method last", f"attachp {binary_name}"]
+        pyafter=["set attachp-resolution-method newest", f"attachp {binary_name}"]
     )
 
     process.kill()
