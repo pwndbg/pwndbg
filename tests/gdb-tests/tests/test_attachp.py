@@ -132,7 +132,8 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(
-        pyafter=["set attachp-resolution-method ask", f"attachp {binary_name}"], stdin_input=b"0\n1\n"
+        pyafter=["set attachp-resolution-method ask", f"attachp {binary_name}"],
+        stdin_input=b"0\n1\n",
     )
 
     process.kill()
