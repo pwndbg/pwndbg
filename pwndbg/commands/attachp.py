@@ -16,15 +16,15 @@ from pwndbg.commands import CommandCategory
 from pwndbg.ui import get_window_size
 
 _NONE = "none"
-_FIRST = "first"
-_LAST = "last"
+_OLDEST = "oldest"
+_NEWEST = "newest"
 _ASK = "ask"
-_OPTIONS = [_NONE, _FIRST, _LAST, _ASK]
+_OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 
 pwndbg.gdblib.config.add_param(
     "attachp-resolve-method",
     _NONE,
-    f'how to determine the process to attach when multiple candidates exists ("{_FIRST}", "{_LAST}", "{_ASK}" or "{_NONE}"(default))',
+    f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_ASK}" or "{_NONE}"(default))',
 )
 
 parser = argparse.ArgumentParser(
@@ -127,9 +127,9 @@ def attachp(no_truncate, target) -> None:
                 # Here, we can safely use split to capture each field
                 # since none of the columns except args can contain spaces
                 proc_infos = [row.split(maxsplit=3) for row in ps_output.splitlines()]
-                if method == _FIRST:
+                if method == _OLDEST:
                     resolved_target = int(proc_infos[0][0])
-                elif method == _LAST:
+                elif method == _NEWEST:
                     resolved_target = int(proc_infos[-1][0])
                 else:
                     print(message.notice("Multiple process found:"))
