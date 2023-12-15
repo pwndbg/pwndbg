@@ -23,8 +23,8 @@ _OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 
 pwndbg.gdblib.config.add_param(
     "attachp-resolve-method",
-    _NONE,
-    f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_ASK}" or "{_NONE}"(default))',
+    _ASK,
+    f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_NONE}" or "{_ASK}"(default))',
 )
 
 parser = argparse.ArgumentParser(
@@ -92,10 +92,10 @@ def attachp(no_truncate, target) -> None:
                 if method not in _OPTIONS:
                     print(
                         message.warn(
-                            f'Invalid value for `attachp-resolve-method` config. Fallback to default value("{_NONE}").'
+                            f'Invalid value for `attachp-resolve-method` config. Fallback to default value("{_ASK}").'
                         )
                     )
-                    method = _NONE
+                    method = _ASK
 
                 try:
                     ps_output = check_output(
