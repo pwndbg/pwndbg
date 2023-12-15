@@ -201,24 +201,6 @@ def _is_device(path) -> bool:
     return False
 
 
-def _parse_ps_output(output: str, separator: str):
-    rows = output.rstrip("\n").split("\n")
-    header, rows = rows[0], rows[1:]
-
-    col_ranges = []
-    current_pos = 0
-    while True:
-        separator_pos = header.find(separator, current_pos)
-        if separator_pos == -1:
-            separator_pos = None
-        col_ranges.append((current_pos, separator_pos))
-        if separator_pos is None:
-            break
-        current_pos = separator_pos + 1
-
-    return [[row[begin:end].strip() for begin, end in col_ranges] for row in rows]
-
-
 def _truncate_string(s: str, length: int):
     TRUNCATE_FILLER = " ... "
     if len(s) < length:
