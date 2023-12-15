@@ -169,9 +169,11 @@ def attachp(no_truncate, target) -> None:
                         return
                     elif method == _ASK:
                         while True:
-                            inp = input(
-                                message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
-                            ).strip()
+                            msg = message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
+                            try:
+                                inp = input(msg).strip()
+                            except EOFError:
+                                return
                             try:
                                 choice = int(inp)
                                 if not (1 <= choice <= len(proc_infos)):
