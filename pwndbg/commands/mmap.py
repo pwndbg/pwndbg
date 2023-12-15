@@ -250,4 +250,4 @@ using the address {aligned_addr:#x} instead.\
         int(offset),
     )
 
-    print(f"{pointer:#x}")
+    print(f"mmap syscall returned {pointer:#x}")

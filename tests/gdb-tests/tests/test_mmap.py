@@ -38,7 +38,9 @@ def test_mmap_executes_properly(start_binary):
         )
 
     # Check basic private+anonymous page mmap.
-    ptr = int(gdb.execute(f"mmap 0x0 {page_size}", to_string=True), 0)
+    output = gdb.execute(f"mmap 0x0 {page_size}", to_string=True)
+    assert output.startswith("mmap syscall returned ")
+    ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
 
@@ -49,12 +51,11 @@ def test_mmap_executes_properly(start_binary):
         if page is None:
             break
         base_addr = page.end
-    ptr = int(
-        gdb.execute(
-            f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE", to_string=True
-        ),
-        0,
+    output = gdb.execute(
+        f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE", to_string=True
     )
+    assert output.startswith("mmap syscall returned ")
+    ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
     assert ptr == base_addr
@@ -65,7 +66,9 @@ def test_mmap_executes_properly(start_binary):
 
     # Retrieve the file descriptor number and map it to memory.
     fd_num = int(gdb.newest_frame().read_var("fd"))
-    ptr = int(gdb.execute(f"mmap 0x0 16 PROT_READ MAP_PRIVATE {fd_num} 0", to_string=True), 0)
+    output = gdb.execute(f"mmap 0x0 16 PROT_READ MAP_PRIVATE {fd_num} 0", to_string=True)
+    assert output.startswith("mmap syscall returned ")
+    ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "r")
 
