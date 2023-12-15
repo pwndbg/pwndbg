@@ -38,7 +38,9 @@ def test_mmap_executes_properly(start_binary):
         )
 
     # Check basic private+anonymous page mmap.
-    ptr = int(gdb.execute(f"mmap 0x0 {page_size}", to_string=True), 0)
+    output = gdb.execute(f"mmap 0x0 {page_size}", to_string=True)
+    assert output.startswith("mmap syscall returned ")
+    ptr = int(output.split(" returned ")[1].rsplit("\n"), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
 
@@ -49,12 +51,11 @@ def test_mmap_executes_properly(start_binary):
         if page is None:
             break
         base_addr = page.end
-    ptr = int(
-        gdb.execute(
-            f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE", to_string=True
-        ),
-        0,
+    output = gdb.execute(
+        f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE", to_string=True
     )
+    assert output.startswith("mmap syscall returned ")
+    ptr = int(output.split(" returned ")[1].rsplit("\n"), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
     assert ptr == base_addr
