@@ -22,7 +22,7 @@ _ASK = "ask"
 _OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 
 pwndbg.gdblib.config.add_param(
-    "attachp-resolve-method",
+    "attachp-resolution-method",
     _ASK,
     f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_NONE}" or "{_ASK}"(default))',
 )
@@ -87,12 +87,12 @@ def attachp(no_truncate, target) -> None:
                 return
 
             if len(pids) > 1:
-                method = pwndbg.gdblib.config.attachp_resolve_method
+                method = pwndbg.gdblib.config.attachp_resolution_method
 
                 if method not in _OPTIONS:
                     print(
                         message.warn(
-                            f'Invalid value for `attachp-resolve-method` config. Fallback to default value("{_ASK}").'
+                            f'Invalid value for `attachp-resolution-method` config. Fallback to default value("{_ASK}").'
                         )
                     )
                     method = _ASK
@@ -124,6 +124,12 @@ def attachp(no_truncate, target) -> None:
                     )
                     return
 
+                print(
+                    message.warn(
+                        f'Multiple processes found. Current resolution method is "{method}". Run the command `config attachp-resolution-method` to see more informations.'
+                    )
+                )
+
                 # Here, we can safely use split to capture each field
                 # since none of the columns except args can contain spaces
                 proc_infos = [row.split(maxsplit=3) for row in ps_output.splitlines()]
@@ -132,8 +138,6 @@ def attachp(no_truncate, target) -> None:
                 elif method == _NEWEST:
                     resolved_target = int(proc_infos[-1][0])
                 else:
-                    print(message.notice("Multiple process found:"))
-
                     headers = ["pid", "user", "elapsed", "command"]
                     showindex: Union[bool, range] = (
                         False if method == _NONE else range(1, len(proc_infos) + 1)
