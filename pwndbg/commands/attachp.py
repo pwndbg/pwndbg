@@ -49,7 +49,7 @@ Original GDB attach command help:
     to specify the program, and to load its symbol table.""",
 )
 
-parser.add_argument("--no-truncate", action="store_true", help="not truncate command name")
+parser.add_argument("--no-truncate", action="store_true", help="dont truncate command args")
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
