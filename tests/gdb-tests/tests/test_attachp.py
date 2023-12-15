@@ -82,8 +82,8 @@ def test_attachp_command_attaches_to_procname_resolve_none(launched_bash_binary)
 
     regex = r"pid +user +elapsed +command\n"
     regex += r"-+  -+  -+  -+\n"
-    regex += r"([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
-    regex += r"([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
     regex += r"use `attach \<pid\>` to attach\n"
     matches = re.search(regex, result).groups()
 
@@ -110,9 +110,9 @@ def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_
 
     regex = r"pid +user +elapsed +command\n"
     regex += r"-+  -+  -+  -+\n"
-    regex += r"([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
-    regex += r"([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
-    regex += r"(?: +(?:-|-i)?(?: -i)+(?: | -)?\n)+"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r"(?: +-?(?: -i)+(?: | -)?\n)+"
     regex += r"use `attach \<pid\>` to attach\n"
     matches = re.search(regex, result).groups()
 
