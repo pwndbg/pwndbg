@@ -5,12 +5,27 @@ import os
 import stat
 from subprocess import CalledProcessError
 from subprocess import check_output
+from typing import Union
 
 import gdb
+from tabulate import tabulate
 
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.ui import get_window_size
+
+_NONE = "none"
+_FIRST = "first"
+_LAST = "last"
+_ASK = "ask"
+_OPTIONS = [_NONE, _FIRST, _LAST, _ASK]
+
+pwndbg.gdblib.config.add_param(
+    "attachp-resolve-method",
+    _NONE,
+    f'how to determine the process to attach when multiple candidates exists ("{_FIRST}", "{_LAST}", "{_ASK}" or "{_NONE}"(default))',
+)
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -34,11 +49,12 @@ Original GDB attach command help:
     to specify the program, and to load its symbol table.""",
 )
 
+parser.add_argument("--no-truncate", action="store_true", help="not truncate command name")
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(target) -> None:
+def attachp(no_truncate, target) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -71,16 +87,103 @@ def attachp(target) -> None:
                 return
 
             if len(pids) > 1:
-                print(message.warn(f"Found pids: {', '.join(pids)} (use `attach <pid>`)"))
-                return
+                method = pwndbg.gdblib.config.attachp_resolve_method
 
-            resolved_target = int(pids[0])
+                if method not in _OPTIONS:
+                    print(
+                        message.warn(
+                            f'Invalid value for `attachp-resolve-method` config. Fallback to default value("{_NONE}").'
+                        )
+                    )
+                    method = _NONE
+
+                try:
+                    ps_output = check_output(
+                        [
+                            "ps",
+                            "-ww",
+                            "-p",
+                            ",".join(pids),
+                            "-o",
+                            "%p|%u|%t|%a",
+                            "--sort",
+                            "+lstart",
+                        ]
+                    ).decode()
+                except FileNotFoundError:
+                    print(message.error("Error: did not find `ps` command"))
+                    print(
+                        message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
+                    )
+                    return
+                except CalledProcessError:
+                    print(message.error("Error: failed to get process details"))
+                    print(
+                        message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
+                    )
+                    return
+
+                proc_infos = _parse_ps_output(ps_output, "|")
+                if method == _FIRST:
+                    resolved_target = int(proc_infos[0][0])
+                elif method == _LAST:
+                    resolved_target = int(proc_infos[-1][0])
+                else:
+                    print(message.notice("Multiple process found:"))
+
+                    headers = ["pid", "user", "elapsed", "command"]
+                    showindex: Union[bool, range] = (
+                        False if method == _NONE else range(1, len(proc_infos) + 1)
+                    )
+
+                    # calculate max_col_widths to fit window width
+                    test_table = tabulate(proc_infos, headers=headers, showindex=showindex)
+                    table_orig_width = len(test_table.splitlines()[1])
+                    max_command_width = max([len(command) for _, _, _, command in proc_infos])
+                    max_col_widths = max(
+                        max_command_width - (table_orig_width - get_window_size()[1]), 10
+                    )
+
+                    # truncation
+                    if not no_truncate:
+                        for info in proc_infos:
+                            info[-1] = _truncate_string(info[-1], max_col_widths)
+
+                    msg = tabulate(
+                        proc_infos,
+                        headers=headers,
+                        showindex=showindex,
+                        maxcolwidths=max_col_widths,
+                    )
+                    print(message.notice(msg))
+
+                    if method == _NONE:
+                        print(message.warn("use `attach <pid>` to attach"))
+                        return
+                    elif method == _ASK:
+                        while True:
+                            inp = input(
+                                message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
+                            ).strip()
+                            try:
+                                choice = int(inp)
+                                if not (1 <= choice <= len(proc_infos)):
+                                    continue
+                            except ValueError:
+                                continue
+                            break
+                        resolved_target = int(proc_infos[choice - 1][0])
+                    else:
+                        raise Exception("unreachable")
+            else:
+                resolved_target = int(pids[0])
 
     print(message.on(f"Attaching to {resolved_target}"))
     try:
         gdb.execute(f"attach {resolved_target}")
     except gdb.error as e:
         print(message.error(f"Error: {e}"))
+        return
 
 
 def _is_device(path) -> bool:
@@ -93,3 +196,32 @@ def _is_device(path) -> bool:
         return True
 
     return False
+
+
+def _parse_ps_output(output: str, separator: str):
+    rows = output.rstrip("\n").split("\n")
+    header, rows = rows[0], rows[1:]
+
+    col_ranges = []
+    current_pos = 0
+    while True:
+        separator_pos = header.find(separator, current_pos)
+        if separator_pos == -1:
+            separator_pos = None
+        col_ranges.append((current_pos, separator_pos))
+        if separator_pos is None:
+            break
+        current_pos = separator_pos + 1
+
+    return [[row[begin:end].strip() for begin, end in col_ranges] for row in rows]
+
+
+def _truncate_string(s: str, length: int):
+    TRUNCATE_FILLER = " ... "
+    if len(s) < length:
+        return s
+    truncate_point = (length - len(TRUNCATE_FILLER)) // 2
+    result = s[:truncate_point]
+    result += TRUNCATE_FILLER
+    result += s[-(length - len(result)) :]
+    return result
