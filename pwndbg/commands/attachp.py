@@ -101,11 +101,12 @@ def attachp(no_truncate, target) -> None:
                     ps_output = check_output(
                         [
                             "ps",
+                            "--no-headers",
                             "-ww",
                             "-p",
                             ",".join(pids),
                             "-o",
-                            "%p|%u|%t|%a",
+                            "pid,ruser,etime,args",
                             "--sort",
                             "+lstart",
                         ]
@@ -123,7 +124,9 @@ def attachp(no_truncate, target) -> None:
                     )
                     return
 
-                proc_infos = _parse_ps_output(ps_output, "|")
+                # Here, we can safely use split to capture each field
+                # since none of the columns except args can contain spaces
+                proc_infos = [row.split(maxsplit=3) for row in ps_output.splitlines()]
                 if method == _FIRST:
                     resolved_target = int(proc_infos[0][0])
                 elif method == _LAST:
