@@ -49,7 +49,7 @@ Original GDB attach command help:
     to specify the program, and to load its symbol table.""",
 )
 
-parser.add_argument("--no-truncate", action="store_true", help="not truncate command name")
+parser.add_argument("--no-truncate", action="store_true", help="dont truncate command args")
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
@@ -146,7 +146,7 @@ def attachp(no_truncate, target) -> None:
                     # calculate max_col_widths to fit window width
                     test_table = tabulate(proc_infos, headers=headers, showindex=showindex)
                     table_orig_width = len(test_table.splitlines()[1])
-                    max_command_width = max([len(command) for _, _, _, command in proc_infos])
+                    max_command_width = max(len(command) for _, _, _, command in proc_infos)
                     max_col_widths = max(
                         max_command_width - (table_orig_width - get_window_size()[1]), 10
                     )
