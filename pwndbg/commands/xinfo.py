@@ -45,7 +45,7 @@ def xinfo_stack(page, addr) -> None:
     if canary_value is not None:
         all_canaries = list(
             pwndbg.search.search(
-                pwndbg.gdblib.arch.pack(canary_value), mappings=pwndbg.gdblib.stack.stacks.values()
+                pwndbg.gdblib.arch.pack(canary_value), mappings=pwndbg.gdblib.stack.get().values()
             )
         )
         follow_canaries = sorted(filter(lambda a: a > addr, all_canaries))

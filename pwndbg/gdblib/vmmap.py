@@ -146,7 +146,7 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
                 return (pwndbg.lib.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
-        pages.extend(pwndbg.gdblib.stack.stacks.values())
+        pages.extend(pwndbg.gdblib.stack.get().values())
         inside_no_proc_maps_search = False
 
     pages.extend(explored_pages)
@@ -195,7 +195,7 @@ def explore(address_maybe: int) -> Any | None:
         return None
 
     flags |= 2 if pwndbg.gdblib.memory.poke(address_maybe) else 0
-    flags |= 1 if not pwndbg.gdblib.stack.nx else 0
+    flags |= 1 if not pwndbg.gdblib.stack.is_executable() else 0
 
     page = find_boundaries(address_maybe)
     page.objfile = "<explored>"
