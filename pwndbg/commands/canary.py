@@ -42,7 +42,7 @@ def canary() -> None:
 
     stack_canaries = list(
         pwndbg.search.search(
-            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.gdblib.stack.stacks.values()
+            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.gdblib.stack.get().values()
         )
     )
 
