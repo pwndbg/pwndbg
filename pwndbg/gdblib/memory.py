@@ -303,49 +303,62 @@ def poi(type, addr):
 def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """find_upper_boundary(addr, max_pages=1024) -> int
 
-    Brute-force search the upper boundary of a memory mapping,
+    Use binary search to find the upper boundary of a memory mapping,
     by reading the first byte of each page, until an unmapped
     page is found.
     """
+    low = 0
+    high = max_pages
     addr = pwndbg.lib.memory.page_align(int(addr))
-    try:
-        for i in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
-            # import sys
-            # sys.stdout.write(hex(addr) + '\n')
-            addr += PAGE_SIZE
 
-            # Sanity check in case a custom GDB server/stub
-            # incorrectly returns a result from read
-            # (this is most likely redundant, but its ok to keep it?)
-            if addr > pwndbg.gdblib.arch.ptrmask:
-                return pwndbg.gdblib.arch.ptrmask
-    except gdb.MemoryError:
-        pass
-    return addr
+    while low < high:
+        mid = (low + high) // 2
+        test_addr = addr + mid * PAGE_SIZE
+
+        if test_addr > pwndbg.gdblib.arch.ptrmask:
+            high = mid
+            continue
+
+        try:
+            pwndbg.gdblib.memory.read(test_addr, 1)
+            low = mid + 1
+        except gdb.MemoryError:
+            high = mid
+
+    return addr + low * PAGE_SIZE
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def find_lower_boundary(addr, max_pages=1024):
     """find_lower_boundary(addr, max_pages=1024) -> int
 
-    Brute-force search the lower boundary of a memory mapping,
+    Use binary search to find the lower boundary of a memory mapping,
     by reading the first byte of each page, until an unmapped
     page is found.
     """
+    low = -max_pages
+    high = 0
     addr = pwndbg.lib.memory.page_align(int(addr))
-    try:
-        for i in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
-            addr -= PAGE_SIZE
 
-            # Sanity check (see comment in find_upper_boundary)
-            if addr < 0:
-                return 0
+    while low < high:
+        mid = (low + high) // 2
+        test_addr = addr + mid * PAGE_SIZE
 
-    except gdb.MemoryError:
-        addr += PAGE_SIZE
-    return addr
+        if test_addr < 0:
+            low = mid + 1
+            continue
+
+        try:
+            pwndbg.gdblib.memory.read(test_addr, 1)
+            high = mid
+        except gdb.MemoryError:
+            low = mid + 1
+
+    # If the high is still 0, it means the original address is the lower boundary
+    if high == 0:
+        return addr
+
+    return addr + high * PAGE_SIZE
 
 
 def update_min_addr() -> None:
