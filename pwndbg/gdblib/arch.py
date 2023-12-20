@@ -34,9 +34,8 @@ pwnlib_archs_mapping = {
     "sparc": "sparc",
     "arm": "arm",
     "armcm": "thumb",
-    "riscv:rv32": "riscv32",
-    "riscv:rv64": "riscv64",
-    "riscv": "riscv64",
+    "rv32": "riscv32",
+    "rv64": "riscv64",
 }
 
 
@@ -63,6 +62,10 @@ def _get_arch(ptrsize: int):
             # Distinguish between Cortex-M and other ARM
             if match == "arm" and "-m" in arch:
                 match = "armcm"
+            elif match.startswith("riscv:"):
+                match = match[6:]
+            elif match = "riscv":
+                match = "rv64"
             return match, ptrsize, endian
 
     if not_exactly_arch:
