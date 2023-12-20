@@ -1,18 +1,64 @@
 {
-	"name": "pwndbg",
-	"build": {
-		"context": "..",
-		"dockerfile": "../Dockerfile"
-	},
-	"runArgs": [
-		"--security-opt=no-new-privileges:true",
-		"--cap-drop=ALL",
-		"--cap-add=SYS_PTRACE"
-	],
-	"workspaceFolder": "/pwndbg",
-	"workspaceMount": "source=${localWorkspaceFolder},target=/pwndbg,type=bind,consistency=cached",
-	"settings": {},
-	"extensions": [
-		"ms-python.python"
-	]
+    "name": "pwndbg",
+    "build": {
+        "args": {},
+        "context": "..",
+        "dockerfile": "../Dockerfile"
+    },
+    "features": {},
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+                "editor.bracketPairColorization.enabled": true,
+                "editor.fontWeight": "bold",
+                "editor.formatOnSave": true,
+                "editor.guides.bracketPairs": "active",
+                "editor.guides.bracketPairsHorizontal": "active",
+                "editor.guides.highlightActiveBracketPair": true,
+                "editor.guides.highlightActiveIndentation": true,
+                "editor.guides.indentation": true,
+                "editor.renderWhitespace": "all",
+                "files.exclude": {
+                    "**/.git/**": true,
+                    "**/.mypy_cache/**": true,
+                    "**/__pycache__/**": true
+                },
+                "files.watcherExclude": {
+                    "**/.git/**": true,
+                    "**/.mypy_cache/**": true,
+                    "**/.venv/**": true,
+                    "**/__pycache__/**": true
+                },
+                "python.analysis.diagnosticMode": "workspace",
+                "python.analysis.typeCheckingMode": "strict",
+                "python.languageServer": "Pylance",
+                "python.linting.pylintUseMinimalCheckers": false,
+                "python.venvPath": "/venv",
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": true
+                    },
+                    "editor.formatOnType": true
+                }
+            },
+            "extensions": [
+                "charliermarsh.ruff",
+                "ms-azuretools.vscode-docker",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "ms-python.mypy-type-checker",
+                "ms-python.pylint",
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    },
+    "runArgs": [
+        "--cap-add=SYS_PTRACE"
+    ],
+    "remoteUser": "vscode",
+    "workspaceFolder": "/pwndbg",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/pwndbg,type=bind,consistency=cached"
 }

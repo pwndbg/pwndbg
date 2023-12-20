@@ -8,7 +8,7 @@
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 
-ARG image=ubuntu:20.04
+ARG image=mcr.microsoft.com/devcontainers/base:jammy
 FROM $image
 
 WORKDIR /pwndbg
@@ -44,6 +44,13 @@ RUN rm README.md && rm -rf pwndbg
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
-
 ADD . /pwndbg/
+
+ARG LOW_PRIVILEGE_USER="vscode"
+
+# Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
+# This is useful for a VSCode dev container, not really for test builds
+RUN if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi && \
+    if id -u ${LOW_PRIVILEGE_USER} > /dev/null 2>&1; then \
+        su ${LOW_PRIVILEGE_USER} -c 'if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi'; \
+    fi
