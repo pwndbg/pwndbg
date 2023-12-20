@@ -1,5 +1,5 @@
 {
-    "name": "PwnDbg",
+    "name": "pwndbg",
     "build": {
         "args": {},
         "context": "..",
