@@ -8,7 +8,7 @@
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 
-ARG CODE_NAME=bookworm
+ARG CODE_NAME=jammy
 FROM mcr.microsoft.com/devcontainers/base:${CODE_NAME}
 
 WORKDIR /pwndbg
@@ -44,6 +44,9 @@ RUN rm README.md && rm -rf pwndbg
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
-
 ADD . /pwndbg/
+
+ARG USER="vscode"
+
+USER ${USER}
+RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit
