@@ -35,49 +35,29 @@
                 "python.languageServer": "Pylance",
                 "python.linting.pylintUseMinimalCheckers": false,
                 "python.venvPath": "/venv",
-                "terminal.integrated.defaultProfile.linux": "zsh",
                 "[python]": {
                     "editor.defaultFormatter": "ms-python.black-formatter",
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": true
                     },
                     "editor.formatOnType": true
-                },
-                "[yaml]": {
-                    "editor.defaultFormatter": "redhat.vscode-yaml"
                 }
             },
             "extensions": [
-                "aaron-bond.better-comments",
                 "charliermarsh.ruff",
-                "davidanson.vscode-markdownlint",
-                "donjayamanne.githistory",
-                "eamodio.gitlens",
-                "EditorConfig.EditorConfig",
-                "foxundermoon.shell-format",
-                "frhtylcn.pythonsnippets",
-                "kevinkyang.auto-comment-blocks",
-                "magicstack.magicpython",
                 "ms-azuretools.vscode-docker",
                 "ms-python.black-formatter",
                 "ms-python.isort",
                 "ms-python.mypy-type-checker",
                 "ms-python.pylint",
                 "ms-python.python",
-                "ms-python.vscode-pylance",
-                "ms-vscode.makefile-tools",
-                "njpwerner.autodocstring",
-                "oderwat.indent-rainbow",
-                "redhat.vscode-yaml",
-                "streetsidesoftware.code-spell-checker",
-                "tamasfe.even-better-toml",
-                "timonwong.shellcheck",
-                "wayou.vscode-todo-highlight",
-                "yzhang.markdown-all-in-one"
+                "ms-python.vscode-pylance"
             ]
         }
     },
-    "runArgs": ["--privileged"],
+    "runArgs": [
+        "--cap-add=SYS_PTRACE"
+    ],
     "remoteUser": "vscode",
     "workspaceFolder": "/pwndbg",
     "workspaceMount": "source=${localWorkspaceFolder},target=/pwndbg,type=bind,consistency=cached"

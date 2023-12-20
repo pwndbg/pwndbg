@@ -8,8 +8,8 @@
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 
-ARG CODE_NAME=jammy
-FROM mcr.microsoft.com/devcontainers/base:${CODE_NAME}
+ARG image=mcr.microsoft.com/devcontainers/base:jammy
+FROM $image
 
 WORKDIR /pwndbg
 
