@@ -193,7 +193,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
 
     bp = None
     if print_framepointer_offset and pwndbg.gdblib.regs.frame is not None:
-        # If pwndbg.gdblib.regs.frame is None, indexing regs will return None
+        # regs.frame can be None on aarch64
         bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
 
     for i, addr in enumerate(range(start, stop, step)):
