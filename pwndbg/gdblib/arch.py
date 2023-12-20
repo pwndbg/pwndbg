@@ -64,7 +64,7 @@ def _get_arch(ptrsize: int):
                 match = "armcm"
             elif match.startswith("riscv:"):
                 match = match[6:]
-            elif match = "riscv":
+            elif match == "riscv":
                 match = "rv64"
             return match, ptrsize, endian
 
