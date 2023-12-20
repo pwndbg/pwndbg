@@ -192,7 +192,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         collapse_buffer.clear()
 
     bp = None
-    if print_framepointer_offset:
+    if print_framepointer_offset and pwndbg.gdblib.regs.frame is not None:
         # If pwndbg.gdblib.regs.frame is None, indexing regs will return None
         bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
 
