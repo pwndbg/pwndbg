@@ -46,10 +46,10 @@ RUN ./setup-dev.sh
 
 ADD . /pwndbg/
 
-# Add .gdbinit to container user home folder
-USER vscode
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit
+ARG LOW_PRIVILEGE_USER="vscode"
 
-# Add .gdbinit to root user home folder
-USER root
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit
+# Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
+RUN if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi \
+    && if id -u ${LOW_PRIVILEGE_USER} > /dev/null 2>&1; then \
+        su ${LOW_PRIVILEGE_USER} -c 'if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi'; \
+    fi
