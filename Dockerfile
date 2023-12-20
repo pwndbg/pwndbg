@@ -46,7 +46,10 @@ RUN ./setup-dev.sh
 
 ADD . /pwndbg/
 
-ARG USER="vscode"
+# Add .gdbinit to container user home folder
+USER vscode
+RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit
 
-USER ${USER}
+# Add .gdbinit to root user home folder
+USER root
 RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit
