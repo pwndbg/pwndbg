@@ -49,6 +49,7 @@ ADD . /pwndbg/
 ARG LOW_PRIVILEGE_USER="vscode"
 
 # Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
+# This is useful for a VSCode dev container, not really for test builds
 RUN if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi && \
     if id -u ${LOW_PRIVILEGE_USER} > /dev/null 2>&1; then \
         su ${LOW_PRIVILEGE_USER} -c 'if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi'; \
