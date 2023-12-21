@@ -119,7 +119,7 @@ def tcp(data: str) -> list[Connection]:
             host, port = hostport.split(":")
             host = binascii.unhexlify(host)
 
-            if pwndbg.gdblib.arch.arch.endian == "little":
+            if pwndbg.gdblib.arch.endian == "little":
                 host = host[::-1]
 
             host = socket.inet_ntop(socket.AF_INET, host)

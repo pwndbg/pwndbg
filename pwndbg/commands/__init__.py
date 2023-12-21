@@ -4,8 +4,12 @@ import argparse
 import functools
 import io
 from enum import Enum
-from typing import Dict
+from typing import Any
+from typing import Callable
 from typing import List
+from typing import Optional
+from typing import Set
+from typing import TypeVar
 
 import gdb
 
@@ -18,8 +22,9 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands: list[Command] = []
-command_names = set()
+T = TypeVar("T")
+commands: List[Command] = []
+command_names: Set[str] = set()
 
 
 class CommandCategory(str, Enum):
@@ -44,13 +49,14 @@ class CommandCategory(str, Enum):
 
 def list_current_commands():
     current_pagination = gdb.execute("show pagination", to_string=True)
-    current_pagination = current_pagination.split()[-1].rstrip(
-        "."
-    )  # Take last word and skip period
+    if current_pagination is not None:
+        current_pagination = current_pagination.split()[-1].rstrip(
+            "."
+        )  # Take last word and skip period
 
     gdb.execute("set pagination off")
     command_list = gdb.execute("help all", to_string=True).strip().split("\n")
-    existing_commands = set()
+    existing_commands: Set[str] = set()
     for line in command_list:
         line = line.strip()
         # Skip non-command entries
@@ -232,9 +238,9 @@ def fix_int_reraise(*a, **kw):
     return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
-def OnlyWithFile(function):
+def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithFile(*a, **kw):
+    def _OnlyWithFile(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
@@ -242,37 +248,40 @@ def OnlyWithFile(function):
                 print(message.error("Could not determine the target binary on QEMU."))
             else:
                 print(message.error(f"{function.__name__}: There is no file loaded."))
+            return None
 
     return _OnlyWithFile
 
 
-def OnlyWhenQemuKernel(function):
+def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenQemuKernel(*a, **kw):
+    def _OnlyWhenQemuKernel(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
             )
+            return None
 
     return _OnlyWhenQemuKernel
 
 
-def OnlyWhenUserspace(function):
+def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenUserspace(*a, **kw):
+    def _OnlyWhenUserspace(*a: Any, **kw: Any) -> Optional[T]:
         if not pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
             )
+            return None
 
     return _OnlyWhenUserspace
 
 
-def OnlyWithArch(arch_names: list[str]):
+def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.gdblib.arch_mod.ARCHS:
@@ -280,9 +289,9 @@ def OnlyWithArch(arch_names: list[str]):
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function):
+    def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a, **kw):
+        def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
             if pwndbg.gdblib.arch.name in arch_names:
                 return function(*a, **kw)
             else:
@@ -291,75 +300,84 @@ def OnlyWithArch(arch_names: list[str]):
                     f"%s: This command may only be run on the {arches_str} architecture(s)"
                     % function.__name__
                 )
+                return None
 
         return _OnlyWithArch
 
     return decorator
 
 
-def OnlyWithKernelDebugSyms(function):
+def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a, **kw):
+    def _OnlyWithKernelDebugSyms(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.kernel.has_debug_syms():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
+            return None
 
     return _OnlyWithKernelDebugSyms
 
 
-def OnlyWhenPagingEnabled(function):
+def OnlyWhenPagingEnabled(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenPagingEnabled(*a, **kw):
+    def _OnlyWhenPagingEnabled(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: This command may only be run when paging is enabled.")
+            return None
 
     return _OnlyWhenPagingEnabled
 
 
-def OnlyWhenRunning(function):
+def OnlyWhenRunning(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenRunning(*a, **kw):
+    def _OnlyWhenRunning(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: The program is not being run.")
+            return None
 
     return _OnlyWhenRunning
 
 
-def OnlyWithTcache(function):
+def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithTcache(*a, **kw):
+    def _OnlyWithTcache(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.heap.current.has_tcache():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
             )
+            return None
 
     return _OnlyWithTcache
 
 
-def OnlyWhenHeapIsInitialized(function):
+def OnlyWhenHeapIsInitialized(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a, **kw):
+    def _OnlyWhenHeapIsInitialized(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.heap.current.is_initialized():
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: Heap is not initialized yet.")
+            return None
 
     return _OnlyWhenHeapIsInitialized
 
 
 # TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
 def _is_statically_linked() -> bool:
-    out = gdb.execute("info dll", to_string=True)
-    return "No shared libraries loaded at this time." in out
+    is_static = False
+    dll_info = gdb.execute("info dll", to_string=True)
+    if dll_info is not None:
+        is_static = "No shared libraries loaded at this time." in dll_info
+    return is_static
 
 
 def _try2run_heap_command(function, a, kw):
@@ -397,9 +415,9 @@ def _try2run_heap_command(function, a, kw):
             pwndbg.exception.inform_verbose_and_debug()
 
 
-def OnlyWithResolvedHeapSyms(function):
+def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a, **kw):
+    def _OnlyWithResolvedHeapSyms(*a: Any, **kw: Any):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if (
@@ -556,7 +574,7 @@ _mask = 0xFFFFFFFFFFFFFFFF
 _mask_val_type = gdb.Value(_mask).type
 
 
-def sloppy_gdb_parse(s):
+def sloppy_gdb_parse(s: str) -> int | str:
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
 
@@ -579,7 +597,7 @@ def sloppy_gdb_parse(s):
         return s
 
 
-def AddressExpr(s):
+def AddressExpr(s: str) -> int:
     """
     Parses an address expression. Returns an int.
     """
@@ -591,7 +609,7 @@ def AddressExpr(s):
     return val
 
 
-def HexOrAddressExpr(s):
+def HexOrAddressExpr(s: str) -> int:
     """
     Parses string as hexadecimal int or an address expression. Returns an int.
     (e.g. '1234' will return 0x1234)

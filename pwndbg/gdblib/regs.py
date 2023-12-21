@@ -8,6 +8,9 @@ import ctypes
 import re
 import sys
 from types import ModuleType
+from typing import Any
+from typing import Generator
+from typing import Tuple
 
 import gdb
 
@@ -34,7 +37,7 @@ class module(ModuleType):
     last: dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getattr__(self, attr: str) -> int:
+    def __getattr__(self, attr: str) -> int | None:
         attr = attr.lstrip("$")
         try:
             value = gdb_get_register(attr)
@@ -51,16 +54,16 @@ class module(ModuleType):
         except (ValueError, gdb.error):
             return None
 
-    def __setattr__(self, attr, val):
+    def __setattr__(self, attr: str, val: Any) -> None:
         if attr in ("last", "previous"):
-            return super().__setattr__(attr, val)
+            super().__setattr__(attr, val)
         else:
             # Not catching potential gdb.error as this should never
             # be called in a case when this can throw
             gdb.execute(f"set ${attr} = {val}")
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getitem__(self, item: str) -> int:
+    def __getitem__(self, item: str) -> str | int | None:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -133,17 +136,17 @@ class module(ModuleType):
             elif isinstance(regset, (list, tuple)):
                 retval.extend(regset)
             elif isinstance(regset, dict):
-                retval.extend(regset.keys())
+                retval.extend(list(regset.keys()))
             else:
                 retval.append(regset)
         return retval
 
-    def fix(self, expression):
+    def fix(self, expression: str) -> str:
         for regname in set(self.all + ["sp", "pc"]):
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
 
-    def items(self):
+    def items(self) -> Generator[Tuple[str, Any], None, None]:
         for regname in self.all:
             yield regname, self[regname]
 
@@ -168,7 +171,7 @@ class module(ModuleType):
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def _fs_gs_helper(self, regname: str, which):
+    def _fs_gs_helper(self, regname: str, which) -> int:
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
 

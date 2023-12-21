@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import bisect
 from typing import Any
+from typing import List
+from typing import Tuple
 
 import gdb
 
@@ -79,7 +81,7 @@ inside_no_proc_maps_search = False
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> tuple[pwndbg.lib.memory.Page, ...]:
+def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
@@ -565,7 +567,7 @@ def kernel_vmmap_via_monitor_info_mem():
     if len(lines) == 1 and lines[0] == "PG disabled":
         return tuple()
 
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for line in lines:
         dash_idx = line.index("-")
         space_idx = line.index(" ")
@@ -668,7 +670,7 @@ def info_files():
     # 0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
     # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
-    seen_files = set()
+    seen_files: set[str] = set()
     pages = []
     main_exe = ""
 
@@ -763,7 +765,7 @@ def find_boundaries(addr, name: str = "", min: int = 0):
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
 
 
-def check_aslr():
+def check_aslr() -> Tuple[bool | None, str]:
     """
     Detects the ASLR status. Returns True, False or None.
 
@@ -778,7 +780,7 @@ def check_aslr():
         data = pwndbg.gdblib.file.get("/proc/sys/kernel/randomize_va_space")
         if b"0" in data:
             return False, "kernel.randomize_va_space == 0"
-    except Exception as e:
+    except Exception:
         print("Could not check ASLR: can't read randomize_va_space")
 
     # Check the personality of the process
@@ -794,5 +796,8 @@ def check_aslr():
     #
     # This should usually be identical to the above, but we may not have
     # access to procfs.
+    is_off = False
     output = gdb.execute("show disable-randomization", to_string=True)
-    return ("is off." in output), "show disable-randomization"
+    if output:
+        is_off = "is off." in output
+    return is_off, "show disable-randomization"
