@@ -9,8 +9,7 @@ from __future__ import annotations
 import functools
 import sys
 from types import ModuleType
-from typing import Any
-from typing import Callable
+from typing import Any, Callable
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -22,7 +21,7 @@ import pwndbg.lib.memory
 
 class module(ModuleType):
     @property
-    def pid(self):
+    def pid(self) -> int:
         # QEMU usermode emulation always returns 42000 for some reason.
         # In any case, we can't use the info.
         if pwndbg.gdblib.qemu.is_qemu_usermode():
@@ -34,7 +33,7 @@ class module(ModuleType):
         return 0
 
     @property
-    def tid(self):
+    def tid(self) -> int:
         if pwndbg.gdblib.qemu.is_qemu_usermode():
             return pwndbg.gdblib.qemu.pid()
 
@@ -45,7 +44,7 @@ class module(ModuleType):
         return self.pid
 
     @property
-    def thread_id(self):
+    def thread_id(self) -> int:
         return gdb.selected_thread().num
 
     @property
@@ -58,7 +57,7 @@ class module(ModuleType):
         return gdb.selected_thread() is not None
 
     @property
-    def thread_is_stopped(self):
+    def thread_is_stopped(self) -> bool:
         """
         This detects whether selected thread is stopped.
         It is not stopped in situations when gdb is executing commands
@@ -76,10 +75,11 @@ class module(ModuleType):
 
         Can be used to detect segfaults (but will also detect other signals)
         """
-        return "It stopped with signal " in gdb.execute("info program", to_string=True)
+        info = gdb.execute("info program", to_string=True)
+        return "It stopped with signal " in info if info else False
 
     @property
-    def exe(self):
+    def exe(self) -> str | None:
         """
         Returns the debugged file name.
 
@@ -92,7 +92,8 @@ class module(ModuleType):
             `pwndbg.gdblib.file.get_proc_exe_file()`
             (This will call `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe, try_local_path=True)`)
         """
-        return gdb.current_progspace().filename
+        progspace = gdb.current_progspace()
+        return progspace.filename if progspace else None
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
@@ -142,9 +143,9 @@ class module(ModuleType):
                 return int(line.split()[0], 16)
         return 0
 
-    def OnlyWhenRunning(self, func):
+    def OnlyWhenRunning(self, func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapper(*a, **kw):
+        def wrapper(*a: Any, **kw: Any):
             if self.alive:
                 return func(*a, **kw)
 

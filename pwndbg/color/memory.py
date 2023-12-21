@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import pwndbg.gdblib.vmmap
-from pwndbg.color import ColorConfig
-from pwndbg.color import ColorParamSpec
-from pwndbg.color import normal
+from pwndbg.color import ColorConfig, ColorParamSpec, normal
 
 c = ColorConfig(
     "memory",
@@ -18,7 +16,7 @@ c = ColorConfig(
 )
 
 
-def get(address, text=None, prefix=None) -> str:
+def get(address: int | str, text: str | None = None, prefix: str | None = None) -> str:
     """
     Returns a colorized string representing the provided address.
 

@@ -5,53 +5,54 @@ standardized interface to registers like "sp" and "pc".
 from __future__ import annotations
 
 import collections
+from typing import Any, Iterator
 
 
 class RegisterSet:
     #: Program counter register
-    pc = None
+    pc: str | None = None
 
     #: Stack pointer register
-    stack = None
+    stack: str | None = None
 
     #: Frame pointer register
-    frame = None
+    frame: str | None = None
 
     #: Return address register
-    retaddr = None
+    retaddr: tuple[str, ...] | None = None
 
     #: Flags register (eflags, cpsr)
-    flags = None
+    flags: dict[str, Any] | None = None
 
     #: List of native-size general-purpose registers
-    gpr = None
+    gpr: tuple[str, ...] | None = None
 
     #: List of miscellaneous, valid registers
-    misc = None
+    misc: tuple[str, ...] | None = None
 
     #: Register-based arguments for most common ABI
     regs = None
 
     #: Return value register
-    retval = None
+    retval: str | None = None
 
     #: Common registers which should be displayed in the register context
-    common: list[str] = None
+    common: list[str] = []
 
     #: All valid registers
-    all = None
+    all: set[str] | None = None
 
     def __init__(
         self,
-        pc="pc",
-        stack="sp",
-        frame=None,
-        retaddr=tuple(),
-        flags={},
-        gpr=tuple(),
-        misc=tuple(),
-        args=tuple(),
-        retval=None,
+        pc: str = "pc",
+        stack: str = "sp",
+        frame: str | None = None,
+        retaddr: tuple[str, ...] = tuple(),
+        flags: dict[str, Any] = {},
+        gpr: tuple[str, ...] = tuple(),
+        misc: tuple[str, ...] = tuple(),
+        args: tuple[str, ...] = tuple(),
+        retval: str | None = None,
     ) -> None:
         self.pc = pc
         self.stack = stack
@@ -69,11 +70,12 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = {i for i in misc} | set(flags) | set(self.retaddr) | set(self.common)
+        self.all = set(misc) | set(flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
 
-    def __iter__(self):
-        yield from self.all
+    def __iter__(self) -> Iterator[str]:
+        if self.all is not None:
+            yield from self.all
 
 
 arm_cpsr_flags = collections.OrderedDict(

@@ -10,8 +10,7 @@ import os
 import platform
 import re
 import sys
-from subprocess import check_call
-from subprocess import check_output
+from subprocess import check_call, check_output
 from tempfile import NamedTemporaryFile
 from urllib.parse import quote
 
@@ -24,7 +23,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-def _gdb_version():
+def _gdb_version() -> str:
     return gdb.VERSION
 
 

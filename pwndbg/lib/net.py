@@ -28,20 +28,20 @@ TCP_STATUSES = {
 
 
 class inode:
-    inode = None
+    inode: int | None = None
 
 
 class Connection(inode):
-    rhost = None
-    lhost = None
+    rhost: str | None = None
+    lhost: str | None = None
 
-    rport = None
-    lport = None
+    rport: int | None = None
+    lport: int | None = None
 
-    inode = None
-    status = None
+    inode: int | None = None
+    status: str | None = None
 
-    family = None
+    family: str | None = None
 
     def __str__(self) -> str:
         return (
@@ -62,7 +62,7 @@ class UnixSocket(inode):
         return f"UnixSocket({self})"
 
 
-def tcp(data: str):
+def tcp(data: str) -> list[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -73,7 +73,7 @@ def tcp(data: str):
     if not data:
         return []
 
-    result = []
+    result: list[Connection] = []
     for line in data.splitlines()[1:]:
         fields = line.split()
         """
@@ -115,11 +115,11 @@ def tcp(data: str):
         inode = fields[9]
 
         # Actually extract the useful data
-        def split_hist_port(hostport):
+        def split_hist_port(hostport: str):
             host, port = hostport.split(":")
             host = binascii.unhexlify(host)
 
-            if pwndbg.gdblib.arch.endian == "little":
+            if pwndbg.gdblib.arch.arch.endian == "little":
                 host = host[::-1]
 
             host = socket.inet_ntop(socket.AF_INET, host)
@@ -138,11 +138,11 @@ def tcp(data: str):
     return result
 
 
-def unix(data: str):
+def unix(data: str) -> list[UnixSocket]:
     if not data:
         return []
 
-    result = []
+    result: list[UnixSocket] = []
     # Note: it is super important to split by "\n" instead of .splitlines() here
     # because there may be a line like this:
     # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
@@ -190,8 +190,8 @@ NETLINK_TYPES = {
 
 
 class Netlink(inode):
-    eth = 0
-    pid = None
+    eth: int = 0
+    pid: int | None = None
 
     def __str__(self) -> str:
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")
@@ -200,11 +200,11 @@ class Netlink(inode):
         return f"Netlink({self})"
 
 
-def netlink(data: str):
+def netlink(data: str) -> list[Netlink]:
     if not data:
         return []
 
-    result = []
+    result: list[Netlink] = []
     for line in data.splitlines()[1:]:
         # sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode            [10/8747]
         fields = line.split()

@@ -6,20 +6,26 @@ which prevent output from appearing on-screen inside of certain event handlers.
 from __future__ import annotations
 
 import sys
-from typing import TextIO
+from types import TracebackType
+from typing import TextIO, Type
 
 
 class Stdio:
     queue: list[tuple[TextIO, TextIO, TextIO]] = []
 
-    def __enter__(self, *a, **kw) -> None:
+    def __enter__(self) -> None:
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
 
         sys.stdin = sys.__stdin__
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
-    def __exit__(self, *a, **kw) -> None:
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         sys.stdin, sys.stdout, sys.stderr = self.queue.pop()
 
 

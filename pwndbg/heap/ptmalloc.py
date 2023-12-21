@@ -10,9 +10,7 @@ try:
 except ImportError:
     from enum import Enum
 
-from typing import Any
-from typing import Callable
-from typing import Union  # noqa: F401
+from typing import Any, Callable, Union
 
 import gdb
 
@@ -1320,7 +1318,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         out = gdb.execute("info dll", to_string=True)
         return "No shared libraries loaded at this time." in out
 
-    def libc_has_debug_syms(self):
+    def libc_has_debug_syms(self) -> bool:
         """
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
