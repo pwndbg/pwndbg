@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Callable, NamedTuple
+from typing import Callable
+from typing import NamedTuple
 
 from pwndbg.lib.config import Parameter
 

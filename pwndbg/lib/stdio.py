@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import sys
 from types import TracebackType
-from typing import TextIO, Type
+from typing import TextIO
+from typing import Type
 
 
 class Stdio:

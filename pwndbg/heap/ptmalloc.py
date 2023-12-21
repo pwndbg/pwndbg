@@ -10,7 +10,8 @@ try:
 except ImportError:
     from enum import Enum
 
-from typing import Any, Callable, Union
+from typing import Any
+from typing import Callable
 
 import gdb
 

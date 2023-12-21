@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import pwndbg.gdblib.vmmap
-from pwndbg.color import ColorConfig, ColorParamSpec, normal
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
+from pwndbg.color import normal
 
 c = ColorConfig(
     "memory",
