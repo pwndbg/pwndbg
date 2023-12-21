@@ -11,6 +11,8 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
+import pwndbg.lib.cache
+import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
 
@@ -335,8 +337,8 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
     """
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
-        for i in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
+        for _ in range(max_pages):
+            read(addr, 1)
             addr -= PAGE_SIZE
 
             # Sanity check (see comment in find_upper_boundary)

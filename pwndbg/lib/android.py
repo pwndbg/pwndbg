@@ -81,7 +81,7 @@ KNOWN_AIDS = {
 }
 
 
-def aid_name(uid):  # types: (int) -> str
+def aid_name(uid: int) -> str:
     if uid in KNOWN_AIDS:
         return KNOWN_AIDS[uid]
 
