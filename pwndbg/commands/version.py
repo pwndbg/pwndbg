@@ -10,7 +10,8 @@ import os
 import platform
 import re
 import sys
-from subprocess import check_call, check_output
+from subprocess import check_call
+from subprocess import check_output
 from tempfile import NamedTemporaryFile
 from urllib.parse import quote
 

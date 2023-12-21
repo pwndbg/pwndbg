@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from pwndbg.color import generateColorFunction, theme
+from pwndbg.color import generateColorFunction
+from pwndbg.color import theme
 from pwndbg.gdblib import config
 
 config_normal = theme.add_color_param(
