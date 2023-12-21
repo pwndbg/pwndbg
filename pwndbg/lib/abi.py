@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Tuple
+
 import pwndbg.gdblib.arch
 
 
@@ -10,7 +15,7 @@ class ABI:
 
     #: List or registers which should be filled with arguments before
     #: spilling onto the stack.
-    register_arguments: list[str] = []
+    register_arguments: List[str] = []
 
     #: Minimum alignment of the stack.
     #: The value used is min(context.bytes, stack_alignment)
@@ -25,7 +30,7 @@ class ABI:
     #: Indicates that this ABI returns to the next address on the slot
     returns = True
 
-    def __init__(self, regs, align, minimum) -> None:
+    def __init__(self, regs: List[str], align: int, minimum: int) -> None:
         self.register_arguments = regs
         self.arg_alignment = align
         self.stack_minimum = minimum
@@ -49,7 +54,7 @@ class SyscallABI(ABI):
     which must be loaded into the specified register.
     """
 
-    def __init__(self, register_arguments, *a, **kw) -> None:
+    def __init__(self, register_arguments: List[str], *a: Any, **kw: Any) -> None:
         self.syscall_register = register_arguments.pop(0)
         super().__init__(register_arguments, *a, **kw)
 
@@ -93,7 +98,7 @@ linux_i386_srop = ABI(["eax"], 4, 0)
 linux_amd64_srop = ABI(["rax"], 4, 0)
 linux_arm_srop = ABI(["r7"], 4, 0)
 
-DEFAULT_ABIS = {
+DEFAULT_ABIS: Dict[Tuple[int, str, str], ABI] = {
     (32, "i386", "linux"): linux_i386,
     (64, "x86-64", "linux"): linux_amd64,
     (64, "aarch64", "linux"): linux_aarch64,
@@ -106,7 +111,7 @@ DEFAULT_ABIS = {
     (64, "rv64", "linux"): linux_riscv64,
 }
 
-SYSCALL_ABIS = {
+SYSCALL_ABIS: Dict[Tuple[int, str, str], ABI] = {
     (32, "i386", "linux"): linux_i386_syscall,
     (64, "x86-64", "linux"): linux_amd64_syscall,
     (64, "aarch64", "linux"): linux_aarch64_syscall,
@@ -119,7 +124,7 @@ SYSCALL_ABIS = {
     (64, "rv64", "linux"): linux_riscv64_syscall,
 }
 
-SIGRETURN_ABIS = {
+SIGRETURN_ABIS: Dict[Tuple[int, str, str], ABI] = {
     (32, "i386", "linux"): linux_i386_sigreturn,
     (64, "x86-64", "linux"): linux_amd64_sigreturn,
     (32, "arm", "linux"): linux_arm_sigreturn,
