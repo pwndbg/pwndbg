@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import gdb
+
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.dt
@@ -22,7 +24,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def dt(typename, address=None) -> None:
+def dt(typename: str, address: str | gdb.Value | None = None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).
 
@@ -30,4 +32,6 @@ def dt(typename, address=None) -> None:
     """
     if address is not None:
         address = pwndbg.commands.fix(address)
+        if not address:
+            return
     print(pwndbg.gdblib.dt.dt(typename, addr=address))

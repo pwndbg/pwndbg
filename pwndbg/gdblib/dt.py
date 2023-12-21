@@ -5,6 +5,7 @@ Prints structures in a manner similar to Windbg's "dt" command.
 from __future__ import annotations
 
 import re
+from typing import List
 
 import gdb
 
@@ -12,7 +13,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 
 
-def get_type(v):
+def get_type(v: gdb.Value):
     t = v.type
     while not t.name:
         if t.code == gdb.TYPE_CODE_PTR:
@@ -20,11 +21,11 @@ def get_type(v):
     return t.name
 
 
-def get_typename(t):
+def get_typename(t: gdb.Type):
     return str(t)
 
 
-def get_arrsize(f):
+def get_arrsize(f: gdb.Value):
     t = f.type
     if t.code != gdb.TYPE_CODE_ARRAY:
         return 0
@@ -33,7 +34,7 @@ def get_arrsize(f):
     return int(t.sizeof / t2.sizeof)
 
 
-def get_field_by_name(obj, field):
+def get_field_by_name(obj: gdb.Value, field: str):
     # Dereference once
     if obj.type.code == gdb.TYPE_CODE_PTR:
         obj = obj.dereference()
@@ -73,13 +74,13 @@ def happy(typename: str):
     )
 
 
-def dt(name="", addr=None, obj=None):
+def dt(name: str = "", addr: str | gdb.Value | None = None, obj: gdb.Value | None = None) -> str:
     """
     Dump out a structure type Windbg style.
     """
     # Return value is a list of strings.of
     # We concatenate at the end.
-    rv = []
+    rv: List[str] = []
 
     if obj and not name:
         t = obj.type
@@ -92,6 +93,9 @@ def dt(name="", addr=None, obj=None):
     else:
         t = pwndbg.gdblib.typeinfo.load(name)
 
+    if not t:
+        return ""
+
     # If it's not a struct (e.g. int or char*), bail
     if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF, gdb.TYPE_CODE_UNION):
         raise Exception(f"Not a structure: {t}")
@@ -99,7 +103,7 @@ def dt(name="", addr=None, obj=None):
     # If an address was specified, create a Value of the
     # specified type at that address.
     if addr is not None:
-        obj = pwndbg.gdblib.memory.poi(t, addr)
+        obj = pwndbg.gdblib.memory.poi(t, int(addr))
 
     # Header, optionally include the name
     header = name

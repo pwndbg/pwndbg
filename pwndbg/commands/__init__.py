@@ -192,7 +192,9 @@ class Command(gdb.Command):
             pwndbg.exception.handle(self.function.__name__)
 
 
-def fix(arg, sloppy=False, quiet=True, reraise=False):
+def fix(
+    arg: gdb.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+) -> str | gdb.Value | None:
     """Fix a single command-line argument coming from the GDB CLI.
 
     Arguments:
