@@ -4,6 +4,9 @@ Search the address space for byte patterns.
 
 from __future__ import annotations
 
+from typing import Generator
+from typing import Tuple
+
 import gdb
 
 import pwndbg.gdblib.arch
@@ -13,16 +16,16 @@ import pwndbg.gdblib.vmmap
 
 
 def search(
-    searchfor,
-    mappings=None,
-    start=None,
-    end=None,
-    step=None,
-    aligned=None,
-    limit=None,
-    executable=False,
-    writable=False,
-):
+    searchfor: bytes,
+    mappings: Tuple[pwndbg.lib.memory.Page, ...] | None = None,
+    start: int | None = None,
+    end: int | None = None,
+    step: int | None = None,
+    aligned: int | None = None,
+    limit: int | None = None,
+    executable: bool = False,
+    writable: bool = False,
+) -> Generator[int, None, None]:
     """Search inferior memory for a byte sequence.
 
     Arguments:

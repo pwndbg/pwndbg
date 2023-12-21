@@ -130,7 +130,7 @@ def get(address: int, gdb_only=False) -> str:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def address(symbol: str) -> int:
+def address(symbol: str) -> int | None:
     """
     Get the address for `symbol`
     """
@@ -158,7 +158,7 @@ def address(symbol: str) -> int:
 
 
 @pwndbg.lib.cache.cache_until("objfile", "thread")
-def static_linkage_symbol_address(symbol: str) -> int:
+def static_linkage_symbol_address(symbol: str) -> int | None:
     """
     Get the address for static linkage `symbol`
     """
