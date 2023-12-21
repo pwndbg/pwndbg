@@ -15,7 +15,15 @@ from pwndbg.color.message import hint
 from pwndbg.commands import CommandCategory
 
 
-def print_row(name, value, default, set_show_doc, ljust_optname, ljust_value, empty_space=6):
+def print_row(
+    name: str,
+    value: str,
+    default: str,
+    set_show_doc: str,
+    ljust_optname: int,
+    ljust_value: int,
+    empty_space: int = 6,
+):
     name = ljust_colored(name, ljust_optname + empty_space)
     defval = extend_value_with_default(value, default)
     defval = ljust_colored(defval, ljust_value + empty_space)
@@ -142,8 +150,8 @@ def themefile(show_all=False) -> None:
     configfile_print_scope("theme", show_all)
 
 
-def configfile_print_scope(scope, show_all=False) -> None:
-    params = pwndbg.gdblib.config.get_params(scope)
+def configfile_print_scope(scope: str, show_all: bool = False) -> None:
+    params = pwndbg.gdblib.config.config.get_params(scope)
 
     if not show_all:
         params = list(filter(lambda p: p.is_changed, params))

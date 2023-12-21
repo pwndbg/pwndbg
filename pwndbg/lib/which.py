@@ -34,7 +34,7 @@ import os
 import stat
 
 
-def which(name: str, all: bool = False):
+def which(name: str, all: bool = False) -> set[str] | str | None:
     """which(name, flags = os.X_OK, all = False) -> str or str set
 
     Works as the system command ``which``; searches $PATH for ``name`` and
@@ -60,7 +60,7 @@ def which(name: str, all: bool = False):
         return name
 
     isroot = os.getuid() == 0
-    out = set()
+    out: set[str] = set()
     try:
         path = os.environ["PATH"]
     except KeyError:
