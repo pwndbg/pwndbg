@@ -8,7 +8,6 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 from __future__ import annotations
 
 import bisect
-from typing import Any
 from typing import List
 from typing import Tuple
 
@@ -28,13 +27,14 @@ import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
+import pwndbg.lib.memory
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages: list[pwndbg.lib.memory.Page] = []
+explored_pages: List[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages: list[pwndbg.lib.memory.Page] = []
+custom_pages: List[pwndbg.lib.memory.Page] = []
 
 
 kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
@@ -158,7 +158,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def find(address):
+def find(address: int | None) -> pwndbg.lib.memory.Page | None:
     if address is None:
         return None
 
@@ -172,7 +172,7 @@ def find(address):
 
 
 @pwndbg.gdblib.abi.LinuxOnly()
-def explore(address_maybe: int) -> Any | None:
+def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
 
@@ -752,7 +752,7 @@ def info_auxv(skip_exe: bool = False):
     return tuple(sorted(pages))
 
 
-def find_boundaries(addr, name: str = "", min: int = 0):
+def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memory.Page:
     """
     Given a single address, find all contiguous pages
     which are mapped.

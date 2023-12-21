@@ -31,7 +31,7 @@ def update_length() -> None:
         length = int(message)
 
 
-def get(address, maxlen=None, maxread=None):
+def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> str | None:
     """
     Returns a printable C-string from address.
 
@@ -51,10 +51,10 @@ def get(address, maxlen=None, maxread=None):
 
     sz = sz.decode("latin-1", "replace")
 
-    if not sz or not all(s in string.printable for s in sz):
+    if not sz or not all(str(s) in string.printable for s in sz):
         return None
 
     if len(sz) < maxlen or not maxlen:
-        return sz
+        return str(sz)
 
-    return sz[:maxlen] + "..."
+    return str(sz[:maxlen]) + "..."

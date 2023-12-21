@@ -63,4 +63,4 @@ def r2pipe(arguments) -> None:
     except ImportError:
         print(message.error("Could not import r2pipe python library"))
     except Exception as e:
-        print(message.error(e))
+        print(message.error(str(e)))

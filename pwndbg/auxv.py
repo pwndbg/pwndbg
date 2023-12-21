@@ -14,6 +14,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.stack
+import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
 
 example_info_auxv_linux = """
@@ -168,7 +169,7 @@ def walk_stack():
     return auxv
 
 
-def walk_stack2(offset=0):
+def walk_stack2(offset: int = 0):
     sp = pwndbg.gdblib.regs.sp
 
     if not sp:

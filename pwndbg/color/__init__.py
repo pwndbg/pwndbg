@@ -156,7 +156,7 @@ class ColorConfig:
                 f"{self._namespace}-{param.name}-color", param.default, param.doc
             )
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Callable[[str], str]:
         param_name = attr.replace("_", "-")
         if param_name in self._params:
             return generateColorFunction(self._params[param_name])
