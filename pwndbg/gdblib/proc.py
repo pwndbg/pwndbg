@@ -19,6 +19,11 @@ import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 
+# TODO: This is causing circular imports, but we need them
+# import pwndbg.gdblib.vmmap
+# import pwndbg.gdblib.info
+# import pwndbg.gdblib.elf
+
 
 class module(ModuleType):
     @property
@@ -111,6 +116,8 @@ class module(ModuleType):
         """
         Dump .data section of current process's ELF file
         """
+        if self.exe is None:
+            return None
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -118,6 +125,8 @@ class module(ModuleType):
         """
         Dump relocations of a section by section name of current process's ELF file
         """
+        if self.exe is None:
+            return None
         return pwndbg.gdblib.elf.dump_relocations_by_section_name(
             self.exe, section_name, try_local_path=True
         )

@@ -11,6 +11,7 @@ from functools import partial
 from functools import wraps
 from typing import Any
 from typing import Callable
+from typing import List
 
 import gdb
 
@@ -34,14 +35,14 @@ debug = config.add_param("debug-events", False, "display internal event debuggin
 # capture this so that we can fire off all of the 'start' events first.
 class StartEvent:
     def __init__(self) -> None:
-        self.registered: list[Callable] = []
+        self.registered: List[Callable[..., Any]] = []
         self.running = False
 
-    def connect(self, function) -> None:
+    def connect(self, function: Callable[..., Any]) -> None:
         if function not in self.registered:
             self.registered.append(function)
 
-    def disconnect(self, function) -> None:
+    def disconnect(self, function: Callable[..., Any]) -> None:
         if function in self.registered:
             self.registered.remove(function)
 
@@ -69,7 +70,7 @@ gdb.events.start = StartEvent()
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: dict[Any, list[Callable]] = {
+registered: dict[Any, List[Callable[..., Any]]] = {
     gdb.events.exited: [],
     gdb.events.cont: [],
     gdb.events.new_objfile: [],
@@ -89,12 +90,12 @@ registered: dict[Any, list[Callable]] = {
 objfile_cache: dict[str, set[str]] = {}
 
 
-def connect(func, event_handler, name=""):
+def connect(func: Callable[..., Any], event_handler: Any, name: str = "") -> Callable[..., Any]:
     if debug:
         print("Connecting", func.__name__, event_handler)
 
     @wraps(func)
-    def caller(*a):
+    def caller(*a: Any) -> None:
         if debug:
             sys.stdout.write(f"{name!r} {func.__module__}.{func.__name__} {a!r}\n")
 
@@ -105,7 +106,7 @@ def connect(func, event_handler, name=""):
             dispatched = objfile_cache.get(path, set())
 
             if handler in dispatched:
-                return
+                return None
 
             dispatched.add(handler)
             objfile_cache[path] = dispatched
@@ -123,61 +124,62 @@ def connect(func, event_handler, name=""):
     return func
 
 
-def exit(func):
+def exit(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.exited, "exit")
 
 
-def cont(func):
+def cont(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.cont, "cont")
 
 
-def new_objfile(func):
+def new_objfile(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.new_objfile, "obj")
 
 
-def stop(func):
+def stop(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.stop, "stop")
 
 
-def start(func):
+def start(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.start, "start")
 
 
-def thread(func):
+def thread(func: Callable[..., Any]) -> Callable[..., Any]:
     return connect(func, gdb.events.new_thread, "thread")
 
 
 before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")
 
 
-def reg_changed(func):
+def reg_changed(func: Callable[..., Any]):
     try:
         return connect(func, gdb.events.register_changed, "reg_changed")
     except AttributeError:
         return func
 
 
-def mem_changed(func):
+def mem_changed(func: Callable[..., Any]):
     try:
         return connect(func, gdb.events.memory_changed, "mem_changed")
     except AttributeError:
         return func
 
 
-def log_objfiles(ofile=None) -> None:
+def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
     if not (debug and ofile):
-        return
+        return None
 
     name = ofile.new_objfile.filename
 
     print("objfile: %r" % name)
     gdb.execute("info sharedlibrary")
+    return None
 
 
 gdb.events.new_objfile.connect(log_objfiles)
 
 
-def after_reload(start=True) -> None:
+def after_reload(start: bool = True) -> None:
     if gdb.selected_inferior().pid:
         if gdb.events.stop in registered:
             for f in registered[gdb.events.stop]:

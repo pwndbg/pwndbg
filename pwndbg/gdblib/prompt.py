@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from os import environ
+from typing import Any
+from typing import Tuple
 
 import gdb
 
+import pwndbg.commands
+import pwndbg.commands.context
 import pwndbg.decorators
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
+import pwndbg.gdblib.proc
 import pwndbg.lib.cache
 import pwndbg.profiling
 from pwndbg.color import disable_colors
@@ -34,10 +39,10 @@ show_tip = pwndbg.gdblib.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
-cur = None
+cur: Tuple[gdb.Inferior, gdb.InferiorThread] | None = None
 
 
-def initial_hook(*a) -> None:
+def initial_hook(*a: Any) -> None:
     if show_tip and not pwndbg.decorators.first_prompt:
         colored_tip = color_tip(get_tip_of_the_day())
         print(
@@ -51,7 +56,8 @@ def initial_hook(*a) -> None:
     prompt_hook(*a)
 
     if environ.get("PWNDBG_PROFILE") == "1":
-        pwndbg.profiling.profiler.stop("pwndbg-first-prompt.pstats")
+        if pwndbg.profiling.profiler:
+            pwndbg.profiling.profiler.stop("pwndbg-first-prompt.pstats")
 
     gdb.prompt_hook = prompt_hook
 
@@ -59,7 +65,7 @@ def initial_hook(*a) -> None:
 context_shown = False
 
 
-def prompt_hook(*a) -> None:
+def prompt_hook(*a: Any) -> None:
     global cur, context_shown
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
@@ -74,7 +80,7 @@ def prompt_hook(*a) -> None:
 
 
 @pwndbg.gdblib.events.cont
-def reset_context_shown(*a) -> None:
+def reset_context_shown(*a: Any) -> None:
     global context_shown
     context_shown = False
 

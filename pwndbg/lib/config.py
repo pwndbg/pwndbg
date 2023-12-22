@@ -5,9 +5,14 @@ from functools import total_ordering
 from typing import Any
 from typing import Callable
 from typing import DefaultDict
+from typing import Dict
+from typing import List
 from typing import Sequence
+from typing import TypeVar
 
 import gdb
+
+T = TypeVar("T")
 
 PARAM_CLASSES = {
     # The Python boolean values, True and False are the only valid values.
@@ -128,8 +133,8 @@ class Parameter:
 
 class Config:
     def __init__(self) -> None:
-        self.params: dict[str, Parameter] = {}
-        self.triggers: DefaultDict[str, list[Callable[..., Any]]] = defaultdict(lambda: [])
+        self.params: Dict[str, Parameter] = {}
+        self.triggers: DefaultDict[str, List[Callable[..., Any]]] = defaultdict(lambda: [])
 
     def add_param(
         self,
@@ -165,10 +170,10 @@ class Config:
         self.params[attr_name] = p
         return p
 
-    def trigger(self, *params: Parameter) -> Callable[..., Any]:
+    def trigger(self, *params: Parameter) -> Callable[[Callable[..., T]], Callable[..., T]]:
         names = [p.name for p in params]
 
-        def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapper(func: Callable[..., T]) -> Callable[..., T]:
             for name in names:
                 if name not in self.triggers:
                     self.triggers[name] = []
@@ -177,10 +182,10 @@ class Config:
 
         return wrapper
 
-    def get_params(self, scope: str) -> list[Parameter]:
+    def get_params(self, scope: str) -> List[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Parameter:
         if name in self.params:
             return self.params[name]
         else:

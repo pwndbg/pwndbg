@@ -6,15 +6,18 @@ import io
 from enum import Enum
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TypeVar
 
 import gdb
 
 import pwndbg.exception
 import pwndbg.gdblib.kernel
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.heap
 from pwndbg.color import message
@@ -23,6 +26,7 @@ from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 T = TypeVar("T")
+
 commands: List[Command] = []
 command_names: Set[str] = set()
 
@@ -83,23 +87,23 @@ pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 class Command(gdb.Command):
     """Generic command wrapper"""
 
-    builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
-    history: dict[int, str] = {}
+    builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
+    history: Dict[int, str] = {}
 
     def __init__(
         self,
-        function,
-        prefix=False,
-        command_name=None,
-        shell=False,
-        is_alias=False,
-        aliases=[],
-        category=CommandCategory.MISC,
+        function: Callable[..., str | None],
+        prefix: bool = False,
+        command_name: str | None = None,
+        shell: bool = False,
+        is_alias: bool = False,
+        aliases: List[str] = [],
+        category: CommandCategory = CommandCategory.MISC,
     ) -> None:
-        self.is_alias: bool = is_alias
+        self.is_alias = is_alias
         self.aliases = aliases
         self.category = category
-        self.shell: bool = shell
+        self.shell = shell
 
         if command_name is None:
             command_name = function.__name__
@@ -124,7 +128,7 @@ class Command(gdb.Command):
 
         self.repeat = False
 
-    def split_args(self, argument):
+    def split_args(self, argument: str) -> Tuple[List[str], Dict[Any, Any]]:
         """Split a command-line string from the user into arguments.
 
         Returns:
@@ -133,7 +137,7 @@ class Command(gdb.Command):
         """
         return gdb.string_to_argv(argument), {}
 
-    def invoke(self, argument, from_tty):
+    def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
         try:
             args, kwargs = self.split_args(argument)
@@ -146,11 +150,11 @@ class Command(gdb.Command):
 
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            return self(*args, **kwargs)
+            self(*args, **kwargs)
         finally:
             self.repeat = False
 
-    def check_repeated(self, argument, from_tty) -> bool:
+    def check_repeated(self, argument: str, from_tty: bool) -> bool:
         """Keep a record of all commands which come from the TTY.
 
         Returns:
@@ -182,7 +186,7 @@ class Command(gdb.Command):
 
         return True
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> str | None:
         try:
             return self.function(*args, **kwargs)
         except TypeError as te:
@@ -190,6 +194,7 @@ class Command(gdb.Command):
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
+        return None
 
 
 def fix(
@@ -231,7 +236,7 @@ def fix(
     return None
 
 
-def fix_int(*a, **kw):
+def fix_int(*a, **kw) -> int:
     return int(fix(*a, **kw))
 
 
@@ -382,7 +387,7 @@ def _is_statically_linked() -> bool:
     return is_static
 
 
-def _try2run_heap_command(function, a, kw):
+def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) -> str | None:
     e = lambda s: print(message.error(s))
     w = lambda s: print(message.warn(s))
     # Note: We will still raise the error for developers when exception-* is set to "on"
@@ -415,6 +420,7 @@ def _try2run_heap_command(function, a, kw):
             raise err
         else:
             pwndbg.exception.inform_verbose_and_debug()
+    return None
 
 
 def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
@@ -495,7 +501,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
 class _ArgparsedCommand(Command):
     def __init__(
         self,
-        parser,
+        parser: argparse.ArgumentParser,
         function,
         command_name=None,
         *a,
@@ -522,7 +528,7 @@ class _ArgparsedCommand(Command):
             **kw,
         )
 
-    def split_args(self, argument):
+    def split_args(self, argument: str):
         argv = gdb.string_to_argv(argument)
         return tuple(), vars(self.parser.parse_args(argv))
 
@@ -531,7 +537,11 @@ class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
     def __init__(
-        self, parser_or_desc, aliases=[], command_name=None, category=CommandCategory.MISC
+        self,
+        parser_or_desc: argparse.ArgumentParser | str,
+        aliases: List[str] = [],
+        command_name: str | None = None,
+        category: CommandCategory = CommandCategory.MISC,
     ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -555,7 +565,7 @@ class ArgparsedCommand:
             if action.default is not None:
                 action.help += " (default: %(default)s)"
 
-    def __call__(self, function):
+    def __call__(self, function: Callable) -> _ArgparsedCommand:
         for alias in self.aliases:
             _ArgparsedCommand(
                 self.parser, function, command_name=alias, is_alias=True, category=self.category
