@@ -9,16 +9,19 @@ from __future__ import annotations
 
 import bisect
 from typing import List
+from typing import Set
 from typing import Tuple
 
 import gdb
 
+import pwndbg.auxv
 import pwndbg.color.message as M
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
+import pwndbg.gdblib.kernel
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
@@ -107,7 +110,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     #             (usually when we attach to a process)
     if proc_maps is not None:
         return proc_maps
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
         "i386",
         "x86-64",
@@ -221,7 +224,7 @@ def clear_explored_pages() -> None:
         explored_pages.pop()
 
 
-def add_custom_page(page) -> None:
+def add_custom_page(page: pwndbg.lib.memory.Page) -> None:
     bisect.insort(custom_pages, page)
 
     # Reset all the cache
@@ -241,12 +244,12 @@ def clear_custom_page() -> None:
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
-def coredump_maps():
+def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parses `info proc mappings` and `maintenance info sections`
     and tries to make sense out of the result :)
     """
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
 
     try:
         info_proc_mappings = pwndbg.gdblib.info.proc_mappings().splitlines()
@@ -347,7 +350,7 @@ def coredump_maps():
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps():
+def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
     Returns:
@@ -361,7 +364,7 @@ def info_proc_maps():
         # On qemu user emulation, we may get: gdb.error: Not supported on this target.
         info_proc_mappings = []
 
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for line in info_proc_mappings:
         # We look for lines like:
         # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
@@ -394,7 +397,7 @@ def info_proc_maps():
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def proc_pid_maps():
+def proc_pid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     """
     Parse the contents of /proc/$PID/maps on the server.
 
@@ -449,7 +452,7 @@ def proc_pid_maps():
     if data == "":
         return tuple()
 
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
 
@@ -481,10 +484,10 @@ def proc_pid_maps():
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables():
+def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     import pt
 
-    retpages: list[pwndbg.lib.memory.Page] = []
+    retpages: List[pwndbg.lib.memory.Page] = []
 
     p = pt.PageTableDump()
     try:
@@ -520,7 +523,7 @@ def kernel_vmmap_via_page_tables():
 monitor_info_mem_not_warned = True
 
 
-def kernel_vmmap_via_monitor_info_mem():
+def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -606,7 +609,7 @@ def kernel_vmmap_via_monitor_info_mem():
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def info_sharedlibrary():
+def info_sharedlibrary() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parses the output of `info sharedlibrary`.
 
@@ -636,7 +639,7 @@ def info_sharedlibrary():
     # 0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
     # (*): Shared library is missing debugging information.
 
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
 
     for line in pwndbg.gdblib.info.sharedlibrary().splitlines():
         if not line.startswith("0x"):
@@ -652,7 +655,7 @@ def info_sharedlibrary():
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def info_files():
+def info_files() -> Tuple[pwndbg.lib.memory.Page, ...]:
     # Example of `info files` output:
     # Symbols from "/bin/bash".
     # Unix child process:
@@ -670,8 +673,8 @@ def info_files():
     # 0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
     # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
-    seen_files: set[str] = set()
-    pages = []
+    seen_files: Set[str] = set()
+    pages: List[pwndbg.lib.memory.Page] = []
     main_exe = ""
 
     for line in pwndbg.gdblib.info.files().splitlines():
@@ -710,7 +713,7 @@ def info_files():
 
 
 @pwndbg.lib.cache.cache_until("exit")
-def info_auxv(skip_exe: bool = False):
+def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Extracts the name of the executable from the output of the command
     "info auxv". Note that if the executable path is a symlink,
@@ -727,7 +730,7 @@ def info_auxv(skip_exe: bool = False):
     if not auxv:
         return tuple()
 
-    pages = []
+    pages: List[pwndbg.lib.memory.Page] = []
     exe_name = auxv.AT_EXECFN or "main.exe"
     entry = auxv.AT_ENTRY
     base = auxv.AT_BASE

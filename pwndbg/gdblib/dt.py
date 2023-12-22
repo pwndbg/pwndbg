@@ -13,7 +13,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 
 
-def get_type(v: gdb.Value):
+def get_type(v: gdb.Value) -> str:
     t = v.type
     while not t.name:
         if t.code == gdb.TYPE_CODE_PTR:
@@ -21,11 +21,11 @@ def get_type(v: gdb.Value):
     return t.name
 
 
-def get_typename(t: gdb.Type):
+def get_typename(t: gdb.Type) -> str:
     return str(t)
 
 
-def get_arrsize(f: gdb.Value):
+def get_arrsize(f: gdb.Value) -> int:
     t = f.type
     if t.code != gdb.TYPE_CODE_ARRAY:
         return 0
@@ -34,7 +34,7 @@ def get_arrsize(f: gdb.Value):
     return int(t.sizeof / t2.sizeof)
 
 
-def get_field_by_name(obj: gdb.Value, field: str):
+def get_field_by_name(obj: gdb.Value, field: str) -> gdb.Value:
     # Dereference once
     if obj.type.code == gdb.TYPE_CODE_PTR:
         obj = obj.dereference()
@@ -55,7 +55,7 @@ def get_field_by_name(obj: gdb.Value, field: str):
     return obj
 
 
-def happy(typename: str):
+def happy(typename: str) -> str:
     prefix = ""
     if "unsigned" in typename:
         prefix = "u"
@@ -140,7 +140,7 @@ def dt(name: str = "", addr: str | gdb.Value | None = None, obj: gdb.Value | Non
         # Adjust trailing lines in 'extra' to line up
         # This is necessary when there are nested structures.
         # Ideally we'd expand recursively if the type is complex.
-        extra_lines = []
+        extra_lines: List[str] = []
         for i, line in enumerate(str(extra).splitlines()):
             if i == 0:
                 extra_lines.append(line)

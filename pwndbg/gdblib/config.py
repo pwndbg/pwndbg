@@ -158,6 +158,6 @@ class Parameter(gdb.Parameter):
 
 def init_params() -> None:
     # Create a gdb.Parameter for each parameter
-    for p in pwndbg.gdblib.config.params.values():
+    for p in config.params.values():
         # We don't need to store this anywhere, GDB will handle this
         Parameter(p)

@@ -7,6 +7,7 @@ from typing import Any
 import pygments
 import pygments.formatters
 import pygments.lexers
+import pygments.util
 from pwnlib.lexer import PwntoolsLexer
 
 import pwndbg.gdblib.config
@@ -43,7 +44,7 @@ def check_style() -> None:
         style.revert_default()
 
 
-def syntax_highlight(code: str, filename: str = ".asm"):
+def syntax_highlight(code: str, filename: str = ".asm") -> str:
     # No syntax highlight if pygment is not installed
     if disable_colors:
         return code

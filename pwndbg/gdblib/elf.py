@@ -12,6 +12,8 @@ import ctypes
 import importlib
 import sys
 from collections import namedtuple
+from typing import List
+from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -23,11 +25,15 @@ import pwndbg.auxv
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
+import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.elftypes
+import pwndbg.lib.memory
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -43,11 +49,11 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
     """
 
     @property
-    def is_pic(self):
+    def is_pic(self) -> bool:
         return self.header["e_type"] == "ET_DYN"
 
     @property
-    def is_pie(self):
+    def is_pie(self) -> bool:
         return self.is_pic
 
 
@@ -84,7 +90,7 @@ def read(typ, address, blob=None):
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_elf_info(filepath):
+def get_elf_info(filepath: str) -> ELFInfo:
     """
     Parse and return ELFInfo.
 
@@ -118,7 +124,7 @@ def get_elf_info(filepath):
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_elf_info_rebased(filepath, vaddr):
+def get_elf_info_rebased(filepath: str, vaddr: int) -> ELFInfo:
     """
     Parse and return ELFInfo with all virtual addresses rebased to vaddr
     """
@@ -145,7 +151,7 @@ def get_elf_info_rebased(filepath, vaddr):
     return ELFInfo(headers, sections, segments)
 
 
-def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
+def get_containing_segments(elf_filepath: str, elf_loadaddr: int, vaddr: int):
     elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
     segments = []
     for seg in elf.segments:
@@ -160,7 +166,7 @@ def get_containing_segments(elf_filepath, elf_loadaddr, vaddr):
     return segments
 
 
-def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
+def get_containing_sections(elf_filepath: str, elf_loadaddr: int, vaddr: int):
     elf = get_elf_info_rebased(elf_filepath, elf_loadaddr)
     sections = []
     for sec in elf.sections:
@@ -176,7 +182,7 @@ def get_containing_sections(elf_filepath, elf_loadaddr, vaddr):
 
 def dump_section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> tuple[int, int, bytes] | None:
+) -> Tuple[int, int, bytes] | None:
     """
     Dump the content of a section from an ELF file, return the start address, size and content.
     """
@@ -191,7 +197,7 @@ def dump_section_by_name(
 
 def dump_relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> tuple[Relocation, ...] | None:
+) -> Tuple[Relocation, ...] | None:
     """
     Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
     """
@@ -244,7 +250,8 @@ def entry() -> int:
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return pwndbg.gdblib.symbol.address(name)
+            address = pwndbg.gdblib.symbol.address(name)
+            return address if address else 0
         except gdb.error:
             pass
 
@@ -252,7 +259,7 @@ def entry() -> int:
     return 0
 
 
-def load(pointer):
+def load(pointer: int):
     return get_ehdr(pointer)[1]
 
 
@@ -265,7 +272,7 @@ def reset_ehdr_type_loaded() -> None:
     ehdr_type_loaded = 0
 
 
-def get_ehdr(pointer):
+def get_ehdr(pointer: int):
     """
     Returns an ehdr object for the ELF pointer points into.
 
@@ -356,7 +363,7 @@ def iter_phdrs(ehdr):
         yield p_phdr
 
 
-def map(pointer, objfile=""):
+def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Given a pointer into an ELF module, return a list of all loaded
     sections in the ELF.
@@ -380,9 +387,9 @@ def map(pointer, objfile=""):
     return map_inner(ei_class, ehdr, objfile)
 
 
-def map_inner(ei_class, ehdr, objfile):
+def map_inner(ei_class, ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not ehdr:
-        return []
+        return tuple()
 
     base = int(ehdr.address)
 
@@ -393,7 +400,7 @@ def map_inner(ei_class, ehdr, objfile):
     # Entries are processed in-order so that later entries
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
-    pages: list[pwndbg.lib.memory.Page] = []
+    pages: List[pwndbg.lib.memory.Page] = []
     for phdr in iter_phdrs(ehdr):
         memsz = int(phdr.p_memsz)
 
@@ -445,7 +452,7 @@ def map_inner(ei_class, ehdr, objfile):
 
     # Fill in any gaps with no-access pages.
     # This is what the linker does, and what all the '---p' pages are.
-    gaps = []
+    gaps: List[pwndbg.lib.memory.Page] = []
     for i in range(len(pages) - 1):
         a, b = pages[i : i + 2]
         a_end = a.vaddr + a.memsz
