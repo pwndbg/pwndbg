@@ -151,7 +151,7 @@ def themefile(show_all=False) -> None:
 
 
 def configfile_print_scope(scope: str, show_all: bool = False) -> None:
-    params = pwndbg.gdblib.config.config.get_params(scope)
+    params = pwndbg.gdblib.config.get_params(scope)
 
     if not show_all:
         params = list(filter(lambda p: p.is_changed, params))
