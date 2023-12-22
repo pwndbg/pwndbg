@@ -121,14 +121,32 @@ class LinkMapEntry:
     def __repr__(self):
         return f"<{self.__class__.__name__} node={self.link_map_address:#x} name={self.name()} load_bias={self.load_bias():#x} dynamic={self.dynamic():#x}>"
 
-DYNAMIC_SECTION_INIT_TAGS = set([
+
+# Normally, only one entry for each tag is allowed to be present in the dynamic
+# array for us to consider the dynamic array to be well-formed. Tags in this
+# set are allowed to appear multiple times.
+DYNAMIC_SECTION_ALLOW_MULTIPLE = set([
+    elf.DT_NEEDED
+])
+
+# The DynamicSegment class expects some tags to always be present to function
+# correctly. In this set we list them explicitly. Code in that class is allowed
+# to presume these tags are always present after __init__.
+DYNAMIC_SECTION_REQUIRED_TAGS = set([
     elf.DT_STRTAB,
     elf.DT_STRSZ,
+    elf.DT_SYMTAB,
+    elf.DT_SYMENT,
 ])
 
 class DynamicSegment:
     """
     """
+    
+    strtab_addr = 0
+    strtab_size = 0
+
+    entries_by_tag = {}
 
     def __init__(self, address, load_bias):
         # Enumerate the ElfNN_Dyn entries.
@@ -150,19 +168,42 @@ class DynamicSegment:
         sections = {}
         for i in range(self.entries):
             tag = self.dyn_array_read(i, "d_tag")
-            if tag not in DYNAMIC_SECTION_INIT_TAGS:
-                continue
             if tag in sections:
-                raise RuntimeError(f"tag {tag:#x} repeated in DYNAMIC segment")
-            sections[tag] = i
+                if tag not in DYNAMIC_SECTION_ALLOW_MULTIPLE:
+                   raise RuntimeError(f"tag {tag:#x} repeated in DYNAMIC segment")
+
+                if isinstance(sections[tag], list):
+                    sections[tag].append(i)
+                else:
+                    sections[tag] = [sections[tag], i]
+            else:
+                sections[tag] = i
         for tag in DYNAMIC_SECTION_INIT_TAGS:
             if tag not in sections:
                 raise RuntimeError(f"DYNAMIC segment missing requried tag {tag:#x}")
+        self.entries_by_tag = sections
 
         # Setup the string table reference.
         self.strtab_addr = self.dyn_array_read(sections[elf.DT_STRTAB], "d_un")
         self.strtab_size = self.dyn_array_read(sections[elf.DT_STRSZ], "d_un")
-    
+        self.symtab_addr = self.dyn_array_read(sections[elf.DT_SYMTAB], "d_un")
+        self.symtab_elem = self.dyn_array_read(sections[elf.DT_SYMENT], "d_un")
+
+    def has_jmprel(self):
+        """
+        Whether this segment has a DT_JMPREL entry.
+        """
+        return (
+            elf.DT_JMPREL   in self.entries_by_tag and
+            elf.DT_PLTREL   in self.entries_by_tag and
+            elf.DT_PLTRELSZ in self.entries_by_tag
+        )
+
+    def plt_rel(self):
+        """
+        Reads t
+        """
+
     def string(self, i):
         """
         Reads the string at index i from the string table.
@@ -238,13 +279,85 @@ class CStruct:
             ("d_un", pwndbg.gdblib.typeinfo.size_t, int)
         ])
 
+    def elfNN_sym():
+        """
+        Creates a new instance describing the ElfNN_Sym structure, suitable for
+        the architecture of the inferior.
+        """
+
+        # The layouts used by this struct differ between ELF32 and ELF64, so we
+        # have to pick the right class for the current architecture. It just so
+        # happens that this is one bit of information that can't be gathered
+        # directly from the dynamic section.
+        #
+        # Interestngly for us, however, `ld.so` can get away with having just
+        # one version of all of its structures, which means it can only support
+        # one class per target, and won't allow for a single process to dlload()
+        # multiple classes. Indeed, it defines a macro called __ELF_NATIVE_CLASS
+        # which effectively hard-codes the expected ELF class for the dynamic
+        # linker, and refuses to load libraries of another class[1].
+        #
+        # While we can't know what the __ELF_NATIVE_CLASS is, directly, we can
+        # use the pointer size of the system as a good enough proxy. And,
+        # because all structures in `ld.so` are bound to a given ELF class, we
+        # can assume that the structure belonging to the native class is the
+        # correct one to pick here.
+        #
+        # TODO: Is there any important case where this could be false?
+        #
+        # [1]: https://elixir.bootlin.com/glibc/glibc-2.38/source/elf/readelflib.c#L58
+        from pwndbg.gdblib.typeinfo import ptrsize
+
+        if ptrsize == 4:
+            return elf32_sym()
+        elif ptrsize == 8:
+            return elf64_sym()
+        else:
+            raise RuntimeError(f"unsupported pointer size {ptrsize}")
+
+    def elf32_sym():
+        # FIXME: ELF types have an exact size. We want our GDB types to match
+        # whatever the platform's exact sized integer types are, but, because of
+        # how these types are resolved, that might not always be the case.
+        #
+        # It's better to fail loudly here than to fail silently later.
+        assert pwndbg.gdblib.typeinfo.uint32.sizeof == 4
+        assert pwndbg.gdblib.typeinfo.uint16.sizeof == 2
+        assert pwndbg.gdblib.typeinfo.uint8.sizeof == 1
+
+        return CStruct([
+            ("st_name",  pwndbg.gdblib.typeinfo.uint32, int),
+            ("st_value", pwndbg.gdblib.typeinfo.uint32, int),
+            ("st_size",  pwndbg.gdblib.typeinfo.uint32, int),
+            ("st_info",  pwndbg.gdblib.typeinfo.uint8, int),
+            ("st_other", pwndbg.gdblib.typeinfo.uint8, int),
+            ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int)
+        ])
+
+    def elf64_sym():
+        # FIXME: Same issue as elf32_sym()
+        assert pwndbg.gdblib.typeinfo.uint.sizeof == 8
+        assert pwndbg.gdblib.typeinfo.uint32.sizeof == 4
+        assert pwndbg.gdblib.typeinfo.uint16.sizeof == 2
+        assert pwndbg.gdblib.typeinfo.uint8.sizeof == 1
+
+        return CStruct([
+            ("st_name",  pwndbg.gdblib.typeinfo.uint32, int),
+            ("st_info",  pwndbg.gdblib.typeinfo.uint8, int),
+            ("st_other", pwndbg.gdblib.typeinfo.uint8, int),
+            ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int)
+            ("st_value", pwndbg.gdblib.typeinfo.uint64, int),
+            ("st_size",  pwndbg.gdblib.typeinfo.uint64, int),
+        ])
+
+
     def __init__(self, fields):
         # Calculate the offset of all of the fields in the struct.
         current_offset = 0
         alignment = 1
         for entry in fields:
             name = entry[0]
-            ty = entry[1]
+            22ty = entry[1]
             if len(entry) > 2:
                 conv = entry[2]
             else:
