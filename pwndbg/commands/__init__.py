@@ -380,11 +380,8 @@ def OnlyWhenHeapIsInitialized(function: Callable[..., T]) -> Callable[..., Optio
 
 # TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
 def _is_statically_linked() -> bool:
-    is_static = False
-    dll_info = gdb.execute("info dll", to_string=True)
-    if dll_info is not None:
-        is_static = "No shared libraries loaded at this time." in dll_info
-    return is_static
+    out = gdb.execute("info dll", to_string=True)
+    return "No shared libraries loaded at this time." in out
 
 
 def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) -> str | None:
