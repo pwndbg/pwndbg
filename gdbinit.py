@@ -46,7 +46,7 @@ else:
 
     # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
     bin_path = os.path.join(venv_path, "bin")
-    os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH")
+    os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
 
     # Add pwndbg directory to sys.path so it can be imported
     sys.path.insert(0, directory)
@@ -76,5 +76,6 @@ import pwndbg.profiling
 
 pwndbg.profiling.init(_profiler, _start_time)
 if environ.get("PWNDBG_PROFILE") == "1":
-    pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
-    pwndbg.profiling.profiler.start()
+    if pwndbg.profiling.profiler:
+        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+        pwndbg.profiling.profiler.start()

@@ -81,8 +81,7 @@ class module(ModuleType):
 
         Can be used to detect segfaults (but will also detect other signals)
         """
-        info = gdb.execute("info program", to_string=True)
-        return "It stopped with signal " in info if info else False
+        return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @property
     def exe(self) -> str | None:

@@ -799,8 +799,5 @@ def check_aslr() -> Tuple[bool | None, str]:
     #
     # This should usually be identical to the above, but we may not have
     # access to procfs.
-    is_off = False
     output = gdb.execute("show disable-randomization", to_string=True)
-    if output:
-        is_off = "is off." in output
-    return is_off, "show disable-randomization"
+    return ("is off." in output), "show disable-randomization"
