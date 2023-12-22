@@ -34,11 +34,11 @@ def lookup_types(*types: str) -> gdb.Type:
 def update():
     # Workaround for Rust stuff, see https://github.com/pwndbg/pwndbg/issues/855
     lang = gdb.execute("show language", to_string=True)
-    if lang and "rust" not in lang:
+    if "rust" not in lang:
         restore_lang = None
     else:
         gdb.execute("set language c")
-        if lang and '"auto;' in lang:
+        if '"auto;' in lang:
             restore_lang = "auto"
         else:
             restore_lang = "rust"

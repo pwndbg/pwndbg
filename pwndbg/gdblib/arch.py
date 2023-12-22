@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gdb
 import pwnlib
+import pwnlib.context
 
 import pwndbg.gdblib.proc
 from pwndbg.gdblib import typeinfo
@@ -44,9 +45,8 @@ arch = Arch("i386", typeinfo.ptrsize, "little")
 
 def _get_arch(ptrsize: int):
     not_exactly_arch = False
-    endian_value = gdb.execute("show endian", to_string=True)
 
-    if endian_value and "little" in endian_value.lower():
+    if "little" in gdb.execute("show endian", to_string=True).lower():
         endian = "little"
     else:
         endian = "big"
@@ -54,8 +54,7 @@ def _get_arch(ptrsize: int):
     if pwndbg.gdblib.proc.alive:
         arch = gdb.newest_frame().architecture().name()
     else:
-        arch_value = gdb.execute("show architecture", to_string=True)
-        arch = arch_value.strip() if arch_value else "UNKNOWN"
+        arch = gdb.execute("show architecture", to_string=True).strip()
         not_exactly_arch = True
 
     # Below, we fix the fetched architecture

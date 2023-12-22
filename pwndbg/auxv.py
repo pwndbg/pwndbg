@@ -141,7 +141,7 @@ def find_stack_boundary(addr: gdb.Value | int) -> int:
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         while True:
-            if b"\x7fELF" == bytes(pwndbg.gdblib.memory.read(addr, 4)):
+            if b"\x7fELF" == pwndbg.gdblib.memory.read(addr, 4):
                 break
             addr += pwndbg.lib.memory.PAGE_SIZE
     except gdb.MemoryError:
