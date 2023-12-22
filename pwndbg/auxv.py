@@ -16,6 +16,8 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
+import pwndbg.lib.cache
+import pwndbg.lib.memory
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
@@ -80,7 +82,7 @@ sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
 class AUXV(dict):
-    def set(self, const, value) -> None:
+    def set(self, const: int, value) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
@@ -101,7 +103,7 @@ class AUXV(dict):
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
-def get():
+def get() -> AUXV:
     return use_info_auxv() or walk_stack() or AUXV()
 
 
@@ -124,7 +126,7 @@ def use_info_auxv():
     return auxv
 
 
-def find_stack_boundary(addr):
+def find_stack_boundary(addr: gdb.Value | int) -> int:
     # For real binaries, we can just use pwndbg.gdblib.memory.find_upper_boundary
     # to search forward until we walk off the end of the stack.
     #
@@ -139,7 +141,7 @@ def find_stack_boundary(addr):
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         while True:
-            if b"\x7fELF" == pwndbg.gdblib.memory.read(addr, 4):
+            if b"\x7fELF" == bytes(pwndbg.gdblib.memory.read(addr, 4)):
                 break
             addr += pwndbg.lib.memory.PAGE_SIZE
     except gdb.MemoryError:
@@ -147,7 +149,7 @@ def find_stack_boundary(addr):
     return addr
 
 
-def walk_stack():
+def walk_stack() -> AUXV | None:
     if not pwndbg.gdblib.abi.linux:
         return None
     if pwndbg.gdblib.qemu.is_qemu_kernel():
@@ -169,7 +171,7 @@ def walk_stack():
     return auxv
 
 
-def walk_stack2(offset: int = 0):
+def walk_stack2(offset: int = 0) -> AUXV:
     sp = pwndbg.gdblib.regs.sp
 
     if not sp:
@@ -249,10 +251,10 @@ def walk_stack2(offset: int = 0):
         return AUXV()
 
 
-def _get_execfn():
+def _get_execfn() -> str | None:
     # If the stack is not sane, this won't work
     if not pwndbg.gdblib.memory.peek(pwndbg.gdblib.regs.sp):
-        return
+        return None
 
     # QEMU does not put AT_EXECFN in the Auxiliary Vector
     # on the stack.
@@ -275,3 +277,4 @@ def _get_execfn():
     v = pwndbg.gdblib.strings.get(addr, 1024)
     if v:
         return os.path.abspath(v)
+    return None

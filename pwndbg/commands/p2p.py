@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import argparse
+from typing import List
+from typing import Tuple
 
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 
 ts = pwndbg.commands.telescope.telescope
 
 
 class AddrRange:
-    def __init__(self, begin, end) -> None:
+    def __init__(self, begin: int, end: int) -> None:
         self.begin = begin
         self.end = end
 
@@ -21,11 +24,11 @@ class AddrRange:
         return (self.begin, self.end).__repr__()
 
 
-def get_addrrange_any_named():
+def get_addrrange_any_named() -> List[AddrRange]:
     return [AddrRange(page.start, page.end) for page in pwndbg.gdblib.vmmap.get()]
 
 
-def guess_numbers_base(num: str):
+def guess_numbers_base(num: str) -> int:
     base = 10
     if num.startswith("0x"):
         base = 16
@@ -37,14 +40,14 @@ def guess_numbers_base(num: str):
     return base
 
 
-def address_range_explicit(section):
+def address_range_explicit(section: str) -> AddrRange:
     try:
         begin, end = section.split(":")
 
         begin = int(begin, guess_numbers_base(begin))
         end = int(end, guess_numbers_base(end))
 
-        return AddrRange(begin, end)
+        return AddrRange(int(begin), int(end))
     except Exception:
         parser.error(
             '"%s" - Bad format of explicit address range!'
@@ -52,7 +55,7 @@ def address_range_explicit(section):
         )
 
 
-def address_range(section):
+def address_range(section: str) -> List[AddrRange] | Tuple[int, int] | None:
     if section in ("*", "any"):
         return (0, pwndbg.gdblib.arch.ptrmask)
 
@@ -79,7 +82,7 @@ Any chain length greater than 0 is valid. If only one mapping is given it just l
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
 
 
-def maybe_points_to_ranges(ptr: int, rs: list[AddrRange]):
+def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
     try:
         pointee = pwndbg.gdblib.memory.pvoid(ptr)
     except Exception:
@@ -92,7 +95,7 @@ def maybe_points_to_ranges(ptr: int, rs: list[AddrRange]):
     return None
 
 
-def p2p_walk(addr, ranges, current_level):
+def p2p_walk(addr: int, ranges: List[List[AddrRange]], current_level: int) -> int | None:
     levels = len(ranges)
 
     if current_level >= levels:
@@ -111,7 +114,7 @@ def p2p_walk(addr, ranges, current_level):
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: list | None = None) -> None:
+def p2p(mapping_names: List[List[AddrRange]] | None = None) -> None:
     if not mapping_names:
         return
 

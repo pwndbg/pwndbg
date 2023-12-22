@@ -15,12 +15,12 @@ class Breakpoint(gdb.Breakpoint):
     instead of `stop()`, as the latter is used to do cache invalidation.
     """
 
-    def stop(self):
+    def stop(self) -> bool:
         # Clear the cache for the stop event.
         pwndbg.lib.cache.clear_cache("stop")
         return self.should_stop()
 
-    def should_stop(self):
+    def should_stop(self) -> bool:
         """
         This function is called whenever this breakpoint is hit in the code and
         its return value determines whether the inferior will be stopped.
