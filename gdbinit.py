@@ -76,6 +76,5 @@ import pwndbg.profiling
 
 pwndbg.profiling.init(_profiler, _start_time)
 if environ.get("PWNDBG_PROFILE") == "1":
-    if pwndbg.profiling.profiler:
-        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
-        pwndbg.profiling.profiler.start()
+    pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+    pwndbg.profiling.profiler.start()
