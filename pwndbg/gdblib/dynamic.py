@@ -146,7 +146,22 @@ class DynamicSegment:
     strtab_addr = 0
     strtab_size = 0
 
+    symtab_addr = 0
+    symtab_elem = None
+
     entries_by_tag = {}
+
+    has_jmprel = False
+    has_rela = False
+    has_rel = False
+
+    jmprel_addr = 0
+    rela_addr = 0
+    rel_addr = 0
+
+    jmprel_elem = None
+    rela_elem = None
+    rel_elem = None
 
     def __init__(self, address, load_bias):
         # Enumerate the ElfNN_Dyn entries.
@@ -163,14 +178,14 @@ class DynamicSegment:
         self.elf_dyn = elf_dyn
 
         # Map the tags we want to find to their respective entires. We don't
-        # allow for repeats as the tags should only appear once in a well-formed
-        # dynamic segment.
+        # allow for repeats on most tags as they should only appear once in a
+        # well-formed dynamic segment.
         sections = {}
         for i in range(self.entries):
             tag = self.dyn_array_read(i, "d_tag")
             if tag in sections:
                 if tag not in DYNAMIC_SECTION_ALLOW_MULTIPLE:
-                   raise RuntimeError(f"tag {tag:#x} repeated in DYNAMIC segment")
+                   raise RuntimeError(f"tag {tag:#x} repeated")
 
                 if isinstance(sections[tag], list):
                     sections[tag].append(i)
@@ -178,31 +193,150 @@ class DynamicSegment:
                     sections[tag] = [sections[tag], i]
             else:
                 sections[tag] = i
-        for tag in DYNAMIC_SECTION_INIT_TAGS:
+        for tag in DYNAMIC_SECTION_REQUIRED_TAGS:
             if tag not in sections:
-                raise RuntimeError(f"DYNAMIC segment missing requried tag {tag:#x}")
+                raise RuntimeError(f"missing requried tag {tag:#x}")
         self.entries_by_tag = sections
 
         # Setup the string table reference.
-        self.strtab_addr = self.dyn_array_read(sections[elf.DT_STRTAB], "d_un")
-        self.strtab_size = self.dyn_array_read(sections[elf.DT_STRSZ], "d_un")
-        self.symtab_addr = self.dyn_array_read(sections[elf.DT_SYMTAB], "d_un")
-        self.symtab_elem = self.dyn_array_read(sections[elf.DT_SYMENT], "d_un")
+        self.strtab_addr = self.dyn_array_read_tag_val(elf.DT_STRTAB)
+        self.strtab_size = self.dyn_array_read_tag_val(elf.DT_STRSZ)
+        
+        # Find the address of the symbol table and determine the correct version
+        # of the ElfNN_Sym structure to use for this table, based on the size
+        # of the elements given by DT_SYMENT.
+        self.symtab_addr = self.dyn_array_read_tag_val(elf.DT_SYMTAB)
 
-    def has_jmprel(self):
-        """
-        Whether this segment has a DT_JMPREL entry.
-        """
-        return (
-            elf.DT_JMPREL   in self.entries_by_tag and
-            elf.DT_PLTREL   in self.entries_by_tag and
-            elf.DT_PLTRELSZ in self.entries_by_tag
+        syment = self.dyn_array_read_tag_val(elf.DT_SYMENT)
+        if syment == 16:
+            self.symtab_elem = CStruct.elf32_sym()
+        elif syment == 24:
+            self.symtab_elem = CStruct.elf64_sym()
+        else:
+            raise RuntimeError(f"unsupported value {syment} for DT_SYMENT, expected either 16 (Elf32_Sym) or 24 (Elf64_Sym)")
+
+        # Check the relocation sections, and perform some sanity checks.
+        self.has_jmprel = (
+            elf.DT_JMPREL   in sections and
+            elf.DT_PLTREL   in sections and
+            elf.DT_PLTRELSZ in sections
+        )
+        self.has_rela = (
+            elf.DT_RELA    in sections and
+            elf.DT_RELASZ  in sections and
+            elf.DT_RELAENT in sections
+        )
+        self.has_rel = (
+            elf.DT_REL    in sections and
+            elf.DT_RELSZ  in sections and
+            elf.DT_RELENT in sections
         )
 
-    def plt_rel(self):
+        # Create the CStructs for the entries in each of our relocation sections
+        # and make sure that their size matches the value of their respective
+        # dynamic array element size entry.
+        if self.has_rela:
+            self.rela_addr = self.dyn_array_read_tag_val(elf.DT_RELA)
+            self.rela_elem = CStruct.elfNN_rela()
+            relaent = self.dyn_array_read_tag_val(elf.DT_RELAENT)
+            assert self.rela_elem.size == relaent
+
+            if self.dyn_array_read_tag_val(elf.DT_RELASZ) % self.rela_elem.size != 0:
+                raise RuntimeError("DT_RELASZ is not divisible by DT_RELAENT")
+
+        if self.has_rel:
+            self.rel_addr = self.dyn_array_read_tag_val(elf.DT_REL)
+            self.rel_elem = CStruct.elfNN_rel()
+            relent = self.dyn_array_read_tag_val(elf.DT_RELENT)
+            assert self.rel_elem.size == relent
+
+            if self.dyn_array_read_tag_val(elf.DT_RELSZ) % self.rel_elem.size != 0:
+                raise RuntimeError("DT_RELSZ is not divisible by DT_RELENT")
+
+        if self.has_jmprel:
+            self.jmprel_addr = self.dyn_array_read_tag_val(elf.DT_JMPREL)
+            pltrel = self.dyn_array_read_tag_val(elf.DT_PLTREL)
+            if pltrel == elf.DT_RELA:
+                self.jmprel_elem = CStruct.elfNN_rela()
+                if elf.DT_RELAENT not in sections:
+                    raise RuntimeError("DT_PLTREL is DT_RELA, but missing DT_RELAENT")
+                assert self.jmprel_elem.size == self.dyn_array_read_tag_val(elf.DT_RELAENT)
+
+            elif pltrel == elf.DT_REL:
+                self.jmprel_elem = CStruct.elfNN_rel()
+                if elf.DT_RELENT not in sections:
+                    raise RuntimeError("DT_PLTREL is DT_REL, but missing DT_RELENT")
+                assert self.jmprel_elem.size == self.dyn_array_read_tag_val(elf.DT_RELENT)
+
+            if self.dyn_array_read_tag_val(elf.DT_PLTRELSZ) % self.jmprel_elem.size != 0:
+                raise RuntimeError("DT_PLTRELSZ is not divisible by the element size")
+
+    def jmprel_has_addend(self):
         """
-        Reads t
+        Returns whether the `r_addend` field is available in entries of JMPREL.
         """
+        assert self.has_jmprel
+        return self.dyn_array_read_tag_val(elf.DT_PLTREL) == elf.DT_RELA
+
+    def rela_read(self, i, field):
+        """
+        Reads the requested field from the entry of the given index in RELA.
+        """
+        assert self.has_rela
+        count = self.rela_entry_count()
+        if i >= count:
+            raise ValueError(f"tried to read entry {i} in RELA with only {count} entries")
+        return self.rela_elem.read(self.rela_addr + i * self.rela_elem.size, field)
+
+    def rel_read(self, i, field):
+        """
+        Reads the requested field from the entry of the given index in REL.
+        """
+        assert self.has_rel
+        count = self.rel_entry_count()
+        if i >= count:
+            raise ValueError(f"tried to read entry {i} in REL with only {count} entries")
+        return self.rel_elem.read(self.rel_addr + i * self.rel_elem.size, field)
+
+    def jmprel_read(self, i, field):
+        """
+        Reads the requested field from the entry of the given index in JMPREL.
+        """
+        assert self.has_jmprel
+        count = self.jmprel_entry_count()
+        if i >= count:
+            raise ValueError(f"tried to read entry {i} in JMPREL with only {count} entries")
+        return self.jmprel_elem.read(self.jmprel_addr + i * self.jmprel_elem.size, field)
+
+    def rela_entry_count(self):
+        """
+        Returns the number of RELA entries.
+        """
+        assert self.has_rela
+        relasz  = self.dyn_array_read_tag_val(elf.DT_RELASZ)
+        relaent = self.dyn_array_read_tag_val(elf.DT_RELAENT)
+
+        return relasz // relaent
+
+    def rel_entry_count(self):
+        """
+        Returns the number of REL entries.
+        """
+        assert self.has_rel
+        relsz  = self.dyn_array_read_tag_val(elf.DT_RELSZ)
+        relent = self.dyn_array_read_tag_val(elf.DT_RELENT)
+
+        return relsz // relent
+
+    def jmprel_entry_count(self):
+        """
+        Returns the number of JMPREL entries.
+        """
+        assert self.has_jmprel
+        pltrelsz  = self.dyn_array_read_tag_val(elf.DT_PLTRELSZ)
+        pltrelent = self.jmprel_elem.size
+
+        return pltrelsz // pltrelent
 
     def string(self, i):
         """
@@ -212,6 +346,13 @@ class DynamicSegment:
             raise ValueError(f"tried to read entry {i} in string table with only {self.entries} bytes")
         return pwndbg.gdblib.memory.string(self.strtab_addr + i)
 
+    def symtab_read(self, i, field):
+        """
+        Reads the requested field from the entry of given index in the symbol
+        table.
+        """
+        return self.symtab_elem.read(self.symtab_addr + i * self.symtab_elem.size, field)
+
     def dyn_array_read(self, i, field):
         """
         Reads the requested field from the entry of given index in the dynamic
@@ -220,6 +361,14 @@ class DynamicSegment:
         if i >= self.entries:
             raise ValueError(f"tried to read from entry {i} in dynamic array with only {self.entries} entries")
         return self.elf_dyn.read(self.address + i * self.elf_dyn.size, field)
+
+    def dyn_array_read_tag_val(self, tag):
+        """
+        Reads the `d_un` field from the entry of given tag in the dynamic
+        array. Must not be a tag that allows multiple entries.
+        """
+        return self.dyn_array_read(self.entries_by_tag[tag], "d_un")
+
 
 class CStruct:
     """
@@ -279,43 +428,31 @@ class CStruct:
             ("d_un", pwndbg.gdblib.typeinfo.size_t, int)
         ])
 
-    def elfNN_sym():
+    def elfNN_rel():
         """
-        Creates a new instance describing the ElfNN_Sym structure, suitable for
+        Creates a new instance describing the ElfNN_Rel structure, suitable for
         the architecture of the inferior.
         """
+        return CStruct([
+            ("r_offset", pwndbg.gdblib.typeinfo.size_t, int),
+            ("r_info", pwndbg.gdblib.typeinfo.size_t, int),
+        ])
 
-        # The layouts used by this struct differ between ELF32 and ELF64, so we
-        # have to pick the right class for the current architecture. It just so
-        # happens that this is one bit of information that can't be gathered
-        # directly from the dynamic section.
-        #
-        # Interestngly for us, however, `ld.so` can get away with having just
-        # one version of all of its structures, which means it can only support
-        # one class per target, and won't allow for a single process to dlload()
-        # multiple classes. Indeed, it defines a macro called __ELF_NATIVE_CLASS
-        # which effectively hard-codes the expected ELF class for the dynamic
-        # linker, and refuses to load libraries of another class[1].
-        #
-        # While we can't know what the __ELF_NATIVE_CLASS is, directly, we can
-        # use the pointer size of the system as a good enough proxy. And,
-        # because all structures in `ld.so` are bound to a given ELF class, we
-        # can assume that the structure belonging to the native class is the
-        # correct one to pick here.
-        #
-        # TODO: Is there any important case where this could be false?
-        #
-        # [1]: https://elixir.bootlin.com/glibc/glibc-2.38/source/elf/readelflib.c#L58
-        from pwndbg.gdblib.typeinfo import ptrsize
-
-        if ptrsize == 4:
-            return elf32_sym()
-        elif ptrsize == 8:
-            return elf64_sym()
-        else:
-            raise RuntimeError(f"unsupported pointer size {ptrsize}")
+    def elfNN_rela():
+        """
+        Creates a new instance describing the ElfNN_Rela structure, suitable for
+        the architecture of the inferior.
+        """
+        return CStruct([
+            ("r_offset", pwndbg.gdblib.typeinfo.size_t, int),
+            ("r_info", pwndbg.gdblib.typeinfo.size_t, int),
+            ("r_addend", pwndbg.gdblib.typeinfo.size_t, int),
+        ])
 
     def elf32_sym():
+        """
+        Creates a new instance describing the Elf32_Sym srtucture.
+        """
         # FIXME: ELF types have an exact size. We want our GDB types to match
         # whatever the platform's exact sized integer types are, but, because of
         # how these types are resolved, that might not always be the case.
@@ -335,8 +472,12 @@ class CStruct:
         ])
 
     def elf64_sym():
+        """
+        Creates a new instance describing the Elf64_Sym structure.
+        """
+
         # FIXME: Same issue as elf32_sym()
-        assert pwndbg.gdblib.typeinfo.uint.sizeof == 8
+        assert pwndbg.gdblib.typeinfo.uint64.sizeof == 8
         assert pwndbg.gdblib.typeinfo.uint32.sizeof == 4
         assert pwndbg.gdblib.typeinfo.uint16.sizeof == 2
         assert pwndbg.gdblib.typeinfo.uint8.sizeof == 1
@@ -345,11 +486,10 @@ class CStruct:
             ("st_name",  pwndbg.gdblib.typeinfo.uint32, int),
             ("st_info",  pwndbg.gdblib.typeinfo.uint8, int),
             ("st_other", pwndbg.gdblib.typeinfo.uint8, int),
-            ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int)
+            ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int),
             ("st_value", pwndbg.gdblib.typeinfo.uint64, int),
             ("st_size",  pwndbg.gdblib.typeinfo.uint64, int),
         ])
-
 
     def __init__(self, fields):
         # Calculate the offset of all of the fields in the struct.
@@ -357,7 +497,7 @@ class CStruct:
         alignment = 1
         for entry in fields:
             name = entry[0]
-            22ty = entry[1]
+            ty = entry[1]
             if len(entry) > 2:
                 conv = entry[2]
             else:
