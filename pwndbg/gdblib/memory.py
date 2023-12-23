@@ -293,7 +293,7 @@ def s64(addr: int) -> int:
 
 
 # TODO: `readtype` is just `int(poi(type, addr))`
-def poi(type: gdb.Type, addr: int) -> gdb.Value:
+def poi(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
     """poi(addr) -> gdb.Value
 
     Read one ``gdb.Type`` object at the specified address.

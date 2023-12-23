@@ -74,7 +74,7 @@ def happy(typename: str) -> str:
     )
 
 
-def dt(name: str = "", addr: str | gdb.Value | None = None, obj: gdb.Value | None = None) -> str:
+def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | None = None) -> str:
     """
     Dump out a structure type Windbg style.
     """
