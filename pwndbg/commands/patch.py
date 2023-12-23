@@ -33,7 +33,7 @@ def patch(address: gdb.Value | int, ins: str, quiet: bool) -> None:
     # Make sure that any gdb.Value object is converted to int
     address = int(address)
 
-    new_mem = bytearray(asm(ins))
+    new_mem = asm(ins)
 
     old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
 

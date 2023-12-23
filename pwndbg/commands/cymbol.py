@@ -98,7 +98,7 @@ def generate_debug_symbols(
     try:
         subprocess.run(gcc_cmd, capture_output=True, check=True)
     except subprocess.CalledProcessError as exception:
-        print(message.error(str(exception)))
+        print(message.error(exception))
         print(
             message.error(
                 "Failed to compile the .c file with custom structures. Please fix any compilation errors there may be."
@@ -106,7 +106,7 @@ def generate_debug_symbols(
         )
         return None
     except Exception as exception:
-        print(message.error(str(exception)))
+        print(message.error(exception))
         print(message.error("An error occured while generating the debug symbols."))
         return None
 

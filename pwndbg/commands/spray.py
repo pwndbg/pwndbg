@@ -77,4 +77,4 @@ def spray(addr, length, value, only_funcptrs) -> None:
         else:
             pwndbg.gdblib.memory.write(addr, value_bytes)
     except gdb.MemoryError as e:
-        print(M.error(str(e)))
+        print(M.error(e))

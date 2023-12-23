@@ -56,8 +56,7 @@ def initial_hook(*a: Any) -> None:
     prompt_hook(*a)
 
     if environ.get("PWNDBG_PROFILE") == "1":
-        if pwndbg.profiling.profiler:
-            pwndbg.profiling.profiler.stop("pwndbg-first-prompt.pstats")
+        pwndbg.profiling.profiler.stop("pwndbg-first-prompt.pstats")
 
     gdb.prompt_hook = prompt_hook
 
