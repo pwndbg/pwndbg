@@ -19,16 +19,12 @@ ptrsize: int
 
 
 def lookup_types(*types: str) -> gdb.Type:
-    exc = None
     for type_str in types:
         try:
             return gdb.lookup_type(type_str)
         except Exception as e:
             exc = e
-    if exc is not None:
-        raise exc
-    else:
-        raise RuntimeError("No types provided to lookup.")
+    raise exc
 
 
 def update():
