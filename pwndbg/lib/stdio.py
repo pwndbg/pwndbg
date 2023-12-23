@@ -14,7 +14,7 @@ from typing import Type
 class Stdio:
     queue: list[tuple[TextIO, TextIO, TextIO]] = []
 
-    def __enter__(self) -> None:
+    def __enter__(self, *a, **kw) -> None:
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
 
         sys.stdin = sys.__stdin__
