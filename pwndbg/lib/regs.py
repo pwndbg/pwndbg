@@ -73,7 +73,7 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = set(misc) | set(flags) | set(self.retaddr) | set(self.common)
+        self.all = {i for i in misc} | set(flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
 
     def __iter__(self) -> Iterator[str]:

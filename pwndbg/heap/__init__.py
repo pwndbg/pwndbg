@@ -5,10 +5,10 @@ from typing import Sequence
 
 import gdb
 
+import pwndbg.gdblib.config
 import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
 from pwndbg.color import message
-from pwndbg.gdblib.config import config
 
 current = None
 
@@ -22,7 +22,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return config.add_param(
+    return pwndbg.gdblib.config.add_param(
         name,
         default,
         set_show_doc,

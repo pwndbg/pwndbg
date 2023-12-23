@@ -30,7 +30,7 @@ def which(arch: Arch) -> List[str]:
         elif arch.ptrsize == 64:
             return ["g++", "-m32"]
 
-    return [gcc] + _flags(arch.name) if gcc is not None else _flags(arch.name)
+    return [gcc] + _flags(arch.name)
 
 
 def _which_binutils(util: str, arch: Arch, **kwargs: Any):
