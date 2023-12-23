@@ -356,7 +356,7 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
     try:
         return banner + pwndbg.ghidra.decompile().split("\n")
     except Exception as e:
-        return banner + [message.error(str(e))]
+        return banner + [message.error(e)]
 
 
 # @pwndbg.gdblib.events.stop

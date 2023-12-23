@@ -32,6 +32,4 @@ def dt(typename: str, address: str | gdb.Value | None = None) -> None:
     """
     if address is not None:
         address = pwndbg.commands.fix(address)
-        if not address:
-            return
     print(pwndbg.gdblib.dt.dt(typename, addr=address))

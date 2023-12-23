@@ -36,8 +36,6 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
     address = int(address)
     page = pwndbg.gdblib.vmmap.find(address)
 
-    color: ColorFunction = normal
-
     if page is None:
         color = normal
     elif "[stack" in page.objfile:

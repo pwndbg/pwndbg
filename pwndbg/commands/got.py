@@ -174,9 +174,9 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         relro_color = message.on
     print(f"State of the GOT of {message.notice(path)}:")
     print(
-        f"GOT protection: {relro_color(relro_status)} | Found {message.hint(str(len(outputs)))} GOT entries passing the filter"
+        f"GOT protection: {relro_color(relro_status)} | Found {message.hint(len(outputs))} GOT entries passing the filter"
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(str(output['name']))} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(int(output['address'])))}"
+            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"
         )

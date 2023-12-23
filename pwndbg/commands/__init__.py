@@ -53,10 +53,9 @@ class CommandCategory(str, Enum):
 
 def list_current_commands():
     current_pagination = gdb.execute("show pagination", to_string=True)
-    if current_pagination is not None:
-        current_pagination = current_pagination.split()[-1].rstrip(
-            "."
-        )  # Take last word and skip period
+    current_pagination = current_pagination.split()[-1].rstrip(
+        "."
+    )  # Take last word and skip period
 
     gdb.execute("set pagination off")
     command_list = gdb.execute("help all", to_string=True).strip().split("\n")

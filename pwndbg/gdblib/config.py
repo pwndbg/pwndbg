@@ -55,7 +55,7 @@ class Parameter(gdb.Parameter):
                 param.name,
                 gdb.COMMAND_SUPPORT,
                 param.param_class,
-                param.enum_sequence if param.enum_sequence else [],
+                param.enum_sequence,
             )
             return
         super().__init__(param.name, gdb.COMMAND_SUPPORT, param.param_class)
@@ -158,6 +158,6 @@ class Parameter(gdb.Parameter):
 
 def init_params() -> None:
     # Create a gdb.Parameter for each parameter
-    for p in config.params.values():
+    for p in pwndbg.gdblib.config.params.values():
         # We don't need to store this anywhere, GDB will handle this
         Parameter(p)

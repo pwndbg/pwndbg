@@ -103,7 +103,7 @@ def dt(name: str = "", addr: str | gdb.Value | None = None, obj: gdb.Value | Non
     # If an address was specified, create a Value of the
     # specified type at that address.
     if addr is not None:
-        obj = pwndbg.gdblib.memory.poi(t, int(addr))
+        obj = pwndbg.gdblib.memory.poi(t, addr)
 
     # Header, optionally include the name
     header = name
