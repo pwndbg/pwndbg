@@ -103,8 +103,7 @@ def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
     class FuncDefVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node: CAstNode, *a: Any) -> None:
             f = ExtractFuncDecl(node, verbose)
-            if f:
-                Functions[f.name] = f
+            Functions[f.name] = f
 
     FuncDefVisitor().visit(ast)
 

@@ -97,8 +97,6 @@ def pid() -> int:
     if not targets:
         return 0
 
-    pid = 0
-
     for process in psutil.process_iter():
         if not process.name().startswith("qemu"):
             continue
@@ -111,4 +109,3 @@ def pid() -> int:
         for c in connections:
             if c.laddr in targets:
                 return process.pid
-    return pid
