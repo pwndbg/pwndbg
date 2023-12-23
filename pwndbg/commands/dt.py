@@ -24,7 +24,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def dt(typename: str, address: str | gdb.Value | None = None) -> None:
+def dt(typename: str, address: int | gdb.Value | None = None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).
 
