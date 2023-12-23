@@ -338,7 +338,7 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         for _ in range(max_pages):
-            read(addr, 1)
+            pwndbg.gdblib.memory.read(addr, 1)
             addr -= PAGE_SIZE
 
             # Sanity check (see comment in find_upper_boundary)

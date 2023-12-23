@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import collections
 from typing import Any
+from typing import Dict
 from typing import Iterator
+from typing import Tuple
 
 
 class RegisterSet:
@@ -20,16 +22,16 @@ class RegisterSet:
     frame: str | None = None
 
     #: Return address register
-    retaddr: tuple[str, ...] | None = None
+    retaddr: Tuple[str, ...] | None = None
 
     #: Flags register (eflags, cpsr)
-    flags: dict[str, Any] | None = None
+    flags: Dict[str, Any] | None = None
 
     #: List of native-size general-purpose registers
-    gpr: tuple[str, ...] | None = None
+    gpr: Tuple[str, ...] | None = None
 
     #: List of miscellaneous, valid registers
-    misc: tuple[str, ...] | None = None
+    misc: Tuple[str, ...] | None = None
 
     #: Register-based arguments for most common ABI
     regs = None
@@ -48,11 +50,11 @@ class RegisterSet:
         pc: str = "pc",
         stack: str = "sp",
         frame: str | None = None,
-        retaddr: tuple[str, ...] = tuple(),
-        flags: dict[str, Any] = {},
-        gpr: tuple[str, ...] = tuple(),
-        misc: tuple[str, ...] = tuple(),
-        args: tuple[str, ...] = tuple(),
+        retaddr: Tuple[str, ...] = tuple(),
+        flags: Dict[str, Any] = {},
+        gpr: Tuple[str, ...] = tuple(),
+        misc: Tuple[str, ...] = tuple(),
+        args: Tuple[str, ...] = tuple(),
         retval: str | None = None,
     ) -> None:
         self.pc = pc
@@ -75,8 +77,7 @@ class RegisterSet:
         self.all -= {None}
 
     def __iter__(self) -> Iterator[str]:
-        if self.all is not None:
-            yield from self.all
+        yield from self.all
 
 
 arm_cpsr_flags = collections.OrderedDict(
