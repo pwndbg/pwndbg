@@ -106,7 +106,7 @@ def probeleak(
     try:
         data = pwndbg.gdblib.memory.read(address, count, partial=True)
     except gdb.error as e:
-        print(message.error(e))
+        print(message.error(str(e)))
         return
 
     if not data:

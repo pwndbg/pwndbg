@@ -143,11 +143,7 @@ class Page:
         return self.vaddr == getattr(other, "vaddr", other)
 
     def __lt__(self, other: object) -> bool:
-        other_vaddr = getattr(other, "vaddr", None)
-        if isinstance(other_vaddr, int):
-            return self.vaddr < other_vaddr
-        else:
-            return NotImplemented
+        return self.vaddr < getattr(other, "vaddr", other)
 
     def __hash__(self) -> int:
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))

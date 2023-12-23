@@ -97,8 +97,7 @@ class module(ModuleType):
             `pwndbg.gdblib.file.get_proc_exe_file()`
             (This will call `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe, try_local_path=True)`)
         """
-        progspace = gdb.current_progspace()
-        return progspace.filename if progspace else None
+        return gdb.current_progspace().filename
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
@@ -115,8 +114,6 @@ class module(ModuleType):
         """
         Dump .data section of current process's ELF file
         """
-        if self.exe is None:
-            return None
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -124,8 +121,6 @@ class module(ModuleType):
         """
         Dump relocations of a section by section name of current process's ELF file
         """
-        if self.exe is None:
-            return None
         return pwndbg.gdblib.elf.dump_relocations_by_section_name(
             self.exe, section_name, try_local_path=True
         )

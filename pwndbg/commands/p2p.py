@@ -47,7 +47,7 @@ def address_range_explicit(section: str) -> AddrRange:
         begin = int(begin, guess_numbers_base(begin))
         end = int(end, guess_numbers_base(end))
 
-        return AddrRange(int(begin), int(end))
+        return AddrRange(begin, end)
     except Exception:
         parser.error(
             '"%s" - Bad format of explicit address range!'

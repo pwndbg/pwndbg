@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import binascii
 import socket
+from typing import List
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
@@ -62,7 +63,7 @@ class UnixSocket(inode):
         return f"UnixSocket({self})"
 
 
-def tcp(data: str) -> list[Connection]:
+def tcp(data: str) -> List[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -73,7 +74,7 @@ def tcp(data: str) -> list[Connection]:
     if not data:
         return []
 
-    result: list[Connection] = []
+    result: List[Connection] = []
     for line in data.splitlines()[1:]:
         fields = line.split()
         """
@@ -138,11 +139,11 @@ def tcp(data: str) -> list[Connection]:
     return result
 
 
-def unix(data: str) -> list[UnixSocket]:
+def unix(data: str) -> List[UnixSocket]:
     if not data:
         return []
 
-    result: list[UnixSocket] = []
+    result: List[UnixSocket] = []
     # Note: it is super important to split by "\n" instead of .splitlines() here
     # because there may be a line like this:
     # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
@@ -200,11 +201,11 @@ class Netlink(inode):
         return f"Netlink({self})"
 
 
-def netlink(data: str) -> list[Netlink]:
+def netlink(data: str) -> List[Netlink]:
     if not data:
         return []
 
-    result: list[Netlink] = []
+    result: List[Netlink] = []
     for line in data.splitlines()[1:]:
         # sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode            [10/8747]
         fields = line.split()

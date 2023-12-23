@@ -53,7 +53,7 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
         old_color = color
         color = lambda x: c.rwx(old_color(x))
 
-    if text is None and address > 255:
+    if text is None and isinstance(address, int) and address > 255:
         text = hex(int(address))
     if text is None:
         text = str(int(address))
