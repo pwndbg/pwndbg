@@ -153,7 +153,7 @@ def r_debug_link_map_changed_remove_listener(handler):
     R_DEBUG_LINK_MAP_CHANGED_LISTENERS.remove(handler)
 
 
-@pwndbg.lib.cache.cache_until("link_map")
+#@pwndbg.lib.cache.cache_until("link_map")
 def link_map_head():
     """
     Acquires a reference to the head entry of the link map.
@@ -172,7 +172,7 @@ def link_map_head():
         return LinkMapEntry(r_map)
 
 
-@pwndbg.lib.cache.cache_until("link_map")
+#@pwndbg.lib.cache.cache_until("link_map")
 def link_map():
     """
     Iterator over all the entries in the link map.

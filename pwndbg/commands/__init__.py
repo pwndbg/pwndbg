@@ -626,6 +626,7 @@ def load_commands() -> None:
     import pwndbg.commands.flags
     import pwndbg.commands.ghidra
     import pwndbg.commands.got
+    import pwndbg.commands.got_tracking
     import pwndbg.commands.heap
     import pwndbg.commands.hexdump
     import pwndbg.commands.ida
