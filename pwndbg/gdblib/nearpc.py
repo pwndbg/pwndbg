@@ -70,7 +70,7 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 )
 
 
-def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
+def nearpc(pc:int=None, lines:int=None, emulate=False, repeat=False) -> list[str]:
     """
     Disassemble near a specified address.
     """
@@ -82,7 +82,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
         # that would require a larger refactor
         pc = nearpc.next_pc
 
-    result = []
+    result: list[str] = []
 
     if pc is not None:
         pc = gdb.Value(pc).cast(pwndbg.gdblib.typeinfo.pvoid)
@@ -131,8 +131,9 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
     pwndbg.gdblib.vmmap.find(pc)
 
     # Gather all addresses and symbols for each instruction
+    # Ex: <main+43>
     symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]
-    addresses = ["%#x" % i.address for i in instructions]
+    addresses: list[str] = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 
@@ -146,6 +147,8 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
 
     prev = None
 
+    # If its the first time the program counter is at the current instruction
+    # In case of loops, emulation may display the same instruction multiple times. Only highlight once
     first_pc = True
     should_highlight_opcodes = False
 
@@ -259,7 +262,8 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
             opcodes = (opcode_separator_bytes * " ").join(
                 f"{c:02x}" for c in instr.bytes[: int(show_opcode_bytes)]
             )
-            align = show_opcode_bytes * 2 + 10
+            # Must add +3 at minimum, due to truncated instructions adding "..."
+            align = show_opcode_bytes * 2 + 3
             if opcode_separator_bytes > 0:
                 # add the length of the maximum number of separators to the alignment
                 align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]

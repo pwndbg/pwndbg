@@ -66,8 +66,12 @@ VariableInstructionSizeMax = {
     "rv64": 22,
 }
 
-backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
+# Dict of Address -> previous Address executed
+backward_cache: DefaultDict[int,int] = collections.defaultdict(lambda: None)
 
+# Dict of Address -> previously computed CsInsn
+# This avoids having to re-enhance old instructions - also, so we don't need to emulate passed instructions again 
+# computed_instruction_cache: DefaultDict[int, CsInsn] = collections.defaultdict(lambda: None)
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
@@ -138,6 +142,8 @@ def get_disassembler(pc):
     )
 
 
+# Class used for architectures that Capstone/pwndbg doesn't support
+# Fields are the same names as capstone.CsInsn - relies on duck typing.
 class SimpleInstruction:
     def __init__(self, address) -> None:
         self.address = address
@@ -152,28 +158,30 @@ class SimpleInstruction:
         self.symbol = None
         self.condition = False
 
-
+# TODO: FIX THIS
 @pwndbg.lib.cache.cache_until("cont")
-def get_one_instruction(address):
+def get_one_instruction(address, emu: pwndbg.emu.emulator.Emulator=None, enhance=True):
     if pwndbg.gdblib.arch.current not in CapstoneArch:
         return SimpleInstruction(address)
     md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.gdblib.arch.current, 4)
     data = pwndbg.gdblib.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins)
+        if enhance:
+            pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins, emu)
         return ins
 
 
-def one(address=None) -> capstone.CsInsn | SimpleInstruction:
+# Return None on failure to fetch an instruction
+def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, enhance=True) -> capstone.CsInsn | SimpleInstruction:
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
     if not pwndbg.gdblib.memory.peek(address):
         return None
 
-    # TODO: Why a for loop?
-    for insn in get(address, 1):
+    # A for loop in case this returns an empty list
+    for insn in get(address, 1, emu, enhance=enhance):
         backward_cache[insn.next] = insn.address
         return insn
 
@@ -188,7 +196,7 @@ def fix(i):
     return i
 
 
-def get(address, instructions=1):
+def get(address, instructions=1, emu: pwndbg.emu.emulator.Emulator=None, enhance=True):
     address = int(address)
 
     # Dont disassemble if there's no memory
@@ -197,7 +205,7 @@ def get(address, instructions=1):
 
     retval = []
     for _ in range(instructions):
-        i = get_one_instruction(address)
+        i = get_one_instruction(address, emu)
         if i is None:
             break
         address = i.next
@@ -267,17 +275,38 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     (this is mostly used by context's disasm display, so user see what was previously)
     """
 
-    current = one(address)
-
     pc = pwndbg.gdblib.regs.pc
 
-    if current is None or not pwndbg.gdblib.memory.peek(address):
+    # Some architecture aren't emulated yet
+    if not pwndbg.emu or pwndbg.gdblib.arch.current not in pwndbg.emu.emulator.arch_to_UC:
+        emulate = False
+
+    emu: pwndbg.emu.emulator.Emulator = None
+
+    # Emulate if program pc is at the current instruction - can't emulate at arbitrary places, because we need current
+    # processor state to instantiate the emulator.
+    if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
+        print(f"Creating emu object")
+        emu = pwndbg.emu.emulator.Emulator()
+        # TODO: This currently does NOT emulate the current line
+        # skip current line
+        target_candidate, size_candidate = emu.single_step()
+
+        if None in (target_candidate, size_candidate):
+            print("Emulation failed")
+            emu = None
+
+    # Start at the current instruction, and start emulating there.
+    current = one(address, emu)
+
+    if current is None:
         return []
+
 
     insns: list[capstone.CsInsn | SimpleInstruction] = []
 
-    # Try to go backward by seeing which instructions we've returned
-    # before, which were followed by this one.
+    print("CACHE -------------------")
+    # Show the previously executed instructions, which may include jumps.
     if show_prev_insns:
         cached = backward_cache[current.address]
         insn = one(cached) if cached else None
@@ -289,35 +318,17 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
     insns.append(current)
 
-    # Some architecture aren't emulated yet
-    if not pwndbg.emu or pwndbg.gdblib.arch.current not in pwndbg.emu.emulator.arch_to_UC:
-        emulate = False
-
-    # Emulate forward if we are at the current instruction.
-    emu = None
-
-    # If we hit the current instruction, we can do emulation going forward from there.
-    if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
-        try:
-            emu = pwndbg.emu.emulator.Emulator()
-        except gdb.error as e:
-            message = str(e)
-            match = re.search(r"Memory at address (\w+) unavailable\.", message)
-            if match:
-                return []
-            else:
-                raise
-        # skip current line
-        emu.single_step()
-
-    # Now find all of the instructions moving forward.
-    #
+    print("END CACHE -------------------")
+    
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
+    # Now, continue forwards.
+
     insn = current
     total_instructions = 1 + (2 * instructions)
 
     while insn and len(insns) < total_instructions:
+        # Address to disassemble & emulate
         target = insn.target
 
         # Disable emulation if necessary
@@ -327,18 +338,28 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
         # If we initialized the emulator and emulation is still enabled, we can use it
         # to figure out the next instruction.
+        # Otherwise, this is determined statically when possible (the instruction.target field is set in DissasemblyAssisant)
         if emu:
+            print("Single step here!")
             target_candidate, size_candidate = emu.single_step()
+            print("Stepityy step!")
+
 
             if None not in (target_candidate, size_candidate):
+                print("Emulation success")
                 target = target_candidate
+            else:
+                # Unicorn failed to execute the instruction
+                print(f"Emulation failed")
+                emu = None
 
         # Continue disassembling at the *next* instruction unless we have emulated
         # the path of execution.
         elif target != pc:
             target = insn.address + insn.size
+        
 
-        insn = one(target)
+        insn = one(target, emu)
         if insn:
             insns.append(insn)
 

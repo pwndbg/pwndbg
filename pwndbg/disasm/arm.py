@@ -10,7 +10,8 @@ import pwndbg.gdblib.regs
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def memory_sz(self, instruction, op) -> str:
+    def memory_string(self, instruction, op) -> str:
+        segment = ""
         parts = []
 
         if op.mem.base != 0:
@@ -26,8 +27,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
-    def immediate_sz(self, instruction, operand):
-        return "#" + super().immediate_sz(instruction, operand)
+    def immediate_string(self, instruction, operand):
+        return "#" + super().immediate_string(instruction, operand)
 
     def condition(self, instruction):
         # We can't reason about anything except the current instruction

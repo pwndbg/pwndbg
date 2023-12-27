@@ -84,6 +84,8 @@ def get(address: int, gdb_only=False) -> str:
     """
     Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
     Passing `gdb_only=True`
+
+    Empty string if no symbol
     """
     # Note: we do not return "" on `address < pwndbg.gdblib.memory.MMAP_MIN_ADDR`
     # because this may be used to find out the symbol name on PIE binaries that weren't started yet

@@ -3,6 +3,7 @@ Emulation assistance from Unicorn.
 """
 
 from __future__ import annotations
+from typing import Tuple
 
 import binascii
 import re
@@ -12,6 +13,7 @@ import gdb
 import unicorn as U
 import unicorn.riscv_const
 
+import pwndbg.lib.regs
 import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
@@ -23,7 +25,7 @@ def parse_consts(u_consts):
     Unicorn "consts" is a python module consisting of a variable definition
     for each known entity. We repack it here as a dict for performance.
     """
-    consts = {}
+    consts: dict[str, int] = {}
     for name in dir(u_consts):
         if name.startswith("UC_"):
             consts[name] = getattr(u_consts, name)
@@ -55,7 +57,8 @@ arch_to_UC_consts = {
 }
 
 
-DEBUG = False
+# DEBUG = False
+DEBUG = True
 
 
 if DEBUG:
@@ -93,6 +96,7 @@ arch_to_SYSCALL = {
     U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
 
+# https://github.com/unicorn-engine/unicorn/issues/550
 blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss", "fsbase", "gsbase"]
 
 """
@@ -100,7 +104,8 @@ e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
 """
 
-
+# Instantiating an instance of `Emulator` will start an instance 
+# with a copy of the current processor state.
 class Emulator:
     def __init__(self) -> None:
         self.arch = pwndbg.gdblib.arch.current
@@ -111,10 +116,13 @@ class Emulator:
         self.consts = arch_to_UC_consts[self.arch]
 
         # Just registers, for faster lookup
-        self.const_regs = {}
+        self.const_regs: dict[str, int] = {}
         r = re.compile(r"^UC_.*_REG_(.*)$")
         for k, v in self.consts.items():
+            # Ex: extract "RCX" from "UC_X86_REG_RCX"
+            # All are uppercase
             m = r.match(k)
+
             if m:
                 self.const_regs[m.group(1)] = v
 
@@ -122,12 +130,18 @@ class Emulator:
         debug("# Instantiating Unicorn for %s", self.arch)
         debug("uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
-        self.regs = pwndbg.gdblib.regs.current
+
+        self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.gdblib.regs.current
 
         # Jump tracking state
         self._prev = None
         self._prev_size = None
         self._curr = None
+
+        # Last successfully execute instruction PC
+        # Only works with single_step currently
+        self.last_pc = None
+        # TODO: Make it work with things OTHER than single_step
 
         # Initialize the register state
         for reg in (
@@ -171,6 +185,28 @@ class Emulator:
         # Instruction tracing
         if DEBUG:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
+
+    def read_register(self, name: str):
+        reg = self.get_reg_enum(name)
+
+        if reg:
+            return self.uc.reg_read(reg)
+
+        raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
+
+    def read_memory_int(self, address: int, size: int):
+        value = None
+        try:
+            # Raises UcError if failed
+            value = self.uc.mem_read(address, size)
+        except U.unicorn.UcError as e:
+            print(f"Emulator failed to read memory at")
+            # print(f"ERROR {e}")
+
+        return pwndbg.gdblib.arch.unpack(value) if value is not None else None
+    
+    def telescope(self, address: int, limit: int):
+        pass
 
     def __getattr__(self, name: str):
         reg = self.get_reg_enum(name)
@@ -267,7 +303,7 @@ class Emulator:
         debug("Got an interrupt")
         self.uc.emu_stop()
 
-    def get_reg_enum(self, reg):
+    def get_reg_enum(self, reg: str):
         """
         Returns the Unicorn Emulator enum code for the named register.
 
@@ -281,10 +317,10 @@ class Emulator:
         #
         #  'eax' ==> enum
         #
-        if reg in self.regs.all:
-            e = self.const_regs.get(reg.upper(), None)
-            if e is not None:
-                return e
+        # if reg in self.regs.all:
+        e = self.const_regs.get(reg.upper(), None)
+        if e is not None:
+            return e
 
         # If we're looking for an abstract register which *is* accounted for,
         # we can also do an indirect lookup.
@@ -313,6 +349,7 @@ class Emulator:
         debug("uc.hook_del(*%r, **%r)", (a, kw))
         return self.uc.hook_del(*a, **kw)
 
+    # Can throw a UcError(status)
     def emu_start(self, *a, **kw):
         debug("uc.emu_start(*%r, **%r)", (a, kw))
         return self.uc.emu_start(*a, **kw)
@@ -365,7 +402,7 @@ class Emulator:
         self._prev_size = None
         self._curr = None
 
-        # Add the single-step hook, start emulating, and remove the hook.
+        # Add the jump hook, start emulating, and remove the hook.
         self.emulate_with_hook(self.until_jump_hook_code)
 
         # We're done emulating
@@ -414,7 +451,7 @@ class Emulator:
         debug("# Executing instruction at %(address)#x with bytes %(data)s", locals())
         self.until_syscall_address = address
 
-    def single_step(self, pc=None):
+    def single_step(self, pc=None) -> Tuple[int,int]:
         """Steps one instruction.
 
         Yields:
@@ -423,6 +460,8 @@ class Emulator:
             A StopIteration is raised if a fault or syscall or call instruction
             is encountered.
         """
+
+
         self._single_step = (None, None)
 
         pc = pc or self.pc
@@ -436,11 +475,18 @@ class Emulator:
         debug("# Single-stepping at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
 
         try:
+            print(f"Unicorn attempting to run instruction at {hex(self.pc)}")
             self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
-        except U.unicorn.UcError:
+
+            # If above call does not throw an Exception, we successfully executed the instruction
+            self.last_pc = pc
+        except U.unicorn.UcError as e:
+            print(f"Emulator failed to execute instruction")
+            # print(f"ERROR {e}")
             self._single_step = (None, None)
 
+        print(f"Unicorn now at pc={hex(self.pc)}")
         return self._single_step
 
     def single_step_iter(self, pc=None):
@@ -450,7 +496,9 @@ class Emulator:
             yield a
             a = self.single_step(pc)
 
-    def single_step_hook_code(self, _uc, address, instruction_size: int, _user_data) -> None:
+    # Whenever Unicorn is "about to execute" an instruction, this hook is called
+    # https://github.com/unicorn-engine/unicorn/issues/1434
+    def single_step_hook_code(self, _uc, address: int, instruction_size: int, _user_data) -> None:
         # For whatever reason, the hook will hit twice on
         # unicorn >= 1.0.2rc4, but not on unicorn-1.0.2rc1~unicorn-1.0.2rc3,
         # So we use a counter to ensure the code run only once
