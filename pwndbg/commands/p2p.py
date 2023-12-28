@@ -28,26 +28,11 @@ def get_addrrange_any_named() -> List[AddrRange]:
     return [AddrRange(page.start, page.end) for page in pwndbg.gdblib.vmmap.get()]
 
 
-def guess_numbers_base(num: str) -> int:
-    base = 10
-    if num.startswith("0x"):
-        base = 16
-    elif num.startswith("0b"):
-        base = 2
-    elif num.startswith("0"):
-        base = 8
-
-    return base
-
-
 def address_range_explicit(section: str) -> AddrRange:
     try:
         begin, end = section.split(":")
 
-        begin = int(begin, guess_numbers_base(begin))
-        end = int(end, guess_numbers_base(end))
-
-        return AddrRange(begin, end)
+        return AddrRange(int(begin, 0), int(end, 0))
     except Exception:
         parser.error(
             '"%s" - Bad format of explicit address range!'
