@@ -9,7 +9,7 @@ from typing import Tuple
 from typing import Union
 
 from pycparser import CParser  # type: ignore
-from pycparser import c_ast  # type: ignore
+from pycparser import c_ast
 
 CAstNode = Union[
     c_ast.EllipsisParam,
