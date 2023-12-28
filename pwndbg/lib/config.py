@@ -175,8 +175,6 @@ class Config:
 
         def wrapper(func: Callable[..., T]) -> Callable[..., T]:
             for name in names:
-                if name not in self.triggers:
-                    self.triggers[name] = []
                 self.triggers[name].append(func)
             return func
 
