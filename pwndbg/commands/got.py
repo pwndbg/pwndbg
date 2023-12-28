@@ -178,5 +178,5 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"
+            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
         )
