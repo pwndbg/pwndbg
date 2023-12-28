@@ -39,49 +39,49 @@ config_signal_color = theme.add_color_param(
 config_prompt_color = theme.add_color_param("prompt-color", "bold,red", "prompt color")
 
 
-def on(msg: str) -> str:
+def on(msg: object) -> str:
     return generateColorFunction(config.message_status_on_color)(msg)
 
 
-def off(msg: str) -> str:
+def off(msg: object) -> str:
     return generateColorFunction(config.message_status_off_color)(msg)
 
 
-def notice(msg: str) -> str:
+def notice(msg: object) -> str:
     return generateColorFunction(config.message_notice_color)(msg)
 
 
-def hint(msg: str) -> str:
+def hint(msg: object) -> str:
     return generateColorFunction(config.message_hint_color)(msg)
 
 
-def success(msg: str) -> str:
+def success(msg: object) -> str:
     return generateColorFunction(config.message_success_color)(msg)
 
 
-def warn(msg: str) -> str:
+def warn(msg: object) -> str:
     return generateColorFunction(config.message_warning_color)(msg)
 
 
-def error(msg: str) -> str:
+def error(msg: object) -> str:
     return generateColorFunction(config.message_error_color)(msg)
 
 
-def system(msg: str) -> str:
+def system(msg: object) -> str:
     return generateColorFunction(config.message_system_color)(msg)
 
 
-def exit(msg: str) -> str:
+def exit(msg: object) -> str:
     return generateColorFunction(config.message_exit_color)(msg)
 
 
-def breakpoint(msg: str) -> str:
+def breakpoint(msg: object) -> str:
     return generateColorFunction(config.message_breakpoint_color)(msg)
 
 
-def signal(msg: str) -> str:
+def signal(msg: object) -> str:
     return generateColorFunction(config.message_signal_color)(msg)
 
 
-def prompt(msg: str) -> str:
+def prompt(msg: object) -> str:
     return generateColorFunction(config.prompt_color)(msg)

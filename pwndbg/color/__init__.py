@@ -166,7 +166,7 @@ class ColorConfig:
 
 def generateColorFunction(
     config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
-) -> Callable[[str], str]:
+) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
     # is empty, we need to ensure we cast it to string
