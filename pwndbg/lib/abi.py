@@ -124,7 +124,7 @@ SYSCALL_ABIS: Dict[Tuple[int, str, str], ABI] = {
     (64, "rv64", "linux"): linux_riscv64_syscall,
 }
 
-SIGRETURN_ABIS: Dict[Tuple[int, str, str], ABI] = {
+SIGRETURN_ABIS: Dict[Tuple[int, str, str], SigreturnABI] = {
     (32, "i386", "linux"): linux_i386_sigreturn,
     (64, "x86-64", "linux"): linux_amd64_sigreturn,
     (32, "arm", "linux"): linux_arm_sigreturn,

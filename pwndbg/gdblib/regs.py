@@ -133,12 +133,12 @@ class module(ModuleType):
         ):
             if regset is None:
                 continue
-            elif isinstance(regset, (list, tuple)):
+            elif isinstance(regset, (list, tuple)):  # regs.retaddr
                 retval.extend(regset)
-            elif isinstance(regset, dict):
+            elif isinstance(regset, dict):  # regs.flags
                 retval.extend(regset.keys())
             else:
-                retval.append(regset)
+                retval.append(regset)  # type: ignore[arg-type]; regset is always str
         return retval
 
     def fix(self, expression: str) -> str:
