@@ -19,11 +19,6 @@ import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 
-# TODO: This is causing circular imports, but we need them
-# import pwndbg.gdblib.vmmap
-# import pwndbg.gdblib.info
-# import pwndbg.gdblib.elf
-
 
 class module(ModuleType):
     @property
