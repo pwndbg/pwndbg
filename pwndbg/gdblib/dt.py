@@ -132,7 +132,7 @@ def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | Non
                 ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY)
                 and ftype.target() == pwndbg.gdblib.typeinfo.uchar
             ):
-                data = pwndbg.gdblib.memory.read(v.address, ftype.sizeof)
+                data = pwndbg.gdblib.memory.read(int(v.address), ftype.sizeof)
                 v = " ".join("%02x" % b for b in data)
 
             extra = v
