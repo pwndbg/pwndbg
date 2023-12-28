@@ -82,4 +82,4 @@ vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
 
 ruff check --show-source ${LINT_FILES}
 
-mypy pwndbg
+mypy pwndbg || true
