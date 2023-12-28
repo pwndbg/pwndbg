@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gdb
 import pwnlib
-import pwnlib.context
 
 import pwndbg.gdblib.proc
 from pwndbg.gdblib import typeinfo
