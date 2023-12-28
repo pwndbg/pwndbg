@@ -149,7 +149,7 @@ class Command(gdb.Command):
 
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            return self(*args, **kwargs)
+            self(*args, **kwargs)
         finally:
             self.repeat = False
 
