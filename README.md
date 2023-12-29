@@ -6,7 +6,7 @@
 
 `pwndbg` (/paʊnˈdiˌbʌɡ/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
 
-It has a boatload of features, see [FEATURES.md](FEATURES.md).
+It has a boatload of features, see [FEATURES.md](FEATURES.md) and [CHEATSHEET](https://cdn.discordapp.com/attachments/1141077572587892857/1174249242882220114/CheatSheet.pdf) (feel free to print it!).
 
 ## Why?
 
