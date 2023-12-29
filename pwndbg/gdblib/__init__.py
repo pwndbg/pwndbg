@@ -37,7 +37,6 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.got
     import pwndbg.gdblib.hooks
-    import pwndbg.gdblib.image
     import pwndbg.gdblib.kernel
     import pwndbg.gdblib.memory
     import pwndbg.gdblib.prompt
