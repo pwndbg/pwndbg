@@ -195,7 +195,7 @@ def load_custom_structure(custom_structure_name, custom_structure_path) -> None:
 
 @OnlyWhenStructFileExists
 def show_custom_structure(custom_structure_name, custom_structure_path) -> None:
-    # Call wrapper .func() to avoid memoization.
+    # Call non-caching version of the function (thus .__wrapped__)
     highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source.__wrapped__(
         custom_structure_path
     )
