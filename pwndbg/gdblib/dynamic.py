@@ -61,7 +61,7 @@ R_DEBUG_LINK_MAP_CHANGED_HOOK = None
 R_DEBUG_LINK_MAP_CHANGED_LISTENERS = set()
 
 
-class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.Breakpoint):
+class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
     """
     Hook that gets activated whenever the link map changes.
 
@@ -79,12 +79,12 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.Breakpoint):
 
     skip_this = True
 
-    def should_stop(self):
+    def on_breakpoint_hit(self):
         # Skip every other trigger, we only care about the completed link map
         # that is available after the library is loaded.
         if self.skip_this:
             self.skip_this = False
-            return False
+            return
         else:
             self.skip_ths = True
 
@@ -93,8 +93,6 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.Breakpoint):
         pwndbg.lib.cache.clear_cache("link_map")
         for listener in R_DEBUG_LINK_MAP_CHANGED_LISTENERS:
             listener()
-
-        return False
 
 
 # FIXME: Obviously, having consumers call this function is not ideal. We really
@@ -153,7 +151,7 @@ def r_debug_link_map_changed_remove_listener(handler):
     R_DEBUG_LINK_MAP_CHANGED_LISTENERS.remove(handler)
 
 
-#@pwndbg.lib.cache.cache_until("link_map")
+# @pwndbg.lib.cache.cache_until("link_map")
 def link_map_head():
     """
     Acquires a reference to the head entry of the link map.
@@ -172,7 +170,7 @@ def link_map_head():
         return LinkMapEntry(r_map)
 
 
-#@pwndbg.lib.cache.cache_until("link_map")
+# @pwndbg.lib.cache.cache_until("link_map")
 def link_map():
     """
     Iterator over all the entries in the link map.

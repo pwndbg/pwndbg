@@ -12,15 +12,22 @@ parser = argparse.ArgumentParser(
     description="Enables the GOT call tracking",
 )
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="enable-got-tracking")
+
+@pwndbg.commands.ArgparsedCommand(
+    parser, category=CommandCategory.LINUX, command_name="enable-got-tracking"
+)
 @pwndbg.commands.OnlyWhenRunning
 def enable_got_tracking():
     pwndbg.gdblib.got.enable_got_call_tracking()
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="disable-got-tracking")
+
+@pwndbg.commands.ArgparsedCommand(
+    parser, category=CommandCategory.LINUX, command_name="disable-got-tracking"
+)
 @pwndbg.commands.OnlyWhenRunning
 def disable_got_tracking():
     pwndbg.gdblib.got.disable_got_call_tracking()
+
 
 def try_decode(name):
     """
@@ -37,7 +44,10 @@ def try_decode(name):
     except TypeError:
         return name
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="got-call-status")
+
+@pwndbg.commands.ArgparsedCommand(
+    parser, category=CommandCategory.LINUX, command_name="got-call-status"
+)
 @pwndbg.commands.OnlyWhenRunning
 def got_call_status():
     if not pwndbg.gdblib.got.GOT_TRACKING:
@@ -45,7 +55,7 @@ def got_call_status():
         return
 
     per_object = {}
-    for tracker in pwndbg.gdblib.got.all_tracked_entries():
+    for _, (tracker, _) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname not in per_object:
             per_object[objname] = []
@@ -68,4 +78,3 @@ def got_call_status():
                 sym_name = "<Empty>"
 
             print(f"    {tracker.target:#x} - {sym_name} - {tracker.total_hits} hits")
-

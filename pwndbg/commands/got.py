@@ -129,7 +129,6 @@ def _got(path, accept_readonly, symbol_filter) -> None:
             bin_base_offset = (
                 text_section_addr - ELFFile(f).get_section_by_name(".text").header["sh_addr"]
             )
-            print(bin_base_offset)
 
     # Parse the output of readelf line by line
     for category, lines in got_entry.items():
