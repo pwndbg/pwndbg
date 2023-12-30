@@ -172,8 +172,9 @@ def get_one_instruction(address, emu: pwndbg.emu.emulator.Emulator=None, enhance
         return ins
 
 
+
 # Return None on failure to fetch an instruction
-def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, enhance=True) -> capstone.CsInsn | SimpleInstruction:
+def one(address=None, emu: pwndbg.emu.emulator.Emulator=None) -> capstone.CsInsn | SimpleInstruction:
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
@@ -181,12 +182,22 @@ def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, enhance=True) -> c
         return None
 
     # A for loop in case this returns an empty list
-    for insn in get(address, 1, emu, enhance=enhance):
+    for insn in get(address, 1, emu):
         backward_cache[insn.next] = insn.address
         return insn
 
     return None
 
+# Get one instruction without enhancement
+def one_raw(address=None) -> (SimpleInstruction | CsInsn | None):
+    if address is None:
+        address = pwndbg.gdblib.regs.pc
+
+    if not pwndbg.gdblib.memory.peek(address):
+        return None
+
+    return get_one_instruction(address, enhance=False)
+    
 
 def fix(i):
     for op in i.operands:
@@ -196,7 +207,7 @@ def fix(i):
     return i
 
 
-def get(address, instructions=1, emu: pwndbg.emu.emulator.Emulator=None, enhance=True):
+def get(address, instructions=1, emu: pwndbg.emu.emulator.Emulator=None):
     address = int(address)
 
     # Dont disassemble if there's no memory
@@ -340,10 +351,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         # to figure out the next instruction.
         # Otherwise, this is determined statically when possible (the instruction.target field is set in DissasemblyAssisant)
         if emu:
-            print("Single step here!")
             target_candidate, size_candidate = emu.single_step()
-            print("Stepityy step!")
-
 
             if None not in (target_candidate, size_candidate):
                 print("Emulation success")

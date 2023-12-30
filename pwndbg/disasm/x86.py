@@ -1,11 +1,12 @@
 from __future__ import annotations
+from typing import Callable
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
 
 from pwndbg.emu.emulator import Emulator 
 import pwndbg.color.context as C
-import pwndbg.color.memory as M
+import pwndbg.color.memory as MemoryColor
 import pwndbg.chain
 
 import pwndbg.gdblib.arch
@@ -21,73 +22,238 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 pc = X86_REG_RSP
 
 # TODO: Make this more complete
-MOV_INSTRUCTIONS = {
-    X86_INS_MOV,
-    X86_INS_MOVABS,
-    X86_INS_MOVZX,
+# MOV_INSTRUCTIONS = {
+#     X86_INS_MOV,
+#     X86_INS_MOVABS,
+#     X86_INS_MOVZX,
 
-    X86_INS_MOVD,
-    X86_INS_MOVQ,
-}
+#     X86_INS_MOVD,
+#     X86_INS_MOVQ,
+# }
+
+TELESCOPE_DEPTH = 2
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
+
+
+    def __init__(self, architecture: str) -> None:
+        super().__init__(architecture)
+
+        self.set_info_string_handlers: dict[int, Callable[[CsInsn, Emulator], None]] = {
+            # MOV
+            X86_INS_MOV: self.handle_mov_set_info,
+            X86_INS_MOVABS: self.handle_mov_set_info,
+            X86_INS_MOVZX: self.handle_mov_set_info,
+            X86_INS_MOVD: self.handle_mov_set_info,
+            X86_INS_MOVQ: self.handle_mov_set_info,
+
+            # LEA
+            X86_INS_LEA: self.handle_lea_set_info,
+
+            # POP
+            X86_INS_POP: self.handle_pop_set_info,
+
+            # ADD
+            X86_INS_ADD: self.handle_add_set_info,
+
+            # SUB
+            X86_INS_SUB: self.handle_sub_set_info,
+
+            # CMP
+            X86_INS_CMP: self.handle_cmp_set_info,
+
+            # XOR
+            X86_INS_XOR: self.handle_xor_set_info,
+
+            # INC and DEC
+            X86_INS_INC: self.handle_inc_set_info,
+            X86_INS_DEC: self.handle_dec_set_info,
+            
+        }
+
+
+    def handle_mov_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        if len(instruction.operands) == 2:
+            left, right = instruction.operands
+            if left.int is not None and right.int is not None:
+                
+
+                telescope_addresses = super().telescope(right.int, TELESCOPE_DEPTH, instruction, right, emu)
+                # This can return a singleton list. Don't assume it won't 
+
+                # TODO: DELETE THIS
+                to_print = pwndbg.chain.format(right.int, limit=0)
+
+                
+                ##########
+                ##########
+                # .format is broken!
+                # TODO: Create custom format that reads from IN memory
+                # Also, fix the outside .format, because it just breaks
+                print("1")
+                print(f"{telescope_addresses}")
+                print(f"{pwndbg.chain.format(telescope_addresses)}")
+                print(f"{pwndbg.chain.format([*telescope_addresses, 1])}")
+                
+                print("Raw format")
+                print(f"{to_print}")
+
+                print("Second to last")
+                print(f"{pwndbg.chain.get(right.int, limit=0)}")
+                
+                print("Last")
+                print(f"{pwndbg.chain.format(pwndbg.chain.get(right.int, limit=0))}")
+
+
+                if left.type == CS_OP_MEM: # right.type must then be either CS_OP_REG or CS_OP_IMM. Cannot MOV mem to mem
+                    
+
+                    if telescope_addresses:
+                        # instruction.info_string = f"[{MemoryColor.get(left.int)}] => {to_print=}"
+
+                        instruction.info_string = f"[{MemoryColor.get(left.int)}] => {pwndbg.chain.format(telescope_addresses)}"
+                
+                elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
+
+                    if telescope_addresses:
+                        regname = C.register_changed(C.register(left.str.upper()))
+                        # instruction.info_string = f"{regname} => {to_print}"
+
+                        instruction.info_string = f"{regname} => {pwndbg.chain.format(telescope_addresses)}"
+                
+                elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
+
+                    if telescope_addresses:
+                        regname = C.register_changed(C.register(left.str.upper()))
+                        # Start showing at dereferenced by, hence the [1:]
+                        instruction.info_string = f"{regname}/[{MemoryColor.get(right.int)}] => {pwndbg.chain.format(telescope_addresses[1:])}"
+
+    def handle_lea_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        # Example: lea    rdx, [rax*8]
+        left, right = instruction.operands
+        if left.int is not None and right.int is not None:
+            regname = C.register_changed(C.register(left.str.upper()))
+            instruction.info_string = f"{regname} => {MemoryColor.get(right.int)}"
+
+    def handle_pop_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        pc_is_at_instruction = instruction.address == pwndbg.gdblib.regs.pc
+
+        reg_operand = instruction.operands[0]
+
+        # It is possible to pop [0xdeadbeef] and pop dword [esp]
+        if reg_operand.type == CS_OP_REG:
+            if emu:
+                # After emulation, the register has taken on the popped value
+                regname = C.register_changed(C.register(reg_operand.str.upper()))
+                instruction.info_string = f"{regname} => {MemoryColor.get(reg_operand.int)}"
+            elif pc_is_at_instruction:
+                # Attempt to read from the stop of the stack
+                try:
+                    value = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.regs.sp)
+                    regname = C.register_changed(C.register(reg_operand.str.upper()))
+                    instruction.info_string = f"{regname} => {MemoryColor.get(value)}"
+                except Exception as e:
+                    print("ERROR", e)
+                    pass
+        
+    def handle_add_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        left, right = instruction.operands
+
+        if emu:
+            if left.type == CS_OP_REG and (right.type == CS_OP_REG or right.type == CS_OP_IMM):
+                # RAX = 5, RBX = 3
+                regname = C.register_changed(C.register(left.str.upper()))
+                # TODO: Maybe telescope this? But keep it constrained to interesting types, things with symbols or strings
+                instruction.info_string = f"{regname} => {MemoryColor.get(left.int)}"
+
+    def handle_sub_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        left, right = instruction.operands
+            
+        if emu:
+            if left.type == CS_OP_REG and (right.type == CS_OP_REG or right.type == CS_OP_IMM):
+                regname = C.register_changed(C.register(left.str.upper()))
+                instruction.info_string = f"{regname} => {MemoryColor.get(left.int)}"
+        
+    def handle_cmp_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        pc_is_at_instruction = instruction.address == pwndbg.gdblib.regs.pc
+        
+        left, right = instruction.operands
+
+        if pc_is_at_instruction or emu:
+            if left.type == CS_OP_REG and (right.type == CS_OP_REG or right.type == CS_OP_IMM):
+                instruction.info_string = f"{left.int} - {right.int}"
+
+    def handle_xor_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        pc_is_at_instruction = instruction.address == pwndbg.gdblib.regs.pc
+        
+        left, right = instruction.operands
+
+        # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
+        if left.type == CS_OP_REG and right.type == CS_OP_REG and left.value.reg == right.value.reg:
+            regname = C.register_changed(C.register(left.str.upper()))
+            instruction.info_string = f"{regname} => 0"
+        elif emu:
+            regname = C.register_changed(C.register(left.str.upper()))
+            instruction.info_string = f"{regname} => {left.int}"
+
+    def handle_inc_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        operand = instruction.operands[0]
+
+        if operand.type == CS_OP_REG:
+            if emu:
+                regname = C.register_changed(C.register(operand.str.upper()))
+                instruction.info_string = f"{regname} => {MemoryColor.get(operand.int)}"
+
+    def handle_dec_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        self.handle_inc_set_info(instruction, emu)
+                
+
     # Overload
-    def enhance_operands(self, instruction: CsInsn, emu: Emulator = None) -> None:
-        super().enhance_operands(instruction, emu)
+    def set_info_string(self, instruction: CsInsn, emu: Emulator) -> None:
 
         # TODO: Assume Intel syntax, flip operand order if AT&T
 
-        # MOV instructions
-        if instruction.id in MOV_INSTRUCTIONS:
-            if len(instruction.operands) == 2:
-                left, right = instruction.operands
-                if left.int is not None and right.int is not None:
-                    if left.type == CS_OP_MEM: # right.type must then be either CS_OP_REG or CS_OP_IMM. Cannot MOV mem to mem
-                        instruction.info_string = f"[{M.get(left.int)}] => {pwndbg.chain.format(right.int)}"
-                    elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
-                        regname = C.register_changed(C.register(left.str.upper()))
-                        instruction.info_string = f"{regname} => {pwndbg.chain.format(right.int)}"
-                    elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
-                        regname = C.register_changed(C.register(left.str.upper()))
-                        instruction.info_string = f"{regname}=[{M.get(right.int)}] => {pwndbg.chain.format(pwndbg.chain.get(right.int, include_start=False))}"
-        elif instruction.id == X86_INS_LEA:
-            # Example: lea    rdx, [rax*8]
-            left, right = instruction.operands
-            if left.int is not None and right.int is not None:
-                regname = C.register_changed(C.register(left.str.upper()))
-                instruction.info_string = f"{regname} => {M.get(right.int)}"
+        # Dispatch to the correct handler
+        self.set_info_string_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+            
 
     # Read value at register
     def parse_register(self, instruction: CsInsn, operand, emu: Emulator):
-        if operand.value.reg == X86_REG_RIP:
+        reg = operand.value.reg
+        # name = instruction.reg_name(reg)
+        return self.read_register(instruction, reg, emu)
+
+       
+    # Read a register in the context of an instruction
+    # operand_id is the ID internal to Capstone
+    def read_register(self, instruction: CsInsn, operand_id: int, emu: Emulator):
+        
+        regname = instruction.reg_name(operand_id)
+
+        if operand_id == X86_REG_RIP:
+            # Ex: lea    rax, [rip + 0xd55] 
+            # We can reason about this no matter the current pc
             return instruction.address + instruction.size
         else:
-            return super().parse_register(instruction, operand, emu)
-       
+            if emu:
+                # Will return the value of register after executing the instruction
+                value = emu.read_register(regname)
+                print(f"Register in emulation returned {regname}={hex(value)}")
+                return value
+            elif instruction.address == pwndbg.gdblib.regs.pc:        
+                # When instruction address == pc, we can reason about all registers.
+                # The values will just reflect values prior to executing the instruction, instead of after,
+                # which is relevent if we are writing to this register.
+                # However, the information can still be useful for display purposes.
+                print(f"Live register value got: {pwndbg.gdblib.regs[regname]}")
+                return pwndbg.gdblib.regs[regname]
+            else:
+                return None
 
-    # def read_register(self, instruction: CsInsn, reg):
-    #     if reg == X86_REG_RIP:
-    #         return instruction.address + instruction.size
-    #     elif instruction.address == pwndbg.gdblib.regs.pc:
-    #         name = instruction.reg_name(reg)
-    #         return pwndbg.gdblib.regs[name]
-    #     else:
-    #         return None
-
-
-    # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55)
+    # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
     def parse_memory(self, instruction: CsInsn, op, emu: Emulator = None):
         
-        print(f"x86 attempting to read memory value {self.memory_string(instruction, op)}")
-
-        # If the current instruction is the program counter, we can reason about all addresses
-        instruction_is_at_pc = instruction.address == pwndbg.gdblib.regs.pc
-
-        # The only register we can reason about if it's *not* the current
-        # instruction is $rip.  For example:
-        # lea rdi, [rip - 0x1f6]
-
         target = 0
 
         # There doesn't appear to be a good way to read from segmented
@@ -96,7 +262,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
         if op.mem.base != 0:
-            base = super().read_register(instruction, instruction.reg_name(op.mem.base), emu)
+            base = self.read_register(instruction, op.mem.base, emu)
             # read_register(instruction, op.mem.base)
             if base is None:
                 return None
@@ -107,7 +273,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if op.mem.index != 0:
             scale = op.mem.scale
-            index = self.read_register(instruction, instruction.reg_name(op.mem.index), emu)
+            index = self.read_register(instruction, op.mem.index, emu)
             # index = self.read_register(instruction, op.mem.index)
             if index is None:
                 return None
@@ -115,40 +281,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             target += scale * index
 
         return target
-
-    def memory_string(self, instruction, op):
-        arith = False
-        segment = op.mem.segment
-        # disp = op.value.mem.disp
-        base = op.value.mem.base
-        index = op.value.mem.index
-        scale = op.value.mem.scale
-        sz = ""
-
-        if segment != 0:
-            sz += f"{instruction.reg_name(segment)}:"
-
-        if base != 0:
-            sz += instruction.reg_name(base)
-            arith = True
-
-        if index != 0:
-            if arith:
-                sz += " + "
-
-            index = pwndbg.gdblib.regs[instruction.reg_name(index)]
-            sz += f"{index}*{scale:#x}"
-            arith = True
-
-        if op.mem.disp != 0:
-            if arith and op.mem.disp < 0:
-                sz += " - "
-            elif arith and op.mem.disp >= 0:
-                sz += " + "
-            sz += "%#x" % abs(op.mem.disp)
-
-        sz = f"[{sz}]"
-        return sz
 
 
     def next(self, instruction, call=False):
@@ -224,6 +356,40 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_JP: pf,
             X86_INS_JS: sf,
         }.get(instruction.id, None)
+
+    def memory_string(self, instruction, op):
+        arith = False
+        segment = op.mem.segment
+        disp = op.value.mem.disp
+        base = op.value.mem.base
+        index = op.value.mem.index
+        scale = op.value.mem.scale
+        sz = ""
+
+        if segment != 0:
+            sz += f"{instruction.reg_name(segment)}:"
+
+        if base != 0:
+            sz += instruction.reg_name(base)
+            arith = True
+
+        if index != 0:
+            if arith:
+                sz += " + "
+
+            index = pwndbg.gdblib.regs[instruction.reg_name(index)]
+            sz += f"{index}*{scale:#x}"
+            arith = True
+
+        if op.mem.disp != 0:
+            if arith and op.mem.disp < 0:
+                sz += " - "
+            elif arith and op.mem.disp >= 0:
+                sz += " + "
+            sz += "%#x" % abs(op.mem.disp)
+
+        sz = f"[{sz}]"
+        return sz
 
 
 assistant = DisassemblyAssistant("i386")

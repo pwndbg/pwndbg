@@ -30,7 +30,10 @@ def good_instr(i) -> bool:
 
 
 def int_str(value: int) -> str:
-    retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
+    if value < 10:
+        retval = "%d" % value
+    else:
+        retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
 
     # Try to unpack the value as a string
     packed = pwndbg.gdblib.arch.pack(int(value))
