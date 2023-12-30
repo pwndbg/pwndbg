@@ -72,14 +72,29 @@ class DisassemblyAssistant:
         enhancer.enhance_conditional(instruction)
         enhancer.enhance_next(instruction)
 
+        instruction.info_string = None
+        enhancer.set_info_string(instruction, emu)
+
         if debug:
             print(enhancer.dump(instruction))
 
         print(f"Done enhancing")
 
-    # TODO: Write comment here
-    def parse_operands(self, instruction, emu: Emulator) -> None:
-        pass
+
+
+    # Subclasses for specific architecture should override this
+    def set_info_string(self, instruction: CsInsn, emu: Emulator) -> None:
+        """
+        The goal of this function is to add the `info_string` field to the instruction, which contains the string to
+        be printed in a disasm view.
+        """
+        # operands_with_write = [o for o in instruction.operands if o.int is not None and o.access & CS_AC_WRITE]
+        # If operand was written to
+        # if len(operands_with_write) == 1:
+        #     print(f"Operand written {operands_with_write[0].reg} = {hex(operands_with_write[0].int)}")
+
+        #     instruction.info_string = hex(operands_with_write[0].int)
+        return None
 
     def enhance_operands(self, instruction: CsInsn, emu: Emulator = None) -> None:
         """
@@ -90,41 +105,26 @@ class DisassemblyAssistant:
         
         For each operation (instruction.operands), adds the following fields:
 
-            operand.str:
-                String of this operand, as it should appear in the disassembly.
-
             operand.int:
                 Integer value of the operand, if it can be resolved, else None.
 
             operand.symbol:
-                Resolved symbol name for this operand, if it can be resolved, else None
+                Resolved symbol name for this operand, if it .int it set, else None. May be an empty string
 
-
-        We also add the `info_string` field to the instruction, which contains the string to
-        be printed in a disasm view. It can include a symbol (<main+32>), or an address to print.
-        Default is None.
-
-        Examples info_string's:
-            <main+32>
-            [0x7fffffffdfb4] -> 0x2
-
+            operand.str:
+                String of this operand, as it should appear in the disassembly.
+                # TODO: Currently not used
 
         Also, in order for the display function to be able to replace any inline address in the operands
         with a symbol, we also add the `symbol` and `symbol_addr` fields.
         This is only set if, after parsing all of the operands, there is exactly one
         value which resolved to a named symbol, it will be set to
         that value. In all other cases, the value is `None`.
-
-        Colors are not added to strings - this is done when actually printing 
         """
     
         # Default behavior:
         #  Enhance all operands explicitly written to or read from
-        #  Set `info_string` to include the value of operand written to. Only one.
         #  Set the `symbol`, `symbol_addr` fields.
-
-        instruction.info_string = None
-        instruction.symbol = None
 
         for i, op in enumerate(instruction.operands):
             
@@ -142,16 +142,11 @@ class DisassemblyAssistant:
             print(f"Operand #{i} = {op.str}")
 
 
-        operands_with_write = [o for o in instruction.operands if o.int is not None and o.access & CS_AC_WRITE]
+        # 
+        instruction.symbol = None
+
         operands_with_symbols = [o for o in instruction.operands if o.symbol]
         
-        # If operand was written to
-        if len(operands_with_write) == 1:
-            print(f"Operand written {operands_with_write[0].reg} = {hex(operands_with_write[0].int)}")
-
-            instruction.info_string = hex(operands_with_write[0].int)
-
-
         if len(operands_with_symbols) == 1:
             o = operands_with_symbols[0]
 
@@ -160,44 +155,14 @@ class DisassemblyAssistant:
             
             print(f"DEBUG: {o.symbol=}")
 
-    # Get value at register.
+    # Read value in register
+    # Different architectures use registers in different patterns, so it is best to
+    # override this to get to best behavior for a given architecture.
     def parse_register(self, instruction: CsInsn, operand, emu: Emulator = None):
-        
-        # If we are about to run this instruction, we can read all registers safely (haven't been mutated by in-between instructions)
-        # if pwngdb.arch.reg.pc == instruction.address
-
-        reg = operand.value.reg
-        name = instruction.reg_name(reg)
-
-        return self.read_register(instruction, name, emu)
-    
-
-    def read_register(self, instruction: CsInsn, regname: str, emu: Emulator) -> int:
-
-        print(f"Attempting to get register value `{regname}`")
-
-        if emu:
-            # Will return the value of register after executing the instruction
-            value = emu.read_register(regname)
-            print(f"Register in emulation returned {regname}={hex(value)}")
-            return value
-        elif instruction.address == pwndbg.gdblib.regs.pc:
-            # We can reason about all registers if not emulating, 
-            # the values will just reflect values prior to executing the instruction, and not after,
-            # which is relevent if we are writing to this register.
-            # However, the information can still be useful for display purposes.
-            print(f"Live register value got: {pwndbg.gdblib.regs[regname]}")
-            return pwndbg.gdblib.regs[regname]
-        else:
-            return None
-
-            # TODO: Get rid of old comment
-            # # Don't care about registers which are only overwritten
-            # if operand.access & CS_AC_WRITE and not operand.access & CS_AC_READ:
-            #     return None
+        return None
     
     # Subclasses override
-    # Get memory address of operand (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55)
+    # Get memory address of operand (Ex: in x86, lea rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     def parse_memory(self, instruction: CsInsn, operand, emu: Emulator = None):
         return None
     
@@ -205,18 +170,18 @@ class DisassemblyAssistant:
         return operand.value.imm
     
     # Dereference an address recursively - takes into account emulation, returns None if cannot reason about the address
-    def telescope(self, address: int, limit: int, instruction, operand, emu: Emulator) -> int | None:
+    def telescope(self, address: int, limit: int, instruction, operand, emu: Emulator) -> list[int]:
         
         pc_is_at_instruction = instruction.address == pwndbg.gdblib.regs.pc
         
-        # We can read from memory. Note that if the instruction is writing to this address,
-        # the value will likely be out of date without emulation
-        if pc_is_at_instruction and not (operand.access & CS_AC_WRITE):
-            return pwndbg.chain.get(address, limit=limit)
-        elif emu:
+        if emu:
             return emu.telescope(address, limit)
-        
-        return None
+        elif pc_is_at_instruction:
+            # Can reason about memory in this case. Note that if the instruction is writing to this address,
+            # the value will likely be out of date without emulation (operand.access & CS_AC_WRITE)
+            return pwndbg.chain.get(address, limit=limit)
+        else:
+            return None
 
 
     # Assumes operand.int has already been set

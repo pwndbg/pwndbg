@@ -57,18 +57,19 @@ arch_to_UC_consts = {
 }
 
 
-# DEBUG = False
-DEBUG = True
+# combine the flags with | operator. -1 for all
+NO_DEBUG, DEBUG_INIT, DEBUG_EXECUTING, DEBUG_MEM_MAP, DEBUG_HOOK_CHANGE, DEBUG_MEM_READ, DEBUG_EMU_START_STOP, DEBUG_INTERRUPT, DEBUG_TRACE = 0, 1, 2, 4, 8, 16, 32, 64, 128
 
+# DEBUG = NO_DEBUG
+# DEBUG = -1 # ALL
+DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
-if DEBUG:
-
-    def debug(fmt, args=()) -> None:
-        print(fmt % args)
-
+if DEBUG != NO_DEBUG:
+    def debug(debug_type, fmt, args=()) -> None:
+        if DEBUG & debug_type:
+            print(fmt % args)
 else:
-
-    def debug(fmt, args=()) -> None:
+    def debug(debug_type, fmt, args=()) -> None:
         pass
 
 
@@ -127,8 +128,8 @@ class Emulator:
                 self.const_regs[m.group(1)] = v
 
         self.uc_mode = self.get_uc_mode()
-        debug("# Instantiating Unicorn for %s", self.arch)
-        debug("uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
+        debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
+        debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.gdblib.regs.current
@@ -153,16 +154,16 @@ class Emulator:
             enum = self.get_reg_enum(reg)
 
             if not reg:
-                debug("# Could not set register %r", reg)
+                debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
 
             if reg in blacklisted_regs:
-                debug("Skipping blacklisted register %r", reg)
+                debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
             value = getattr(pwndbg.gdblib.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
-                    debug("# Could not set register %r", reg)
+                    debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
 
             # All registers are initialized to zero.
@@ -170,7 +171,7 @@ class Emulator:
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
-            debug("uc.reg_write(%(name)s, %(value)#x)", locals())
+            debug(DEBUG_INIT, "uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
 
         # Add a hook for unmapped memory
@@ -183,7 +184,7 @@ class Emulator:
         self.map_page(pwndbg.gdblib.regs.pc)
 
         # Instruction tracing
-        if DEBUG:
+        if DEBUG & DEBUG_TRACE:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
 
     def read_register(self, name: str):
@@ -194,19 +195,56 @@ class Emulator:
 
         raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
 
-    def read_memory_int(self, address: int, size: int):
+    # Read ptrwidth worth of memory, return None on error
+    def read_memory(self, address: int, size: int) -> bytes | None:
         value = None
         try:
             # Raises UcError if failed
+            # If the memory is not mapped, it will fail. It will not attempt to run the UC_HOOK_MEM_UNMAPPED hook
+            # https://github.com/unicorn-engine/unicorn/blob/d4b92485b1a228fb003e1218e42f6c778c655809/uc.c#L569
             value = self.uc.mem_read(address, size)
         except U.unicorn.UcError as e:
-            print(f"Emulator failed to read memory at")
-            # print(f"ERROR {e}")
+            if e.errno == U.UC_ERR_READ_UNMAPPED:
+                try:
+                    first_page = pwndbg.lib.memory.page_align(address)
+                    last_page_exclusive = pwndbg.lib.memory.page_align(address+size+pwndbg.lib.memory.PAGE_SIZE)
 
-        return pwndbg.gdblib.arch.unpack(value) if value is not None else None
+                    for page_addr in range(first_page, last_page_exclusive, pwndbg.lib.memory.PAGE_SIZE):
+                        if not(self.map_page(page_addr)):
+                            return None
+
+                    # Pages are mapped, try again
+                    value = self.uc.mem_read(address, size)
+
+                except U.unicorn.UcError:
+                    # Attempt to map the page manually and try again
+                    print(f"Emulator failed to read memory at {address=}" f"{e}")
+                    return None
+            else:
+                return None
+
+        return bytes(value)
     
-    def telescope(self, address: int, limit: int):
-        pass
+    # Recursively dereference memory, return list of addresses
+    def telescope(self, address: int, limit: int) -> list[int]:
+        print("Emulator Telescoping!")
+        result = [address]
+        print(f"{result=}")
+        for i in range(limit):
+            if result.count(address) >= 2:
+                break
+            
+            value = self.read_memory(address, pwndbg.gdblib.arch.ptrsize)
+            if value is not None:
+                address = pwndbg.gdblib.arch.unpack(value)
+                address &= pwndbg.gdblib.arch.ptrmask
+                result.append(address)
+                print(f"{result=}")
+            else:
+                break
+
+        return result
+            
 
     def __getattr__(self, name: str):
         reg = self.get_reg_enum(name)
@@ -255,30 +293,30 @@ class Emulator:
         page = pwndbg.lib.memory.page_align(page)
         size = pwndbg.lib.memory.PAGE_SIZE
 
-        debug("# Mapping %#x-%#x", (page, page + size))
+        debug(DEBUG_MEM_MAP, "# Mapping %#x-%#x", (page, page + size))
 
         try:
             data = pwndbg.gdblib.memory.read(page, size)
             data = bytes(data)
         except gdb.MemoryError:
-            debug("Could not map page %#x during emulation! [exception]", page)
+            debug(DEBUG_MEM_MAP, "Could not map page %#x during emulation! [exception]", page)
             return False
 
         if not data:
-            debug("Could not map page %#x during emulation! [no data]", page)
+            debug(DEBUG_MEM_MAP, "Could not map page %#x during emulation! [no data]", page)
             return False
 
-        debug("uc.mem_map(%(page)#x, %(size)#x)", locals())
+        debug(DEBUG_MEM_MAP, "uc.mem_map(%(page)#x, %(size)#x)", locals())
         self.uc.mem_map(page, size)
 
-        debug("# Writing %#x bytes", len(data))
-        debug("uc.mem_write(%(page)#x, ...)", locals())
+        debug(DEBUG_MEM_MAP, "# Writing %#x bytes", len(data))
+        debug(DEBUG_MEM_MAP, "uc.mem_write(%(page)#x, ...)", locals())
         self.uc.mem_write(page, data)
 
         return True
 
     def hook_mem_invalid(self, uc, access, address, size: int, value, user_data) -> bool:
-        debug("# Invalid access at %#x", address)
+        debug(DEBUG_MEM_MAP, "# Invalid access at %#x", address)
 
         # Page-align the start address
         start = pwndbg.lib.memory.page_align(address)
@@ -300,7 +338,7 @@ class Emulator:
         """
         We never want to emulate through an interrupt.  Just stop.
         """
-        debug("Got an interrupt")
+        debug(DEBUG_INTERRUPT, "Got an interrupt")
         self.uc.emu_stop()
 
     def get_reg_enum(self, reg: str):
@@ -342,20 +380,20 @@ class Emulator:
 
     def hook_add(self, *a, **kw):
         rv = self.uc.hook_add(*a, **kw)
-        debug("%r = uc.hook_add(*%r, **%r)", (rv, a, kw))
+        debug(DEBUG_HOOK_CHANGE, "%r = uc.hook_add(*%r, **%r)", (rv, a, kw))
         return rv
 
     def hook_del(self, *a, **kw):
-        debug("uc.hook_del(*%r, **%r)", (a, kw))
+        debug(DEBUG_HOOK_CHANGE, "uc.hook_del(*%r, **%r)", (a, kw))
         return self.uc.hook_del(*a, **kw)
 
     # Can throw a UcError(status)
     def emu_start(self, *a, **kw):
-        debug("uc.emu_start(*%r, **%r)", (a, kw))
+        debug(DEBUG_EMU_START_STOP, "uc.emu_start(*%r, **%r)", (a, kw))
         return self.uc.emu_start(*a, **kw)
 
     def emu_stop(self, *a, **kw):
-        debug("uc.emu_stop(*%r, **%r)", (a, kw))
+        debug(DEBUG_EMU_START_STOP, "uc.emu_stop(*%r, **%r)", (a, kw))
         return self.uc.emu_stop(*a, **kw)
 
     def emulate_with_hook(self, hook, count=512) -> None:
@@ -366,7 +404,7 @@ class Emulator:
             self.hook_del(ident)
 
     def mem_read(self, *a, **kw):
-        debug("uc.mem_read(*%r, **%r)", (a, kw))
+        debug(DEBUG_MEM_READ, "uc.mem_read(*%r, **%r)", (a, kw))
         return self.uc.mem_read(*a, **kw)
 
     jump_types = {C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET}
@@ -422,7 +460,7 @@ class Emulator:
         # The previous instruction does not immediately precede this one.
         else:
             self._curr = address
-            debug("%#x %#X --> %#x", (self._prev, self._prev_size, self._curr))
+            debug(DEBUG_EXECUTING, "%#x %#X --> %#x", (self._prev, self._prev_size, self._curr))
             self.emu_stop()
             return
 
@@ -432,7 +470,7 @@ class Emulator:
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
 
-        while target and C.CS_GRP_CALL not in pwndbg.disasm.one(addr).groups:
+        while target and C.CS_GRP_CALL not in pwndbg.disasm.one_raw(addr).groups:
             addr, target = self.until_jump(target)
 
         return addr, target
@@ -448,7 +486,7 @@ class Emulator:
 
     def until_syscall_hook_code(self, uc, address, size: int, user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, size))
-        debug("# Executing instruction at %(address)#x with bytes %(data)s", locals())
+        debug(DEBUG_EXECUTING, "# Executing instruction at %(address)#x with bytes %(data)s", locals())
         self.until_syscall_address = address
 
     def single_step(self, pc=None) -> Tuple[int,int]:
@@ -465,17 +503,16 @@ class Emulator:
         self._single_step = (None, None)
 
         pc = pc or self.pc
-        insn = pwndbg.disasm.one(pc)
+        insn = pwndbg.disasm.one_raw(pc)
 
         # If we don't know how to disassemble, bail.
         if insn is None:
-            debug("Can't disassemble instruction at %#x", pc)
+            debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
             return self._single_step
 
-        debug("# Single-stepping at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
+        debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
 
         try:
-            print(f"Unicorn attempting to run instruction at {hex(self.pc)}")
             self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
 
@@ -503,10 +540,11 @@ class Emulator:
         # unicorn >= 1.0.2rc4, but not on unicorn-1.0.2rc1~unicorn-1.0.2rc3,
         # So we use a counter to ensure the code run only once
         if self.single_step_hook_hit_count == 0:
-            debug("# single_step: %#-8x", address)
+            debug(DEBUG_EXECUTING, "# single_step: %#-8x", address)
             self._single_step = (address, instruction_size)
             self.single_step_hook_hit_count += 1
 
+    # For debugging
     def dumpregs(self) -> None:
         for reg in (
             list(self.regs.retaddr)
@@ -517,13 +555,13 @@ class Emulator:
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
-                debug("# Could not dump register %r", reg)
+                print("# Could not dump register %r" % (reg))
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            debug("uc.reg_read(%(name)s) ==> %(value)x", locals())
+            print("uc.reg_read(%(name)s) ==> %(value)x" % (locals()))
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
-        debug("# trace_hook: %#-8x %r", (address, data))
+        debug(DEBUG_TRACE, "# trace_hook: %#-8x %r", (address, data))
