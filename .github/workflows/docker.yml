@@ -1,5 +1,9 @@
 name: Docker build
-on: [pull_request]
+on: 
+  pull_request:
+    paths:
+      - '!mkdocs.yml'
+      - '!docs/**'
 
 jobs:
   docker:
