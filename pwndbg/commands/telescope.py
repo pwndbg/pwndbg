@@ -84,7 +84,9 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False):
+def telescope(
+    address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False
+):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
@@ -148,7 +150,7 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
         inverse_set = 1
     else:
         start = address + ((count - 1) * ptrsize)
-        stop = address  - ptrsize
+        stop = address - ptrsize
         step = -1 * ptrsize
         inverse_set = -1
 
@@ -291,7 +293,9 @@ parser.add_argument(
 def stack(count, offset, frame, inverse) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
-    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame, inverse=inverse)
+    telescope(
+        address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame, inverse=inverse
+    )
 
 
 parser = argparse.ArgumentParser(
