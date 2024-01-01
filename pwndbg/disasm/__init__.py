@@ -142,6 +142,12 @@ def get_disassembler(pc):
     )
 
 
+
+# class PwndbgInstruction:
+#     def __init__(self) 
+
+
+
 # Class used for architectures that Capstone/pwndbg doesn't support
 # Fields are the same names as capstone.CsInsn - relies on duck typing.
 class SimpleInstruction:
@@ -157,6 +163,7 @@ class SimpleInstruction:
         self.groups: list[Any] = []
         self.symbol = None
         self.condition = False
+        self.info_string = None
 
 # TODO: FIX THIS
 @pwndbg.lib.cache.cache_until("cont")
@@ -299,16 +306,12 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         print(f"Creating emu object")
         emu = pwndbg.emu.emulator.Emulator()
-        # TODO: This currently does NOT emulate the current line
-        # skip current line
-        target_candidate, size_candidate = emu.single_step()
 
-        if None in (target_candidate, size_candidate):
-            print("Emulation failed")
-            emu = None
-
-    # Start at the current instruction, and start emulating there.
+    # Start at the current instruction using emulating if available.
     current = one(address, emu)
+
+    if emu and None in emu.last_single_step_result:
+        print("Emulation failed in first")
 
     if current is None:
         return []
@@ -338,38 +341,48 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     insn = current
     total_instructions = 1 + (2 * instructions)
 
+
     while insn and len(insns) < total_instructions:
+        
         # Address to disassemble & emulate
         target = insn.target
+        
+        # Disable emulation if necessary
+        # TODO: Consider if this should be configurable. CALL's are kinda nice to see sometimes
+        if emulate and set(insn.groups) & DO_NOT_EMULATE:
+            emulate = False
+            emu = None
+
+        # If using emulation and it's still enabled, use it to determine the next instruction executed
+        if emu:
+            if None not in emu.last_single_step_result:
+                print("Emulation success")
+                # Next instruction to be executed is where the emulator is
+                target = emu.pc
+            else:
+                # If it failed, was not able to run the instruction
+                print(f"Emulation failed")
+                emu = None
+        elif target != pc:
+            # TODO: Figure out why this path exists, and what the comment below means, as
+            #       insn.target should be more accurate than this in all cases, so this path should only cause worse results
+            
+            # Continue disassembling at the *next* instruction unless we have emulated
+            # the path of execution.
+            target = insn.address + insn.size
 
         # Disable emulation if necessary
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
             emulate = False
             emu = None
 
-        # If we initialized the emulator and emulation is still enabled, we can use it
-        # to figure out the next instruction.
-        # Otherwise, this is determined statically when possible (the instruction.target field is set in DissasemblyAssisant)
-        if emu:
-            target_candidate, size_candidate = emu.single_step()
-
-            if None not in (target_candidate, size_candidate):
-                print("Emulation success")
-                target = target_candidate
-            else:
-                # Unicorn failed to execute the instruction
-                print(f"Emulation failed")
-                emu = None
-
-        # Continue disassembling at the *next* instruction unless we have emulated
-        # the path of execution.
-        elif target != pc:
-            target = insn.address + insn.size
-        
 
         insn = one(target, emu)
         if insn:
             insns.append(insn)
+
+        
+
 
     # Remove repeated instructions at the end of disassembly.
     # Always ensure we display the current and *next* instruction,

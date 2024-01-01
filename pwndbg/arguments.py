@@ -103,7 +103,7 @@ def get(instruction):
         # a call instruction.
         assert len(instruction.operands) == 1
 
-        target = instruction.operands[0].int
+        target = instruction.operands[0].before_value
 
         if not target:
             return []

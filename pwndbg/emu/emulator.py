@@ -3,10 +3,11 @@ Emulation assistance from Unicorn.
 """
 
 from __future__ import annotations
-from typing import Tuple
+from typing import Tuple, NamedTuple
 
 import binascii
 import re
+import string
 
 import capstone as C
 import gdb
@@ -18,7 +19,15 @@ import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-
+import pwndbg.gdblib.vmmap
+import pwndbg.gdblib.symbol
+import pwndbg.chain
+import pwndbg.color.memory as M
+import pwndbg.enhance
+import pwndbg.color.enhance as E
+from pwndbg.color.syntax_highlight import syntax_highlight
+from pwndbg import color
+import pwndbg.gdblib.strings
 
 def parse_consts(u_consts):
     """
@@ -105,6 +114,11 @@ e = pwndbg.emu.emulator.Emulator()
 e.until_jump()
 """
 
+
+class InstructionExecutedResult(NamedTuple):
+    address: int
+    size: int
+
 # Instantiating an instance of `Emulator` will start an instance 
 # with a copy of the current processor state.
 class Emulator:
@@ -139,10 +153,11 @@ class Emulator:
         self._prev_size = None
         self._curr = None
 
-        # Last successfully execute instruction PC
-        # Only works with single_step currently
+        # The address of the last successfully executed instruction using single_step
         self.last_pc = None
-        # TODO: Make it work with things OTHER than single_step
+
+        # (address_successfully_executed, size_of_instruction)
+        self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
         for reg in (
@@ -197,6 +212,10 @@ class Emulator:
 
     # Read ptrwidth worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:
+        # Don't attempt if the address is not mapped on the host process
+        if not pwndbg.gdblib.vmmap.find(address):
+            return None
+
         value = None
         try:
             # Raises UcError if failed
@@ -204,6 +223,7 @@ class Emulator:
             # https://github.com/unicorn-engine/unicorn/blob/d4b92485b1a228fb003e1218e42f6c778c655809/uc.c#L569
             value = self.uc.mem_read(address, size)
         except U.unicorn.UcError as e:
+            # Attempt to map the page manually and try again
             if e.errno == U.UC_ERR_READ_UNMAPPED:
                 try:
                     first_page = pwndbg.lib.memory.page_align(address)
@@ -217,7 +237,6 @@ class Emulator:
                     value = self.uc.mem_read(address, size)
 
                 except U.unicorn.UcError:
-                    # Attempt to map the page manually and try again
                     print(f"Emulator failed to read memory at {address=}" f"{e}")
                     return None
             else:
@@ -226,7 +245,10 @@ class Emulator:
         return bytes(value)
     
     # Recursively dereference memory, return list of addresses
-    def telescope(self, address: int, limit: int) -> list[int]:
+    # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
+    # Naturally, if it is less than the pointer size, then only one value would be telescoped
+    def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
+        read_size = read_size if read_size is not None else pwndbg.gdblib.arch.ptrsize
         print("Emulator Telescoping!")
         result = [address]
         print(f"{result=}")
@@ -234,9 +256,10 @@ class Emulator:
             if result.count(address) >= 2:
                 break
             
-            value = self.read_memory(address, pwndbg.gdblib.arch.ptrsize)
+            value = self.read_memory(address, read_size)
             if value is not None:
-                address = pwndbg.gdblib.arch.unpack(value)
+                # address = pwndbg.gdblib.arch.unpack(value)
+                address = pwndbg.gdblib.arch.unpack_size(value, read_size)
                 address &= pwndbg.gdblib.arch.ptrmask
                 result.append(address)
                 print(f"{result=}")
@@ -244,7 +267,187 @@ class Emulator:
                 break
 
         return result
+    
+    # Given an address, return a string like the one `pwndbg.chain.format` returns,
+    # reading from the emulator memory
+    def format_telescope(self, address: int, limit: int) -> str:
+        
+        address_list = self.telescope(address, limit)
+        return self.format_telescope_list(address_list, limit)
+    
+    def format_telescope_list(self, chain: list[int], limit: int) -> str:
+        # Code is near identical to pwndbg.chain.format, but takes into account reading from
+        # the emulator's memory when necessary
+        arrow_left = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
+        arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
             
+        # Colorize the chain
+        rest = []
+        for link in chain:
+            symbol = pwndbg.gdblib.symbol.get(link) or None
+            if symbol:
+                symbol = f"{link:#x} ({symbol})"
+            rest.append(M.get(link, symbol))
+
+        # If the dereference limit is zero, skip any enhancements.
+        if limit == 0:
+            return rest[0]
+        
+        # Otherwise replace last element with the enhanced information.
+        rest = rest[:-1]
+
+        # Enhance the last entry
+        # If there are no pointers (e.g. eax = 0x41414141), then enhance it
+        if len(chain) == 1:
+            enhanced = self.telescope_enhance(chain[-1], code=True)
+        elif len(chain) < limit + 1:
+            enhanced = self.telescope_enhance(chain[-2], code=True)
+        else:
+            print("HEREERE", len(chain), limit + 1)
+            enhanced = pwndbg.chain.c.contiguous_marker(f"{pwndbg.chain.config_contiguous}")
+   
+        if len(chain) == 1:
+            return enhanced
+        
+        return arrow_right.join(rest) + arrow_left + enhanced
+
+    
+    def telescope_enhance(self, value: int, code: bool = True):
+        # Near identical to pwndbg.enhance.enhance, just read from emulator memory
+
+        # Determine if its on a page - we do this in the real processes memory
+        page = pwndbg.gdblib.vmmap.find(value)
+        can_read = True
+        if not page or None is pwndbg.gdblib.memory.peek(value):
+            can_read = False
+
+        if not can_read:
+            return E.integer(pwndbg.enhance.int_str(value))
+       
+        
+        instr = None
+        exe = page and page.execute
+        rwx = page and page.rwx
+
+        # For the purpose of following pointers, don't display
+        # anything on the stack or heap as 'code'
+        if "[stack" in page.objfile or "[heap" in page.objfile:
+            rwx = exe = False
+
+        # If IDA doesn't think it's in a function, don't display it as code.
+        if pwndbg.ida.available() and not pwndbg.ida.GetFunctionName(value):
+            rwx = exe = False
+
+        if exe:
+            instr = pwndbg.disasm.one_raw(value)
+
+            if instr:
+                instr = f"{instr.mnemonic} {instr.op_str}"
+                if pwndbg.gdblib.config.syntax_highlight:
+                    instr = syntax_highlight(instr)
+
+        # TODO: Read from emulator memory
+
+        # szval = pwndbg.gdblib.strings.get(value) or None
+        szval = self.memory_read_string(value, max_string_len=50, max_read=256)
+        szval0 = szval
+        if szval:
+            szval = E.string(repr(szval))
+        
+        # Fix for case when we can't read the end address anyway (#946)
+        if value + pwndbg.gdblib.arch.ptrsize > page.end:
+            return E.integer(pwndbg.enhance.int_str(value))
+
+        # Read from emulator memory
+        # intval = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
+        read_value = self.read_memory(value, pwndbg.gdblib.arch.ptrsize)
+        if read_value is not None:
+            # intval = pwndbg.gdblib.arch.unpack(read_value)
+            intval = pwndbg.gdblib.arch.unpack_size(read_value, pwndbg.gdblib.arch.ptrsize)
+        else:
+            # This occurs when Unicorn fails to read the memory - which it shouldn't, as the 
+            # read_memory call will map the pages necessary, and this function assumes
+            # that the pointer is a valid pointer (as it has already been telescoped)
+            intval = 0
+
+        intval0 = intval
+        if 0 <= intval < 10:
+            intval = E.integer(str(intval))
+        else:
+            intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
+
+        retval = []
+
+        if not code:
+            instr = None
+
+        # If it's on the stack, don't display it as code in a chain.
+        if instr and "[stack" in page.objfile:
+            retval = [intval, szval]
+        # If it's RWX but a small value, don't display it as code in a chain.
+        elif instr and rwx and intval0 < 0x1000:
+            retval = [intval, szval]
+        # If it's an instruction and *not* RWX, display it unconditionally
+        elif instr and exe:
+            if not rwx:
+                if szval:
+                    retval = [instr, szval]
+                else:
+                    retval = [instr]
+            else:
+                retval = [instr, intval, szval]
+
+        # Otherwise strings have preference
+        elif szval:
+            if len(szval0) < pwndbg.gdblib.arch.ptrsize:
+                retval = [intval, szval]
+            else:
+                retval = [szval]
+
+        # And then integer
+        else:
+            return E.integer(pwndbg.enhance.int_str(intval0))
+
+        retval = tuple(filter(lambda x: x is not None, retval))
+
+        if len(retval) == 0:
+            return E.unknown("???")
+
+        if len(retval) == 1:
+            return retval[0]
+
+        return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))
+
+    # Return None if cannot find str
+    def memory_read_string(self, address: int, max_string_len=None, max_read=None) -> bytes | None:
+        
+        if max_string_len is None:
+            max_string_len = pwndbg.gdblib.strings.length
+
+        if max_read is None:
+            max_read = pwndbg.gdblib.strings.length
+
+        
+        # Read string
+        sz = self.read_memory(address, max_read)
+        if sz is None:
+            return None
+        
+        try:
+            sz = sz[: sz.index(b"\x00")]
+        except ValueError:
+            return None
+
+        sz = sz.decode("latin-1", "replace")
+
+        if not sz or not all(s in string.printable for s in sz):
+            return None
+
+        if len(sz) < max_string_len or not max_string_len:
+            return sz
+
+        return sz[:max_string_len] + "..."
+
 
     def __getattr__(self, name: str):
         reg = self.get_reg_enum(name)
@@ -489,28 +692,34 @@ class Emulator:
         debug(DEBUG_EXECUTING, "# Executing instruction at %(address)#x with bytes %(data)s", locals())
         self.until_syscall_address = address
 
-    def single_step(self, pc=None) -> Tuple[int,int]:
+    def single_step(self, pc=None, check_instruction_valid=True) -> Tuple[int,int]:
         """Steps one instruction.
 
         Yields:
-            Each iteration, yields a tuple of (address, instruction_size).=
+            Each iteration, yields a tuple of (address_just_executed, instruction_size).=
 
             A StopIteration is raised if a fault or syscall or call instruction
             is encountered.
+
+            Returns (None, None) upon failure to execute the instruction
         """
 
-
-        self._single_step = (None, None)
+        self.last_single_step_result = InstructionExecutedResult(None, None)
 
         pc = pc or self.pc
-        insn = pwndbg.disasm.one_raw(pc)
 
-        # If we don't know how to disassemble, bail.
-        if insn is None:
-            debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
-            return self._single_step
+        if check_instruction_valid:
+            insn = pwndbg.disasm.one_raw(pc)
 
-        debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
+            # If we don't know how to disassemble, bail.
+            if insn is None:
+                debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
+                return self.last_single_step_result
+
+            debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
+        else:
+            debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x", (pc,))
+            
 
         try:
             self.single_step_hook_hit_count = 0
@@ -518,13 +727,13 @@ class Emulator:
 
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
+            debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc)
         except U.unicorn.UcError as e:
-            print(f"Emulator failed to execute instruction")
-            # print(f"ERROR {e}")
-            self._single_step = (None, None)
+            debug(DEBUG_EXECUTING, "Emulator failed to execute instruction")
+            self.last_single_step_result = InstructionExecutedResult(None, None)
 
-        print(f"Unicorn now at pc={hex(self.pc)}")
-        return self._single_step
+        return self.last_single_step_result
+
 
     def single_step_iter(self, pc=None):
         a = self.single_step(pc)
@@ -541,7 +750,7 @@ class Emulator:
         # So we use a counter to ensure the code run only once
         if self.single_step_hook_hit_count == 0:
             debug(DEBUG_EXECUTING, "# single_step: %#-8x", address)
-            self._single_step = (address, instruction_size)
+            self.last_single_step_result = InstructionExecutedResult(address, instruction_size)
             self.single_step_hook_hit_count += 1
 
     # For debugging
@@ -555,12 +764,12 @@ class Emulator:
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
-                print("# Could not dump register %r" % (reg))
+                print("# Could not dump register %r" % (reg,))
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            print("uc.reg_read(%(name)s) ==> %(value)x" % (locals()))
+            print("uc.reg_read(%(name)s) ==> %(value)x" % (locals(),))
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
