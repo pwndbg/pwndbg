@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - '!mkdocs.yml'
+      - '!docs/**'      
     tags:
       - '*'
 
