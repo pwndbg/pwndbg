@@ -21,6 +21,7 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
+import pwndbg.color.memory 
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
 
@@ -28,12 +29,21 @@ bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
 def good_instr(i) -> bool:
     return not any(bad in i for bad in bad_instrs)
 
+def format_small_int(value: int) -> str:
+    if value < 10:
+        return "%d" % value
+    else:
+        return "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
+
+def format_small_int_pair(first: int, second: int) -> tuple[str,str]:
+    if first < 10 and second < 10:
+        return ("%d" % first, "%d" % second)
+    else:
+        return ("%#x" % int(first & pwndbg.gdblib.arch.ptrmask), "%#x" % int(second & pwndbg.gdblib.arch.ptrmask))
+
 
 def int_str(value: int) -> str:
-    if value < 10:
-        retval = "%d" % value
-    else:
-        retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
+    retval = format_small_int(value)
 
     # Try to unpack the value as a string
     packed = pwndbg.gdblib.arch.pack(int(value))
@@ -45,7 +55,7 @@ def int_str(value: int) -> str:
 
 
 # @pwndbg.lib.cache.cache_until("stop")
-def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
+def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_dereference = True) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -68,9 +78,13 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not page or None is pwndbg.gdblib.memory.peek(value):
+    if not attempt_dereference or not page or None is pwndbg.gdblib.memory.peek(value):
         can_read = False
 
+    # If it's a pointer that we told the function about, then color it accordingly and add symbol if can
+    if page and not attempt_dereference:
+        return pwndbg.color.memory.get_address_and_symbol(value)
+    
     if not can_read:
         return E.integer(int_str(value))
 
@@ -121,7 +135,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
         instr = None
 
     # If it's on the stack, don't display it as code in a chain.
-    if instr and "stack" in page.objfile:
+    if instr and "[stack" in page.objfile:
         retval = [intval, szval]
 
     # If it's RWX but a small value, don't display it as code in a chain.

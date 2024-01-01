@@ -5,6 +5,7 @@ from typing import Callable
 import gdb
 
 import pwndbg.gdblib.vmmap
+import pwndbg.gdblib.symbol
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -23,6 +24,14 @@ c = ColorConfig(
     ],
 )
 
+# Ex: convert integer 0x7ffff7fcecd0 to `0x7ffff7fcecd0 (_dl_fini)`
+# If no symbol, it is omitted
+def get_address_and_symbol(address: int) -> str:
+    symbol = pwndbg.gdblib.symbol.get(address) or None
+    if symbol:
+        symbol = f"{address:#x} ({symbol})"
+    return get(address, symbol)
+    
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """

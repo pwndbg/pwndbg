@@ -96,7 +96,7 @@ config_contiguous = theme.add_param(
 )
 
 
-def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
+def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False, enhance_can_dereference=True):
     """
     Recursively dereferences an address into string representation, or convert the list representation
     of address dereferences into string representation.
@@ -109,7 +109,8 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         hard_stop(int): Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
         safe_linking(bool): whether this chain use safe-linking
-
+        enhance_can_dereference(bool): whether 'enhance' is allowed to dereference the value it is enhancing
+            Only takes effect when passing a list with a single value, and is used when it may be a pointer that is not meant to be dereferenced
     Returns:
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
@@ -146,7 +147,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
     # the only element there is.
     if len(chain) == 1:
-        enhanced = pwndbg.enhance.enhance(chain[-1], code=code)
+        enhanced = pwndbg.enhance.enhance(chain[-1], code=code, attempt_dereference=enhance_can_dereference)
 
     # Otherwise, the last element in the chain is the non-pointer value.
     # We want to enhance the last pointer value. If an offset was used

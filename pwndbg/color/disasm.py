@@ -66,7 +66,7 @@ def instruction(ins: CsInsn) -> str:
             # XXX: not sure when this ever happens
             asm += "<-- file a pwndbg bug for this"
         else:
-            print(f"{ins.info_string=}")
+            # print(f"{ins.info_string=}")
 
             # If enhancement found one important symbol
             inlined_sym = asm
