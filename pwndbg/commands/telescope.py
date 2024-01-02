@@ -220,12 +220,14 @@ def telescope(
             break
         if inverse:
             line_offset = addr - (stop + ptrsize) + (telescope.offset * ptrsize)
+            idx_offset = int((start - stop - ptrsize) / ptrsize) - (i + telescope.offset)
         else:
             line_offset = addr - start + (telescope.offset * ptrsize)
+            idx_offset = i + telescope.offset
         line = T.offset(
             "%02x%s%04x%s"
             % (
-                i + telescope.offset,
+                idx_offset,
                 delimiter,
                 line_offset,
                 separator,
