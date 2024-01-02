@@ -5,7 +5,6 @@ import sys
 import traceback
 
 import gdb
-import pkg_resources
 
 import pwndbg.lib.cache
 import pwndbg.lib.stdio
@@ -51,6 +50,8 @@ def inform_unmet_dependencies(errors) -> None:
     """
     Informs user about unmet dependencies
     """
+    import pkg_resources
+
     msg = message.error("You appear to have unmet Pwndbg dependencies.\n")
     for e in errors:
         if isinstance(e, pkg_resources.DistributionNotFound):
