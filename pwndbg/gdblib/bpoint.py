@@ -44,7 +44,9 @@ class BreakpointEvent(gdb.Breakpoint):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         REGISTERED_BP_EVENTS.add(id(self))
-        self.commands = f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
+        self.commands = (
+            f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
+        )
 
     def delete(self):
         REGISTERED_BP_EVENTS.remove(id(self))
@@ -55,4 +57,3 @@ class BreakpointEvent(gdb.Breakpoint):
         This function is called whenever this breakpoint is hit in the code.
         """
         pass
-

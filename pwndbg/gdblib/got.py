@@ -181,6 +181,7 @@ class TrapAllocator:
         while len(self.blocks) > 0:
             pwndbg.gdblib.shellcode
 
+
 def display_name(name, basename=False):
     """
     Return the display name for a symbol or objfile.
@@ -203,6 +204,7 @@ def display_name(name, basename=False):
         return name
     except TypeError:
         return name
+
 
 # The allocator we use for our trap addresses.
 TRAP_ALLOCATOR = TrapAllocator()
@@ -239,13 +241,12 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
         objfile = self.tracker.link_map_entry.name()
         if objfile == b"":
             objfile = pwndbg.gdblib.proc.exe
-        self.tracker.obj_display_name = display_name(objfile, basename=True) 
+        self.tracker.obj_display_name = display_name(objfile, basename=True)
 
         self.tracker.sym_display_name = display_name(
             self.tracker.dynamic_section.string(
                 self.tracker.dynamic_section.symtab_read(
-                    self.tracker.relocation_fn(self.tracker.relocation_index, 'r_sym'), 
-                    'st_name'
+                    self.tracker.relocation_fn(self.tracker.relocation_index, "r_sym"), "st_name"
                 )
             )
         )
@@ -265,7 +266,9 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
 
         # Notify the user about changes to the GOT.
         if not self.init:
-            print(f"[*] GOT entry {self.entry:#x} ({self.tracker.sym_display_name}@{self.tracker.obj_display_name}) now points to {new_target:#x}")
+            print(
+                f"[*] GOT entry {self.entry:#x} ({self.tracker.sym_display_name}@{self.tracker.obj_display_name}) now points to {new_target:#x}"
+            )
         self.init = False
 
         # Update the GOT entry so that it points to the trapped address again.
@@ -324,6 +327,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
         # Divert execution back to the real jump target.
         gdb.execute(f"set $pc = {self.target}")
         return False
+
 
 def _update_watchpoints():
     """
@@ -422,6 +426,7 @@ def tracked_entry_by_address(address):
     Return the tracker associated with the entry at the given address, if any.
     """
     return INSTALLED_WATCHPOINTS.get(address)
+
 
 def enable_got_call_tracking(disable_hardware_whatchpoints=True):
     """

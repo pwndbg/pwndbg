@@ -24,6 +24,7 @@ def toggle_got_tracking():
     else:
         pwndbg.gdblib.got.disable_got_call_tracking()
 
+
 def columns(rows, colors=None):
     """
     Print data formatted into distinct columns.
@@ -67,7 +68,7 @@ parser.add_argument(
     "--writable",
     dest="writable",
     action="store_true",
-    help="Only show functions whose GOT entry is in a writable region of memory"
+    help="Only show functions whose GOT entry is in a writable region of memory",
 )
 parser.add_argument(
     "-f",
@@ -75,12 +76,11 @@ parser.add_argument(
     type=str,
     dest="fnname",
     default=".*",
-    help="Selects functions whose names match the given expression"
+    help="Selects functions whose names match the given expression",
 )
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, category=CommandCategory.LINUX, command_name="got-report"
-)
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="got-report")
 @pwndbg.commands.OnlyWhenRunning
 def got_report(soname=".*", writable=False, fnname=".*"):
     if not pwndbg.gdblib.got.GOT_TRACKING:
@@ -90,7 +90,9 @@ def got_report(soname=".*", writable=False, fnname=".*"):
     soname = re.compile(soname)
     fnname = re.compile(fnname)
 
-    print(f"Showing {'writable' if writable else 'all'} GOT function entries and how many times they were called.")
+    print(
+        f"Showing {'writable' if writable else 'all'} GOT function entries and how many times they were called."
+    )
     print()
 
     per_object = {}
@@ -137,6 +139,7 @@ def got_report(soname=".*", writable=False, fnname=".*"):
 
     columns(rows)
 
+
 parser = argparse.ArgumentParser(
     description="Displays the tracking status of a GOT entry.",
 )
@@ -145,6 +148,7 @@ parser.add_argument(
     type=str,
     help="The address of the GOT entry being tracked",
 )
+
 
 @pwndbg.commands.ArgparsedCommand(
     parser, category=CommandCategory.LINUX, command_name="got-tracking-status"
