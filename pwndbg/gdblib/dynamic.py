@@ -77,16 +77,14 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
     [1]: https://elixir.bootlin.com/glibc/glibc-2.37/source/elf/link.h#L52
     """
 
-    skip_this = True
+    skip_this = False
 
     def on_breakpoint_hit(self):
         # Skip every other trigger, we only care about the completed link map
         # that is available after the library is loaded.
+        self.skip_this = not self.skip_this
         if self.skip_this:
-            self.skip_this = False
             return
-        else:
-            self.skip_ths = True
 
         # Clear the cache that is tied to link map updates, and signal all of
         # the interested parties that this event has occurred.

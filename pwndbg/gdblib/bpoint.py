@@ -44,6 +44,7 @@ class BreakpointEvent(gdb.Breakpoint):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         REGISTERED_BP_EVENTS.add(id(self))
+        self.commands = f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
 
     def delete(self):
         REGISTERED_BP_EVENTS.remove(id(self))
@@ -55,27 +56,3 @@ class BreakpointEvent(gdb.Breakpoint):
         """
         pass
 
-
-# Attatch ourselves to the event runtime so that we can fire the
-# on_breakpoint_hit() function for all of the breakpoint events that stopped on
-# a given piece of code.
-def _handle_stop(event):
-    if type(event) is not gdb.BreakpointEvent:
-        # We have nothing to do here.
-        return
-
-    print("Handling BPStop")
-    should_continue = True
-    for bp in event.breakpoints:
-        if id(bp) not in REGISTERED_BP_EVENTS:
-            # This breakpoint does not belong to us. We also can't automatically
-            # resume execution after we finish processing our events, because
-            # someone else expects the code to stop here.
-            should_continue = False
-            continue
-        bp.on_breakpoint_hit()
-    if should_continue:
-        gdb.execute("continue")
-
-
-gdb.events.stop.connect(_handle_stop)

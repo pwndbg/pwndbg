@@ -181,6 +181,28 @@ class TrapAllocator:
         while len(self.blocks) > 0:
             pwndbg.gdblib.shellcode
 
+def display_name(name, basename=False):
+    """
+    Return the display name for a symbol or objfile.
+
+    Ideally, we'd like to display all of the names of the symbols as text, but
+    there is really nothing stopping symbol names from being stored in some
+    fairly wacky encoding or really from having names that aren't text at all.
+
+    We should try our best to turn whatever the symbol name is into text, but
+    not so much that non-text entries or entries in unknown encodings become
+    unrecognizable.
+    """
+    if name == b"":
+        return "<Empty>"
+    try:
+        if isinstance(name, bytearray):
+            name = name.decode("ascii")
+        if basename and "/" in name:
+            name = name.split("/")[-1]
+        return name
+    except TypeError:
+        return name
 
 # The allocator we use for our trap addresses.
 TRAP_ALLOCATOR = TrapAllocator()
@@ -192,9 +214,12 @@ GOT_TRACKING = False
 INSTALLED_WATCHPOINTS = {}
 
 
-class Patcher(pwndbg.gdblib.bpoint.BreakpointEvent):
+class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
     """
     Watches for changes made by program code to the GOT and fixes them up.
+
+    This class is paired with Tracker, and instances of both classes always
+    function together.
     """
 
     entry = 0
@@ -207,29 +232,57 @@ class Patcher(pwndbg.gdblib.bpoint.BreakpointEvent):
         self.silent = True
         self.entry = entry
         self.tracker = tracker
+        self.init = True
 
-    def on_breakpoint_hit(self):
+        # Figure out the display names both this class and its corresponding
+        # tracker will use.
+        objfile = self.tracker.link_map_entry.name()
+        if objfile == b"":
+            objfile = pwndbg.gdblib.proc.exe
+        self.tracker.obj_display_name = display_name(objfile, basename=True) 
+
+        self.tracker.sym_display_name = display_name(
+            self.tracker.dynamic_section.string(
+                self.tracker.dynamic_section.symtab_read(
+                    self.tracker.relocation_fn(self.tracker.relocation_index, 'r_sym'), 
+                    'st_name'
+                )
+            )
+        )
+
+    def should_stop(self):
         # Read the new branch target, and update the redirection target of the
         # tracker accordingly.
         new_target = pwndbg.gdblib.memory.pvoid(self.entry)
         if new_target == self.tracker.trapped_address:
-            return
+            # The write to this range from within GDB that we do at the end of
+            # this function can cause this watchpoint to trigger again.
+            # Obviously, we don't want to treat our own writes the same way we'd
+            # treat writes made by the inferior.
+            return False
 
         self.tracker.target = new_target
 
-        print(
-            f"Attempted write at entry {self.entry:#x} for symbol {self.tracker.dynamic_section.string(self.tracker.dynamic_section.symtab_read(self.tracker.relocation_fn(self.tracker.relocation_index, 'r_sym'), 'st_name'))}. {self.tracker.trapped_address:#x} -> {new_target:#x}"
-        )
+        # Notify the user about changes to the GOT.
+        if not self.init:
+            print(f"[*] GOT entry {self.entry:#x} ({self.tracker.sym_display_name}@{self.tracker.obj_display_name}) now points to {new_target:#x}")
+        self.init = False
+
         # Update the GOT entry so that it points to the trapped address again.
         #
         # FIXME: Ideally, we'd use gdb.Value([...]).assign() here, but that is
         # not always available, so we must do this ugly hack instead.
         gdb.execute(f"set *(void**){self.entry:#x} = {self.tracker.trapped_address:#x}")
 
+        return False
 
-class Tracker(pwndbg.gdblib.bpoint.BreakpointEvent):
+
+class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     """
     Class that tracks the accesses made to the entries in the GOT.
+
+    This class is paired with Patcher, and instances of both classes always
+    function together.
     """
 
     hits = {}
@@ -245,18 +298,19 @@ class Tracker(pwndbg.gdblib.bpoint.BreakpointEvent):
     def __init__(self):
         self.trapped_address = TRAP_ALLOCATOR.alloc()
         super().__init__(f"*{self.trapped_address:#x}", internal=True)
+        self.hits = {}
         self.silent = True
 
     def delete(self):
         TRAP_ALLOCATOR.free(self.trapped_address)
         super().delete()
 
-    def on_breakpoint_hit(self):
+    def should_stop(self):
+        # Notify the user about calls made through this GOT entry.
+        print(f"[*] {self.sym_display_name}@{self.obj_display_name} called via GOT")
+
         # Collect the stack that accessed this GOT entry.
-        print(
-            f"Hit trapped address {self.trapped_address:#x} of symbol {self.dynamic_section.string(self.dynamic_section.symtab_read(self.relocation_fn(self.relocation_index, 'r_sym'), 'st_name'))}, redirecting to {self.target:#x}"
-        )
-        stack = [pwndbg.gdblib.regs.pc]
+        stack = []
         frame = gdb.newest_frame().older()
         while frame is not None:
             stack.append(frame.pc())
@@ -269,7 +323,7 @@ class Tracker(pwndbg.gdblib.bpoint.BreakpointEvent):
 
         # Divert execution back to the real jump target.
         gdb.execute(f"set $pc = {self.target}")
-
+        return False
 
 def _update_watchpoints():
     """
@@ -308,10 +362,10 @@ def _update_watchpoints():
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
                 tracker.link_map_entry = obj
-                tracker.reloction_index = i
+                tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.rel_read
                 patcher = Patcher(target, tracker)
-                patcher.on_breakpoint_hit()
+                patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_rela:
@@ -327,10 +381,10 @@ def _update_watchpoints():
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
                 tracker.link_map_entry = obj
-                tracker.reloction_index = i
+                tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.rela_read
                 patcher = Patcher(target, tracker)
-                patcher.on_breakpoint_hit()
+                patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_jmprel:
@@ -344,10 +398,10 @@ def _update_watchpoints():
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
                 tracker.link_map_entry = obj
-                tracker.reloction_index = i
+                tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.jmprel_read
                 patcher = Patcher(target, tracker)
-                patcher.on_breakpoint_hit()
+                patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
 
@@ -363,14 +417,11 @@ def all_tracked_entries():
     return INSTALLED_WATCHPOINTS.items()
 
 
-def writable_tracked_entries():
+def tracked_entry_by_address(address):
     """
-    Return an iterator over all of the tracked GOT entries in writable sections.
+    Return the tracker associated with the entry at the given address, if any.
     """
-    for addr, item in all_tracked_entries():
-        if pwndbg.gdblib.vmmap.find(addr).write:
-            yield addr, item
-
+    return INSTALLED_WATCHPOINTS.get(address)
 
 def enable_got_call_tracking(disable_hardware_whatchpoints=True):
     """
@@ -407,6 +458,12 @@ def enable_got_call_tracking(disable_hardware_whatchpoints=True):
 
     pwndbg.gdblib.dynamic.r_debug_install_link_map_changed_hook()
     _update_watchpoints()
+
+    print("Enabled GOT tracking. Calls across dynamic library boundaries are now")
+    print("instumented, and the number of calls and stack traces for every call will be")
+    print("collected. You may check the current call information by using the")
+    print("`got-report` and `got-tracing-status` commands. Run this command ")
+    print("again to diasble tracking.")
 
 
 def disable_got_call_tracking():

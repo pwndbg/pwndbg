@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
 @pwndbg.commands.OnlyWhenRunning
 def linkmap():
     is_first = True
-    rows = [["<NODE>", "<NAME>", "<LOAD BIAS>", "<DYNAMIC SEGMENT>"]]
+    rows = [["Node", "Objfile", "Load Bias", "Dynamic Segment"]]
     for obj in pwndbg.gdblib.dynamic.link_map():
         name = obj.name().decode("utf-8")
         if name == "":
