@@ -165,7 +165,9 @@ def mem_changed(func: Callable[..., Any]):
         return func
 
 
-def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
+# TODO/FIXME: type ofile with gdb.NewObjFileEvent | None = None
+# after https://github.com/python/typeshed/issues/11208 is resolved
+def log_objfiles(ofile=None) -> None:
     if not (debug and ofile):
         return None
 

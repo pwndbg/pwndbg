@@ -350,7 +350,7 @@ class Chunk:
             next_size_field_address = next._gdbValue[self.__match_renamed_field("size")].address
             end_address = next_size_field_address if next.prev_inuse else next.address
 
-        return start_address <= addr < end_address
+        return start_address <= addr < end_address  # type: ignore[operator]
 
 
 class Heap:

@@ -27,21 +27,21 @@ repeating_marker_color = theme.add_color_param(
 )
 
 
-def offset(x: str) -> str:
+def offset(x: object) -> str:
     return generateColorFunction(config.telescope_offset_color)(x)
 
 
-def register(x: str) -> str:
+def register(x: object) -> str:
     return generateColorFunction(config.telescope_register_color)(x)
 
 
-def separator(x: str) -> str:
+def separator(x: object) -> str:
     return generateColorFunction(config.telescope_offset_separator_color)(x)
 
 
-def delimiter(x: str) -> str:
+def delimiter(x: object) -> str:
     return generateColorFunction(config.telescope_offset_delimiter_color)(x)
 
 
-def repeating_marker(x: str) -> str:
+def repeating_marker(x: object) -> str:
     return generateColorFunction(config.telescope_repeating_marker_color)(x)

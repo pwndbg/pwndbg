@@ -432,7 +432,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
             # In auto mode, we will try to use the debug symbols if possible
             pwndbg.heap.current = DebugSymsHeap()
         if pwndbg.heap.current.can_be_resolved():
-            return _try2run_heap_command(function, a, kw)
+            return _try2run_heap_command(function, a, kw)  # type: ignore[arg-type]
         else:
             if (
                 isinstance(pwndbg.heap.current, DebugSymsHeap)

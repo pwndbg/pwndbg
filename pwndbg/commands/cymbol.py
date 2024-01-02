@@ -91,7 +91,7 @@ def generate_debug_symbols(
     # TODO: implement remote debugging support.
     gcc_flags = pwndbg.lib.gcc.which(pwndbg.gdblib.arch)
     if gcc_compiler_path != "":
-        gcc_flags[0] = gcc_compiler_path
+        gcc_flags[0] = gcc_compiler_path  # type: ignore[call-overload]
 
     gcc_cmd = gcc_flags + gcc_extra_flags
 

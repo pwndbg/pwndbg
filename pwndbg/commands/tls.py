@@ -116,7 +116,7 @@ def threads(num_threads, respect_config) -> None:
             ]
         else:
             row = [
-                thread.global_num,
+                str(thread.global_num),
                 name,
             ]
 

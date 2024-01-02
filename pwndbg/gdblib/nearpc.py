@@ -184,7 +184,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
             align = show_opcode_bytes * 2 + 10
             if opcode_separator_bytes > 0:
                 # add the length of the maximum number of separators to the alignment
-                align += (show_opcode_bytes - 1) * opcode_separator_bytes
+                align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
             if len(instr.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
