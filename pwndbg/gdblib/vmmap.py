@@ -93,18 +93,19 @@ def get() -> tuple[pwndbg.lib.memory.Page, ...]:
 
     proc_maps = None
     if pwndbg.gdblib.qemu.is_qemu_usermode():
-        # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_pid_maps
+        # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_tid_maps
         proc_maps = info_proc_maps()
 
     if not proc_maps:
-        proc_maps = proc_pid_maps()
+        proc_maps = proc_tid_maps()
 
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
-    #   None    - when /proc/$pid/maps does not exist/is not available
+    #   None    - when /proc/$tid/maps does not exist/is not available
     #   tuple() - when the process has no maps yet which happens only during its very early init
     #             (usually when we attach to a process)
     if proc_maps is not None:
         return proc_maps
+
     pages = []
     if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
         "i386",
@@ -184,7 +185,7 @@ def explore(address_maybe: int) -> Any | None:
 
         Also assumes the entire contiguous section has the same permission.
     """
-    if proc_pid_maps():
+    if proc_tid_maps():
         return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
@@ -349,6 +350,10 @@ def info_proc_maps():
     """
     Parse the result of info proc mappings.
 
+    Note: this may return no pages due to a bug/behavior of GDB.
+    See https://sourceware.org/bugzilla/show_bug.cgi?id=31207
+    for more information.
+
     Returns:
         A tuple of pwndbg.lib.memory.Page objects or None if
         info proc mapping is not supported on the target.
@@ -393,13 +398,14 @@ def info_proc_maps():
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def proc_pid_maps():
+def proc_tid_maps():
     """
-    Parse the contents of /proc/$PID/maps on the server.
+    Parse the contents of /proc/$TID/maps on the server.
+    (TID == Thread Identifier. We do not use PID since it may not be correct)
 
     Returns:
         A tuple of pwndbg.lib.memory.Page objects or None if
-        /proc/$pid/maps doesn't exist or when we debug a qemu-user target
+        /proc/$tid/maps doesn't exist or when we debug a qemu-user target
     """
 
     # If we debug remotely a qemu-user or qemu-system target,
@@ -407,7 +413,7 @@ def proc_pid_maps():
     if pwndbg.gdblib.qemu.is_qemu():
         return None
 
-    # Example /proc/$pid/maps
+    # Example /proc/$tid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
     # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
     # 7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -428,11 +434,11 @@ def proc_pid_maps():
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    pid = pwndbg.gdblib.proc.pid
+    tid = pwndbg.gdblib.proc.tid
     locations = [
-        f"/proc/{pid}/maps",
-        f"/proc/{pid}/map",
-        f"/usr/compat/linux/proc/{pid}/maps",
+        f"/proc/{tid}/maps",
+        f"/proc/{tid}/map",
+        f"/usr/compat/linux/proc/{tid}/maps",
     ]
 
     for location in locations:
@@ -785,7 +791,7 @@ def check_aslr():
     # Check the personality of the process
     if pwndbg.gdblib.proc.alive:
         try:
-            data = pwndbg.gdblib.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.pid)
+            data = pwndbg.gdblib.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.tid)
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:
