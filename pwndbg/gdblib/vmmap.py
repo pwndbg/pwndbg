@@ -348,6 +348,7 @@ def coredump_maps():
 def info_proc_maps():
     """
     Parse the result of info proc mappings.
+
     Returns:
         A tuple of pwndbg.lib.memory.Page objects or None if
         info proc mapping is not supported on the target.
