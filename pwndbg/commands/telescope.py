@@ -74,6 +74,16 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "-i",
+    "--inverse",
+    dest="inverse",
+    action="store_true",
+    default=False,
+    help="Show the stack reverse growth",
+)
+
+
+parser.add_argument(
     "address", nargs="?", default="$sp", type=int, help="The address to telescope at."
 )
 
@@ -147,12 +157,10 @@ def telescope(
         start = address
         stop = address + (count * ptrsize)
         step = ptrsize
-        inverse_set = 1
     else:
         start = address + ((count - 1) * ptrsize)
         stop = address - ptrsize
         step = -1 * ptrsize
-        inverse_set = -1
 
     # Find all registers which show up in the trace, map address to regs
     regs: dict[int, str] = {}
@@ -210,13 +218,16 @@ def telescope(
             collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
-
+        if inverse:
+            line_offset = addr - (stop + ptrsize) + (telescope.offset * ptrsize)
+        else:
+            line_offset = addr - start + (telescope.offset * ptrsize)
         line = T.offset(
             "%02x%s%04x%s"
             % (
                 i + telescope.offset,
                 delimiter,
-                (addr - start + (telescope.offset * ptrsize)) * inverse_set,
+                line_offset,
                 separator,
             )
         ) + " ".join(
