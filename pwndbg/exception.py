@@ -12,17 +12,30 @@ import pwndbg.lib.stdio
 from pwndbg.color import message
 from pwndbg.gdblib import config
 
-with pwndbg.lib.stdio.stdio:
-    try:
-        import ipdb as pdb
-    except ImportError:
-        import pdb
-    try:
-        from rich.console import Console
+try:
+    import ipdb as pdb
+except ImportError:
+    import pdb
 
-        _rich_console = Console()
-    except ImportError:
-        _rich_console = None
+_rich_console = None
+
+
+def print_exception(exception_msg):
+    global _rich_console
+
+    if _rich_console is None:
+        try:
+            from rich.console import Console
+
+            _rich_console = Console()
+        except ImportError:
+            _rich_console = ...
+
+    if not isinstance(_rich_console, Ellipsis):  # type: ignore[arg-type]
+        _rich_console.print_exception()
+    else:
+        print(exception_msg)
+
 
 verbose = config.add_param(
     "exception-verbose",
@@ -96,10 +109,7 @@ def handle(name="Error"):
     # Display the error
     if debug or verbose:
         exception_msg = traceback.format_exc()
-        if _rich_console:
-            _rich_console.print_exception()
-        else:
-            print(exception_msg)
+        print_exception(exception_msg)
         inform_report_issue(exception_msg)
 
     else:
