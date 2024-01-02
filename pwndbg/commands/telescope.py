@@ -74,6 +74,16 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "-i",
+    "--inverse",
+    dest="inverse",
+    action="store_true",
+    default=False,
+    help="Show the stack reverse growth",
+)
+
+
+parser.add_argument(
     "address", nargs="?", default="$sp", type=int, help="The address to telescope at."
 )
 
@@ -84,7 +94,9 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def telescope(address=None, count=telescope_lines, to_string=False, reverse=False, frame=False):
+def telescope(
+    address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False
+):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
@@ -141,9 +153,14 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
 
-    start = address
-    stop = address + (count * ptrsize)
-    step = ptrsize
+    if not inverse:
+        start = address
+        stop = address + (count * ptrsize)
+        step = ptrsize
+    else:
+        start = address + ((count - 1) * ptrsize)
+        stop = address - ptrsize
+        step = -1 * ptrsize
 
     # Find all registers which show up in the trace, map address to regs
     regs: dict[int, str] = {}
@@ -201,13 +218,18 @@ def telescope(address=None, count=telescope_lines, to_string=False, reverse=Fals
             collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
-
+        if inverse:
+            line_offset = addr - (stop + ptrsize) + (telescope.offset * ptrsize)
+            idx_offset = int((start - stop - ptrsize) / ptrsize) - (i + telescope.offset)
+        else:
+            line_offset = addr - start + (telescope.offset * ptrsize)
+            idx_offset = i + telescope.offset
         line = T.offset(
             "%02x%s%04x%s"
             % (
-                i + telescope.offset,
+                idx_offset,
                 delimiter,
-                addr - start + (telescope.offset * ptrsize),
+                line_offset,
                 separator,
             )
         ) + " ".join(
@@ -259,6 +281,16 @@ parser.add_argument(
     default=False,
     help="Show the stack frame, from rsp to rbp",
 )
+
+parser.add_argument(
+    "-i",
+    "--inverse",
+    dest="inverse",
+    action="store_true",
+    default=False,
+    help="Show reverse stack growth",
+)
+
 parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
 parser.add_argument(
     "offset",
@@ -271,10 +303,12 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
-def stack(count, offset, frame) -> None:
+def stack(count, offset, frame, inverse) -> None:
     ptrsize = pwndbg.gdblib.typeinfo.ptrsize
     telescope.repeat = stack.repeat
-    telescope(address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame)
+    telescope(
+        address=pwndbg.gdblib.regs.sp + offset * ptrsize, count=count, frame=frame, inverse=inverse
+    )
 
 
 parser = argparse.ArgumentParser(
