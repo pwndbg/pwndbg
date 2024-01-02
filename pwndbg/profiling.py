@@ -3,7 +3,7 @@ from __future__ import annotations
 import cProfile
 import time
 
-profiler = None
+profiler: Profiler | None = None
 
 
 def init(p: cProfile.Profile, _start_time: float | None) -> None:
@@ -25,7 +25,7 @@ class Profiler:
         self._start_time = time.time()
         self._profiler.enable()
 
-    def stop(self, filename=None) -> None:
+    def stop(self, filename: str | None = None) -> None:
         if not filename:
             filename = f"pwndbg-{int(time.time())}.pstats"
 

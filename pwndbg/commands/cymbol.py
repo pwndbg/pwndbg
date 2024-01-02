@@ -53,7 +53,7 @@ loaded_symbols: dict[str, str] = {}
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
 
 
-def unload_loaded_symbol(custom_structure_name) -> None:
+def unload_loaded_symbol(custom_structure_name: str) -> None:
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
         gdb.execute(f"remove-symbol-file {custom_structure_symbols_file}")
@@ -72,7 +72,9 @@ def OnlyWhenStructFileExists(func):
     return wrapper
 
 
-def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_file=None):
+def generate_debug_symbols(
+    custom_structure_path: str, pwndbg_debug_symbols_output_file: str | None = None
+) -> str | None:
     if not pwndbg_debug_symbols_output_file:
         _, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
 
@@ -89,7 +91,7 @@ def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_fi
     # TODO: implement remote debugging support.
     gcc_flags = pwndbg.lib.gcc.which(pwndbg.gdblib.arch)
     if gcc_compiler_path != "":
-        gcc_flags[0] = gcc_compiler_path
+        gcc_flags[0] = gcc_compiler_path  # type: ignore[call-overload]
 
     gcc_cmd = gcc_flags + gcc_extra_flags
 
@@ -111,7 +113,7 @@ def generate_debug_symbols(custom_structure_path, pwndbg_debug_symbols_output_fi
     return pwndbg_debug_symbols_output_file
 
 
-def add_custom_structure(custom_structure_name) -> None:
+def add_custom_structure(custom_structure_name: str) -> None:
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
     if os.path.exists(pwndbg_custom_structure_path):
@@ -140,7 +142,7 @@ def add_custom_structure(custom_structure_name) -> None:
 
 
 @OnlyWhenStructFileExists
-def edit_custom_structure(custom_structure_name, custom_structure_path) -> None:
+def edit_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
     # Lookup an editor to use for editing the custom structure.
     editor_preference = os.getenv("EDITOR")
     if not editor_preference:
@@ -156,7 +158,7 @@ def edit_custom_structure(custom_structure_name, custom_structure_path) -> None:
             [editor_preference, custom_structure_path],
             check=True,
         )
-    except Exception as exception:
+    except Exception:
         print(message.error("An error occured during opening the source file."))
         print(message.error(f"Path to the custom structure: {custom_structure_path}"))
         print(message.error("Please try to manually edit the structure."))
@@ -173,14 +175,14 @@ def edit_custom_structure(custom_structure_name, custom_structure_path) -> None:
 
 
 @OnlyWhenStructFileExists
-def remove_custom_structure(custom_structure_name, custom_structure_path) -> None:
+def remove_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
     unload_loaded_symbol(custom_structure_name)
     os.remove(custom_structure_path)
     print(message.success("Symbols are removed!"))
 
 
 @OnlyWhenStructFileExists
-def load_custom_structure(custom_structure_name, custom_structure_path) -> None:
+def load_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
     unload_loaded_symbol(custom_structure_name)
     pwndbg_debug_symbols_output_file = generate_debug_symbols(custom_structure_path)
     if not pwndbg_debug_symbols_output_file:
@@ -194,7 +196,7 @@ def load_custom_structure(custom_structure_name, custom_structure_path) -> None:
 
 
 @OnlyWhenStructFileExists
-def show_custom_structure(custom_structure_name, custom_structure_path) -> None:
+def show_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
     # Call non-caching version of the function (thus .__wrapped__)
     highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source.__wrapped__(
         custom_structure_path

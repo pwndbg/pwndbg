@@ -972,7 +972,9 @@ def vis_heap_chunks(
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
-        pwndbg.lib.memory.round_up(pwndbg.gdblib.config.max_visualize_chunk_size, ptr_size << 2)
+        pwndbg.lib.memory.round_up(
+            int(pwndbg.gdblib.config.max_visualize_chunk_size), ptr_size << 2
+        )
         >> 1
     )
 

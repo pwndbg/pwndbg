@@ -52,7 +52,7 @@ def set_glibc_version() -> None:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 def get_version() -> tuple[int, ...] | None:
-    return glibc_version or _get_version()
+    return glibc_version or _get_version()  # type: ignore[return-value]
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning

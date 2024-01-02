@@ -4,13 +4,20 @@ import argparse
 import functools
 import io
 from enum import Enum
+from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+from typing import TypeVar
 
 import gdb
 
 import pwndbg.exception
 import pwndbg.gdblib.kernel
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.heap
 from pwndbg.color import message
@@ -18,8 +25,10 @@ from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
-commands: list[Command] = []
-command_names = set()
+T = TypeVar("T")
+
+commands: List[Command] = []
+command_names: Set[str] = set()
 
 
 class CommandCategory(str, Enum):
@@ -50,7 +59,7 @@ def list_current_commands():
 
     gdb.execute("set pagination off")
     command_list = gdb.execute("help all", to_string=True).strip().split("\n")
-    existing_commands = set()
+    existing_commands: Set[str] = set()
     for line in command_list:
         line = line.strip()
         # Skip non-command entries
@@ -77,23 +86,23 @@ pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 class Command(gdb.Command):
     """Generic command wrapper"""
 
-    builtin_override_whitelist = {"up", "down", "search", "pwd", "start", "ignore"}
-    history: dict[int, str] = {}
+    builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
+    history: Dict[int, str] = {}
 
     def __init__(
         self,
-        function,
-        prefix=False,
-        command_name=None,
-        shell=False,
-        is_alias=False,
-        aliases=[],
-        category=CommandCategory.MISC,
+        function: Callable[..., str | None],
+        prefix: bool = False,
+        command_name: str | None = None,
+        shell: bool = False,
+        is_alias: bool = False,
+        aliases: List[str] = [],
+        category: CommandCategory = CommandCategory.MISC,
     ) -> None:
-        self.is_alias: bool = is_alias
+        self.is_alias = is_alias
         self.aliases = aliases
         self.category = category
-        self.shell: bool = shell
+        self.shell = shell
 
         if command_name is None:
             command_name = function.__name__
@@ -118,7 +127,7 @@ class Command(gdb.Command):
 
         self.repeat = False
 
-    def split_args(self, argument):
+    def split_args(self, argument: str) -> Tuple[List[str], Dict[Any, Any]]:
         """Split a command-line string from the user into arguments.
 
         Returns:
@@ -127,7 +136,7 @@ class Command(gdb.Command):
         """
         return gdb.string_to_argv(argument), {}
 
-    def invoke(self, argument, from_tty):
+    def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
         try:
             args, kwargs = self.split_args(argument)
@@ -140,11 +149,11 @@ class Command(gdb.Command):
 
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            return self(*args, **kwargs)
+            self(*args, **kwargs)
         finally:
             self.repeat = False
 
-    def check_repeated(self, argument, from_tty) -> bool:
+    def check_repeated(self, argument: str, from_tty: bool) -> bool:
         """Keep a record of all commands which come from the TTY.
 
         Returns:
@@ -176,7 +185,7 @@ class Command(gdb.Command):
 
         return True
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> str | None:
         try:
             return self.function(*args, **kwargs)
         except TypeError as te:
@@ -184,9 +193,12 @@ class Command(gdb.Command):
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
+        return None
 
 
-def fix(arg, sloppy=False, quiet=True, reraise=False):
+def fix(
+    arg: gdb.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+) -> str | gdb.Value | None:
     """Fix a single command-line argument coming from the GDB CLI.
 
     Arguments:
@@ -223,7 +235,7 @@ def fix(arg, sloppy=False, quiet=True, reraise=False):
     return None
 
 
-def fix_int(*a, **kw):
+def fix_int(*a, **kw) -> int:
     return int(fix(*a, **kw))
 
 
@@ -232,9 +244,9 @@ def fix_int_reraise(*a, **kw):
     return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
-def OnlyWithFile(function):
+def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithFile(*a, **kw):
+    def _OnlyWithFile(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
@@ -242,37 +254,40 @@ def OnlyWithFile(function):
                 print(message.error("Could not determine the target binary on QEMU."))
             else:
                 print(message.error(f"{function.__name__}: There is no file loaded."))
+            return None
 
     return _OnlyWithFile
 
 
-def OnlyWhenQemuKernel(function):
+def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenQemuKernel(*a, **kw):
+    def _OnlyWhenQemuKernel(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
             )
+            return None
 
     return _OnlyWhenQemuKernel
 
 
-def OnlyWhenUserspace(function):
+def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenUserspace(*a, **kw):
+    def _OnlyWhenUserspace(*a: Any, **kw: Any) -> Optional[T]:
         if not pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
             )
+            return None
 
     return _OnlyWhenUserspace
 
 
-def OnlyWithArch(arch_names: list[str]):
+def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.gdblib.arch_mod.ARCHS:
@@ -280,9 +295,9 @@ def OnlyWithArch(arch_names: list[str]):
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function):
+    def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a, **kw):
+        def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
             if pwndbg.gdblib.arch.name in arch_names:
                 return function(*a, **kw)
             else:
@@ -291,67 +306,73 @@ def OnlyWithArch(arch_names: list[str]):
                     f"%s: This command may only be run on the {arches_str} architecture(s)"
                     % function.__name__
                 )
+                return None
 
         return _OnlyWithArch
 
     return decorator
 
 
-def OnlyWithKernelDebugSyms(function):
+def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a, **kw):
+    def _OnlyWithKernelDebugSyms(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.kernel.has_debug_syms():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
+            return None
 
     return _OnlyWithKernelDebugSyms
 
 
-def OnlyWhenPagingEnabled(function):
+def OnlyWhenPagingEnabled(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenPagingEnabled(*a, **kw):
+    def _OnlyWhenPagingEnabled(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: This command may only be run when paging is enabled.")
+            return None
 
     return _OnlyWhenPagingEnabled
 
 
-def OnlyWhenRunning(function):
+def OnlyWhenRunning(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenRunning(*a, **kw):
+    def _OnlyWhenRunning(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: The program is not being run.")
+            return None
 
     return _OnlyWhenRunning
 
 
-def OnlyWithTcache(function):
+def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithTcache(*a, **kw):
+    def _OnlyWithTcache(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.heap.current.has_tcache():
             return function(*a, **kw)
         else:
             print(
                 f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
             )
+            return None
 
     return _OnlyWithTcache
 
 
-def OnlyWhenHeapIsInitialized(function):
+def OnlyWhenHeapIsInitialized(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a, **kw):
+    def _OnlyWhenHeapIsInitialized(*a: Any, **kw: Any) -> Optional[T]:
         if pwndbg.heap.current.is_initialized():
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: Heap is not initialized yet.")
+            return None
 
     return _OnlyWhenHeapIsInitialized
 
@@ -362,7 +383,7 @@ def _is_statically_linked() -> bool:
     return "No shared libraries loaded at this time." in out
 
 
-def _try2run_heap_command(function, a, kw):
+def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) -> str | None:
     e = lambda s: print(message.error(s))
     w = lambda s: print(message.warn(s))
     # Note: We will still raise the error for developers when exception-* is set to "on"
@@ -395,11 +416,12 @@ def _try2run_heap_command(function, a, kw):
             raise err
         else:
             pwndbg.exception.inform_verbose_and_debug()
+    return None
 
 
-def OnlyWithResolvedHeapSyms(function):
+def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a, **kw):
+    def _OnlyWithResolvedHeapSyms(*a: Any, **kw: Any):
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if (
@@ -410,7 +432,7 @@ def OnlyWithResolvedHeapSyms(function):
             # In auto mode, we will try to use the debug symbols if possible
             pwndbg.heap.current = DebugSymsHeap()
         if pwndbg.heap.current.can_be_resolved():
-            return _try2run_heap_command(function, a, kw)
+            return _try2run_heap_command(function, a, kw)  # type: ignore[arg-type]
         else:
             if (
                 isinstance(pwndbg.heap.current, DebugSymsHeap)
@@ -475,7 +497,7 @@ def OnlyWithResolvedHeapSyms(function):
 class _ArgparsedCommand(Command):
     def __init__(
         self,
-        parser,
+        parser: argparse.ArgumentParser,
         function,
         command_name=None,
         *a,
@@ -502,7 +524,7 @@ class _ArgparsedCommand(Command):
             **kw,
         )
 
-    def split_args(self, argument):
+    def split_args(self, argument: str):
         argv = gdb.string_to_argv(argument)
         return tuple(), vars(self.parser.parse_args(argv))
 
@@ -511,7 +533,11 @@ class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
     def __init__(
-        self, parser_or_desc, aliases=[], command_name=None, category=CommandCategory.MISC
+        self,
+        parser_or_desc: argparse.ArgumentParser | str,
+        aliases: List[str] = [],
+        command_name: str | None = None,
+        category: CommandCategory = CommandCategory.MISC,
     ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -535,7 +561,7 @@ class ArgparsedCommand:
             if action.default is not None:
                 action.help += " (default: %(default)s)"
 
-    def __call__(self, function):
+    def __call__(self, function: Callable) -> _ArgparsedCommand:
         for alias in self.aliases:
             _ArgparsedCommand(
                 self.parser, function, command_name=alias, is_alias=True, category=self.category
@@ -556,7 +582,7 @@ _mask = 0xFFFFFFFFFFFFFFFF
 _mask_val_type = gdb.Value(_mask).type
 
 
-def sloppy_gdb_parse(s):
+def sloppy_gdb_parse(s: str) -> int | str:
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
 
@@ -579,7 +605,7 @@ def sloppy_gdb_parse(s):
         return s
 
 
-def AddressExpr(s):
+def AddressExpr(s: str) -> int:
     """
     Parses an address expression. Returns an int.
     """
@@ -591,7 +617,7 @@ def AddressExpr(s):
     return val
 
 
-def HexOrAddressExpr(s):
+def HexOrAddressExpr(s: str) -> int:
     """
     Parses string as hexadecimal int or an address expression. Returns an int.
     (e.g. '1234' will return 0x1234)

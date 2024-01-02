@@ -6,6 +6,7 @@ import os
 import sys
 from collections import defaultdict
 from typing import DefaultDict
+from typing import Tuple
 
 import gdb
 
@@ -650,7 +651,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get_highlight_source(filename):
+def get_highlight_source(filename: str) -> Tuple[str, ...]:
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()

@@ -16,6 +16,8 @@ module, for example:
 """
 from __future__ import annotations
 
+from typing import Any
+
 import gdb
 
 import pwndbg.decorators
@@ -116,7 +118,7 @@ class Parameter(gdb.Parameter):
 
     get_set_string = __get_set_string_gdb_gte_9 if IS_GDB_GTE_9 else __get_set_string_gdb_le_9
 
-    def __get_show_string_gdb_gte_9(self, svalue) -> str:
+    def __get_show_string_gdb_gte_9(self, svalue: str) -> str:
         """Handles the GDB `show <param>` command for GDB >= 9"""
         more_information_hint = f" See `help set {self.param.name}` for more information."
         return "{} is {!r}.{}".format(
@@ -125,7 +127,7 @@ class Parameter(gdb.Parameter):
             more_information_hint if self.__doc__ else "",
         )
 
-    def __get_show_string_gdb_le_9(self, svalue) -> str:
+    def __get_show_string_gdb_le_9(self, svalue: str) -> str:
         """Handles the GDB `show <param>` command for GDB < 9"""
         if self.param.param_class == gdb.PARAM_ZUINTEGER_UNLIMITED and self.value == -1:
             svalue = "unlimited"
@@ -135,7 +137,7 @@ class Parameter(gdb.Parameter):
     get_show_string = __get_show_string_gdb_gte_9 if IS_GDB_GTE_9 else __get_show_string_gdb_le_9
 
     @staticmethod
-    def _value_to_gdb_native(value, param_class=None):
+    def _value_to_gdb_native(value: Any, param_class: int | None = None) -> Any:
         """Translates Python value into native GDB syntax string."""
         if isinstance(value, bool):
             # Convert booleans to "on" or "off".

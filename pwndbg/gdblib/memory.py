@@ -11,13 +11,15 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
+import pwndbg.lib.cache
+import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
 
 MMAP_MIN_ADDR = 0x8000
 
 
-def read(addr, count, partial=False):
+def read(addr: int, count: int, partial: bool = False) -> bytearray:
     """read(addr, count, partial=False) -> bytearray
 
     Read memory from the program being debugged.
@@ -65,7 +67,7 @@ def read(addr, count, partial=False):
     return bytearray(result)
 
 
-def readtype(gdb_type, addr):
+def readtype(gdb_type: gdb.Type, addr: int) -> int:
     """readtype(gdb_type, addr) -> int
 
     Reads an integer-type (e.g. ``uint64``) and returns a Python
@@ -81,7 +83,7 @@ def readtype(gdb_type, addr):
     return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
 
 
-def write(addr, data) -> None:
+def write(addr: int, data: str | bytes | bytearray) -> None:
     """write(addr, data)
 
     Writes data into the memory of the process being debugged.
@@ -97,7 +99,7 @@ def write(addr, data) -> None:
     gdb.selected_inferior().write_memory(addr, data)
 
 
-def peek(address):
+def peek(address: int):
     """peek(address) -> str
 
     Read one byte from the specified address.
@@ -117,7 +119,7 @@ def peek(address):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def is_readable_address(address) -> bool:
+def is_readable_address(address: int) -> bool:
     """is_readable_address(address) -> bool
 
     Check if the address can be read by GDB.
@@ -132,7 +134,7 @@ def is_readable_address(address) -> bool:
     return pwndbg.gdblib.vmmap.find(address) is not None and peek(address) is not None
 
 
-def poke(address) -> bool:
+def poke(address: int) -> bool:
     """poke(address)
 
     Checks whether an address is writable.
@@ -153,7 +155,7 @@ def poke(address) -> bool:
     return True
 
 
-def string(addr, max=4096):
+def string(addr: int, max: int = 4096) -> bytearray:
     """Reads a null-terminated string from memory.
 
     Arguments:
@@ -182,7 +184,7 @@ def byte(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uchar, addr)
 
 
-def uchar(addr):
+def uchar(addr: int) -> int:
     """uchar(addr) -> int
 
     Read one ``unsigned char`` at the specified address.
@@ -190,7 +192,7 @@ def uchar(addr):
     return readtype(pwndbg.gdblib.typeinfo.uchar, addr)
 
 
-def ushort(addr):
+def ushort(addr: int) -> int:
     """ushort(addr) -> int
 
     Read one ``unisgned short`` at the specified address.
@@ -198,7 +200,7 @@ def ushort(addr):
     return readtype(pwndbg.gdblib.typeinfo.ushort, addr)
 
 
-def uint(addr):
+def uint(addr: int) -> int:
     """uint(addr) -> int
 
     Read one ``unsigned int`` at the specified address.
@@ -214,7 +216,7 @@ def pvoid(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.pvoid, addr)
 
 
-def u8(addr):
+def u8(addr: int) -> int:
     """u8(addr) -> int
 
     Read one ``uint8_t`` from the specified address.
@@ -222,7 +224,7 @@ def u8(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint8, addr)
 
 
-def u16(addr):
+def u16(addr: int) -> int:
     """u16(addr) -> int
 
     Read one ``uint16_t`` from the specified address.
@@ -230,7 +232,7 @@ def u16(addr):
     return readtype(pwndbg.gdblib.typeinfo.uint16, addr)
 
 
-def u32(addr):
+def u32(addr: int) -> int:
     """u32(addr) -> int
 
     Read one ``uint32_t`` from the specified address.
@@ -246,7 +248,7 @@ def u64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
-def u(addr, size: int | None = None):
+def u(addr: int, size: int | None = None):
     """u(addr, size=None) -> int
 
     Read one ``unsigned`` integer from the specified address,
@@ -258,7 +260,7 @@ def u(addr, size: int | None = None):
     return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 
-def s8(addr):
+def s8(addr: int) -> int:
     """s8(addr) -> int
 
     Read one ``int8_t`` from the specified address
@@ -266,7 +268,7 @@ def s8(addr):
     return readtype(pwndbg.gdblib.typeinfo.int8, addr)
 
 
-def s16(addr):
+def s16(addr: int) -> int:
     """s16(addr) -> int
 
     Read one ``int16_t`` from the specified address.
@@ -274,7 +276,7 @@ def s16(addr):
     return readtype(pwndbg.gdblib.typeinfo.int16, addr)
 
 
-def s32(addr):
+def s32(addr: int) -> int:
     """s32(addr) -> int
 
     Read one ``int32_t`` from the specified address.
@@ -282,7 +284,7 @@ def s32(addr):
     return readtype(pwndbg.gdblib.typeinfo.int32, addr)
 
 
-def s64(addr):
+def s64(addr: int) -> int:
     """s64(addr) -> int
 
     Read one ``int64_t`` from the specified address.
@@ -291,7 +293,7 @@ def s64(addr):
 
 
 # TODO: `readtype` is just `int(poi(type, addr))`
-def poi(type, addr):
+def poi(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
     """poi(addr) -> gdb.Value
 
     Read one ``gdb.Type`` object at the specified address.
@@ -326,7 +328,7 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def find_lower_boundary(addr, max_pages=1024):
+def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
     """find_lower_boundary(addr, max_pages=1024) -> int
 
     Brute-force search the lower boundary of a memory mapping,
@@ -335,7 +337,7 @@ def find_lower_boundary(addr, max_pages=1024):
     """
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
-        for i in range(max_pages):
+        for _ in range(max_pages):
             pwndbg.gdblib.memory.read(addr, 1)
             addr -= PAGE_SIZE
 

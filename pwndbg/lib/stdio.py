@@ -6,7 +6,9 @@ which prevent output from appearing on-screen inside of certain event handlers.
 from __future__ import annotations
 
 import sys
+from types import TracebackType
 from typing import TextIO
+from typing import Type
 
 
 class Stdio:
@@ -19,7 +21,12 @@ class Stdio:
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
-    def __exit__(self, *a, **kw) -> None:
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         sys.stdin, sys.stdout, sys.stderr = self.queue.pop()
 
 

@@ -11,6 +11,7 @@ import gdb
 import psutil
 
 import pwndbg.gdblib.remote
+import pwndbg.lib.cache
 
 # TODO: `import pwndbg.gdblib.events` leads to a circular import
 from pwndbg.gdblib.events import start
@@ -85,7 +86,7 @@ def root() -> Any | None:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def pid():
+def pid() -> int:
     """Find the PID of the qemu usermode binary which we are
     talking to.
     """
@@ -108,3 +109,5 @@ def pid():
         for c in connections:
             if c.laddr in targets:
                 return process.pid
+
+    return 0

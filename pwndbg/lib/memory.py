@@ -139,11 +139,11 @@ class Page:
     def __contains__(self, addr: int) -> bool:
         return self.start <= addr < self.end
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self.vaddr == getattr(other, "vaddr", other)
 
-    def __lt__(self, other) -> bool:
-        return self.vaddr < getattr(other, "vaddr", other)
+    def __lt__(self, other: object) -> bool:
+        return self.vaddr < getattr(other, "vaddr", other)  # type: ignore[arg-type]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.vaddr, self.memsz, self.flags, self.offset, self.objfile))

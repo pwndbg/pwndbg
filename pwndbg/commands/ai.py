@@ -279,7 +279,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         url,
         data=json.dumps(data),
         headers={"Content-Type": "application/json"},
-        auth=("Bearer", config.ai_openai_api_key),
+        auth=("Bearer", config.ai_openai_api_key),  # type: ignore[arg-type]
     )
     res = r.json()
     if verbosity > 0:
@@ -319,7 +319,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
         url,
         data=json.dumps(data),
         headers={"Content-Type": "application/json"},
-        auth=("Bearer", config.ai_openai_api_key),
+        auth=("Bearer", config.ai_openai_api_key),  # type: ignore[arg-type]
     )
     res = r.json()
     if verbosity > 0:
@@ -378,7 +378,7 @@ def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
 
 def get_openai_models():
     url = "https://api.openai.com/v1/models"
-    r = requests.get(url, auth=("Bearer", config.ai_openai_api_key))
+    r = requests.get(url, auth=("Bearer", config.ai_openai_api_key))  # type: ignore[arg-type]
     res = r.json()
     if verbosity > 0:
         print(M.warn(pprint.pformat(res)))

@@ -24,7 +24,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-def _gdb_version():
+def _gdb_version() -> str:
     return gdb.VERSION
 
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from typing import Dict
+from typing import List
+from typing import Union
 
 from elftools.elf.elffile import ELFFile
 
@@ -63,7 +66,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
+def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
     if pwndbg.gdblib.qemu.is_qemu_usermode():
         print(
             "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
@@ -108,7 +111,7 @@ def got(path_filter, all_, accept_readonly, symbol_filter) -> None:
                 print("    " + path)
 
 
-def _got(path, accept_readonly, symbol_filter) -> None:
+def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # Maybe download the file from remote
     local_path = pwndbg.gdblib.file.get_file(path, try_local_path=True)
 
@@ -118,7 +121,7 @@ def _got(path, accept_readonly, symbol_filter) -> None:
 
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
-    outputs = []
+    outputs: List[Dict[str, Union[str, int]]] = []
     if path == pwndbg.gdblib.proc.exe:
         bin_base_offset = pwndbg.gdblib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
     else:
@@ -175,5 +178,5 @@ def _got(path, accept_readonly, symbol_filter) -> None:
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"
+            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
         )

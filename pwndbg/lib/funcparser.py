@@ -1,12 +1,30 @@
 from __future__ import annotations
 
-import collections
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import NamedTuple
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from pycparser import CParser  # type: ignore
 from pycparser import c_ast
 
+CAstNode = Union[
+    c_ast.EllipsisParam,
+    c_ast.PtrDecl,
+    c_ast.ArrayDecl,
+    c_ast.FuncDecl,
+    c_ast.Struct,
+    c_ast.Union,
+    c_ast.Enum,
+]
 
-def extractTypeAndName(n, defaultName=None):
+
+def extractTypeAndName(
+    n: CAstNode, defaultName: Optional[str] = None
+) -> Optional[Tuple[str, int, str]]:
     if isinstance(n, c_ast.EllipsisParam):
         return ("int", 0, "vararg")
 
@@ -33,24 +51,37 @@ def extractTypeAndName(n, defaultName=None):
     return typename.lstrip("_"), d, name.lstrip("_")
 
 
-Function = collections.namedtuple("Function", ("type", "derefcnt", "name", "args"))
-Argument = collections.namedtuple("Argument", ("type", "derefcnt", "name"))
+class Function(NamedTuple):
+    type: str
+    derefcnt: int
+    name: str
+    args: List[Argument]
 
 
-def Stringify(X) -> str:
+class Argument(NamedTuple):
+    type: str
+    derefcnt: int
+    name: str
+
+
+def Stringify(X: Function | Argument) -> str:
     return f"{X.type} {X.derefcnt * '*'} {X.name}"
 
 
-def ExtractFuncDecl(node, verbose=False):
+def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
     # The function name needs to be dereferenced.
-    ftype, fderef, fname = extractTypeAndName(node)
+    result = extractTypeAndName(node)
+    if result is None:
+        return None
+
+    ftype, fderef, fname = result
 
     if not fname:
         print("Skipping function without a name!")
         print(node.show())
-        return
+        return None
 
-    fargs = []
+    fargs: List[Argument] = []
     for i, (argName, arg) in enumerate(node.args.children()):
         defname = "arg%i" % i
         argdata = extractTypeAndName(arg, defname)
@@ -66,11 +97,11 @@ def ExtractFuncDecl(node, verbose=False):
     return Func
 
 
-def ExtractAllFuncDecls(ast, verbose=False):
-    Functions = {}
+def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
+    Functions: Dict[str, Function] = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
-        def visit_FuncDecl(self, node, *a) -> None:
+        def visit_FuncDecl(self, node: CAstNode, *a: Any) -> None:
             f = ExtractFuncDecl(node, verbose)
             Functions[f.name] = f
 
@@ -79,15 +110,16 @@ def ExtractAllFuncDecls(ast, verbose=False):
     return Functions
 
 
-def ExtractFuncDeclFromSource(source):
+def ExtractFuncDeclFromSource(source: str) -> Function | None:
     try:
         p = CParser()
-        ast = p.parse(source + ";")
+        ast: CAstNode = p.parse(source + ";")
         funcs = ExtractAllFuncDecls(ast)
         for name, func in funcs.items():
             return func
-    except Exception as e:
+    except Exception:
         import traceback
 
         traceback.print_exc()
         # eat it
+    return None

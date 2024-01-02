@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+from typing import Sequence
+
 import gdb
 
 import pwndbg.gdblib.config
@@ -11,7 +14,13 @@ current = None
 
 
 def add_heap_param(
-    name, default, set_show_doc, *, help_docstring="", param_class=None, enum_sequence=None
+    name: str,
+    default: Any,
+    set_show_doc: str,
+    *,
+    help_docstring: str = "",
+    param_class: int | None = None,
+    enum_sequence: Sequence[str] | None = None,
 ):
     return pwndbg.gdblib.config.add_param(
         name,
@@ -85,7 +94,7 @@ def reset() -> None:
 
 
 @pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
-def resolve_heap(is_first_run=False) -> None:
+def resolve_heap(is_first_run: bool = False) -> None:
     import pwndbg.heap.ptmalloc
 
     global current

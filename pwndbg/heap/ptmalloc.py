@@ -12,7 +12,6 @@ except ImportError:
 
 from typing import Any
 from typing import Callable
-from typing import Union  # noqa: F401
 
 import gdb
 
@@ -351,7 +350,7 @@ class Chunk:
             next_size_field_address = next._gdbValue[self.__match_renamed_field("size")].address
             end_address = next_size_field_address if next.prev_inuse else next.address
 
-        return start_address <= addr < end_address
+        return start_address <= addr < end_address  # type: ignore[operator]
 
 
 class Heap:
@@ -1320,7 +1319,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         out = gdb.execute("info dll", to_string=True)
         return "No shared libraries loaded at this time." in out
 
-    def libc_has_debug_syms(self):
+    def libc_has_debug_syms(self) -> bool:
         """
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries

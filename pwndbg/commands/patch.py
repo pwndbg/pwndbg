@@ -2,17 +2,23 @@
 from __future__ import annotations
 
 import argparse
+from typing import Dict
+from typing import Tuple
 
+import gdb
 from pwnlib.asm import asm
 from pwnlib.asm import disasm
 
+import pwndbg.color.context
+import pwndbg.color.memory
+import pwndbg.color.syntax_highlight
 import pwndbg.commands
 import pwndbg.gdblib.memory
 import pwndbg.lib.cache
 from pwndbg.color import message
 
 # Keep old patches made so we can revert them
-patches = {}
+patches: Dict[int, Tuple[bytearray, bytearray]] = {}
 
 
 parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes.")
@@ -23,7 +29,7 @@ parser.add_argument("-q", "--quiet", action="store_true", help="don't print anyt
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def patch(address, ins, quiet) -> None:
+def patch(address: gdb.Value | int, ins: str, quiet: bool) -> None:
     # Make sure that any gdb.Value object is converted to int
     address = int(address)
 
@@ -48,7 +54,7 @@ parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 @pwndbg.commands.ArgparsedCommand(parser2)
 @pwndbg.commands.OnlyWhenRunning
-def patch_revert(address) -> None:
+def patch_revert(address: gdb.Value | int) -> None:
     # Make sure that any gdb.Value object is converted to int
     address = int(address)
 

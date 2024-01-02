@@ -8,13 +8,15 @@ from __future__ import annotations
 import glob
 import os
 import platform
+from typing import Any
+from typing import List
 
 from pwndbg.lib.arch import Arch
 
 printed_message = False
 
 
-def which(arch: Arch) -> list[str]:
+def which(arch: Arch) -> List[str]:
     gcc = _which_binutils("g++", arch)
 
     if not gcc:
@@ -31,7 +33,7 @@ def which(arch: Arch) -> list[str]:
     return [gcc] + _flags(arch.name)
 
 
-def _which_binutils(util, arch, **kwargs):
+def _which_binutils(util: str, arch: Arch, **kwargs: Any):
     ###############################
     # Borrowed from pwntools' code
     ###############################
@@ -41,7 +43,7 @@ def _which_binutils(util, arch, **kwargs):
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.
-    arches = [arch_name] + {
+    arches: List[str] = [arch_name] + {
         "thumb": ["arm", "armcm", "aarch64"],
         "i386": ["x86_64", "amd64"],
         "i686": ["x86_64", "amd64"],
@@ -74,7 +76,7 @@ def _which_binutils(util, arch, **kwargs):
                     return res[0]
 
 
-def _flags(arch_name: str) -> list[str]:
+def _flags(arch_name: str) -> List[str]:
     if arch_name == "i386":
         return ["-m32"]
     if arch_name.endswith("x86-64"):
