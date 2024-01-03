@@ -28,7 +28,7 @@ class Breakpoint(gdb.Breakpoint):
         return True
 
 
-REGISTERED_BP_EVENTS = set()
+REGISTERED_BP_EVENTS = {}
 
 
 class BreakpointEvent(gdb.Breakpoint):
@@ -43,7 +43,7 @@ class BreakpointEvent(gdb.Breakpoint):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        REGISTERED_BP_EVENTS.add(id(self))
+        REGISTERED_BP_EVENTS[id(self)] = self
         self.commands = (
             f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
         )

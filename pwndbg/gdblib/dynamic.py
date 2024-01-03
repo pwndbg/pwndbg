@@ -77,18 +77,19 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
     [1]: https://elixir.bootlin.com/glibc/glibc-2.37/source/elf/link.h#L52
     """
 
-    skip_this = False
+    def __init__(self, *args, **kwargs):
+        self.skip_this = True
+        super().__init__(*args, **kwargs)
 
-    def on_breakpoint_hit(self):
+    def stop(self):
         # Skip every other trigger, we only care about the completed link map
         # that is available after the library is loaded.
         self.skip_this = not self.skip_this
-        if self.skip_this:
-            return
+        return not self.skip_this
 
+    def on_breakpoint_hit(self):
         # Clear the cache that is tied to link map updates, and signal all of
         # the interested parties that this event has occurred.
-        pwndbg.lib.cache.clear_cache("link_map")
         for listener in R_DEBUG_LINK_MAP_CHANGED_LISTENERS:
             listener()
 
@@ -112,6 +113,13 @@ def r_debug_install_link_map_changed_hook():
     Because of this, parts of the code that rely on the hook should try calling
     this function and firing their own listeners manually at least once.
     """
+    # TODO: Currently, reacting to this event has some unpleasant side effects
+    # on usability. Until this can be fixed, this hook is unavailable.
+    print(
+        message.warn("r_brk hook is disabled. r_debug_install_link_map_changed_hook() does nothing")
+    )
+    return
+
     global R_DEBUG_LINK_MAP_CHANGED_HOOK
     if R_DEBUG_LINK_MAP_CHANGED_HOOK is not None:
         return
@@ -149,7 +157,6 @@ def r_debug_link_map_changed_remove_listener(handler):
     R_DEBUG_LINK_MAP_CHANGED_LISTENERS.remove(handler)
 
 
-# @pwndbg.lib.cache.cache_until("link_map")
 def link_map_head():
     """
     Acquires a reference to the head entry of the link map.
@@ -168,7 +175,6 @@ def link_map_head():
         return LinkMapEntry(r_map)
 
 
-# @pwndbg.lib.cache.cache_until("link_map")
 def link_map():
     """
     Iterator over all the entries in the link map.

@@ -86,7 +86,6 @@ _ALL_CACHE_UNTIL_EVENTS = {
     "cont": _CacheUntilEvent(),
     "thread": _CacheUntilEvent(),
     "prompt": _CacheUntilEvent(),
-    "link_map": _CacheUntilEvent(),
     "forever": _CacheUntilEvent(),
 }
 _ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())

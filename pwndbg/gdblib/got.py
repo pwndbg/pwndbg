@@ -476,7 +476,6 @@ def enable_got_call_tracking(disable_hardware_whatchpoints=True):
 
     GOT_TRACKING = True
 
-    pwndbg.gdblib.dynamic.r_debug_install_link_map_changed_hook()
     _update_watchpoints()
 
     print("Enabled GOT tracking. Calls across dynamic library boundaries are now")
@@ -484,6 +483,12 @@ def enable_got_call_tracking(disable_hardware_whatchpoints=True):
     print("collected. You may check the current call information by using the")
     print("`track-got info` and `track-got query` commands. Run this command again to")
     print("diasble tracking.")
+    print()
+
+    # Until we start enablign the r_brk hook again.
+    print("Keep in mind that, currently, the tracker does not update across calls to")
+    print("dlopen(), so, if one of those does happen, the tracker has to be manually")
+    print("disabled and re-enabled in order to update the hooks.")
 
 
 def disable_got_call_tracking():
