@@ -122,11 +122,17 @@ class TrapAllocator:
     block_capacity = 4096
     slot_size = 8
 
-    blocks = []
-    current_block_occupancy = 0
-    vacant_slots = []
+    def __init__(self):
+        self._reset()
 
-    occupied_slots = set()
+    def _reset(self):
+        """
+        Reset the internal state of the allocator.
+        """
+        self.blocks = []
+        self.current_block_occupancy = 0
+        self.vacant_slots = []
+        self.occupied_slots = set()
 
     def alloc(self):
         """
@@ -154,6 +160,7 @@ class TrapAllocator:
             0x22,  # MAP_PRIVATE | MAP_ANONYMOUS
             -1,
             0,
+            disable_breakpoints=True,
         )
         if is_mmap_error(block_base):
             raise RuntimeError(f"SYS_mmap request returned {block_base:#x}")
@@ -179,7 +186,15 @@ class TrapAllocator:
         """
         size = self.block_capacity * self.slot_size
         while len(self.blocks) > 0:
-            pwndbg.gdblib.shellcode
+            block = self.blocks.pop()
+            result = pwndbg.gdblib.shellcode.exec_syscall(
+                "SYS_munmap", block, self.block_capacity * self.slot_size, disable_breakpoints=True
+            )
+            if result != 0:
+                raise RuntimeError(
+                    f"SYS_munmap({block:#x}, {self.block_capacity * self.slot_size:#x}) failed ({result:#x})"
+                )
+        self._reset()
 
 
 def display_name(name, basename=False):
@@ -467,8 +482,8 @@ def enable_got_call_tracking(disable_hardware_whatchpoints=True):
     print("Enabled GOT tracking. Calls across dynamic library boundaries are now")
     print("instumented, and the number of calls and stack traces for every call will be")
     print("collected. You may check the current call information by using the")
-    print("`got-report` and `got-tracing-status` commands. Run this command ")
-    print("again to diasble tracking.")
+    print("`track-got info` and `track-got query` commands. Run this command again to")
+    print("diasble tracking.")
 
 
 def disable_got_call_tracking():

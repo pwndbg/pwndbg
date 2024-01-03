@@ -9,21 +9,6 @@ import pwndbg.gdblib.got
 import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(
-    description="Toggles the GOT call tracking",
-)
-
-
-@pwndbg.commands.ArgparsedCommand(
-    parser, category=CommandCategory.LINUX, command_name="toggle-got-tracking"
-)
-@pwndbg.commands.OnlyWhenRunning
-def toggle_got_tracking():
-    if not pwndbg.gdblib.got.GOT_TRACKING:
-        pwndbg.gdblib.got.enable_got_call_tracking()
-    else:
-        pwndbg.gdblib.got.disable_got_call_tracking()
-
 
 def columns(rows, colors=None):
     """
@@ -52,10 +37,25 @@ def columns(rows, colors=None):
         print()
 
 
+# Subcommand that enables the tracker.
 parser = argparse.ArgumentParser(
-    description="Displays an overview of the GOT tracking",
+    description="Controls GOT tracking",
 )
-parser.add_argument(
+subparsers = parser.add_subparsers(
+    required=True, description="Used to disable and query information about the tracker"
+)
+
+# Subcommand that enables the tracker.
+enable = subparsers.add_parser("enable", help="Enable GOT parsing")
+enable.set_defaults(mode="enable")
+
+# Subcommand that disables the tracker.
+disable = subparsers.add_parser("disable", help="Disable GOT tracking")
+disable.set_defaults(mode="disable")
+
+# Subcommand that produces a report.
+report = subparsers.add_parser("info", help="Give an overview of the GOT tracker")
+report.add_argument(
     "-s",
     "--so-name",
     type=str,
@@ -63,14 +63,14 @@ parser.add_argument(
     default=".*",
     help="Selects objects whose names matche the given expression",
 )
-parser.add_argument(
+report.add_argument(
     "-w",
     "--writable",
     dest="writable",
     action="store_true",
     help="Only show functions whose GOT entry is in a writable region of memory",
 )
-parser.add_argument(
+report.add_argument(
     "-f",
     "--function-name",
     type=str,
@@ -78,11 +78,49 @@ parser.add_argument(
     default=".*",
     help="Selects functions whose names match the given expression",
 )
+report.set_defaults(mode="report")
+
+# Subcommand that queries for information about a specific tracker.
+status = subparsers.add_parser(
+    "query", help="Queries detailed tracking information about a single entry in the GOT"
+)
+status.add_argument(
+    "address",
+    type=str,
+    help="The address of the GOT entry being tracked",
+)
+status.set_defaults(mode="status")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="got-report")
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="track-got")
 @pwndbg.commands.OnlyWhenRunning
+def track_got(mode=None, soname=None, writable=False, fnname=None, address=None):
+    if mode == "enable":
+        # Enable the tracker.
+        if pwndbg.gdblib.got.GOT_TRACKING:
+            print("GOT tracking is already enabled. Did you mean to use a flag?")
+            return
+        pwndbg.gdblib.got.enable_got_call_tracking()
+    elif mode == "disable":
+        # Disable the tracker.
+        if not pwndbg.gdblib.got.GOT_TRACKING:
+            print("GOT tracking is already disabled. Did you mean to enable it with `track-got`?")
+            return
+        pwndbg.gdblib.got.disable_got_call_tracking()
+    elif mode == "report":
+        # Delegate to the report function.
+        got_report(soname=soname, writable=writable, fnname=fnname)
+    elif mode == "status":
+        # Delegate to the status function.
+        got_tracking_status(address=address)
+    else:
+        raise AssertionError(f"track-got must never have invalid mode '{mode}'. this is a bug")
+
+
 def got_report(soname=".*", writable=False, fnname=".*"):
+    """
+    Prints out a report of the current status of the GOT tracker.
+    """
     if not pwndbg.gdblib.got.GOT_TRACKING:
         print(message.error("GOT call tracking is not enabled"))
         return
@@ -111,9 +149,9 @@ def got_report(soname=".*", writable=False, fnname=".*"):
             per_object[objname] = []
         per_object[objname].append((tracker, patcher))
 
-    rows = [["Objfile", "Address in GOT", "Function Address", "Symbol", "Call Count"]]
-
     for objname, trackers in per_object.items():
+        print(f"Calls from {objname}:")
+        rows = [["Address in GOT", "Function Address", "Symbol", "Call Count"]]
         for tracker, patcher in trackers:
             # If requested, filter out entries that are not in a writable
             # portion of memory.
@@ -134,27 +172,15 @@ def got_report(soname=".*", writable=False, fnname=".*"):
 
             hits = tracker.total_hits
             hits = f"{hits} hit{'s' if hits != 1 else ''}"
-            rows.append([objname, f"{tracker.target:#x}", f"{patcher.entry:#x}", sym_name, hits])
-        rows.append([])
-
-    columns(rows)
-
-
-parser = argparse.ArgumentParser(
-    description="Displays the tracking status of a GOT entry.",
-)
-parser.add_argument(
-    "address",
-    type=str,
-    help="The address of the GOT entry being tracked",
-)
+            rows.append([f"{tracker.target:#x}", f"{patcher.entry:#x}", sym_name, hits])
+        columns(rows)
+        print()
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, category=CommandCategory.LINUX, command_name="got-tracking-status"
-)
-@pwndbg.commands.OnlyWhenRunning
 def got_tracking_status(address):
+    """
+    Prints out information about a single GOT tracking entry.
+    """
     if not pwndbg.gdblib.got.GOT_TRACKING:
         print(message.error("GOT call tracking is not enabled"))
         return
@@ -168,6 +194,9 @@ def got_tracking_status(address):
     result = pwndbg.gdblib.got.tracked_entry_by_address(address)
     if result is None:
         print(message.error(f"No entry at address {address:#x}"))
+        print("Hint: This command expects the address of the entry in the GOT. So, consider")
+        print("using the address from the 'Address in GOT' column of the `track-got info`")
+        print("command.")
         return
 
     tracker, patcher = result
