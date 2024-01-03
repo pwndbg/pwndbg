@@ -2,12 +2,15 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+from __future__ import annotations
+
 import ctypes
 import re
 import sys
 from types import ModuleType
-from typing import Dict
-from typing import List
+from typing import Any
+from typing import Generator
+from typing import Tuple
 
 import gdb
 
@@ -20,19 +23,8 @@ from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb77_get_register(name: str):
-    return gdb.parse_and_eval("$" + name)
-
-
-@pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb79_get_register(name: str):
+def gdb_get_register(name: str):
     return gdb.selected_frame().read_register(name)
-
-
-if hasattr(gdb.Frame, "read_register"):
-    get_register = gdb79_get_register
-else:
-    get_register = gdb77_get_register
 
 
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
@@ -42,42 +34,36 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
-    last: Dict[str, int] = {}
+    last: dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getattr__(self, attr: str) -> int:
+    def __getattr__(self, attr: str) -> int | None:
         attr = attr.lstrip("$")
         try:
-            # Seriously, gdb? Only accepts uint32.
-            if "eflags" in attr or "cpsr" in attr:
-                value = gdb77_get_register(attr)
-                value = value.cast(pwndbg.gdblib.typeinfo.uint32)
-            else:
-                value = get_register(attr)
-                if value is None and attr.lower() == "xpsr":
-                    value = get_register("xPSR")
-                size = pwndbg.gdblib.typeinfo.unsigned.get(
-                    value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
-                )
-                value = value.cast(size)
-                if attr.lower() == "pc" and pwndbg.gdblib.arch.current == "i8086":
-                    value += self.cs * 16
-
+            value = gdb_get_register(attr)
+            if value is None and attr.lower() == "xpsr":
+                value = gdb_get_register("xPSR")
+            size = pwndbg.gdblib.typeinfo.unsigned.get(
+                value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
+            )
+            value = value.cast(size)
+            if attr == "pc" and pwndbg.gdblib.arch.current == "i8086":
+                value += self.cs * 16
             value = int(value)
             return value & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
-    def __setattr__(self, attr, val):
+    def __setattr__(self, attr: str, val: Any) -> None:
         if attr in ("last", "previous"):
-            return super().__setattr__(attr, val)
+            super().__setattr__(attr, val)
         else:
             # Not catching potential gdb.error as this should never
             # be called in a case when this can throw
             gdb.execute(f"set ${attr} = {val}")
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getitem__(self, item: str) -> int:
+    def __getitem__(self, item: str) -> str | int | None:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -97,8 +83,7 @@ class module(ModuleType):
 
     def __iter__(self):
         regs = set(reg_sets[pwndbg.gdblib.arch.current]) | {"pc", "sp"}
-        for item in regs:
-            yield item
+        yield from regs
 
     @property
     def current(self):
@@ -136,7 +121,7 @@ class module(ModuleType):
     @property
     def all(self):
         regs = reg_sets[pwndbg.gdblib.arch.current]
-        retval: List[str] = []
+        retval: list[str] = []
         for regset in (
             regs.pc,
             regs.stack,
@@ -148,20 +133,20 @@ class module(ModuleType):
         ):
             if regset is None:
                 continue
-            elif isinstance(regset, (list, tuple)):
+            elif isinstance(regset, (list, tuple)):  # regs.retaddr
                 retval.extend(regset)
-            elif isinstance(regset, dict):
+            elif isinstance(regset, dict):  # regs.flags
                 retval.extend(regset.keys())
             else:
-                retval.append(regset)
+                retval.append(regset)  # type: ignore[arg-type]
         return retval
 
-    def fix(self, expression):
+    def fix(self, expression: str) -> str:
         for regname in set(self.all + ["sp", "pc"]):
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
 
-    def items(self):
+    def items(self) -> Generator[Tuple[str, Any], None, None]:
         for regname in self.all:
             yield regname, self[regname]
 
@@ -186,14 +171,12 @@ class module(ModuleType):
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def _fs_gs_helper(self, regname: str, which):
+    def _fs_gs_helper(self, regname: str, which) -> int:
         """Supports fetching based on segmented addressing, a la fs:[0x30].
-        Requires ptrace'ing the child directly for GDB < 8."""
+        Requires ptrace'ing the child directory if i386."""
 
-        # For GDB >= 8.x we can use get_register directly
-        # Elsewhere we have to get the register via ptrace
-        if pwndbg.gdblib.arch.current == "x86-64" and get_register == gdb79_get_register:
-            return get_register(regname)
+        if pwndbg.gdblib.arch.current == "x86-64":
+            return gdb_get_register(regname)
 
         # We can't really do anything if the process is remote.
         if pwndbg.gdblib.remote.is_remote():

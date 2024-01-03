@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import importlib
 from collections import OrderedDict
@@ -10,10 +12,6 @@ except ImportError:
 
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union  # noqa: F401
 
 import gdb
 
@@ -85,7 +83,7 @@ class Bin:
 class Bins:
     def __init__(self, bin_type) -> None:
         # `typing.OrderedDict` requires Python 3.7
-        self.bins: OrderedDict[Union[int, str], Bin] = OrderedDict()
+        self.bins: OrderedDict[int | str, Bin] = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
@@ -336,6 +334,23 @@ class Chunk:
             return next
         else:
             return None
+
+    def __contains__(self, addr: int) -> bool:
+        """
+        This allow us to avoid extra constructions like 'if strart_addr <= ptr <= end_addr', etc.
+        """
+        size_field_address = self._gdbValue[self.__match_renamed_field("size")].address
+        start_address = size_field_address if self.prev_inuse else self.address
+
+        next = self.next_chunk()
+        # and this is handles chunk's last qword field, depending on prev_inuse bit
+        if next is None:
+            end_address = size_field_address + self.real_size
+        else:
+            next_size_field_address = next._gdbValue[self.__match_renamed_field("size")].address
+            end_address = next_size_field_address if next.prev_inuse else next.address
+
+        return start_address <= addr < end_address  # type: ignore[operator]
 
 
 class Heap:
@@ -969,14 +984,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return 16
         # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
-        if hasattr(gdb.Type, "alignof"):
-            long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
-        else:
-            # alignof doesn't available in GDB < 8.2 (https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=blob_plain;f=gdb/NEWS;hb=gdb-8.2-release)
-            # Hardcoded return correct MALLOC_ALIGNMENT for powerpc
-            # TODO: This will be wrong if there's another architecture similar to powerpc
-            # TODO: We can remove this when we drop supports for GDB < 8.2
-            return 16 if pwndbg.gdblib.arch.current == "powerpc" else 2 * self.size_sz
+        long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
         return (
             long_double_alignment if 2 * self.size_sz < long_double_alignment else 2 * self.size_sz
         )
@@ -1311,7 +1319,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         out = gdb.execute("info dll", to_string=True)
         return "No shared libraries loaded at this time." in out
 
-    def libc_has_debug_syms(self):
+    def libc_has_debug_syms(self) -> bool:
         """
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
@@ -1484,8 +1492,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
     def __init__(self) -> None:
         super().__init__()
         self._structs_module = None
-        self._thread_arena_values: Dict[int, int] = {}
-        self._thread_caches: Dict[int, Any] = {}
+        self._thread_arena_values: dict[int, int] = {}
+        self._thread_caches: dict[int, Any] = {}
 
     @property
     def struct_module(self):
@@ -1662,7 +1670,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_tls_reference_in_got_section(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Optional[Tuple[int, int]]:
+    ) -> tuple[int, int] | None:
         """Brute force the TLS-reference in the .got section to that can pass the validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
@@ -1694,7 +1702,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_thread_local_variable_near_tls_base(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Optional[Tuple[int, int]]:
+    ) -> tuple[int, int] | None:
         """Brute force the thread-local variable near the TLS base address that can pass the validator."""
         print(
             message.notice(

@@ -1,7 +1,11 @@
-from random import choice
-from typing import List
+from __future__ import annotations
 
-TIPS: List[str] = [
+import re
+from random import choice
+
+from pwndbg.color import message
+
+TIPS: list[str] = [
     # GDB hints
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls",
@@ -17,7 +21,7 @@ TIPS: List[str] = [
     "Use Pwndbg's `config` and `theme` commands to tune its configuration and theme colors!",
     "Pwndbg mirrors some of Windbg commands like `eq`, `ew`, `ed`, `eb`, `es`, `dq`, `dw`, `dd`, `db`, `ds` for writing and reading memory",
     "Pwndbg resolves kernel memory maps by parsing page tables (default) or via `monitor info mem` QEMU gdbstub command (use `set kernel-vmmap-via-page-tables off` for that)",
-    "Use the `vmmap` instruction for a better & colored memory maps display (than the GDB's `info proc mappings`)",
+    "Use the `vmmap` command for a better & colored memory maps display (than the GDB's `info proc mappings`)",
     "Use the `telescope` command to dereference a given address/pointer multiple times (if the dereferenced value is a valid ptr; see `config telescope` to configure its behavior)",
     "Use the `context` (or `ctx`) command to display the context once again. You can reconfigure the context layout with `set context-section <sections>` or forward the output to a file/tty via `set context-output <file>`. See also `config context` to configure it further!",
     "Disable Pwndbg context information display with `set context-sections ''`",
@@ -28,8 +32,22 @@ TIPS: List[str] = [
     "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
     "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration",
+    "Use `vmmap -A|-B <number> <filter>` to display <number> of maps after/before filtered ones",
+    "Use the `killall` command to kill all specified threads (via their ids)",
+    "Use the `spray` command to spray memory with cyclic pattern or specified value",
+    "Use `patch <address> '<assembly>'` to patch an address with given assembly code",
+    "Want to NOP some instructions? Use `patch <address> 'nop; nop; nop'`",
+    "`heap_config` shows heap related configuration",
+    "`break-if-taken` and `break-if-not-taken` commands sets breakpoints after a given jump instruction was taken or not",
+    "`stepuntilasm <assembly-instruction [operands]>` steps program forward until matching instruction occures",
+    "Use `plist` command to dump elements of linked list",
+    "If your program has multiple threads they will be displayed in the context display or using the `context threads` command",
 ]
 
 
 def get_tip_of_the_day() -> str:
     return choice(TIPS)
+
+
+def color_tip(tip: str) -> str:
+    return re.sub("`(.*?)`", lambda s: message.warn(s.group()[1:-1]), tip)

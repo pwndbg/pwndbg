@@ -8,7 +8,7 @@
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 
-ARG image=ubuntu:20.04
+ARG image=mcr.microsoft.com/devcontainers/base:jammy
 FROM $image
 
 WORKDIR /pwndbg
@@ -28,19 +28,29 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     apt-get install -y vim
 
 ADD ./setup.sh /pwndbg/
-ADD ./requirements.txt /pwndbg/
+ADD ./poetry.lock /pwndbg/
+ADD ./pyproject.toml /pwndbg/
 ADD ./dev-requirements.txt /pwndbg/
-# The `git submodule` is commented because it refreshes all the sub-modules in the project
-# but at this time we only need the essentials for the set up. It will execute at the end.
-RUN sed -i "s/^git submodule/#git submodule/" ./setup.sh && \
-    DEBIAN_FRONTEND=noninteractive ./setup.sh
+
+# pyproject.toml requires these files, pip install would fail
+RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
+
+RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
+
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg
 
 # Comment these lines if you won't run the tests.
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py
-
 ADD . /pwndbg/
 
-RUN git submodule update --init --recursive
+ARG LOW_PRIVILEGE_USER="vscode"
+
+# Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
+# This is useful for a VSCode dev container, not really for test builds
+RUN if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi && \
+    if id -u ${LOW_PRIVILEGE_USER} > /dev/null 2>&1; then \
+        su ${LOW_PRIVILEGE_USER} -c 'if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi'; \
+    fi

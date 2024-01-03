@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 KNOWN_AIDS = {
     0: "AID_ROOT",
     1000: "AID_SYSTEM",
@@ -79,7 +81,7 @@ KNOWN_AIDS = {
 }
 
 
-def aid_name(uid):  # types: (int) -> str
+def aid_name(uid: int) -> str:
     if uid in KNOWN_AIDS:
         return KNOWN_AIDS[uid]
 

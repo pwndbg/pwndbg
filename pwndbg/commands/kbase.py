@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import argparse
+
+import gdb
 
 import pwndbg.color.message as M
 import pwndbg.commands
@@ -35,8 +39,15 @@ def kbase() -> None:
         # TODO: Check if the supervisor bit is set for aarch64
         if not mapping.execute:
             continue
-        b = pwndbg.gdblib.memory.byte(mapping.vaddr)
-
+        try:
+            b = pwndbg.gdblib.memory.byte(mapping.vaddr)
+        except gdb.MemoryError:
+            print(
+                M.error(
+                    f"Could not read memory at {mapping.vaddr:#x}. Kernel vmmap may be incorrect."
+                )
+            )
+            continue
         if b == magic:
             print(M.success(f"Found virtual base address: {mapping.vaddr:#x}"))
             break

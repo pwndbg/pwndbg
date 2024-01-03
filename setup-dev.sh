@@ -104,7 +104,7 @@ install_apt() {
         sudo apt install shfmt
     fi
 
-    test -f /usr/bin/go || sudo apt-get install -y golang
+    command -v go &> /dev/null || sudo apt-get install -y golang
 
     download_zig_binary
 }
@@ -112,30 +112,44 @@ install_apt() {
 install_pacman() {
     set_zigpath "$(pwd)/.zig"
 
-    # add debug repo for glibc-debug
-    cat << EOF | sudo tee -a /etc/pacman.conf
-[core-debug]
-Include = /etc/pacman.d/mirrorlist
-
-[extra-debug]
-Include = /etc/pacman.d/mirrorlist
-
-[multilib-debug]
-Include = /etc/pacman.d/mirrorlist
+    # add debug repo for glibc-debug if it doesn't already exist
+    if ! grep -q "\[core-debug\]" /etc/pacman.conf; then
+        cat << EOF | sudo tee -a /etc/pacman.conf
+        [core-debug]
+        Include = /etc/pacman.d/mirrorlist
 EOF
+    fi
+
+    if ! grep -q "\[extra-debug\]" /etc/pacman.conf; then
+        cat << EOF | sudo tee -a /etc/pacman.conf
+        [extra-debug]
+        Include = /etc/pacman.d/mirrorlist
+EOF
+    fi
+
+    if ! grep -q "\[multilib-debug\]" /etc/pacman.conf; then
+        cat << EOF | sudo tee -a /etc/pacman.conf
+        [multilib-debug]
+        Include = /etc/pacman.d/mirrorlist
+EOF
+    fi
 
     sudo pacman -Syu --noconfirm || true
-    sudo pacman -S --noconfirm \
+    sudo pacman -S --needed --noconfirm \
         nasm \
         gcc \
         glibc-debug \
         curl \
         base-devel \
         gdb \
-        parallel \
-        gnu-netcat
+        parallel
 
-    test -f /usr/bin/go || sudo pacman -S --noconfirm go
+    # check if netcat exists first, as it might it may be installed from some other netcat packages
+    if [ ! -f /usr/bin/nc ]; then
+        sudo pacman -S --needed --noconfirm gnu-netcat
+    fi
+
+    command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
     download_zig_binary
 }

@@ -3,6 +3,8 @@ Displays gdb, python and pwndbg versions.
 """
 
 
+from __future__ import annotations
+
 import argparse
 import os
 import platform
@@ -22,11 +24,8 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-def _gdb_version():
-    try:
-        return gdb.VERSION  # GDB >= 8.1 (or earlier?)
-    except AttributeError:
-        return gdb.execute("show version", to_string=True).split("\n")[0]
+def _gdb_version() -> str:
+    return gdb.VERSION
 
 
 def _py_version():
@@ -150,7 +149,7 @@ If it is somehow unavailable, use:
     current_setup = f"Platform: {platform.platform()}\n"
 
     if os_info.lower() == "linux" and os.path.isfile("/etc/os-release"):
-        with open("/etc/os-release", "r") as os_release:
+        with open("/etc/os-release") as os_release:
             contents = os_release.read()
             match = re.search('PRETTY_NAME="?([^",\n]+)', contents)
             if match:
@@ -201,7 +200,7 @@ If it is somehow unavailable, use:
     ]
     gdb_history_len = 0
     try:
-        with open(gdb_history_file, "r") as f:
+        with open(gdb_history_file) as f:
             gdb_history_len = len(f.readlines())
     except FileNotFoundError:
         pass

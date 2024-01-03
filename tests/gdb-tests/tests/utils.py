@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import codecs
 import re
 import subprocess
 
 
-def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout=None):
+def run_gdb_with_script(
+    binary="", core="", stdin_input=None, pybefore=None, pyafter=None, timeout=None
+):
     """
     Runs GDB with given commands launched before and after loading of gdbinit.py
     Returns GDB output.
@@ -30,7 +34,9 @@ def run_gdb_with_script(binary="", core="", pybefore=None, pyafter=None, timeout
     command += ["--eval-command", "quit"]
 
     print(f"Launching command: {command}")
-    output = subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
+    output = subprocess.check_output(
+        command, stderr=subprocess.STDOUT, timeout=timeout, input=stdin_input
+    )
 
     # Python 3 returns bytes-like object so lets have it consistent
     output = codecs.decode(output, "utf8")

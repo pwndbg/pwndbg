@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 import gdb
 from capstone import *  # noqa: F403
@@ -70,7 +70,7 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 )
 
 
-def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
+def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
     """
     Disassemble near a specified address.
     """
@@ -262,7 +262,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
             align = show_opcode_bytes * 2 + 10
             if opcode_separator_bytes > 0:
                 # add the length of the maximum number of separators to the alignment
-                align += (show_opcode_bytes - 1) * opcode_separator_bytes
+                align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
             if len(instr.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
@@ -304,7 +304,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> List[str]:
         # determine the number of arguments.
         if show_args:
             result.extend(
-                ("%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr))
+                "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
             )
 
         prev = instr

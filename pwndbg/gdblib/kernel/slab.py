@@ -1,7 +1,6 @@
+from __future__ import annotations
+
 from typing import Generator
-from typing import List
-from typing import Optional
-from typing import Set
 
 import gdb
 
@@ -12,13 +11,13 @@ from pwndbg.gdblib.kernel.macros import for_each_entry
 from pwndbg.gdblib.kernel.macros import swab
 
 
-def caches() -> Generator["SlabCache", None, None]:
+def caches() -> Generator[SlabCache, None, None]:
     slab_caches = gdb.lookup_global_symbol("slab_caches").value()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
 
 
-def get_cache(target_name: str) -> Optional["SlabCache"]:
+def get_cache(target_name: str) -> SlabCache | None:
     slab_caches = gdb.lookup_global_symbol("slab_caches").value()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
@@ -66,7 +65,7 @@ _flags = {
 }
 
 
-def get_flags_list(flags: int) -> List[str]:
+def get_flags_list(flags: int) -> list[str]:
     return [flag_name for flag_name, mask in _flags.items() if flags & mask]
 
 
@@ -117,6 +116,12 @@ class SlabCache:
 
     @property
     def random(self) -> int:
+        if not kernel.kconfig():
+            try:
+                return int(self._slab_cache["random"])
+            except gdb.error:
+                return 0
+
         return (
             int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
         )
@@ -134,25 +139,25 @@ class SlabCache:
         return int(self._slab_cache["align"])
 
     @property
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
-    def cpu_cache(self) -> "CpuCache":
+    def cpu_cache(self) -> CpuCache:
         """returns cpu cache associated to current thread"""
         cpu = gdb.selected_thread().num - 1
         cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
         return CpuCache(cpu_cache, self, cpu)
 
     @property
-    def cpu_caches(self) -> Generator["CpuCache", None, None]:
+    def cpu_caches(self) -> Generator[CpuCache, None, None]:
         """returns cpu caches for all cpus"""
         for cpu in range(kernel.nproc()):
             cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
             yield CpuCache(cpu_cache, self, cpu)
 
     @property
-    def node_caches(self) -> Generator["NodeCache", None, None]:
+    def node_caches(self) -> Generator[NodeCache, None, None]:
         """returns node caches for all NUMA nodes"""
         for node in range(kernel.num_numa_nodes()):
             yield NodeCache(self._slab_cache["node"][node], self, node)
@@ -197,7 +202,7 @@ class CpuCache:
         )
 
     @property
-    def active_slab(self) -> Optional["Slab"]:
+    def active_slab(self) -> Slab | None:
         slab_key = slab_struct_type()
         _slab = self._cpu_cache[slab_key]
         if not _slab:
@@ -205,7 +210,7 @@ class CpuCache:
         return Slab(_slab.dereference(), self, self.slab_cache)
 
     @property
-    def partial_slabs(self) -> List["Slab"]:
+    def partial_slabs(self) -> list[Slab]:
         partial_slabs = []
         cur_slab = self._cpu_cache["partial"]
         while cur_slab:
@@ -226,7 +231,7 @@ class NodeCache:
         return int(self._node_cache)
 
     @property
-    def partial_slabs(self) -> List["Slab"]:
+    def partial_slabs(self) -> list[Slab]:
         ret = []
         for slab in for_each_entry(self._node_cache["partial"], "struct slab", "slab_list"):
             ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
@@ -237,7 +242,7 @@ class Slab:
     def __init__(
         self,
         slab: gdb.Value,
-        cpu_cache: Optional[CpuCache],
+        cpu_cache: CpuCache | None,
         slab_cache: SlabCache,
         is_partial: bool = False,
     ) -> None:
@@ -304,18 +309,18 @@ class Slab:
         )
 
     @property
-    def freelists(self) -> List[Freelist]:
+    def freelists(self) -> list[Freelist]:
         freelists = [self.freelist]
         if not self.is_partial:
             freelists.append(self.cpu_cache.freelist)
         return freelists
 
     @property
-    def free_objects(self) -> Set[int]:
+    def free_objects(self) -> set[int]:
         return {obj for freelist in self.freelists for obj in freelist}
 
 
-def find_containing_slab_cache(addr: int) -> Optional["SlabCache"]:
+def find_containing_slab_cache(addr: int) -> SlabCache | None:
     """Find the slab cache associated with the provided address."""
     min_pfn = 0
     max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())

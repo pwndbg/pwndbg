@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from subprocess import CalledProcessError
 
 import pwndbg.commands
@@ -36,7 +38,7 @@ def relro_status(local_path: str) -> str:
 
 
 @pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
-def pie_status(local_path) -> str:
+def pie_status(local_path: str) -> str:
     pie = "No PIE"
     out = get_raw_out(local_path)
 

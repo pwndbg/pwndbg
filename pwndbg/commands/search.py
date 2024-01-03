@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import argparse
 import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -15,7 +16,7 @@ import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-saved: Set[int] = set()
+saved: set[int] = set()
 
 
 def print_search_hit(address) -> None:
@@ -44,9 +45,13 @@ def print_search_hit(address) -> None:
 auto_save = pwndbg.gdblib.config.add_param(
     "auto-save-search", False, 'automatically pass --save to "search" command'
 )
-
 parser = argparse.ArgumentParser(
-    description="Search memory for byte sequences, strings, pointers, and integer values."
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Search memory for byte sequences, strings, pointers, and integer values.
+
+By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
+
+""",
 )
 parser.add_argument(
     "-t",
@@ -104,6 +109,23 @@ parser.add_argument(
     "-e", "--executable", action="store_true", help="Search executable segments only"
 )
 parser.add_argument("-w", "--writable", action="store_true", help="Search writable segments only")
+parser.add_argument(
+    "-s",
+    "--step",
+    default=None,
+    type=str,
+    help="Step search address forward to next alignment after each hit (ex: 0x1000)",
+)
+parser.add_argument(
+    "-l",
+    "--limit",
+    default=None,
+    type=str,
+    help="Max results before quitting the search. Differs from --trunc-out in that it will not save all search results before quitting",
+)
+parser.add_argument(
+    "-a", "--aligned", default=None, type=str, help="Result must be aligned to this byte boundary"
+)
 parser.add_argument("value", type=str, help="Value to search for")
 parser.add_argument(
     "mapping_name", type=str, nargs="?", default=None, help="Mapping to search [e.g. libc]"
@@ -125,13 +147,29 @@ parser.add_argument(
     help="Search only locations returned by previous search with --save",
 )
 parser.add_argument(
-    "--trunc-out", action="store_true", default=False, help="Truncate the output to 20 results"
+    "--trunc-out",
+    action="store_true",
+    default=False,
+    help="Truncate the output to 20 results. Differs from --limit in that it will first save all search results",
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def search(type, hex, executable, writable, value, mapping_name, save, next, trunc_out) -> None:
+def search(
+    type,
+    hex,
+    executable,
+    writable,
+    step,
+    limit,
+    aligned,
+    value,
+    mapping_name,
+    save,
+    next,
+    trunc_out,
+) -> None:
     global saved
     if next and not saved:
         print(
@@ -154,6 +192,14 @@ def search(type, hex, executable, writable, value, mapping_name, save, next, tru
             print(f"invalid input for type hex: {e}")
             return
 
+    if step:
+        step = pwndbg.commands.fix_int(step)
+
+    if aligned:
+        aligned = pwndbg.commands.fix_int(aligned)
+
+    if limit:
+        limit = pwndbg.commands.fix_int(limit)
     # Convert to an integer if needed, and pack to bytes
     if type not in ("string", "bytes"):
         value = pwndbg.commands.fix_int(value)
@@ -216,7 +262,13 @@ def search(type, hex, executable, writable, value, mapping_name, save, next, tru
     # Perform the search
     i = 0
     for address in pwndbg.search.search(
-        value, mappings=mappings, executable=executable, writable=writable
+        value,
+        mappings=mappings,
+        executable=executable,
+        writable=writable,
+        step=step,
+        aligned=aligned,
+        limit=limit,
     ):
         if save:
             saved.add(address)

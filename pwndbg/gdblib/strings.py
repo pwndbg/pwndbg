@@ -3,6 +3,8 @@ Functionality for resolving ASCII printable strings within
 the debuggee's address space.
 """
 
+from __future__ import annotations
+
 import string
 
 import gdb
@@ -29,7 +31,7 @@ def update_length() -> None:
         length = int(message)
 
 
-def get(address, maxlen=None, maxread=None):
+def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> str | None:
     """
     Returns a printable C-string from address.
 
@@ -43,11 +45,11 @@ def get(address, maxlen=None, maxread=None):
         maxread = length
 
     try:
-        sz = pwndbg.gdblib.memory.string(address, maxread)
+        bytesz = pwndbg.gdblib.memory.string(address, maxread)
     except gdb.error:  # should not happen, but sanity check?
         return None
 
-    sz = sz.decode("latin-1", "replace")
+    sz = bytesz.decode("latin-1", "replace")
 
     if not sz or not all(s in string.printable for s in sz):
         return None

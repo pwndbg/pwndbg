@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from pathlib import Path
 
@@ -135,7 +137,8 @@ def test_command_got_for_target_binary_and_loaded_library():
         out[4],
     )
     got_entries_count = int(m.group(1))
-    assert got_entries_count > 0
+    # The count may be 0 on Arch Linux: it has bind now in glibc
+    assert got_entries_count >= 0
     assert len(out) == (5 + got_entries_count)
     for i in range(got_entries_count):
         assert re.match(r"\[0x[0-9a-f]+\] .* -> .*", out[5 + i])

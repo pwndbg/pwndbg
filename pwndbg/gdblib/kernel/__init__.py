@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import math
 import re
@@ -8,6 +10,7 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.color.message as M
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
@@ -30,6 +33,26 @@ def has_debug_syms() -> bool:
     )
 
 
+# NOTE: This implies requires_debug_syms(), as it is needed for kconfig() to return non-None
+def requires_kconfig(default=None):
+    def decorator(f):
+        @functools.wraps(f)
+        def func(*args, **kwargs):
+            if kconfig():
+                return f(*args, **kwargs)
+
+            # If the user doesn't want an exception thrown when CONFIG_IKCONFIG is
+            # not enabled, they can instead provide a default return value
+            if default is not None:
+                return default
+
+            raise Exception(f"Function {f.__name__} requires CONFIG_IKCONFIG enabled in kernel")
+
+        return func
+
+    return decorator
+
+
 def requires_debug_syms(default=None):
     def decorator(f):
         @functools.wraps(f)
@@ -42,7 +65,7 @@ def requires_debug_syms(default=None):
             if default is not None:
                 return default
 
-            raise Exception(f"Function {f.__name__} requires CONFIG_IKCONFIG")
+            raise Exception(f"Function {f.__name__} requires debug symbols")
 
         return func
 
@@ -59,6 +82,8 @@ def nproc() -> int:
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
     config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
+    if config_start is None or config_end is None:
+        return None
     config_size = config_end - config_start
 
     compressed_config = pwndbg.gdblib.memory.read(config_start, config_size)
@@ -70,6 +95,8 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     global _kconfig
     if _kconfig is None:
         _kconfig = load_kconfig()
+    elif len(_kconfig) == 0:
+        return None
     return _kconfig
 
 
@@ -89,14 +116,14 @@ def kversion() -> str:
 
 @requires_debug_syms()
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> Tuple[int, ...]:
+def krelease() -> tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
         return tuple(int(x) for x in match.groups() if x)
     raise Exception("Linux version tuple not found")
 
 
-@requires_debug_syms()
+@requires_kconfig()
 @pwndbg.lib.cache.cache_until("start")
 def is_kaslr_enabled() -> bool:
     if "CONFIG_RANDOMIZE_BASE" not in kconfig():
@@ -198,6 +225,7 @@ class x86Ops(ArchOps):
 
 
 class i386Ops(x86Ops):
+    @requires_kconfig()
     def __init__(self) -> None:
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_32_types.h#L18
         self._PAGE_OFFSET = int(kconfig()["CONFIG_PAGE_OFFSET"], 16)
@@ -219,7 +247,7 @@ class i386Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         raise NotImplementedError()
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -261,7 +289,8 @@ class x86_64Ops(x86Ops):
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L50
         return 12
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    @requires_debug_syms()
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -297,14 +326,19 @@ class x86_64Ops(x86Ops):
     def uses_5lvl_paging() -> bool:
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
         X86_FEATURE_LA57 = 16 * 32 + 16
-        return (
-            kconfig().get("CONFIG_X86_5LEVEL") == "y"
-            and "no5lvl" not in kcmdline()
-            and x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57)
-        )
+        # Separate to avoid using kconfig if possible
+        if not x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57) or "no5lvl" in kcmdline():
+            return False
+        return x86_64Ops._kconfig_5lvl_paging()
+
+    @staticmethod
+    @requires_kconfig()
+    def _kconfig_5lvl_paging() -> bool:
+        return kconfig().get("CONFIG_X86_5LEVEL") == "y"
 
 
 class Aarch64Ops(ArchOps):
+    @requires_kconfig(default={})
     def __init__(self) -> None:
         self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
@@ -330,7 +364,8 @@ class Aarch64Ops(ArchOps):
     def page_size(self) -> int:
         return 1 << self.PAGE_SHIFT
 
-    def per_cpu(self, addr: gdb.Value, cpu: Optional[int] = None):
+    @requires_debug_syms()
+    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
         if cpu is None:
             cpu = gdb.selected_thread().num - 1
 
@@ -369,7 +404,6 @@ class Aarch64Ops(ArchOps):
 _arch_ops: ArchOps = None
 
 
-@requires_debug_syms(default={})
 @pwndbg.lib.cache.cache_until("start")
 def arch_ops() -> ArchOps:
     global _arch_ops
@@ -384,7 +418,6 @@ def arch_ops() -> ArchOps:
     return _arch_ops
 
 
-@requires_debug_syms()
 def page_size() -> int:
     ops = arch_ops()
     if ops:
@@ -393,8 +426,7 @@ def page_size() -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
-def per_cpu(addr: gdb.Value, cpu: Optional[int] = None):
+def per_cpu(addr: gdb.Value, cpu: int | None = None):
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
@@ -402,7 +434,6 @@ def per_cpu(addr: gdb.Value, cpu: Optional[int] = None):
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def virt_to_phys(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -411,7 +442,6 @@ def virt_to_phys(virt: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def phys_to_virt(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -420,7 +450,6 @@ def phys_to_virt(phys: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def phys_to_pfn(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -429,7 +458,6 @@ def phys_to_pfn(phys: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def pfn_to_phys(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -438,7 +466,6 @@ def pfn_to_phys(pfn: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def pfn_to_page(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -447,7 +474,6 @@ def pfn_to_page(pfn: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def page_to_pfn(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -456,7 +482,6 @@ def page_to_pfn(page: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def phys_to_page(phys: int) -> int:
     ops = arch_ops()
     if ops:
@@ -465,7 +490,6 @@ def phys_to_page(phys: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -474,7 +498,6 @@ def page_to_phys(page: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def virt_to_page(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -483,7 +506,6 @@ def virt_to_page(virt: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def page_to_virt(page: int) -> int:
     ops = arch_ops()
     if ops:
@@ -492,7 +514,6 @@ def page_to_virt(page: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def pfn_to_virt(pfn: int) -> int:
     ops = arch_ops()
     if ops:
@@ -501,7 +522,6 @@ def pfn_to_virt(pfn: int) -> int:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
 def virt_to_pfn(virt: int) -> int:
     ops = arch_ops()
     if ops:
@@ -526,6 +546,15 @@ def paging_enabled() -> bool:
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
+    if kc is None:
+        # if no config, we can still try one other way
+        node_states = gdb.lookup_global_symbol("node_states")
+        if node_states is None:
+            return 1
+        node_states = gdb.lookup_global_symbol("node_states").value()
+        node_mask = node_states[1]["bits"][0]  # 1 means N_ONLINE
+        return bin(node_mask).count("1")
+
     if "CONFIG_NUMA" not in kc:
         return 1
 

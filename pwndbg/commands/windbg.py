@@ -2,9 +2,10 @@
 Compatibility functionality for Windbg users.
 """
 
+from __future__ import annotations
+
 import argparse
 import codecs
-from builtins import str
 from itertools import chain
 
 import gdb
@@ -341,7 +342,7 @@ def ds(address, max) -> None:
 
     string = pwndbg.gdblib.strings.get(address, max, maxread=4096)
     if string:
-        print("%x %r" % (address, string))
+        print(f"{address:x} {string!r}")
     else:
         print(
             "Data at address can't be dereferenced or is not a printable null-terminated string or is too short."
@@ -450,7 +451,7 @@ def ln(value=None) -> None:
     value = int(value)
     x = pwndbg.gdblib.symbol.get(value)
     if x:
-        result = "(%#x)   %s" % (value, x)
+        result = f"({value:#x})   {x}"
         print(result)
 
 

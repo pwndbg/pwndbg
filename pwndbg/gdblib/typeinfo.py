@@ -3,7 +3,10 @@ Common types, and routines for manually loading types from file
 via GCC.
 """
 
+from __future__ import annotations
+
 import sys
+from typing import Any
 
 import gdb
 
@@ -15,7 +18,7 @@ module = sys.modules[__name__]
 ptrsize: int
 
 
-def lookup_types(*types):
+def lookup_types(*types: str) -> gdb.Type:
     for type_str in types:
         try:
             return gdb.lookup_type(type_str)
@@ -103,7 +106,7 @@ def read_gdbvalue(type_name: str, addr):
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
 
-def get_type(size: int):
+def get_type(size: int) -> Any:
     return {
         1: pwndbg.gdblib.typeinfo.uint8,
         2: pwndbg.gdblib.typeinfo.uint16,

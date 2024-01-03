@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 
 import pwndbg.color.message as M
@@ -19,7 +21,7 @@ parser.add_argument("config_name", nargs="?", type=str, help="A config name to s
 def kconfig(config_name=None) -> None:
     kconfig_ = pwndbg.gdblib.kernel.kconfig()
 
-    if len(kconfig_) == 0:
+    if not kconfig_:
         print(
             M.warn(
                 "No kernel configuration found, make sure the kernel was built with CONFIG_IKCONFIG"

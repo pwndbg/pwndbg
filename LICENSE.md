@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2015 Zach Riggle
+Copyright (c) 2023 Dominik 'Disconnect3d' Czarnota
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

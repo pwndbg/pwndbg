@@ -4,13 +4,13 @@ are not fulfilled by other modules and some process/gdb flow
 related information.
 """
 
+from __future__ import annotations
+
 import functools
 import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -22,7 +22,7 @@ import pwndbg.lib.memory
 
 class module(ModuleType):
     @property
-    def pid(self):
+    def pid(self) -> int:
         # QEMU usermode emulation always returns 42000 for some reason.
         # In any case, we can't use the info.
         if pwndbg.gdblib.qemu.is_qemu_usermode():
@@ -34,7 +34,7 @@ class module(ModuleType):
         return 0
 
     @property
-    def tid(self):
+    def tid(self) -> int:
         if pwndbg.gdblib.qemu.is_qemu_usermode():
             return pwndbg.gdblib.qemu.pid()
 
@@ -45,7 +45,7 @@ class module(ModuleType):
         return self.pid
 
     @property
-    def thread_id(self):
+    def thread_id(self) -> int:
         return gdb.selected_thread().num
 
     @property
@@ -58,7 +58,7 @@ class module(ModuleType):
         return gdb.selected_thread() is not None
 
     @property
-    def thread_is_stopped(self):
+    def thread_is_stopped(self) -> bool:
         """
         This detects whether selected thread is stopped.
         It is not stopped in situations when gdb is executing commands
@@ -79,7 +79,7 @@ class module(ModuleType):
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @property
-    def exe(self):
+    def exe(self) -> str | None:
         """
         Returns the debugged file name.
 
@@ -101,20 +101,18 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
-    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    def binary_vmmap(self) -> tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_elf_data_section(self) -> Optional[Tuple[int, int, bytes]]:
+    def dump_elf_data_section(self) -> tuple[int, int, bytes] | None:
         """
         Dump .data section of current process's ELF file
         """
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_relocations_by_section_name(
-        self, section_name: str
-    ) -> Optional[Tuple[Relocation, ...]]:
+    def dump_relocations_by_section_name(self, section_name: str) -> tuple[Relocation, ...] | None:
         """
         Dump relocations of a section by section name of current process's ELF file
         """
@@ -144,9 +142,9 @@ class module(ModuleType):
                 return int(line.split()[0], 16)
         return 0
 
-    def OnlyWhenRunning(self, func):
+    def OnlyWhenRunning(self, func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapper(*a, **kw):
+        def wrapper(*a: Any, **kw: Any):
             if self.alive:
                 return func(*a, **kw)
 

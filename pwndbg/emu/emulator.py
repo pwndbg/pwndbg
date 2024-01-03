@@ -2,6 +2,8 @@
 Emulation assistance from Unicorn.
 """
 
+from __future__ import annotations
+
 import binascii
 import re
 
@@ -52,25 +54,19 @@ arch_to_UC_consts = {
     "rv64": parse_consts(U.riscv_const),
 }
 
-# Map our internal architecture names onto Unicorn Engine's architecture types.
-arch_to_CS = {
-    "i386": C.CS_ARCH_X86,
-    "x86-64": C.CS_ARCH_X86,
-    "mips": C.CS_ARCH_MIPS,
-    "sparc": C.CS_ARCH_SPARC,
-    "arm": C.CS_ARCH_ARM,
-    "aarch64": C.CS_ARCH_ARM64,
-    # 'powerpc': C.CS_ARCH_PPC,
-    "rv32": C.CS_ARCH_RISCV,
-    "rv64": C.CS_ARCH_RISCV,
-}
 
 DEBUG = False
 
 
-def debug(fmt, args=()) -> None:
-    if DEBUG:
+if DEBUG:
+
+    def debug(fmt, args=()) -> None:
         print(fmt % args)
+
+else:
+
+    def debug(fmt, args=()) -> None:
+        pass
 
 
 # Until Unicorn Engine provides full information about the specific instruction
@@ -182,7 +178,7 @@ class Emulator:
         if reg:
             return self.uc.reg_read(reg)
 
-        raise AttributeError("AttributeError: %r object has no attribute %r" % (self, name))
+        raise AttributeError(f"AttributeError: {self!r} object has no attribute {name!r}")
 
     def update_pc(self, pc=None) -> None:
         if pc is None:

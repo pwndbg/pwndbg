@@ -4,6 +4,8 @@ debugging a remote process over SSH or similar, where e.g.
 /proc/FOO/maps is needed from the remote system.
 """
 
+from __future__ import annotations
+
 import binascii
 import os
 import shutil
@@ -81,7 +83,19 @@ def get_file(path: str, try_local_path: bool = False) -> str:
                 error = str(e)
 
             if error:
-                raise OSError("Could not download remote file %r:\n" "Error: %s" % (path, error))
+                # If the client is configured with set debug remote 1, we need to
+                # skip [remote] lines, and not interpret as missing file. Maybe
+                # better to search for error strings. A real error will say:
+                # "Remote I/O error: No such file or directory"
+                real_error = []
+                for line in error.splitlines():
+                    if not line.startswith("[remote]"):
+                        real_error.append(line)
+                if len(real_error):
+                    error = "\n".join(real_error)
+                    raise OSError(
+                        "Could not download remote file %r:\n" "Error: %s" % (path, error)
+                    )
         else:
             print(
                 message.warn(

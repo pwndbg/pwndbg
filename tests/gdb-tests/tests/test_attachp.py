@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import getpass
 import os
 import re
 import subprocess
@@ -63,24 +66,143 @@ def test_attachp_command_attaches_to_pid(launched_bash_binary):
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_too_many_pids(launched_bash_binary):
+def test_attachp_command_attaches_to_procname_resolve_none(launched_bash_binary):
     pid, binary_path = launched_bash_binary
 
-    process = subprocess.Popen([binary_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    process = subprocess.Popen(
+        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+    )
 
     binary_name = binary_path.split("/")[-1]
-    result = run_gdb_with_script(pyafter=f"attachp {binary_name}")
+    result = run_gdb_with_script(
+        pyafter=["set attachp-resolution-method none", f"attachp {binary_name}"]
+    )
 
     process.kill()
 
-    matches = re.search(r"Found pids: ([0-9]+), ([0-9]+) \(use `attach <pid>`\)", result).groups()
-    matches = list(map(int, matches))
-    matches.sort()
+    regex = r"pid +user +elapsed +command\n"
+    regex += r"-+  -+  -+  -+\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r"use `attach \<pid\>` to attach\n"
+    matches = re.search(regex, result).groups()
 
-    expected_pids = [pid, process.pid]
-    expected_pids.sort()
+    expected = (str(pid), getpass.getuser(), binary_path, str(process.pid), getpass.getuser())
 
-    assert matches == expected_pids
+    assert matches[:-1] == expected
+    assert matches[-1].startswith(f"{binary_path} -i -i") and " ... " in matches[-1]
+
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_bash_binary):
+    pid, binary_path = launched_bash_binary
+
+    process = subprocess.Popen(
+        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+    )
+
+    binary_name = binary_path.split("/")[-1]
+    result = run_gdb_with_script(
+        pyafter=["set attachp-resolution-method none", f"attachp --no-truncate {binary_name}"]
+    )
+
+    process.kill()
+
+    regex = r"pid +user +elapsed +command\n"
+    regex += r"-+  -+  -+  -+\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r"(?: +-?(?: -i)+(?: | -)?\n)+"
+    regex += r"use `attach \<pid\>` to attach\n"
+    matches = re.search(regex, result).groups()
+
+    expected = (str(pid), getpass.getuser(), binary_path, str(process.pid), getpass.getuser())
+
+    assert matches[:-1] == expected
+    assert matches[-1].startswith(f"{binary_path} -i -i")
+
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
+    pid, binary_path = launched_bash_binary
+
+    process = subprocess.Popen(
+        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+    )
+
+    binary_name = binary_path.split("/")[-1]
+    result = run_gdb_with_script(
+        pyafter=["set attachp-resolution-method ask", f"attachp {binary_name}"],
+        stdin_input=b"0\n1\n",
+    )
+
+    process.kill()
+
+    regex = r"pid +user +elapsed +command\n"
+    regex += r"-+  -+  -+  -+  -+\n"
+    regex += r" 1 +([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r" 2 +([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
+    regex += r"which process to attach\?\(1-2\) "
+    regex += r"which process to attach\?\(1-2\) "
+    matches = re.search(regex, result).groups()
+
+    expected = (
+        str(pid),
+        getpass.getuser(),
+        binary_path,
+        str(process.pid),
+        getpass.getuser(),
+    )
+
+    assert matches[:-1] == expected
+    assert matches[-1].startswith(f"{binary_path} -i -i") and " ... " in matches[-1]
+
+    matches = re.search(r"Attaching to ([0-9]+)", result).groups()
+    assert matches == (str(pid),)
+
+    assert re.search(rf"Detaching from program: {binary_path}, process {pid}", result)
+
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_command_attaches_to_procname_resolve_oldest(launched_bash_binary):
+    pid, binary_path = launched_bash_binary
+
+    process = subprocess.Popen(
+        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+    )
+
+    binary_name = binary_path.split("/")[-1]
+    result = run_gdb_with_script(
+        pyafter=["set attachp-resolution-method oldest", f"attachp {binary_name}"]
+    )
+
+    process.kill()
+
+    matches = re.search(r"Attaching to ([0-9]+)", result).groups()
+    assert matches == (str(pid),)
+
+    assert re.search(rf"Detaching from program: {binary_path}, process {pid}", result)
+
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_command_attaches_to_procname_resolve_newest(launched_bash_binary):
+    pid, binary_path = launched_bash_binary
+
+    process = subprocess.Popen(
+        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+    )
+
+    binary_name = binary_path.split("/")[-1]
+    result = run_gdb_with_script(
+        pyafter=["set attachp-resolution-method newest", f"attachp {binary_name}"]
+    )
+
+    process.kill()
+
+    matches = re.search(r"Attaching to ([0-9]+)", result).groups()
+    assert matches == (str(process.pid),)
+
+    assert re.search(rf"Detaching from program: {binary_path}, process {process.pid}", result)
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)

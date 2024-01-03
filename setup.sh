@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 
 # If we are a root in a container and `sudo` doesn't exist
@@ -47,7 +47,7 @@ install_swupd() {
 }
 
 install_zypper() {
-    sudo zypper mr -e repo-debug
+    sudo zypper mr -e repo-debug || sudo zypper mr -e repo-oss-debug
     sudo zypper refresh || true
     sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
 
@@ -61,11 +61,21 @@ install_emerge() {
 }
 
 install_pacman() {
-    sudo pacman -Syy --noconfirm || true
-    sudo pacman -S --noconfirm git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
+    read -p "Do you want to do a full system update? (y/n) [n] " answer
+    # user want to perfom a full system upgrade
+    answer=${answer:-n} # n is default
+    if [[ "$answer" == "y" ]]; then
+        sudo pacman -Syu || true
+    fi
+    sudo pacman -S --noconfirm --needed git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
     if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
         echo "set debuginfod enabled on" >> ~/.gdbinit
     fi
+}
+
+install_freebsd() {
+    sudo pkg install git gdb python py39-pip cmake gmake
+    which rustc || sudo pkg install rust
 }
 
 usage() {
@@ -122,7 +132,7 @@ if linux; then
         "opensuse-leap" | "opensuse-tumbleweed")
             install_zypper
             ;;
-        "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda")
+        "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda" | "cachyos")
             install_pacman
             echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
             echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
@@ -137,6 +147,9 @@ if linux; then
                     ${*}
                 }
             fi
+            ;;
+        "freebsd")
+            install_freebsd
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
@@ -157,12 +170,10 @@ if ! hash gdb; then
     exit
 fi
 
-# Update all submodules
-git submodule update --init --recursive
-
 # Find the Python version used by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
 PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+
 if ! osx; then
     PYTHON+="${PYVER}"
 fi
@@ -180,7 +191,7 @@ PYTHON=${PWNDBG_VENV_PATH}/bin/python
 ${PYTHON} -m pip install --upgrade pip
 
 # Create Python virtual environment and install dependencies in it
-${PWNDBG_VENV_PATH}/bin/pip install -Ur ./requirements.txt
+${PWNDBG_VENV_PATH}/bin/pip install -e .
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 from pwndbg.gdblib import config
@@ -37,49 +39,49 @@ config_signal_color = theme.add_color_param(
 config_prompt_color = theme.add_color_param("prompt-color", "bold,red", "prompt color")
 
 
-def on(msg):
+def on(msg: object) -> str:
     return generateColorFunction(config.message_status_on_color)(msg)
 
 
-def off(msg):
+def off(msg: object) -> str:
     return generateColorFunction(config.message_status_off_color)(msg)
 
 
-def notice(msg):
+def notice(msg: object) -> str:
     return generateColorFunction(config.message_notice_color)(msg)
 
 
-def hint(msg):
+def hint(msg: object) -> str:
     return generateColorFunction(config.message_hint_color)(msg)
 
 
-def success(msg):
+def success(msg: object) -> str:
     return generateColorFunction(config.message_success_color)(msg)
 
 
-def warn(msg):
+def warn(msg: object) -> str:
     return generateColorFunction(config.message_warning_color)(msg)
 
 
-def error(msg):
+def error(msg: object) -> str:
     return generateColorFunction(config.message_error_color)(msg)
 
 
-def system(msg):
+def system(msg: object) -> str:
     return generateColorFunction(config.message_system_color)(msg)
 
 
-def exit(msg):
+def exit(msg: object) -> str:
     return generateColorFunction(config.message_exit_color)(msg)
 
 
-def breakpoint(msg):
+def breakpoint(msg: object) -> str:
     return generateColorFunction(config.message_breakpoint_color)(msg)
 
 
-def signal(msg):
+def signal(msg: object) -> str:
     return generateColorFunction(config.message_signal_color)(msg)
 
 
-def prompt(msg):
+def prompt(msg: object) -> str:
     return generateColorFunction(config.prompt_color)(msg)

@@ -5,8 +5,9 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
+from __future__ import annotations
+
 import re
-from typing import Optional
 
 import gdb
 
@@ -22,6 +23,25 @@ import pwndbg.gdblib.stack
 import pwndbg.gdblib.vmmap
 import pwndbg.ida
 import pwndbg.lib.cache
+
+# Symbol lookup only throws exceptions on errors, not if it failed to
+# look up a symbol. We want to raise these errors so we can handle them
+# properly, but there are some we haven't figured out how to fix yet, so
+# we ignore those here
+skipped_exceptions = None
+
+skipped_exceptions = (
+    # This exception is being thrown by the Go typeinfo tests, we should
+    # investigate why this is happening and see if we can explicitly check
+    # for it with `gdb.selected_frame()`
+    "No frame selected",
+    # If we try to look up a TLS variable when there is no TLS, this
+    # exception occurs. Ideally we should come up with a way to check for
+    # this case before calling `gdb.lookup_symbol`
+    "Cannot find thread-local",
+    # This reproduced on GDB 12.1 and caused #1878
+    "Symbol requires a frame to compute its value",
+)
 
 
 def _get_debug_file_directory():
@@ -110,7 +130,7 @@ def get(address: int, gdb_only=False) -> str:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def address(symbol: str) -> int:
+def address(symbol: str) -> int | None:
     """
     Get the address for `symbol`
     """
@@ -119,22 +139,6 @@ def address(symbol: str) -> int:
         if symbol_obj:
             return int(symbol_obj.value().address)
     except gdb.error as e:
-        # Symbol lookup only throws exceptions on errors, not if it failed to
-        # lookup a symbol. We want to raise these errors so we can handle them
-        # properly, but there are some we haven't figured out how to fix yet, so
-        # we ignore those here
-        skipped_exceptions = []
-
-        # This is exception is being thrown by the Go typeinfo tests, we should
-        # investigate why this is happening and see if we can explicitly check
-        # for it with `gdb.selected_frame()`
-        skipped_exceptions.append("No frame selected")
-
-        # If we try to look up a TLS variable when there is no TLS, this
-        # exception occurs. Ideally we should come up with a way to check for
-        # this case before calling `gdb.lookup_symbol`
-        skipped_exceptions.append("Cannot find thread-local")
-
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
 
@@ -154,20 +158,13 @@ def address(symbol: str) -> int:
 
 
 @pwndbg.lib.cache.cache_until("objfile", "thread")
-def static_linkage_symbol_address(symbol: str) -> int:
+def static_linkage_symbol_address(symbol: str) -> int | None:
     """
     Get the address for static linkage `symbol`
     """
 
     try:
-        if hasattr(gdb, "lookup_static_symbol"):
-            symbol_obj = gdb.lookup_static_symbol(symbol)
-        else:
-            # GDB < 9.x does not have `gdb.lookup_static_symbol`
-            # We will fallback to `gdb.lookup_symbol` here, but the drawback is that we might find incorrect symbol if there is a symbol with the same name which is not static linkage
-            # But this is better than just returning None
-            # TODO/FIXME: Find a way to get the static linkage symbol's address in GDB < 9.x
-            symbol_obj = gdb.lookup_symbol(symbol)[0]
+        symbol_obj = gdb.lookup_static_symbol(symbol)
         return int(symbol_obj.value().address) if symbol_obj else None
     except gdb.error:
         return None
@@ -199,7 +196,7 @@ def selected_frame_source_absolute_filename():
     return symtab.fullname()
 
 
-def parse_and_eval(expression: str) -> Optional[gdb.Value]:
+def parse_and_eval(expression: str) -> gdb.Value | None:
     """Error handling wrapper for GDBs parse_and_eval function"""
     try:
         return gdb.parse_and_eval(expression)

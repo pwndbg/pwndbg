@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import tempfile
 
@@ -18,7 +20,7 @@ def binary_parse_breakpoints(binary_code):
     and map them to function's cmd line ids
     """
     # map bug id to function name (f.e: 2 -> invalid_pointer_misaligned())
-    with open(binary_code, "r") as f:
+    with open(binary_code) as f:
         func_names = {}
         for line in f:
             if "case " in line:
@@ -27,7 +29,7 @@ def binary_parse_breakpoints(binary_code):
                 func_names[bug_id] = func_name
 
     # map bug id to breakpoint line numbers
-    with open(binary_code, "r") as f:
+    with open(binary_code) as f:
         breakpoints = {}
         lines = f.readlines()
         line_no = 0
@@ -81,7 +83,7 @@ def setup_heap(start_binary, bug_no):
     gdb.execute("continue")
 
     chunks = {}
-    with open(OUTPUT_FILE, "r") as f:
+    with open(OUTPUT_FILE) as f:
         chunk_id = "a"
         for _ in range(7):
             chunk = int(f.readline().split("=")[1], 16)

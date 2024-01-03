@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 import argparse
 import ast
 import os
 import sys
 from collections import defaultdict
-from io import open
 from typing import DefaultDict
-from typing import Dict
-from typing import List
+from typing import Tuple
 
 import gdb
 
@@ -80,12 +80,17 @@ config_output = pwndbg.gdblib.config.add_param(
 )
 config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions heap-tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
     "which context sections are displayed (controls order)",
+)
+config_max_threads_display = pwndbg.gdblib.config.add_param(
+    "context-max-threads",
+    4,
+    "maximum number of threads displayed by the context command",
 )
 
 # Storing output configuration per section
-outputs: Dict[str, str] = {}
+outputs: dict[str, str] = {}
 output_settings = {}
 
 
@@ -388,7 +393,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, Dict] = defaultdict(dict)
+    result_settings: DefaultDict[str, dict] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -509,7 +514,7 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     if pwndbg.gdblib.config.show_compact_regs:
         regs = compact_regs(regs, target=target, width=width)
 
-    info = " / show-flags %s / show-compact-regs %s" % (
+    info = " / show-flags {} / show-compact-regs {}".format(
         "on" if pwndbg.gdblib.config.show_flags else "off",
         "on" if pwndbg.gdblib.config.show_compact_regs else "off",
     )
@@ -637,7 +642,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
-    info = " / %s / set emulate %s" % (
+    info = " / {} / set emulate {}".format(
         pwndbg.gdblib.arch.current,
         "on" if bool(pwndbg.gdblib.config.emulate) else "off",
     )
@@ -662,7 +667,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get_highlight_source(filename):
+def get_highlight_source(filename: str) -> Tuple[str, ...]:
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()
@@ -692,7 +697,7 @@ def get_filename_and_formatted_source():
 
     try:
         source = get_highlight_source(filename)
-    except IOError:
+    except OSError:
         return "", []
 
     if not source:
@@ -847,7 +852,96 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal: List[str] = []
+last_signal: list[str] = []
+
+thread_status_messages = {
+    "running": pwndbg.color.light_green("running"),
+    "stopped": pwndbg.color.yellow("stopped"),
+    "exited": pwndbg.color.gray("exited "),
+}
+
+
+def get_thread_status(thread):
+    if thread.is_running():
+        return thread_status_messages["running"]
+    elif thread.is_stopped():
+        return thread_status_messages["stopped"]
+    elif thread.is_exited():
+        return thread_status_messages["exited"]
+    else:
+        return "unknown"
+
+
+def context_threads(with_banner=True, target=sys.stdout, width=None):
+    try:
+        original_thread = gdb.selected_thread()
+    except SystemError:
+        original_thread = None
+
+    all_threads = gdb.selected_inferior().threads()[::-1]
+
+    displayed_threads = []
+
+    if original_thread is not None and original_thread.is_valid():
+        displayed_threads.append(original_thread)
+
+    for thread in all_threads:
+        if len(displayed_threads) >= int(config_max_threads_display):
+            break
+
+        if thread.is_valid() and thread is not original_thread:
+            displayed_threads.append(thread)
+
+    num_threads_not_shown = len(all_threads) - len(displayed_threads)
+
+    if len(displayed_threads) < 2:
+        return []
+
+    out = [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
+    max_name_length = 0
+
+    for thread in displayed_threads:
+        name = thread.name or ""
+        if len(name) > max_name_length:
+            max_name_length = len(name)
+
+    for thread in filter(lambda t: t.is_valid(), displayed_threads):
+        selected = " ►" if thread is original_thread else "  "
+        name = thread.name if thread.name is not None else ""
+        padding = max_name_length - len(name)
+        status = get_thread_status(thread)
+
+        line = (
+            f" {selected} {thread.global_num}\t"
+            f'"{pwndbg.color.cyan(name)}" '
+            f'{" " * padding}'
+            f"{status}: "
+        )
+
+        if thread.is_stopped():
+            thread.switch()
+            pc = gdb.selected_frame().pc()
+
+            pc_colored = M.get(pc)
+            symbol = pwndbg.gdblib.symbol.get(pc)
+
+            line += f"{pc_colored}"
+            if symbol:
+                line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+
+        out.append(line)
+
+    if num_threads_not_shown:
+        out.append(
+            pwndbg.lib.tips.color_tip(
+                f"Not showing {num_threads_not_shown} thread(s). Use `set context-max-threads <number of threads>` to change this."
+            )
+        )
+
+    if original_thread is not None and original_thread.is_valid():
+        original_thread.switch()
+
+    return out
 
 
 def save_signal(signal) -> None:
@@ -900,6 +994,7 @@ context_sections = {
     "e": context_expressions,
     "g": context_ghidra,
     "h": context_heap_tracker,
+    "t": context_threads,
 }
 
 

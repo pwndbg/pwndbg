@@ -3,9 +3,12 @@ Functions for determining the architecture-dependent path to
 GCC and any flags it should be executed with.
 """
 
+from __future__ import annotations
+
 import glob
 import os
 import platform
+from typing import Any
 from typing import List
 
 from pwndbg.lib.arch import Arch
@@ -30,7 +33,7 @@ def which(arch: Arch) -> List[str]:
     return [gcc] + _flags(arch.name)
 
 
-def _which_binutils(util, arch, **kwargs):
+def _which_binutils(util: str, arch: Arch, **kwargs: Any):
     ###############################
     # Borrowed from pwntools' code
     ###############################
@@ -40,7 +43,7 @@ def _which_binutils(util, arch, **kwargs):
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.
-    arches = [arch_name] + {
+    arches: List[str] = [arch_name] + {
         "thumb": ["arm", "armcm", "aarch64"],
         "i386": ["x86_64", "amd64"],
         "i686": ["x86_64", "amd64"],

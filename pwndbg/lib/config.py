@@ -1,11 +1,18 @@
-import collections
+from __future__ import annotations
+
+from collections import defaultdict
 from functools import total_ordering
+from typing import Any
 from typing import Callable
 from typing import DefaultDict
 from typing import Dict
 from typing import List
+from typing import Sequence
+from typing import TypeVar
 
 import gdb
+
+T = TypeVar("T")
 
 PARAM_CLASSES = {
     # The Python boolean values, True and False are the only valid values.
@@ -26,13 +33,13 @@ class Parameter:
     def __init__(
         self,
         name: str,
-        default,
-        set_show_doc,
+        default: Any,
+        set_show_doc: str,
         *,
-        help_docstring="",
-        param_class=None,
-        enum_sequence=None,
-        scope="config",
+        help_docstring: str = "",
+        param_class: int | None = None,
+        enum_sequence: Sequence[str] | None = None,
+        scope: str = "config",
     ) -> None:
         # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
         # The `set_doc` will be "Set the value of the foo."
@@ -79,47 +86,45 @@ class Parameter:
     # If comparing with another `Parameter`, the `Parameter` objects are equal
     # if they refer to the same GDB parameter. For any other type of object, the
     # `Parameter` is equal to the object if `self.value` is equal to the object
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Parameter):
             return self.name == other.name
-
         return self.value == other
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, Parameter):
             return self.name < other.name
-
         return self.value < other
 
     # Operators
     def __add__(self, other: int) -> int:
         return self.value + other
 
-    def __radd__(self, other):
+    def __radd__(self, other: int) -> int:
         return other + self.value
 
     def __sub__(self, other: int) -> int:
         return self.value - other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: int) -> int:
         return other - self.value
 
-    def __mul__(self, other):
+    def __mul__(self, other: int) -> int:
         return self.value * other
 
     def __rmul__(self, other: int) -> str:
         return other * self.value
 
-    def __div__(self, other):
+    def __div__(self, other: float) -> float:
         return self.value / other
 
     def __floordiv__(self, other: int) -> int:
         return self.value // other
 
-    def __pow__(self, other):
+    def __pow__(self, other: int) -> int:
         return self.value**other
 
-    def __mod__(self, other):
+    def __mod__(self, other: int) -> int:
         return self.value % other
 
     def __len__(self) -> int:
@@ -129,19 +134,19 @@ class Parameter:
 class Config:
     def __init__(self) -> None:
         self.params: Dict[str, Parameter] = {}
-        self.triggers: DefaultDict[str, List[Callable]] = collections.defaultdict(lambda: [])
+        self.triggers: DefaultDict[str, List[Callable[..., Any]]] = defaultdict(lambda: [])
 
     def add_param(
         self,
         name: str,
-        default,
-        set_show_doc,
+        default: Any,
+        set_show_doc: str,
         *,
-        help_docstring="",
-        param_class=None,
-        enum_sequence=None,
-        scope="config",
-    ):
+        help_docstring: str = "",
+        param_class: int | None = None,
+        enum_sequence: Sequence[str] | None = None,
+        scope: str = "config",
+    ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
 
@@ -156,7 +161,7 @@ class Config:
         )
         return self.add_param_obj(p)
 
-    def add_param_obj(self, p: Parameter):
+    def add_param_obj(self, p: Parameter) -> Parameter:
         attr_name = p.attr_name()
 
         # Make sure this isn't a duplicate parameter
@@ -165,20 +170,20 @@ class Config:
         self.params[attr_name] = p
         return p
 
-    def trigger(self, *params: List[Parameter]):
+    def trigger(self, *params: Parameter) -> Callable[[Callable[..., T]], Callable[..., T]]:
         names = [p.name for p in params]
 
-        def wrapper(func):
+        def wrapper(func: Callable[..., T]) -> Callable[..., T]:
             for name in names:
                 self.triggers[name].append(func)
             return func
 
         return wrapper
 
-    def get_params(self, scope) -> List[Parameter]:
+    def get_params(self, scope: str) -> List[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Parameter:
         if name in self.params:
             return self.params[name]
         else:

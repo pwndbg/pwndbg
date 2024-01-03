@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 import gdb
@@ -11,14 +13,12 @@ from pwndbg.commands.shell import shellcmd_names
 BINARY = tests.binaries.get("heap_bins.out")
 
 # TODO: See if we can reduce the number of commands we need to skip
-disallowed_commands = set(
-    [
-        # requires user input
-        "ipi",
-        # takes too long
-        "nextproginstr",
-    ]
-)
+disallowed_commands = {
+    # requires user input
+    "ipi",
+    # takes too long
+    "nextproginstr",
+}
 
 # Don't run any shell commands
 disallowed_commands.update(shellcmd_names)

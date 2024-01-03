@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import signal
 
@@ -33,6 +35,7 @@ import pwndbg.ui
 __version__ = pwndbg.lib.version.__version__
 version = __version__
 
+from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import prompt
 
 prompt.set_prompt()
@@ -57,7 +60,6 @@ handle SIGSEGV stop   print nopass
 )
 
 # See https://github.com/pwndbg/pwndbg/issues/808
-gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 if gdb_version[0] <= 9:
     pre_commands += "\nset remote search-memory-packet off"
 

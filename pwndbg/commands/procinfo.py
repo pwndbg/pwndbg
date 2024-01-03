@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import shlex
 import string
 
 import pwndbg.auxv
@@ -83,6 +86,18 @@ class Process:
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
+    def cmdline(self):
+        raw = pwndbg.gdblib.file.get(f"/proc/{self.pid}/cmdline")
+        return " ".join(map(shlex.quote, raw.decode().split("\x00")))
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def cwd(self):
+        link = pwndbg.gdblib.file.readlink(f"/proc/{self.pid}/cwd")
+        return f"'{link}'"
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
     def status(self):
         raw = pwndbg.gdblib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
 
@@ -121,7 +136,7 @@ class Process:
                 v = int(v)
 
             # uid and gid and groups
-            elif all((s.isdigit() for s in v.split())):
+            elif all(s.isdigit() for s in v.split()):
                 v = list(map(int, v.split()))
 
             # capability sets
@@ -208,6 +223,10 @@ def procinfo() -> None:
     # qemu-usermode fail!
     if not proc.status:
         return
+
+    print("%-10s %s" % ("cmdline", proc.cmdline))
+
+    print("%-10s %s" % ("cwd", proc.cwd))
 
     files = dict(proc.open_files)
 

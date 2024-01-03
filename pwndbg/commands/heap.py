@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import argparse
 import ctypes
 from string import printable
-from typing import Dict
-from typing import List
 
 import gdb
 from tabulate import tabulate
@@ -181,6 +181,60 @@ def heap(addr=None, verbose=False, simple=False) -> None:
 
         for chunk in h:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
+)
+parser.add_argument(
+    "addr",
+    type=int,
+    help="Address of the interest.",
+)
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones."
+)
+parser.add_argument(
+    "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
+)
+parser.add_argument(
+    "-f",
+    "--fake",
+    action="store_true",
+    help="Allow fake chunks. If set, displays any memory as a heap chunk (even if its not a real chunk).",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
+@pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
+def hi(addr, verbose=False, simple=False, fake=False) -> None:
+    try:
+        heap = Heap(addr)
+    except Exception as E:
+        print(f"The provided address {hex(addr)} cannot be interpreted as a heap!\n{E}\n")
+        return
+
+    if fake is False and heap.arena is None:
+        return
+
+    for chunk in heap:
+        if addr in chunk:
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            if verbose:
+                start = chunk.address + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse else 0x00)
+                print(f"Your address: {hex(addr)}")
+                print(f"Head offset: {hex(addr - start)}")
+                if chunk.is_top_chunk is False:
+                    end = (
+                        start
+                        + chunk.real_size
+                        + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                    )
+                    print(f"Tail offset: {hex(end - addr)}")
+            break
 
 
 parser = argparse.ArgumentParser(
@@ -918,11 +972,13 @@ def vis_heap_chunks(
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
-        pwndbg.lib.memory.round_up(pwndbg.gdblib.config.max_visualize_chunk_size, ptr_size << 2)
+        pwndbg.lib.memory.round_up(
+            int(pwndbg.gdblib.config.max_visualize_chunk_size), ptr_size << 2
+        )
         >> 1
     )
 
-    bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
+    bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
 
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
@@ -992,7 +1048,7 @@ def bin_labels_mapping(collections):
     We precompute all of them because doing this on demand was too slow and inefficient
     See #1675 for more details
     """
-    labels_mapping: Dict[int, List[str]] = {}
+    labels_mapping: dict[int, list[str]] = {}
 
     for bins in collections:
         if not bins:

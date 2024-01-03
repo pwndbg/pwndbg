@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
+from typing import Iterator
 
 import gdb
 
 
 @contextmanager
-def lock_scheduler():
+def lock_scheduler() -> Iterator[None]:
     """
     This context manager can be used to run GDB commands with threads scheduling
     being locked which means that other threads will be stopped during execution.

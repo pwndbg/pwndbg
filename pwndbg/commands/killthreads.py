@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 import argparse
-from typing import List
-from typing import Optional
 
 import gdb
 
@@ -31,7 +31,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
-def killthreads(thread_ids: Optional[List] = None, all: bool = False) -> None:
+def killthreads(thread_ids: list | None = None, all: bool = False) -> None:
     if len(thread_ids) == 0 and not all:
         print(message.error("No thread IDs or --all flag specified"))
         return

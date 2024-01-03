@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 from pwndbg.gdblib import config
@@ -37,51 +39,51 @@ config_register_changed_marker = theme.add_param(
 config_comment = theme.add_color_param("comment-color", "gray", "color for comment")
 
 
-def prefix(x):
+def prefix(x: object) -> str:
     return generateColorFunction(config.code_prefix_color)(x)
 
 
-def highlight(x):
+def highlight(x: object) -> str:
     return generateColorFunction(config.highlight_color)(x)
 
 
-def register(x):
+def register(x: object) -> str:
     return generateColorFunction(config.context_register_color)(x)
 
 
-def register_changed(x):
+def register_changed(x: object) -> str:
     return generateColorFunction(config.context_register_changed_color)(x)
 
 
-def flag_bracket(x):
+def flag_bracket(x: object) -> str:
     return generateColorFunction(config.context_flag_bracket_color)(x)
 
 
-def flag_value(x):
+def flag_value(x: object) -> str:
     return generateColorFunction(config.context_flag_value_color)(x)
 
 
-def flag_set(x):
+def flag_set(x: object) -> str:
     return generateColorFunction(config.context_flag_set_color)(x)
 
 
-def flag_unset(x):
+def flag_unset(x: object) -> str:
     return generateColorFunction(config.context_flag_unset_color)(x)
 
 
-def flag_changed(x):
+def flag_changed(x: object) -> str:
     return generateColorFunction(config.context_flag_changed_color)(x)
 
 
-def banner(x):
+def banner(x: object) -> str:
     return generateColorFunction(config.banner_color)(x)
 
 
-def banner_title(x):
+def banner_title(x: object) -> str:
     return generateColorFunction(config.banner_title_color)(x)
 
 
-def comment(x):
+def comment(x: object) -> str:
     return generateColorFunction(config.comment_color)(x)
 
 

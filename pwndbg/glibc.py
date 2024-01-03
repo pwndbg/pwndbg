@@ -2,11 +2,11 @@
 Get information about the GLibc
 """
 
+from __future__ import annotations
+
 import functools
 import os
 import re
-from typing import Optional
-from typing import Tuple
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -21,6 +21,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.heap
 import pwndbg.lib.cache
 import pwndbg.search
+from pwndbg.color import message
 
 safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking",
@@ -30,26 +31,33 @@ safe_lnk = pwndbg.gdblib.config.add_param(
 )
 
 glibc_version = pwndbg.gdblib.config.add_param(
-    "glibc", "", "GLIBC version for heuristics", scope="heap"
+    "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
 )
 
 
+@pwndbg.gdblib.config.trigger(glibc_version)
+def set_glibc_version() -> None:
+    ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+    if ret:
+        glibc_version.value = tuple(map(int, ret.groups()))
+        return
+
+    print(
+        message.warn(
+            f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
+        )
+    )
+    glibc_version.revert_default()
+
+
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def get_version() -> Optional[Tuple[int, ...]]:
-    if glibc_version.value:
-        ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
-        if ret:
-            return tuple(int(_) for _ in ret.groups())
-        else:
-            raise ValueError(
-                f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
-            )
-    return _get_version()
+def get_version() -> tuple[int, ...] | None:
+    return glibc_version or _get_version()  # type: ignore[return-value]
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _get_version() -> Optional[Tuple[int, ...]]:
+def _get_version() -> tuple[int, ...] | None:
     if pwndbg.heap.current.libc_has_debug_syms():
         addr = pwndbg.gdblib.symbol.address("__libc_version")
         if addr is not None:
@@ -72,7 +80,7 @@ def _get_version() -> Optional[Tuple[int, ...]]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
+def get_libc_filename_from_info_sharedlibrary() -> str | None:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
     """
@@ -99,7 +107,7 @@ def get_libc_filename_from_info_sharedlibrary() -> Optional[str]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
+def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     Dump .data section of libc ELF file
     """
@@ -112,7 +120,7 @@ def dump_elf_data_section() -> Optional[Tuple[int, int, bytes]]:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> Optional[Tuple[Relocation, ...]]:
+def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
     """
     Dump relocations of a section by section name of libc ELF file
     """

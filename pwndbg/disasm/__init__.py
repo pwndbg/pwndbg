@@ -3,6 +3,8 @@ Functionality for disassmebling code at an address, or at an
 address +/- a few instructions.
 """
 
+from __future__ import annotations
+
 import collections
 from typing import DefaultDict
 from typing import List
@@ -144,7 +146,7 @@ class SimpleInstruction:
         self.size = ins["length"]
         self.next = self.address + self.size
         self.target = self.next
-        self.groups: List[Any] = []
+        self.groups: list[Any] = []
         self.symbol = None
         self.condition = False
 
@@ -161,7 +163,7 @@ def get_one_instruction(address):
         return ins
 
 
-def one(address=None) -> Union[capstone.CsInsn, SimpleInstruction]:
+def one(address=None) -> capstone.CsInsn | SimpleInstruction:
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
@@ -270,7 +272,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     if current is None or not pwndbg.gdblib.memory.peek(address):
         return []
 
-    insns: List[Union[capstone.CsInsn, SimpleInstruction]] = []
+    insns: list[capstone.CsInsn | SimpleInstruction] = []
 
     # Try to go backward by seeing which instructions we've returned
     # before, which were followed by this one.

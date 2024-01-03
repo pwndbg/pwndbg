@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gdb
 
 import pwndbg.color.memory as M
@@ -121,7 +123,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     for link in chain:
         symbol = pwndbg.gdblib.symbol.get(link) or None
         if symbol:
-            symbol = "%#x (%s)" % (link, symbol)
+            symbol = f"{link:#x} ({symbol})"
         rest.append(M.get(link, symbol))
 
     # If the dereference limit is zero, skip any enhancements.

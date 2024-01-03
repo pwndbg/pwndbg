@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.stack
 import tests
@@ -10,7 +12,7 @@ def test_memory_read_write(start_binary):
     Tests simple pwndbg's memory read/write operations with different argument types
     """
     start_binary(REFERENCE_BINARY)
-    stack_addr = next(iter(pwndbg.gdblib.stack.stacks.values())).vaddr
+    stack_addr = next(iter(pwndbg.gdblib.stack.get().values())).vaddr
 
     # Testing write(addr, str)
     val = "X" * 50

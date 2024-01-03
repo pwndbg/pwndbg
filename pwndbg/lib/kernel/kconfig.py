@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import zlib
 from collections import UserDict
-from typing import Dict
-from typing import Optional
 
 
-def parse_config(config_text: bytes) -> Dict[str, str]:
+def parse_config(config_text: bytes) -> dict[str, str]:
     res = {}
 
     for line in config_text.split(b"\n"):
@@ -15,7 +15,7 @@ def parse_config(config_text: bytes) -> Dict[str, str]:
     return res
 
 
-def parse_compresed_config(compressed_config: bytes) -> Dict[str, str]:
+def parse_compresed_config(compressed_config: bytes) -> dict[str, str]:
     config_text = zlib.decompress(compressed_config, 16)
     return parse_config(config_text)
 
@@ -29,7 +29,7 @@ class Kconfig(UserDict):
         super().__init__()
         self.data = parse_compresed_config(compressed_config)
 
-    def get_key(self, name: str) -> Optional[str]:
+    def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
         # like 'debug_info', then attempt to lookup the value assuming the user
         # passed in a value like `config_debug_info` or `CONFIG_DEBUG_INFO`

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .constant import Constant
 
 __NR_io_setup = Constant("__NR_io_setup", 0)

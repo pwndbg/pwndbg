@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .constant import Constant
 
 __NR_Linux = Constant("__NR_Linux", 4000)

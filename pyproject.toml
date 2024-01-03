@@ -1,9 +1,7 @@
 [tool.black]
 line-length = 100
-extend-exclude = "gdb-pt-dump"
 
 [tool.ruff]
-exclude = ["gdb-pt-dump"]
 ignore = [
     "A003",
     "E402",
@@ -84,7 +82,7 @@ ignore_missing_imports = true
 profile = "black"
 force_single_line = true
 known_third_party = ["capstone", "unicorn", "psutil", "pycparser", "gdb"]
-extend_skip_glob = ["gdb-pt-dump/*"]
+add_imports = "from __future__ import annotations"
 
 [tool.coverage.run]
 branch = true
@@ -170,7 +168,7 @@ disable = [
 
 
 # Files or directories to be skipped. They should be base names, not paths.
-ignore = ["tests", "gdb-pt-dump", ".git"]
+ignore = ["tests", ".git"]
 
 # List of module names for which member attributes should not be checked (useful
 # for modules/projects where namespaces are manipulated during runtime and thus
@@ -245,3 +243,33 @@ max-nested-blocks = 6
 
 [tool.pylint.reports]
 output-format = "colorized"
+
+[tool.poetry]
+name = "pwndbg"
+description = "Exploit Development and Reverse Engineering with GDB Made Easy"
+version = "2023.07.17"
+authors = ["Dominik 'disconnect3d' Czarnota <dominik.b.czarnota+dc@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "pwndbg" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+capstone = "5.0.0.post1"
+psutil = "5.9.5"
+pwntools = "4.11.0"
+pycparser = "2.21"
+pyelftools = "0.29"
+pygments = "2.15.0"
+ropgadget = "7.2"
+sortedcontainers = "2.4.0"
+tabulate = "0.9.0"
+typing-extensions = "4.6.1"
+unicorn = "2.0.1.post1"
+requests = "2.31.0"
+pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "89ea252f6efc5d75eacca16fc17ff8966a389690"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

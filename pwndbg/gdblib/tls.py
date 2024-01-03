@@ -2,6 +2,8 @@
 Getting Thread Local Storage (TLS) information.
 """
 
+from __future__ import annotations
+
 import gdb
 
 import pwndbg.disasm

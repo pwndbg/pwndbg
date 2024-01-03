@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 from pwndbg.gdblib import config
@@ -31,33 +33,33 @@ config_highlight_group_lsb = theme.add_param(
 )
 
 
-def normal(x):
+def normal(x: str) -> str:
     return generateColorFunction(config.hexdump_normal_color)(x)
 
 
-def printable(x):
+def printable(x: str) -> str:
     return generateColorFunction(config.hexdump_printable_color)(x)
 
 
-def zero(x):
+def zero(x: str) -> str:
     return generateColorFunction(config.hexdump_zero_color)(x)
 
 
-def special(x):
+def special(x: str) -> str:
     return generateColorFunction(config.hexdump_special_color)(x)
 
 
-def offset(x):
+def offset(x: str) -> str:
     return generateColorFunction(config.hexdump_offset_color)(x)
 
 
-def address(x):
+def address(x: str) -> str:
     return generateColorFunction(config.hexdump_address_color)(x)
 
 
-def separator(x):
+def separator(x: str) -> str:
     return generateColorFunction(config.hexdump_separator_color)(x)
 
 
-def highlight_group_lsb(x):
+def highlight_group_lsb(x: str) -> str:
     return generateColorFunction(config.hexdump_highlight_group_lsb)(x)

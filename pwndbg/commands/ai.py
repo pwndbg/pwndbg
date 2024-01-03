@@ -4,6 +4,8 @@ GPT-3 large language model and asks it a question supplied by the user. It then
 displays GPT-3's response to that question to the user.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -11,7 +13,6 @@ import pprint
 import re
 
 import gdb
-import requests
 
 import pwndbg
 import pwndbg.color.message as M
@@ -66,6 +67,13 @@ last_pc = None
 last_command = None
 dummy = False
 verbosity = 0
+
+
+def _requests():
+    """Lazy import requests since its import is quite heavy"""
+    import requests
+
+    return requests
 
 
 def set_dummy_mode(d=True) -> None:
@@ -273,7 +281,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         "temperature": temperature,
     }
     url = "https://api.openai.com/v1/chat/completions"
-    r = requests.post(
+    r = _requests().post(
         url,
         data=json.dumps(data),
         headers={"Content-Type": "application/json"},
@@ -313,7 +321,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
         "stop": ["\n\nHuman:"],
     }
     url = "https://api.openai.com/v1/completions"
-    r = requests.post(
+    r = _requests().post(
         url,
         data=json.dumps(data),
         headers={"Content-Type": "application/json"},
@@ -365,7 +373,7 @@ def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
     }
     headers = {"x-api-key": config.ai_anthropic_api_key.value, "Content-Type": "application/json"}
     url = "https://api.anthropic.com/v1/complete"
-    response = requests.post(url, data=json.dumps(data), headers=headers)
+    response = _requests().post(url, data=json.dumps(data), headers=headers)
     data = response.json()
     try:
         return data["completion"].strip()
@@ -376,7 +384,7 @@ def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
 
 def get_openai_models():
     url = "https://api.openai.com/v1/models"
-    r = requests.get(url, auth=("Bearer", config.ai_openai_api_key))
+    r = _requests().get(url, auth=("Bearer", config.ai_openai_api_key))
     res = r.json()
     if verbosity > 0:
         print(M.warn(pprint.pformat(res)))

@@ -1,7 +1,15 @@
+from __future__ import annotations
+
+from typing import Callable
+
+import gdb
+
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
+
+ColorFunction = Callable[[str], str]
 
 c = ColorConfig(
     "memory",
@@ -16,18 +24,17 @@ c = ColorConfig(
 )
 
 
-def get(address, text=None) -> str:
+def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """
     Returns a colorized string representing the provided address.
 
     Arguments:
-        address(int): Address to look up
-        text(str): Optional text to use in place of the address
-              in the return value string.
+        address(int | gdb.Value): Address to look up
+        text(str | None): Optional text to use in place of the address in the return value string.
+        prefix(str | None): Optional text to set at beginning in the return value string.
     """
     address = int(address)
-
-    page = pwndbg.gdblib.vmmap.find(int(address))
+    page = pwndbg.gdblib.vmmap.find(address)
 
     if page is None:
         color = normal
@@ -50,6 +57,10 @@ def get(address, text=None) -> str:
         text = hex(int(address))
     if text is None:
         text = str(int(address))
+
+    if prefix:
+        # Replace first N characters with the provided prefix
+        text = prefix + text[len(prefix) :]
 
     return color(text)
 
