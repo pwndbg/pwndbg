@@ -39,7 +39,6 @@ ida_timeout = pwndbg.gdblib.config.add_param(
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
-xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 _ida = None
 
