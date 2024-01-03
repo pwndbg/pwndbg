@@ -56,7 +56,7 @@ def int_str(value: int) -> str:
 
 
 # @pwndbg.lib.cache.cache_until("stop")
-def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_dereference = True) -> str:
+def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_dereference = True, enhance_string_len: int = None) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -71,6 +71,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_d
         value(obj): Value to enhance
         code(bool): Hint that indicates the value may be an instruction
         safe_linking(bool): Whether this chain use safe-linking
+        enhance_string_len(int): The length of string to display for enhancement of the last pointer
     """
     value = int(value)
 
@@ -112,7 +113,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_d
             if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
-    szval = pwndbg.gdblib.strings.get(value) or None
+    szval = pwndbg.gdblib.strings.get(value, maxlen=enhance_string_len) or None
     szval0 = szval
     if szval:
         szval = E.string(repr(szval))

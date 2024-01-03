@@ -7,8 +7,42 @@ from pwndbg.emu.emulator import Emulator
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
+# import pwndbg.gdblib.config
 import pwndbg.lib.cache
 import pwndbg.chain 
+
+
+pwndbg.gdblib.config.add_param(
+    "emulate-annotations",
+    True,
+    """
+Unicorn emulation for register and memory value annotations on instructions
+"""
+)
+
+# If this is false, emulation is only used for the current instruction (if emulate-annotations is enabled)
+pwndbg.gdblib.config.add_param(
+    "emulate-future-annotations",
+    True,
+    """
+Unicorn emulation to annotate instructions after the current program counter
+"""
+)
+
+pwndbg.gdblib.config.add_param(
+    "disasm-telescope-depth",
+    3,
+    "Depth of telescope for disasm annotations"
+)
+
+# In disasm view, long telescoped strings might cause lines wraps
+pwndbg.gdblib.config.add_param(
+    "disasm-telescope-string-length",
+    50,
+    "Number of characters in strings to display in disasm annotations"
+)
+
+
 
 debug = False
 # debug = True
@@ -61,11 +95,24 @@ class DisassemblyAssistant:
 
         print(f"Start enhancing instruction at {hex(instruction.address)} - {instruction.mnemonic} {instruction.op_str}")
         
+        # For both cases below, we still step the emulation so we can use it to determine jump target
+        # in the pwndbg.disasm.near() function.
+        if emu and not bool(pwndbg.gdblib.config.emulate_annotations):
+            emu.single_step(check_instruction_valid=False)
+            emu = None
+
+        # If we are not at the current process instruction, and we don't want to emulate future annotations, we
+        # make emu None.
+        print(pwndbg.gdblib.config.emulate_future_annotations)
+        if emu and pwndbg.gdblib.regs.pc != instruction.address and not bool(pwndbg.gdblib.config.emulate_future_annotations):
+            emu.single_step(check_instruction_valid=False)
+            emu = None
+
         if emu:
-            # print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=} and {hex(instruction.size)}")
+            # print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}")
             
-            # TODO: This only applies to x86. Make it apply for all arches as well
             assert(emu.pc == instruction.address)
+
             # if emu.pc != instruction.address:
             #   print("This indicates a bug in Pwndbg, please report")
             #   emu = None
@@ -127,6 +174,14 @@ class DisassemblyAssistant:
         that value. In all other cases, the value is `None`.
         """
 
+        # For ease, for x86 we will assume Intel syntax (destination operand first).
+        # However, Capstone will disassemble using the `set disassembly-flavor` preference,
+        # and the order of operands are read left to right into the .operands array. So we flip operand order if AT&T
+
+        if instruction._cs.syntax == CS_OPT_SYNTAX_ATT:
+            instruction.operands.reverse()
+
+
         # before_value
         for i, op in enumerate(instruction.operands):
             
@@ -173,20 +228,23 @@ class DisassemblyAssistant:
             
             print(f"DEBUG: {o.symbol=}")
 
-    # Architecture-specific hook to determine if the program counter of the process
-    # equals the address of the function being executed. If so, it means we can safely
-    # reason and read from registers and memory to represent values that we can add to the .info_string.
-    # Note that this applies when NOT emulating, and is meant to allow more fine-grained details
-    # to added to the disasm view even when not-emulating, and when the PC is at the instruction being enhanced
-    # View x86.py for example. Some architectures have an offset between PC and instruction.
+    # Determine if the program counter of the process equals the address of the function being executed. 
+    # If so, it means we can safely reason and read from registers and memory to represent values that 
+    # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to 
+    # allow more details when the PC is at the instruction being enhanced
     def can_reason_about_process_state(self, instruction: CsInsn) -> bool:
-        return False
+        return instruction.address == pwndbg.gdblib.regs.pc
 
     # Read value in register
     # Different architectures use registers in different patterns, so it is best to
     # override this to get to best behavior for a given architecture.
     def parse_register(self, instruction: CsInsn, operand, emu: Emulator = None):
-        return None
+        if not self.can_reason_about_process_state(instruction):
+            return None
+
+        reg = operand.value.reg
+        name = instruction.reg_name(reg)
+        return pwndbg.gdblib.regs[name]
     
     # Get memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override
@@ -221,7 +279,7 @@ class DisassemblyAssistant:
         can_read_process_state = self.can_reason_about_process_state(instruction)
 
         if emu:
-            return [emu.telescope(address, limit, read_size=read_size), True]
+            return (emu.telescope(address, limit, read_size=read_size), True)
         elif can_read_process_state:
             # Can reason about memory in this case. 
 
@@ -235,21 +293,21 @@ class DisassemblyAssistant:
                 except gdb.MemoryError:
                     pass
 
-                return [result, True]
+                return (result, True)
                 
             else:
-                return [pwndbg.chain.get(address, limit=limit), True]
+                return (pwndbg.chain.get(address, limit=limit), True)
         elif not can_read_process_state or operand.type == CS_OP_IMM:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
             page = pwndbg.gdblib.vmmap.find(address)
             print(page, f"{address:x}")
             if page and not page.write:
-                return [pwndbg.chain.get(address, limit=limit), True]
+                return (pwndbg.chain.get(address, limit=limit), True)
         
         # We cannot telescope, but we can still return the address.
         # Just without any further information
-        return [[address], False]
+        return ([address], False)
 
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def read_memory(self, address: int, size: int, instruction: CsInsn, operand, emu: Emulator) -> int | None:
@@ -264,12 +322,15 @@ class DisassemblyAssistant:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format 
         #  will return values accurate to the program state at the time of instruction executing.
         #  For some cases, it's best to assume the string will stay constant, like global string variables
+
+        enhance_string_len = int(pwndbg.gdblib.config.disasm_telescope_string_length)
+
         if emu:
-            return emu.format_telescope_list(list, limit)
+            return emu.format_telescope_list(list, limit, enhance_string_len=enhance_string_len)
         else:
             # We can format, but in some cases we may not be able to reason about memory, so don't allow 
             # it to dereference to last value in memory (we can't determine what value it is)
-            return pwndbg.chain.format(list, limit=limit, enhance_can_dereference=enhance_can_dereference)
+            return pwndbg.chain.format(list, limit=limit, enhance_can_dereference=enhance_can_dereference, enhance_string_len=enhance_string_len)
 
     # Pass in a operand and it's value, and determine the actual value used during an instruction
     # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
