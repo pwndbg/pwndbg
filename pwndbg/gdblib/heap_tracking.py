@@ -47,12 +47,14 @@ that were not made explicit.
 
 """
 
+import itertools
 import gdb
 from sortedcontainers import SortedDict
 
 import pwndbg.gdblib
 from pwndbg.color import message
 
+LIBC_NAME = "libc.so.6"
 MALLOC_NAME = "malloc"
 CALLOC_NAME = "calloc"
 REALLOC_NAME = "realloc"
@@ -60,6 +62,8 @@ FREE_NAME = "free"
 
 last_issue = None
 
+# Useful to track possbile collision errors.
+PRINT_DEBUG = False
 
 def is_enabled() -> bool:
     """
@@ -75,13 +79,40 @@ def is_enabled() -> bool:
 
     return any(installed)
 
-
-def is_available(name: str) -> bool:
+def _basename(val):
     """
-    Checks whether a given symbol is available.
+    Returns the last component of a path.
     """
-    return pwndbg.gdblib.symbol.address(name) is not None
+    val.split("/")[-1]
 
+def resolve_address(name: str) -> int | None:
+    """
+    Checks whether a given symbol is available and part of libc, and returns its
+    address.
+    """
+    # If that fails, try to query for it by using the less precise pwndbg API.
+    address = pwndbg.gdblib.symbol.address(name) 
+    if not address:
+        # Nothing that we can do here.
+        return None
+
+    # Try to see if this belongs to libc.
+    #
+    # This check is, frankly, horrifying, but it's one of the few ways we can
+    # check what objfile the address we got is coming from*, and it's better to
+    # err on the side of caution here and at least attempt to prevent the wrong
+    # symbol from being used, than to return a possibly wrong symbol and have
+    # the user wonder why on Earth the heap tracker would be hooking to ld.so.
+    #
+    # *: A better way would be to use gdb.objfile_from_address, but that's only
+    # available in relatively recent versions of GDB.
+    info = gdb.execute(f"info symbol {address:#x}", to_string=True, from_tty=False)
+    info = info.split(" of ")[-1].split("/")[-1]
+    if not info or LIBC_NAME not in info:
+        print(message.warn(f"Instance of symbol {name} that was found does not seem to belong to an instance of libc whose name is in the form {LIBC_NAME}. Refusing to use."))
+        return None
+    
+    return address
 
 class FreeChunkWatchpoint(gdb.Breakpoint):
     def __init__(self, chunk, tracker):
@@ -109,10 +140,13 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
             # We explicitly allow this operation.
             return False
 
-        global last_issue
-        last_issue = message.error("Use after free")
+        print(f"[!] Possible use-after-free in {self.chunk.size}-byte chunk at address {self.chunk.address:#x}")
 
-        return True
+        global stop_on_error
+        if stop_on_error:
+            global last_issue
+            last_issue = message.error("Use after free")
+        return stop_on_error
 
 
 class AllocChunkWatchpoint(gdb.Breakpoint):
@@ -141,13 +175,9 @@ class Tracker:
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
-        print(f"Is thread {thread} performing memory management? ", end="")
-
         if thread not in self.memory_management_calls:
-            print("False")
             return False
         else:
-            print(self.memory_management_calls[thread])
             return self.memory_management_calls[thread]
 
     def enter_memory_management(self, name):
@@ -159,7 +189,6 @@ class Tracker:
                 thread
             ], f"in {name}(): re-entrant calls are not supported"
 
-        print(f"Thread {thread} entered memory management")
         self.memory_management_calls[thread] = True
 
     def exit_memory_management(self):
@@ -169,12 +198,9 @@ class Tracker:
         if thread in self.memory_management_calls:
             assert self.memory_management_calls[thread]
 
-        print(f"Thread {thread} exited memory management")
         self.memory_management_calls[thread] = False
 
     def malloc(self, chunk):
-        print(f"Allocated {chunk.size:#x} byte chunk at {chunk.address:#x}")
-
         # malloc()s may arbitrarily change the structure of freed blocks, to the
         # point our chunk maps may become invalid, so, we update them here if
         # anything looks wrong.
@@ -186,12 +212,6 @@ class Tracker:
                 # Include the element to the left in the update.
                 lo_i -= 1
 
-        print("    free chunk map:")
-        for ch in self.free_chunks:
-            print(f"        {self.free_chunks[ch].address:#x} ({self.free_chunks[ch].size} bytes)")
-        print(f"    lo_i: {lo_i}")
-        print(f"    hi_i: {hi_i}")
-
         try:
             if lo_i != hi_i:
                 # The newly registered chunk overlaps with chunks we had registered
@@ -202,9 +222,6 @@ class Tracker:
 
                 lo_addr = lo_chunk.address
                 hi_addr = hi_chunk.address + hi_chunk.size
-
-                print(f"    lo_addr: {lo_addr:#x}")
-                print(f"    hi_addr: {hi_addr:#x}")
 
                 lo_heap = pwndbg.heap.ptmalloc.Heap(lo_addr)
                 hi_heap = pwndbg.heap.ptmalloc.Heap(hi_addr - 1)
@@ -250,7 +267,6 @@ class Tracker:
                     bins_list.append(allocator.tcachebins(None))
                 bins_list = [x for x in bins_list if x is not None]
 
-                print(f"Chunks in heap {lo_heap.start:#x}-{lo_heap.end:#x}:")
                 for ch in lo_heap:
                     # Check for range overlap.
                     ch_lo_addr = ch.address
@@ -261,14 +277,12 @@ class Tracker:
                     # Check for range overlap.
                     ch_lo_addr = ch.address
                     ch_hi_addr = ch.address + ch.size
-                    print(f"        {ch.address:#x} ({ch.real_size} bytes)", end="")
 
                     lo_in_range = ch_lo_addr < hi_addr
                     hi_in_range = ch_hi_addr > lo_addr
 
                     if not lo_in_range or not hi_in_range:
                         # No range overlap.
-                        print(" (out of range)")
                         continue
 
                     # Check if the chunk is free.
@@ -280,16 +294,12 @@ class Tracker:
                             nch = Chunk(ch.address, ch.size, ch.real_size, 0)
                             wp = FreeChunkWatchpoint(nch, self)
 
-                            print(" (free)")
-
                             self.free_chunks[ch.address] = nch
                             self.free_whatchpoints[ch.address] = wp
 
                             # Move on to the next chunk.
                             found = True
                             break
-                    if not found:
-                        print(" (in use)")
         except IndexError as e:
             import traceback
 
@@ -312,8 +322,8 @@ class Tracker:
 
 
 class MallocEnterBreakpoint(gdb.Breakpoint):
-    def __init__(self, tracker):
-        super().__init__(MALLOC_NAME, internal=True)
+    def __init__(self, address, tracker):
+        super().__init__(f"*{address:#x}", internal=True)
         self.tracker = tracker
 
     def stop(self):
@@ -325,8 +335,8 @@ class MallocEnterBreakpoint(gdb.Breakpoint):
 
 
 class CallocEnterBreakpoint(gdb.Breakpoint):
-    def __init__(self, tracker):
-        super().__init__(CALLOC_NAME, internal=True)
+    def __init__(self, address, tracker):
+        super().__init__(f"*{address:#x}", internal=True)
         self.tracker = tracker
 
     def stop(self):
@@ -380,7 +390,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
         print(
-            f"Allocated {chunk.size} byte chunk ({self.requested_size} bytes requested) starting at {ret_ptr:#x}"
+            f"[*] Allocated {chunk.size} byte chunk ({self.requested_size} bytes requested) starting at {ret_ptr:#x}"
         )
 
         self.tracker.exit_memory_management()
@@ -396,8 +406,8 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
 
 class ReallocEnterBreakpoint(gdb.Breakpoint):
-    def __init__(self, tracker):
-        super().__init__(REALLOC_NAME, internal=True)
+    def __init__(self, address, tracker):
+        super().__init__(f"*{address:#x}", internal=True)
         self.tracker = tracker
 
     def stop(self):
@@ -426,7 +436,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             return False
 
         print(
-            f"Trying to realloc chunk starting at {self.freed_ptr:#x} to have {self.requested_size} bytes"
+            f"[*] Trying to realloc chunk starting at {self.freed_ptr:#x} to have {self.requested_size} bytes"
         )
 
         # Figure out what the reallocated pointer is.
@@ -440,7 +450,11 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             # This is a chunk we'd never seen before.
             malloc()
             self.tracker.exit_memory_management()
-            return True
+
+            print(f"[!] realloc() with previously unknown pointer {self.freed_ptr:#x}")
+
+            global stop_on_error
+            return stop_on_error
 
         malloc()
         self.tracker.exit_memory_management()
@@ -452,8 +466,8 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
 
 
 class FreeEnterBreakpoint(gdb.Breakpoint):
-    def __init__(self, tracker):
-        super().__init__(FREE_NAME, internal=True)
+    def __init__(self, address, tracker):
+        super().__init__(f"*{address:#x}", internal=True)
         self.tracker = tracker
 
     def stop(self):
@@ -478,11 +492,15 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
             self.tracker.exit_memory_management()
             return False
 
-        print(f"Trying to free chunk starting at {self.ptr:#x}")
+        print(f"[*] Trying to free chunk starting at {self.ptr:#x}")
+
         if not self.tracker.free(self.ptr):
             # This is a chunk we'd never seen before.
             self.tracker.exit_memory_management()
-            return True
+            
+            print(f"[!] free() with previously unknown pointer {self.freed_ptr:#x}")
+            global stop_on_error
+            return stop_on_error
 
         self.tracker.exit_memory_management()
         return False
@@ -514,6 +532,8 @@ calloc_enter = None
 realloc_enter = None
 free_enter = None
 
+# Whether the inferior should be stopped when an error is detected.
+stop_on_error = True
 
 def install(disable_hardware_whatchpoints=True):
     global malloc_enter
@@ -527,7 +547,7 @@ def install(disable_hardware_whatchpoints=True):
 
     # Make sure the required functions are available.
     required_symbols = [MALLOC_NAME, FREE_NAME]
-    available = [is_available(name) for name in required_symbols]
+    available = [resolve_address(name) for name in required_symbols]
 
     if not all(available):
         print(message.error("The following required symbols are not available:"))
@@ -562,14 +582,16 @@ def install(disable_hardware_whatchpoints=True):
     # Install the heap tracker.
     tracker = Tracker()
 
-    malloc_enter = MallocEnterBreakpoint(tracker)
-    free_enter = FreeEnterBreakpoint(tracker)
+    malloc_enter = MallocEnterBreakpoint(available[0], tracker)
+    free_enter = FreeEnterBreakpoint(available[1], tracker)
 
-    if is_available(CALLOC_NAME):
-        calloc_enter = CallocEnterBreakpoint(tracker)
+    calloc_address = resolve_address(CALLOC_NAME)
+    if calloc_address:
+        calloc_enter = CallocEnterBreakpoint(calloc_address, tracker)
 
-    if is_available(REALLOC_NAME):
-        realloc_enter = ReallocEnterBreakpoint(tracker)
+    realloc_address = resolve_address(REALLOC_NAME)
+    if realloc_address:
+        realloc_enter = ReallocEnterBreakpoint(realloc_address, tracker)
 
     print("Heap tracker installed.")
 
