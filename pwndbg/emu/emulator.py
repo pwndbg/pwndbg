@@ -275,7 +275,7 @@ class Emulator:
         address_list = self.telescope(address, limit)
         return self.format_telescope_list(address_list, limit)
     
-    def format_telescope_list(self, chain: list[int], limit: int) -> str:
+    def format_telescope_list(self, chain: list[int], limit: int, enhance_string_len: int = None) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
         arrow_left = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
@@ -299,11 +299,10 @@ class Emulator:
         # Enhance the last entry
         # If there are no pointers (e.g. eax = 0x41414141), then enhance it
         if len(chain) == 1:
-            enhanced = self.telescope_enhance(chain[-1], code=True)
+            enhanced = self.telescope_enhance(chain[-1], code=True, enhance_string_len=enhance_string_len)
         elif len(chain) < limit + 1:
-            enhanced = self.telescope_enhance(chain[-2], code=True)
+            enhanced = self.telescope_enhance(chain[-2], code=True, enhance_string_len=enhance_string_len)
         else:
-            print("HEREERE", len(chain), limit + 1)
             enhanced = pwndbg.chain.c.contiguous_marker(f"{pwndbg.chain.config_contiguous}")
    
         if len(chain) == 1:
@@ -312,7 +311,7 @@ class Emulator:
         return arrow_right.join(rest) + arrow_left + enhanced
 
     
-    def telescope_enhance(self, value: int, code: bool = True):
+    def telescope_enhance(self, value: int, code: bool = True, enhance_string_len:int = None):
         # Near identical to pwndbg.enhance.enhance, just read from emulator memory
 
         # Determine if its on a page - we do this in the real processes memory
@@ -346,10 +345,9 @@ class Emulator:
                 if pwndbg.gdblib.config.syntax_highlight:
                     instr = syntax_highlight(instr)
 
-        # TODO: Read from emulator memory
-
         # szval = pwndbg.gdblib.strings.get(value) or None
-        szval = self.memory_read_string(value, max_string_len=50, max_read=256)
+        # Read from emulator memory
+        szval = self.memory_read_string(value, max_string_len=enhance_string_len, max_read=None)
         szval0 = szval
         if szval:
             szval = E.string(repr(szval))

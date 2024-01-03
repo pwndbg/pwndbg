@@ -21,7 +21,6 @@ ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
 regs = {v: k for k, v in globals().items() if k.startswith("X86_REG_")}
 access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
-TELESCOPE_DEPTH = 3
 
 # Operand type is capstone.x86.X86Op
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
@@ -38,6 +37,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_MOVQ: self.handle_mov_set_info,
             X86_INS_MOVSXD: self.handle_mov_set_info,
             X86_INS_MOVSX: self.handle_mov_set_info,
+
+            # VMOVAPS
+            X86_INS_MOVAPS: self.handle_vmovaps_set_info,
+            X86_INS_VMOVAPS: self.handle_vmovaps_set_info,
 
             # LEA
             X86_INS_LEA: self.handle_lea_set_info,
@@ -66,16 +69,17 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         }
 
-    def can_reason_about_process_state(self, instruction: CsInsn) -> bool:
-        return instruction.address == pwndbg.gdblib.regs.pc
     
     def handle_mov_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
         left, right = instruction.operands
         
+        TELESCOPE_DEPTH = max(0,int(pwndbg.gdblib.config.disasm_telescope_depth))
+
         # Read from right operand
         if right.before_value is not None:
 
-            telescope_addresses, did_telescope = super().telescope(right.before_value, TELESCOPE_DEPTH, instruction, right, emu)
+            # +1 to ensure we telescope enough to read at least one address for the last "elif" below
+            telescope_addresses, did_telescope = super().telescope(right.before_value, TELESCOPE_DEPTH+1, instruction, right, emu)
             if not telescope_addresses:
                 return
             
@@ -114,9 +118,32 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 else:
                     instruction.info_string = f"{regname}, [{MemoryColor.get(right.before_value)}]"
     
+    def handle_vmovaps_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        # If the source or destination is in memory, it must be aligned to:
+        #  16 bytes for SSE, 32 bytes for AVX, 64 bytes for AVX-512
+        # https://www.felixcloutier.com/x86/movaps
+        # This displays a warning that the memory address is not aligned
+        # movaps xmmword ptr [rsp + 0x60], xmm1
+        
+        left, right = instruction.operands
+
+        operand = left if left.type == CS_OP_MEM else (right if right.type == CS_OP_MEM else None) 
+
+        if operand and operand.before_value is not None:
+            # operand.size is the width of memory in bytes (128, 256, or 512 bits = 16, 32, 64 bytes).
+            # Pointer must be aligned to that memory width
+            alignment_mask = operand.size - 1
+
+            if operand.before_value & alignment_mask != 0:
+                instruction.info_string = MessageColor.error(f"<[{MemoryColor.get(operand.before_value)}] not aligned to {operand.size} bytes>")
+
+
     def handle_lea_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
         # Example: lea    rdx, [rax*8]
         left, right = instruction.operands
+
+        TELESCOPE_DEPTH = max(0,int(pwndbg.gdblib.config.disasm_telescope_depth))
+
         if right.before_value is not None:
             regname = C.register_changed(C.register(left.str.upper()))
 
@@ -158,7 +185,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 regname = C.register_changed(C.register(left.str.upper()))
                 instruction.info_string = f"{regname} => {MemoryColor.get_address_and_symbol(left.after_value)}"
             elif left.type == CS_OP_MEM:
-                instruction.info_string = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(left.after_value)}"
+                # [memory_address] => value
+                instruction.info_string = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_actual)}"
 
     def handle_sub_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
         # Same output as addition, showing the result
@@ -200,17 +228,23 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.value.reg == right.value.reg:
             regname = C.register_changed(C.register(left.str.upper()))
             instruction.info_string = f"{regname} => 0"
-        elif emu and left.after_value is not None:
+        elif left.after_value is not None:
             regname = C.register_changed(C.register(left.str.upper()))
             instruction.info_string = f"{regname} => {left.after_value}"
 
     def handle_inc_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
+        # INC operand can be REG or [MEMORY]
         operand = instruction.operands[0]
 
-        if operand.type == CS_OP_REG:
-            if emu and operand.after_value is not None:
+        operand_actual = super().resolve_used_value(operand.after_value, instruction, operand, emu)
+
+        if operand_actual is not None:
+            if operand.type == CS_OP_REG:
                 regname = C.register_changed(C.register(operand.str.upper()))
-                instruction.info_string = f"{regname} => {MemoryColor.get(operand.after_value)}"
+                instruction.info_string = f"{regname} => {MemoryColor.get(operand_actual)}"
+            elif operand.type == CS_OP_MEM:
+                instruction.info_string = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
+
 
     def handle_dec_set_info(self, instruction: CsInsn, emu: Emulator) -> None:
         self.handle_inc_set_info(instruction, emu)
@@ -218,7 +252,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     # Override
     def set_info_string(self, instruction: CsInsn, emu: Emulator) -> None:
 
-        # TODO: Assume Intel syntax, flip operand order if AT&T
 
         # Dispatch to the correct handler
         self.set_info_string_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
@@ -240,7 +273,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if operand_id == X86_REG_RIP:
             # Ex: lea    rax, [rip + 0xd55] 
-            # We can reason about this no matter the current pc
+            # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
         else:
             if emu:
