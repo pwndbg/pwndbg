@@ -70,7 +70,7 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 )
 
 
-def nearpc(pc:int=None, lines:int=None, emulate=False, repeat=False) -> list[str]:
+def nearpc(pc: int = None, lines: int = None, emulate=False, repeat=False) -> list[str]:
     """
     Disassemble near a specified address.
     """

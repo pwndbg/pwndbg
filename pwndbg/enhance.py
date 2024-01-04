@@ -12,6 +12,7 @@ from __future__ import annotations
 import string
 
 import pwndbg.color.enhance as E
+import pwndbg.color.memory
 import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
@@ -21,7 +22,6 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
-import pwndbg.color.memory 
 
 bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
 
@@ -29,17 +29,22 @@ bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
 def good_instr(i) -> bool:
     return not any(bad in i for bad in bad_instrs)
 
+
 def format_small_int(value: int) -> str:
     if value < 10:
         return "%d" % value
     else:
         return "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
 
-def format_small_int_pair(first: int, second: int) -> tuple[str,str]:
+
+def format_small_int_pair(first: int, second: int) -> tuple[str, str]:
     if first < 10 and second < 10:
         return ("%d" % first, "%d" % second)
     else:
-        return ("%#x" % int(first & pwndbg.gdblib.arch.ptrmask), "%#x" % int(second & pwndbg.gdblib.arch.ptrmask))
+        return (
+            "%#x" % int(first & pwndbg.gdblib.arch.ptrmask),
+            "%#x" % int(second & pwndbg.gdblib.arch.ptrmask),
+        )
 
 
 def int_str(value: int) -> str:
@@ -55,7 +60,13 @@ def int_str(value: int) -> str:
 
 
 # @pwndbg.lib.cache.cache_until("stop")
-def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_dereference = True, enhance_string_len: int = None) -> str:
+def enhance(
+    value: int,
+    code: bool = True,
+    safe_linking: bool = False,
+    attempt_dereference=True,
+    enhance_string_len: int = None,
+) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -85,7 +96,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False, attempt_d
     # If it's a pointer that we told the function about, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
         return pwndbg.color.memory.get_address_and_symbol(value)
-    
+
     if not can_read:
         return E.integer(int_str(value))
 

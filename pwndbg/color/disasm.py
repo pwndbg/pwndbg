@@ -42,7 +42,7 @@ def instruction(ins: PwndbgInstruction) -> str:
         sym = pwndbg.gdblib.symbol.get(ins.target) or None
         if sym:
             sym = M.get(ins.target, sym)
-            
+
         target = M.get(ins.target)
         const = ins.target_const
 
@@ -72,14 +72,13 @@ def instruction(ins: PwndbgInstruction) -> str:
             # XXX: not sure when this ever happens
             asm += "<-- file a pwndbg bug for this"
         else:
-
             # If enhancement found one important symbol, and if it's a literal, try to replace it with symbol
             if ins.symbol:
                 asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
 
             if ins.annotation:
                 asm = f"{ljust_colored(asm, 36)} {ins.annotation}"
-            
+
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:
         asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)

@@ -3,10 +3,10 @@ from __future__ import annotations
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 
-from pwndbg.disasm.instruction import PwndbgInstruction, EnhancedOperand
+import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
-import pwndbg.disasm.arch
+from pwndbg.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):

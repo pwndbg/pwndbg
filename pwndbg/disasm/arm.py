@@ -4,11 +4,11 @@ from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 
 import pwndbg.disasm.arch
-from pwndbg.disasm.instruction import PwndbgInstruction, EnhancedOperand
-
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+from pwndbg.disasm.instruction import EnhancedOperand
+from pwndbg.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
