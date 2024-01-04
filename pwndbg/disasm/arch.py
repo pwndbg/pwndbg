@@ -12,6 +12,14 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.chain 
 
+# Even if this is disabled, branch instructions will still have targets printed
+pwndbg.gdblib.config.add_param(
+    "disasm-annotations",
+    True,
+    """
+Display annotations for instructions to provide context on operands and results
+"""
+)
 
 pwndbg.gdblib.config.add_param(
     "emulate-annotations",
@@ -102,8 +110,7 @@ class DisassemblyAssistant:
             emu.single_step(check_instruction_valid=False)
             emu = None
 
-        # If we are not at the current process instruction, and we don't want to emulate future annotations, we
-        # make emu None.
+        # Disable emulation for future annotations based on setting
         if emu and pwndbg.gdblib.regs.pc != instruction.address and not bool(pwndbg.gdblib.config.emulate_future_annotations):
             emu.single_step(check_instruction_valid=False)
             emu = None
@@ -125,7 +132,8 @@ class DisassemblyAssistant:
         enhancer.enhance_conditional(instruction)
         enhancer.enhance_next(instruction)
 
-        enhancer.set_annotation_string(instruction, emu)
+        if bool(pwndbg.gdblib.config.disasm_annotations):
+            enhancer.set_annotation_string(instruction, emu)
 
         if DEBUG_ENHANCEMENT:
             print(enhancer.dump(instruction))
@@ -376,10 +384,6 @@ class DisassemblyAssistant:
         if instruction.condition in (True, None):
             next_addr = self.next(instruction)
 
-        # instruction.target = None
-        # instruction.target_const = None
-        # instruction.next = None
-
         if next_addr is None:
             next_addr = instruction.address + instruction.size
             instruction.target = self.next(instruction, call=True)
@@ -390,7 +394,7 @@ class DisassemblyAssistant:
         if instruction.target is None:
             instruction.target = instruction.next
 
-        if instruction.operands and instruction.operands[0].before_value:
+        if instruction.operands and instruction.operands[0].before_value and instruction.operands[0].type == CS_OP_IMM:
             instruction.target_const = True
 
     def next(self, instruction: PwndbgInstruction, call=False):
