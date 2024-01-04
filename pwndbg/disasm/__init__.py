@@ -24,6 +24,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.disasm.instruction import PwndbgInstruction, make_simple_instruction
 
 try:
     import pwndbg.emu.emulator
@@ -67,14 +68,17 @@ VariableInstructionSizeMax = {
     "rv64": 22,
 }
 
+
+debug = False
+
 # Dict of Address -> previous Address executed
 backward_cache: DefaultDict[int,int] = collections.defaultdict(lambda: None)
 
 # This allows use to retain the annotation strings from previous instructions.
 # Don't use our 'cache_until' because it caches based on function arguments, but for disasm view, 
 # we don't want to fetch cached results in some cases. 
-# Dict of Address -> previously computed CsInsn
-computed_instruction_cache: DefaultDict[int, CsInsn] = collections.defaultdict(lambda: None)
+# Dict of Address -> previously computed PwndbgInstruction
+computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -264,29 +268,35 @@ class SimpleInstruction:
 
 # TODO: FIX THIS
 # @pwndbg.lib.cache.cache_until("cont")
-def get_one_instruction(address, emu: pwndbg.emu.emulator.Emulator=None, enhance=True, from_cache=False):
+# If passed an emulator, this will pass it to the DisassemblyAssistant
+# which will single_step the emulator to determine the operand values before and after the instruction executes
+def get_one_instruction(address, emu: pwndbg.emu.emulator.Emulator=None, enhance=True, from_cache=False) -> PwndbgInstruction:
     if from_cache:
         cached = computed_instruction_cache[address]
         if cached is not None:
             return cached
     
     if pwndbg.gdblib.arch.current not in CapstoneArch:
-        return SimpleInstruction(address)
+        return make_simple_instruction(address)
+    
     md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.gdblib.arch.current, 4)
     data = pwndbg.gdblib.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
+
+        pwn_ins = PwndbgInstruction(ins)
+
         if enhance:
-            pwndbg.disasm.arch.DisassemblyAssistant.enhance(ins, emu)
+            pwndbg.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
 
-        computed_instruction_cache[address] = ins
+        computed_instruction_cache[address] = pwn_ins
 
-        return ins
+        return pwn_ins
 
 
 
 # Return None on failure to fetch an instruction
-def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, from_cache=False) -> capstone.CsInsn | SimpleInstruction:
+def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, from_cache=False) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
@@ -301,7 +311,7 @@ def one(address=None, emu: pwndbg.emu.emulator.Emulator=None, from_cache=False) 
     return None
 
 # Get one instruction without enhancement
-def one_raw(address=None) -> (SimpleInstruction | CsInsn | None):
+def one_raw(address=None) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
@@ -310,23 +320,14 @@ def one_raw(address=None) -> (SimpleInstruction | CsInsn | None):
 
     return get_one_instruction(address, enhance=False)
     
-
-def fix(i):
-    for op in i.operands:
-        if op.type == CS_OP_IMM and op.va:
-            i.op_str = i.op_str.replace()
-
-    return i
-
-
-def get(address, instructions=1, emu: pwndbg.emu.emulator.Emulator=None, from_cache=False):
+def get(address, instructions=1, emu: pwndbg.emu.emulator.Emulator=None, from_cache=False) -> list[PwndbgInstruction]:
     address = int(address)
 
     # Dont disassemble if there's no memory
     if not pwndbg.gdblib.memory.peek(address):
         return []
 
-    retval = []
+    retval: list[PwndbgInstruction] = []
     for _ in range(instructions):
         i = get_one_instruction(address, emu, from_cache=from_cache)
         if i is None:
@@ -390,7 +391,7 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
-def near(address, instructions=1, emulate=False, show_prev_insns=True):
+def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[PwndbgInstruction]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -409,23 +410,22 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
     # Emulate if program pc is at the current instruction - can't emulate at arbitrary places, because we need current
     # processor state to instantiate the emulator.
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
-        print(f"Creating emu object")
         emu = pwndbg.emu.emulator.Emulator()
 
     # Start at the current instruction using emulating if available.
     current = one(address, emu)
 
-    if emu and None in emu.last_single_step_result:
-        print("Emulation failed in first")
+    if debug:
+        if None in emu.last_single_step_result:
+            print("Emulator failed at first step")
 
     if current is None:
         return []
 
+    insns: list[PwndbgInstruction] = []
 
-    insns: list[capstone.CsInsn | SimpleInstruction] = []
-
-    print("CACHE -------------------")
-    # Show the previously executed instructions, which may include jumps.
+    # Get previously executed instructions from the cache.
+    # print("CACHE -------------------")
     if show_prev_insns:
         cached = backward_cache[current.address]
         insn = one(cached, from_cache=True) if cached else None
@@ -436,8 +436,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         insns.reverse()
 
     insns.append(current)
-
-    print("END CACHE -------------------")
+    # print("END CACHE -------------------")
     
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
@@ -448,8 +447,6 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
 
     while insn and len(insns) < total_instructions:
-        
-
         
         # Address to disassemble & emulate
         target = insn.target
@@ -463,27 +460,13 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         # If using emulation and it's still enabled, use it to determine the next instruction executed
         if emu:
             if None not in emu.last_single_step_result:
-
-                
-                print("Emulation success")
                 # Next instruction to be executed is where the emulator is
                 target = emu.pc
             else:
-
-
                 # If it failed, was not able to run the instruction
-                print(f"Emulation failed")
                 emu = None
-        elif target != pc:
-            # TODO: Figure out why this path exists, and what the comment below means, as
-            #       insn.target should be more accurate than this in all cases, so this path should only cause worse results
-            
-            # Continue disassembling at the *next* instruction unless we have emulated
-            # the path of execution.
-            target = insn.address + insn.size
 
         insn = one(target, emu)
-
 
         # TODO: Get rid of this check
         if emu and None not in emu.last_single_step_result:
@@ -491,8 +474,6 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
         
         if insn:
             insns.append(insn)
-
-        
 
 
     # Remove repeated instructions at the end of disassembly.
