@@ -11,7 +11,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color.message import on
-from capstone import CsInsn
+from pwndbg.disasm.instruction import PwndbgInstruction
 
 capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
 
@@ -27,7 +27,7 @@ def syntax_highlight(ins):
     return H.syntax_highlight(ins, filename=".asm")
 
 
-def instruction(ins: CsInsn) -> str:
+def instruction(ins: PwndbgInstruction) -> str:
     asm = "%-06s %s" % (ins.mnemonic, ins.op_str)
     if pwndbg.gdblib.config.syntax_highlight:
         asm = syntax_highlight(asm)
@@ -66,24 +66,16 @@ def instruction(ins: CsInsn) -> str:
             # XXX: not sure when this ever happens
             asm += "<-- file a pwndbg bug for this"
         else:
-            # print(f"{ins.info_string=}")
 
             # If enhancement found one important symbol
             inlined_sym = asm
-            if not ins.info_string:
-                ins.info_string = ""
+            annotation = ins.annotation or ""
 
             if ins.symbol:
                 # If an address is inside the instruction operands as a literal, try to replace it with symbol
-                # inlined_sym = asm.replace(hex(ins.symbol_addr), ins.symbol)
                 asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
 
-                # display symbol to the right of instruction if no inline replacement was made
-                # mem_text = ins.symbol if inlined_sym == asm else None
-                
-                # ins.info_string += f" <{M.get(ins.symbol_addr, mem_text)}>"
-            # asm = f"{ljust_colored(inlined_sym, 36)} <{M.get(ins.symbol_addr, mem_text)}>"
-            asm = f"{ljust_colored(inlined_sym, 36)} {ins.info_string}"
+            asm = f"{ljust_colored(inlined_sym, 36)} {annotation}"
             
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:

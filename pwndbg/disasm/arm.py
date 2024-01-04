@@ -4,24 +4,26 @@ from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 
 import pwndbg.disasm.arch
+from pwndbg.disasm.instruction import PwndbgInstruction, EnhancedOperand
+
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def memory_string(self, instruction, op) -> str:
+    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
         segment = ""
         parts = []
 
         if op.mem.base != 0:
-            parts.append(instruction.reg_name(op.mem.base))
+            parts.append(instruction.cs_insn.reg_name(op.mem.base))
 
         if op.mem.disp != 0:
-            parts.append("%#x" % op.value.mem.disp)
+            parts.append("%#x" % op.mem.disp)
 
         if op.mem.index != 0:
-            index = pwndbg.gdblib.regs[instruction.reg_name(op.mem.index)]
+            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(op.mem.index)]
             scale = op.mem.scale
             parts.append(f"{index}*{scale:#x}")
 
@@ -30,9 +32,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def immediate_string(self, instruction, operand):
         return "#" + super().immediate_string(instruction, operand)
 
-    def condition(self, instruction):
+    def condition(self, instruction: PwndbgInstruction):
         # We can't reason about anything except the current instruction
-        if instruction.cc == ARM_CC_AL:
+        if instruction.cs_insn.cc == ARM_CC_AL:
             return None
 
         if instruction.address != pwndbg.gdblib.regs.pc:
@@ -64,7 +66,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LT: N != V,
             ARM_CC_GT: not Z and (N == V),
             ARM_CC_LE: Z or (N != V),
-        }.get(instruction.cc, None)
+        }.get(instruction.cs_insn.cc, None)
 
         return cc
 

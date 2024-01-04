@@ -24,14 +24,20 @@ c = ColorConfig(
     ],
 )
 
-# Ex: convert integer 0x7ffff7fcecd0 to `0x7ffff7fcecd0 (_dl_fini)`
+# Ex: convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
 # If no symbol, it is omitted
 def get_address_and_symbol(address: int) -> str:
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         symbol = f"{address:#x} ({symbol})"
     return get(address, symbol)
-    
+
+# Ex: convert and colorize address to symbol if it can be resolved, else return hex string of address
+def get_address_or_symbol(address: int) -> str:
+    symbol = pwndbg.gdblib.symbol.get(address) or None
+    if symbol:
+        return get(address,symbol)
+    return get(address)  
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """

@@ -69,9 +69,9 @@ arch_to_UC_consts = {
 # combine the flags with | operator. -1 for all
 NO_DEBUG, DEBUG_INIT, DEBUG_EXECUTING, DEBUG_MEM_MAP, DEBUG_HOOK_CHANGE, DEBUG_MEM_READ, DEBUG_EMU_START_STOP, DEBUG_INTERRUPT, DEBUG_TRACE = 0, 1, 2, 4, 8, 16, 32, 64, 128
 
-# DEBUG = NO_DEBUG
+DEBUG = NO_DEBUG
 # DEBUG = -1 # ALL
-DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
+# DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
     def debug(debug_type, fmt, args=()) -> None:
@@ -237,7 +237,8 @@ class Emulator:
                     value = self.uc.mem_read(address, size)
 
                 except U.unicorn.UcError:
-                    print(f"Emulator failed to read memory at {address=}" f"{e}")
+                    debug(DEBUG_MEM_READ, "Emulator failed to read memory at %#x, %r", (address, e))
+
                     return None
             else:
                 return None
@@ -249,9 +250,7 @@ class Emulator:
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
     def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
         read_size = read_size if read_size is not None else pwndbg.gdblib.arch.ptrsize
-        print("Emulator Telescoping!")
         result = [address]
-        print(f"{result=}")
         for i in range(limit):
             if result.count(address) >= 2:
                 break
@@ -262,7 +261,6 @@ class Emulator:
                 address = pwndbg.gdblib.arch.unpack_size(value, read_size)
                 address &= pwndbg.gdblib.arch.ptrmask
                 result.append(address)
-                print(f"{result=}")
             else:
                 break
 

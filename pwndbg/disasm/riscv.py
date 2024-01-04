@@ -3,8 +3,10 @@ from __future__ import annotations
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 
+from pwndbg.disasm.instruction import PwndbgInstruction, EnhancedOperand
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
+import pwndbg.disasm.arch
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
@@ -12,12 +14,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
         self.architecture = architecture
 
-    def _is_condition_taken(self, instruction):
+    def _is_condition_taken(self, instruction: PwndbgInstruction):
         # B-type instructions have two source registers that are compared
-        src1_unsigned = self.register(instruction, instruction.op_find(CS_OP_REG, 1))
+        src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1))
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
-            src2_unsigned = self.register(instruction, instruction.op_find(CS_OP_REG, 2))
+            src2_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 2))
         else:
             src2_unsigned = 0
 
@@ -41,7 +43,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_BNEZ: src1_signed != 0,
         }.get(instruction.id, None)
 
-    def condition(self, instruction):
+    def condition(self, instruction: PwndbgInstruction):
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
@@ -61,13 +63,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return None
 
-    def next(self, instruction, call=False):
+    def next(self, instruction: PwndbgInstruction, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
         ptrmask = pwndbg.gdblib.arch.ptrmask
         # JAL is unconditional and independent of current register status
         if instruction.id in [RISCV_INS_JAL, RISCV_INS_C_JAL]:
+            # But that doesn't apply to ARM anyways :)
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # We can't reason about anything except the current instruction
@@ -84,7 +87,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
             target = (
-                self.register(instruction, instruction.op_find(CS_OP_REG, 1))
+                self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1))
                 + instruction.op_find(CS_OP_IMM, 1).imm
             ) & ptrmask
             # Clear the lowest bit without knowing the register width
