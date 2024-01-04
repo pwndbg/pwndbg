@@ -3,31 +3,33 @@ Emulation assistance from Unicorn.
 """
 
 from __future__ import annotations
-from typing import Tuple, NamedTuple
 
 import binascii
 import re
 import string
+from typing import NamedTuple
+from typing import Tuple
 
 import capstone as C
 import gdb
 import unicorn as U
 import unicorn.riscv_const
 
-import pwndbg.lib.regs
+import pwndbg.chain
+import pwndbg.color.enhance as E
+import pwndbg.color.memory as M
 import pwndbg.disasm
+import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-import pwndbg.gdblib.vmmap
-import pwndbg.gdblib.symbol
-import pwndbg.chain
-import pwndbg.color.memory as M
-import pwndbg.enhance
-import pwndbg.color.enhance as E
-from pwndbg.color.syntax_highlight import syntax_highlight
-from pwndbg import color
 import pwndbg.gdblib.strings
+import pwndbg.gdblib.symbol
+import pwndbg.gdblib.vmmap
+import pwndbg.lib.regs
+from pwndbg import color
+from pwndbg.color.syntax_highlight import syntax_highlight
+
 
 def parse_consts(u_consts):
     """
@@ -67,17 +69,30 @@ arch_to_UC_consts = {
 
 
 # combine the flags with | operator. -1 for all
-NO_DEBUG, DEBUG_INIT, DEBUG_EXECUTING, DEBUG_MEM_MAP, DEBUG_HOOK_CHANGE, DEBUG_MEM_READ, DEBUG_EMU_START_STOP, DEBUG_INTERRUPT, DEBUG_TRACE = 0, 1, 2, 4, 8, 16, 32, 64, 128
+(
+    NO_DEBUG,
+    DEBUG_INIT,
+    DEBUG_EXECUTING,
+    DEBUG_MEM_MAP,
+    DEBUG_HOOK_CHANGE,
+    DEBUG_MEM_READ,
+    DEBUG_EMU_START_STOP,
+    DEBUG_INTERRUPT,
+    DEBUG_TRACE,
+) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
 DEBUG = NO_DEBUG
 # DEBUG = -1 # ALL
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
+
     def debug(debug_type, fmt, args=()) -> None:
         if DEBUG & debug_type:
             print(fmt % args)
+
 else:
+
     def debug(debug_type, fmt, args=()) -> None:
         pass
 
@@ -119,7 +134,8 @@ class InstructionExecutedResult(NamedTuple):
     address: int
     size: int
 
-# Instantiating an instance of `Emulator` will start an instance 
+
+# Instantiating an instance of `Emulator` will start an instance
 # with a copy of the current processor state.
 class Emulator:
     def __init__(self) -> None:
@@ -227,10 +243,14 @@ class Emulator:
             if e.errno == U.UC_ERR_READ_UNMAPPED:
                 try:
                     first_page = pwndbg.lib.memory.page_align(address)
-                    last_page_exclusive = pwndbg.lib.memory.page_align(address+size+pwndbg.lib.memory.PAGE_SIZE)
+                    last_page_exclusive = pwndbg.lib.memory.page_align(
+                        address + size + pwndbg.lib.memory.PAGE_SIZE
+                    )
 
-                    for page_addr in range(first_page, last_page_exclusive, pwndbg.lib.memory.PAGE_SIZE):
-                        if not(self.map_page(page_addr)):
+                    for page_addr in range(
+                        first_page, last_page_exclusive, pwndbg.lib.memory.PAGE_SIZE
+                    ):
+                        if not (self.map_page(page_addr)):
                             return None
 
                     # Pages are mapped, try again
@@ -244,7 +264,7 @@ class Emulator:
                 return None
 
         return bytes(value)
-    
+
     # Recursively dereference memory, return list of addresses
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
@@ -254,7 +274,7 @@ class Emulator:
         for i in range(limit):
             if result.count(address) >= 2:
                 break
-            
+
             value = self.read_memory(address, read_size)
             if value is not None:
                 # address = pwndbg.gdblib.arch.unpack(value)
@@ -265,20 +285,21 @@ class Emulator:
                 break
 
         return result
-    
+
     # Given an address, return a string like the one `pwndbg.chain.format` returns,
     # reading from the emulator memory
     def format_telescope(self, address: int, limit: int) -> str:
-        
         address_list = self.telescope(address, limit)
         return self.format_telescope_list(address_list, limit)
-    
-    def format_telescope_list(self, chain: list[int], limit: int, enhance_string_len: int = None) -> str:
+
+    def format_telescope_list(
+        self, chain: list[int], limit: int, enhance_string_len: int = None
+    ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
         arrow_left = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
         arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
-            
+
         # Colorize the chain
         rest = []
         for link in chain:
@@ -290,26 +311,29 @@ class Emulator:
         # If the dereference limit is zero, skip any enhancements.
         if limit == 0:
             return rest[0]
-        
+
         # Otherwise replace last element with the enhanced information.
         rest = rest[:-1]
 
         # Enhance the last entry
         # If there are no pointers (e.g. eax = 0x41414141), then enhance it
         if len(chain) == 1:
-            enhanced = self.telescope_enhance(chain[-1], code=True, enhance_string_len=enhance_string_len)
+            enhanced = self.telescope_enhance(
+                chain[-1], code=True, enhance_string_len=enhance_string_len
+            )
         elif len(chain) < limit + 1:
-            enhanced = self.telescope_enhance(chain[-2], code=True, enhance_string_len=enhance_string_len)
+            enhanced = self.telescope_enhance(
+                chain[-2], code=True, enhance_string_len=enhance_string_len
+            )
         else:
             enhanced = pwndbg.chain.c.contiguous_marker(f"{pwndbg.chain.config_contiguous}")
-   
+
         if len(chain) == 1:
             return enhanced
-        
+
         return arrow_right.join(rest) + arrow_left + enhanced
 
-    
-    def telescope_enhance(self, value: int, code: bool = True, enhance_string_len:int = None):
+    def telescope_enhance(self, value: int, code: bool = True, enhance_string_len: int = None):
         # Near identical to pwndbg.enhance.enhance, just read from emulator memory
 
         # Determine if its on a page - we do this in the real processes memory
@@ -320,8 +344,7 @@ class Emulator:
 
         if not can_read:
             return E.integer(pwndbg.enhance.int_str(value))
-       
-        
+
         instr = None
         exe = page and page.execute
         rwx = page and page.rwx
@@ -349,7 +372,7 @@ class Emulator:
         szval0 = szval
         if szval:
             szval = E.string(repr(szval))
-        
+
         # Fix for case when we can't read the end address anyway (#946)
         if value + pwndbg.gdblib.arch.ptrsize > page.end:
             return E.integer(pwndbg.enhance.int_str(value))
@@ -361,7 +384,7 @@ class Emulator:
             # intval = pwndbg.gdblib.arch.unpack(read_value)
             intval = pwndbg.gdblib.arch.unpack_size(read_value, pwndbg.gdblib.arch.ptrsize)
         else:
-            # This occurs when Unicorn fails to read the memory - which it shouldn't, as the 
+            # This occurs when Unicorn fails to read the memory - which it shouldn't, as the
             # read_memory call will map the pages necessary, and this function assumes
             # that the pointer is a valid pointer (as it has already been telescoped)
             intval = 0
@@ -415,20 +438,18 @@ class Emulator:
         return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))
 
     # Return None if cannot find str
-    def memory_read_string(self, address: int, max_string_len=None, max_read=None) -> bytes | None:
-        
+    def memory_read_string(self, address: int, max_string_len=None, max_read=None) -> str | None:
         if max_string_len is None:
             max_string_len = pwndbg.gdblib.strings.length
 
         if max_read is None:
             max_read = pwndbg.gdblib.strings.length
 
-        
         # Read string
         sz = self.read_memory(address, max_read)
         if sz is None:
             return None
-        
+
         try:
             sz = sz[: sz.index(b"\x00")]
         except ValueError:
@@ -443,7 +464,6 @@ class Emulator:
             return sz
 
         return sz[:max_string_len] + "..."
-
 
     def __getattr__(self, name: str):
         reg = self.get_reg_enum(name)
@@ -685,10 +705,12 @@ class Emulator:
 
     def until_syscall_hook_code(self, uc, address, size: int, user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, size))
-        debug(DEBUG_EXECUTING, "# Executing instruction at %(address)#x with bytes %(data)s", locals())
+        debug(
+            DEBUG_EXECUTING, "# Executing instruction at %(address)#x with bytes %(data)s", locals()
+        )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, check_instruction_valid=True) -> Tuple[int,int]:
+    def single_step(self, pc=None, check_instruction_valid=True) -> Tuple[int, int]:
         """Steps one instruction.
 
         Yields:
@@ -712,10 +734,13 @@ class Emulator:
                 debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
                 return self.last_single_step_result
 
-            debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x: %s %s", (pc, insn.mnemonic, insn.op_str))
+            debug(
+                DEBUG_EXECUTING,
+                "# Emulator attempting to single-step at %#x: %s %s",
+                (pc, insn.mnemonic, insn.op_str),
+            )
         else:
             debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x", (pc,))
-            
 
         try:
             self.single_step_hook_hit_count = 0
@@ -729,7 +754,6 @@ class Emulator:
             self.last_single_step_result = InstructionExecutedResult(None, None)
 
         return self.last_single_step_result
-
 
     def single_step_iter(self, pc=None):
         a = self.single_step(pc)
@@ -765,7 +789,7 @@ class Emulator:
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            print("uc.reg_read(%(name)s) ==> %(value)x" % (locals(),))
+            print("uc.reg_read(%s) ==> %x" % (name, value))
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))

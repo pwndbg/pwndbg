@@ -21,8 +21,8 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-from pwndbg.gdblib.nearpc import c as N
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.nearpc import c as N
 
 ida_replacements = {
     "__int64": "signed long long int",
