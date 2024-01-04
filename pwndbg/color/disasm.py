@@ -40,25 +40,31 @@ def instruction(ins: PwndbgInstruction) -> str:
     # tl;dr is a branch?
     if ins.target not in (None, ins.address + ins.size):
         sym = pwndbg.gdblib.symbol.get(ins.target) or None
+        if sym:
+            sym = M.get(ins.target, sym)
+            
         target = M.get(ins.target)
         const = ins.target_const
 
         # If it's a constant expression, color it directly in the asm.
+        # Replace address with symbol if possible
+        # Padding for branches is +2 of annotation so they stick out a little and are easier to see
         if const:
-            asm = f"{ljust_colored(asm, 36)} <{target}>"
             asm = asm.replace(hex(ins.target), sym or target)
+            asm = f"{ljust_colored(asm, 38)} <{sym or target}>"
 
         # It's not a constant expression, but we've calculated the target
         # address by emulation or other means (for example showing ret instruction target)
+        # and we have a symbol
         elif sym:
-            asm = f"{ljust_colored(asm, 36)} <{target}; {sym}>"
+            asm = f"{ljust_colored(asm, 38)} <{target}; {sym}>"
 
         # We were able to calculate the target, but there is no symbol
         # name for it.
         else:
             asm += f"<{(target)}>"
 
-    # not a branch
+    # Not a branch - print annotations in this case
     else:
         if is_branch and not ins.target:
             asm = f"{asm} <{ins.symbol}>"
@@ -67,15 +73,12 @@ def instruction(ins: PwndbgInstruction) -> str:
             asm += "<-- file a pwndbg bug for this"
         else:
 
-            # If enhancement found one important symbol
-            inlined_sym = asm
-            annotation = ins.annotation or ""
-
+            # If enhancement found one important symbol, and if it's a literal, try to replace it with symbol
             if ins.symbol:
-                # If an address is inside the instruction operands as a literal, try to replace it with symbol
                 asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
 
-            asm = f"{ljust_colored(inlined_sym, 36)} {annotation}"
+            if ins.annotation:
+                asm = f"{ljust_colored(asm, 36)} {ins.annotation}"
             
     # Style the instruction mnemonic if it's a branch instruction.
     if is_branch:

@@ -31,49 +31,49 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
-        self.set_info_string_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
-            X86_INS_MOV: self.handle_mov_set_info,
-            X86_INS_MOVABS: self.handle_mov_set_info,
-            X86_INS_MOVZX: self.handle_mov_set_info,
-            X86_INS_MOVD: self.handle_mov_set_info,
-            X86_INS_MOVQ: self.handle_mov_set_info,
-            X86_INS_MOVSXD: self.handle_mov_set_info,
-            X86_INS_MOVSX: self.handle_mov_set_info,
+            X86_INS_MOV: self.handle_mov,
+            X86_INS_MOVABS: self.handle_mov,
+            X86_INS_MOVZX: self.handle_mov,
+            X86_INS_MOVD: self.handle_mov,
+            X86_INS_MOVQ: self.handle_mov,
+            X86_INS_MOVSXD: self.handle_mov,
+            X86_INS_MOVSX: self.handle_mov,
 
             # VMOVAPS
-            X86_INS_MOVAPS: self.handle_vmovaps_set_info,
-            X86_INS_VMOVAPS: self.handle_vmovaps_set_info,
+            X86_INS_MOVAPS: self.handle_vmovaps,
+            X86_INS_VMOVAPS: self.handle_vmovaps,
 
             # LEA
-            X86_INS_LEA: self.handle_lea_set_info,
+            X86_INS_LEA: self.handle_lea,
 
             # POP
-            X86_INS_POP: self.handle_pop_set_info,
+            X86_INS_POP: self.handle_pop,
 
             # ADD
-            X86_INS_ADD: self.handle_add_set_info,
+            X86_INS_ADD: self.handle_add,
 
             # SUB
-            X86_INS_SUB: self.handle_sub_set_info,
+            X86_INS_SUB: self.handle_sub,
 
             # CMP
-            X86_INS_CMP: self.handle_cmp_set_info,
+            X86_INS_CMP: self.handle_cmp,
 
             # TEST
-            X86_INS_TEST: self.handle_test_set_info,
+            X86_INS_TEST: self.handle_test,
 
             # XOR
-            X86_INS_XOR: self.handle_xor_set_info,
+            X86_INS_XOR: self.handle_xor,
 
             # INC and DEC
-            X86_INS_INC: self.handle_inc_set_info,
-            X86_INS_DEC: self.handle_dec_set_info,
+            X86_INS_INC: self.handle_inc,
+            X86_INS_DEC: self.handle_dec,
 
         }
 
     
-    def handle_mov_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
         
         TELESCOPE_DEPTH = max(0,int(pwndbg.gdblib.config.disasm_telescope_depth))
@@ -124,7 +124,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 else:
                     instruction.annotation = f"{regname}, [{MemoryColor.get_address_or_symbol(right.before_value)}]"
     
-    def handle_vmovaps_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:
         #  16 bytes for SSE, 32 bytes for AVX, 64 bytes for AVX-512
         # https://www.felixcloutier.com/x86/movaps
@@ -144,7 +144,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 instruction.annotation = MessageColor.error(f"<[{MemoryColor.get(operand.before_value)}] not aligned to {operand.size} bytes>")
 
 
-    def handle_lea_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Example: lea    rdx, [rax*8]
         left, right = instruction.operands
 
@@ -156,7 +156,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             telescope_addresses, did_telescope = super().telescope(right.before_value, TELESCOPE_DEPTH, instruction, right, emu)
             instruction.annotation = f"{regname} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
-    def handle_pop_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
 
         if len(instruction.operands) != 1:
@@ -179,26 +179,51 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 except Exception as e:
                     pass
         
-    def handle_add_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_add_sub_handler(self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str) -> None:
+        # char_to_separate_operands = "+" or "-"
         left, right = instruction.operands
+    
+        # Set "(op1_value + op2_value)" at end of string
+        left_before = super().resolve_used_value(left.before_value, instruction, left, emu)
+        right_before = super().resolve_used_value(right.before_value, instruction, right, emu)
+
+        # "a + b" or "a - b"
+        plus_string = ""
+
+        if left_before is not None and right_before is not None:
+            print_left, print_right = pwndbg.enhance.format_small_int_pair(left_before, right_before)
+
+            plus_string = f"{print_left} {char_to_separate_operands} {print_right}"
 
         # This may return None if cannot dereference memory (or after_value is None).
-        left_actual = super().resolve_used_value(left.after_value, instruction, left, emu)
+        left_after = super().resolve_used_value(left.after_value, instruction, left, emu)
 
-        if left_actual is not None:
-            if left.type == CS_OP_REG:
-                regname = C.register_changed(C.register(left.str.upper()))
-                instruction.annotation = f"{regname} => {MemoryColor.get_address_and_symbol(left.after_value)}"
-            elif left.type == CS_OP_MEM:
-                # [memory_address] => value
-                instruction.annotation = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_actual)}"
+        if left.type == CS_OP_REG:
+            regname = C.register_changed(C.register(left.str.upper()))
+            # If we emulated the result, display it
+            if left_after is not None:
+                instruction.annotation = f"{regname} => {MemoryColor.get_address_and_symbol(left.after_value)} ({plus_string})"
+            elif plus_string:
+                instruction.annotation = f"{regname} => {plus_string}"
+        elif left.type == CS_OP_MEM:
+            # [memory_address] => value
+            if left_after is not None:
+                instruction.annotation = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
+            elif plus_string:
+                # No emulation
+                instruction.annotation = f"[{MemoryColor.get(left.before_value)}] => {plus_string}"
 
-    def handle_sub_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Same output as addition, showing the result
-        self.handle_add_set_info(instruction, emu)
+        self.handle_add_sub_handler(instruction, emu, "+")
+    
+
+    def handle_sub(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        # Same output as addition, showing the result
+        self.handle_add_sub_handler(instruction, emu, "-")
     
     # Only difference is one character. - for cmp, & for test
-    def handle_cmp_test_handler(self, instruction: PwndbgInstruction, emu: Emulator, char_to_seperate_operands: str) -> None:
+    def handle_cmp_test_handler(self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str) -> None:
         # cmp with memory, register, and intermediate operands can be used in many combinations
         # This function handles all combinations
         left, right = instruction.operands
@@ -209,7 +234,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if left_actual is not None and right_actual is not None:
             print_left, print_right = pwndbg.enhance.format_small_int_pair(left_actual, right_actual)
-            instruction.annotation = f"{print_left} {char_to_seperate_operands} {print_right}"
+            instruction.annotation = f"{print_left} {char_to_separate_operands} {print_right}"
 
             if emu:
                 eflags_bits = pwndbg.gdblib.regs.flags["eflags"]
@@ -219,13 +244,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 SPACES = 5
                 instruction.annotation += " "*SPACES + f"EFLAGS => {eflags_formatted}"
 
-    def handle_cmp_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_cmp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_cmp_test_handler(instruction, emu, '-')
 
-    def handle_test_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_test(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_cmp_test_handler(instruction, emu, '&')
 
-    def handle_xor_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_xor(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         
         left, right = instruction.operands
 
@@ -237,7 +262,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             regname = C.register_changed(C.register(left.str.upper()))
             instruction.annotation = f"{regname} => {left.after_value}"
 
-    def handle_inc_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # INC operand can be REG or [MEMORY]
         operand = instruction.operands[0]
 
@@ -251,14 +276,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 instruction.annotation = f"[{MemoryColor.get(operand.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
 
 
-    def handle_dec_set_info(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        self.handle_inc_set_info(instruction, emu)
+    def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        self.handle_inc(instruction, emu)
 
     # Override
     def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         
         # Dispatch to the correct handler
-        self.set_info_string_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
 
     # Read value at register
