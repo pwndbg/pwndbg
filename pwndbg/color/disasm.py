@@ -64,7 +64,7 @@ def instruction(ins: PwndbgInstruction) -> str:
         # We were able to calculate the target, but there is no symbol
         # name for it.
         else:
-            asm += f"<{(target)}>"
+            asm = f"{ljust_colored(asm, 38)} <{target}>"
 
     # Not a branch - print annotations in this case
     else:

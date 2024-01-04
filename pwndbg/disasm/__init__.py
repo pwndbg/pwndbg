@@ -456,10 +456,9 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
 
     while insn and len(insns) < total_instructions:
         # Address to disassemble & emulate
-        target = insn.target
+        target = insn.next
 
         # Disable emulation if necessary
-        # TODO: Consider if this should be configurable. CALL's are kinda nice to see sometimes
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
             emulate = False
             emu = None
