@@ -4,6 +4,7 @@ on:
     paths:
       - '!mkdocs.yml'
       - '!docs/**'
+      - '!*.md'
 
 jobs:
   docker:

@@ -5,9 +5,13 @@ on:
       - dev
     paths:
       - '!mkdocs.yml'
-      - '!docs/**'      
+      - '!docs/**'
+      - '!*.md'
   pull_request:
-
+    paths:
+      - '!mkdocs.yml'
+      - '!docs/**'
+      - '!*.md'
 jobs:
   tests:
     strategy:
