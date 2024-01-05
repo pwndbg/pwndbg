@@ -3,7 +3,7 @@
 set -o errexit
 
 help_and_exit() {
-    echo "Usage: ./lint.sh [-f|--filter]"
+    echo "Usage: ./scripts/lint.sh [-f|--filter]"
     echo "  -f,  --filter         format code instead of just checking the format"
     exit 1
 }

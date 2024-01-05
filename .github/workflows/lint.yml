@@ -30,4 +30,4 @@ jobs:
     - name: Run linters
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
-        ./lint.sh
+        ./scripts/lint.sh

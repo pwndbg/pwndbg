@@ -60,15 +60,15 @@ Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.r
 
 ## Linting
 
-The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
+The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./scripts/lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
 
-When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
+When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./scripts/lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
 You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to automatically be run before every push:
 ```bash
 #!/bin/sh
 
-./lint.sh || exit 1
+./scripts/lint.sh || exit 1
 ```
 
 ## Minimum Supported Versions
