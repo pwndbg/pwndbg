@@ -4,11 +4,13 @@ on:
     branches:
       - dev
     paths:
+      - '**'
       - '!mkdocs.yml'
       - '!docs/**'
       - '!*.md'
   pull_request:
     paths:
+      - '**'
       - '!mkdocs.yml'
       - '!docs/**'
       - '!*.md'
