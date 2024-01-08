@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import re
+from typing import Any
+from typing import Dict
 
 import pwndbg.color.message as message
 import pwndbg.gdblib.dynamic
@@ -133,7 +135,7 @@ def got_report(soname=".*", writable=False, fnname=".*"):
     )
     print()
 
-    per_object = {}
+    per_object: Dict[Any, Any] = {}
     for _, (tracker, patcher) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname == b"":
