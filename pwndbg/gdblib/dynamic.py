@@ -12,6 +12,9 @@ that may have a somewhat obtuse beahvior, due to limitations in GDB. See
 
 from __future__ import annotations
 
+from typing import Any
+from typing import Dict
+
 import gdb
 
 import pwndbg.color.message as message
@@ -315,7 +318,7 @@ class DynamicSegment:
         # Map the tags we want to find to their respective entires. We don't
         # allow for repeats on most tags as they should only appear once in a
         # well-formed dynamic segment.
-        sections = {}
+        sections: Dict[Any, Any] = {}
         for i in range(self.entries):
             tag = self.dyn_array_read(i, "d_tag")
             if tag in sections:

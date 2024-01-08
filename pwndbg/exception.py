@@ -30,7 +30,7 @@ def print_exception(exception_msg):
         except ImportError:
             _rich_console = ...
 
-    if not isinstance(_rich_console, type(Ellipsis)):  # type: ignore[arg-type]
+    if not isinstance(_rich_console, type(Ellipsis)):
         _rich_console.print_exception()
     else:
         print(exception_msg)
