@@ -26,3 +26,34 @@ class Breakpoint(gdb.Breakpoint):
         its return value determines whether the inferior will be stopped.
         """
         return True
+
+
+REGISTERED_BP_EVENTS = {}
+
+
+class BreakpointEvent(gdb.Breakpoint):
+    """
+    Breakpoint class, similar to gdb.Breakpoint, but executes a given callback
+    when, or very shortly after, a the breakpoint is hit, but does not stop
+    the execution of the inferior.
+
+    This allows us to execute code that changes the state of the inferior safely
+    after a breakpoint is hit.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        REGISTERED_BP_EVENTS[id(self)] = self
+        self.commands = (
+            f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
+        )
+
+    def delete(self):
+        REGISTERED_BP_EVENTS.remove(id(self))
+        super().delete()
+
+    def on_breakpoint_hit(self):
+        """
+        This function is called whenever this breakpoint is hit in the code.
+        """
+        pass

@@ -652,6 +652,7 @@ def load_commands() -> None:
     import pwndbg.commands.flags
     import pwndbg.commands.ghidra
     import pwndbg.commands.got
+    import pwndbg.commands.got_tracking
     import pwndbg.commands.heap
     import pwndbg.commands.hexdump
     import pwndbg.commands.ida
@@ -664,6 +665,7 @@ def load_commands() -> None:
     import pwndbg.commands.killthreads
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
+    import pwndbg.commands.linkmap
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
