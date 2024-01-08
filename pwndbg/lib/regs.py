@@ -126,6 +126,14 @@ arm = RegisterSet(
     retval="r0",
 )
 
+iwmmxt = RegisterSet(
+    retaddr=("lr",),
+    flags={"cpsr": arm_cpsr_flags},
+    gpr=("r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12"),
+    args=("r0", "r1", "r2", "r3"),
+    retval="r0",
+)
+
 # ARM Cortex-M
 armcm = RegisterSet(
     retaddr=("lr",),
@@ -549,6 +557,7 @@ reg_sets = {
     "mips": mips,
     "sparc": sparc,
     "arm": arm,
+    "iwmmxt": iwmmxt,
     "armcm": armcm,
     "aarch64": aarch64,
     "powerpc": powerpc,
