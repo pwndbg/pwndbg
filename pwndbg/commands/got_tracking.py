@@ -18,7 +18,7 @@ def columns(rows, colors=None):
         # Nothing to print.
         return
 
-    col_max = [0 for _ in range(len(rows[0]))]
+    col_max = [0] * len(rows[0])
     for i in range(len(rows)):
         if len(rows[i]) == 0:
             continue
