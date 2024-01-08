@@ -172,7 +172,7 @@ def got_report(soname=".*", writable=False, fnname=".*"):
 
             hits = tracker.total_hits
             hits = f"{hits} hit{'s' if hits != 1 else ''}"
-            rows.append([f"{tracker.target:#x}", f"{patcher.entry:#x}", sym_name, hits])
+            rows.append([f"{patcher.entry:#x}", f"{tracker.target:#x}", sym_name, hits])
         columns(rows)
         print()
 
