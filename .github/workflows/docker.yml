@@ -2,6 +2,7 @@ name: Docker build
 on: 
   pull_request:
     paths:
+      - '**'
       - '!mkdocs.yml'
       - '!docs/**'
       - '!*.md'
