@@ -9,6 +9,8 @@ import pwndbg.chain
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
+import pwndbg.color.context as C
+
 
 # import pwndbg.gdblib.config
 import pwndbg.lib.cache
@@ -90,6 +92,8 @@ class DisassemblyAssistant:
             CS_OP_MEM: self.parse_memory,  # Return parsed address, do not dereference
         }
 
+        # Return a string corresponding to operand. Used to reduce code duplication while printing
+        # REG type wil return register name, "RAX"
         self.op_names: dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
             CS_OP_IMM: self.immediate_string,
             CS_OP_REG: self.register_string,
@@ -195,7 +199,6 @@ class DisassemblyAssistant:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = pwndbg.gdblib.symbol.get(op.before_value)
 
-            op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
             if DEBUG_ENHANCEMENT:
                 print(f"Before operand #{i} = {op.str}, {op.size=}")
@@ -216,6 +219,10 @@ class DisassemblyAssistant:
         else:
             # If it failed, set to None so we don't accidentally try to get info from it
             emu = None
+
+        # Set .str value of operands, after emulation has been completed
+        for op in instruction.operands:
+            op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
         operands_with_symbols = [o for o in instruction.operands if o.symbol]
 
@@ -520,12 +527,18 @@ class DisassemblyAssistant:
 
         return "%#x" % value
 
-    def register_string(self, instruction, operand):
+    def register_string(self, instruction, operand: EnhancedOperand):
         reg = operand.reg
-        return instruction.cs_insn.reg_name(reg).lower()
+        name = C.register(instruction.cs_insn.reg_name(reg).upper())
+
+        # If using emulation and we determined the value didn't change, don't colorize 
+        if operand.before_value is not None and operand.after_value is not None and operand.before_value == operand.after_value:
+            return name
+        else:
+            return C.register_changed(name)
 
     # Subclasses may override
-    def memory_string(self, instruction, operand):
+    def memory_string(self, instruction, operand: EnhancedOperand):
         return None  # raise NotImplementedError
 
 

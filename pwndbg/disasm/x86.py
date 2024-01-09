@@ -84,16 +84,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
-                regname = C.register_changed(C.register(left.str.upper()))
-                instruction.annotation = f"{regname} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+                instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
             # MOV REG, [MEM]
             elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
                 # There are many cases we need to consider if there is a mov from a dereference memory location into a register
                 # Were we able to reason about the memory address, and dereference it?
                 # Does the resolved memory address actual point into memory?
-
-                regname = C.register_changed(C.register(left.str.upper()))
 
                 # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
                 # it indicates that the dereference likely segfaults
@@ -112,10 +109,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     telescope_print = f"{super().telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu, did_telescope)}"
 
                 if telescope_print is not None:
-                    instruction.annotation = f"{regname}, [{MemoryColor.get_address_or_symbol(right.before_value)}] => {telescope_print}"
+                    instruction.annotation = f"{left.str}, [{MemoryColor.get_address_or_symbol(right.before_value)}] => {telescope_print}"
                 else:
                     instruction.annotation = (
-                        f"{regname}, [{MemoryColor.get_address_or_symbol(right.before_value)}]"
+                        f"{left.str}, [{MemoryColor.get_address_or_symbol(right.before_value)}]"
                     )
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -146,12 +143,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
 
         if right.before_value is not None:
-            regname = C.register_changed(C.register(left.str.upper()))
 
             telescope_addresses, did_telescope = super().telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, right, emu
             )
-            instruction.annotation = f"{regname} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
@@ -165,14 +161,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if reg_operand.type == CS_OP_REG:
             if emu and reg_operand.after_value is not None:
                 # After emulation, the register has taken on the popped value
-                regname = C.register_changed(C.register(reg_operand.str.upper()))
-                instruction.annotation = f"{regname} => {MemoryColor.get(reg_operand.after_value)}"
+                instruction.annotation = f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(reg_operand.after_value)}"
             elif pc_is_at_instruction:
                 # Attempt to read from the stop of the stack
                 try:
                     value = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.regs.sp)
-                    regname = C.register_changed(C.register(reg_operand.str.upper()))
-                    instruction.annotation = f"{regname} => {MemoryColor.get(value)}"
+                    instruction.annotation = f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
                 except Exception as e:
                     pass
 
@@ -182,7 +176,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # char_to_separate_operands = "+" or "-"
         left, right = instruction.operands
 
-        # Set "(op1_value + op2_value)" at end of string
+        # Used to set "(op1_value + op2_value)" at end of string
         left_before = super().resolve_used_value(left.before_value, instruction, left, emu)
         right_before = super().resolve_used_value(right.before_value, instruction, right, emu)
 
@@ -200,19 +194,18 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         left_after = super().resolve_used_value(left.after_value, instruction, left, emu)
 
         if left.type == CS_OP_REG:
-            regname = C.register_changed(C.register(left.str.upper()))
             # If we emulated the result, display it
             if left_after is not None:
-                instruction.annotation = f"{regname} => {MemoryColor.get_address_and_symbol(left.after_value)} ({plus_string})"
+                instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left.after_value)} ({plus_string})"
             elif plus_string:
-                instruction.annotation = f"{regname} => {plus_string}"
+                instruction.annotation = f"{left.str} => {plus_string}"
         elif left.type == CS_OP_MEM:
             # [memory_address] => value
             if left_after is not None:
-                instruction.annotation = f"[{MemoryColor.get(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
+                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
             elif plus_string:
                 # No emulation
-                instruction.annotation = f"[{MemoryColor.get(left.before_value)}] => {plus_string}"
+                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {plus_string}"
 
     def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Same output as addition, showing the result
@@ -259,11 +252,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
-            regname = C.register_changed(C.register(left.str.upper()))
-            instruction.annotation = f"{regname} => 0"
+            instruction.annotation = f"{left.str} => 0"
         elif left.after_value is not None:
-            regname = C.register_changed(C.register(left.str.upper()))
-            instruction.annotation = f"{regname} => {left.after_value}"
+            instruction.annotation = f"{left.str} => {left.after_value}"
 
     def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # INC operand can be REG or [MEMORY]
@@ -273,10 +264,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if operand_actual is not None:
             if operand.type == CS_OP_REG:
-                regname = C.register_changed(C.register(operand.str.upper()))
-                instruction.annotation = f"{regname} => {MemoryColor.get(operand_actual)}"
+                instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
             elif operand.type == CS_OP_MEM:
-                instruction.annotation = f"[{MemoryColor.get(operand.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
+                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(operand.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)

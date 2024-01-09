@@ -112,6 +112,20 @@ class PwndbgInstruction:
         return self.cs_insn.op_count(op_type)
 
 
+    def __repr__(self) -> str:
+
+        return f"""
+        {self.mnemonic} {self.op_str} at {self.address} (size={self.size})
+            Next: {self.next}
+            Target: {self.target}, const={self.target_const}
+            Symbol: {self.symbol} {self.symbol_addr}
+            Condition: {self.condition}
+            ID: {self.id}
+            Groups: {self.groups}
+            Annotation: {self.annotation}
+            Operands: {", ".join([repr(op) for op in self.operands])}
+        """
+
 class EnhancedOperand:
     def __init__(self, cs_op):
         # Underlying Capstone operand
@@ -175,6 +189,9 @@ class EnhancedOperand:
         Return the underlying Capstone mem object (if applicable)
         """
         return self.cs_op.value.mem
+    
+    def __repr__(self) -> str:
+        return f"{self.str}: {self.before_value} -> {self.after_value}"
 
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
