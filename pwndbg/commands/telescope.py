@@ -108,7 +108,12 @@ def telescope(
     else:
         telescope.offset = 0
 
-    address = int(address if address else pwndbg.gdblib.regs.sp) & pwndbg.gdblib.arch.ptrmask
+    address = address if address else pwndbg.gdblib.regs.sp
+    if address is None:
+        print("Cannot display stack frame because stack pointer is unavailable")
+        return
+
+    address = int(address) & pwndbg.gdblib.arch.ptrmask
     input_address = address
     count = max(int(count), 1) & pwndbg.gdblib.arch.ptrmask
     delimiter = T.delimiter(offset_delimiter)
