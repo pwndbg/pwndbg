@@ -6,11 +6,10 @@ import gdb
 from capstone import *  # noqa: F403
 
 import pwndbg.chain
+import pwndbg.color.context as C
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.color.context as C
-
 
 # import pwndbg.gdblib.config
 import pwndbg.lib.cache
@@ -54,7 +53,6 @@ pwndbg.gdblib.config.add_param(
     50,
     "Number of characters in strings to display in disasm annotations",
 )
-
 
 DEBUG_ENHANCEMENT = False
 # DEBUG_ENHANCEMENT = True
@@ -198,7 +196,6 @@ class DisassemblyAssistant:
             if op.before_value is not None:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = pwndbg.gdblib.symbol.get(op.before_value)
-
 
             if DEBUG_ENHANCEMENT:
                 print(f"Before operand #{i} = {op.str}, {op.size=}")
@@ -531,8 +528,12 @@ class DisassemblyAssistant:
         reg = operand.reg
         name = C.register(instruction.cs_insn.reg_name(reg).upper())
 
-        # If using emulation and we determined the value didn't change, don't colorize 
-        if operand.before_value is not None and operand.after_value is not None and operand.before_value == operand.after_value:
+        # If using emulation and we determined the value didn't change, don't colorize
+        if (
+            operand.before_value is not None
+            and operand.after_value is not None
+            and operand.before_value == operand.after_value
+        ):
             return name
         else:
             return C.register_changed(name)

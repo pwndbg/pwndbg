@@ -111,9 +111,7 @@ class PwndbgInstruction:
         """Return number of operands having same operand Capstone type 'op_type'"""
         return self.cs_insn.op_count(op_type)
 
-
     def __repr__(self) -> str:
-
         return f"""
         {self.mnemonic} {self.op_str} at {self.address} (size={self.size})
             Next: {self.next}
@@ -125,6 +123,7 @@ class PwndbgInstruction:
             Annotation: {self.annotation}
             Operands: {", ".join([repr(op) for op in self.operands])}
         """
+
 
 class EnhancedOperand:
     def __init__(self, cs_op):
@@ -166,6 +165,7 @@ class EnhancedOperand:
         Operand read/write size
         Ex: dword ptr [RDX] has size = 4
         Ex: AL has size = 1
+        Only exists for x86
         """
         return self.cs_op.size
 
@@ -189,9 +189,15 @@ class EnhancedOperand:
         Return the underlying Capstone mem object (if applicable)
         """
         return self.cs_op.value.mem
-    
+
     def __repr__(self) -> str:
-        return f"{self.str}: {self.before_value} -> {self.after_value}"
+        return f"""
+        str: {self.str}:
+            Size: {self.size}
+            Type: {self.type}
+            Before: {self.before_value}
+            After: {self.after_value}
+        """
 
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support

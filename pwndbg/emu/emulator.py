@@ -427,15 +427,15 @@ class Emulator:
         else:
             return E.integer(pwndbg.enhance.int_str(intval0))
 
-        retval = tuple(filter(lambda x: x is not None, retval))
+        retval_final: tuple[str] = tuple(filter(lambda x: x is not None, retval))
 
-        if len(retval) == 0:
+        if len(retval_final) == 0:
             return E.unknown("???")
 
-        if len(retval) == 1:
-            return retval[0]
+        if len(retval_final) == 1:
+            return retval_final[0]
 
-        return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))
+        return retval_final[0] + E.comment(color.strip(f" /* {'; '.join(retval_final[1:])} */"))
 
     # Return None if cannot find str
     def memory_read_string(self, address: int, max_string_len=None, max_read=None) -> str | None:

@@ -71,7 +71,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if right.before_value is not None:
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
             telescope_addresses, did_telescope = super().telescope(
-                right.before_value, TELESCOPE_DEPTH + 1, instruction, right, emu
+                right.before_value,
+                TELESCOPE_DEPTH + 1,
+                instruction,
+                right,
+                emu,
+                read_size=right.size,
             )
             if not telescope_addresses:
                 return
@@ -143,7 +148,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
 
         if right.before_value is not None:
-
             telescope_addresses, did_telescope = super().telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, right, emu
             )
@@ -166,7 +170,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 # Attempt to read from the stop of the stack
                 try:
                     value = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.regs.sp)
-                    instruction.annotation = f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
+                    instruction.annotation = (
+                        f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
+                    )
                 except Exception as e:
                     pass
 
@@ -205,7 +211,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
             elif plus_string:
                 # No emulation
-                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {plus_string}"
+                instruction.annotation = (
+                    f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {plus_string}"
+                )
 
     def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Same output as addition, showing the result
@@ -264,7 +272,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if operand_actual is not None:
             if operand.type == CS_OP_REG:
-                instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
+                instruction.annotation = (
+                    f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
+                )
             elif operand.type == CS_OP_MEM:
                 instruction.annotation = f"[{MemoryColor.get_address_or_symbol(operand.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
 

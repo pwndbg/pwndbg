@@ -59,7 +59,7 @@ def instruction(ins: PwndbgInstruction) -> str:
         # address by emulation or other means (for example showing ret instruction target)
         # and we have a symbol
         elif sym:
-            asm = f"{ljust_colored(asm, 38)} <{target}; {sym}>"
+            asm = f"{ljust_colored(asm, 38)} <{sym}>"
 
         # We were able to calculate the target, but there is no symbol
         # name for it.
