@@ -297,6 +297,9 @@ def get_one_instruction(
 
         return pwn_ins
 
+    # Make linter happy. This shouldn't occur as md.disasm would crash first.
+    return None
+
 
 # Return None on failure to fetch an instruction
 def one(
