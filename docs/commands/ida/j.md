@@ -1,11 +1,22 @@
-## Command: j ##
-```
+
+
+
+
+# j
+
+## Description
+
+
+Synchronize IDA's cursor with GDB.
+## Usage:
+
+
+```bash
 usage: j [-h]
+
 ```
-Synchronize IDA's cursor with GDB  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

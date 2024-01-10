@@ -1,11 +1,22 @@
-## Command: bl ##
-```
+
+
+
+
+# bl
+
+## Description
+
+
+List breakpoints.
+## Usage:
+
+
+```bash
 usage: bl [-h]
+
 ```
-List breakpoints.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

@@ -1,16 +1,29 @@
-## Command: ds ##
-```
+
+
+
+
+# ds
+
+## Description
+
+
+Dump a string at the specified address.
+## Usage:
+
+
+```bash
 usage: ds [-h] address [max]
+
 ```
-Dump a string at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | Address to dump |
-| max | Maximum string length (default: 256) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|Address to dump|
+|`max`|Maximum string length (default: %(default)s)|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

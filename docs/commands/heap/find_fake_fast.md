@@ -1,16 +1,31 @@
-## Command: find_fake_fast ##
+
+
+
+
+# find_fake_fast
+
+## Description
+
+
+Find candidate fake fast or tcache chunks overlapping the specified address.
+## Usage:
+
+
+```bash
+usage: find_fake_fast [-h] [--align] [--glibc-fastbin-bug] target_address [max_candidate_size]
+
 ```
-usage: find_fake_fast [-h] addr size
-```
-Finds candidate fake fast chunks that will overlap with the specified address. Used for fastbin dups and house of spirit  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The start address. |
-| size | The size. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`target_address`|Address of the word-sized value to overlap.|
+|`max_candidate_size`|Maximum size of fake chunks to find.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+|`-a`|`--align`||Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache chunks and for all chunks when Safe Linking is enabled (default: %(default)s)|
+|`-b`|`--glibc-fastbin-bug`||Does the GLIBC fastbin size field bug affect the candidate size field width? (default: %(default)s)|

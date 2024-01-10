@@ -1,12 +1,23 @@
-## Command: configfile ##
-```
+
+
+
+
+# configfile
+
+## Description
+
+
+Generates a configuration file for the current pwndbg options.
+## Usage:
+
+
+```bash
 usage: configfile [-h] [--show-all]
+
 ```
-Generates a configuration file for the current Pwndbg options  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-| --show-all | Force displaying of all configs. (default: False) |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+||`--show-all`||Display all configuration options. (default: %(default)s)|

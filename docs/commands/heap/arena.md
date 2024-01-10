@@ -1,15 +1,30 @@
-## Command: arena ##
-```
+
+
+
+
+# arena
+
+## Description
+
+
+Print the contents of an arena.
+
+Default to the current thread's arena.
+## Usage:
+
+
+```bash
 usage: arena [-h] [addr]
+
 ```
-Prints out the main arena or the arena at the specified by address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the arena. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address of the arena.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

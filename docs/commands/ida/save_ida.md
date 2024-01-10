@@ -1,11 +1,22 @@
-## Command: save_ida ##
-```
+
+
+
+
+# save_ida
+
+## Description
+
+
+Save the ida database.
+## Usage:
+
+
+```bash
 usage: save_ida [-h]
+
 ```
-Save the ida database.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

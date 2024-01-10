@@ -1,16 +1,29 @@
-## Command: eb ##
+
+
+
+
+# eb
+
+## Description
+
+
+Write hex bytes at the specified address.
+## Usage:
+
+
+```bash
+usage: eb [-h] address [data ...]
+
 ```
-usage: eb [-h] address [data [data ...]]
-```
-Write hex bytes at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | The address to write to. |
-| data | The bytes to write. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|The address to write to.|
+|`data`|The bytes to write.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

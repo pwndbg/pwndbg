@@ -1,16 +1,31 @@
-## Command: malloc_chunk ##
+
+
+
+
+# malloc_chunk
+
+## Description
+
+
+Print a chunk.
+## Usage:
+
+
+```bash
+usage: malloc_chunk [-h] [-f] [-v] [-s] addr
+
 ```
-usage: malloc_chunk [-h] [addr] [fake]
-```
-Prints out the malloc_chunk at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the chunk. |
-| fake | If the chunk is a fake chunk. (default: False) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address of the chunk (malloc_chunk struct start, prev_size field).|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+|`-f`|`--fake`||Is this a fake chunk? (default: %(default)s)|
+|`-v`|`--verbose`||Print all chunk fields, even unused ones. (default: %(default)s)|
+|`-s`|`--simple`||Simply print malloc_chunk struct's contents. (default: %(default)s)|

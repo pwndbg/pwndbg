@@ -1,11 +1,22 @@
-## Command: procinfo ##
-```
+
+
+
+
+# procinfo
+
+## Description
+
+
+Display information about the running process.
+## Usage:
+
+
+```bash
 usage: procinfo [-h]
+
 ```
-Display information about the running process.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

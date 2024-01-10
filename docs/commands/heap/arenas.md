@@ -1,11 +1,22 @@
-## Command: arenas ##
-```
+
+
+
+
+# arenas
+
+## Description
+
+
+List this process's arenas.
+## Usage:
+
+
+```bash
 usage: arenas [-h]
+
 ```
-Prints out allocated arenas.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

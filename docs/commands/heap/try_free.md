@@ -1,13 +1,28 @@
-## Command: try_free ##
-```
+
+
+
+
+# try_free
+
+## Description
+
+
+Check what would happen if free was called with given address.
+## Usage:
+
+
+```bash
 usage: try_free [-h] [addr]
+
 ```
-Check what would happen if free was called with given address
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | Address passed to free |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address passed to free|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
+
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

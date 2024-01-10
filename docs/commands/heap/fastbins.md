@@ -1,16 +1,31 @@
-## Command: fastbins ##
+
+
+
+
+# fastbins
+
+## Description
+
+
+Print the contents of an arena's fastbins.
+
+Default to the current thread's arena.
+## Usage:
+
+
+```bash
+usage: fastbins [-h] [-v] [addr]
+
 ```
-usage: fastbins [-h] [addr] [verbose]
-```
-Prints out the contents of the fastbins of the main arena or the arena at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the fastbins. |
-| verbose | Whether to show more details or not. (default: True) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address of the arena.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+|`-v`|`--verbose`||Show all fastbins, including empty ones (default: %(default)s)|

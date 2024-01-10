@@ -1,16 +1,29 @@
-## Command: dw ##
-```
+
+
+
+
+# dw
+
+## Description
+
+
+Starting at the specified address, dump N words.
+## Usage:
+
+
+```bash
 usage: dw [-h] address [count]
+
 ```
-Starting at the specified address, dump N words.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | The address to dump from. |
-| count | The number of words to dump. (default: 32) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|The address to dump from.|
+|`count`|The number of words to dump. (default: %(default)s)|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

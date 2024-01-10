@@ -1,16 +1,31 @@
-## Command: bins ##
-```
+
+
+
+
+# bins
+
+## Description
+
+
+Print the contents of all an arena's bins and a thread's tcache.
+
+Default to the current thread's arena and tcache.
+## Usage:
+
+
+```bash
 usage: bins [-h] [addr] [tcache_addr]
+
 ```
-Prints out the contents of the tcachebins, fastbins, unsortedbin, smallbins, and largebins from the main_arena or the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the bins. |
-| tcache_addr | The address of the tcache. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address of the arena.|
+|`tcache_addr`|Address of the tcache.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

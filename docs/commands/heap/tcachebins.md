@@ -1,16 +1,31 @@
-## Command: tcachebins ##
+
+
+
+
+# tcachebins
+
+## Description
+
+
+Print the contents of a tcache.
+
+Default to the current thread's tcache.
+## Usage:
+
+
+```bash
+usage: tcachebins [-h] [-v] [addr]
+
 ```
-usage: tcachebins [-h] [addr] [verbose]
-```
-Prints out the contents of the bins in current thread tcache or in tcache at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the tcache bins. |
-| verbose | Whether to show more details or not. (default: False) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|The address of the tcache bins.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+|`-v`|`--verbose`||Show all tcachebins, including empty ones (default: %(default)s)|
