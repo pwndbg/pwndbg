@@ -43,6 +43,7 @@ Unicorn emulation to annotate instructions after the current program counter
 """,
 )
 
+# Effects future instructions, as past ones have already been cached and reflect the process state at the time
 pwndbg.gdblib.config.add_param(
     "disasm-telescope-depth", 3, "Depth of telescope for disasm annotations"
 )
@@ -54,8 +55,8 @@ pwndbg.gdblib.config.add_param(
     "Number of characters in strings to display in disasm annotations",
 )
 
-DEBUG_ENHANCEMENT = False
-# DEBUG_ENHANCEMENT = True
+# DEBUG_ENHANCEMENT = False
+DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -190,29 +191,23 @@ class DisassemblyAssistant:
 
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
-        for i, op in enumerate(instruction.operands):
+        for op in instruction.operands:
             # Retrieve the value, either an immediate, from a register, or from memory
             op.before_value = self.op_handlers.get(op.type, lambda *a: None)(instruction, op, emu)
             if op.before_value is not None:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = pwndbg.gdblib.symbol.get(op.before_value)
 
-            if DEBUG_ENHANCEMENT:
-                print(f"Before operand #{i} = {op.str}, {op.size=}")
-
         # Execute the instruction and set after_value
         if emu and None not in emu.single_step(check_instruction_valid=False):
             # after_value
-            for i, op in enumerate(instruction.operands):
+            for op in instruction.operands:
                 # Retrieve the value, either an immediate, from a register, or from memory
                 op.after_value = self.op_handlers.get(op.type, lambda *a: None)(
                     instruction, op, emu
                 )
                 if op.after_value is not None:
                     op.after_value &= pwndbg.gdblib.arch.ptrmask
-
-                if DEBUG_ENHANCEMENT:
-                    print(f"After operand #{i} = {op.after_value:x}")
         else:
             # If it failed, set to None so we don't accidentally try to get info from it
             emu = None
@@ -493,28 +488,7 @@ class DisassemblyAssistant:
         """
         Debug-only method.
         """
-        ins = instruction
-        rv = []
-        rv.append(f"{ins.mnemonic} {ins.op_str}")
-
-        for i, group in enumerate(ins.groups):
-            rv.append("   groups[%i]   = %s" % (i, groups.get(group, group)))
-
-        rv.append("           next = %#x" % (ins.next))
-        rv.append("      condition = %r" % (ins.condition))
-
-        for i, op in enumerate(ins.operands):
-            rv.append("   operands[%i] = %s" % (i, ops.get(op.type, op.type)))
-            rv.append("       access   = %s" % (access.get(op.access, op.access)))
-
-            if op.before_value is not None:
-                rv.append("            int = %#x" % (op.before_value))
-            if op.symbol is not None:
-                rv.append(f"            sym = {(op.symbol)}")
-            if op.str is not None:
-                rv.append(f"            str = {(op.str)}")
-
-        return "\n".join(rv)
+        return repr(instruction)
 
     def immediate_string(self, instruction, operand) -> str:
         value = operand.before_value

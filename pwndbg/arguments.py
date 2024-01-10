@@ -221,7 +221,7 @@ def arguments(abi=None):
         yield argname(i, abi), argument(i, abi)
 
 
-def format_args(instruction):
+def format_args(instruction: PwndbgInstruction):
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"

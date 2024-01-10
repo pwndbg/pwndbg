@@ -6,9 +6,9 @@ import gdb
 from capstone import *  # noqa: F403
 
 
-# The member variables of this class are used for provide context to an instructions execution.
-#   See 'pwndbg.color.disasm.instruction()' for usage in disasm view output
-# Other fields, such as "next", are used to determine breakpoints for Pwndbg commands like "nextcall"
+# This class is used to provide context to an instructions execution, used both
+# in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for 
+# Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints 
 class PwndbgInstruction:
     def __init__(self, cs_insn: CsInsn | None) -> None:
         # The underlying Capstone instruction, if present
@@ -91,6 +91,10 @@ class PwndbgInstruction:
         # variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage
         self.annotation: str | None = None
 
+        # The left adjustment padding that was used to previously print this.
+        # We retain it so the output is consistent between prints
+        self.annotation_padding: int | None = None
+
     @property
     def bytes(self) -> bytearray:
         """
@@ -112,17 +116,18 @@ class PwndbgInstruction:
         return self.cs_insn.op_count(op_type)
 
     def __repr__(self) -> str:
-        return f"""
-        {self.mnemonic} {self.op_str} at {self.address} (size={self.size})
-            Next: {self.next}
-            Target: {self.target}, const={self.target_const}
-            Symbol: {self.symbol} {self.symbol_addr}
-            Condition: {self.condition}
-            ID: {self.id}
-            Groups: {self.groups}
-            Annotation: {self.annotation}
-            Operands: {", ".join([repr(op) for op in self.operands])}
-        """
+
+        operands_str = ' '.join([repr(op) for op in self.operands])
+
+        return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
+        Next: {self.next:#x}
+        Target: {self.target:#x}, const={self.target_const}
+        Symbol: {self.symbol} {self.symbol_addr}
+        Condition: {self.condition}
+        ID: {self.id}
+        Groups: {self.groups}
+        Annotation: {self.annotation}
+        Operands: [{operands_str}]"""
 
 
 class EnhancedOperand:
@@ -191,13 +196,7 @@ class EnhancedOperand:
         return self.cs_op.value.mem
 
     def __repr__(self) -> str:
-        return f"""
-        str: {self.str}:
-            Size: {self.size}
-            Type: {self.type}
-            Before: {self.before_value}
-            After: {self.after_value}
-        """
+        return f"['{self.str}': Before: {hex(self.before_value) if self.before_value is not None else None}, After: {hex(self.after_value) if self.after_value is not None else None} (size={self.size}, type={self.type})]"
 
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
