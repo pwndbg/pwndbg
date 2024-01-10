@@ -14,6 +14,7 @@ from pwndbg.color import strip
 from pwndbg.color.message import on
 from pwndbg.disasm.instruction import PwndbgInstruction
 
+
 # The amount of whitespace between instructions and the annotation, by default
 pwndbg.gdblib.config.add_param(
     "disasm-annotations-whitespace-padding",
@@ -82,6 +83,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 
 
 
+
 # To making the padding visually nicer, so don't need to track eye back and forth long distances to view annotations.
 # but at the same time make padding non-jagged, the following padding scheme is used for annotations:   
 # Instruction uses the same amount left-adjusting length as the instruction before it (to keep them on the same level),
@@ -94,8 +96,13 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
     result: list[str] = []
 
     DEFAULT_WHITESPACE = int(pwndbg.gdblib.config.disasm_annotations_whitespace_padding)
+    MIN_SPACING = 5
 
     cur_padding_len = None
+
+    # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
+    # None if padding doesn't apply to the instruction
+    paddings = []
 
     
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
@@ -118,6 +125,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
             else:
                 asm = f"{ljust_colored(asm, 36)} <{target}>"
 
+            paddings.append(None)
         else:
             # This path deals with padding the string for a nicer output
             raw_len = len(strip(asm))
@@ -125,7 +133,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
             if cur_padding_len is None:
                 cur_padding_len = raw_len + DEFAULT_WHITESPACE
 
-            if cur_padding_len - raw_len < 5:
+            if cur_padding_len - raw_len < MIN_SPACING:
                 # Annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + DEFAULT_WHITESPACE
             else:
@@ -134,13 +142,18 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 #   pop rax        Annotation_all_the_way_here
                 #   mov    rax, qword ptr [more_super_long]                 Annotation
                 # It prevents jagged annotations like shown above, instead, it puts all annotations on the same column
-                # Checks the length of the following instruction to determine where to put or anotation
-                WHITESPACE_LIMIT=19
-                next_len = len(strip(assembly[i + 1])) if i < len(instructions) - 1 else None
+                # Checks the length of the following instruction to determine where to put the annotation
 
-                # If next instructions also has too much white space, put annotations closer to left again 
-                if cur_padding_len - raw_len > WHITESPACE_LIMIT and next_len is not None and cur_padding_len - next_len > WHITESPACE_LIMIT:
-                    cur_padding_len = max(next_len,raw_len) + DEFAULT_WHITESPACE
+                # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
+                if i < len(instructions) - 1 and not instructions[i+1].is_branch:
+
+                    # The maximum number of spaces to allow. Chosen based on stepping through x86 binaries and this constant giving a good balance. 
+                    WHITESPACE_LIMIT=19
+                    next_len = len(strip(assembly[i + 1]))
+
+                    # If next instructions also has too much white space, put annotations closer to left again 
+                    if cur_padding_len - raw_len > WHITESPACE_LIMIT and next_len is not None and cur_padding_len - next_len > WHITESPACE_LIMIT:
+                        cur_padding_len = max(next_len,raw_len) + DEFAULT_WHITESPACE
 
             if ins.annotation:
                 if ins.annotation_padding is not None:
@@ -148,31 +161,14 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 else:
                     ins.annotation_padding = cur_padding_len
 
-                asm = f"{ljust_colored(asm, cur_padding_len)}{ins.annotation}"
+            paddings.append(cur_padding_len)
+
+    # Final pass to be used to make final alignment of blocks cleaner (get rid of an jagged/spiky bits)
+    # For example, when only one instruction in a large club has small spacing but should just be aligned with the rest
+    for i, (ins, asm, padding) in enumerate(zip(instructions, assembly, paddings)):
+        if ins.annotation:
+            asm = f"{ljust_colored(asm, padding)}{ins.annotation}"
                 
-                    # if cur_padding_len is None:
-                    #     cur_padding_len = raw_len + DEFAULT_WHITESPACE
-
-                    # if cur_padding_len - raw_len < 5:
-                    #     # Annotations are getting too close to the disasm, push them to the right again
-                    #     cur_padding_len = raw_len + DEFAULT_WHITESPACE
-                    # else:
-                    #     # This path deals with situations like below:
-                    #     #   mov    dword ptr [something_super_long], eax            Annotation
-                    #     #   pop rax        Annotation_all_the_way_here
-                    #     #   mov    rax, qword ptr [more_super_long]                 Annotation
-                    #     # It prevents jagged annotations like shown above, instead, it puts all annotations on the same column
-                    #     # Checks the length of the following instruction to determine where to put or anotation
-                    #     WHITESPACE_LIMIT=19
-                    #     next_len = len(strip(assembly[i + 1])) if i < len(instructions) - 1 else None
-
-                    #     # If next instructions also has too much white space, put annotations closer to left again 
-                    #     if cur_padding_len - raw_len > WHITESPACE_LIMIT and next_len is not None and cur_padding_len - next_len > WHITESPACE_LIMIT:
-                    #         cur_padding_len = max(next_len,raw_len) + DEFAULT_WHITESPACE
-
-                    # ins.annotation_padding = cur_padding_len
-                    # asm = f"{ljust_colored(asm, cur_padding_len)}{ins.annotation}"
-
         result.append(asm)
 
     return result

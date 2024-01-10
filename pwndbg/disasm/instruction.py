@@ -62,8 +62,8 @@ class PwndbgInstruction:
         self.next: int = self.address + self.size
 
         # This is the same as next, expect it includes the "call" instruction, in which case it
-        # will be set to the target of the call.
-        # Otherwise, it is the same as "next". This means this is target of instructions that change the PC
+        # will be set to the target of the call. Otherwise, it is the same as "next".
+        # This means this is target of instructions that change the PC
         self.target: int = None
 
         # Whether the target is a constant expression
@@ -96,6 +96,13 @@ class PwndbgInstruction:
         self.annotation_padding: int | None = None
 
     @property
+    def is_branch(self) -> bool:
+        """
+        Return True if we have detected that this is a branch
+        """
+        return self.target not in (None, self.address + self.size)
+
+    @property
     def bytes(self) -> bytearray:
         """
         Raw machine instruction bytes
@@ -114,6 +121,8 @@ class PwndbgInstruction:
     def op_count(self, op_type: int) -> int:
         """Return number of operands having same operand Capstone type 'op_type'"""
         return self.cs_insn.op_count(op_type)
+
+
 
     def __repr__(self) -> str:
 
