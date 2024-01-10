@@ -116,7 +116,7 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        instr = pwndbg.disasm.one(value)
+        instr = pwndbg.disasm.one(value, enhance=False)
         if instr:
             instr = f"{instr.mnemonic} {instr.op_str}"
             if pwndbg.gdblib.config.syntax_highlight:

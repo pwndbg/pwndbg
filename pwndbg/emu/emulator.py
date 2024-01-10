@@ -224,7 +224,8 @@ class Emulator:
         if reg:
             return self.uc.reg_read(reg)
 
-        raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
+        return None
+        # raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
 
     # Read ptrwidth worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:

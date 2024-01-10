@@ -152,9 +152,10 @@ def nearpc(pc: int = None, lines: int = None, emulate=False, repeat=False) -> li
     first_pc = True
     should_highlight_opcodes = False
 
+    assembly_strings = D.instructions_and_padding(instructions)
+
     # Print out each instruction
-    for address_str, symbol, instr in zip(addresses, symbols, instructions):
-        asm = D.instruction(instr)
+    for address_str, symbol, instr, asm in zip(addresses, symbols, instructions, assembly_strings):
         prefix_sign = pwndbg.gdblib.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
