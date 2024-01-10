@@ -1,16 +1,29 @@
-## Command: dc ##
-```
+
+
+
+
+# dc
+
+## Description
+
+
+Starting at the specified address, hexdump.
+## Usage:
+
+
+```bash
 usage: dc [-h] address [count]
+
 ```
-Starting at the specified address, hexdump.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | The address to dump from. |
-| count | The number of bytes to hexdump. (default: 8) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|The address to dump from.|
+|`count`|The number of bytes to hexdump. (default: %(default)s)|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

@@ -1,11 +1,22 @@
-## Command: pid ##
-```
+
+
+
+
+# pid
+
+## Description
+
+
+Gets the pid.
+## Usage:
+
+
+```bash
 usage: pid [-h]
+
 ```
-Gets the pid.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

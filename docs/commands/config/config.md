@@ -1,15 +1,28 @@
-## Command: config ##
-```
+
+
+
+
+# config
+
+## Description
+
+
+Shows pwndbg-specific configuration.
+## Usage:
+
+
+```bash
 usage: config [-h] [filter_pattern]
+
 ```
-Shows pwndbg-specific config. The list can be filtered.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| filter_pattern | Filter to apply to config parameters names/descriptions |
+|Positional Argument|Help|
+| :--- | :--- |
+|`filter_pattern`|Filter to apply to config parameters names/descriptions|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

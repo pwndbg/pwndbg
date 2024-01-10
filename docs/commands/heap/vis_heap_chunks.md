@@ -1,17 +1,34 @@
-## Command: vis_heap_chunks ##
+
+
+
+
+# vis_heap_chunks
+
+## Description
+
+
+Visualize chunks on a heap.
+
+Default to the current arena's active heap.
+## Usage:
+
+
+```bash
+usage: vis_heap_chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks] [count] [addr]
+
 ```
-usage: vis_heap_chunks [-h] [--naive] [count] [address]
-```
-Visualize heap chunks at the specified address  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| count | Number of chunks to visualize (default: 10) |
-| address | Start address |
+|Positional Argument|Help|
+| :--- | :--- |
+|`count`|Number of chunks to visualize. (default: %(default)s)|
+|`addr`|Address of the first chunk.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-| -n | Don't use end-of-heap heuristics (default: False) |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+|`-b`|`--beyond_top`||Attempt to keep printing beyond the top chunk. (default: %(default)s)|
+|`-n`|`--no_truncate`||Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration). (default: %(default)s)|
+|`-a`|`--all_chunks`|| Display all chunks (Ignore the default-visualize-chunk-number configuration). (default: %(default)s)|

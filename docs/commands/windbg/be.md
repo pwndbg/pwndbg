@@ -1,15 +1,28 @@
-## Command: be ##
-```
+
+
+
+
+# be
+
+## Description
+
+
+Enable the breakpoint with the specified index.
+## Usage:
+
+
+```bash
 usage: be [-h] [which]
+
 ```
-Enable the breakpoint with the specified index.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| which | Index of the breakpoint to enable. (default: *) |
+|Positional Argument|Help|
+| :--- | :--- |
+|`which`|Index of the breakpoint to enable. (default: %(default)s)|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

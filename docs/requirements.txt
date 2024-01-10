@@ -20,7 +20,11 @@ python-ptrace>=0.8
 six
 unicorn>=1.0.0
 mkdocs
-mkdocs-material 
-mkdocs-git-committers-plugin-2 
+mkdocs-gen-files
+mkdocs-git-committers-plugin-2
+mkdocs-material
 mkdocs-material-extensions 
 mkdocs-minify-plugin
+mkdocs-rss-plugin
+mkdocstrings
+mkdocstrings-python

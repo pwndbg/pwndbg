@@ -1,11 +1,22 @@
-## Command: peb ##
-```
+
+
+
+
+# peb
+
+## Description
+
+
+Not be windows.
+## Usage:
+
+
+```bash
 usage: peb [-h]
+
 ```
-Not be windows.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

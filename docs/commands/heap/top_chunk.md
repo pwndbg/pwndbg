@@ -1,15 +1,30 @@
-## Command: top_chunk ##
-```
+
+
+
+
+# top_chunk
+
+## Description
+
+
+Print relevant information about an arena's top chunk.
+
+Default to current thread's arena.
+## Usage:
+
+
+```bash
 usage: top_chunk [-h] [addr]
+
 ```
-Prints out the address of the top chunk of the main arena, or of the arena at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address of the arena. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|Address of the arena.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

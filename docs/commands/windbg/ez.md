@@ -1,16 +1,29 @@
-## Command: ez ##
-```
+
+
+
+
+# ez
+
+## Description
+
+
+Write a string at the specified address.
+## Usage:
+
+
+```bash
 usage: ez [-h] address data
+
 ```
-Write a string at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | The address to write to. |
-| data | The string to write. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|The address to write to.|
+|`data`|The string to write.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

@@ -1,4 +1,5 @@
-# pwndbg
+
+![pwndbg](assets/logo.png)
 
 `pwndbg` (/poʊndbæg/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
 

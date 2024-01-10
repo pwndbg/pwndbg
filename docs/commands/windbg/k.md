@@ -1,11 +1,22 @@
-## Command: k ##
-```
+
+
+
+
+# k
+
+## Description
+
+
+Print a backtrace (alias 'bt').
+## Usage:
+
+
+```bash
 usage: k [-h]
+
 ```
-Print a backtrace (alias 'bt').  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
