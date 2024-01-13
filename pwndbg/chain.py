@@ -52,6 +52,9 @@ def get(
     Returns:
         A list representing pointers of each ```address``` and reference
     """
+    if address is None:
+        return None
+
     limit = int(limit)
 
     result = [address] if include_start else []
@@ -78,6 +81,10 @@ def get(
             result.append(address)
         except gdb.MemoryError:
             break
+        except gdb.error as e:
+            if str(e) == "value is not available":
+                break
+            raise
 
     return result
 
@@ -107,6 +114,9 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
     """
+    if value is None:
+        return "<unavailable>"
+
     limit = int(limit)
 
     # Allow results from get function to be passed to format

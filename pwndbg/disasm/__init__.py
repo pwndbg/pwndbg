@@ -6,6 +6,7 @@ address +/- a few instructions.
 from __future__ import annotations
 
 import collections
+import re
 from typing import DefaultDict
 from typing import List
 from typing import Union
@@ -296,7 +297,15 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True):
 
     # If we hit the current instruction, we can do emulation going forward from there.
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
-        emu = pwndbg.emu.emulator.Emulator()
+        try:
+            emu = pwndbg.emu.emulator.Emulator()
+        except gdb.error as e:
+            message = str(e)
+            match = re.search(r"Memory at address (\w+) unavailable\.", message)
+            if match:
+                return []
+            else:
+                raise
         # skip current line
         emu.single_step()
 

@@ -128,6 +128,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return False
 
         efl = pwndbg.gdblib.regs.eflags
+        if efl is None:
+            return False
 
         cf = efl & (1 << 0)
         pf = efl & (1 << 2)
