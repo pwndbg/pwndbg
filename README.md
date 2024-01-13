@@ -1,4 +1,4 @@
-![repository-open-graph](https://github.com/pwndbg/pwndbg/assets/150354584/eaff07c7-4454-46cf-a6bc-96130225e87f)
+![repository-open-graph](https://github.com/pwndbg/pwndbg/assets/150354584/77b2e438-898f-416f-a989-4bef30759627)
 # pwndbg
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://choosealicense.com/licenses/mit/)
