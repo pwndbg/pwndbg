@@ -402,7 +402,7 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
-def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[PwndbgInstruction]:
+def near(address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False) -> list[PwndbgInstruction]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -433,9 +433,6 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
     if current is None:
         return []
     
-    # Only set backward cache pointer right here.
-    #   Otherwise, loops get confused - we might emulate to the bottom of a loop before actually getting there,
-    #   And then when emulator jumps to the top of the loop, backward cache pointer gets overwritten with a value we actually been at yet
     backward_cache[current.next] = current.address
 
     insns: list[PwndbgInstruction] = []
@@ -443,18 +440,20 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:
         print("CACHE START -------------------")
+
     if show_prev_insns:
         cached = backward_cache[current.address]
-        insn = one(cached, from_cache=True) if cached else None
+        insn = one(cached, from_cache=use_cache) if cached else None
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={cached:#x}")
             insns.append(insn)
             cached = backward_cache[insn.address]
-            insn = one(cached, from_cache=True) if cached else None
+            insn = one(cached, from_cache=use_cache) if cached else None
         insns.reverse()
 
     insns.append(current)
+    
     if DEBUG_ENHANCEMENT:
         print("END CACHE -------------------")
 
@@ -488,9 +487,10 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
 
         insn = one(target, emu, put_cache=True)
 
-        # TODO: Get rid of this check
-        if emu and None not in emu.last_single_step_result:
-            assert emu.last_pc == target
+        # If emulator is not correctly synced with the instruction we are enhancing, we have a bug
+        if DEBUG_ENHANCEMENT:
+            if emu and None not in emu.last_single_step_result:
+                assert emu.last_pc == target
 
         if insn:
             insns.append(insn)
@@ -501,13 +501,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
     #
     # This helps with infinite loops and RET sleds.
 
-    print("BEFORE " + "*" * 300)
-    print([hex(i.address) for i in insns])
-
     while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
-
-    print("After " + "+" * 300)
-    print([hex(i.address) for i in insns])
 
     return insns

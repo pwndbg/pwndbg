@@ -640,7 +640,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         pwndbg.lib.cache.clear_caches()
 
     result = pwndbg.gdblib.nearpc.nearpc(
-        lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate)
+        lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate), use_cache=True
     )
 
     # Note: we must fetch emulate value again after disasm since
