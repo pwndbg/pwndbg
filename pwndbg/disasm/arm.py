@@ -9,30 +9,13 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import EnhancedOperand
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
-        segment = ""
-        parts = []
 
-        if op.mem.base != 0:
-            parts.append(instruction.cs_insn.reg_name(op.mem.base))
 
-        if op.mem.disp != 0:
-            parts.append("%#x" % op.mem.disp)
-
-        if op.mem.index != 0:
-            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(op.mem.index)]
-            scale = op.mem.scale
-            parts.append(f"{index}*{scale:#x}")
-
-        return f"[{(', '.join(parts))}]"
-
-    def immediate_string(self, instruction, operand):
-        return "#" + super().immediate_string(instruction, operand)
-
-    def condition(self, instruction: PwndbgInstruction):
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None):
         # We can't reason about anything except the current instruction
         if instruction.cs_insn.cc == ARM_CC_AL:
             return None
@@ -69,6 +52,26 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         }.get(instruction.cs_insn.cc, None)
 
         return cc
+    
+    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
+        segment = ""
+        parts = []
+
+        if op.mem.base != 0:
+            parts.append(instruction.cs_insn.reg_name(op.mem.base))
+
+        if op.mem.disp != 0:
+            parts.append("%#x" % op.mem.disp)
+
+        if op.mem.index != 0:
+            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(op.mem.index)]
+            scale = op.mem.scale
+            parts.append(f"{index}*{scale:#x}")
+
+        return f"[{(', '.join(parts))}]"
+
+    def immediate_string(self, instruction, operand):
+        return "#" + super().immediate_string(instruction, operand)
 
 
 assistant = DisassemblyAssistant("arm")

@@ -428,7 +428,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
     current = one(address, emu, put_cache=True)
 
     if DEBUG_ENHANCEMENT:
-        if None in emu.last_single_step_result:
+        if emu and None in emu.last_single_step_result:
             print("Emulator failed at first step")
 
     if current is None:

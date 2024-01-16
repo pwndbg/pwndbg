@@ -7,6 +7,7 @@ import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
@@ -43,7 +44,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_BNEZ: src1_signed != 0,
         }.get(instruction.id, None)
 
-    def condition(self, instruction: PwndbgInstruction):
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None):
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
@@ -63,7 +64,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return None
 
-    def next(self, instruction: PwndbgInstruction, call=False):
+    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """

@@ -50,8 +50,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     if pwndbg.gdblib.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
-    # Is it a branch?
-    if ins.target not in (None, ins.address + ins.size):
+    if ins.is_branch:
         sym = pwndbg.gdblib.symbol.get(ins.target) or None
         if sym:
             sym = M.get(ins.target, sym)
@@ -97,6 +96,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     DEFAULT_WHITESPACE = int(pwndbg.gdblib.config.disasm_annotations_whitespace_padding)
     MIN_SPACING = 5
+    # The maximum number of spaces to allow between instruction and annotation. Chosen based on stepping through x86 binaries and this constant giving a good balance. 
+    WHITESPACE_LIMIT=max(19, DEFAULT_WHITESPACE+5)
 
     cur_padding_len = None
 
@@ -106,8 +107,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
-        # If it's a branch, 
-        if ins.target not in (None, ins.address + ins.size):
+        if ins.is_branch:
             sym = pwndbg.gdblib.symbol.get(ins.target) or None
             if sym:
                 sym = M.get(ins.target, sym)
@@ -147,8 +147,6 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
                 if i < len(instructions) - 1 and not instructions[i+1].is_branch:
 
-                    # The maximum number of spaces to allow. Chosen based on stepping through x86 binaries and this constant giving a good balance. 
-                    WHITESPACE_LIMIT=19
                     next_len = len(strip(assembly[i + 1]))
 
                     # If next instructions also has too much white space, put annotations closer to left again 
@@ -162,14 +160,20 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                     ins.annotation_padding = cur_padding_len
 
             paddings.append(cur_padding_len)
+        
+        
+        result.append(asm)
+
+
+    final_result = []
 
     # Final pass to be used to make final alignment of blocks cleaner (get rid of an jagged/spiky bits)
     # For example, when only one instruction in a large club has small spacing but should just be aligned with the rest
-    for i, (ins, asm, padding) in enumerate(zip(instructions, assembly, paddings)):
+    for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
         if ins.annotation:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"
                 
-        result.append(asm)
+        final_result.append(asm)
 
-    return result
+    return final_result
 

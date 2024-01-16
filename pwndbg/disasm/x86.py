@@ -354,8 +354,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return target
 
-    def next(self, instruction: PwndbgInstruction, call=False):
-        # Only enhance 'ret', otherwise fallback to default implementation
+    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
+        # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
             return super().next(instruction, call)
 
@@ -373,7 +373,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if pwndbg.gdblib.memory.peek(address):
             return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
 
-    def condition(self, instruction: PwndbgInstruction) -> bool | None:
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool | None:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return None
