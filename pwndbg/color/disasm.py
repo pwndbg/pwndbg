@@ -84,9 +84,9 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 # To making the padding visually nicer, so don't need to track eye back and forth long distances to view annotations.
 # but at the same time make padding non-jagged, the following padding scheme is used for annotations:   
 # Instruction uses the same amount left-adjusting length as the instruction before it (to keep them on the same level),
-# as long as there are at least 5 characters of whitespace.
+# as long as there are at least a couple characters of whitespace.
 # Otherwise, it makes it so there are 'disasm_annotations_whitespace_padding' (a config value) characters of whitespace
-# In order for the whitespace to being less again, there needs to be two instructions in a row that have too much whitespace
+# In order for the whitespace to being smaller again, there needs to be two instructions in a row that have too much whitespace
 def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
     assembly = [one_instruction(i) for i in instructions]
 
@@ -95,7 +95,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
     DEFAULT_WHITESPACE = int(pwndbg.gdblib.config.disasm_annotations_whitespace_padding)
     MIN_SPACING = 5
     # The maximum number of spaces to allow between instruction and annotation. Chosen based on stepping through x86 binaries and this constant giving a good balance. 
-    WHITESPACE_LIMIT=max(19, DEFAULT_WHITESPACE+5)
+    WHITESPACE_LIMIT=max(20, DEFAULT_WHITESPACE+5)
 
     cur_padding_len = None
 
@@ -125,9 +125,10 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
             paddings.append(None)
         else:
-            # This path deals with padding the string for a nicer output
+            
             raw_len = len(strip(asm))
 
+            # Padding the string for a nicer output
             if cur_padding_len is None:
                 cur_padding_len = raw_len + DEFAULT_WHITESPACE
 
@@ -158,7 +159,6 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                     ins.annotation_padding = cur_padding_len
 
             paddings.append(cur_padding_len)
-        
         
         result.append(asm)
 

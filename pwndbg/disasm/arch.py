@@ -55,8 +55,8 @@ pwndbg.gdblib.config.add_param(
     "Number of characters in strings to display in disasm annotations",
 )
 
-# DEBUG_ENHANCEMENT = False
-DEBUG_ENHANCEMENT = True
+DEBUG_ENHANCEMENT = False
+# DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -130,10 +130,11 @@ class DisassemblyAssistant:
 
         # Ensure emulator's program counter is at the correct location. Failure indicates a bug.
         if emu:
-            # print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}")
-            # assert(emu.pc == instruction.address)
+            if DEBUG_ENHANCEMENT:
+                print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}")
+                assert(emu.pc == instruction.address)
+            
             if emu.pc != instruction.address:
-                print("This indicates a bug in Pwndbg, please report")
                 emu = None
 
         enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
