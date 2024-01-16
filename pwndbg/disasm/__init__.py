@@ -313,7 +313,6 @@ def one(
 
     # A for loop in case this returns an empty list
     for insn in get(address, 1, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache):
-        backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -426,13 +425,18 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
 
     # Start at the current instruction using emulating if available.
     current = one(address, emu, put_cache=True)
-
+    
     if DEBUG_ENHANCEMENT:
         if emu and None in emu.last_single_step_result:
             print("Emulator failed at first step")
 
     if current is None:
         return []
+    
+    # Only set backward cache pointer right here.
+    #   Otherwise, loops get confused - we might emulate to the bottom of a loop before actually getting there,
+    #   And then when emulator jumps to the top of the loop, backward cache pointer gets overwritten with a value we actually been at yet
+    backward_cache[current.next] = current.address
 
     insns: list[PwndbgInstruction] = []
 
@@ -496,7 +500,14 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True) -> list[P
     # but any repeats after that are removed.
     #
     # This helps with infinite loops and RET sleds.
+
+    print("BEFORE " + "*" * 300)
+    print([hex(i.address) for i in insns])
+
     while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
+
+    print("After " + "+" * 300)
+    print([hex(i.address) for i in insns])
 
     return insns
