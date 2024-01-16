@@ -14,7 +14,6 @@ from pwndbg.color import strip
 from pwndbg.color.message import on
 from pwndbg.disasm.instruction import PwndbgInstruction
 
-
 # The amount of whitespace between instructions and the annotation, by default
 pwndbg.gdblib.config.add_param(
     "disasm-annotations-whitespace-padding",
@@ -37,6 +36,7 @@ c = ColorConfig(
 
 def syntax_highlight(ins):
     return H.syntax_highlight(ins, filename=".asm")
+
 
 # Returns colorized instructions assembly and operands, and checkmark if branch is taken
 #  Example: `✔ je     _IO_file_xsputn+341`. Inline symbol replacements made. No annotation or branch targets shown.
@@ -79,10 +79,8 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     return asm
 
 
-
-
 # To making the padding visually nicer, so don't need to track eye back and forth long distances to view annotations.
-# but at the same time make padding non-jagged, the following padding scheme is used for annotations:   
+# but at the same time make padding non-jagged, the following padding scheme is used for annotations:
 # Instruction uses the same amount left-adjusting length as the instruction before it (to keep them on the same level),
 # as long as there are at least a couple characters of whitespace.
 # Otherwise, it makes it so there are 'disasm_annotations_whitespace_padding' (a config value) characters of whitespace
@@ -94,8 +92,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     DEFAULT_WHITESPACE = int(pwndbg.gdblib.config.disasm_annotations_whitespace_padding)
     MIN_SPACING = 5
-    # The maximum number of spaces to allow between instruction and annotation. Chosen based on stepping through x86 binaries and this constant giving a good balance. 
-    WHITESPACE_LIMIT=max(20, DEFAULT_WHITESPACE+5)
+    # The maximum number of spaces to allow between instruction and annotation. Chosen based on stepping through x86 binaries and this constant giving a good balance.
+    WHITESPACE_LIMIT = max(20, DEFAULT_WHITESPACE + 5)
 
     cur_padding_len = None
 
@@ -103,7 +101,6 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
     # None if padding doesn't apply to the instruction
     paddings = []
 
-    
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
         if ins.is_branch:
             sym = pwndbg.gdblib.symbol.get(ins.target) or None
@@ -125,7 +122,6 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
             paddings.append(None)
         else:
-            
             raw_len = len(strip(asm))
 
             # Padding the string for a nicer output
@@ -144,13 +140,16 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 # Checks the length of the following instruction to determine where to put the annotation
 
                 # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
-                if i < len(instructions) - 1 and not instructions[i+1].is_branch:
-
+                if i < len(instructions) - 1 and not instructions[i + 1].is_branch:
                     next_len = len(strip(assembly[i + 1]))
 
-                    # If next instructions also has too much white space, put annotations closer to left again 
-                    if cur_padding_len - raw_len > WHITESPACE_LIMIT and next_len is not None and cur_padding_len - next_len > WHITESPACE_LIMIT:
-                        cur_padding_len = max(next_len,raw_len) + DEFAULT_WHITESPACE
+                    # If next instructions also has too much white space, put annotations closer to left again
+                    if (
+                        cur_padding_len - raw_len > WHITESPACE_LIMIT
+                        and next_len is not None
+                        and cur_padding_len - next_len > WHITESPACE_LIMIT
+                    ):
+                        cur_padding_len = max(next_len, raw_len) + DEFAULT_WHITESPACE
 
             if ins.annotation:
                 if ins.annotation_padding is not None:
@@ -159,9 +158,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                     ins.annotation_padding = cur_padding_len
 
             paddings.append(cur_padding_len)
-        
-        result.append(asm)
 
+        result.append(asm)
 
     final_result = []
 
@@ -170,8 +168,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
     for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
         if ins.annotation:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"
-                
+
         final_result.append(asm)
 
     return final_result
-
