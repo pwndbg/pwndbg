@@ -438,8 +438,16 @@ def near(
     # Emulate if program pc is at the current instruction - can't emulate at arbitrary places, because we need current
     # processor state to instantiate the emulator.
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
-        emu = pwndbg.emu.emulator.Emulator()
-
+        try:
+            emu = pwndbg.emu.emulator.Emulator()
+        except gdb.error as e:
+            message = str(e)
+            match = re.search(r"Memory at address (\w+) unavailable\.", message)
+            if match:
+                return []
+            else:
+                raise
+            
     # Start at the current instruction using emulating if available.
     current = one(address, emu, put_cache=True)
 
