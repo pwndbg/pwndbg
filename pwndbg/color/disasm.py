@@ -71,9 +71,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
         asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)
 
     # If we know the conditional is taken, mark it as taken.
-    if ins.condition is None:
-        asm = "  " + asm
-    elif ins.condition:
+    if ins.condition is True:
         asm = on("✔ ") + asm
     else:
         asm = "  " + asm
