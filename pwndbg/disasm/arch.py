@@ -128,6 +128,7 @@ class DisassemblyAssistant:
             emu.single_step(check_instruction_valid=False)
             emu = None
 
+        # Ensure emulator's program counter is at the correct location. Failure indicates a bug.
         if emu:
             # print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}")
             # assert(emu.pc == instruction.address)
@@ -140,8 +141,8 @@ class DisassemblyAssistant:
         )
 
         enhancer.enhance_operands(instruction, emu)
-        enhancer.enhance_conditional(instruction)
-        enhancer.enhance_next(instruction)
+        enhancer.enhance_conditional(instruction, emu)
+        enhancer.enhance_next(instruction, emu)
 
         if bool(pwndbg.gdblib.config.disasm_annotations):
             enhancer.set_annotation_string(instruction, emu)
@@ -216,7 +217,7 @@ class DisassemblyAssistant:
         for op in instruction.operands:
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
-        operands_with_symbols = [o for o in instruction.operands if o.symbol]
+        operands_with_symbols = [o for o in instruction.operands if o.symbol and o.cs_op.access == CS_AC_READ]
 
         if len(operands_with_symbols) == 1:
             o = operands_with_symbols[0]
@@ -379,7 +380,7 @@ class DisassemblyAssistant:
 
         return None
 
-    def enhance_conditional(self, instruction: PwndbgInstruction) -> None:
+    def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
         """
         Adds a ``condition`` field to the instruction.
 
@@ -392,7 +393,7 @@ class DisassemblyAssistant:
 
         In all other cases, it is set to ``False``.
         """
-        c = self.condition(instruction)
+        c = self.condition(instruction, emu=emu)
 
         if c:
             c = True
@@ -401,10 +402,10 @@ class DisassemblyAssistant:
 
         instruction.condition = c
 
-    def condition(self, instruction: PwndbgInstruction) -> bool | None:
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool | None:
         return False
 
-    def enhance_next(self, instruction: PwndbgInstruction) -> None:
+    def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
         """
         Adds a ``next`` field to the instruction.
 
@@ -422,11 +423,11 @@ class DisassemblyAssistant:
         next_addr = None
 
         if instruction.condition in (True, None):
-            next_addr = self.next(instruction)
+            next_addr = self.next(instruction, emu=emu)
 
         if next_addr is None:
             next_addr = instruction.address + instruction.size
-            instruction.target = self.next(instruction, call=True)
+            instruction.target = self.next(instruction, call=True, emu=emu)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
@@ -440,7 +441,7 @@ class DisassemblyAssistant:
         ):
             instruction.target_const = True
 
-    def next(self, instruction: PwndbgInstruction, call=False):
+    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
         """
         Architecture-specific hook point for enhance_next.
         """
@@ -457,28 +458,10 @@ class DisassemblyAssistant:
             return None
 
         op = instruction.operands[0]
-        # TODO: Add "get_resolved_value"
-        addr = op.before_value
+        addr = self.resolve_used_value(op.before_value, instruction, op, emu)
         if addr:
             addr &= pwndbg.gdblib.arch.ptrmask
 
-        # TODO: This below is not necessary. Value has already been resolved
-        if op.type == CS_OP_MEM:
-            if addr is None:
-                addr = self.parse_memory(instruction, op, None)
-
-            # self.parse_memory may return none, so we need to check it here again
-            if addr is not None:
-                try:
-                    # fails with gdb.MemoryError if the dereferenced address
-                    # doesn't belong to any of process memory maps
-                    addr = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
-                except gdb.MemoryError:
-                    return None
-        if op.type == CS_OP_REG:
-            addr = self.parse_register(instruction, op, None)
-
-        # Evidently this can happen?
         if addr is None:
             return None
 

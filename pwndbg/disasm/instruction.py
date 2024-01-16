@@ -4,7 +4,8 @@ import typing
 
 import gdb
 from capstone import *  # noqa: F403
-
+# Reverse lookup tables for debug printing
+from capstone import CS_GRP, CS_OP
 
 # This class is used to provide context to an instructions execution, used both
 # in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for 
@@ -61,9 +62,9 @@ class PwndbgInstruction:
         # Not used for "call" instructions, to indicate we will eventually return to this address
         self.next: int = self.address + self.size
 
-        # This is the same as next, expect it includes the "call" instruction, in which case it
-        # will be set to the target of the call. Otherwise, it is the same as "next".
-        # This means this is target of instructions that change the PC
+        # This is target of instructions that change the PC, regardless of if it's conditional or not,
+        # and whether we take the jump. This includes "call" and all other instructions that set the PC
+        # If the instruction is not one that changes the PC, target is set to "next"
         self.target: int = None
 
         # Whether the target is a constant expression
@@ -98,7 +99,7 @@ class PwndbgInstruction:
     @property
     def is_branch(self) -> bool:
         """
-        Return True if we have detected that this is a branch
+        True if we have detected that this instruction can explicitly change the program counter
         """
         return self.target not in (None, self.address + self.size)
 
@@ -129,12 +130,12 @@ class PwndbgInstruction:
         operands_str = ' '.join([repr(op) for op in self.operands])
 
         return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
+        ID: {self.id}, {self.cs_insn.insn_name()}
         Next: {self.next:#x}
         Target: {self.target:#x}, const={self.target_const}
         Symbol: {self.symbol} {self.symbol_addr}
         Condition: {self.condition}
-        ID: {self.id}
-        Groups: {self.groups}
+        Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
         Operands: [{operands_str}]"""
 
@@ -205,7 +206,7 @@ class EnhancedOperand:
         return self.cs_op.value.mem
 
     def __repr__(self) -> str:
-        return f"['{self.str}': Before: {hex(self.before_value) if self.before_value is not None else None}, After: {hex(self.after_value) if self.after_value is not None else None} (size={self.size}, type={self.type})]"
+        return f"['{self.str}': Symbol: {self.symbol}, Before: {hex(self.before_value) if self.before_value is not None else None}, After: {hex(self.after_value) if self.after_value is not None else None} (size={self.size}, type={CS_OP.get(self.type, self.type)})]"
 
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
