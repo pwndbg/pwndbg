@@ -3,13 +3,16 @@ from __future__ import annotations
 import typing
 
 import gdb
-from capstone import *  # noqa: F403
+
 # Reverse lookup tables for debug printing
-from capstone import CS_GRP, CS_OP
+from capstone import CS_GRP
+from capstone import CS_OP
+from capstone import *  # noqa: F403
+
 
 # This class is used to provide context to an instructions execution, used both
-# in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for 
-# Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints 
+# in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for
+# Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints
 class PwndbgInstruction:
     def __init__(self, cs_insn: CsInsn | None) -> None:
         # The underlying Capstone instruction, if present
@@ -123,11 +126,8 @@ class PwndbgInstruction:
         """Return number of operands having same operand Capstone type 'op_type'"""
         return self.cs_insn.op_count(op_type)
 
-
-
     def __repr__(self) -> str:
-
-        operands_str = ' '.join([repr(op) for op in self.operands])
+        operands_str = " ".join([repr(op) for op in self.operands])
 
         return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
         ID: {self.id}, {self.cs_insn.insn_name()}

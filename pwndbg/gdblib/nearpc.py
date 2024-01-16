@@ -70,7 +70,9 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 )
 
 
-def nearpc(pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False) -> list[str]:
+def nearpc(
+    pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False
+) -> list[str]:
     """
     Disassemble near a specified address.
     """
@@ -121,7 +123,9 @@ def nearpc(pc: int = None, lines: int = None, emulate=False, repeat=False, use_c
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-    instructions = pwndbg.disasm.near(pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache)
+    instructions = pwndbg.disasm.near(
+        pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache
+    )
 
     if pwndbg.gdblib.memory.peek(pc) and not instructions:
         result.append(message.error("Invalid instructions at %#x" % pc))

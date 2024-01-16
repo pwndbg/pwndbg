@@ -13,8 +13,6 @@ from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-
-
     def condition(self, instruction: PwndbgInstruction, emu: Emulator = None):
         # We can't reason about anything except the current instruction
         if instruction.cs_insn.cc == ARM_CC_AL:
@@ -52,7 +50,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         }.get(instruction.cs_insn.cc, None)
 
         return cc
-    
+
     def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
         segment = ""
         parts = []

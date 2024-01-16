@@ -28,7 +28,11 @@ def nearpc(pc=None, lines=None, emulate=False, use_cache=False) -> None:
     """
     Disassemble near a specified address.
     """
-    print("\n".join(pwndbg.gdblib.nearpc.nearpc(pc, lines, emulate, nearpc.repeat, use_cache=use_cache)))
+    print(
+        "\n".join(
+            pwndbg.gdblib.nearpc.nearpc(pc, lines, emulate, nearpc.repeat, use_cache=use_cache)
+        )
+    )
 
 
 parser = argparse.ArgumentParser(

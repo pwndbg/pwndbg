@@ -85,7 +85,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             if (
                 left.type == CS_OP_MEM and left.before_value is not None
             ):  # right.type must then be either CS_OP_REG or CS_OP_IMM. Cannot MOV mem to mem
-                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+                # If the memory isn't mapped, we will segfault
+                if not pwndbg.gdblib.memory.peek(left.before_value):
+                    instruction.annotation = MessageColor.error(
+                        f"<Cannot dereference [{MemoryColor.get(left.before_value)}]>"
+                    )
+                else:
+                    instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
@@ -100,7 +106,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
                 # it indicates that the dereference likely segfaults
                 if len(telescope_addresses) == 1 and did_telescope:
-                    telescope_print = MessageColor.error("<Cannot dereference>")
+                    telescope_print = MessageColor.error(
+                        f"<Cannot dereference [{MemoryColor.get(right.before_value)}]>>"
+                    )
                 elif len(telescope_addresses) == 1:
                     # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
                     # Simply display the address

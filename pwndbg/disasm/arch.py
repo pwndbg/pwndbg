@@ -131,9 +131,11 @@ class DisassemblyAssistant:
         # Ensure emulator's program counter is at the correct location. Failure indicates a bug.
         if emu:
             if DEBUG_ENHANCEMENT:
-                print(f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}")
-                assert(emu.pc == instruction.address)
-            
+                print(
+                    f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}"
+                )
+                assert emu.pc == instruction.address
+
             if emu.pc != instruction.address:
                 emu = None
 
@@ -218,7 +220,9 @@ class DisassemblyAssistant:
         for op in instruction.operands:
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
-        operands_with_symbols = [o for o in instruction.operands if o.symbol and o.cs_op.access == CS_AC_READ]
+        operands_with_symbols = [
+            o for o in instruction.operands if o.symbol and o.cs_op.access == CS_AC_READ
+        ]
 
         if len(operands_with_symbols) == 1:
             o = operands_with_symbols[0]

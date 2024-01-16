@@ -4,7 +4,6 @@ from typing import Callable
 
 import gdb
 
-import pwndbg.gdblib.vmmap
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
@@ -41,6 +40,7 @@ def get_address_or_symbol(address: int) -> str:
     if symbol:
         return get(address, symbol)
     return get(address)
+
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """

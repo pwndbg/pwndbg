@@ -24,9 +24,9 @@ import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import make_simple_instruction
-from pwndbg.disasm.arch import DEBUG_ENHANCEMENT
 
 try:
     import pwndbg.emu.emulator
@@ -273,7 +273,11 @@ class SimpleInstruction:
 # If passed an emulator, this will pass it to the DisassemblyAssistant
 # which will single_step the emulator to determine the operand values before and after the instruction executes
 def get_one_instruction(
-    address, emu: pwndbg.emu.emulator.Emulator = None, enhance=True, from_cache=False, put_cache=False
+    address,
+    emu: pwndbg.emu.emulator.Emulator = None,
+    enhance=True,
+    from_cache=False,
+    put_cache=False,
 ) -> PwndbgInstruction:
     if from_cache:
         cached = computed_instruction_cache[address]
@@ -303,7 +307,11 @@ def get_one_instruction(
 
 # Return None on failure to fetch an instruction
 def one(
-    address=None, emu: pwndbg.emu.emulator.Emulator = None, enhance=True, from_cache=False, put_cache=False
+    address=None,
+    emu: pwndbg.emu.emulator.Emulator = None,
+    enhance=True,
+    from_cache=False,
+    put_cache=False,
 ) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.gdblib.regs.pc
@@ -330,7 +338,12 @@ def one_raw(address=None) -> PwndbgInstruction | None:
 
 
 def get(
-    address, instructions=1, emu: pwndbg.emu.emulator.Emulator = None, enhance=True, from_cache=False, put_cache=False
+    address,
+    instructions=1,
+    emu: pwndbg.emu.emulator.Emulator = None,
+    enhance=True,
+    from_cache=False,
+    put_cache=False,
 ) -> list[PwndbgInstruction]:
     address = int(address)
 
@@ -340,7 +353,9 @@ def get(
 
     retval: list[PwndbgInstruction] = []
     for _ in range(instructions):
-        i = get_one_instruction(address, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache)
+        i = get_one_instruction(
+            address, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache
+        )
         if i is None:
             break
         address = i.next
@@ -402,7 +417,9 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
-def near(address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False) -> list[PwndbgInstruction]:
+def near(
+    address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False
+) -> list[PwndbgInstruction]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -425,14 +442,14 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True, use_cache
 
     # Start at the current instruction using emulating if available.
     current = one(address, emu, put_cache=True)
-    
+
     if DEBUG_ENHANCEMENT:
         if emu and None in emu.last_single_step_result:
             print("Emulator failed at first step")
 
     if current is None:
         return []
-    
+
     backward_cache[current.next] = current.address
 
     insns: list[PwndbgInstruction] = []
@@ -453,7 +470,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True, use_cache
         insns.reverse()
 
     insns.append(current)
-    
+
     if DEBUG_ENHANCEMENT:
         print("END CACHE -------------------")
 
@@ -467,7 +484,7 @@ def near(address, instructions=1, emulate=False, show_prev_insns=True, use_cache
     while insn and len(insns) < total_instructions:
         # Address to disassemble & emulate
         target = insn.next
-        
+
         # Disable emulation if necessary
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
             emulate = False
