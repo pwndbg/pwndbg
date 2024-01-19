@@ -28,3 +28,4 @@ mkdocs-minify-plugin
 mkdocs-rss-plugin
 mkdocstrings
 mkdocstrings-python
+mkdocs-git-revision-date-localized-plugin
