@@ -14,8 +14,6 @@ theme:
     code: Roboto Mono
   features:
     # - navigation.footer
-    - content.action.edit
-    - content.action.view
     - content.code.annotate
     - content.code.annotate
     - content.code.copy
@@ -47,6 +45,7 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
+  - git-revision-date-localized
   - git-committers:
       repository: pwndbg/pwndbg
       branch: dev
@@ -79,8 +78,13 @@ plugins:
             show_docstring_parameters: true
             show_docstring_return: true
             show_docstring_raises: true
-
-
+  - rss:
+      match_path: blog/posts/.* 
+      date_from_meta:
+        as_creation: date
+      categories:
+        - categories
+        - tags 
 
 # Additional configuration
 extra:
@@ -111,6 +115,7 @@ markdown_extensions:
   - fenced_code
   - toc:
       permalink: true
+      toc_depth : "1-2"
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.betterem:
@@ -156,9 +161,9 @@ markdown_extensions:
 nav: 
   - Home: index.md
   # - Getting started: getting_started.md
-  # - Setup: setup.md
+  - Setup: setup.md
   # - Features: features.md
   - Commands: commands/index.md
   - Source: source/index.md
   # - FAQ: faq.md
-  # - Blog: blog/index.md
+  - Blog: blog/index.md

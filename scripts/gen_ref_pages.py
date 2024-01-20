@@ -1,5 +1,11 @@
 from pathlib import Path
 import mkdocs_gen_files
+import os
+import sys
+
+if os.environ.get("SKIP_GENERATION"):
+    sys.exit(0)
+
 
 nav = mkdocs_gen_files.Nav()
 
