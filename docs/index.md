@@ -50,5 +50,4 @@ Want to help with development? Read [CONTRIBUTING](https://github.com/pwndbg/pwn
 
 ## Contact
 If you have any questions not worthy of a [bug report](https://github.com/pwndbg/pwndbg/issues), feel free to ping
-[`ebeip90` or `disconnect3d` at #pwndbg on Freenode](irc://irc.freenode.net/pwndbg) and ask away.
-Click [here](https://kiwiirc.com/client/irc.freenode.net/pwndbg) to connect.
+anybody on [Discord](https://discord.gg/x47DssnGwm) and ask away.
