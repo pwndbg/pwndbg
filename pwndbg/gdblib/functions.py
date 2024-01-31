@@ -53,3 +53,16 @@ def rebase(addr: gdb.Value | int) -> int:
     """Return rebased address."""
     base = pwndbg.gdblib.elf.exe().address
     return base + int(addr)
+
+
+@GdbFunction(only_when_running=True)
+def base(name_pattern: gdb.Value | str) -> int:
+    if isinstance(name_pattern, gdb.Value):
+        name = name_pattern.string()
+    else:
+        name = name_pattern
+
+    for p in pwndbg.gdblib.vmmap.get():
+        if name in p.objfile:
+            return p.vaddr
+    raise ValueError(f"No mapping named {name}")
