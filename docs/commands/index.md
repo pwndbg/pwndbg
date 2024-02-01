@@ -4,6 +4,13 @@
 
 # Commands
 
+## Start
+
+-  [attachp](attachp/attachp.md) Attaches to a given pid, process name or device file.
+-  [entry](start/entry.md) 
+-  [sstart](start/sstart.md) Alias for 'tbreak __libc_start_main; run'.
+-  [start](start/start.md) 
+
 ## Integrations
 
 -  [ai](ai/ai.md) Ask GPT-3 a question about the current debugging context.
@@ -58,13 +65,6 @@
 -  [spray](spray/spray.md) Spray memory with cyclic() generated values
 -  [tips](tips/tips.md) Shows tips.
 -  [valist](valist/valist.md) Dumps the arguments of a va_list.
-
-## Start
-
--  [attachp](attachp/attachp.md) Attaches to a given pid, process name or device file.
--  [entry](start/entry.md) 
--  [sstart](start/sstart.md) Alias for 'tbreak __libc_start_main; run'.
--  [start](start/start.md) 
 
 ## Stack
 

@@ -12,8 +12,9 @@ Assemble shellcode into bytes
 
 
 ```bash
-usage: asm [-h] [-f {hex,string}] [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
-           [-v AVOID] [-n] [-z] [-i INFILE]
+usage: asm [-h] [-f {hex,string}]
+           [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}] [-v AVOID] [-n]
+           [-z] [-i INFILE]
            [shellcode ...]
 
 ```
