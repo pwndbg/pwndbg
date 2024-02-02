@@ -30,6 +30,7 @@ parser.add_argument(
     help="Size of the unique subsequences (defaults to the pointer size for the current arch)",
 )
 
+
 group = parser.add_mutually_exclusive_group(required=False)
 group.add_argument(
     "-l",
@@ -50,9 +51,17 @@ group.add_argument(
     help="Number of characters to print from the sequence (default: print the entire sequence)",
 )
 
+parser.add_argument(
+    "filename",
+    type=str,
+    help="Name (path) of the file to save the cyclic pattern to",
+    default="",
+    nargs="?",
+)
+
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
-def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
+def cyclic_cmd(alphabet, length, lookup, count=100, filename="") -> None:
     if length:
         # Convert from gdb.Value
         length = int(length)
@@ -93,5 +102,12 @@ def cyclic_cmd(alphabet, length, lookup, count=100) -> None:
         else:
             print(message.success(f"Found at offset {offset}"))
     else:
-        sequence = cyclic(int(count), alphabet, length)
-        print(sequence.decode())
+        count = int(count)
+        sequence = cyclic(count, alphabet, length)
+
+        if not filename:
+            print(sequence.decode())
+        else:
+            with open(filename, "wb") as f:
+                f.write(sequence)
+                print(f"Written a cyclic sequence of length {count} to file {filename}")
