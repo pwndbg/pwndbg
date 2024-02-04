@@ -70,6 +70,9 @@ def search(
         start = vmmap.start
         end = vmmap.end
 
+        if limit and found_count >= limit:
+            break
+
         while True:
             # No point in searching if we can't read the memory
             if not pwndbg.gdblib.memory.peek(start):
@@ -114,7 +117,7 @@ def search(
 
             yield start
             found_count += 1
-            if limit and found_count == limit:
+            if limit and found_count >= limit:
                 break
 
             if step is not None:
