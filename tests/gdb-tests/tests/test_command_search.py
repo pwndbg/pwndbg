@@ -43,18 +43,17 @@ def test_command_search_limit_multiple_pages(start_binary):
     gdb.execute("break break_here")
     gdb.execute("run")
 
+    def filter_results(line):
+        return hex(SEARCH_PATTERN2).lower() in line.lower()
+
     total_entries = 3
-    result_str: str = gdb.execute(
-        f"search -8 {SEARCH_PATTERN2}", to_string=True
-    )
-    result_count = len(list(filter(lambda line: hex(SEARCH_PATTERN2).lower() in line.lower(), result_str.split("\n"))))
+    result_str: str = gdb.execute(f"search -8 {SEARCH_PATTERN2}", to_string=True)
+    result_count = len(list(filter(filter_results, result_str.splitlines())))
     assert result_count == total_entries
 
     search_limit = 2
-    result_str = gdb.execute(
-        f"search -8 {SEARCH_PATTERN2} -l {search_limit}", to_string=True
-    )
-    result_count = len(list(filter(lambda line: hex(SEARCH_PATTERN2).lower() in line.lower(), result_str.split("\n"))))
+    result_str = gdb.execute(f"search -8 {SEARCH_PATTERN2} -l {search_limit}", to_string=True)
+    result_count = len(list(filter(filter_results, result_str.splitlines())))
     assert result_count == search_limit
 
 
