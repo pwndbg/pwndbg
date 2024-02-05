@@ -7,9 +7,13 @@
 
 void break_here(void) {}
 
+size_t marker = 0xABCDEF1234567890;
+
 int main(void)
 {
     void *p;
+    size_t *heap_marker;
+    size_t local_marker;
 
     p = malloc(0x100000);
     memset(p, 0x0, 0x100000);
@@ -23,6 +27,10 @@ int main(void)
     for (int i = 0; i < 0x100000; i += 0x100) {
         *(unsigned int *)(p + i + 0x17) = 0xd00dbeef;
     }
+
+    heap_marker = malloc(8);
+    *heap_marker = marker;
+    local_marker = marker;
 
     break_here();
 
