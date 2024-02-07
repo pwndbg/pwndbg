@@ -10,6 +10,7 @@ import pwndbg.color.context as C
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
+import pwndbg.color.memory as MemoryColor
 
 # import pwndbg.gdblib.config
 import pwndbg.lib.cache
@@ -55,8 +56,8 @@ pwndbg.gdblib.config.add_param(
     "Number of characters in strings to display in disasm annotations",
 )
 
-DEBUG_ENHANCEMENT = False
-# DEBUG_ENHANCEMENT = True
+# DEBUG_ENHANCEMENT = False
+DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -213,7 +214,6 @@ class DisassemblyAssistant:
                 if op.after_value is not None:
                     op.after_value &= pwndbg.gdblib.arch.ptrmask
         else:
-            # If it failed, set to None so we don't accidentally try to get info from it
             emu = None
 
         # Set .str value of operands, after emulation has been completed
@@ -240,18 +240,17 @@ class DisassemblyAssistant:
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
         return instruction.address == pwndbg.gdblib.regs.pc
 
-    # Read value in register. Return None if cannot reason about the value in the register.
-    # Different architectures use registers in different patterns, so it is best to
-    # override this to get to best behavior for a given architecture.
+    # Delegates to "read_register", which takes Capstone ID for register.
     def parse_register(
         self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
     ) -> int | None:
-        if not self.can_reason_about_process_state(instruction):
-            return None
+        # if not self.can_reason_about_process_state(instruction):
+            # return None
 
         reg = operand.reg
-        name = instruction.cs_insn.reg_name(reg)
-        return pwndbg.gdblib.regs[name]
+        return self.read_register(instruction, reg, emu)
+        # name = instruction.cs_insn.reg_name(reg)
+        # return pwndbg.gdblib.regs[name]
 
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
@@ -264,6 +263,67 @@ class DisassemblyAssistant:
         self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
     ):
         return operand.imm
+
+    # Read value in register. Return None if cannot reason about the value in the register.
+    # Different architectures use registers in different patterns, so it is best to
+    # override this to get to best behavior for a given architecture. See x86.py as example.
+    def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator) -> int | None:
+        # operand_id is the ID internal to Capstone
+        regname: str = instruction.cs_insn.reg_name(operand_id)
+        
+        if emu:
+            # Will return the value of register after executing the instruction
+            value = emu.read_register(regname)
+            if DEBUG_ENHANCEMENT:
+                print(f"Register in emulation returned {regname}={hex(value)}")
+            return value
+        elif self.can_reason_about_process_state(instruction):
+            # When instruction address == pc, we can reason about all registers.
+            # The values will just reflect values prior to executing the instruction, instead of after,
+            # which is relevent if we are writing to this register.
+            # However, the information can still be useful for display purposes.
+            if DEBUG_ENHANCEMENT:
+                print(f"Read value from process register: {pwndbg.gdblib.regs[regname]}")
+            return pwndbg.gdblib.regs[regname]
+        else:
+            return None
+
+
+    # Read memory of given size, taking into account emulation and being able to reason about the memory location
+    def read_memory(
+        self,
+        address: int,
+        size: int,
+        instruction: PwndbgInstruction,
+        operand: EnhancedOperand,
+        emu: Emulator,
+    ) -> int | None:
+        address_list, did_telescope = self.telescope(
+            address, 1, instruction, operand, emu, read_size=size
+        )
+        if did_telescope:
+            if len(address_list) >= 2:
+                return address_list[1]
+        return None
+    
+
+    # Pass in a operand and it's value, and determine the actual value used during an instruction
+    # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
+    # a register or a memory value to dereference, and we want the actual value used.
+    # Return None if cannot dereference in the case it's a memory address
+    def resolve_used_value(
+        self, value: int | None, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        if value is None:
+            return None
+
+        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
+            return value
+        elif operand.type == CS_OP_MEM:
+            return self.read_memory(value, operand.size, instruction, operand, emu)
+
+        return None
+    
 
     # Dereference an address recursively - takes into account emulation.
     # If cannot dereference safely, returns a list with just the passed in address.
@@ -328,22 +388,7 @@ class DisassemblyAssistant:
         # Just without any further information
         return ([address], False)
 
-    # Read memory of given size, taking into account emulation and being able to reason about the memory location
-    def read_memory(
-        self,
-        address: int,
-        size: int,
-        instruction: PwndbgInstruction,
-        operand: EnhancedOperand,
-        emu: Emulator,
-    ) -> int | None:
-        address_list, did_telescope = self.telescope(
-            address, 1, instruction, operand, emu, read_size=size
-        )
-        if did_telescope:
-            if len(address_list) >= 2:
-                return address_list[1]
-        return None
+
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def telescope_format_list(
@@ -368,22 +413,7 @@ class DisassemblyAssistant:
                 enhance_string_len=enhance_string_len,
             )
 
-    # Pass in a operand and it's value, and determine the actual value used during an instruction
-    # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
-    # a register or a memory value to dereference, and we want the actual value used.
-    # Return None if cannot dereference in the case it's a memory address
-    def resolve_used_value(
-        self, value: int | None, instruction: PwndbgInstruction, operand, emu: Emulator
-    ) -> int | None:
-        if value is None:
-            return None
 
-        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
-            return value
-        elif operand.type == CS_OP_MEM:
-            return self.read_memory(value, operand.size, instruction, operand, emu)
-
-        return None
 
     def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
         """
@@ -478,6 +508,7 @@ class DisassemblyAssistant:
         """
         return repr(instruction)
 
+    # String functions assume the .before_value and .after_value have been set
     def immediate_string(self, instruction, operand) -> str:
         value = operand.before_value
 
@@ -486,7 +517,8 @@ class DisassemblyAssistant:
 
         return "%#x" % value
 
-    def register_string(self, instruction, operand: EnhancedOperand):
+    # Return colorized register string
+    def register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         reg = operand.reg
         name = C.register(instruction.cs_insn.reg_name(reg).upper())
 
@@ -500,9 +532,13 @@ class DisassemblyAssistant:
         else:
             return C.register_changed(name)
 
-    # Subclasses may override
-    def memory_string(self, instruction, operand: EnhancedOperand):
-        return None  # raise NotImplementedError
+    # Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
+    def memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+        if operand.before_value is not None:
+            return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
+        else:
+            return None
+
 
 
 generic_assistant = DisassemblyAssistant(None)

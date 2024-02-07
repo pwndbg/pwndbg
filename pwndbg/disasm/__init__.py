@@ -452,7 +452,7 @@ def near(
     current = one(address, emu, put_cache=True)
 
     if DEBUG_ENHANCEMENT:
-        if emu and None in emu.last_single_step_result:
+        if emu and not emu.last_step_succeeded:
             print("Emulator failed at first step")
 
     if current is None:
@@ -503,7 +503,7 @@ def near(
 
         # If using emulation and it's still enabled, use it to determine the next instruction executed
         if emu:
-            if None not in emu.last_single_step_result:
+            if emu.last_step_succeeded:
                 # Next instruction to be executed is where the emulator is
                 target = emu.pc
             else:
@@ -514,7 +514,7 @@ def near(
 
         # If emulator is not correctly synced with the instruction we are enhancing, we have a bug
         if DEBUG_ENHANCEMENT:
-            if emu and None not in emu.last_single_step_result:
+            if emu and emu.last_step_succeeded:
                 assert emu.last_pc == target
 
         if insn:
