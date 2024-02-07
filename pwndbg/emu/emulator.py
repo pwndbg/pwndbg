@@ -31,10 +31,12 @@ from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 
-def parse_consts(u_consts):
+def parse_consts(u_consts) -> dict[str, int]:
     """
     Unicorn "consts" is a python module consisting of a variable definition
     for each known entity. We repack it here as a dict for performance.
+
+    Maps "UC_*" -> integer value of the constant
     """
     consts: dict[str, int] = {}
     for name in dir(u_consts):
@@ -86,13 +88,10 @@ DEBUG = NO_DEBUG
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
-
     def debug(debug_type, fmt, args=()) -> None:
         if DEBUG & debug_type:
             print(fmt % args)
-
 else:
-
     def debug(debug_type, fmt, args=()) -> None:
         pass
 
@@ -146,16 +145,22 @@ class Emulator:
 
         self.consts = arch_to_UC_consts[self.arch]
 
-        # Just registers, for faster lookup
+        # Create a map of "register_name" -> Capstone ID, for faster lookup
         self.const_regs: dict[str, int] = {}
         r = re.compile(r"^UC_.*_REG_(.*)$")
         for k, v in self.consts.items():
+            # Use regex to match the Capstone register names to our register names.
             # Ex: extract "RCX" from "UC_X86_REG_RCX"
             # All are uppercase
             m = r.match(k)
 
             if m:
                 self.const_regs[m.group(1)] = v
+        
+        # Edge case for aarch64 - Unicorns calls the flags register NZCV, while we call is CPSR
+        if self.arch == "aarch64":
+            self.const_regs["CPSR"] = C.arm64_const.UC_ARM64_REG_NZCV
+
 
         self.uc_mode = self.get_uc_mode()
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
@@ -184,6 +189,8 @@ class Emulator:
         ):
             enum = self.get_reg_enum(reg)
 
+
+
             if not reg:
                 debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
@@ -196,7 +203,7 @@ class Emulator:
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
-
+        
             # All registers are initialized to zero.
             if value == 0:
                 continue
@@ -204,6 +211,7 @@ class Emulator:
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             debug(DEBUG_INIT, "uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
+
 
         # Add a hook for unmapped memory
         self.hook_add(U.UC_HOOK_MEM_UNMAPPED, self.hook_mem_invalid)
@@ -565,7 +573,7 @@ class Emulator:
         debug(DEBUG_INTERRUPT, "Got an interrupt")
         self.uc.emu_stop()
 
-    def get_reg_enum(self, reg: str):
+    def get_reg_enum(self, reg: str) -> int | None:
         """
         Returns the Unicorn Emulator enum code for the named register.
 
@@ -599,6 +607,7 @@ class Emulator:
         #
         elif reg == "sp":
             return self.get_reg_enum(self.regs.stack)
+        
 
         return None
 
