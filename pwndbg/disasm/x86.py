@@ -45,8 +45,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_VMOVAPS: self.handle_vmovaps,
             # LEA
             X86_INS_LEA: self.handle_lea,
+            # XCHG
+            X86_INS_XCHG: self.handle_xchg,
             # POP
             X86_INS_POP: self.handle_pop,
+
             # ADD
             X86_INS_ADD: self.handle_add,
             # SUB
@@ -57,6 +60,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_TEST: self.handle_test,
             # XOR
             X86_INS_XOR: self.handle_xor,
+            # AND
+            X86_INS_AND: self.handle_and,
             # INC and DEC
             X86_INS_INC: self.handle_inc,
             X86_INS_DEC: self.handle_dec,
@@ -91,7 +96,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                         f"<Cannot dereference [{MemoryColor.get(left.before_value)}]>"
                     )
                 else:
-                    instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+                    instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
@@ -113,8 +118,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
                     # Simply display the address
 
-                    # This path is taken for the following case:
-                    # Ex: mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
+                    # As an example, this path is taken for the following case:
+                    # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
                     # and we are not emulating. This means we cannot savely dereference (if PC is not at the current instruction address)
                     telescope_print = None
                 else:
@@ -122,11 +127,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     telescope_print = f"{super().telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu, did_telescope)}"
 
                 if telescope_print is not None:
-                    instruction.annotation = f"{left.str}, [{MemoryColor.get_address_or_symbol(right.before_value)}] => {telescope_print}"
+                    instruction.annotation = f"{left.str}, {right.str} => {telescope_print}"
                 else:
-                    instruction.annotation = (
-                        f"{left.str}, [{MemoryColor.get_address_or_symbol(right.before_value)}]"
-                    )
+                    instruction.annotation = f"{left.str}, {right.str}"
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:
@@ -161,6 +164,20 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             )
             instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
+    def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+
+        left, right = instruction.operands
+
+        # Resolved values of left and right operand before xchg operation took place
+        left_before = super().resolve_used_value(left.before_value, instruction, left, emu)
+        right_before = super().resolve_used_value(right.before_value, instruction, right, emu)
+
+        if left_before is not None and right_before is not None:
+            # Display the exchanged values. Doing it this way (instead of using .after_value) allows this to work without emulation
+            # Don't telescope here for the sake of screen space
+            instruction.annotation = f"{left.str} => {MemoryColor.get_address_or_symbol(right_before)}, {right.str} => {MemoryColor.get_address_or_symbol(left_before)}"
+            
+
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
 
@@ -183,7 +200,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     )
                 except Exception as e:
                     pass
-
+    
     def handle_add_sub_handler(
         self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str
     ) -> None:
@@ -207,21 +224,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # This may return None if cannot dereference memory (or after_value is None).
         left_after = super().resolve_used_value(left.after_value, instruction, left, emu)
 
-        if left.type == CS_OP_REG:
-            # If we emulated the result, display it
-            if left_after is not None:
-                instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left.after_value)} ({plus_string})"
-            elif plus_string:
-                instruction.annotation = f"{left.str} => {plus_string}"
-        elif left.type == CS_OP_MEM:
-            # [memory_address] => value
-            if left_after is not None:
-                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
-            elif plus_string:
-                # No emulation
-                instruction.annotation = (
-                    f"[{MemoryColor.get_address_or_symbol(left.before_value)}] => {plus_string}"
-                )
+        if left_after is not None:
+            instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left.after_value)} ({plus_string})"
+        elif plus_string:
+            instruction.annotation = f"{left.str} => {plus_string}"
 
     def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Same output as addition, showing the result
@@ -272,6 +278,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         elif left.after_value is not None:
             instruction.annotation = f"{left.str} => {left.after_value}"
 
+    def handle_and(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        left, right = instruction.operands
+
+        if left.after_value is not None:
+            instruction.annotation = f"{left.str} => {MemoryColor.get(left.after_value)}"
+
     def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # INC operand can be REG or [MEMORY]
         operand = instruction.operands[0]
@@ -279,12 +291,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         operand_actual = super().resolve_used_value(operand.after_value, instruction, operand, emu)
 
         if operand_actual is not None:
-            if operand.type == CS_OP_REG:
-                instruction.annotation = (
-                    f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
-                )
-            elif operand.type == CS_OP_MEM:
-                instruction.annotation = f"[{MemoryColor.get_address_or_symbol(operand.before_value)}] => {MemoryColor.get_address_and_symbol(operand_actual)}"
+            instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
@@ -294,41 +301,44 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-    # Read value at register
-    def parse_register(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
-    ):
-        reg = operand.reg
-        return self.read_register(instruction, reg, emu)
+    # # Read value at register
+    # def parse_register(
+    #     self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
+    # ):
+    #     reg = operand.reg
+    #     return self.read_register(instruction, reg, emu)
 
     # Read a register in the context of an instruction
     # Only return an integer if we can reason about the value, else None
     def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
-        regname: str = instruction.cs_insn.reg_name(operand_id)
+        # regname: str = instruction.cs_insn.reg_name(operand_id)
 
         if operand_id == X86_REG_RIP:
             # Ex: lea    rax, [rip + 0xd55]
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
         else:
-            if emu:
-                # Will return the value of register after executing the instruction
-                value = emu.read_register(regname)
-                if DEBUG_ENHANCEMENT:
-                    print(f"Register in emulation returned {regname}={hex(value)}")
-                return value
-            elif self.can_reason_about_process_state(instruction):
-                # When instruction address == pc, we can reason about all registers.
-                # The values will just reflect values prior to executing the instruction, instead of after,
-                # which is relevent if we are writing to this register.
-                # However, the information can still be useful for display purposes.
-                if DEBUG_ENHANCEMENT:
-                    print(f"Read value from process register: {pwndbg.gdblib.regs[regname]}")
-                return pwndbg.gdblib.regs[regname]
-            else:
-                return None
+            return super().read_register(instruction, operand_id, emu)
+        
+        # else:
+        #     if emu:
+        #         # Will return the value of register after executing the instruction
+        #         value = emu.read_register(regname)
+        #         if DEBUG_ENHANCEMENT:
+        #             print(f"Register in emulation returned {regname}={hex(value)}")
+        #         return value
+        #     elif self.can_reason_about_process_state(instruction):
+        #         # When instruction address == pc, we can reason about all registers.
+        #         # The values will just reflect values prior to executing the instruction, instead of after,
+        #         # which is relevent if we are writing to this register.
+        #         # However, the information can still be useful for display purposes.
+        #         if DEBUG_ENHANCEMENT:
+        #             print(f"Read value from process register: {pwndbg.gdblib.regs[regname]}")
+        #         return pwndbg.gdblib.regs[regname]
+        #     else:
+        #         return None
 
     # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
     def parse_memory(
@@ -436,7 +446,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_JS: sf,
         }.get(instruction.id, None)
 
-    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand):
+
+    # Currently not used
+    def memory_string_with_components_resolved(self, instruction: PwndbgInstruction, op: EnhancedOperand):
+        # Example: [RSP + RCX*4 - 100] would return "[0x7ffd00acf230 + 8+4 - 100]"
         arith = False
         segment = op.mem.segment
         disp = op.mem.disp

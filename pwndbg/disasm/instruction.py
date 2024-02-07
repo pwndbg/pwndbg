@@ -7,6 +7,7 @@ import gdb
 # Reverse lookup tables for debug printing
 from capstone import CS_GRP
 from capstone import CS_OP
+from capstone.x86 import X86Op
 from capstone import *  # noqa: F403
 
 
@@ -63,6 +64,7 @@ class PwndbgInstruction:
         # and if the jump is taken - unconditionally, or it's conditional and we know its taken - then
         # we set the value to the jump target
         # Not used for "call" instructions, to indicate we will eventually return to this address
+        # Or, in other words, using "nexti" in GDB should go to this instruction address
         self.next: int = self.address + self.size
 
         # This is target of instructions that change the PC, regardless of if it's conditional or not,
@@ -85,7 +87,7 @@ class PwndbgInstruction:
         # See 'condition' function in pwndbg.disasm.x86 for other instructions
         # Value is either None, False, or True
         # If the instruction is always executed unconditionally (most instructions), this is set to None
-        # If the instruction is executed conditional, and we can determine it indeed execute, the value is True
+        # If the instruction is executed conditionally, and we can determine it will indeed execute, the value is True
         # Else, False.
         self.condition: bool | None = None
 
@@ -161,7 +163,7 @@ class EnhancedOperand:
         self.after_value: int | None = None
 
         # String representing the operand
-        # Ex: "RAX"
+        # Ex: "RAX", or "[0x7fffffffd9e8]". None if value cannot be determined in case of address.
         self.str: str | None = ""
 
         # Resolved symbol name for this operand, if .before_value is set, else None.
@@ -180,6 +182,7 @@ class EnhancedOperand:
         Operand read/write size
         Ex: dword ptr [RDX] has size = 4
         Ex: AL has size = 1
+
         Only exists for x86
         """
         return self.cs_op.size
@@ -205,12 +208,24 @@ class EnhancedOperand:
         """
         return self.cs_op.value.mem
 
+    # For debugging
     def __repr__(self) -> str:
-        return f"['{self.str}': Symbol: {self.symbol}, Before: {hex(self.before_value) if self.before_value is not None else None}, After: {hex(self.after_value) if self.after_value is not None else None} (size={self.size}, type={CS_OP.get(self.type, self.type)})]"
+        print(type(self.cs_op))
 
+        info = (
+            f"'{self.str}': Symbol: {self.symbol}, "
+            f"Before: {hex(self.before_value) if self.before_value is not None else None}, "
+            f"After: {hex(self.after_value) if self.after_value is not None else None}, "
+            f"type={CS_OP.get(self.type, self.type)}"
+        )
+
+        if(isinstance(self.cs_op, X86Op)):
+            info += f", size={self.size}]"
+        
+        return f"[{info}]"
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
-# (as defined in the CapstoneArch structure at the top of this file)
+# (as defined in the CapstoneArch structure)
 def make_simple_instruction(address: int) -> PwndbgInstruction:
     ins = gdb.newest_frame().architecture().disassemble(address)[0]
     asm = ins["asm"].split(maxsplit=1)
@@ -228,7 +243,6 @@ def make_simple_instruction(address: int) -> PwndbgInstruction:
     pwn_ins.groups = []
     pwn_ins.symbol = None
 
-    # This was false in previous code for some reason
     pwn_ins.condition = False
 
     pwn_ins.annotation = None

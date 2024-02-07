@@ -218,6 +218,10 @@ class Emulator:
         if DEBUG & DEBUG_TRACE:
             self.hook_add(U.UC_HOOK_CODE, self.trace_hook)
 
+    @property
+    def last_step_succeeded(self) -> bool:
+        return None not in self.last_single_step_result
+
     def read_register(self, name: str):
         reg = self.get_reg_enum(name)
 
