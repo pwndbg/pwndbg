@@ -159,7 +159,7 @@ class Emulator:
         
         # Edge case for aarch64 - Unicorns calls the flags register NZCV, while we call is CPSR
         if self.arch == "aarch64":
-            self.const_regs["CPSR"] = C.arm64_const.UC_ARM64_REG_NZCV
+            self.const_regs["CPSR"] = U.arm64_const.UC_ARM64_REG_NZCV
 
 
         self.uc_mode = self.get_uc_mode()
