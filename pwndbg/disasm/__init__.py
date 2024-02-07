@@ -464,7 +464,7 @@ def near(
 
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:
-        print("CACHE START -------------------")
+        print(f"CACHE START -------------------, {current.address}")
 
     if show_prev_insns:
         cached = backward_cache[current.address]

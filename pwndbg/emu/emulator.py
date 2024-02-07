@@ -45,6 +45,32 @@ def parse_consts(u_consts) -> dict[str, int]:
     return consts
 
 
+# Generate Map<Register name, unicorn constant>
+def create_reg_to_const_map(base_consts: dict[str, int], additional_mapping: dict[str, int] = None) -> dict[str, int]:
+    # base_consts is Map<"UC_*_REG_", constant>
+    # additional mapping is the manually additions that add to the returned dict
+
+    # Create a map of "register_name" -> Capstone ID, for faster lookup
+    # Example of one field in the mapping for x86: { "RAX": 35 }
+    reg_to_const: dict[str, int] = {}
+
+    r = re.compile(r"^UC_.*_REG_(.*)$")
+    for k, v in base_consts.items():
+        # Use regex to match the Capstone register names to our register names.
+        # Ex: extract "RCX" from "UC_X86_REG_RCX"
+        # All are uppercase
+        m = r.match(k)
+
+        if m:
+            reg_to_const[m.group(1)] = v
+
+    if additional_mapping is not None:
+        reg_to_const.update(additional_mapping)
+
+    return reg_to_const
+
+
+
 # Map our internal architecture names onto Unicorn Engine's architecture types.
 arch_to_UC = {
     "i386": U.UC_ARCH_X86,
@@ -58,6 +84,7 @@ arch_to_UC = {
     "rv64": U.UC_ARCH_RISCV,
 }
 
+# Architecture specific maps: Map<"UC_*_REG_*",constant>
 arch_to_UC_consts = {
     "i386": parse_consts(U.x86_const),
     "x86-64": parse_consts(U.x86_const),
@@ -67,6 +94,18 @@ arch_to_UC_consts = {
     "aarch64": parse_consts(U.arm64_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
+}
+
+# Architecture specific maps: Map<reg_name, Unicorn constant>
+arch_to_reg_const_map = {
+    "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
+    "x86-64": create_reg_to_const_map(arch_to_UC_consts["x86-64"]),
+    "mips": create_reg_to_const_map(arch_to_UC_consts["mips"]),
+    "sparc": create_reg_to_const_map(arch_to_UC_consts["sparc"]),
+    "arm": create_reg_to_const_map(arch_to_UC_consts["arm"]),
+    "aarch64": create_reg_to_const_map(arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}),
+    "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
+    "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
 }
 
 
@@ -143,23 +182,26 @@ class Emulator:
         if self.arch not in arch_to_UC:
             raise NotImplementedError(f"Cannot emulate code for {self.arch}")
 
-        self.consts = arch_to_UC_consts[self.arch]
+        # self.consts = arch_to_UC_consts[self.arch]
 
-        # Create a map of "register_name" -> Capstone ID, for faster lookup
-        self.const_regs: dict[str, int] = {}
-        r = re.compile(r"^UC_.*_REG_(.*)$")
-        for k, v in self.consts.items():
-            # Use regex to match the Capstone register names to our register names.
-            # Ex: extract "RCX" from "UC_X86_REG_RCX"
-            # All are uppercase
-            m = r.match(k)
+        # Mapping of Pwndbg register name to Unicorn constant for the register
+        self.const_regs = arch_to_reg_const_map[self.arch]
 
-            if m:
-                self.const_regs[m.group(1)] = v
+        # # Create a map of "register_name" -> Capstone ID, for faster lookup
+        # self.const_regs: dict[str, int] = {}
+        # r = re.compile(r"^UC_.*_REG_(.*)$")
+        # for k, v in self.consts.items():
+        #     # Use regex to match the Capstone register names to our register names.
+        #     # Ex: extract "RCX" from "UC_X86_REG_RCX"
+        #     # All are uppercase
+        #     m = r.match(k)
+
+        #     if m:
+        #         self.const_regs[m.group(1)] = v
         
-        # Edge case for aarch64 - Unicorns calls the flags register NZCV, while we call is CPSR
-        if self.arch == "aarch64":
-            self.const_regs["CPSR"] = U.arm64_const.UC_ARM64_REG_NZCV
+        # # Edge case for aarch64 - Unicorns calls the flags register NZCV, while we call is CPSR
+        # if self.arch == "aarch64":
+        #     self.const_regs["CPSR"] = U.arm64_const.UC_ARM64_REG_NZCV
 
 
         self.uc_mode = self.get_uc_mode()
