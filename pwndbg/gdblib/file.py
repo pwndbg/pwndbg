@@ -57,7 +57,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     Returns:
         The local path to the file
     """
-    assert path.startswith(("/", "./")) or path.startswith(
+    assert path.startswith(("/", "./", "../")) or path.startswith(
         "target:"
     ), "get_file called with incorrect path"
 
