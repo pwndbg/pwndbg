@@ -11,6 +11,7 @@ import tests
 NO_SECTS_BINARY = tests.binaries.get("gosample.x86")
 PIE_BINARY_WITH_PLT = "reference_bin_pie.out"
 NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.out"
+NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
 def test_commands_plt_gotplt_got_when_no_sections(start_binary):
@@ -105,12 +106,18 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     assert re.match(r"\[0x[0-9a-f]+\] puts@GLIBC_[0-9.]+ -> .*", out[4])
 
 
-def test_command_got_for_target_binary_and_loaded_library():
-    binary = tests.binaries.get(NOPIE_BINARY_WITH_PLT)
+@pytest.mark.parametrize(
+    "binary_name", (NOPIE_BINARY_WITH_PLT, NOPIE_I386_BINARY_WITH_PLT), ids=["x86-64", "i386"]
+)
+def test_command_got_for_target_binary_and_loaded_library(binary_name):
+    binary = tests.binaries.get(binary_name)
     gdb.execute(f"file {binary}")
 
     gdb.execute("break main")
-    gdb.execute("starti")
+    try:
+        gdb.execute("starti")
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
 
     # Before loading libc, we can't find .got.plt of libc
     out = gdb.execute("got -p libc", to_string=True).splitlines()
@@ -120,7 +127,7 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[2] == ""
     assert out[3] == "No shared library matching the path filter found."
     assert out[4] == "Available shared libraries:"
-    assert out[5].endswith("/ld-linux-x86-64.so.2")
+    assert out[5].endswith(("/ld-linux-x86-64.so.2", "/ld-linux.so.2"))
 
     gdb.execute("continue")
 
@@ -175,12 +182,12 @@ def test_command_got_for_target_binary_and_loaded_library():
         assert re.match(r"\[0x[0-9a-f]+\] .*ABS.* -> .*", out[6 + i])
 
     # Try filtering out path with "l", which should match every library
-    # First should be ld-linux-x86-64.so.2
+    # First should be ld-linux(-x86-64)?.so.2
     out = gdb.execute("got -p l", to_string=True).splitlines()
     assert out[0] == "Filtering by lib/objfile path: l"
     assert out[1] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[2] == ""
-    assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[3])
+    assert re.match(r"State of the GOT of .*/ld-linux(-x86-64)?.so.2:", out[3])
     m = re.match(
         r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
         out[4],
@@ -212,8 +219,8 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[4] == ""
     out = out[5:]
 
-    # Second should be ld-linux-x86-64.so.2
-    assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[0])
+    # Second should be ld-linux(-x86-64)?.so.2
+    assert re.match(r"State of the GOT of .*/ld-linux(-x86-64)?.so.2:", out[0])
     m = re.match(
         r"GOT protection: (?:Partial|Full) RELRO \| Found (\d+) GOT entries passing the filter",
         out[1],
@@ -243,7 +250,7 @@ def test_command_got_for_target_binary_and_loaded_library():
     assert out[3] == "GOT protection: Full RELRO | Found 1 GOT entries passing the filter"
     assert re.match(r"\[0x[0-9a-f]+\] puts@GLIBC_[0-9.]+ -> .*", out[4])
     assert out[5] == ""
-    assert re.match(r"State of the GOT of .*/ld-linux-x86-64.so.2:", out[6])
+    assert re.match(r"State of the GOT of .*/ld-linux(-x86-64)?.so.2:", out[6])
     assert re.match(
         r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[7]
     )
