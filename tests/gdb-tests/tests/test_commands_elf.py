@@ -106,13 +106,18 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     assert re.match(r"\[0x[0-9a-f]+\] puts@GLIBC_[0-9.]+ -> .*", out[4])
 
 
-@pytest.mark.parametrize("binary_name", (NOPIE_BINARY_WITH_PLT, NOPIE_I386_BINARY_WITH_PLT))
+@pytest.mark.parametrize(
+    "binary_name", (NOPIE_BINARY_WITH_PLT, NOPIE_I386_BINARY_WITH_PLT), ids=["x86-64", "i386"]
+)
 def test_command_got_for_target_binary_and_loaded_library(binary_name):
     binary = tests.binaries.get(binary_name)
     gdb.execute(f"file {binary}")
 
     gdb.execute("break main")
-    gdb.execute("starti")
+    try:
+        gdb.execute("starti")
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
 
     # Before loading libc, we can't find .got.plt of libc
     out = gdb.execute("got -p libc", to_string=True).splitlines()
