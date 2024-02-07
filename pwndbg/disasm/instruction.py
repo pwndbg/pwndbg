@@ -210,7 +210,6 @@ class EnhancedOperand:
 
     # For debugging
     def __repr__(self) -> str:
-        print(type(self.cs_op))
 
         info = (
             f"'{self.str}': Symbol: {self.symbol}, "
