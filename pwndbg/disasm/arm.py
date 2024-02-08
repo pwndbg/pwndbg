@@ -13,7 +13,7 @@ from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None):
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator):
         # We can't reason about anything except the current instruction
         if instruction.cs_insn.cc == ARM_CC_AL:
             return None

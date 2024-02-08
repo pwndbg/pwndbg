@@ -504,7 +504,11 @@ def near(
         # If using emulation and it's still enabled, use it to determine the next instruction executed
         if emu:
             if emu.last_step_succeeded:
-                # Next instruction to be executed is where the emulator is
+                # Next instruction to be executed is where the emulator is.
+                # We set this here as a fallback, because insn.next will use
+                # emulation to set the address, but in case there is a codepath
+                # in a specific architectures enhancement implementation that ends up not using emulation
+                # to set next, this makes sure we disassemble at the real next address
                 target = emu.pc
             else:
                 # If it failed, was not able to run the instruction
