@@ -300,8 +300,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-    # Read a register in the context of an instruction
-    # Only return an integer if we can reason about the value, else None
+    # Override
     def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
@@ -311,11 +310,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return instruction.address + instruction.size
         else:
             return super().read_register(instruction, operand_id, emu)
-        
-    # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
+    
+    # Override
     def parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator = None
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ):
+        # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
 
         # There doesn't appear to be a good way to read from segmented
@@ -344,14 +344,15 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return target
 
-    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
+    # Override
+    def next(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
-            return super().next(instruction, call)
+            return super().next(instruction, emu, call=call)
 
-        # Stop disassembling at RET if we won't know where it goes to
+        # Stop disassembling at RET if we won't know where it goes to without emulation
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return None
+            return super().next(instruction, emu, call=call)
 
         # Otherwise, resolve the return on the stack
         pop = 0
@@ -363,7 +364,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if pwndbg.gdblib.memory.peek(address):
             return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool | None:
+    # Override
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> bool | None:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return None

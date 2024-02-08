@@ -44,7 +44,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_BNEZ: src1_signed != 0,
         }.get(instruction.id, None)
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None):
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator):
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
@@ -64,7 +64,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return None
 
-    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
+    def next(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
@@ -94,7 +94,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
-        return super().next(instruction, call)
+        return super().next(instruction, emu, call)
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")

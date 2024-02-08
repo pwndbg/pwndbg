@@ -167,7 +167,7 @@ class DisassemblyAssistant:
         """
         return None
 
-    def enhance_operands(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool:
+    def enhance_operands(self, instruction: PwndbgInstruction, emu: Emulator) -> bool:
         """
         Enhances the operands by determining values and symbols
 
@@ -250,7 +250,7 @@ class DisassemblyAssistant:
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def parse_register(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
     ) -> int | None:
         reg = operand.reg
         return self.read_register(instruction, reg, emu)
@@ -258,12 +258,12 @@ class DisassemblyAssistant:
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def parse_memory(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
     ) -> int | None:
         return None
 
     def parse_immediate(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
     ):
         return operand.imm
 
@@ -418,7 +418,7 @@ class DisassemblyAssistant:
 
 
 
-    def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+    def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
         Adds a ``condition`` field to the instruction.
 
@@ -431,7 +431,7 @@ class DisassemblyAssistant:
 
         In all other cases, it is set to ``False``.
         """
-        c = self.condition(instruction, emu=emu)
+        c = self.condition(instruction, emu)
 
         if c:
             c = True
@@ -440,10 +440,11 @@ class DisassemblyAssistant:
 
         instruction.condition = c
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool | None:
+    # Subclasses should override
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> bool | None:
         return False
 
-    def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+    def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
         Adds a ``next`` field to the instruction.
 
@@ -464,11 +465,11 @@ class DisassemblyAssistant:
 
         # If this might be a conditional jump (and we take it), attempt to resolve the address
         if emu or instruction.condition in (True, None):
-            next_addr = self.next(instruction, emu=emu)
+            next_addr = self.next(instruction, emu)
 
         if next_addr is None:
             next_addr = instruction.address + instruction.size
-            instruction.target = self.next(instruction, call=True, emu=emu)
+            instruction.target = self.next(instruction, emu, call=True)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
@@ -482,20 +483,22 @@ class DisassemblyAssistant:
         ):
             instruction.target_const = True
 
-    def next(self, instruction: PwndbgInstruction, call=False, emu: Emulator = None):
+    # This is the default implementation. Subclasses can override this. See x86.py as example
+    def next(self, instruction: PwndbgInstruction, emu: Emulator, call=False):
         """
         Architecture-specific hook point for enhance_next.
         """
+
         if CS_GRP_CALL in instruction.groups:
             if not call:
                 return None
 
-        elif CS_GRP_JUMP not in instruction.groups:
+        elif CS_GRP_JUMP not in instruction.groups and CS_GRP_RET not in instruction.groups:
             return None
 
         # Use emulator to determine the address. 
         # The checks above this are important - if `not call`, 
-        # then this determines a jump target (or just the next address in memory)
+        # then this is used to set a jump target (or just the next address in memory)
         # We currently don't emulate through calls, so this won't be called in case it's a call
         # At this point is has been successfully single stepped
         if emu:
@@ -516,7 +519,7 @@ class DisassemblyAssistant:
 
         return int(addr)
 
-    def dump(self, instruction):
+    def dump(self, instruction: PwndbgInstruction):
         """
         Debug-only method.
         """
