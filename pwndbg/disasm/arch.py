@@ -115,7 +115,7 @@ class DisassemblyAssistant:
             )
 
         # For both cases below, we still step the emulation so we can use it to determine jump target
-        # in the pwndbg.disasm.near() function.
+        # in the pwndbg.disasm.near() function. Then, set emu to None so we don't use it for annotation
         if emu and not bool(pwndbg.gdblib.config.emulate_annotations):
             emu.single_step(check_instruction_valid=False)
             emu = None
@@ -144,8 +144,12 @@ class DisassemblyAssistant:
             pwndbg.gdblib.arch.current, generic_assistant
         )
 
-        enhancer.enhance_operands(instruction, emu)
+        # This function will .single_step the emulation
+        if not enhancer.enhance_operands(instruction, emu):
+            emu = None
+
         enhancer.enhance_conditional(instruction, emu)
+
         enhancer.enhance_next(instruction, emu)
 
         if bool(pwndbg.gdblib.config.disasm_annotations):
@@ -163,7 +167,7 @@ class DisassemblyAssistant:
         """
         return None
 
-    def enhance_operands(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+    def enhance_operands(self, instruction: PwndbgInstruction, emu: Emulator = None) -> bool:
         """
         Enhances the operands by determining values and symbols
 
@@ -192,6 +196,8 @@ class DisassemblyAssistant:
         This is only set if, after parsing all of the operands, there is exactly one
         value which resolved to a named symbol, it will be set to
         that value. In all other cases, the value is `None`.
+
+        Return False if emulation fails (so we don't use it in additional enhancement steps)
         """
 
         # Populate the "operands" list of the instruction
@@ -233,6 +239,8 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Resolved symbol: {o.symbol}")
 
+        return emu is not None
+
     # Determine if the program counter of the process equals the address of the function being executed.
     # If so, it means we can safely reason and read from registers and memory to represent values that
     # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to
@@ -244,13 +252,8 @@ class DisassemblyAssistant:
     def parse_register(
         self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
     ) -> int | None:
-        # if not self.can_reason_about_process_state(instruction):
-            # return None
-
         reg = operand.reg
         return self.read_register(instruction, reg, emu)
-        # name = instruction.cs_insn.reg_name(reg)
-        # return pwndbg.gdblib.regs[name]
 
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
@@ -454,10 +457,13 @@ class DisassemblyAssistant:
 
         And the target can be resolved, it is set to the address
         of the jump target.
+
+        Pass the emulator to the architecture specific hook, next(), which might use it to determine the .next
         """
         next_addr = None
 
-        if instruction.condition in (True, None):
+        # If this might be a conditional jump (and we take it), attempt to resolve the address
+        if emu or instruction.condition in (True, None):
             next_addr = self.next(instruction, emu=emu)
 
         if next_addr is None:
@@ -486,6 +492,14 @@ class DisassemblyAssistant:
 
         elif CS_GRP_JUMP not in instruction.groups:
             return None
+
+        # Use emulator to determine the address. 
+        # The checks above this are important - if `not call`, 
+        # then this determines a jump target (or just the next address in memory)
+        # We currently don't emulate through calls, so this won't be called in case it's a call
+        # At this point is has been successfully single stepped
+        if emu:
+            return emu.pc
 
         # At this point, all operands have been resolved.
         # Assume only single-operand jumps.

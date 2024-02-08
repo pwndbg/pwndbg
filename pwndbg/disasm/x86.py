@@ -49,7 +49,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_XCHG: self.handle_xchg,
             # POP
             X86_INS_POP: self.handle_pop,
-
             # ADD
             X86_INS_ADD: self.handle_add,
             # SUB
@@ -301,19 +300,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-    # # Read value at register
-    # def parse_register(
-    #     self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator = None
-    # ):
-    #     reg = operand.reg
-    #     return self.read_register(instruction, reg, emu)
-
     # Read a register in the context of an instruction
     # Only return an integer if we can reason about the value, else None
     def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
-
-        # regname: str = instruction.cs_insn.reg_name(operand_id)
 
         if operand_id == X86_REG_RIP:
             # Ex: lea    rax, [rip + 0xd55]
@@ -322,24 +312,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         else:
             return super().read_register(instruction, operand_id, emu)
         
-        # else:
-        #     if emu:
-        #         # Will return the value of register after executing the instruction
-        #         value = emu.read_register(regname)
-        #         if DEBUG_ENHANCEMENT:
-        #             print(f"Register in emulation returned {regname}={hex(value)}")
-        #         return value
-        #     elif self.can_reason_about_process_state(instruction):
-        #         # When instruction address == pc, we can reason about all registers.
-        #         # The values will just reflect values prior to executing the instruction, instead of after,
-        #         # which is relevent if we are writing to this register.
-        #         # However, the information can still be useful for display purposes.
-        #         if DEBUG_ENHANCEMENT:
-        #             print(f"Read value from process register: {pwndbg.gdblib.regs[regname]}")
-        #         return pwndbg.gdblib.regs[regname]
-        #     else:
-        #         return None
-
     # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
     def parse_memory(
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator = None
