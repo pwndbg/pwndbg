@@ -182,27 +182,8 @@ class Emulator:
         if self.arch not in arch_to_UC:
             raise NotImplementedError(f"Cannot emulate code for {self.arch}")
 
-        # self.consts = arch_to_UC_consts[self.arch]
-
         # Mapping of Pwndbg register name to Unicorn constant for the register
         self.const_regs = arch_to_reg_const_map[self.arch]
-
-        # # Create a map of "register_name" -> Capstone ID, for faster lookup
-        # self.const_regs: dict[str, int] = {}
-        # r = re.compile(r"^UC_.*_REG_(.*)$")
-        # for k, v in self.consts.items():
-        #     # Use regex to match the Capstone register names to our register names.
-        #     # Ex: extract "RCX" from "UC_X86_REG_RCX"
-        #     # All are uppercase
-        #     m = r.match(k)
-
-        #     if m:
-        #         self.const_regs[m.group(1)] = v
-        
-        # # Edge case for aarch64 - Unicorns calls the flags register NZCV, while we call is CPSR
-        # if self.arch == "aarch64":
-        #     self.const_regs["CPSR"] = U.arm64_const.UC_ARM64_REG_NZCV
-
 
         self.uc_mode = self.get_uc_mode()
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
@@ -226,11 +207,9 @@ class Emulator:
         for reg in (
             list(self.regs.retaddr)
             + list(self.regs.misc)
-            + list(self.regs.common)
-            + list(self.regs.flags)
+            + list(self.regs.common) # this includes the flags register
         ):
             enum = self.get_reg_enum(reg)
-
 
 
             if not reg:
