@@ -493,7 +493,7 @@ def near(
         # Address to disassemble & emulate
         target = insn.next
 
-        # Disable emulation if necessary
+        # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emulate and set(insn.groups) & DO_NOT_EMULATE:
             emulate = False
             emu = None
@@ -506,9 +506,9 @@ def near(
             if emu.last_step_succeeded:
                 # Next instruction to be executed is where the emulator is.
                 # We set this here as a fallback, because insn.next will use
-                # emulation to set the address, but in case there is a codepath
+                # emulation to set the address within the enhancement code, but in case there is a codepath
                 # in a specific architectures enhancement implementation that ends up not using emulation
-                # to set next, this makes sure we disassemble at the real next address
+                # to set next, this makes sure we disassemble at the real next address.
                 target = emu.pc
             else:
                 # If it failed, was not able to run the instruction
