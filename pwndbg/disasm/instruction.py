@@ -109,6 +109,13 @@ class PwndbgInstruction:
         return self.target not in (None, self.address + self.size)
 
     @property
+    def is_jump_taken(self) -> bool:
+        """
+        True if this is a CS_GRP_JUMP type instruction, and we predicted that we will take the jump
+        """
+        return CS_GRP_JUMP in self.groups and (self.next not in (None, self.address + self.size) or self.condition is True)
+
+    @property
     def bytes(self) -> bytearray:
         """
         Raw machine instruction bytes

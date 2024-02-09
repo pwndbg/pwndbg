@@ -487,22 +487,22 @@ class DisassemblyAssistant:
     def next(self, instruction: PwndbgInstruction, emu: Emulator, call=False):
         """
         Architecture-specific hook point for enhance_next.
+
+        "call" specifies if we allow this to resolve call instruction targets
         """
 
         if CS_GRP_CALL in instruction.groups:
             if not call:
                 return None
 
-        elif CS_GRP_JUMP not in instruction.groups and CS_GRP_RET not in instruction.groups:
-            return None
-
-        # Use emulator to determine the address. 
-        # The checks above this are important - if `not call`, 
-        # then this is used to set a jump target (or just the next address in memory)
-        # We currently don't emulate through calls, so this won't be called in case it's a call
-        # At this point is has been successfully single stepped
+        # Use emulator to determine the address if we can
         if emu:
             return emu.pc
+
+        # If not a call and not a jump
+        if CS_GRP_CALL not in instruction.groups and CS_GRP_JUMP not in instruction.groups:
+            return None
+
 
         # At this point, all operands have been resolved.
         # Assume only single-operand jumps.
