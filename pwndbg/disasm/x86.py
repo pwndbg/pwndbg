@@ -345,14 +345,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         return target
 
     # Override
-    def next(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
-            return super().next(instruction, emu, call=call)
+            return super().resolve_target(instruction, emu, call=call)
 
         # Stop disassembling at RET if we won't know where it goes to without emulation
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return super().next(instruction, emu, call=call)
+            return super().resolve_target(instruction, emu, call=call)
 
         # Otherwise, resolve the return on the stack
         pop = 0

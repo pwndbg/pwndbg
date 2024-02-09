@@ -446,30 +446,37 @@ class DisassemblyAssistant:
 
     def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
-        Adds a ``next`` field to the instruction.
+        Set the `next` and `target` field of the instruction.
 
         By default, it is set to the address of the next linear
         instruction.
 
-        If the instruction is a non-"call" branch and either:
+        `next` is the address that the PC would be upon using the GDB `nexti` command,
+        `target` is the jump target whether or not the jump is taken, like `stepi` and assuming the jump is taken.
 
-        - Is unconditional
+        If the instruction is a non-"call" branch and either:
+        - Is unconditional, or is conditional and is known to be taken, a
         - Is conditional, but is known to be taken
 
         And the target can be resolved, it is set to the address
         of the jump target.
 
-        Pass the emulator to the architecture specific hook, next(), which might use it to determine the .next
         """
         next_addr = None
 
-        # If this might be a conditional jump (and we take it), attempt to resolve the address
-        if emu or instruction.condition in (True, None):
-            next_addr = self.next(instruction, emu)
+        if emu:
+            # Use emulator to determine the next address if we can
+            next_addr == emu.pc
+        elif instruction.condition in (True, None):
+            # Not emulating, but it might be a jump instruction, and we don't explicitely not take it, so attempt to resolve address.
+            # Will return False if cannot reason about the address, or it's not a jump instruction.
+            next_addr = self.resolve_target(instruction, emu)
 
         if next_addr is None:
             next_addr = instruction.address + instruction.size
-            instruction.target = self.next(instruction, emu, call=True)
+
+        # Determine the target of this address, allowing call instructions
+        instruction.target = self.resolve_target(instruction, emu, call=True)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
@@ -484,23 +491,19 @@ class DisassemblyAssistant:
             instruction.target_const = True
 
     # This is the default implementation. Subclasses can override this. See x86.py as example
-    def next(self, instruction: PwndbgInstruction, emu: Emulator, call=False):
+    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """
         Architecture-specific hook point for enhance_next.
 
+        Returns the value of the instruction pointer assuming this instruction executes (and any conditional jumps are taken)
+        
         "call" specifies if we allow this to resolve call instruction targets
         """
 
         if CS_GRP_CALL in instruction.groups:
             if not call:
                 return None
-
-        # Use emulator to determine the address if we can
-        if emu:
-            return emu.pc
-
-        # If not a call and not a jump
-        if CS_GRP_CALL not in instruction.groups and CS_GRP_JUMP not in instruction.groups:
+        elif CS_GRP_JUMP not in instruction.groups:
             return None
 
 
