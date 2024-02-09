@@ -64,7 +64,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return None
 
-    def next(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
@@ -94,7 +94,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
-        return super().next(instruction, emu, call)
+        return super().resolve_target(instruction, emu, call)
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")
