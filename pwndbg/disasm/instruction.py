@@ -7,8 +7,34 @@ import gdb
 # Reverse lookup tables for debug printing
 from capstone import CS_GRP
 from capstone import CS_OP
-from capstone.x86 import X86Op
+from capstone import CS_AC
+from capstone.x86 import X86Op, X86_INS_JMP
+from capstone.arm import ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH
+from capstone.arm64 import ARM64_INS_B, ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR
+from capstone.sparc import SPARC_INS_JMP,SPARC_INS_JMPL
+from capstone.mips import MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR
+from capstone.riscv import RISCV_INS_JAL, RISCV_INS_JALR
+from capstone.ppc import PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA
+
+
 from capstone import *  # noqa: F403
+
+
+# Architecture specific instructions that mutate the instruction pointer unconditionally
+# The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
+# so we don't need to manually specify those for each architecture
+UNCONDITIONAL_JUMPS: dict[int, set[int]] = {
+    CS_ARCH_X86: {X86_INS_JMP},
+    CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR},
+    CS_ARCH_SPARC: {SPARC_INS_JMP,SPARC_INS_JMPL},
+    CS_ARCH_ARM: {ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH},
+    CS_ARCH_ARM64: {ARM64_INS_B, ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
+    CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR},
+    CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA}
+}
+
+GENERIC_UNCONDITIONAL_JUMPS = {CS_GRP_CALL, CS_GRP_RET}
+ALL_JUMPS = {CS_GRP_JUMP} | GENERIC_UNCONDITIONAL_JUMPS
 
 
 # This class is used to provide context to an instructions execution, used both
@@ -41,6 +67,8 @@ class PwndbgInstruction:
         #   CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
         self.groups: list[int] = cs_insn.groups
 
+        self.groups_set = set(self.groups)
+
         # The underlying Capstone ID for the instruction
         # Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL
         self.id: int = cs_insn.id
@@ -58,28 +86,26 @@ class PwndbgInstruction:
         # in pwndbg.disasm.arch.py
         # ***********
 
+        # This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
         # The address of the next instruction that is called after this, which is
         # typically self.address + self.size (the next instruction in memory).
         # If the instruction is "RET" or some sort of jump instruction (JMP, JNE)
         # and if the jump is taken - unconditionally, or it's conditional and we know its taken - then
         # we set the value to the jump target
         # Not used for "call" instructions, to indicate we will eventually return to this address
-        # Or, in other words, using "nexti" in GDB should go to this instruction address
         self.next: int = self.address + self.size
 
         # This is target of instructions that change the PC, regardless of if it's conditional or not,
-        # and whether we take the jump. This includes "call" and all other instructions that set the PC
+        # and whether or not we take the jump. This includes "call" and all other instructions that set the PC
         # If the instruction is not one that changes the PC, target is set to "next"
         self.target: int = None
 
+        # String representation of the target address. 
+        # Colorized symbol if a symbol exists at address, else colorized address
+        self.target_string: str | None = None
+
         # Whether the target is a constant expression
         self.target_const: bool | None = None
-
-        # Used for displaying jump targets
-        self.symbol: str | None = None
-
-        # Only set if symbol is set
-        self.symbol_addr: int = None
 
         # Does the condition that the instruction checks for pass?
         # Relevent for instructions that conditionally take an action, based on a flag
@@ -102,19 +128,52 @@ class PwndbgInstruction:
         self.annotation_padding: int | None = None
 
     @property
-    def is_branch(self) -> bool:
+    def can_change_instruction_pointer(self) -> bool:
         """
-        True if we have detected that this instruction can explicitly change the program counter
+        True if we have determined that this instruction can explicitly change the program counter.
         """
         return self.target not in (None, self.address + self.size)
 
-    @property
-    def is_jump_taken(self) -> bool:
-        """
-        True if this is a CS_GRP_JUMP type instruction, and we predicted that we will take the jump
-        """
-        return CS_GRP_JUMP in self.groups and (self.next not in (None, self.address + self.size) or self.condition is True)
 
+
+    @property
+    def is_conditional_jump(self) -> bool:
+        """
+        True if this instruction can change the program counter conditionally.
+
+        This is used to determine what instructions deserve a "checkmark" in the disasm view if the jump is taken
+        
+        This property is used to determine if an instruction deserves a green checkmark.
+        """
+        print(bool(self.groups_set & ALL_JUMPS))
+        print(not self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch])
+        return bool(self.groups_set & ALL_JUMPS) and not self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch]
+
+
+    @property
+    def is_unconditional_jump(self) -> bool:
+        """
+        True if we know the instruction can change the program counter, and does so unconditionally.
+
+        This includes things like RET, CALL, and JMP (in x86).
+
+        This property is used in enhancement to determine certain codepaths when resolving .next for this instruction.
+        """
+        return bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMPS) or bool(self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch])
+
+
+
+    @property
+    def is_conditional_jump_taken(self) -> bool:
+        """
+        True if this is a conditional jump, and we predicted that we will take the jump
+        """
+        print(f"is_conditional_jump_taken")
+        print(self)
+        return self.is_conditional_jump and ((self.next not in (None, self.address + self.size)) or self.condition is True)
+
+
+    
     @property
     def bytes(self) -> bytearray:
         """
@@ -141,8 +200,7 @@ class PwndbgInstruction:
         return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
         ID: {self.id}, {self.cs_insn.insn_name()}
         Next: {self.next:#x}
-        Target: {self.target:#x}, const={self.target_const}
-        Symbol: {self.symbol} {self.symbol_addr}
+        Target: {self.target:#x}, Target string={self.target_string}, const={self.target_const}
         Condition: {self.condition}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
@@ -226,7 +284,11 @@ class EnhancedOperand:
         )
 
         if(isinstance(self.cs_op, X86Op)):
-            info += f", size={self.size}]"
+            info += (
+                f", size={self.size}, "
+                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
+            )
+
         
         return f"[{info}]"
 
@@ -247,7 +309,6 @@ def make_simple_instruction(address: int) -> PwndbgInstruction:
     pwn_ins.target = pwn_ins.next
 
     pwn_ins.groups = []
-    pwn_ins.symbol = None
 
     pwn_ins.condition = False
 

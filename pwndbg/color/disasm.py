@@ -44,34 +44,26 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     asm = "%-06s %s" % (ins.mnemonic, ins.op_str)
     if pwndbg.gdblib.config.syntax_highlight:
         asm = syntax_highlight(asm)
-    is_branch = set(ins.groups) & capstone_branch_groups
 
     # Highlight the current line if enabled
     if pwndbg.gdblib.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
-    if ins.is_branch:
-        sym = pwndbg.gdblib.symbol.get(ins.target) or None
-        if sym:
-            sym = M.get(ins.target, sym)
+    if ins.can_change_instruction_pointer:
+        sym = ins.target_string
 
-        target = M.get(ins.target)
-        const = ins.target_const
+        # If it's a constant expression (immediate value), color it directly in the asm.
+        if ins.target_const:
+            asm = asm.replace(hex(ins.target), sym)
 
-        # If it's a constant expression, color it directly in the asm.
-        if const:
-            asm = asm.replace(hex(ins.target), sym or target)
-    else:
-        # If enhancement found one important symbol, and if it's a literal, try to replace it with symbol
-        if ins.symbol:
-            asm = asm.replace(hex(ins.symbol_addr), ins.symbol)
+    is_call_or_jump = ins.groups_set & capstone_branch_groups
 
-    # Style the instruction mnemonic if it's a branch instruction.
-    if is_branch:
+    # Style the instruction mnemonic if it's a call/jump instruction.
+    if is_call_or_jump:
         asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)
 
     # If we know the conditional is taken, mark it as taken.
-    if ins.condition is True or ins.is_jump_taken:
+    if ins.condition is True or ins.is_conditional_jump_taken:
         asm = on("✔ ") + asm
     else:
         asm = "  " + asm
@@ -102,23 +94,10 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
     paddings = []
 
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
-        if ins.is_branch:
-            sym = pwndbg.gdblib.symbol.get(ins.target) or None
-            if sym:
-                sym = M.get(ins.target, sym)
+        if ins.can_change_instruction_pointer:
+            sym = ins.target_string
 
-            target = M.get(ins.target)
-            const = ins.target_const
-            if const:
-                asm = f"{ljust_colored(asm, 36)} <{sym or target}>"
-            # It's not a constant expression, but we've calculated the target
-            # address by emulation or other means (for example showing ret instruction target)
-            # and we have a symbol
-            elif sym:
-                asm = f"{ljust_colored(asm, 36)} <{sym}>"
-            # We were able to calculate the target, but there is no symbol name for it.
-            else:
-                asm = f"{ljust_colored(asm, 36)} <{target}>"
+            asm = f"{ljust_colored(asm, 36)} <{sym}>"
 
             paddings.append(None)
         else:
@@ -136,11 +115,12 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 #   mov    dword ptr [something_super_long], eax            Annotation
                 #   pop rax        Annotation_all_the_way_here
                 #   mov    rax, qword ptr [more_super_long]                 Annotation
-                # It prevents jagged annotations like shown above, instead, it puts all annotations on the same column
+                #
+                # It prevents jagged annotations like shown above. Instead, it puts all annotations on the same column
                 # Checks the length of the following instruction to determine where to put the annotation
 
                 # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
-                if i < len(instructions) - 1 and not instructions[i + 1].is_branch:
+                if i < len(instructions) - 1 and not instructions[i + 1].can_change_instruction_pointer:
                     next_len = len(strip(assembly[i + 1]))
 
                     # If next instructions also has too much white space, put annotations closer to left again
