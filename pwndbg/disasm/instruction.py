@@ -145,8 +145,6 @@ class PwndbgInstruction:
         
         This property is used to determine if an instruction deserves a green checkmark.
         """
-        print(bool(self.groups_set & ALL_JUMPS))
-        print(not self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch])
         return bool(self.groups_set & ALL_JUMPS) and not self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch]
 
 
@@ -168,8 +166,6 @@ class PwndbgInstruction:
         """
         True if this is a conditional jump, and we predicted that we will take the jump
         """
-        print(f"is_conditional_jump_taken")
-        print(self)
         return self.is_conditional_jump and ((self.next not in (None, self.address + self.size)) or self.condition is True)
 
 
@@ -200,7 +196,7 @@ class PwndbgInstruction:
         return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
         ID: {self.id}, {self.cs_insn.insn_name()}
         Next: {self.next:#x}
-        Target: {self.target:#x}, Target string={self.target_string}, const={self.target_const}
+        Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
         Condition: {self.condition}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
