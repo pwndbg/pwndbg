@@ -11,6 +11,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.color.memory as MemoryColor
+import pwndbg.gdblib.vmmap
 
 # import pwndbg.gdblib.config
 import pwndbg.lib.cache
@@ -203,7 +204,7 @@ class DisassemblyAssistant:
             op.before_value = self.op_handlers.get(op.type, lambda *a: None)(instruction, op, emu)
             if op.before_value is not None:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
-                op.symbol = pwndbg.gdblib.symbol.get(op.before_value)
+                op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
 
         # Execute the instruction and set after_value
         if emu and None not in emu.single_step(check_instruction_valid=False):
@@ -479,7 +480,8 @@ class DisassemblyAssistant:
         ):
             instruction.target_const = True
 
-    # This is the default implementation. Subclasses can override this. See x86.py as example
+    # This is the default implementation. 
+    # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
     def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """
         Architecture-specific hook point for enhance_next.
@@ -496,15 +498,33 @@ class DisassemblyAssistant:
             return None
 
 
+        addr = None
+
         # At this point, all operands have been resolved.
         # Assume only single-operand jumps.
-        if len(instruction.operands) != 1:
-            return None
-
-        op = instruction.operands[0]
-        addr = self.resolve_used_value(op.before_value, instruction, op, emu)
-        if addr:
-            addr &= pwndbg.gdblib.arch.ptrmask
+        if len(instruction.operands) == 1:
+            op = instruction.operands[0]
+            addr = self.resolve_used_value(op.before_value, instruction, op, emu)
+            if addr:
+                addr &= pwndbg.gdblib.arch.ptrmask
+        else:
+            # Some architectures have jumps with multiple operands. In this case, this default implementation
+            # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
+            # and use that as the target
+            
+            for op in instruction.operands:
+                resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
+                if resolved_addr:
+                    resolved_addr &= pwndbg.gdblib.arch.ptrmask
+                    if op.symbol:
+                        addr = resolved_addr
+                        break
+                    else:
+                        if resolved_addr:
+                            page = pwndbg.gdblib.vmmap.find(resolved_addr)
+                            if page and page.execute:
+                                addr = resolved_addr
+                                break
 
         if addr is None:
             return None

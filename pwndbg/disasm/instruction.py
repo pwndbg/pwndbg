@@ -33,7 +33,10 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA}
 }
 
+# Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
+
+# All Capstone jumps should have at least one of these groups 
 ALL_JUMP_GROUPS = {CS_GRP_JUMP} | GENERIC_UNCONDITIONAL_JUMP_GROUPS
 
 
@@ -145,7 +148,7 @@ class PwndbgInstruction:
         
         This property is used to determine if an instruction deserves a green checkmark.
         """
-        return bool(self.groups_set & ALL_JUMP_GROUPS) and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
+        return CS_GRP_JUMP in self.groups_set and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
 
 
     @property
