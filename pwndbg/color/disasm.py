@@ -53,6 +53,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
         sym = ins.target_string
 
         # If it's a constant expression (immediate value), color it directly in the asm.
+        # TODO: Remove this, is false most of the time
         if ins.target_const:
             asm = asm.replace(hex(ins.target), sym)
 
