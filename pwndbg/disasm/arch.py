@@ -467,7 +467,9 @@ class DisassemblyAssistant:
 
         if instruction.target is None:
             instruction.target = instruction.next
-        else:
+        
+        if instruction.can_change_instruction_pointer:
+            # Only bother doing the lookup when the target is not the next address in memory:
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
 
         if (
