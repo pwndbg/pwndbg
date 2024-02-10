@@ -513,8 +513,9 @@ class DisassemblyAssistant:
             # and use that as the target
             
             best_guess_addr = None
-
-            for op in instruction.operands:
+        
+            # Reversed order, just because through observation the immediates and labels are often farther right
+            for op in reversed(instruction.operands):
 
                 resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
                 if resolved_addr:
