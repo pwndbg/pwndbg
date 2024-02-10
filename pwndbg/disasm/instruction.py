@@ -23,7 +23,7 @@ from capstone import *  # noqa: F403
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 # The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
 # so we don't need to manually specify those for each architecture
-UNCONDITIONAL_JUMPS: dict[int, set[int]] = {
+UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
     CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR},
     CS_ARCH_SPARC: {SPARC_INS_JMP,SPARC_INS_JMPL},
@@ -33,8 +33,8 @@ UNCONDITIONAL_JUMPS: dict[int, set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA}
 }
 
-GENERIC_UNCONDITIONAL_JUMPS = {CS_GRP_CALL, CS_GRP_RET}
-ALL_JUMPS = {CS_GRP_JUMP} | GENERIC_UNCONDITIONAL_JUMPS
+GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
+ALL_JUMP_GROUPS = {CS_GRP_JUMP} | GENERIC_UNCONDITIONAL_JUMP_GROUPS
 
 
 # This class is used to provide context to an instructions execution, used both
@@ -145,7 +145,7 @@ class PwndbgInstruction:
         
         This property is used to determine if an instruction deserves a green checkmark.
         """
-        return bool(self.groups_set & ALL_JUMPS) and not self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch]
+        return bool(self.groups_set & ALL_JUMP_GROUPS) and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
 
 
     @property
@@ -157,7 +157,7 @@ class PwndbgInstruction:
 
         This property is used in enhancement to determine certain codepaths when resolving .next for this instruction.
         """
-        return bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMPS) or bool(self.groups_set & UNCONDITIONAL_JUMPS[self.cs_insn._cs.arch])
+        return bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMP_GROUPS) or self.id in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
 
 
 
