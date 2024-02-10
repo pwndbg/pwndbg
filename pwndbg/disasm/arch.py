@@ -512,19 +512,24 @@ class DisassemblyAssistant:
             # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
             # and use that as the target
             
+            best_guess_addr = None
+
             for op in instruction.operands:
+
                 resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
                 if resolved_addr:
                     resolved_addr &= pwndbg.gdblib.arch.ptrmask
                     if op.symbol:
-                        addr = resolved_addr
-                        break
+                        best_guess_addr = resolved_addr
                     else:
-                        if resolved_addr:
-                            page = pwndbg.gdblib.vmmap.find(resolved_addr)
-                            if page and page.execute:
-                                addr = resolved_addr
-                                break
+                        page = pwndbg.gdblib.vmmap.find(resolved_addr)
+                        if page and page.execute:
+                            best_guess_addr = resolved_addr
+
+                if best_guess_addr is not None:
+                    addr = best_guess_addr
+                    instruction.target_const = op.type == CS_OP_IMM
+                    break
 
         if addr is None:
             return None
