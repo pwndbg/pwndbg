@@ -147,6 +147,8 @@ class DisassemblyAssistant:
         # This function will .single_step the emulation
         if not enhancer.enhance_operands(instruction, emu):
             emu = None
+            if DEBUG_ENHANCEMENT:
+                print(f"Emulation failed at {instruction.address=:#x}")
 
         enhancer.enhance_conditional(instruction, emu)
 
@@ -191,12 +193,6 @@ class DisassemblyAssistant:
             operand.str:
                 String representing the operand
 
-        Also, in order for the display function to be able to replace any inline address in the operands
-        with a symbol, we add the `symbol` and `symbol_addr` fields to the instruction.
-        This is only set if, after parsing all of the operands, there is exactly one
-        value which resolved to a named symbol, it will be set to
-        that value. In all other cases, the value is `None`.
-
         Return False if emulation fails (so we don't use it in additional enhancement steps)
         """
 
@@ -225,19 +221,6 @@ class DisassemblyAssistant:
         # Set .str value of operands, after emulation has been completed
         for op in instruction.operands:
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
-
-        operands_with_symbols = [
-            o for o in instruction.operands if o.symbol and o.cs_op.access == CS_AC_READ
-        ]
-
-        if len(operands_with_symbols) == 1:
-            o = operands_with_symbols[0]
-
-            instruction.symbol = o.symbol
-            instruction.symbol_addr = o.before_value
-
-            if DEBUG_ENHANCEMENT:
-                print(f"Resolved symbol: {o.symbol}")
 
         return emu is not None
 
@@ -462,14 +445,16 @@ class DisassemblyAssistant:
         of the jump target.
 
         """
-        next_addr = None
+        next_addr: int | None = None
 
         if emu:
             # Use emulator to determine the next address if we can
-            next_addr == emu.pc
-        elif instruction.condition in (True, None):
-            # Not emulating, but it might be a jump instruction, and we don't explicitely not take it, so attempt to resolve address.
-            # Will return False if cannot reason about the address, or it's not a jump instruction.
+            # Only use it to determine non-call's for .next
+            if CS_GRP_CALL not in instruction.groups_set:
+                next_addr = emu.pc
+        elif instruction.condition is True or instruction.is_unconditional_jump:
+            # If .condition is true, then this might be a conditional jump (there are some other instructions that run conditionall though)
+            # or, if this is a unconditional jump, we will try to resolve the .next
             next_addr = self.resolve_target(instruction, emu)
 
         if next_addr is None:
@@ -482,6 +467,8 @@ class DisassemblyAssistant:
 
         if instruction.target is None:
             instruction.target = instruction.next
+        else:
+            instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
 
         if (
             instruction.operands

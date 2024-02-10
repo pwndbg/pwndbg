@@ -36,11 +36,14 @@ def get_address_and_symbol(address: int) -> str:
 
 # Ex: convert and colorize address to symbol if it can be resolved, else return hex string of address
 def get_address_or_symbol(address: int) -> str:
+    return attempt_colorized_symbol(address) or get(address)
+
+# Convert address to colorized symbol (if symbol is there), else None
+def attempt_colorized_symbol(address: int) -> str | None:
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         return get(address, symbol)
-    return get(address)
-
+    return None
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """
