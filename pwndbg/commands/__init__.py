@@ -672,6 +672,7 @@ def load_commands() -> None:
     import pwndbg.commands.mprotect
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.one_gadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
     import pwndbg.commands.peda
