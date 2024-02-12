@@ -121,24 +121,13 @@ class module(ModuleType):
         )
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def get_data_section_address(self) -> int:
+    def get_section_address_by_name(self, section_name: str) -> int:
         """
-        Find .data section address of current process.
-        """
-        out = pwndbg.gdblib.info.files()
-        for line in out.splitlines():
-            if line.endswith(" is .data"):
-                return int(line.split()[0], 16)
-        return 0
-
-    @pwndbg.lib.cache.cache_until("start", "objfile")
-    def get_got_section_address(self) -> int:
-        """
-        Find .got section address of current process.
+        Find section address of current process by section name
         """
         out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
-            if line.endswith(" is .got"):
+            if line.endswith(f" is {section_name}"):
                 return int(line.split()[0], 16)
         return 0
 

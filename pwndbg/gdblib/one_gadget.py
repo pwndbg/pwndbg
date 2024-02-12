@@ -499,9 +499,9 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     elif IS_GOT_ADDRESS_PATTERN.match(constraint):
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
-        got_address = pwndbg.glibc.get_got_plt_section_address()
-        passed = result == got_address
-        output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_address:#x}) of libc\n"
+        got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+        passed = result == got_plt_address
+        output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
     else:
         raise ValueError(f"Unsupported constraint: {constraint}")
 
