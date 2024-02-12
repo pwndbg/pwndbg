@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-
+from enum import Enum
 import gdb
 
 # Reverse lookup tables for debug printing
@@ -12,7 +12,7 @@ from capstone.x86 import X86Op, X86_INS_JMP
 from capstone.arm import ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH
 from capstone.arm64 import ARM64_INS_B, ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR
 from capstone.sparc import SPARC_INS_JMP,SPARC_INS_JMPL
-from capstone.mips import MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR
+from capstone.mips import MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B
 from capstone.riscv import RISCV_INS_JAL, RISCV_INS_JALR
 from capstone.ppc import PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA
 
@@ -25,7 +25,7 @@ from capstone import *  # noqa: F403
 # so we don't need to manually specify those for each architecture
 UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
-    CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR},
+    CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
     CS_ARCH_SPARC: {SPARC_INS_JMP,SPARC_INS_JMPL},
     CS_ARCH_ARM: {ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH},
     CS_ARCH_ARM64: {ARM64_INS_B, ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
@@ -35,9 +35,19 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
 
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
-
+# All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone 
+GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups 
-ALL_JUMP_GROUPS = {CS_GRP_JUMP} | GENERIC_UNCONDITIONAL_JUMP_GROUPS
+ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
+
+class InstructionCondition(Enum):
+    # Conditional instruction, and action is taken
+    TRUE = 1
+    # Conditional instruction, but action is not taken
+    FALSE = 2
+    # Unconditional instructions (most instructions), or we cannot reason about the instruction 
+    UNDETERMINED = 3
+
 
 
 # This class is used to provide context to an instructions execution, used both
@@ -111,16 +121,16 @@ class PwndbgInstruction:
         self.target_const: bool | None = None
 
         # Does the condition that the instruction checks for pass?
-        # Relevent for instructions that conditionally take an action, based on a flag
+        # Relevent for instructions that conditionally take an action
         # For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
-        # See 'condition' function in pwndbg.disasm.x86 for other instructions
-        # Value is either None, False, or True
-        # If the instruction is always executed unconditionally (most instructions), this is set to None
-        # If the instruction is executed conditionally, and we can determine it will indeed execute, the value is True
-        # Else, False.
-        self.condition: bool | None = None
+        # See 'condition' function in pwndbg.disasm.x86 for examples
+        #
+        # UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions)
+        # TRUE if the instruction has a conditional action, and we determine it is taken
+        # FALSE if the instruction has a conditional action, and we know it is not taken
+        self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
 
-        # The string is set in the "DisassemblyAssistant.enchance" function.
+        # The string is set in the "DisassemblyAssistant.enhance" function.
         # It is used in the disasm print view to add context to the instruction, mostly operand value
         # This string is not used for all cases - if the instruction is a call or a jump, the 'target'
         # variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage
@@ -148,7 +158,7 @@ class PwndbgInstruction:
         
         This property is used to determine if an instruction deserves a green checkmark.
         """
-        return CS_GRP_JUMP in self.groups_set and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
+        return bool(self.groups_set & GENERIC_JUMP_GROUPS) and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
 
 
     @property
@@ -169,7 +179,7 @@ class PwndbgInstruction:
         """
         True if this is a conditional jump, and we predicted that we will take the jump
         """
-        return self.is_conditional_jump and ((self.next not in (None, self.address + self.size)) or self.condition is True)
+        return self.is_conditional_jump and ((self.next not in (None, self.address + self.size)) or self.condition == InstructionCondition.TRUE)
 
 
     
@@ -200,7 +210,7 @@ class PwndbgInstruction:
         ID: {self.id}, {self.cs_insn.insn_name()}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
-        Condition: {self.condition}
+        Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
         Operands: [{operands_str}]"""
@@ -309,7 +319,7 @@ def make_simple_instruction(address: int) -> PwndbgInstruction:
 
     pwn_ins.groups = []
 
-    pwn_ins.condition = False
+    pwn_ins.condition = InstructionCondition.UNDETERMINED
 
     pwn_ins.annotation = None
 

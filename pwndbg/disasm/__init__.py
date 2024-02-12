@@ -499,7 +499,7 @@ def near(
             emu = None
 
             if DEBUG_ENHANCEMENT:
-                print("Turned off enhancement, not emulating certain type of instruction")
+                print("Turned off emulation - not emulating certain type of instruction")
 
         # If using emulation and it's still enabled, use it to determine the next instruction executed
         if emu:
