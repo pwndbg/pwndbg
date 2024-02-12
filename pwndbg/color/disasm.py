@@ -13,6 +13,7 @@ from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.disasm.instruction import InstructionCondition
 
 # The amount of whitespace between instructions and the annotation, by default
 pwndbg.gdblib.config.add_param(
@@ -53,7 +54,6 @@ def one_instruction(ins: PwndbgInstruction) -> str:
         sym = ins.target_string
 
         # If it's a constant expression (immediate value), color it directly in the asm.
-        # TODO: Remove this, is false most of the time
         if ins.target_const:
             asm = asm.replace(hex(ins.target), sym)
 
@@ -64,7 +64,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
         asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)
 
     # If we know the conditional is taken, mark it as taken.
-    if ins.condition is True or ins.is_conditional_jump_taken:
+    if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
         asm = on("✔ ") + asm
     else:
         asm = "  " + asm

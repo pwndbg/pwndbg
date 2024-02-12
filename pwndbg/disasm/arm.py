@@ -9,17 +9,18 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import EnhancedOperand
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator):
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # We can't reason about anything except the current instruction
         if instruction.cs_insn.cc == ARM_CC_AL:
-            return None
+            return InstructionCondition.UNDETERMINED
 
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return False
+            return InstructionCondition.UNDETERMINED
 
         value = (
             pwndbg.gdblib.regs.cpsr
@@ -49,7 +50,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LE: Z or (N != V),
         }.get(instruction.cs_insn.cc, None)
 
-        return cc
+        if cc is None:
+            return InstructionCondition.UNDETERMINED
+        
+        return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
     def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
         segment = ""

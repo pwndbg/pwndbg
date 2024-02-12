@@ -7,6 +7,7 @@ import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.emu.emulator import Emulator
 
 
@@ -15,12 +16,12 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
         self.architecture = architecture
 
-    def _is_condition_taken(self, instruction: PwndbgInstruction):
+    def _is_condition_taken(self, instruction: PwndbgInstruction, emu: Emulator | None) -> InstructionCondition:
         # B-type instructions have two source registers that are compared
-        src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1))
+        src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
-            src2_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 2))
+            src2_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 2), emu)
         else:
             src2_unsigned = 0
 
@@ -33,7 +34,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         else:
             raise NotImplementedError(f"architecture '{self.architecture}' not implemented")
 
-        return {
+        condition = {
             RISCV_INS_BEQ: src1_signed == src2_signed,
             RISCV_INS_BNE: src1_signed != src2_signed,
             RISCV_INS_BLT: src1_signed < src2_signed,
@@ -44,25 +45,30 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_BNEZ: src1_signed != 0,
         }.get(instruction.id, None)
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator):
+        if condition is None:
+            return InstructionCondition.UNDETERMINED
+        
+        return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
+
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
         """
         # JAL / JALR is unconditional
         if RISCV_GRP_CALL in instruction.groups:
-            return None
+            return InstructionCondition.UNDETERMINED
 
         # We can't reason about anything except the current instruction
         # as the comparison result is dependent on the register state.
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return False
+            return InstructionCondition.UNDETERMINED
 
         # Determine if the conditional jump is taken
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
-            return self._is_condition_taken(instruction)
+            return self._is_condition_taken(instruction, emu)
 
-        return None
+        return InstructionCondition.UNDETERMINED
 
     def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
@@ -81,14 +87,15 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # Determine if the conditional jump is taken
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups and self._is_condition_taken(
-            instruction
+            instruction,
+            emu
         ):
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
             target = (
-                self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1))
+                self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
                 + instruction.op_find(CS_OP_IMM, 1).imm
             ) & ptrmask
             # Clear the lowest bit without knowing the register width

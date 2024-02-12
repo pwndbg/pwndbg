@@ -17,6 +17,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
 from pwndbg.disasm.instruction import EnhancedOperand
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.emu.emulator import Emulator
 
 # Even if this is disabled, branch instructions will still have targets printed
@@ -147,9 +148,10 @@ class DisassemblyAssistant:
 
         # This function will .single_step the emulation
         if not enhancer.enhance_operands(instruction, emu):
-            emu = None
-            if DEBUG_ENHANCEMENT:
+            if emu is not None and DEBUG_ENHANCEMENT:
                 print(f"Emulation failed at {instruction.address=:#x}")
+            emu = None
+
 
         enhancer.enhance_conditional(instruction, emu)
 
@@ -404,29 +406,22 @@ class DisassemblyAssistant:
 
     def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
-        Adds a ``condition`` field to the instruction.
+        Sets the `condition` of the instruction 
 
-        If the instruction is always executed unconditionally, the value
-        of the field is ``None``.
+        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
+        the value of the field is `InstructionCondition.UNDETERMINED`.
 
         If the instruction is executed conditionally, and we can be absolutely
-        sure that it will be executed, the value of the field is ``True``.
-        Generally, this implies that it is the next instruction to be executed.
+        sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
 
-        In all other cases, it is set to ``False``.
+        In all other cases, it is set to `InstructionCondition.FALSE`.
         """
-        c = self.condition(instruction, emu)
 
-        if c:
-            c = True
-        elif c is not None:
-            c = False
-
-        instruction.condition = c
+        instruction.condition = self.condition(instruction, emu)
 
     # Subclasses should override
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> bool | None:
-        return False
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        return InstructionCondition.UNDETERMINED
 
     def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
@@ -448,20 +443,31 @@ class DisassemblyAssistant:
         """
         next_addr: int | None = None
 
-        if emu:
-            # Use emulator to determine the next address if we can
-            # Only use it to determine non-call's for .next
-            if CS_GRP_CALL not in instruction.groups_set:
-                next_addr = emu.pc
-        elif instruction.condition is True or instruction.is_unconditional_jump:
-            # If .condition is true, then this might be a conditional jump (there are some other instructions that run conditionall though)
-            # or, if this is a unconditional jump, we will try to resolve the .next
+        # The order for the following statements in determining the next executed instruction is important
+        #
+        # Firstly, we check the condition field - this field is manually set by our enhancement code
+        # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
+        # due to the way to step using the emulator. We want our own manualy checks to override the emulator 
+
+        if instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
+            # If condition is true, then this might be a conditional jump 
+            # There are some other instructions that run conditionally though - resolve_target returns None in those cases
+            # Or, if this is a unconditional jump, we will try to resolve the next instruction run
             next_addr = self.resolve_target(instruction, emu)
 
+        # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
+        if next_addr is None and emu:
+            # Use emulator to determine the next address if we can
+            # Only use it to determine non-call's (`nexti` should step over calls)
+            if CS_GRP_CALL not in instruction.groups_set:
+                next_addr = emu.pc
+
+        # All else fails, take the next instruction in memory
         if next_addr is None:
             next_addr = instruction.address + instruction.size
 
-        # Determine the target of this address, allowing call instructions
+        # Determine the target of this address. This is the address that the instruction could change the program counter to. 
+        # allowing call instructions
         instruction.target = self.resolve_target(instruction, emu, call=True)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask

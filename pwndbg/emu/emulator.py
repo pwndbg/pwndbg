@@ -122,9 +122,9 @@ arch_to_reg_const_map = {
     DEBUG_TRACE,
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
-DEBUG = NO_DEBUG
+# DEBUG = NO_DEBUG
 # DEBUG = -1 # ALL
-# DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
+DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
     def debug(debug_type, fmt, args=()) -> None:
@@ -569,7 +569,7 @@ class Emulator:
         return True
 
     def hook_mem_invalid(self, uc, access, address, size: int, value, user_data) -> bool:
-        debug(DEBUG_MEM_MAP, "# Invalid access at %#x", address)
+        debug(DEBUG_MEM_MAP, "# Invalid access at %#x, attempting to map the page", address)
 
         # Page-align the start address
         start = pwndbg.lib.memory.page_align(address)

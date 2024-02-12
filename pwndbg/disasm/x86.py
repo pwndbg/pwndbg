@@ -18,6 +18,7 @@ import pwndbg.gdblib.typeinfo
 from pwndbg.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.disasm.instruction import EnhancedOperand
 from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.emu.emulator import Emulator
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
@@ -365,18 +366,18 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
 
     # Override
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> bool | None:
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
-            return None
+            return InstructionCondition.UNDETERMINED
 
         # We can't reason about anything except the current instruction
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return False
+            return InstructionCondition.UNDETERMINED
 
         efl = pwndbg.gdblib.regs.eflags
         if efl is None:
-            return False
+            return InstructionCondition.UNDETERMINED
 
         cf = efl & (1 << 0)
         pf = efl & (1 << 2)
@@ -385,7 +386,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         sf = efl & (1 << 7)
         of = efl & (1 << 11)
 
-        return {
+        conditional = {
             X86_INS_CMOVA: not (cf or zf),
             X86_INS_CMOVAE: not cf,
             X86_INS_CMOVB: cf,
@@ -419,6 +420,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             X86_INS_JP: pf,
             X86_INS_JS: sf,
         }.get(instruction.id, None)
+
+        if conditional is None:
+            return InstructionCondition.UNDETERMINED
+        
+        return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
 
     # Currently not used
