@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import functools
 import io
+import re
 from enum import Enum
 from typing import Any
 from typing import Callable
@@ -170,7 +171,19 @@ class Command(gdb.Command):
         if not lines:
             return False
 
-        last_line = lines[-1]
+        last_line: str
+        
+        # Handle commands containing newlines
+        while True:
+            last_line = lines[-1]
+            is_new_entry = re.match(r"^  [0-9]+  .+", last_line) is not None
+            if len(lines) > 1 and not is_new_entry:
+                # Merge the last 2 entries
+                # as they come from the same command
+                lines.append(lines.pop(-2) + " " + lines.pop())
+            else:
+                break
+
         number_str, command = last_line.split(maxsplit=1)
         number = int(number_str)
 
