@@ -172,7 +172,7 @@ class Command(gdb.Command):
             return False
 
         last_line: str
-        
+
         # Handle commands containing newlines
         while True:
             last_line = lines[-1]
