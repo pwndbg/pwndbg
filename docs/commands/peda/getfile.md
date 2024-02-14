@@ -1,11 +1,22 @@
-## Command: getfile ##
-```
+
+
+
+
+# getfile
+
+## Description
+
+
+Gets the current file.
+## Usage:
+
+
+```bash
 usage: getfile [-h]
+
 ```
-Gets the current file.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

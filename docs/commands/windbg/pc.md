@@ -1,11 +1,22 @@
-## Command: pc ##
-```
+
+
+
+
+# pc
+
+## Description
+
+
+Windbg compatibility alias for 'nextcall' command.
+## Usage:
+
+
+```bash
 usage: pc [-h]
+
 ```
-Windbg compatibility alias for 'nextcall' command.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

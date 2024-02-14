@@ -1,11 +1,22 @@
-## Command: mp ##
-```
+
+
+
+
+# mp
+
+## Description
+
+
+Print the mp_ struct's contents.
+## Usage:
+
+
+```bash
 usage: mp [-h]
+
 ```
-Prints out the mp_ structure from glibc.  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

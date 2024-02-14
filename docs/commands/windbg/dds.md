@@ -1,15 +1,28 @@
-## Command: dds ##
-```
+
+
+
+
+# dds
+
+## Description
+
+
+Dump pointers and symbols at the specified address.
+## Usage:
+
+
+```bash
 usage: dds [-h] addr
+
 ```
-Dump pointers and symbols at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| addr | The address to dump from. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`addr`|The address to dump from.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

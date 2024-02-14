@@ -1,12 +1,23 @@
-## Command: themefile ##
-```
+
+
+
+
+# themefile
+
+## Description
+
+
+Generates a configuration file for the current pwndbg theme options.
+## Usage:
+
+
+```bash
 usage: themefile [-h] [--show-all]
+
 ```
-Generates a configuration file for the current Pwndbg theme options  
+## Optional Arguments
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
-| --show-all | Force displaying of all theme options. (default: False) |
-
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
+||`--show-all`||Force displaying of all theme options. (default: %(default)s)|

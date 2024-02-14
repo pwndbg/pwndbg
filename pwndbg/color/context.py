@@ -88,6 +88,9 @@ def comment(x: object) -> str:
 
 
 def format_flags(value, flags, last=None):
+    if value is None:
+        return "<unavailable>"
+
     desc = flag_value("%#x" % value)
     if not flags:
         return desc

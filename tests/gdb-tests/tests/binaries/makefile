@@ -38,7 +38,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -145,6 +145,10 @@ reference_bin_pie.out: reference-binary.c
 reference_bin_nopie.out: reference-binary.c
 	@echo "[+] Building reference_bin_nopie.out"
 	${ZIGCC} -fno-pie -o reference_bin_nopie.out reference-binary.c
+
+reference_bin_nopie.i386.out: reference-binary.c
+	@echo "[+] Building reference_bin_nopie.i386.out"
+	${ZIGCC} -fpie -target i386-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out

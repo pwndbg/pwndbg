@@ -136,15 +136,23 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # Parse the output of readelf line by line
     for category, lines in got_entry.items():
         for line in lines:
-            # line might be something like:
-            # 00000000001ec018  0000000000000025 R_X86_64_IRELATIVE                        a0480
-            # or something like:
-            # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
-            offset, _, rtype, *rest = line.split()[:5]
-            if len(rest) == 1:
-                value = rest[0]
+            # There are 5 fields in the output of readelf:
+            # "Offset", "Info", "Type", "Sym. Value", and "Symbol's Name"
+            # We only care about "Offset", "Sym. Value" and "Symbol's Name" here
+            offset, _, _, *rest = line.split()[:5]
+            if len(rest) < 2:
+                # "Sym. Value" or "Symbol's Name" are not present in this case
+                # The output of readelf might look like this (missing both value and name):
+                # 00004e88  00000008 R_386_RELATIVE
+                # or something like this (only missing name):
+                # 00000000001ec018  0000000000000025 R_X86_64_IRELATIVE                        a0480
+                # TODO: Is it possible that we are missing the value but not the name?
+                value = rest[0] if rest else ""
                 name = ""
             else:
+                # Every fields are present in this case
+                # The output of readelf might look like this:
+                # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
                 value, name = rest
             address = int(offset, 16) + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result

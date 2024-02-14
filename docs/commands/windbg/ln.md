@@ -1,15 +1,28 @@
-## Command: ln ##
-```
+
+
+
+
+# ln
+
+## Description
+
+
+List the symbols nearest to the provided value.
+## Usage:
+
+
+```bash
 usage: ln [-h] [value]
+
 ```
-List the symbols nearest to the provided value.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| value | The address you want the name of. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`value`|The address you want the name of.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|

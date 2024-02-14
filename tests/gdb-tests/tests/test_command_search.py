@@ -6,11 +6,12 @@ import tests
 
 SEARCH_BINARY = tests.binaries.get("search_memory.out")
 SEARCH_PATTERN = 0xD00DBEEF
+SEARCH_PATTERN2 = 0xABCDEF1234567890
 
 
-def test_command_search_limit(start_binary):
+def test_command_search_limit_single_page(start_binary):
     """
-    Tests simple search limit
+    Tests simple search limit for single memory page
     """
     start_binary(SEARCH_BINARY)
 
@@ -31,6 +32,29 @@ def test_command_search_limit(start_binary):
 
     assert result_count == search_limit
     assert result_value == hex(SEARCH_PATTERN)
+
+
+def test_command_search_limit_multiple_pages(start_binary):
+    """
+    Tests simple search limit for multiple memory pages
+    """
+    start_binary(SEARCH_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    def filter_results(line):
+        return hex(SEARCH_PATTERN2).lower() in line.lower()
+
+    total_entries = 3
+    result_str: str = gdb.execute(f"search -8 {SEARCH_PATTERN2}", to_string=True)
+    result_count = len(list(filter(filter_results, result_str.splitlines())))
+    assert result_count == total_entries
+
+    search_limit = 2
+    result_str = gdb.execute(f"search -8 {SEARCH_PATTERN2} -l {search_limit}", to_string=True)
+    result_count = len(list(filter(filter_results, result_str.splitlines())))
+    assert result_count == search_limit
 
 
 def test_command_search_alignment(start_binary):

@@ -1,16 +1,29 @@
-## Command: ed ##
+
+
+
+
+# ed
+
+## Description
+
+
+Write hex dwords at the specified address.
+## Usage:
+
+
+```bash
+usage: ed [-h] address [data ...]
+
 ```
-usage: ed [-h] address [data [data ...]]
-```
-Write hex dwords at the specified address.  
+## Positional Arguments
 
-| Positional Argument | Info |
-|---------------------|------|
-| address | The address to write to. |
-| data | The dwords to write. |
+|Positional Argument|Help|
+| :--- | :--- |
+|`address`|The address to write to.|
+|`data`|The dwords to write.|
 
-| Optional Argument | Info |
-|---------------------|------|
-| --help | show this help message and exit |
+## Optional Arguments
 
-
+|Short|Long|Default|Help|
+| :--- | :--- | :--- | :--- |
+|`-h`|`--help`||show this help message and exit|
