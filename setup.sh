@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
@@ -108,7 +108,7 @@ PYTHON=''
 # Check for the presence of the initializer line in the user's ~/.gdbinit file
 if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
     # Ask the user if they want to proceed and override the initializer line
-    read -p "An initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
+    read -p "A Pwndbg initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
 
     # If the user does not want to proceed, exit the script
     if [[ "$answer" != "y" ]]; then
@@ -195,7 +195,7 @@ ${PWNDBG_VENV_PATH}/bin/pip install -e .
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
-    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit 2> /dev/null; then
         if ! osx; then
             sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
         else
@@ -206,4 +206,5 @@ if [ -z "$UPDATE_MODE" ]; then
 
     # Load Pwndbg into GDB on every launch.
     echo "source $PWD/gdbinit.py" >> ~/.gdbinit
+    echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
 fi

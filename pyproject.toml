@@ -247,7 +247,7 @@ output-format = "colorized"
 [tool.poetry]
 name = "pwndbg"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
-version = "2023.07.17"
+version = "2024.02.14"
 authors = ["Dominik 'disconnect3d' Czarnota <dominik.b.czarnota+dc@gmail.com>"]
 readme = "README.md"
 packages = [
