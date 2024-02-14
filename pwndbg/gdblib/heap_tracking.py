@@ -50,7 +50,7 @@ that were not made explicit.
 from __future__ import annotations
 
 import gdb
-from sortedcontainers import SortedDict
+from sortedcontainers import SortedDict  # type: ignore
 
 import pwndbg.gdblib
 from pwndbg.color import message
@@ -575,6 +575,20 @@ def install(disable_hardware_whatchpoints=True):
         print(message.error(f"Make sure {LIBC_NAME} has already been loaded."))
 
         return
+
+    # Warn our users that this is still an experimental feature and that due to
+    # limitations in how GDB handles breakpoint creation and deletion during
+    # processing of stop events for other breakpoints, there's not a lot we can
+    # do about it currently.
+    #
+    # See https://sourceware.org/pipermail/gdb/2024-January/051062.html
+    print(
+        message.warn(
+            "This feature is experimental and is known to report false positives, take the"
+        )
+    )
+    print(message.warn("diagnostics it procudes with a grain of salt. Use at your own risk."))
+    print()
 
     # Disable hardware watchpoints.
     #
