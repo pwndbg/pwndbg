@@ -19,6 +19,7 @@ psutil>=3.1.0
 python-ptrace>=0.8
 six
 unicorn>=1.0.0
+mkdocs
 mkdocs-material 
 mkdocs-git-committers-plugin-2 
 mkdocs-material-extensions 

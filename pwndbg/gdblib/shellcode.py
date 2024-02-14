@@ -26,7 +26,15 @@ def _get_syscall_return_value():
 
 
 def exec_syscall(
-    syscall, arg0=None, arg1=None, arg2=None, arg3=None, arg4=None, arg5=None, arg6=None
+    syscall,
+    arg0=None,
+    arg1=None,
+    arg2=None,
+    arg3=None,
+    arg4=None,
+    arg5=None,
+    arg6=None,
+    disable_breakpoints=False,
 ):
     """
     Tries executing the given syscall in the context of the inferior.
@@ -37,10 +45,15 @@ def exec_syscall(
     syscall_bin = pwnlib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
-    return exec_shellcode(syscall_bin, restore_context=True, capture=_get_syscall_return_value)
+    return exec_shellcode(
+        syscall_bin,
+        restore_context=True,
+        capture=_get_syscall_return_value,
+        disable_breakpoints=disable_breakpoints,
+    )
 
 
-def exec_shellcode(blob, restore_context=True, capture=None):
+def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints=False):
     """
     Tries executing the given blob of machine code in the current context of the
     inferior, optionally restoring the values of the registers as they were
@@ -87,9 +100,37 @@ def exec_shellcode(blob, restore_context=True, capture=None):
     existing_code = pwndbg.gdblib.memory.read(starting_address, len(blob))
     pwndbg.gdblib.memory.write(starting_address, blob)
 
+    # Disable breakpoints.
+    #
+    # We might not want to hit any breakpoints that aren't the ones that are
+    # strictly necessary for this function to run to completion. So, if
+    # requested, we temporarily disable breakpoints during the shellcode
+    re_enable_list = []
+    for bp in gdb.breakpoints():
+        if bp.enabled and disable_breakpoints:
+            bp.enabled = False
+            re_enable_list.append(bp)
+
+    # The continue we use here will trigger an event that would get the context
+    # prompt to show, regardless of the circumstances. We don't want that, so
+    # we preserve the state of the context skip.
+    would_skip_context = pwndbg.gdblib.prompt.context_shown
+
     # Execute.
-    bp = gdb.Breakpoint(f"*{starting_address+len(blob):#x}", internal=True, temporary=True)
+    target_address = starting_address + len(blob)
+    bp = gdb.Breakpoint(f"*{target_address:#x}", internal=True, temporary=True)
+    bp.silent = True
     gdb.execute("continue")
+
+    # Restore the state of the context skip.
+    pwndbg.gdblib.prompt.context_shown = would_skip_context
+
+    # Re-enable breakpoints.
+    for bp in re_enable_list:
+        bp.enabled = True
+
+    # Make sure we're in the right place.
+    assert pwndbg.gdblib.regs.pc == target_address
 
     # Give the caller a chance to collect information from the environment
     # before any of the context gets restored.

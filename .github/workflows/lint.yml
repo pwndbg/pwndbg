@@ -1,5 +1,11 @@
 name: Lint
-on: [pull_request]
+on: 
+  pull_request:
+    paths:
+      - '**'
+      - '!mkdocs.yml'
+      - '!docs/**'
+      - '!*.md'
 
 jobs:
   lint:

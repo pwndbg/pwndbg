@@ -33,6 +33,7 @@ pwnlib_archs_mapping = {
     "powerpc": "powerpc",
     "sparc": "sparc",
     "arm": "arm",
+    "iwmmxt": "arm",
     "armcm": "thumb",
     "rv32": "riscv32",
     "rv64": "riscv64",
