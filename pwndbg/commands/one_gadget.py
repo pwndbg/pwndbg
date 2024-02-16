@@ -22,7 +22,7 @@ parser.add_argument("--show-unsat", help="Show unsatisfiable gadgets.", action="
 parser.add_argument("--no-unknown", help="Do not show unknown gadgets.", action="store_true")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.ArgparsedCommand(parser, command_name="onegadget", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
 def one_gadget(show_unsat=False, no_unknown=False):
