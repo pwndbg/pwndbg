@@ -123,7 +123,8 @@ def nearpc(
 
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
-    instructions = pwndbg.disasm.near(
+
+    instructions, index_of_pc = pwndbg.disasm.near(
         pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache
     )
 
@@ -149,22 +150,18 @@ def nearpc(
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
-    prev = None
-
-    # If its the first time the program counter is at the current instruction
-    # In case of loops, emulation may display the same instruction multiple times. Only highlight once
-    first_pc = True
-    should_highlight_opcodes = False
 
     assembly_strings = D.instructions_and_padding(instructions)
 
+    prev = None
+
     # Print out each instruction
-    for address_str, symbol, instr, asm in zip(addresses, symbols, instructions, assembly_strings):
+    for i, (address_str, symbol, instr, asm) in enumerate(zip(addresses, symbols, instructions, assembly_strings)):
         prefix_sign = pwndbg.gdblib.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_prefix = instr.address == pc and not repeat and first_pc
+        show_prefix = instr.address == pc and not repeat and i == index_of_pc
         prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
         prefix = c.prefix(prefix)
 
@@ -174,15 +171,17 @@ def nearpc(
 
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
-        if instr.address != pc or not pwndbg.gdblib.config.highlight_pc or repeat:
+        # In case there are duplicate instances of an instruction (tight loop),
+        # ones that the instruction pointer is not at stick out a little, to indicate the repetition
+        if not pwndbg.gdblib.config.highlight_pc or instr.address != pc or repeat:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.gdblib.config.highlight_pc and first_pc:
-            prefix = C.highlight(prefix)
+        elif pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
+            # If this instruction is the one the PC is at.
+            # In case of tight loops, with emulation we may display the same instruction multiple times. 
+            # Only highlight current instance, not past or future times.
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
-            first_pc = False
-            should_highlight_opcodes = True
 
         # If this instruction performs a memory access operation, we should tell
         # the user anything we can figure out about the memory it's trying to
@@ -277,10 +276,17 @@ def nearpc(
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
-            if should_highlight_opcodes:
+            if pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
                 opcodes = C.highlight(opcodes)
-                should_highlight_opcodes = False
-        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm, mem_access)))
+                
+        # Example line:
+        # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
+        # prefix        = ►
+        # address_str   = 0x555555556030
+        # opcodes       = 0f bd c0                  Opcodes are enabled with the 'nearpc-num-opcode-bytes' setting
+        # symbol        = <__strrchr_avx2+70>
+        # asm           = bsr    eax, eax           (jump target/annotation would go here too)
+        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.

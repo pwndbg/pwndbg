@@ -179,7 +179,11 @@ class PwndbgInstruction:
         """
         True if this is a conditional jump, and we predicted that we will take the jump
         """
-        return self.is_conditional_jump and ((self.next not in (None, self.address + self.size)) or self.condition == InstructionCondition.TRUE)
+        # True if:
+        # - We manually determined in .condition that we take the jump
+        # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False. 
+        #   Emulation can be incorrect, so we check the conditional for false to ensure we didn't manually override the emulator's decision
+        return self.is_conditional_jump and (self.condition == InstructionCondition.TRUE or ((self.next not in (None, self.address + self.size)) and self.condition != InstructionCondition.FALSE))
 
 
     

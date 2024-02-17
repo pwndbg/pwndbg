@@ -192,6 +192,11 @@ class Emulator:
 
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.gdblib.regs.current
 
+        # Whether the emulator is allowed to emulate instructions
+        # There are cases when the emulator is incorrect or we want to disable it for certain instruction types, 
+        # and so we can set this to False to indicate that we should not allow the emulator to continue to step
+        self.valid = True
+
         # Jump tracking state
         self._prev = None
         self._prev_size = None
@@ -260,7 +265,7 @@ class Emulator:
         return None
         # raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
 
-    # Read ptrwidth worth of memory, return None on error
+    # Read size worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:
         # Don't attempt if the address is not mapped on the host process
         if not pwndbg.gdblib.vmmap.find(address):
@@ -757,7 +762,12 @@ class Emulator:
             Returns (None, None) upon failure to execute the instruction
         """
 
+        # If the emulator has been manually marked as invalid, we should no longer step it
+        if not self.valid:
+            return InstructionExecutedResult(None, None)
+
         self.last_single_step_result = InstructionExecutedResult(None, None)
+        
 
         pc = pc or self.pc
 
