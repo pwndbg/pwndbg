@@ -13,8 +13,6 @@ import pwndbg.gdblib.typeinfo
 import pwndbg.color.memory as MemoryColor
 import pwndbg.gdblib.vmmap
 
-# import pwndbg.gdblib.config
-import pwndbg.lib.cache
 from pwndbg.disasm.instruction import EnhancedOperand
 from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
