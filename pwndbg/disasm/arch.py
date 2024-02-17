@@ -70,6 +70,21 @@ for value1, name1 in dict(access).items():
         # novermin
         access.setdefault(value1 | value2, f"{name1} | {name2}")
 
+# These instruction types should not be emulated through, either
+# because they cannot be emulated without interfering (syscall, etc.)
+# or because they may take a long time (call, etc.), or because they
+# change privilege levels.
+DO_NOT_EMULATE = {
+    CS_GRP_INT,
+    CS_GRP_INVALID,
+    CS_GRP_IRET,
+    # Note that we explicitly do not include the PRIVILEGE category, since
+    # we may be in kernel code, and privileged instructions are just fine
+    # in that case.
+    # capstone.CS_GRP_PRIVILEGE,
+}
+
+
 
 # Enhances disassembly with memory values & symbols by adding member variables to an instruction
 # The only public method that should be called is "enhance"
@@ -131,16 +146,22 @@ class DisassemblyAssistant:
             emu.single_step(check_instruction_valid=False)
             emu = None
 
-        # Ensure emulator's program counter is at the correct location. Failure indicates a bug.
+        # Ensure emulator's program counter is at the correct location. 
+        # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reaosn emulator returns PC=0.
         if emu:
-            if DEBUG_ENHANCEMENT:
-                print(
-                    f"{hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=} and {hex(instruction.address)=}"
-                )
-                assert emu.pc == instruction.address
-
             if emu.pc != instruction.address:
+                if DEBUG_ENHANCEMENT:
+                    print(f"Program counter and emu.pc do not line up: {hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=}")
                 emu = None
+
+    
+        # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
+        if emu and set(instruction.groups) & DO_NOT_EMULATE:
+            emu.valid = False
+            emu = None
+
+            if DEBUG_ENHANCEMENT:
+                print("Turned off emulation - not emulating certain type of instruction")
 
         enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
             pwndbg.gdblib.arch.current, generic_assistant
@@ -153,12 +174,23 @@ class DisassemblyAssistant:
             emu = None
 
 
+        # Set the .condition field
         enhancer.enhance_conditional(instruction, emu)
 
+        # Set the .target and .next fields
         enhancer.enhance_next(instruction, emu)
 
         if bool(pwndbg.gdblib.config.disasm_annotations):
             enhancer.set_annotation_string(instruction, emu)
+
+        # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
+        # to determine the call's target address.
+        if emu and CS_GRP_CALL in set(instruction.groups):
+            emu.valid = False
+            emu = None
+
+            if DEBUG_ENHANCEMENT:
+                print("Turned off emulation for call")
 
         if DEBUG_ENHANCEMENT:
             print(enhancer.dump(instruction))
@@ -457,9 +489,10 @@ class DisassemblyAssistant:
 
         # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
         if next_addr is None and emu:
-            # Use emulator to determine the next address if we can
-            # Only use it to determine non-call's (`nexti` should step over calls)
-            if CS_GRP_CALL not in instruction.groups_set:
+            # Use emulator to determine the next address:
+            # 1. Only use it to determine non-call's (`nexti` should step over calls)
+            # 2. Make sure we haven't manually set .conditional to False (which should override the emulators prediction)
+            if CS_GRP_CALL not in instruction.groups_set and instruction.condition != InstructionCondition.FALSE:
                 next_addr = emu.pc
 
         # All else fails, take the next instruction in memory

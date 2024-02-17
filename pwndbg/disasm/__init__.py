@@ -6,6 +6,7 @@ address +/- a few instructions.
 from __future__ import annotations
 
 import collections
+from dataclasses import dataclass
 import re
 import typing
 from typing import Any
@@ -74,10 +75,10 @@ VariableInstructionSizeMax = {
 # Dict of Address -> previous Address executed
 backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
+# TODO:
+#   Implement a better caching mechanism that won't result in stale annotations.
+
 # This allows use to retain the annotation strings from previous instructions.
-# Don't use our 'cache_until' because it caches based on function arguments, but for disasm view,
-# we don't want to fetch cached results in some cases.
-# Dict of Address -> previously computed PwndbgInstruction
 computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(
     lambda: None
 )
@@ -321,6 +322,7 @@ def one(
 
     # A for loop in case this returns an empty list
     for insn in get(address, 1, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache):
+        backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -364,20 +366,7 @@ def get(
     return retval
 
 
-# These instruction types should not be emulated through, either
-# because they cannot be emulated without interfering (syscall, etc.)
-# or because they may take a long time (call, etc.), or because they
-# change privilege levels.
-DO_NOT_EMULATE = {
-    capstone.CS_GRP_CALL,
-    capstone.CS_GRP_INT,
-    capstone.CS_GRP_INVALID,
-    capstone.CS_GRP_IRET,
-    # Note that we explicitly do not include the PRIVILEGE category, since
-    # we may be in kernel code, and privileged instructions are just fine
-    # in that case.
-    # capstone.CS_GRP_PRIVILEGE,
-}
+
 
 
 def can_run_first_emulate() -> bool:
@@ -416,10 +405,10 @@ def can_run_first_emulate() -> bool:
 
 first_time_emulate = True
 
-
+# Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False
-) -> list[PwndbgInstruction]:
+) -> tuple[list[PwndbgInstruction],int]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -444,7 +433,7 @@ def near(
             message = str(e)
             match = re.search(r"Memory at address (\w+) unavailable\.", message)
             if match:
-                return []
+                return ([], -1)
             else:
                 raise
             
@@ -456,9 +445,7 @@ def near(
             print("Emulator failed at first step")
 
     if current is None:
-        return []
-
-    backward_cache[current.next] = current.address
+        return ([], -1)
 
     insns: list[PwndbgInstruction] = []
 
@@ -477,6 +464,8 @@ def near(
             insn = one(cached, from_cache=use_cache) if cached else None
         insns.reverse()
 
+    index_of_current_instruction = len(insns)
+
     insns.append(current)
 
     if DEBUG_ENHANCEMENT:
@@ -490,36 +479,17 @@ def near(
     total_instructions = 1 + (2 * instructions)
 
     while insn and len(insns) < total_instructions:
+
+        # Emulation may have failed or been disabled in the last call to one()
+        if emu:
+            if not emu.last_step_succeeded or not emu.valid:
+                emu = None
+
         # Address to disassemble & emulate
         target = insn.next
 
-        # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
-        if emulate and set(insn.groups) & DO_NOT_EMULATE:
-            emulate = False
-            emu = None
-
-            if DEBUG_ENHANCEMENT:
-                print("Turned off emulation - not emulating certain type of instruction")
-
-        # If using emulation and it's still enabled, use it to determine the next instruction executed
-        if emu:
-            if emu.last_step_succeeded:
-                # Next instruction to be executed is where the emulator is.
-                # We set this here as a fallback, because insn.next will use
-                # emulation to set the address within the enhancement code, but in case there is a codepath
-                # in a specific architectures enhancement implementation that ends up not using emulation
-                # to set next, this makes sure we disassemble at the real next address.
-                target = emu.pc
-            else:
-                # If it failed, was not able to run the instruction
-                emu = None
-
+        # The emulator is stepped within this call
         insn = one(target, emu, put_cache=True)
-
-        # If emulator is not correctly synced with the instruction we are enhancing, we have a bug
-        if DEBUG_ENHANCEMENT:
-            if emu and emu.last_step_succeeded:
-                assert emu.last_pc == target
 
         if insn:
             insns.append(insn)
@@ -533,4 +503,4 @@ def near(
     while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
 
-    return insns
+    return (insns,index_of_current_instruction)
