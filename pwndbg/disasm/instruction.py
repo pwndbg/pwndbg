@@ -49,6 +49,16 @@ class InstructionCondition(Enum):
     UNDETERMINED = 3
 
 
+# Only use within the instruction.__repr__ to give a nice output
+CAPSTONE_ARCH_MAPPING_STRING = {
+    CS_ARCH_ARM: "arm",
+    CS_ARCH_ARM64: "aarch64",
+    CS_ARCH_X86: "x86",
+    CS_ARCH_PPC: "powerpc",
+    CS_ARCH_MIPS: "mips",
+    CS_ARCH_SPARC: "sparc",
+    CS_ARCH_RISCV: "RISCV",
+}
 
 # This class is used to provide context to an instructions execution, used both
 # in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for
@@ -210,7 +220,7 @@ class PwndbgInstruction:
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
-        return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size})
+        return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         ID: {self.id}, {self.cs_insn.insn_name()}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
