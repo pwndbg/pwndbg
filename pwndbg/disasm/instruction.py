@@ -217,7 +217,9 @@ class PwndbgInstruction:
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
-        Operands: [{operands_str}]"""
+        Operands: [{operands_str}]
+        Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
+        Unconditional jump: {self.is_unconditional_jump}"""
 
 
 class EnhancedOperand:
