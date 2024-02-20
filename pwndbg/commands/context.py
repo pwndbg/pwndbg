@@ -5,7 +5,8 @@ import ast
 import os
 import sys
 from collections import defaultdict
-from typing import DefaultDict, Tuple
+from typing import DefaultDict
+from typing import Tuple
 
 import gdb
 
@@ -27,7 +28,10 @@ import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
 import pwndbg.ida
 import pwndbg.ui
-from pwndbg.color import ColorConfig, ColorParamSpec, message, theme
+from pwndbg.color import ColorConfig
+from pwndbg.color import ColorParamSpec
+from pwndbg.color import message
+from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
