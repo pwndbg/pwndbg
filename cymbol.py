@@ -140,7 +140,6 @@ def add_custom_structure(custom_structure_name: str) -> None:
     # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
-<<<<<<< HEAD
 
 def add_custom_structure_from_file(header_file_path: str) -> None:
     with open(header_file_path, "r") as file:
@@ -158,8 +157,6 @@ def add_custom_structure_from_file(header_file_path: str) -> None:
 
     print(message.success(f"Custom structure from {header_file_path} added."))
     load_custom_structure(custom_structure_name)
-=======
->>>>>>> parent of 005f1ec6 (extend cymbol command to support struct loading from header files)
 
 
 @OnlyWhenStructFileExists
