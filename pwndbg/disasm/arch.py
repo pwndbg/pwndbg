@@ -143,7 +143,7 @@ class DisassemblyAssistant:
             emu = None
 
         # Ensure emulator's program counter is at the correct location.
-        # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reaosn emulator returns PC=0.
+        # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
         if emu:
             if emu.pc != instruction.address:
                 if DEBUG_ENHANCEMENT:
@@ -327,7 +327,10 @@ class DisassemblyAssistant:
     # Pass in a operand and it's value, and determine the actual value used during an instruction
     # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
     # a register or a memory value to dereference, and we want the actual value used.
-    # Return None if cannot dereference in the case it's a memory address
+    # Override this to implement memory lookups in given architecture (if it's relevent)
+    # Different architecture read memory differently:
+    # - Only a couple Capstone architectures support the memory .size field, which determines read width.
+    # - In others, read/write width is implied.
     def resolve_used_value(
         self,
         value: int | None,
@@ -340,8 +343,6 @@ class DisassemblyAssistant:
 
         if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
             return value
-        elif operand.type == CS_OP_MEM:
-            return self.read_memory(value, operand.size, instruction, operand, emu)
 
         return None
 
