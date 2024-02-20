@@ -7,15 +7,14 @@ from capstone import *  # noqa: F403
 
 import pwndbg.chain
 import pwndbg.color.context as C
+import pwndbg.color.memory as MemoryColor
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.color.memory as MemoryColor
 import pwndbg.gdblib.vmmap
-
 from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
 # Even if this is disabled, branch instructions will still have targets printed
@@ -56,8 +55,8 @@ pwndbg.gdblib.config.add_param(
     "Number of characters in strings to display in disasm annotations",
 )
 
-# DEBUG_ENHANCEMENT = False
-DEBUG_ENHANCEMENT = True
+DEBUG_ENHANCEMENT = False
+# DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -81,7 +80,6 @@ DO_NOT_EMULATE = {
     # in that case.
     # capstone.CS_GRP_PRIVILEGE,
 }
-
 
 
 # Enhances disassembly with memory values & symbols by adding member variables to an instruction
@@ -144,15 +142,16 @@ class DisassemblyAssistant:
             emu.single_step(check_instruction_valid=False)
             emu = None
 
-        # Ensure emulator's program counter is at the correct location. 
+        # Ensure emulator's program counter is at the correct location.
         # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reaosn emulator returns PC=0.
         if emu:
             if emu.pc != instruction.address:
                 if DEBUG_ENHANCEMENT:
-                    print(f"Program counter and emu.pc do not line up: {hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=}")
+                    print(
+                        f"Program counter and emu.pc do not line up: {hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=}"
+                    )
                 emu = None
 
-    
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
@@ -170,7 +169,6 @@ class DisassemblyAssistant:
             if emu is not None and DEBUG_ENHANCEMENT:
                 print(f"Emulation failed at {instruction.address=:#x}")
             emu = None
-
 
         # Set the .condition field
         enhancer.enhance_conditional(instruction, emu)
@@ -286,10 +284,12 @@ class DisassemblyAssistant:
     # Read value in register. Return None if cannot reason about the value in the register.
     # Different architectures use registers in different patterns, so it is best to
     # override this to get to best behavior for a given architecture. See x86.py as example.
-    def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator) -> int | None:
+    def read_register(
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+    ) -> int | None:
         # operand_id is the ID internal to Capstone
         regname: str = instruction.cs_insn.reg_name(operand_id)
-        
+
         if emu:
             # Will return the value of register after executing the instruction
             value = emu.read_register(regname)
@@ -307,7 +307,6 @@ class DisassemblyAssistant:
         else:
             return None
 
-
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def read_memory(
         self,
@@ -324,14 +323,17 @@ class DisassemblyAssistant:
             if len(address_list) >= 2:
                 return address_list[1]
         return None
-    
 
     # Pass in a operand and it's value, and determine the actual value used during an instruction
     # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
     # a register or a memory value to dereference, and we want the actual value used.
     # Return None if cannot dereference in the case it's a memory address
     def resolve_used_value(
-        self, value: int | None, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self,
+        value: int | None,
+        instruction: PwndbgInstruction,
+        operand: EnhancedOperand,
+        emu: Emulator,
     ) -> int | None:
         if value is None:
             return None
@@ -342,7 +344,6 @@ class DisassemblyAssistant:
             return self.read_memory(value, operand.size, instruction, operand, emu)
 
         return None
-    
 
     # Dereference an address recursively - takes into account emulation.
     # If cannot dereference safely, returns a list with just the passed in address.
@@ -407,8 +408,6 @@ class DisassemblyAssistant:
         # Just without any further information
         return ([address], False)
 
-
-
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def telescope_format_list(
         self, addresses: list[int], limit: int, emu: Emulator, enhance_can_dereference: bool
@@ -432,11 +431,9 @@ class DisassemblyAssistant:
                 enhance_string_len=enhance_string_len,
             )
 
-
-
     def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
-        Sets the `condition` of the instruction 
+        Sets the `condition` of the instruction
 
         If the instruction is always executed unconditionally, or we cannot reason about the instruction,
         the value of the field is `InstructionCondition.UNDETERMINED`.
@@ -477,10 +474,10 @@ class DisassemblyAssistant:
         #
         # Firstly, we check the condition field - this field is manually set by our enhancement code
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
-        # due to the way to step using the emulator. We want our own manualy checks to override the emulator 
+        # due to the way to step using the emulator. We want our own manualy checks to override the emulator
 
         if instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
-            # If condition is true, then this might be a conditional jump 
+            # If condition is true, then this might be a conditional jump
             # There are some other instructions that run conditionally though - resolve_target returns None in those cases
             # Or, if this is a unconditional jump, we will try to resolve the next instruction run
             next_addr = self.resolve_target(instruction, emu)
@@ -490,14 +487,17 @@ class DisassemblyAssistant:
             # Use emulator to determine the next address:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .conditional to False (which should override the emulators prediction)
-            if CS_GRP_CALL not in instruction.groups_set and instruction.condition != InstructionCondition.FALSE:
+            if (
+                CS_GRP_CALL not in instruction.groups_set
+                and instruction.condition != InstructionCondition.FALSE
+            ):
                 next_addr = emu.pc
 
         # All else fails, take the next instruction in memory
         if next_addr is None:
             next_addr = instruction.address + instruction.size
 
-        # Determine the target of this address. This is the address that the instruction could change the program counter to. 
+        # Determine the target of this address. This is the address that the instruction could change the program counter to.
         # allowing call instructions
         instruction.target = self.resolve_target(instruction, emu, call=True)
 
@@ -505,7 +505,7 @@ class DisassemblyAssistant:
 
         if instruction.target is None:
             instruction.target = instruction.next
-        
+
         if instruction.can_change_instruction_pointer:
             # Only bother doing the lookup when the target is not the next address in memory:
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
@@ -517,14 +517,14 @@ class DisassemblyAssistant:
         ):
             instruction.target_const = True
 
-    # This is the default implementation. 
+    # This is the default implementation.
     # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
     def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """
         Architecture-specific hook point for enhance_next.
 
         Returns the value of the instruction pointer assuming this instruction executes (and any conditional jumps are taken)
-        
+
         "call" specifies if we allow this to resolve call instruction targets
         """
 
@@ -533,7 +533,6 @@ class DisassemblyAssistant:
                 return None
         elif CS_GRP_JUMP not in instruction.groups:
             return None
-
 
         addr = None
 
@@ -548,12 +547,11 @@ class DisassemblyAssistant:
             # Some architectures have jumps with multiple operands. In this case, this default implementation
             # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
             # and use that as the target
-            
+
             best_guess_addr = None
-        
+
             # Reversed order, just because through observation the immediates and labels are often farther right
             for op in reversed(instruction.operands):
-
                 resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
                 if resolved_addr:
                     resolved_addr &= pwndbg.gdblib.arch.ptrmask
@@ -610,7 +608,6 @@ class DisassemblyAssistant:
             return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
         else:
             return None
-
 
 
 generic_assistant = DisassemblyAssistant(None)
