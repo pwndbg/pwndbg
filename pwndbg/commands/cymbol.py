@@ -159,24 +159,6 @@ def add_custom_structure_from_file(header_file_path: str) -> None:
     load_custom_structure(custom_structure_name)
 
 
-def add_custom_structure_from_file(header_file_path: str) -> None:
-    with open(header_file_path, "r") as file:
-        custom_structures_source = file.read().strip()
-
-    if not custom_structures_source:
-        print(message.notice("The header file is empty or does not contain valid structures."))
-        return
-
-    custom_structure_name = os.path.splitext(os.path.basename(header_file_path))[0]
-    pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
-
-    with open(pwndbg_custom_structure_path, "w") as f:
-        f.write(custom_structures_source)
-
-    print(message.success(f"Custom structure from {header_file_path} added."))
-    load_custom_structure(custom_structure_name)
-
-
 @OnlyWhenStructFileExists
 def edit_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
     # Lookup an editor to use for editing the custom structure.
