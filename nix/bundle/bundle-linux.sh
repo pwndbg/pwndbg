@@ -107,9 +107,9 @@ bundleExe() {
 set -eu
 dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
 exec "$dir"/%s "$dir"/%s "$@"' \
-        "'$lib_dir/$(basename "$interpreter")'" \
-        "'$exe_dir/$exe_name'" \
-        > "$out/$bin_dir/$exe_name"
+    "'$lib_dir/$(basename "$interpreter")'" \
+    "'$exe_dir/$exe_name'" \
+    > "$out/$bin_dir/$exe_name"
     chmod +x "$out/$bin_dir/$exe_name"
 }
 

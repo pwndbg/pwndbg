@@ -140,6 +140,7 @@ def add_custom_structure(custom_structure_name: str) -> None:
     # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
+
 def add_custom_structure_from_file(header_file_path: str) -> None:
     with open(header_file_path, "r") as file:
         custom_structures_source = file.read().strip()
@@ -156,6 +157,7 @@ def add_custom_structure_from_file(header_file_path: str) -> None:
 
     print(message.success(f"Custom structure from {header_file_path} added."))
     load_custom_structure(custom_structure_name)
+
 
 @OnlyWhenStructFileExists
 def edit_custom_structure(custom_structure_name: str, custom_structure_path: str) -> None:
