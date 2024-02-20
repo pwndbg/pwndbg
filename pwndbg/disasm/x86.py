@@ -223,7 +223,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # TODO
         if left_after is not None:
-            instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
+            instruction.annotation = (
+                f"{left.str} => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
+            )
         elif plus_string:
             instruction.annotation = f"{left.str} => {plus_string}"
 
