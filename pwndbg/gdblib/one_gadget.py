@@ -6,6 +6,7 @@ import subprocess
 from enum import Enum
 
 import gdb
+from tabulate import tabulate
 
 import pwndbg.color.message as M
 import pwndbg.gdblib.arch
@@ -54,7 +55,10 @@ class CheckSatResult(Enum):
     UNSAT = 0
     UNKNOWN = -1
 
-    def __and__(self, other):
+    def __str__(self) -> str:
+        return self.name
+
+    def __and__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.UNSAT or other == CheckSatResult.UNSAT:
             return CheckSatResult.UNSAT
         elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
@@ -62,7 +66,7 @@ class CheckSatResult(Enum):
         else:
             return CheckSatResult.SAT
 
-    def __or__(self, other):
+    def __or__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.SAT or other == CheckSatResult.SAT:
             return CheckSatResult.SAT
         elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
@@ -83,13 +87,13 @@ class Lambda:
     https://github.com/david942j/one_gadget/blob/65ce1dade70bf89e7496346ccf452ce5b2d139b3/lib/one_gadget/emulators/lambda.rb#L13
     """
 
-    def __init__(self, obj) -> None:
+    def __init__(self, obj: str | Lambda) -> None:
         self.immi = 0
         self.obj = obj
         self.deref_count = 0
 
-    def __add__(self, other) -> Lambda:
-        if not isinstance(other, (int, float)):
+    def __add__(self, other: int) -> Lambda:
+        if not isinstance(other, int):
             raise ValueError(f"Expect other({other}) to be numeric.")
 
         if self.deref_count > 0:
@@ -100,7 +104,7 @@ class Lambda:
         ret.immi += other
         return ret
 
-    def __sub__(self, other) -> Lambda:
+    def __sub__(self, other: int) -> Lambda:
         return self + (-other)
 
     def __str__(self) -> str:
@@ -111,7 +115,7 @@ class Lambda:
         str_repr += "]" * self.deref_count
         return str_repr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Lambda obj={self.obj}, immi={self.immi}, deref_count={self.deref_count}>"
 
     @property
@@ -172,7 +176,7 @@ class Lambda:
         self.deref_count -= 1
         return self
 
-    def evaluate(self, context) -> int | Lambda:
+    def evaluate(self, context: dict) -> int | Lambda:
         if self.deref_count > 0 or (self.obj and self.obj not in context):
             raise ValueError(f"Can't eval {self}")
         return context[self.obj] + self.immi
@@ -191,7 +195,7 @@ class Lambda:
             ridx = argument.rindex("]")
             immi = Lambda.parse(argument[(ridx + 1) :])
             lm = Lambda.parse(argument[1:ridx], predefined)
-            if not isinstance(lm, Lambda):
+            if not isinstance(lm, Lambda) or not isinstance(immi, int):
                 raise ValueError(f"Unsupported instruction argument: {argument}")
             lm = lm.deref()
             if immi:
@@ -492,6 +496,7 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
         value = int(value, 0)
         result, color_str, err = parse_expression(expr)
         if err is None:
+            assert isinstance(result, int)  # somehow mypy is complaining without this :/
             passed = result & 0xF == value
             output_msg += f"{color_str} = {result:#x}, {color_str} & 0xf {'==' if passed else '!='} {value:#x}\n"
         else:
@@ -508,7 +513,9 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     return CheckSatResult(passed), output_msg
 
 
-def check_gadget(gadget: str, show_unsat: bool = False, no_unknown: bool = False) -> CheckSatResult:
+def check_gadget(
+    gadget: str, show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
+) -> CheckSatResult:
     """
     Check status of each gadget, return the gadget's status
     """
@@ -517,40 +524,51 @@ def check_gadget(gadget: str, show_unsat: bool = False, no_unknown: bool = False
     offset, pseudo_code = lines[0].split(maxsplit=1)
     offset = int(offset, 16)
     output_msg = colorize_integer(hex(offset)) + " " + colorize_psuedo_code(pseudo_code) + "\n"
+    verbose_msg = ""
     # From third line, there're the constraints
     is_valid_gadget = SAT
+    result_list = []
     for line in lines[2:]:
         line = line.strip()
         result, msg = check_constraint(line)
         is_valid_gadget = is_valid_gadget & result
         if result == SAT:
-            output_msg += msg + M.success(f"SAT: {line}") + "\n"
+            if verbose:
+                verbose_msg += msg + M.success(f"SAT: {line}") + "\n"
+            result_list.append((M.success(result), M.success(line)))
         elif result == UNSAT:
-            output_msg += msg + M.error(f"UNSAT: {line}") + "\n"
+            if verbose:
+                verbose_msg += msg + M.error(f"UNSAT: {line}") + "\n"
+            result_list.append((M.error(result), M.error(line)))
         else:
-            output_msg += msg + M.warn(f"UNKNOWN: {line}") + "\n"
+            if verbose:
+                verbose_msg += msg + M.warn(f"UNKNOWN: {line}") + "\n"
+            result_list.append((M.warn(result), M.warn(line)))
+
+    if verbose:
+        output_msg += verbose_msg
+    output_msg += tabulate(result_list, headers=["Result", "Constraint"], tablefmt="grid") + "\n"
 
     if is_valid_gadget == SAT:
-        print(output_msg + M.success("This gadget is valid") + "\n")
+        print(output_msg)
     elif is_valid_gadget == UNSAT and show_unsat:
-        print(output_msg + M.error("This gadget is invalid") + "\n")
+        print(output_msg)
     elif is_valid_gadget == UNKNOWN and not no_unknown:
-        # Note: We might need to update the message here if there's more than one possible scenario for UNKNOWN
-        print(
-            output_msg
-            + M.warn("This gadget might be valid if you control the argv properly")
-            + "\n"
-        )
+        print(output_msg)
 
     return is_valid_gadget
 
 
-def find_gadgets(show_unsat: bool = False, no_unknown: bool = False) -> CheckSatResult:
+def find_gadgets(
+    show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
+) -> dict[CheckSatResult, int]:
     """
     Find gadgets by parsing the output of one_gadget, return there's any valid gadget
     """
     gadgets = run_one_gadget().split("\n\n")
-    found = UNSAT
+    gadgets_count = {SAT: 0, UNSAT: 0, UNKNOWN: 0}
     for gadget in gadgets:
-        found |= check_gadget(gadget, show_unsat, no_unknown)
-    return found
+        result = check_gadget(gadget, show_unsat=show_unsat, no_unknown=no_unknown, verbose=verbose)
+        gadgets_count[result] += 1
+
+    return gadgets_count

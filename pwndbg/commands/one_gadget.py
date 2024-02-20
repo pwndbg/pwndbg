@@ -20,12 +20,13 @@ Examples:
 )
 parser.add_argument("--show-unsat", help="Show unsatisfiable gadgets.", action="store_true")
 parser.add_argument("--no-unknown", help="Do not show unknown gadgets.", action="store_true")
+parser.add_argument("-v", "--verbose", help="Show verbose output.", action="store_true")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="onegadget", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
-def one_gadget(show_unsat=False, no_unknown=False):
+def one_gadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False) -> None:
     if not shutil.which("one_gadget"):
         print(M.error("Could not find one_gadget. Please ensure it's installed and in $PATH."))
         return
@@ -37,19 +38,13 @@ def one_gadget(show_unsat=False, no_unknown=False):
     print(f"Using libc: {M.hint(path)}")
     print()
 
-    valid_result = [
-        pwndbg.gdblib.one_gadget.SAT,
-        pwndbg.gdblib.one_gadget.UNKNOWN,
-    ]
-    if show_unsat:
-        valid_result.append(pwndbg.gdblib.one_gadget.UNSAT)
-    if no_unknown:
-        valid_result.remove(pwndbg.gdblib.one_gadget.UNKNOWN)
-
-    result = pwndbg.gdblib.one_gadget.find_gadgets(show_unsat, no_unknown)
-    if result not in valid_result:
+    gadgets_count = pwndbg.gdblib.one_gadget.find_gadgets(show_unsat, no_unknown, verbose)
+    for result, count in gadgets_count.items():
+        print(f"Found {M.hint(count)} {result} gadgets.")
+    if not gadgets_count[pwndbg.gdblib.one_gadget.SAT] and not show_unsat:
         print(
             M.warn(
-                "No valid gadgets found, you might want to run with --show-unsat again to check unsat gadgets."
+                "No valid gadgets found, you might want to run with --show-unsat again to check unsat gadgets.\n"
+                "To see why they are unsatisfiable, you might want to run with -v or --verbose."
             )
         )
