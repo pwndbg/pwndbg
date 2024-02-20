@@ -15,10 +15,9 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-from pwndbg.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
@@ -165,7 +164,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
     def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-
         left, right = instruction.operands
 
         # Resolved values of left and right operand before xchg operation took place
@@ -176,7 +174,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             # Display the exchanged values. Doing it this way (instead of using .after_value) allows this to work without emulation
             # Don't telescope here for the sake of screen space
             instruction.annotation = f"{left.str} => {MemoryColor.get_address_or_symbol(right_before)}, {right.str} => {MemoryColor.get_address_or_symbol(left_before)}"
-            
 
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
@@ -200,7 +197,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     )
                 except Exception as e:
                     pass
-    
+
     def handle_add_sub_handler(
         self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str
     ) -> None:
@@ -291,7 +288,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         operand_actual = super().resolve_used_value(operand.after_value, instruction, operand, emu)
 
         if operand_actual is not None:
-            instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
+            instruction.annotation = (
+                f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
+            )
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
@@ -311,11 +310,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return instruction.address + instruction.size
         else:
             return super().read_register(instruction, operand_id, emu)
-    
+
     # Override
-    def parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
-    ):
+    def parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
 
@@ -423,12 +420,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if conditional is None:
             return InstructionCondition.UNDETERMINED
-        
+
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
-
     # Currently not used
-    def memory_string_with_components_resolved(self, instruction: PwndbgInstruction, op: EnhancedOperand):
+    def memory_string_with_components_resolved(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand
+    ):
         # Example: [RSP + RCX*4 - 100] would return "[0x7ffd00acf230 + 8+4 - 100]"
         arith = False
         segment = op.mem.segment

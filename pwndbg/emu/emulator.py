@@ -46,7 +46,9 @@ def parse_consts(u_consts) -> dict[str, int]:
 
 
 # Generate Map<Register name, unicorn constant>
-def create_reg_to_const_map(base_consts: dict[str, int], additional_mapping: dict[str, int] = None) -> dict[str, int]:
+def create_reg_to_const_map(
+    base_consts: dict[str, int], additional_mapping: dict[str, int] = None
+) -> dict[str, int]:
     # base_consts is Map<"UC_*_REG_", constant>
     # additional mapping is the manually additions that add to the returned dict
 
@@ -68,7 +70,6 @@ def create_reg_to_const_map(base_consts: dict[str, int], additional_mapping: dic
         reg_to_const.update(additional_mapping)
 
     return reg_to_const
-
 
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
@@ -103,7 +104,9 @@ arch_to_reg_const_map = {
     "mips": create_reg_to_const_map(arch_to_UC_consts["mips"]),
     "sparc": create_reg_to_const_map(arch_to_UC_consts["sparc"]),
     "arm": create_reg_to_const_map(arch_to_UC_consts["arm"]),
-    "aarch64": create_reg_to_const_map(arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}),
+    "aarch64": create_reg_to_const_map(
+        arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}
+    ),
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
 }
@@ -122,15 +125,18 @@ arch_to_reg_const_map = {
     DEBUG_TRACE,
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
-# DEBUG = NO_DEBUG
+DEBUG = NO_DEBUG
 # DEBUG = -1 # ALL
-DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
+# DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
+
     def debug(debug_type, fmt, args=()) -> None:
         if DEBUG & debug_type:
             print(fmt % args)
+
 else:
+
     def debug(debug_type, fmt, args=()) -> None:
         pass
 
@@ -193,7 +199,7 @@ class Emulator:
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.gdblib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
-        # There are cases when the emulator is incorrect or we want to disable it for certain instruction types, 
+        # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
         # and so we can set this to False to indicate that we should not allow the emulator to continue to step
         self.valid = True
 
@@ -212,10 +218,9 @@ class Emulator:
         for reg in (
             list(self.regs.retaddr)
             + list(self.regs.misc)
-            + list(self.regs.common) # this includes the flags register
+            + list(self.regs.common)  # this includes the flags register
         ):
             enum = self.get_reg_enum(reg)
-
 
             if not reg:
                 debug(DEBUG_INIT, "# Could not set register %r", reg)
@@ -229,7 +234,7 @@ class Emulator:
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
-        
+
             # All registers are initialized to zero.
             if value == 0:
                 continue
@@ -237,7 +242,6 @@ class Emulator:
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             debug(DEBUG_INIT, "uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
-
 
         # Add a hook for unmapped memory
         self.hook_add(U.UC_HOOK_MEM_UNMAPPED, self.hook_mem_invalid)
@@ -398,10 +402,9 @@ class Emulator:
             rwx = exe = False
 
         if exe:
-            instr = pwndbg.disasm.one_raw(value)
-
-            if instr:
-                instr = f"{instr.mnemonic} {instr.op_str}"
+            pwndbg_instr = pwndbg.disasm.one_raw(value)
+            if pwndbg_instr:
+                instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
                 if pwndbg.gdblib.config.syntax_highlight:
                     instr = syntax_highlight(instr)
 
@@ -633,7 +636,6 @@ class Emulator:
         #
         elif reg == "sp":
             return self.get_reg_enum(self.regs.stack)
-        
 
         return None
 
@@ -767,7 +769,6 @@ class Emulator:
             return InstructionExecutedResult(None, None)
 
         self.last_single_step_result = InstructionExecutedResult(None, None)
-        
 
         pc = pc or self.pc
 

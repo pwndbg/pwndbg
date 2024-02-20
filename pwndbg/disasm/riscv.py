@@ -6,8 +6,8 @@ from capstone.riscv import *  # noqa: F403
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
 
@@ -16,7 +16,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
         self.architecture = architecture
 
-    def _is_condition_taken(self, instruction: PwndbgInstruction, emu: Emulator | None) -> InstructionCondition:
+    def _is_condition_taken(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         # B-type instructions have two source registers that are compared
         src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
         # compressed instructions c.beqz and c.bnez only use one register operand.
@@ -47,7 +49,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if condition is None:
             return InstructionCondition.UNDETERMINED
-        
+
         return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
 
     def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
@@ -87,8 +89,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # Determine if the conditional jump is taken
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups and self._is_condition_taken(
-            instruction,
-            emu
+            instruction, emu
         ):
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 

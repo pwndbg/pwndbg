@@ -8,8 +8,8 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
 
@@ -52,7 +52,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         if cc is None:
             return InstructionCondition.UNDETERMINED
-        
+
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
     def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:

@@ -102,7 +102,7 @@ def enhance(
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
-    instr = None
+    instr: str | None = None
     exe = page and page.execute
     rwx = page and page.rwx
 
@@ -116,9 +116,9 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        instr = pwndbg.disasm.one(value, enhance=False)
-        if instr:
-            instr = f"{instr.mnemonic} {instr.op_str}"
+        pwndbg_instr = pwndbg.disasm.one(value, enhance=False)
+        if pwndbg_instr:
+            instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
             if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 

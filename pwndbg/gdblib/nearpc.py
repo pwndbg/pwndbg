@@ -150,13 +150,14 @@ def nearpc(
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
-
     assembly_strings = D.instructions_and_padding(instructions)
 
     prev = None
 
     # Print out each instruction
-    for i, (address_str, symbol, instr, asm) in enumerate(zip(addresses, symbols, instructions, assembly_strings)):
+    for i, (address_str, symbol, instr, asm) in enumerate(
+        zip(addresses, symbols, instructions, assembly_strings)
+    ):
         prefix_sign = pwndbg.gdblib.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
@@ -178,7 +179,7 @@ def nearpc(
             symbol = c.symbol(symbol)
         elif pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
             # If this instruction is the one the PC is at.
-            # In case of tight loops, with emulation we may display the same instruction multiple times. 
+            # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
@@ -278,7 +279,7 @@ def nearpc(
             opcodes = opcodes.ljust(align)
             if pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
                 opcodes = C.highlight(opcodes)
-                
+
         # Example line:
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
         # prefix        = ►

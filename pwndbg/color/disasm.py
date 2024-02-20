@@ -4,7 +4,6 @@ import capstone
 
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.disasm.jump
 from pwndbg.color import ColorConfig
@@ -12,8 +11,8 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 
 # The amount of whitespace between instructions and the annotation, by default
 pwndbg.gdblib.config.add_param(
@@ -92,7 +91,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
     # None if padding doesn't apply to the instruction
-    paddings = []
+    paddings: list[int | None] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
         if ins.can_change_instruction_pointer:
@@ -121,7 +120,10 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 # Checks the length of the following instruction to determine where to put the annotation
 
                 # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
-                if i < len(instructions) - 1 and not instructions[i + 1].can_change_instruction_pointer:
+                if (
+                    i < len(instructions) - 1
+                    and not instructions[i + 1].can_change_instruction_pointer
+                ):
                     next_len = len(strip(assembly[i + 1]))
 
                     # If next instructions also has too much white space, put annotations closer to left again

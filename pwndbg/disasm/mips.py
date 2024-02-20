@@ -1,28 +1,28 @@
 # When single stepping in Unicorn with MIPS, the address it arrives at in Unicorn
 # is often incorrect with branches.
-# This is due to "Delay slots" - the instruction AFTER a branch is always executed 
+# This is due to "Delay slots" - the instruction AFTER a branch is always executed
 # before the jump, and the Unicorn emulator respects this behavior.
-# This causes single stepping branches to not arrive at the correct instruction - 
+# This causes single stepping branches to not arrive at the correct instruction -
 # it will simply go to the next location in memory, not respecting the branch. It doesn't appear to be extremely consistent.
 # Unicorn doesn't have a workaround for this single stepping issue:
 # https://github.com/unicorn-engine/unicorn/issues/332
 #
-# The way to fix the issue this causes (incorrect instruction.next) is by implementing the condition function to manually specify when a jump is taken.
-# Our manual decision will override the emulator.
+# The way to fix the issue this causes (incorrect instruction.next) is by implementing the
+# condition function to manually specify when a jump is taken. Our manual decision will override the emulator.
 
 from __future__ import annotations
 
 from typing import Callable
 
-from capstone import *
+from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
 
-
-import pwndbg.gdblib.regs
 import pwndbg.disasm.arch
-from pwndbg.disasm.instruction import PwndbgInstruction
+import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator  # noqa: F403
+
 
 def to_signed(unsigned: int):
     if pwndbg.gdblib.arch.ptrsize == 8:
@@ -36,15 +36,14 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-
     MIPS_INS_BGEZ: lambda ops: to_signed(ops[0]) >= 0,
     MIPS_INS_BGEZAL: lambda ops: to_signed(ops[0]) >= 0,
     MIPS_INS_BGTZ: lambda ops: to_signed(ops[0]) > 0,
-
     MIPS_INS_BLEZ: lambda ops: to_signed(ops[0]) <= 0,
     MIPS_INS_BLTZAL: lambda ops: to_signed(ops[0]) < 0,
     MIPS_INS_BLTZ: lambda ops: to_signed(ops[0]) < 0,
 }
+
 
 # Capstone operand type for x86 is capstone.x86.X86Op
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
@@ -53,16 +52,19 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
     # Override
     def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
-        super().resolve_used_value(instruction.operands[0].before_value, instruction, instruction.operands[0], emu) 
+        super().resolve_used_value(
+            instruction.operands[0].before_value, instruction, instruction.operands[0], emu
+        )
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
         resolved_operands: list[int] = []
         for op in instruction.operands:
-            resolved_operands.append(super().resolve_used_value(op.before_value, instruction, op, emu))
+            resolved_operands.append(
+                super().resolve_used_value(op.before_value, instruction, op, emu)
+            )
 
         # If any of the relevent operands are None (we can't reason about them), quit.
         if any(value is None for value in resolved_operands[:-1]):
@@ -76,9 +78,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
-
-
-    
 
 
 assistant = DisassemblyAssistant("mips")

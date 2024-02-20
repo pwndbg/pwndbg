@@ -2,23 +2,42 @@ from __future__ import annotations
 
 import typing
 from enum import Enum
+
 import gdb
 
 # Reverse lookup tables for debug printing
+from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
-from capstone import CS_AC
-from capstone.x86 import X86Op, X86_INS_JMP
-from capstone.arm import ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH
-from capstone.arm64 import ARM64_INS_B, ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR
-from capstone.sparc import SPARC_INS_JMP,SPARC_INS_JMPL
-from capstone.mips import MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B
-from capstone.riscv import RISCV_INS_JAL, RISCV_INS_JALR
-from capstone.ppc import PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA
-
-
 from capstone import *  # noqa: F403
+from capstone.arm import ARM_INS_B
+from capstone.arm import ARM_INS_BL
+from capstone.arm import ARM_INS_BLX
+from capstone.arm import ARM_INS_BX
+from capstone.arm import ARM_INS_BXJ
+from capstone.arm import ARM_INS_TBB
+from capstone.arm import ARM_INS_TBH
 
+# from capstone.arm64 import ARM64_INS_B
+from capstone.arm64 import ARM64_INS_BL
+from capstone.arm64 import ARM64_INS_BLR
+from capstone.arm64 import ARM64_INS_BR
+from capstone.mips import MIPS_INS_B
+from capstone.mips import MIPS_INS_BAL
+from capstone.mips import MIPS_INS_J
+from capstone.mips import MIPS_INS_JAL
+from capstone.mips import MIPS_INS_JALR
+from capstone.mips import MIPS_INS_JR
+from capstone.ppc import PPC_INS_B
+from capstone.ppc import PPC_INS_BA
+from capstone.ppc import PPC_INS_BL
+from capstone.ppc import PPC_INS_BLA
+from capstone.riscv import RISCV_INS_JAL
+from capstone.riscv import RISCV_INS_JALR
+from capstone.sparc import SPARC_INS_JMP
+from capstone.sparc import SPARC_INS_JMPL
+from capstone.x86 import X86_INS_JMP
+from capstone.x86 import X86Op
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 # The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
@@ -26,26 +45,35 @@ from capstone import *  # noqa: F403
 UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
     CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
-    CS_ARCH_SPARC: {SPARC_INS_JMP,SPARC_INS_JMPL},
-    CS_ARCH_ARM: {ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ, ARM_INS_TBB, ARM_INS_TBH},
+    CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
+    CS_ARCH_ARM: {
+        ARM_INS_B,
+        ARM_INS_BL,
+        ARM_INS_BLX,
+        ARM_INS_BX,
+        ARM_INS_BXJ,
+        ARM_INS_TBB,
+        ARM_INS_TBH,
+    },
     CS_ARCH_ARM64: {ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
     CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR},
-    CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA}
+    CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
-# All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone 
+# All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
-# All Capstone jumps should have at least one of these groups 
+# All Capstone jumps should have at least one of these groups
 ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
+
 
 class InstructionCondition(Enum):
     # Conditional instruction, and action is taken
     TRUE = 1
     # Conditional instruction, but action is not taken
     FALSE = 2
-    # Unconditional instructions (most instructions), or we cannot reason about the instruction 
+    # Unconditional instructions (most instructions), or we cannot reason about the instruction
     UNDETERMINED = 3
 
 
@@ -59,6 +87,7 @@ CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_SPARC: "sparc",
     CS_ARCH_RISCV: "RISCV",
 }
+
 
 # This class is used to provide context to an instructions execution, used both
 # in the disasm view output (see 'pwndbg.color.disasm.instruction()'), as well as for
@@ -123,7 +152,7 @@ class PwndbgInstruction:
         # If the instruction is not one that changes the PC, target is set to "next"
         self.target: int = None
 
-        # String representation of the target address. 
+        # String representation of the target address.
         # Colorized symbol if a symbol exists at address, else colorized address
         self.target_string: str | None = None
 
@@ -157,19 +186,19 @@ class PwndbgInstruction:
         """
         return self.target not in (None, self.address + self.size)
 
-
-
     @property
     def is_conditional_jump(self) -> bool:
         """
         True if this instruction can change the program counter conditionally.
 
         This is used to determine what instructions deserve a "checkmark" in the disasm view if the jump is taken
-        
+
         This property is used to determine if an instruction deserves a green checkmark.
         """
-        return bool(self.groups_set & GENERIC_JUMP_GROUPS) and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
-
+        return (
+            bool(self.groups_set & GENERIC_JUMP_GROUPS)
+            and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
+        )
 
     @property
     def is_unconditional_jump(self) -> bool:
@@ -180,9 +209,10 @@ class PwndbgInstruction:
 
         This property is used in enhancement to determine certain codepaths when resolving .next for this instruction.
         """
-        return bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMP_GROUPS) or self.id in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
-
-
+        return (
+            bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMP_GROUPS)
+            or self.id in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
+        )
 
     @property
     def is_conditional_jump_taken(self) -> bool:
@@ -191,12 +221,16 @@ class PwndbgInstruction:
         """
         # True if:
         # - We manually determined in .condition that we take the jump
-        # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False. 
+        # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False.
         #   Emulation can be incorrect, so we check the conditional for false to ensure we didn't manually override the emulator's decision
-        return self.is_conditional_jump and (self.condition == InstructionCondition.TRUE or ((self.next not in (None, self.address + self.size)) and self.condition != InstructionCondition.FALSE))
+        return self.is_conditional_jump and (
+            self.condition == InstructionCondition.TRUE
+            or (
+                (self.next not in (None, self.address + self.size))
+                and self.condition != InstructionCondition.FALSE
+            )
+        )
 
-
-    
     @property
     def bytes(self) -> bytearray:
         """
@@ -300,7 +334,6 @@ class EnhancedOperand:
 
     # For debugging
     def __repr__(self) -> str:
-
         info = (
             f"'{self.str}': Symbol: {self.symbol}, "
             f"Before: {hex(self.before_value) if self.before_value is not None else None}, "
@@ -308,14 +341,13 @@ class EnhancedOperand:
             f"type={CS_OP.get(self.type, self.type)}"
         )
 
-        if(isinstance(self.cs_op, X86Op)):
+        if isinstance(self.cs_op, X86Op):
             info += (
-                f", size={self.size}, "
-                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
+                f", size={self.size}, " f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
             )
 
-        
         return f"[{info}]"
+
 
 # Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
 # (as defined in the CapstoneArch structure)
