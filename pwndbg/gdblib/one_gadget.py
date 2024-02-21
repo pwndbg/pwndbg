@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import ctypes
+import hashlib
+import os
 import re
 import subprocess
+import tempfile
 from enum import Enum
 
 import gdb
@@ -14,6 +17,7 @@ import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
+import pwndbg.lib.cache
 from pwndbg.color import colorize
 from pwndbg.color import generateColorFunction
 
@@ -246,19 +250,44 @@ def colorize_psuedo_code(code: str) -> str:
     return output
 
 
+def get_cache_dir() -> str:
+    """
+    Return the cache directory for one_gadget
+    """
+    tempdir = os.path.join(tempfile.gettempdir(), ".pwndbg.one_gadget")
+    os.makedirs(tempdir, exist_ok=True)
+    return tempdir
+
+
+def compute_file_hash(filename: str) -> str:
+    """
+    Compute the hash of a file, return the BLAKE2 hash of the file
+    """
+    h = hashlib.blake2b()
+    with open(filename, "rb") as f:
+        h.update(f.read())
+    return h.hexdigest()
+
+
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def run_one_gadget() -> str:
     """
     Run one_gadget and return the output
     """
-    # TODO: Cache the output by file hash maybe?
-    return subprocess.check_output(
-        [
-            "one_gadget",
-            "--level=100",
-            pwndbg.gdblib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()),
-        ],
-        text=True,
+    libc_path = pwndbg.gdblib.file.get_file(
+        pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     )
+    # We need cache because one_gadget might be slow
+    cache_file = os.path.join(get_cache_dir(), compute_file_hash(libc_path))
+    if os.path.exists(cache_file):
+        # Cache hit
+        with open(cache_file, "r") as f:
+            return f.read()
+    # Cache miss
+    output = subprocess.check_output(["one_gadget", "--level=100", libc_path], text=True)
+    with open(cache_file, "w") as f:
+        f.write(output)
+    return output
 
 
 def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
