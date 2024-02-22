@@ -98,10 +98,9 @@ install_apt() {
         qemu-system-arm \
         qemu-user \
         gcc-aarch64-linux-gnu \
-        gcc-riscv64-linux-gnu \
-        shfmt
+        gcc-riscv64-linux-gnu
 
-    if [[ "$1" == "22.04" ]]; then
+    if [[ "$1" -eq 0 && "$1" != "20.04" ]]; then
         sudo apt install shfmt
     fi
 
