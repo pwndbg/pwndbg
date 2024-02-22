@@ -168,8 +168,7 @@ def yield_return_addresses():
         frame = frame.older()
 
     # Find all of them on the stack
-    start = stack.vaddr
-    stop = start + stack.memsz
+    start, stop = stack.start, stack.end
     while addresses and start < sp < stop:
         value = pwndbg.gdblib.memory.u(sp)
 
