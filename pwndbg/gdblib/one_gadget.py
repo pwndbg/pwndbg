@@ -261,9 +261,9 @@ def get_cache_dir() -> str:
 
 def compute_file_hash(filename: str) -> str:
     """
-    Compute the hash of a file, return the BLAKE2 hash of the file
+    Compute the MD5 hash of the file, return the hash
     """
-    h = hashlib.blake2b()
+    h = hashlib.md5()
     with open(filename, "rb") as f:
         h.update(f.read())
     return h.hexdigest()
