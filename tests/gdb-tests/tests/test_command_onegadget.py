@@ -23,11 +23,11 @@ constraints:
   rdx == NULL || (s32)[rdx+0x4] <= 0
   rbp == NULL || (u16)[rbp] == NULL
 
-0xebce2 execve("/bin/sh", rbp-0x50, r12)
+0xebc88 execve("/bin/sh", rsi, rdx)
 constraints:
-  address rbp-0x48 is writable
-  r13 == NULL || {"/bin/sh", r13, NULL} is a valid argv
-  [r12] == NULL || r12 == NULL || r12 is a valid envp
+  address rbp-0x78 is writable
+  [rsi] == NULL || rsi == NULL || rsi is a valid argv
+  [rdx] == NULL || rdx == NULL || rdx is a valid envp
 """
 
 I386_ONE_GADGET_OUTPUT = """\
@@ -58,7 +58,7 @@ def test_find_x86_64_one_gadget(check_output, which):
     # Make all gadgets unsatisfiable
     gdb.execute("set $saved_rbp=$rbp")
     gdb.execute("set $xmm0.uint128=0xdeadbeafdeadbeaf")
-    gdb.execute("set $rcx=$rbx=$rdx=$rbp=$r12=$r13=0xdeadbeef")
+    gdb.execute("set $rcx=$rbx=$rdx=$rbp=$rsi=0xdeadbeef")
 
     output = gdb.execute("onegadget --verbose", to_string=True)
 
@@ -67,32 +67,36 @@ def test_find_x86_64_one_gadget(check_output, which):
     assert "Found 2 UNSAT gadgets" in output
     assert "Found 0 UNKNOWN gadgets" in output
     assert "0x80bd0" not in output
-    assert "0xebce2" not in output
+    assert "0xebc88" not in output
 
     # Should show unsatisfiable gadgets
     output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)
     assert "0x80bd0" in output
-    assert "0xebce2" in output
+    assert "0xebc88" in output
 
-    # Make 0xebce2 satisfiable
+    # Make 0xebc88 satisfiable
     gdb.execute("set $rbp=$saved_rbp")
-    gdb.execute("set $r12=$r13=0")
+    gdb.execute("set $rsi=$rdx=0")
 
     output = gdb.execute("onegadget --verbose", to_string=True)
     assert "Found 1 SAT gadgets" in output
-    assert "0xebce2" in output
+    assert "0xebc88" in output
 
-    # Check if r12 is a valid envp
-    gdb.execute("set $r12=envp")
+    # Check if rsi is a valid argv
+    gdb.execute("set $rsi=argv")
     output = gdb.execute("onegadget --verbose", to_string=True)
     assert "Found 1 SAT gadgets" in output
-    assert "0xebce2" in output
+    assert "0xebc88" in output
 
-    # Make 0xebce2 unsatisfiable again
-    gdb.execute("set $r12=$r13=0xdeadbeef")
+    # Check if rdx is a valid envp
+    gdb.execute("set $rdx=envp")
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0xebc88" in output
 
-    # Make 0x80bd0 satisfiable
+    # Make 0x80bd0 satisfiable and 0xebc88 unsatisfiable
     gdb.execute("set $rcx=0")
+    gdb.execute("set *(unsigned long*)($rsp+0x70)=0")
     gdb.execute("set $rbx=buf+0x500")
     gdb.execute("set $rdx=buf+0x500")
     gdb.execute("set $rbp=0")
@@ -190,9 +194,6 @@ def test_one_gadget_cache(which):
     gdb.execute("run")
 
     cache_dir = pwndbg.gdblib.one_gadget.get_cache_dir()
-
-    # Remove the cache directory to ensure we're not using a cached version of one_gadget
-    shutil.rmtree(cache_dir, ignore_errors=True)
 
     # Run one_gadget with mock output
     with patch("subprocess.check_output", return_value=X86_64_ONE_GADGET_OUTPUT):

@@ -4,10 +4,11 @@
 
 char buf[BUF_SIZE] = {};
 
-void break_here(char **envp){}
+void break_here(char **argv, char **envp){}
 
 int main(int argc, char* argv[], char* envp[]) {
+    char *valid_argv[] = {"xxxx", NULL};
     memset(buf, 0, BUF_SIZE);
-    break_here(envp);
+    break_here(valid_argv, envp);
     return 0;
 }
