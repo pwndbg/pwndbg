@@ -181,7 +181,7 @@ def test_find_i386_one_gadget(check_output, which):
     gdb.execute("set *(void**)($ebp-0x30)=0")
     gdb.execute("set *(void**)($ebp-0x2c)=envp")
 
-    output = gdb.execute("onegadget --verbose --show-unsat", to_string=True)
+    output = gdb.execute("onegadget --verbose", to_string=True)
     assert "Found 1 SAT gadgets" in output
     assert "0xdeee3" in output
 
