@@ -1,0 +1,224 @@
+from __future__ import annotations
+
+import shutil
+from unittest.mock import patch
+
+import gdb
+import pytest
+
+import pwndbg.gdblib.one_gadget
+import pwndbg.glibc
+import tests
+
+X86_64_BINARY = tests.binaries.get("one_gadget.x86-64.out")
+I386_BINARY = tests.binaries.get("one_gadget.i386.out")
+
+X86_64_ONE_GADGET_OUTPUT = """\
+0x80bd0 posix_spawn(rbx+0xe0, "/bin/sh", rdx, rbp, rsp+0x60, environ)
+constraints:
+  address rsp+0x78 is writable
+  rsp & 0xf == 0
+  rcx == NULL || {rcx, (u64)(xmm0 >> 64), [rsp+0x70], NULL} is a valid argv
+  rbx+0xe0 == NULL || writable: rbx+0xe0
+  rdx == NULL || (s32)[rdx+0x4] <= 0
+  rbp == NULL || (u16)[rbp] == NULL
+
+0xebce2 execve("/bin/sh", rbp-0x50, r12)
+constraints:
+  address rbp-0x48 is writable
+  r13 == NULL || {"/bin/sh", r13, NULL} is a valid argv
+  [r12] == NULL || r12 == NULL || r12 is a valid envp
+"""
+
+I386_ONE_GADGET_OUTPUT = """\
+0xdeee3 execve("/bin/sh", [ebp-0x30], [ebp-0x2c])
+constraints:
+  address ebp-0x20 is writable
+  ebx is the GOT address of libc
+  [[ebp-0x30]] == NULL || [ebp-0x30] == NULL || [ebp-0x30] is a valid argv
+  [[ebp-0x2c]] == NULL || [ebp-0x2c] == NULL || [ebp-0x2c] is a valid envp
+
+0x172951 execl("/bin/sh", eax)
+constraints:
+  esi is the GOT address of libc
+  eax == NULL
+"""
+
+
+@patch("shutil.which", return_value="one_gadget")
+@patch("subprocess.check_output", return_value=X86_64_ONE_GADGET_OUTPUT)
+def test_find_x86_64_one_gadget(check_output, which):
+    gdb.execute(f"file {X86_64_BINARY}")
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    # TODO: Find a proper way to test every possible constraint
+    # TODO: Check correctness of the verbose output
+
+    # Make all gadgets unsatisfiable
+    gdb.execute("set $saved_rbp=$rbp")
+    gdb.execute("set $xmm0.uint128=0xdeadbeafdeadbeaf")
+    gdb.execute("set $rcx=$rbx=$rdx=$rbp=$r12=$r13=0xdeadbeef")
+
+    output = gdb.execute("onegadget --verbose", to_string=True)
+
+    # No gadgets should be found
+    assert "Found 0 SAT gadgets" in output
+    assert "Found 2 UNSAT gadgets" in output
+    assert "Found 0 UNKNOWN gadgets" in output
+    assert "0x80bd0" not in output
+    assert "0xebce2" not in output
+
+    # Should show unsatisfiable gadgets
+    output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)
+    assert "0x80bd0" in output
+    assert "0xebce2" in output
+
+    # Make 0xebce2 satisfiable
+    gdb.execute("set $rbp=$saved_rbp")
+    gdb.execute("set $r12=$r13=0")
+
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0xebce2" in output
+
+    # Check if r12 is a valid envp
+    gdb.execute("set $r12=envp")
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0xebce2" in output
+
+    # Make 0xebce2 unsatisfiable again
+    gdb.execute("set $r12=$r13=0xdeadbeef")
+
+    # Make 0x80bd0 satisfiable
+    gdb.execute("set $rcx=0")
+    gdb.execute("set $rbx=buf+0x500")
+    gdb.execute("set $rdx=buf+0x500")
+    gdb.execute("set $rbp=0")
+
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0x80bd0" in output
+
+    # Check if rcx is readable, (u64)(xmm0 >> 64) is NULL
+    gdb.execute("set $rcx=buf+0x500")
+    gdb.execute("set $xmm0.uint128=0x0")
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0x80bd0" in output
+
+    # Check if rcx is readable, (u64)(xmm0 >> 64) is readable, [rsp+0x70] is readable
+    gdb.execute("set $xmm0.v2_int64[1]=buf+0x500")
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 0 SAT gadgets" in output
+    assert "Found 1 UNKNOWN gadgets" in output
+    assert "0x80bd0" in output
+
+    # Should exclude unknown gadgets
+    output = gdb.execute("onegadget --no-unknown --verbose", to_string=True)
+    assert "0x80bd0" not in output
+
+    # Make 0x80bd0 satisfiable again
+    gdb.execute("set $rcx=0")
+
+    # Check if (s32)[rdx+0x4] <= 0
+    gdb.execute("set *(int*)($rdx+0x4)=-1")
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0x80bd0" in output
+
+
+@patch("shutil.which", return_value="one_gadget")
+@patch("subprocess.check_output", return_value=I386_ONE_GADGET_OUTPUT)
+def test_find_i386_one_gadget(check_output, which):
+    gdb.execute(f"file {I386_BINARY}")
+    gdb.execute("break break_here")
+    try:
+        gdb.execute("run")
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
+
+    # TODO: Find a proper way to test every possible constraint
+    # TODO: Check correctness of the verbose output
+
+    # Make all gadgets unsatisfiable
+    gdb.execute(f"set $ebx=$esi=$eax=0xdeadbeaf")
+    gdb.execute(f"set $saved_ebp=$ebp")
+    gdb.execute(f"set $ebp=0xdeadbeaf")
+
+    # Run one_gadget
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 0 SAT gadgets" in output
+    assert "Found 2 UNSAT gadgets" in output
+    assert "Found 0 UNKNOWN gadgets" in output
+    assert "0xdeee3" not in output
+    assert "0x172951" not in output
+
+    # Should show unsatisfiable gadgets
+    output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)
+    assert "0xdeee3" in output
+    assert "0x172951" in output
+
+    # Make 0x172951 satisfiable
+    glibc_got_plt = pwndbg.glibc.get_section_address_by_name(".got.plt")
+    gdb.execute(f"set $esi={glibc_got_plt}")
+    gdb.execute("set $eax=0")
+
+    output = gdb.execute("onegadget --verbose", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0x172951" in output
+
+    # Make 0x172951 unsatisfiable again
+    gdb.execute("set $esi=$eax=0xdeadbeaf")
+
+    # Make 0xdeee3 satisfiable
+    gdb.execute(f"set $ebx={glibc_got_plt}")
+    gdb.execute("set $ebp=$saved_ebp")
+    gdb.execute("set *(void**)($ebp-0x30)=0")
+    gdb.execute("set *(void**)($ebp-0x2c)=envp")
+
+    output = gdb.execute("onegadget --verbose --show-unsat", to_string=True)
+    assert "Found 1 SAT gadgets" in output
+    assert "0xdeee3" in output
+
+
+@patch("shutil.which", return_value="one_gadget")
+def test_one_gadget_cache(which):
+    gdb.execute(f"file {X86_64_BINARY}")
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    cache_dir = pwndbg.gdblib.one_gadget.get_cache_dir()
+
+    # Remove the cache directory to ensure we're not using a cached version of one_gadget
+    shutil.rmtree(cache_dir, ignore_errors=True)
+
+    # Run one_gadget with mock output
+    with patch("subprocess.check_output", return_value=X86_64_ONE_GADGET_OUTPUT):
+        output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)
+
+    # Run one_gadget again to ensure we're using the cache
+    with patch("subprocess.check_output", side_effect=AssertionError("Cache miss")):
+        assert output == gdb.execute("onegadget --show-unsat --verbose", to_string=True)
+
+
+@patch("shutil.which", return_value=None)
+def test_no_one_gadget_installed(which):
+    gdb.execute(f"file {X86_64_BINARY}")
+    gdb.execute("break break_here")
+    gdb.execute("run")
+    # pwndbg should not be able to find one_gadget
+    output = gdb.execute("onegadget", to_string=True)
+
+    assert output == "Could not find one_gadget. Please ensure it's installed and in $PATH.\n"
+
+
+@patch("shutil.which", return_value="one_gadget")
+def test_no_libc_loaded_for_one_gadget(which):
+    gdb.execute(f"file {X86_64_BINARY}")
+    gdb.execute("starti")
+    # Since we don't have a libc loaded, we should get an error message
+    output = gdb.execute("onegadget", to_string=True)
+
+    assert output == "Could not find libc. Please ensure it's loaded.\n"
