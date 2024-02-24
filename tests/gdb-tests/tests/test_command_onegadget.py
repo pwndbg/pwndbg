@@ -143,9 +143,9 @@ def test_find_i386_one_gadget(check_output, which):
     # TODO: Check correctness of the verbose output
 
     # Make all gadgets unsatisfiable
-    gdb.execute(f"set $ebx=$esi=$eax=0xdeadbeaf")
-    gdb.execute(f"set $saved_ebp=$ebp")
-    gdb.execute(f"set $ebp=0xdeadbeaf")
+    gdb.execute("set $ebx=$esi=$eax=0xdeadbeaf")
+    gdb.execute("set $saved_ebp=$ebp")
+    gdb.execute("set $ebp=0xdeadbeaf")
 
     # Run one_gadget
     output = gdb.execute("onegadget --verbose", to_string=True)
