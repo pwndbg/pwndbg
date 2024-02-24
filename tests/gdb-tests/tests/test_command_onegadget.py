@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from unittest.mock import patch
 
 import gdb
