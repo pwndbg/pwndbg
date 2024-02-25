@@ -176,6 +176,84 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
             first_pc = False
             should_highlight_opcodes = True
 
+        # If this instruction performs a memory access operation, we should tell
+        # the user anything we can figure out about the memory it's trying to
+        # access.
+        mem_access = ""
+        if instr.address == pc and False:
+            accesses = []
+            for operand in instr.operands:
+                if operand.type != CS_OP_MEM:
+                    continue
+                address = operand.mem.disp
+
+                base = operand.mem.base
+                if base > 0:
+                    address += pwndbg.gdblib.regs[instr.reg_name(base)]
+
+                vmmap = pwndbg.gdblib.vmmap.get()
+                page = next((page for page in vmmap if address in page), None)
+                if page is None:
+                    # This is definetly invalid. Don't even bother checking
+                    # any other conditions.
+                    accesses.append(f"[X] {address:#x}")
+                    continue
+
+                if operand.access == CS_AC_READ and not page.read:
+                    # Tried to read from a page we can't read.
+                    accesses.append(f"[X] {address:#x}")
+                    continue
+                if operand.access == CS_AC_WRITE and not page.write:
+                    # Tried to write to a page we can't write.
+                    accesses.append(f"[X] {address:#x}")
+                    continue
+
+                # At this point, we know the operation is legal, but we don't
+                # know where it's going yet. It could be going to either memory
+                # managed by libc or memory managed by the program itself.
+
+                if not pwndbg.heap.current.is_initialized():
+                    # The libc heap hasn't been initialized yet. There's not a
+                    # lot that we can say beyond this point.
+                    continue
+                allocator = pwndbg.heap.current
+
+                heap = pwndbg.heap.ptmalloc.Heap(address)
+                chunk = None
+                for ch in heap:
+                    # Find the chunk in this heap the corresponds to the address
+                    # we're trying to access.
+                    offset = address - ch.address
+                    if offset >= 0 and offset < ch.real_size:
+                        chunk = ch
+                        break
+                if chunk is None:
+                    # The memory for this chunk is not managed by libc. We can't
+                    # reason about it.
+                    accesses.append(f"[?] {address:#x}")
+                    continue
+
+                # Scavenge through all of the bins in the current allocator.
+                # Bins track free chunks, so, whether or not we can find the
+                # chunk we're trying to access in a bin will tells us whether
+                # this access is a UAF.
+                bins_list = [
+                    allocator.fastbins(chunk.arena.address),
+                    allocator.smallbins(chunk.arena.address),
+                    allocator.largebins(chunk.arena.address),
+                    allocator.unsortedbin(chunk.arena.address),
+                ]
+                if allocator.has_tcache():
+                    bins_list.append(allocator.tcachebins(None))
+
+                bins_list = [x for x in bins_list if x is not None]
+                for bins in bins_list:
+                    if bins.contains_chunk(chunk.real_size, chunk.address):
+                        # This chunk is free. This is a UAF.
+                        accesses.append(f"[UAF] {address:#x}")
+                        continue
+            mem_access = " ".join(accesses)
+
         opcodes = ""
         if show_opcode_bytes > 0:
             opcodes = (opcode_separator_bytes * " ").join(
@@ -193,7 +271,7 @@ def nearpc(pc=None, lines=None, emulate=False, repeat=False) -> list[str]:
             if should_highlight_opcodes:
                 opcodes = C.highlight(opcodes)
                 should_highlight_opcodes = False
-        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
+        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm, mem_access)))
 
         # If there was a branch before this instruction which was not
         # contiguous, put in some ellipses.
