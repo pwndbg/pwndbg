@@ -48,7 +48,7 @@ CAST_MAPPING = {
     "(u64)": lambda x: ctypes.c_uint64(x).value,
     "(s64)": lambda x: ctypes.c_int64(x).value,
 }
-ONE_GADGET_COLOR = {
+ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
     "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
 }
@@ -86,7 +86,7 @@ UNKNOWN = CheckSatResult.UNKNOWN
 
 class Lambda:
     """
-    Modified from one_gadget's Lambda class
+    Modified from onegadget's Lambda class
 
     https://github.com/david942j/one_gadget/blob/65ce1dade70bf89e7496346ccf452ce5b2d139b3/lib/one_gadget/emulators/lambda.rb#L13
     """
@@ -223,16 +223,16 @@ class Lambda:
 
 
 def colorize_reg(x: object) -> str:
-    return generateColorFunction("light_green", ONE_GADGET_COLOR)(x)
+    return generateColorFunction("light_green", ONEGADGET_COLOR)(x)
 
 
 def colorize_integer(x: object) -> str:
-    return generateColorFunction("light_purple", ONE_GADGET_COLOR)(x)
+    return generateColorFunction("light_purple", ONEGADGET_COLOR)(x)
 
 
 def colorize_psuedo_code(code: str) -> str:
     """
-    Colorize the pseudo code of one_gadget
+    Colorize the pseudo code of onegadget
     """
     args_start = code.find("(")
     output = code[:args_start]
@@ -252,9 +252,9 @@ def colorize_psuedo_code(code: str) -> str:
 
 def get_cache_dir() -> str:
     """
-    Return the cache directory for one_gadget
+    Return the cache directory for onegadget
     """
-    tempdir = os.path.join(tempfile.gettempdir(), ".pwndbg.one_gadget")
+    tempdir = os.path.join(tempfile.gettempdir(), ".pwndbg.onegadget")
     os.makedirs(tempdir, exist_ok=True)
     return tempdir
 
@@ -270,14 +270,14 @@ def compute_file_hash(filename: str) -> str:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def run_one_gadget() -> str:
+def run_onegadget() -> str:
     """
-    Run one_gadget and return the output
+    Run onegadget and return the output
     """
     libc_path = pwndbg.gdblib.file.get_file(
         pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     )
-    # We need cache because one_gadget might be slow
+    # We need cache because onegadget might be slow
     cache_file = os.path.join(get_cache_dir(), compute_file_hash(libc_path))
     if os.path.exists(cache_file):
         # Cache hit
@@ -592,9 +592,9 @@ def find_gadgets(
     show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
 ) -> dict[CheckSatResult, int]:
     """
-    Find gadgets by parsing the output of one_gadget, return there's any valid gadget
+    Find gadgets by parsing the output of onegadget, return there's any valid gadget
     """
-    gadgets = run_one_gadget().split("\n\n")
+    gadgets = run_onegadget().split("\n\n")
     gadgets_count = {SAT: 0, UNSAT: 0, UNKNOWN: 0}
     for gadget in gadgets:
         result = check_gadget(gadget, show_unsat=show_unsat, no_unknown=no_unknown, verbose=verbose)

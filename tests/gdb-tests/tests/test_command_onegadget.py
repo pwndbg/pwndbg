@@ -5,14 +5,14 @@ from unittest.mock import patch
 import gdb
 import pytest
 
-import pwndbg.gdblib.one_gadget
+import pwndbg.gdblib.onegadget
 import pwndbg.glibc
 import tests
 
-X86_64_BINARY = tests.binaries.get("one_gadget.x86-64.out")
-I386_BINARY = tests.binaries.get("one_gadget.i386.out")
+X86_64_BINARY = tests.binaries.get("onegadget.x86-64.out")
+I386_BINARY = tests.binaries.get("onegadget.i386.out")
 
-X86_64_ONE_GADGET_OUTPUT = """\
+X86_64_ONEGADGET_OUTPUT = """\
 0x80bd0 posix_spawn(rbx+0xe0, "/bin/sh", rdx, rbp, rsp+0x60, environ)
 constraints:
   address rsp+0x78 is writable
@@ -29,7 +29,7 @@ constraints:
   [rdx] == NULL || rdx == NULL || rdx is a valid envp
 """
 
-I386_ONE_GADGET_OUTPUT = """\
+I386_ONEGADGET_OUTPUT = """\
 0xdeee3 execve("/bin/sh", [ebp-0x30], [ebp-0x2c])
 constraints:
   address ebp-0x20 is writable
@@ -45,8 +45,8 @@ constraints:
 
 
 @patch("shutil.which", return_value="one_gadget")
-@patch("subprocess.check_output", return_value=X86_64_ONE_GADGET_OUTPUT)
-def test_find_x86_64_one_gadget(check_output, which):
+@patch("subprocess.check_output", return_value=X86_64_ONEGADGET_OUTPUT)
+def test_find_x86_64_onegadget(check_output, which):
     gdb.execute(f"file {X86_64_BINARY}")
     gdb.execute("break break_here")
     gdb.execute("run")
@@ -133,8 +133,8 @@ def test_find_x86_64_one_gadget(check_output, which):
 
 
 @patch("shutil.which", return_value="one_gadget")
-@patch("subprocess.check_output", return_value=I386_ONE_GADGET_OUTPUT)
-def test_find_i386_one_gadget(check_output, which):
+@patch("subprocess.check_output", return_value=I386_ONEGADGET_OUTPUT)
+def test_find_i386_onegadget(check_output, which):
     gdb.execute(f"file {I386_BINARY}")
     gdb.execute("break break_here")
     try:
@@ -150,7 +150,7 @@ def test_find_i386_one_gadget(check_output, which):
     gdb.execute("set $saved_ebp=$ebp")
     gdb.execute("set $ebp=0xdeadbeaf")
 
-    # Run one_gadget
+    # Run onegadget
     output = gdb.execute("onegadget --verbose", to_string=True)
     assert "Found 0 SAT gadgets" in output
     assert "Found 2 UNSAT gadgets" in output
@@ -187,35 +187,35 @@ def test_find_i386_one_gadget(check_output, which):
 
 
 @patch("shutil.which", return_value="one_gadget")
-def test_one_gadget_cache(which):
+def test_onegadget_cache(which):
     gdb.execute(f"file {X86_64_BINARY}")
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    cache_dir = pwndbg.gdblib.one_gadget.get_cache_dir()
+    cache_dir = pwndbg.gdblib.onegadget.get_cache_dir()
 
-    # Run one_gadget with mock output
-    with patch("subprocess.check_output", return_value=X86_64_ONE_GADGET_OUTPUT):
+    # Run onegadget with mock output
+    with patch("subprocess.check_output", return_value=X86_64_ONEGADGET_OUTPUT):
         output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)
 
-    # Run one_gadget again to ensure we're using the cache
+    # Run onegadget again to ensure we're using the cache
     with patch("subprocess.check_output", side_effect=AssertionError("Cache miss")):
         assert output == gdb.execute("onegadget --show-unsat --verbose", to_string=True)
 
 
 @patch("shutil.which", return_value=None)
-def test_no_one_gadget_installed(which):
+def test_no_onegadget_installed(which):
     gdb.execute(f"file {X86_64_BINARY}")
     gdb.execute("break break_here")
     gdb.execute("run")
-    # pwndbg should not be able to find one_gadget
+    # pwndbg should not be able to find onegadget
     output = gdb.execute("onegadget", to_string=True)
 
     assert output == "Could not find one_gadget. Please ensure it's installed and in $PATH.\n"
 
 
 @patch("shutil.which", return_value="one_gadget")
-def test_no_libc_loaded_for_one_gadget(which):
+def test_no_libc_loaded_for_onegadget(which):
     gdb.execute(f"file {X86_64_BINARY}")
     gdb.execute("starti")
     # Since we don't have a libc loaded, we should get an error message

@@ -38,7 +38,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out one_gadget.x86-64.out one_gadget.i386.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -130,19 +130,19 @@ initialized_heap_x64.out: initialized_heap.c
 	-target x86_64-linux-gnu \
 	-o initialized_heap_x64.out initialized_heap.c
 
-one_gadget.x86-64.out: one_gadget.c
-	@echo "[+] Building one_gadget.x86-64.out"
+onegadget.x86-64.out: onegadget.c
+	@echo "[+] Building onegadget.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86_64-linux-gnu \
-	-o one_gadget.x86-64.out one_gadget.c
+	-o onegadget.x86-64.out onegadget.c
 
-one_gadget.i386.out: one_gadget.c
-	@echo "[+] Building one_gadget.i386.out"
+onegadget.i386.out: onegadget.c
+	@echo "[+] Building onegadget.i386.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target i386-linux-gnu \
-	-o one_gadget.i386.out one_gadget.c
+	-o onegadget.i386.out onegadget.c
 
 clean :
 	@echo "[+] Cleaning stuff"

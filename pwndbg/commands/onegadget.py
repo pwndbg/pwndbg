@@ -5,17 +5,17 @@ import shutil
 
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.gdblib.one_gadget
+import pwndbg.gdblib.onegadget
 import pwndbg.glibc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Show one_gadget
+    description="""Show onegadget
 
 Examples:
-    one_gadget
-    one_gadget --show-unsat
+    onegadget
+    onegadget --show-unsat
 """,
 )
 parser.add_argument("--show-unsat", help="Show unsatisfiable gadgets.", action="store_true")
@@ -23,10 +23,10 @@ parser.add_argument("--no-unknown", help="Do not show unknown gadgets.", action=
 parser.add_argument("-v", "--verbose", help="Show verbose output.", action="store_true")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="onegadget", category=CommandCategory.LINUX)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
-def one_gadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False) -> None:
+def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False) -> None:
     if not shutil.which("one_gadget"):
         print(M.error("Could not find one_gadget. Please ensure it's installed and in $PATH."))
         return
@@ -38,10 +38,10 @@ def one_gadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool
     print(f"Using libc: {M.hint(path)}")
     print()
 
-    gadgets_count = pwndbg.gdblib.one_gadget.find_gadgets(show_unsat, no_unknown, verbose)
+    gadgets_count = pwndbg.gdblib.onegadget.find_gadgets(show_unsat, no_unknown, verbose)
     for result, count in gadgets_count.items():
         print(f"Found {M.hint(count)} {result} gadgets.")
-    if not gadgets_count[pwndbg.gdblib.one_gadget.SAT] and not show_unsat:
+    if not gadgets_count[pwndbg.gdblib.onegadget.SAT] and not show_unsat:
         print(
             M.warn(
                 "No valid gadgets found, you might want to run with --show-unsat again to check unsatisfiable gadgets.\n"
