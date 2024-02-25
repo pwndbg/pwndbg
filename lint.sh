@@ -57,8 +57,9 @@ if ! type ${LINT_TOOLS} &> /dev/null; then
 fi
 
 call_shfmt() {
-    FLAGS=$1
+    local FLAGS=$1
     if [ -x "$(command -v shfmt)" ]; then
+        local SHFMT_FILES=$(find . -name "*.sh" -not -path "./.venv/*")
         # Indents are four spaces, binary ops can start a line, indent switch cases,
         # and allow spaces following a redirect
         shfmt ${FLAGS} -i 4 -bn -ci -sr -d .
