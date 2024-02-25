@@ -3,6 +3,7 @@ from __future__ import annotations
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 from pwndbg.gdblib import config
+from pwndbg.lib.regs import BitFlags
 
 config_prefix_color = theme.add_color_param(
     "code-prefix-color", "none", "color for 'context code' command (prefix marker)"
@@ -87,7 +88,7 @@ def comment(x: object) -> str:
     return generateColorFunction(config.comment_color)(x)
 
 
-def format_flags(value, flags, last=None):
+def format_flags(value, flags: BitFlags, last=None):
     if value is None:
         return "<unavailable>"
 
@@ -97,15 +98,28 @@ def format_flags(value, flags, last=None):
 
     names = []
     for name, bit in flags.items():
-        bit = 1 << bit
-        if value & bit:
-            name = name.upper()
-            name = flag_set(name)
+        # If the size is not specified, assume it's 1
+        if isinstance(bit, int):
+            size = 1
         else:
-            name = name.lower()
-            name = flag_unset(name)
+            assert len(bit) == 2
+            size = bit[1]
+            bit = bit[0]
 
-        if last is not None and value & bit != last & bit:
+        mask = (1 << size) - 1
+        flag_val = (value >> bit) & mask
+
+        # If the bitfield is larger than a single bit, we can't communicate the value
+        # with just the case of the name, so append the actual value
+        if size > 1:
+            name = f"{name}:{flag_val}"
+
+        if flag_val == 0:
+            name = flag_unset(name.lower())
+        else:
+            name = flag_set(name.upper())
+
+        if last is not None and flag_val != (last >> bit) & mask:
             name = flag_changed(name)
         names.append(name)
 

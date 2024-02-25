@@ -17,7 +17,7 @@ try:
     gdb.execute("auxv", to_string=True)
     assert (
         gdb.execute("cpsr", to_string=True, from_tty=False).strip()
-        == "cpsr 0x60000000 [ n Z C v q pan il d a i f el sp ]"
+        == "cpsr 0x60000000 [ n Z C v q pan il d a i f el:0 sp ]"
     )
     gdb.execute("context", to_string=True)
     gdb.execute("hexdump", to_string=True)

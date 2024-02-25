@@ -4,11 +4,14 @@ standardized interface to registers like "sp" and "pc".
 """
 from __future__ import annotations
 
-import collections
 from typing import Any
 from typing import Dict
 from typing import Iterator
+from typing import OrderedDict
 from typing import Tuple
+from typing import Union
+
+BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
 
 
 class RegisterSet:
@@ -51,7 +54,7 @@ class RegisterSet:
         stack: str = "sp",
         frame: str | None = None,
         retaddr: Tuple[str, ...] = tuple(),
-        flags: Dict[str, Any] = {},
+        flags: Dict[str, BitFlags] = {},
         gpr: Tuple[str, ...] = tuple(),
         misc: Tuple[str, ...] = tuple(),
         args: Tuple[str, ...] = tuple(),
@@ -80,7 +83,7 @@ class RegisterSet:
         yield from self.all
 
 
-arm_cpsr_flags = collections.OrderedDict(
+arm_cpsr_flags = BitFlags(
     [
         ("N", 31),
         ("Z", 30),
@@ -95,11 +98,9 @@ arm_cpsr_flags = collections.OrderedDict(
         ("F", 6),
     ]
 )
-arm_xpsr_flags = collections.OrderedDict(
-    [("N", 31), ("Z", 30), ("C", 29), ("V", 28), ("Q", 27), ("T", 24)]
-)
+arm_xpsr_flags = BitFlags([("N", 31), ("Z", 30), ("C", 29), ("V", 28), ("Q", 27), ("T", 24)])
 
-aarch64_cpsr_flags = collections.OrderedDict(
+aarch64_cpsr_flags = BitFlags(
     [
         ("N", 31),
         ("Z", 30),
@@ -112,8 +113,7 @@ aarch64_cpsr_flags = collections.OrderedDict(
         ("A", 8),
         ("I", 7),
         ("F", 6),
-        # TODO: EL is two bits
-        ("EL", 2),
+        ("EL", (2, 2)),
         ("SP", 0),
     ]
 )
@@ -221,7 +221,7 @@ aarch64 = RegisterSet(
 )
 
 x86flags = {
-    "eflags": collections.OrderedDict(
+    "eflags": BitFlags(
         [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7), ("IF", 9), ("DF", 10), ("OF", 11)]
     )
 }
@@ -330,7 +330,7 @@ i386 = RegisterSet(
 # r31     Used for local variables or "environment pointers"
 powerpc = RegisterSet(
     retaddr=("lr",),
-    flags={"msr": {}, "xer": {}},
+    flags={"msr": BitFlags(), "xer": BitFlags()},
     gpr=(
         "r0",
         "r1",
@@ -401,7 +401,7 @@ sparc = RegisterSet(
     stack="sp",
     frame="fp",
     retaddr=("i7",),
-    flags={"psr": {}},
+    flags={"psr": BitFlags()},
     gpr=(
         "g1",
         "g2",
