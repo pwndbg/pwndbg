@@ -192,8 +192,6 @@ def test_onegadget_cache(which):
     gdb.execute("break break_here")
     gdb.execute("run")
 
-    cache_dir = pwndbg.gdblib.onegadget.get_cache_dir()
-
     # Run onegadget with mock output
     with patch("subprocess.check_output", return_value=X86_64_ONEGADGET_OUTPUT):
         output = gdb.execute("onegadget --show-unsat --verbose", to_string=True)

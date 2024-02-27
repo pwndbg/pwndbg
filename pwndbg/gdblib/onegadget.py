@@ -5,7 +5,6 @@ import hashlib
 import os
 import re
 import subprocess
-import tempfile
 from enum import Enum
 
 import gdb
@@ -18,6 +17,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
 import pwndbg.lib.cache
+import pwndbg.lib.tempfile
 from pwndbg.color import colorize
 from pwndbg.color import generateColorFunction
 
@@ -250,15 +250,6 @@ def colorize_psuedo_code(code: str) -> str:
     return output
 
 
-def get_cache_dir() -> str:
-    """
-    Return the cache directory for onegadget
-    """
-    tempdir = os.path.join(tempfile.gettempdir(), ".pwndbg.onegadget")
-    os.makedirs(tempdir, exist_ok=True)
-    return tempdir
-
-
 def compute_file_hash(filename: str) -> str:
     """
     Compute the MD5 hash of the file, return the hash
@@ -278,7 +269,9 @@ def run_onegadget() -> str:
         pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     )
     # We need cache because onegadget might be slow
-    cache_file = os.path.join(get_cache_dir(), compute_file_hash(libc_path))
+    cache_file = os.path.join(
+        pwndbg.lib.tempfile.cachedir("onegadget"), compute_file_hash(libc_path)
+    )
     if os.path.exists(cache_file):
         # Cache hit
         with open(cache_file, "r") as f:
