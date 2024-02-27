@@ -135,27 +135,9 @@ def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def get_data_section_address() -> int:
+def get_section_address_by_name(section_name: str) -> int:
     """
-    Find .data section address of libc
-    """
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        # libc not loaded yet, or it's static linked
-        return 0
-    # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
-    out = pwndbg.gdblib.info.files()
-    for line in out.splitlines():
-        if line.endswith(" is .data in " + libc_filename):
-            return int(line.split()[0], 16)
-    return 0
-
-
-@pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def get_got_section_address() -> int:
-    """
-    Find .got section address of libc
+    Find section address of libc by section name
     """
     libc_filename = get_libc_filename_from_info_sharedlibrary()
     if not libc_filename:
@@ -164,7 +146,7 @@ def get_got_section_address() -> int:
     # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
     out = pwndbg.gdblib.info.files()
     for line in out.splitlines():
-        if line.endswith(" is .got in " + libc_filename):
+        if line.endswith(f" is {section_name} in " + libc_filename):
             return int(line.split()[0], 16)
     return 0
 

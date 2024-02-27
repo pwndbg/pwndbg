@@ -1521,10 +1521,10 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if not self._main_arena_addr:
             if self.is_statically_linked():
                 data_section = pwndbg.gdblib.proc.dump_elf_data_section()
-                data_section_address = pwndbg.gdblib.proc.get_data_section_address()
+                data_section_address = pwndbg.gdblib.proc.get_section_address_by_name(".data")
             else:
                 data_section = pwndbg.glibc.dump_elf_data_section()
-                data_section_address = pwndbg.glibc.get_data_section_address()
+                data_section_address = pwndbg.glibc.get_section_address_by_name(".data")
             if data_section and data_section_address:
                 data_section_offset, size, data_section_data = data_section
                 # Try to find the default main_arena struct in the .data section
@@ -1675,9 +1675,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
         if self.is_statically_linked():
-            got_address = pwndbg.gdblib.proc.get_got_section_address()
+            got_address = pwndbg.gdblib.proc.get_section_address_by_name(".got")
         else:
-            got_address = pwndbg.glibc.get_got_section_address()
+            got_address = pwndbg.glibc.get_section_address_by_name(".got")
         if not got_address:
             print(message.warn("Cannot find the address of the .got section."))
             return None
@@ -1874,10 +1874,10 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if not self._mp_addr:
             if self.is_statically_linked():
                 section = pwndbg.gdblib.proc.dump_elf_data_section()
-                section_address = pwndbg.gdblib.proc.get_data_section_address()
+                section_address = pwndbg.gdblib.proc.get_section_address_by_name(".data")
             else:
                 section = pwndbg.glibc.dump_elf_data_section()
-                section_address = pwndbg.glibc.get_data_section_address()
+                section_address = pwndbg.glibc.get_section_address_by_name(".data")
             if section and section_address:
                 _, _, data = section
 
