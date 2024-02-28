@@ -594,10 +594,14 @@ def get_regs(regs: List[str] = None):
         change_marker = "%s" % C.config_register_changed_marker
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
+        bit_flags = None
         if reg in pwndbg.gdblib.regs.flags:
-            desc = C.format_flags(
-                value, pwndbg.gdblib.regs.flags[reg], pwndbg.gdblib.regs.last.get(reg, 0)
-            )
+            bit_flags = pwndbg.gdblib.regs.flags[reg]
+        elif reg in pwndbg.gdblib.regs.extra_flags:
+            bit_flags = pwndbg.gdblib.regs.extra_flags[reg]
+
+        if bit_flags:
+            desc = C.format_flags(value, bit_flags, pwndbg.gdblib.regs.last.get(reg, 0))
 
         else:
             desc = pwndbg.chain.format(value)
