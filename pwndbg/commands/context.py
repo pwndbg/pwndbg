@@ -6,6 +6,7 @@ import os
 import sys
 from collections import defaultdict
 from typing import DefaultDict
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -543,34 +544,34 @@ parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers t
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs=None) -> None:
+def regs(regs=[]) -> None:
     """Print out all registers and enhance the information."""
-    print("\n".join(get_regs(*regs)))
+    print("\n".join(get_regs(regs)))
 
 
 pwndbg.gdblib.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.gdblib.config.add_param("show-retaddr-reg", False, "whether to show return address register")
 
 
-def get_regs(*regs):
+def get_regs(regs: List[str] = None):
     result = []
 
-    if not regs and pwndbg.gdblib.config.show_retaddr_reg:
-        regs = (
-            pwndbg.gdblib.regs.gpr
-            + (pwndbg.gdblib.regs.frame, pwndbg.gdblib.regs.current.stack)
-            + pwndbg.gdblib.regs.retaddr
-            + (pwndbg.gdblib.regs.current.pc,)
-        )
-    elif not regs:
-        regs = pwndbg.gdblib.regs.gpr + (
-            pwndbg.gdblib.regs.frame,
-            pwndbg.gdblib.regs.current.stack,
-            pwndbg.gdblib.regs.current.pc,
-        )
+    if regs is None:
+        regs = []
 
-    if pwndbg.gdblib.config.show_flags:
-        regs += tuple(pwndbg.gdblib.regs.flags)
+    if len(regs) == 0:
+        regs += pwndbg.gdblib.regs.gpr
+
+        regs.append(pwndbg.gdblib.regs.frame)
+        regs.append(pwndbg.gdblib.regs.stack)
+
+        if pwndbg.gdblib.config.show_retaddr_reg:
+            regs += pwndbg.gdblib.regs.retaddr
+
+        regs.append(pwndbg.gdblib.regs.current.pc)
+
+        if pwndbg.gdblib.config.show_flags:
+            regs += pwndbg.gdblib.regs.flags.keys()
 
     changed = pwndbg.gdblib.regs.changed
 
