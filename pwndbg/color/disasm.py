@@ -14,14 +14,6 @@ from pwndbg.color.message import on
 from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.disasm.instruction import PwndbgInstruction
 
-# The amount of whitespace between instructions and the annotation, by default
-pwndbg.gdblib.config.add_param(
-    "disasm-annotations-whitespace-padding",
-    8,
-    """
-number of spaces between assembly operands and annotations
-""",
-)
 
 
 capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
@@ -71,27 +63,30 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     return asm
 
 
-# To making the padding visually nicer, so don't need to track eye back and forth long distances to view annotations.
-# but at the same time make padding non-jagged, the following padding scheme is used for annotations:
-# Instruction uses the same amount left-adjusting length as the instruction before it (to keep them on the same level),
-# as long as there are at least a couple characters of whitespace.
-# Otherwise, it makes it so there are 'disasm_annotations_whitespace_padding' (a config value) characters of whitespace
-# In order for the whitespace to being smaller again, there needs to be two instructions in a row that have too much whitespace
+# To making the padding visually nicer, the following padding scheme is used for annotations:
+# All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
+# A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
 def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
     assembly = [one_instruction(i) for i in instructions]
 
     result: list[str] = []
 
-    DEFAULT_WHITESPACE = int(pwndbg.gdblib.config.disasm_annotations_whitespace_padding)
     MIN_SPACING = 5
-    # The maximum number of spaces to allow between instruction and annotation. Chosen based on stepping through x86 binaries and this constant giving a good balance.
-    WHITESPACE_LIMIT = max(20, DEFAULT_WHITESPACE + 5)
+
+    WHITESPACE_LIMIT = 20
+
 
     cur_padding_len = None
 
     # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
     # None if padding doesn't apply to the instruction
     paddings: list[int | None] = []
+    
+    # Used for padding. List of groups.
+    # Each group is a list of index into paddings list
+    groups: list[list[int]] = []
+
+    current_group: list[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, assembly)):
         if ins.can_change_instruction_pointer:
@@ -100,40 +95,35 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
             asm = f"{ljust_colored(asm, 36)} <{sym}>"
 
             paddings.append(None)
+            if current_group:
+                groups.append(current_group)
+                current_group = []
         else:
+            # Padding the string for a nicer output
+            # This path calculates the padding for each instruction - even if there we don't have annotations for it.
+            # This allows groups to have uniform padding, even if some of the instructions don't have annotations
+            current_group.append(i)
+
             raw_len = len(strip(asm))
 
-            # Padding the string for a nicer output
             if cur_padding_len is None:
-                cur_padding_len = raw_len + DEFAULT_WHITESPACE
+                cur_padding_len = raw_len + MIN_SPACING
 
             if cur_padding_len - raw_len < MIN_SPACING:
                 # Annotations are getting too close to the disasm, push them to the right again
-                cur_padding_len = raw_len + DEFAULT_WHITESPACE
+                cur_padding_len = raw_len + MIN_SPACING
             else:
-                # This path deals with situations like below:
-                #   mov    dword ptr [something_super_long], eax            Annotation
-                #   pop rax        Annotation_all_the_way_here
-                #   mov    rax, qword ptr [more_super_long]                 Annotation
-                #
-                # It prevents jagged annotations like shown above. Instead, it puts all annotations on the same column
-                # Checks the length of the following instruction to determine where to put the annotation
-
-                # Make sure there is an instruction after this one, and it's not a branch. If branch, just maintain current indentation.
+                # This path allows the padding to be smaller again
+                # If the instruction has too much whitespace, put the annotation more to the left 
+                # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
                 if (
                     i < len(instructions) - 1
                     and not instructions[i + 1].can_change_instruction_pointer
+                    and cur_padding_len - raw_len > WHITESPACE_LIMIT
                 ):
-                    next_len = len(strip(assembly[i + 1]))
+                    cur_padding_len = raw_len + MIN_SPACING
 
-                    # If next instructions also has too much white space, put annotations closer to left again
-                    if (
-                        cur_padding_len - raw_len > WHITESPACE_LIMIT
-                        and next_len is not None
-                        and cur_padding_len - next_len > WHITESPACE_LIMIT
-                    ):
-                        cur_padding_len = max(next_len, raw_len) + DEFAULT_WHITESPACE
-
+            # Give the padding to the instruction, so we can reuse it in the future
             if ins.annotation:
                 if ins.annotation_padding is not None:
                     cur_padding_len = ins.annotation_padding
@@ -144,10 +134,25 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
         result.append(asm)
 
+    if current_group:
+        groups.append(current_group)
+
+    # Make instructions in each group aligned uniformly
+    for group in groups:
+        if len(group) == 0:
+            continue
+
+        # Find minimum spacing
+        cur_paddings = [paddings[index] for index in group]
+        min_padding = max(cur_paddings)
+
+        # Make all the paddings in this group have the same padding
+        for index in group:
+            paddings[index] = min_padding
+
     final_result = []
 
-    # Final pass to be used to make final alignment of blocks cleaner (get rid of an jagged/spiky bits)
-    # For example, when only one instruction in a large club has small spacing but should just be aligned with the rest
+    # Final pass to apply final paddings to make alignment of blocks of instructions cleaner
     for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
         if ins.annotation:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"
