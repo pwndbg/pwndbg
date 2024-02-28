@@ -27,6 +27,12 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
 
 # Capstone operand type for x86 is capstone.x86.X86Op
+# This type has a .size field, which indicates the operand read/write size in bytes
+# Ex: dword ptr [RDX] has size = 4
+# Ex: AL has size = 1
+# Access through EnhancedOperand.cs_op.size
+
+
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -80,7 +86,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                 instruction,
                 right,
                 emu,
-                read_size=right.size,
+                read_size=right.cs_op.size,
             )
             if not telescope_addresses:
                 return
@@ -144,11 +150,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if operand and operand.before_value is not None:
             # operand.size is the width of memory in bytes (128, 256, or 512 bits = 16, 32, 64 bytes).
             # Pointer must be aligned to that memory width
-            alignment_mask = operand.size - 1
+            alignment_mask = operand.cs_op.size - 1
 
             if operand.before_value & alignment_mask != 0:
                 instruction.annotation = MessageColor.error(
-                    f"<[{MemoryColor.get(operand.before_value)}] not aligned to {operand.size} bytes>"
+                    f"<[{MemoryColor.get(operand.before_value)}] not aligned to {operand.cs_op.size} bytes>"
                 )
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -319,7 +325,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
         if operand.type == CS_OP_MEM:
-            return self.read_memory(value, operand.size, instruction, operand, emu)
+            return self.read_memory(value, operand.cs_op.size, instruction, operand, emu)
         else:
             return super().resolve_used_value(value, instruction, operand, emu)
 

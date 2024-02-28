@@ -95,7 +95,7 @@ CAPSTONE_ARCH_MAPPING_STRING = {
 class PwndbgInstruction:
     def __init__(self, cs_insn: CsInsn | None) -> None:
         # The underlying Capstone instruction, if present
-        # Ideally, only the enhancement code will access the 'cs_insn' property,
+        # Ideally, only the enhancement code will access the 'cs_insn' property
         self.cs_insn: CsInsn = cs_insn
 
         # None if Capstone don't support the arch being disassembled
@@ -191,9 +191,7 @@ class PwndbgInstruction:
         """
         True if this instruction can change the program counter conditionally.
 
-        This is used to determine what instructions deserve a "checkmark" in the disasm view if the jump is taken
-
-        This property is used to determine if an instruction deserves a green checkmark.
+        This is used, in part, to determine if the instruction deserve a "checkmark" in the disasm view
         """
         return (
             bool(self.groups_set & GENERIC_JUMP_GROUPS)
@@ -301,17 +299,6 @@ class EnhancedOperand:
         return self.cs_op.type
 
     @property
-    def size(self) -> int:
-        """
-        Operand read/write size
-        Ex: dword ptr [RDX] has size = 4
-        Ex: AL has size = 1
-
-        Only exists for x86
-        """
-        return self.cs_op.size
-
-    @property
     def reg(self) -> int:
         """
         The underlying Capstone ID for the register
@@ -343,7 +330,8 @@ class EnhancedOperand:
 
         if isinstance(self.cs_op, X86Op):
             info += (
-                f", size={self.size}, " f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
+                f", size={self.cs_op.size}, "
+                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
             )
 
         return f"[{info}]"

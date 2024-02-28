@@ -343,6 +343,10 @@ class DisassemblyAssistant:
 
         if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
             return value
+        elif operand.type == CS_OP_MEM:
+            # Assume that we are reading ptrsize - subclasses should override this function
+            # to provide a more specific value if needed
+            self.read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, operand, emu)
 
         return None
 
