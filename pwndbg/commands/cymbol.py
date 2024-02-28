@@ -276,7 +276,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def cymbol(add, remove, edit, load, show) -> None:
+def cymbol(add, remove, edit, load, show, file) -> None:
     if add:
         add_custom_structure(add)
     elif remove:
@@ -287,5 +287,7 @@ def cymbol(add, remove, edit, load, show) -> None:
         load_custom_structure(load)
     elif show:
         show_custom_structure(show)
+    elif file:
+        add_custom_structure_from_file(file)
     else:
         parser.print_help()
