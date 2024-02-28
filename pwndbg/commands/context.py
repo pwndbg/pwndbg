@@ -579,11 +579,10 @@ def get_regs(regs: List[str] = None):
         if reg is None:
             continue
 
-        if reg not in pwndbg.gdblib.regs:
+        value = pwndbg.gdblib.regs[reg]
+        if value is None:
             print(message.warn("Unknown register: %r" % reg))
             continue
-
-        value = pwndbg.gdblib.regs[reg]
 
         # Make the register stand out and give a color if changed
         regname = C.register(reg.ljust(4).upper())
