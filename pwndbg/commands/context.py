@@ -554,16 +554,15 @@ pwndbg.gdblib.config.add_param("show-retaddr-reg", False, "whether to show retur
 
 
 def get_regs(regs: List[str] = None):
-    result = []
-
     if regs is None:
         regs = []
 
-    if len(regs) == 0:
+    elif len(regs) == 0:
         regs += pwndbg.gdblib.regs.gpr
-
-        regs.append(pwndbg.gdblib.regs.frame)
-        regs.append(pwndbg.gdblib.regs.stack)
+        regs += [
+            pwndbg.gdblib.regs.frame,
+            pwndbg.gdblib.regs.stack
+        ]
 
         if pwndbg.gdblib.config.show_retaddr_reg:
             regs += pwndbg.gdblib.regs.retaddr
@@ -575,6 +574,7 @@ def get_regs(regs: List[str] = None):
 
     changed = pwndbg.gdblib.regs.changed
 
+    result = []
     for reg in regs:
         if reg is None:
             continue
