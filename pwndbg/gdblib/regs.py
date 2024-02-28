@@ -24,7 +24,11 @@ from pwndbg.lib.regs import reg_sets
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb_get_register(name: str):
-    return gdb.selected_frame().read_register(name)
+    frame = gdb.selected_frame()
+    try:
+        return frame.read_register(name)
+    except ValueError:
+        return frame.read_register(name.upper())
 
 
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
@@ -109,6 +113,10 @@ class module(ModuleType):
     @property
     def flags(self):
         return reg_sets[pwndbg.gdblib.arch.current].flags
+
+    @property
+    def extra_flags(self):
+        return reg_sets[pwndbg.gdblib.arch.current].extra_flags
 
     @property
     def stack(self):

@@ -55,6 +55,7 @@ class RegisterSet:
         frame: str | None = None,
         retaddr: Tuple[str, ...] = tuple(),
         flags: Dict[str, BitFlags] = {},
+        extra_flags: Dict[str, BitFlags] = {},
         gpr: Tuple[str, ...] = tuple(),
         misc: Tuple[str, ...] = tuple(),
         args: Tuple[str, ...] = tuple(),
@@ -65,6 +66,7 @@ class RegisterSet:
         self.frame = frame
         self.retaddr = retaddr
         self.flags = flags
+        self.extra_flags = extra_flags
         self.gpr = gpr
         self.misc = misc
         self.args = args
@@ -76,7 +78,9 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = {i for i in misc} | set(flags) | set(self.retaddr) | set(self.common)
+        self.all = (
+            {i for i in misc} | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
+        )
         self.all -= {None}
 
     def __iter__(self) -> Iterator[str]:
@@ -147,6 +151,11 @@ armcm = RegisterSet(
 aarch64 = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": aarch64_cpsr_flags},
+    extra_flags={
+        "spsr_el1": aarch64_cpsr_flags,
+        "spsr_el2": aarch64_cpsr_flags,
+        "spsr_el3": aarch64_cpsr_flags,
+    },
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point
     # it's confusing. Think about improving this if frame
