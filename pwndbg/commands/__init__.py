@@ -651,6 +651,7 @@ def load_commands() -> None:
     import pwndbg.commands.cpsr
     import pwndbg.commands.cyclic
     import pwndbg.commands.cymbol
+    import pwndbg.commands.dev
     import pwndbg.commands.distance
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs

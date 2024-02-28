@@ -21,7 +21,7 @@ import pwndbg.disasm.arch
 import pwndbg.gdblib.regs
 from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.disasm.instruction import PwndbgInstruction
-from pwndbg.emu.emulator import Emulator  # noqa: F403
+from pwndbg.emu.emulator import Emulator
 
 
 def to_signed(unsigned: int):
@@ -45,7 +45,6 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
 }
 
 
-# Capstone operand type for x86 is capstone.x86.X86Op
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -54,10 +53,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
-
-        super().resolve_used_value(
-            instruction.operands[0].before_value, instruction, instruction.operands[0], emu
-        )
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
         resolved_operands: list[int] = []
