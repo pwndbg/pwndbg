@@ -274,6 +274,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 capstone = "5.0.0.post1"
+ipython = "8.12.3"
 # Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
 setuptools = "69.0.3"
 psutil = "5.9.5"
