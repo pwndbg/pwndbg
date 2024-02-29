@@ -10,6 +10,8 @@ if ! hash sudo 2> /dev/null && whoami | grep root; then
     }
 fi
 
+PIP_NO_CACHE_DIR=true
+
 # Helper functions
 linux() {
     uname | grep -i Linux &> /dev/null
