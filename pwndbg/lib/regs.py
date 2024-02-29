@@ -122,6 +122,40 @@ aarch64_cpsr_flags = BitFlags(
     ]
 )
 
+aarch64_sctlr_flags = BitFlags(
+    [
+        ("UCI", 26),
+        ("EE", 25),
+        ("E0E", 24),
+        ("WXN", 19),
+        ("nTWE", 18),
+        ("nTWI", 16),
+        ("UCT", 15),
+        ("DZE", 14),
+        ("I", 12),
+        ("UMA", 9),
+        ("SED", 8),
+        ("ITD", 7),
+        ("CP15BEN", 5),
+        ("SA0", 4),
+        ("SA", 3),
+        ("C", 2),
+        ("A", 1),
+        ("M", 0),
+    ]
+)
+
+aarch64_scr_flags = BitFlags(
+    [
+        ("HCE", 8),
+        ("SMD", 7),
+        ("EA", 3),
+        ("FIQ", 2),
+        ("IRQ", 1),
+        ("NS", 0),
+    ]
+)
+
 arm = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": arm_cpsr_flags},
@@ -152,6 +186,10 @@ aarch64 = RegisterSet(
     retaddr=("lr",),
     flags={"cpsr": aarch64_cpsr_flags},
     extra_flags={
+        "scr_el3": aarch64_scr_flags,
+        "sctlr": aarch64_sctlr_flags,
+        "sctlr_el2": aarch64_sctlr_flags,
+        "sctlr_el3": aarch64_sctlr_flags,
         "spsr_el1": aarch64_cpsr_flags,
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
