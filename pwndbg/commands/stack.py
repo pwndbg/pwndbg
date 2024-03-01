@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import gdb
-
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.stack
 import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 
@@ -15,25 +14,5 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWhenRunning
 def retaddr() -> None:
-    sp = pwndbg.gdblib.regs.sp
-    stack = pwndbg.gdblib.vmmap.find(sp)
-
-    # Enumerate all return addresses
-    frame = gdb.newest_frame()
-    addresses = []
-    while frame:
-        addresses.append(frame.pc())
-        frame = frame.older()
-
-    # Find all of them on the stack
-    start = stack.vaddr
-    stop = start + stack.memsz
-    while addresses and start < sp < stop:
-        value = pwndbg.gdblib.memory.u(sp)
-
-        if value in addresses:
-            index = addresses.index(value)
-            del addresses[:index]
-            print(pwndbg.chain.format(sp))
-
-        sp += pwndbg.gdblib.arch.ptrsize
+    for _, retaddr in enumerate(pwndbg.gdblib.stack.yield_return_addresses()):
+        print(pwndbg.chain.format(retaddr))

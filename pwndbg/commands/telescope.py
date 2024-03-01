@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import collections
 import math
-from typing import DefaultDict
 
 import pwndbg.chain
 import pwndbg.color.telescope as T
@@ -108,7 +107,9 @@ def telescope(
     else:
         telescope.offset = 0
 
-    address = address if address else pwndbg.gdblib.regs.sp
+    regs = pwndbg.gdblib.regs
+
+    address = address if address else regs.sp
     if address is None:
         print("Cannot display stack frame because stack pointer is unavailable")
         return
@@ -122,7 +123,7 @@ def telescope(
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR and not pwndbg.gdblib.memory.peek(address):
         count = address
-        address = pwndbg.gdblib.regs.sp
+        address = regs.sp
 
     # Allow invocation of telescope -r to dump previous addresses
     if reverse:
@@ -130,8 +131,8 @@ def telescope(
 
     # Allow invocation of telescope -f (--frame) to dump all addresses in a frame
     if frame:
-        sp = pwndbg.gdblib.regs.sp
-        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+        sp = regs.sp
+        bp = regs[regs.frame]
         if sp > bp:
             print("Cannot display stack frame because base pointer is below stack pointer")
             return
@@ -153,10 +154,12 @@ def telescope(
         count -= address
         count = max(math.ceil(count / ptrsize), 1)
 
-    # Map of address to register string
-    reg_values: DefaultDict[int, list[str]] = collections.defaultdict(lambda: [])
-    for reg in pwndbg.gdblib.regs.common:
-        reg_values[pwndbg.gdblib.regs[reg]].append(reg)
+    name_values = collections.defaultdict(lambda: [])
+    for reg in regs.common:
+        name_values[regs[reg]].append(reg)
+
+    for idx, retaddr in enumerate(pwndbg.gdblib.stack.yield_return_addresses()):
+        name_values[retaddr].append(f"ret{idx}")
 
     if not inverse:
         start = address
@@ -167,22 +170,22 @@ def telescope(
         stop = address - ptrsize
         step = -1 * ptrsize
 
-    # Find all registers which show up in the trace, map address to regs
-    regs: dict[int, str] = {}
+    # Find all names which show up in the trace
+    names = {}
     for i in range(start, stop, step):
-        values = list(reg_values[i])
+        values = list(name_values[i])
 
         # Find all regs that point to somewhere in the current ptrsize step
         for width in range(1, pwndbg.gdblib.arch.ptrsize):
-            values.extend("%s-%i" % (r, width) for r in reg_values[i + width])
+            values.extend("%s-%i" % (r, width) for r in name_values[i + width])
 
-        regs[i] = " ".join(values)
+        names[i] = " ".join(values)
 
-    # Find the longest set of register information (length of string), used for padding
-    if regs:
-        longest_regs = max(map(len, regs.values()))
+    # Find the longest set of names
+    if names:
+        longest_names = max(map(len, names.values()))
     else:
-        longest_regs = 0
+        longest_names = 0
 
     # Print everything out
     result = []
@@ -194,7 +197,7 @@ def telescope(
         + 4
         + len(offset_separator)
         + 1
-        + longest_regs
+        + longest_names
         + 1
         - len(repeating_marker)
     )
@@ -214,32 +217,28 @@ def telescope(
         collapse_buffer.clear()
 
     bp = None
-    if print_framepointer_offset and pwndbg.gdblib.regs.frame is not None:
+    if print_framepointer_offset and regs.frame is not None:
         # regs.frame can be None on aarch64
-        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+        bp = regs[regs.frame]
 
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.gdblib.memory.peek(addr):
             collapse_repeating_values()
             result.append("<Could not read memory at %#x>" % addr)
             break
-        if inverse:
-            line_offset = addr - (stop + ptrsize) + (telescope.offset * ptrsize)
-            idx_offset = int((start - stop - ptrsize) / ptrsize) - (i + telescope.offset)
-        else:
-            line_offset = addr - start + (telescope.offset * ptrsize)
-            idx_offset = i + telescope.offset
-        line = T.offset(
-            "%02x%s%04x%s"
-            % (
-                idx_offset,
-                delimiter,
-                line_offset,
-                separator,
-            )
-        ) + " ".join(
+
+        line = " ".join(
             (
-                regs_or_frame_offset(addr, bp, regs, longest_regs),
+                T.offset(
+                    "%02x%s%04x%s"
+                    % (
+                        i + telescope.offset,
+                        delimiter,
+                        addr - start + (telescope.offset * ptrsize),
+                        separator,
+                    )
+                ),
+                T.register(names[addr].ljust(longest_names)),
                 pwndbg.chain.format(addr),
             )
         )
