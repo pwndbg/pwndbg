@@ -160,6 +160,9 @@ def yield_return_addresses():
     sp = pwndbg.gdblib.regs.sp
     stack = pwndbg.gdblib.vmmap.find(sp)
 
+    if stack is None:
+        return
+
     # Enumerate all return addresses
     frame = gdb.newest_frame()
     addresses = []
