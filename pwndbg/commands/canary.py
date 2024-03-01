@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -24,11 +26,18 @@ def canary_value():
     return global_canary, at_random
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Print out the current stack canary.", category=CommandCategory.STACK
+parser = argparse.ArgumentParser(description="Print out the current stack canary.")
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out stack canaries for all threads instead of the current thread only.",
 )
+
+
+@pwndbg.commands.ArgparsedCommand(parser, command_name="canary", category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
-def canary() -> None:
+def canary(all) -> None:
     global_canary, at_random = canary_value()
 
     if global_canary is None or at_random is None:
@@ -40,16 +49,40 @@ def canary() -> None:
     )
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
-    stack_canaries = list(
-        pwndbg.search.search(
-            pwndbg.gdblib.arch.pack(global_canary), mappings=pwndbg.gdblib.stack.get().values()
+    found_canaries = False
+    results_hidden = False
+    global_canary_packed = pwndbg.gdblib.arch.pack(global_canary)
+    thread_stacks = pwndbg.gdblib.stack.get()
+    default_num_canaries_to_display = 2
+
+    for thread in thread_stacks:
+        thread_stack = thread_stacks[thread]
+
+        stack_canaries = list(
+            pwndbg.search.search(
+                global_canary_packed, start=thread_stack.start, end=thread_stack.end
+            )
         )
-    )
 
-    if not stack_canaries:
+        if not stack_canaries:
+            continue
+
+        found_canaries = True
+
+        print(message.success(f"Thread {thread}: Found valid canaries on stack."))
+
+        num_canaries_to_display = len(stack_canaries)
+        if not all:
+            num_canaries_to_display = min(default_num_canaries_to_display, num_canaries_to_display)
+
+        for stack_canary in stack_canaries[:num_canaries_to_display]:
+            pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
+
+        if num_canaries_to_display < len(stack_canaries):
+            results_hidden = True
+
+    if found_canaries is False:
         print(message.warn("No valid canaries found on the stacks."))
-        return
 
-    print(message.success("Found valid canaries on the stacks:"))
-    for stack_canary in stack_canaries:
-        pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
+    if results_hidden is True:
+        print(message.warn("Additional results hidden. Use --all to see them."))
