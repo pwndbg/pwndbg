@@ -107,7 +107,9 @@ def telescope(
     else:
         telescope.offset = 0
 
-    address = address if address else pwndbg.gdblib.regs.sp
+    regs = pwndbg.gdblib.regs
+
+    address = address if address else regs.sp
     if address is None:
         print("Cannot display stack frame because stack pointer is unavailable")
         return
@@ -121,7 +123,7 @@ def telescope(
     # Allow invocation of "telescope 20" to dump 20 bytes at the stack pointer
     if address < pwndbg.gdblib.memory.MMAP_MIN_ADDR and not pwndbg.gdblib.memory.peek(address):
         count = address
-        address = pwndbg.gdblib.regs.sp
+        address = regs.sp
 
     # Allow invocation of telescope -r to dump previous addresses
     if reverse:
@@ -129,8 +131,8 @@ def telescope(
 
     # Allow invocation of telescope -f (--frame) to dump all addresses in a frame
     if frame:
-        sp = pwndbg.gdblib.regs.sp
-        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+        sp = regs.sp
+        bp = regs[regs.frame]
         if sp > bp:
             print("Cannot display stack frame because base pointer is below stack pointer")
             return
@@ -153,8 +155,8 @@ def telescope(
         count = max(math.ceil(count / ptrsize), 1)
 
     name_values = collections.defaultdict(lambda: [])
-    for reg in pwndbg.gdblib.regs.common:
-        name_values[pwndbg.gdblib.regs[reg]].append(reg)
+    for reg in regs.common:
+        name_values[regs[reg]].append(reg)
 
     for idx, retaddr in enumerate(pwndbg.gdblib.stack.yield_return_addresses()):
         name_values[retaddr].append(f"ret{idx}")
@@ -215,9 +217,9 @@ def telescope(
         collapse_buffer.clear()
 
     bp = None
-    if print_framepointer_offset and pwndbg.gdblib.regs.frame is not None:
+    if print_framepointer_offset and regs.frame is not None:
         # regs.frame can be None on aarch64
-        bp = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
+        bp = regs[regs.frame]
 
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.gdblib.memory.peek(addr):
