@@ -27,7 +27,7 @@ def print_row(
     name = ljust_colored(name, ljust_optname + empty_space)
     defval = extend_value_with_default(value, default)
     defval = ljust_colored(defval, ljust_value + empty_space)
-    result = " ".join((name, defval, set_show_doc))
+    result = f"{name} {defval} {set_show_doc}"
     print(result)
     return result
 

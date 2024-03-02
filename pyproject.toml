@@ -25,7 +25,7 @@ select = [
     "C4", # flake8-comprehensions
     "ISC", # flake8-implicit-str-concat
     "SLOT", # flake8-slots
-
+    "FLY", # flynt
 ]
 
 [tool.ruff.lint.flake8-builtins]
