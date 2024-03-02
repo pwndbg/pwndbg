@@ -65,7 +65,7 @@ VariableInstructionSizeMax = {
     "rv64": 22,
 }
 
-backward_cache: DefaultDict = collections.defaultdict(lambda: None)
+backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")

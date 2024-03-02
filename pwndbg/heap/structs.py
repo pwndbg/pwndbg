@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+from typing import Any
 
 import gdb
 
@@ -202,7 +203,7 @@ class CStruct2GDB:
         return fake_gdb_fields
 
     @classmethod
-    def keys(cls) -> list:
+    def keys(cls) -> list[str]:
         """
         Return a list of the names of the fields in the struct to make it compatible with the `gdb.Type` interface.
         """
@@ -221,7 +222,7 @@ class CStruct2GDB:
         """
         return getattr(cls._c_struct, field).offset
 
-    def items(self) -> tuple:
+    def items(self) -> tuple[tuple[Any, Any], ...]:
         """
         Returns a tuple of (field name, field value) pairs.
         """

@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import re
 import sys
+from typing import Dict
+from typing import Union
 
 import gdb
 
@@ -81,7 +83,7 @@ AT_CONSTANTS = {
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
-class AUXV(dict):
+class AUXV(Dict[str, Union[int, str]]):
     def set(self, const: int, value) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 

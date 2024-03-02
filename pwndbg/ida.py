@@ -481,7 +481,7 @@ class IDC:
 
     def __init__(self) -> None:
         if available():
-            data: dict = _ida.eval(self.query)
+            data: dict[Any, Any] = _ida.eval(self.query)
             self.__dict__.update(data)
 
 

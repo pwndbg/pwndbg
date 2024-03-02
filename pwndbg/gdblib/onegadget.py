@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 from enum import Enum
+from typing import Any
 
 import gdb
 from tabulate import tabulate
@@ -181,13 +182,13 @@ class Lambda:
         self.deref_count -= 1
         return self
 
-    def evaluate(self, context: dict) -> int | Lambda:
+    def evaluate(self, context: dict[Any, Any]) -> int | Lambda:
         if self.deref_count > 0 or (self.obj and self.obj not in context):
             raise ValueError(f"Can't eval {self}")
         return context[self.obj] + self.immi
 
     @staticmethod
-    def parse(argument: str, predefined: dict = {}) -> int | Lambda:
+    def parse(argument: str, predefined: dict[Any, Any] = {}) -> int | Lambda:
         if not argument or argument == "!":
             return 0
         try:

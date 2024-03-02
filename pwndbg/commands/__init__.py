@@ -567,7 +567,7 @@ class ArgparsedCommand:
             if action.default is not None:
                 action.help += " (default: %(default)s)"
 
-    def __call__(self, function: Callable) -> _ArgparsedCommand:
+    def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
         for alias in self.aliases:
             _ArgparsedCommand(
                 self.parser, function, command_name=alias, is_alias=True, category=self.category

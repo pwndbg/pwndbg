@@ -46,6 +46,7 @@ strict_optional = false
 check_untyped_defs = true
 allow_untyped_globals = true
 allow_redefinition = true
+allow_any_generics = false
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
