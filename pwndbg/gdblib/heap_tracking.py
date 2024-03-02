@@ -50,7 +50,7 @@ that were not made explicit.
 from __future__ import annotations
 
 import gdb
-from sortedcontainers import SortedDict  # type: ignore
+from sortedcontainers import SortedDict  # type: ignore[import-not-found]
 
 import pwndbg.gdblib
 from pwndbg.color import message

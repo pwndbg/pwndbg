@@ -14,7 +14,8 @@ import pwndbg.gdblib.symbol
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
-errno.errorcode[0] = "OK"  # type: ignore # manually add error code 0 for "OK"
+# Manually add error code 0 for "OK"
+errno.errorcode[0] = "OK"  # type: ignore[index]
 
 parser = argparse.ArgumentParser(
     description="Converts errno (or argument) to its string representation."

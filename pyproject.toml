@@ -26,11 +26,15 @@ select = [
     "ISC", # flake8-implicit-str-concat
     "SLOT", # flake8-slots
     "FLY", # flynt
+    "PGH", # pygrep-hooks
     "RET506", # flake8-return: superfluous-else-raise
     "RET507", # flake8-return: superfluous-else-continue
     "RET508", # flake8-return: superfluous-else-break
     # We want to enable the below lints, but they currently return too many errors
     # "RET505", # flake8-return: superfluous-else-return
+    # "SLF" # flake8-self
+    # "SIM", # flake8-simplify
+    # "PTH", # flake8-use-pathlib
 ]
 
 [tool.ruff.lint.flake8-builtins]
