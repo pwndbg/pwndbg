@@ -3,8 +3,8 @@
 set -o errexit
 
 help_and_exit() {
-    echo "Usage: ./lint.sh [-f|--filter]"
-    echo "  -f,  --filter         format code instead of just checking the format"
+    echo "Usage: ./lint.sh [-f|--fix]"
+    echo "  -f,  --fix         fix issues if possible"
     exit 1
 }
 
@@ -12,12 +12,12 @@ if [[ $# -gt 1 ]]; then
     help_and_exit
 fi
 
-FORMAT=0
+FIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -f | --format)
-            FORMAT=1
+            FIX=1
             shift
             ;;
         *)
@@ -58,19 +58,19 @@ call_shfmt() {
     fi
 }
 
-if [[ $FORMAT == 1 ]]; then
+if [[ $FIX == 1 ]]; then
     isort ${LINT_FILES}
     black ${LINT_FILES}
+    ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
 else
     isort --check-only --diff ${LINT_FILES}
     black --check --diff ${LINT_FILES}
+    ruff check --output-format=full ${LINT_FILES}
     call_shfmt
 fi
 
 # Checking minimum python version
 vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
-
-ruff check --output-format=full ${LINT_FILES}
 
 mypy pwndbg
