@@ -71,6 +71,6 @@ fi
 # Checking minimum python version
 vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
 
-ruff check --show-source ${LINT_FILES}
+ruff check --output-format=full ${LINT_FILES}
 
 mypy pwndbg
