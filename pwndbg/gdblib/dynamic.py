@@ -252,19 +252,17 @@ class LinkMapEntry:
 # Normally, only one entry for each tag is allowed to be present in the dynamic
 # array for us to consider the dynamic array to be well-formed. Tags in this
 # set are allowed to appear multiple times.
-DYNAMIC_SECTION_ALLOW_MULTIPLE = set([elf.DT_NEEDED])
+DYNAMIC_SECTION_ALLOW_MULTIPLE = {elf.DT_NEEDED}
 
 # The DynamicSegment class expects some tags to always be present to function
 # correctly. In this set we list them explicitly. Code in that class is allowed
 # to presume these tags are always present after __init__.
-DYNAMIC_SECTION_REQUIRED_TAGS = set(
-    [
+DYNAMIC_SECTION_REQUIRED_TAGS = {
         elf.DT_STRTAB,
         elf.DT_STRSZ,
         elf.DT_SYMTAB,
         elf.DT_SYMENT,
-    ]
-)
+}
 
 
 class DynamicSegment:

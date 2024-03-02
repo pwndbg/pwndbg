@@ -109,7 +109,7 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
 
     from tabulate import tabulate
 
-    table_data = defaultdict(lambda: [])
+    table_data = defaultdict(list)
     for name, aliases, category, docs in list_and_filter_commands(
         filter_pattern, pwndbg_cmds, shell_cmds
     ):
