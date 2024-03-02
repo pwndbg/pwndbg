@@ -67,7 +67,7 @@ def asm(shellcode, format, arch, avoid, infile) -> None:
     assembly = pwnlib.asm.asm(" ".join(shellcode), arch=arch, bits=bits_for_arch)
 
     if avoid:
-        avoid = map(lambda byte: str(byte), avoid)
+        avoid = (str(byte) for byte in avoid)
         avoid = pwnlib.unhex("".join(avoid))
         print(message.warn("Going to avoid these bytes in hex: " + avoid.hex(" ")))
         assembly = pwnlib.encode(assembly, avoid)

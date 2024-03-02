@@ -92,7 +92,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
-        return tuple()
+        return ()
 
     if is_corefile():
         return tuple(coredump_maps())
@@ -283,7 +283,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
             _idx, start_end, _at_str, _at, name, *flags_list = line.split()
-            start, end = map(lambda v: int(v, 16), start_end.split("->"))
+            start, end = (int(v, 16) for v in start_end.split("->"))
 
             # Skip pages with start=0x0, this is unlikely this is valid vmmap
             if start == 0:
@@ -319,7 +319,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, name))
 
     if not pages:
-        return tuple()
+        return ()
 
     # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
     vsyscall_page = pages[-1]
@@ -458,7 +458,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     # Process hasn't been fully created yet; it is in Z (zombie) state
     if data == "":
-        return tuple()
+        return ()
 
     pages: List[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
@@ -569,14 +569,14 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
                         + "`help show kernel-vmmap` for other options."
                     )
                 )
-            return tuple()  # pylint: disable=lost-exception
+            return ()  # pylint: disable=lost-exception
 
     lines = monitor_info_mem.splitlines()
 
     # Handle disabled PG
     # This will prevent a crash on abstract architectures
     if len(lines) == 1 and lines[0] == "PG disabled":
-        return tuple()
+        return ()
 
     pages: List[pwndbg.lib.memory.Page] = []
     for line in lines:
@@ -736,7 +736,7 @@ def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
     auxv = pwndbg.auxv.get()
 
     if not auxv:
-        return tuple()
+        return ()
 
     pages: List[pwndbg.lib.memory.Page] = []
     exe_name = auxv.AT_EXECFN or "main.exe"

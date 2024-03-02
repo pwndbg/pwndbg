@@ -34,7 +34,7 @@ def get_proc_maps():
     with open("/proc/%d/maps" % pwndbg.gdblib.proc.pid) as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
-            start, end = map(lambda v: int(v, 16), addrs.split("-"))
+            start, end = (int(v, 16) for v in addrs.split("-"))
             offset = offset.lstrip("0") or "0"
             size = end - start
             maps.append([hex(start), hex(end), perms, hex(size)[2:], offset, objfile])

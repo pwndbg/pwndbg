@@ -258,10 +258,10 @@ DYNAMIC_SECTION_ALLOW_MULTIPLE = {elf.DT_NEEDED}
 # correctly. In this set we list them explicitly. Code in that class is allowed
 # to presume these tags are always present after __init__.
 DYNAMIC_SECTION_REQUIRED_TAGS = {
-        elf.DT_STRTAB,
-        elf.DT_STRSZ,
-        elf.DT_SYMTAB,
-        elf.DT_SYMENT,
+    elf.DT_STRTAB,
+    elf.DT_STRSZ,
+    elf.DT_SYMTAB,
+    elf.DT_SYMENT,
 }
 
 

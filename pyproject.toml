@@ -22,6 +22,7 @@ select = [
     "E",
     "F",
     "W",
+    "C4",
 ]
 
 [tool.ruff.lint.flake8-builtins]

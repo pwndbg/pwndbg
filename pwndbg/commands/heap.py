@@ -39,7 +39,7 @@ def read_chunk(addr):
         val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
-    return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
+    return {renames.get(key, key): int(val[key]) for key in val.type.keys()}
 
 
 def format_bin(bins: Bins, verbose=False, offset=None):

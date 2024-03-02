@@ -388,7 +388,7 @@ def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
 
 def map_inner(ei_class, ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not ehdr:
-        return tuple()
+        return ()
 
     base = int(ehdr.address)
 

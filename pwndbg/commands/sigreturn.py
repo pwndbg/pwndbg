@@ -21,9 +21,9 @@ from pwndbg.lib.regs import i386
 # Offsets and names are from Linux kernel source. For example x86_64 is defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel /arch/x86/include/asm/sigframe.h)
 SIGRETURN_FRAME_LAYOUTS: dict[str, list[Tuple[int, str]]] = {
     "x86-64": sorted([(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items())),
-    "i386": sorted(list(pwnlib.rop.srop.registers["i386"].items())),
-    "aarch64": sorted(list(pwnlib.rop.srop.registers["aarch64"].items())),
-    "arm": sorted(list(pwnlib.rop.srop.registers["arm"].items())),
+    "i386": sorted(pwnlib.rop.srop.registers["i386"].items()),
+    "aarch64": sorted(pwnlib.rop.srop.registers["aarch64"].items()),
+    "arm": sorted(pwnlib.rop.srop.registers["arm"].items()),
 }
 
 # Always print these registers (as well as flag register, eflags / cpsr)
