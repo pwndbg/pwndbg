@@ -48,6 +48,8 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
     ELF metadata and structures.
     """
 
+    __slots__ = ()
+
     @property
     def is_pic(self) -> bool:
         return self.header["e_type"] == "ET_DYN"
