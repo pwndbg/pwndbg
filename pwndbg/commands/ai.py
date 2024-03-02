@@ -350,15 +350,15 @@ def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
     if "turbo" in model or model.startswith("gpt-4"):
-        if type(prompt) is str:
+        if isinstance(prompt, str):
             prompt = [{"role": "user", "content": prompt}]
         return query_openai_chat(prompt, model, max_tokens, temperature)
     elif model.startswith("claude"):
-        if type(prompt) is list:
+        if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_anthropic(prompt, model, max_tokens, temperature)
     else:
-        if type(prompt) is list:
+        if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_openai_completions(prompt, model, max_tokens, temperature)
 

@@ -5,6 +5,7 @@ address ranges with various ELF files and permissions.
 The reason that we need robustness is that not every operating
 system has /proc/$$/maps, which backs 'info proc mapping'.
 """
+
 from __future__ import annotations
 
 import bisect
