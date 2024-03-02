@@ -5,6 +5,7 @@ import ast
 import os
 import sys
 from collections import defaultdict
+from typing import Any
 from typing import DefaultDict
 from typing import List
 from typing import Tuple
@@ -199,7 +200,7 @@ class CallOutput:
             return False
 
 
-def output(section):
+def output(section: str):
     """Creates a context manager corresponding to configured context output"""
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
@@ -394,7 +395,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, dict] = defaultdict(dict)
+    result_settings: DefaultDict[str, dict[Any, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)

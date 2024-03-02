@@ -25,7 +25,7 @@ debug = NO_DEBUG
 debug_name = "regs"
 
 
-class DebugCacheDict(UserDict):
+class DebugCacheDict(UserDict):  # type: ignore[type-arg]
     def __init__(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.hits = 0
