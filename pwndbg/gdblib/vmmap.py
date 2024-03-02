@@ -711,9 +711,7 @@ def info_files() -> Tuple[pwndbg.lib.memory.Page, ...]:
             print("Bad data: %r" % line)
             continue
 
-        if objfile in seen_files:
-            continue
-        else:
+        if objfile not in seen_files:
             seen_files.add(objfile)
 
         pages.extend(pwndbg.gdblib.elf.map(vaddr, objfile))

@@ -328,10 +328,12 @@ def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
             output_msg += f"argv[{n}] = {expr}\n"
             n += 1
             continue
-        elif expr == "NULL":
+
+        if expr == "NULL":
             output_msg += f"argv[{n}] = {expr}\n"
             return UNKNOWN, output_msg
-        elif expr == "...":
+
+        if expr == "...":
             output_msg += f"argv doesn't end, please check argv[{n}..n] manually\n"
             return UNKNOWN, output_msg
 

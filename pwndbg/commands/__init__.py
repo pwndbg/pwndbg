@@ -408,8 +408,8 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
             )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
-        else:
-            pwndbg.exception.inform_verbose_and_debug()
+
+        pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
         e(f"{function.__name__}: An unknown error occurred when running this command.")
         if isinstance(pwndbg.heap.current, HeuristicHeap):
@@ -420,8 +420,8 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
             w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
-        else:
-            pwndbg.exception.inform_verbose_and_debug()
+
+        pwndbg.exception.inform_verbose_and_debug()
     return None
 
 

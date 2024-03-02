@@ -142,7 +142,8 @@ class module(ModuleType):
         ):
             if regset is None:
                 continue
-            elif isinstance(regset, (list, tuple)):  # regs.retaddr
+
+            if isinstance(regset, (list, tuple)):  # regs.retaddr
                 retval.extend(regset)
             elif isinstance(regset, dict):  # regs.flags
                 retval.extend(regset.keys())
