@@ -14,6 +14,7 @@ module, for example:
     >>> int(pwndbg.gdblib.config.example_value)
     7
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -1254,15 +1254,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             56 + (sz >> 6)
             if (sz >> 6) <= 38
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index_32_big(self, sz):
@@ -1273,15 +1277,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             49 + (sz >> 6)
             if (sz >> 6) <= 45
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index_64(self, sz):
@@ -1292,15 +1300,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             48 + (sz >> 6)
             if (sz >> 6) <= 48
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index(self, sz):

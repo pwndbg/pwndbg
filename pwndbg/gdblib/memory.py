@@ -2,7 +2,6 @@
 Reading, writing, and describing memory.
 """
 
-
 from __future__ import annotations
 
 import re
