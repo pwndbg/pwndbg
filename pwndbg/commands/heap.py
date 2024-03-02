@@ -719,8 +719,10 @@ parser.add_argument(
     "-a",
     action="store_true",
     default=False,
-    help="Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
-    + "chunks and for all chunks when Safe Linking is enabled",
+    help=(
+        "Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
+        "chunks and for all chunks when Safe Linking is enabled"
+    ),
 )
 parser.add_argument(
     "--glibc-fastbin-bug",

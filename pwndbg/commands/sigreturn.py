@@ -31,7 +31,7 @@ SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
     "x86-64": {*amd64.gpr, amd64.frame, amd64.stack, amd64.pc},
     "i386": {*i386.gpr, i386.frame, i386.stack, i386.pc},
     "aarch64": {*aarch64.gpr, "sp", "pc"},
-    "arm": {*arm.gpr, "fp" "ip", "sp", "lr", "pc"},
+    "arm": {*arm.gpr, "fp", "ip", "sp", "lr", "pc"},
 }
 
 

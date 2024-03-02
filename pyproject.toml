@@ -18,11 +18,12 @@ ignore = [
 ]
 
 select = [
-    "A",
-    "E",
-    "F",
-    "W",
-    "C4",
+    "A",  # flake8-builtins
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "W",  # pycodestyle
+    "C4", # flake8-comprehensions
+    "ISC", # flake8-implicit-str-concat
 ]
 
 [tool.ruff.lint.flake8-builtins]

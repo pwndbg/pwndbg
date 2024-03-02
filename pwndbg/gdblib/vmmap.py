@@ -504,7 +504,8 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
         print(
             M.error(
                 "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
-                + "Either change the kernel-vmmap setting, re-run GDB as root, or disable `ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
+                "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
+                "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
             )
         )
         return tuple(retpages)
@@ -565,8 +566,8 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 print(
                     M.error(
                         f"The {pwndbg.gdblib.arch.name} architecture does"
-                        + " not support the `monitor info mem` command. Run "
-                        + "`help show kernel-vmmap` for other options."
+                        " not support the `monitor info mem` command. Run "
+                        "`help show kernel-vmmap` for other options."
                     )
                 )
             return ()  # pylint: disable=lost-exception
