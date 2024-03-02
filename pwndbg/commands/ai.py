@@ -294,8 +294,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
             raise Exception(error_message)
-        else:
-            raise Exception(res)
+        raise Exception(res)
     if config.ai_show_usage:
         print(
             M.notice(
@@ -334,8 +333,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
             raise Exception(error_message)
-        else:
-            raise Exception(res)
+        raise Exception(res)
     reply = res["choices"][0]["text"]
     if config.ai_show_usage:
         print(

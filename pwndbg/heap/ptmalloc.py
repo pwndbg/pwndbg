@@ -1573,7 +1573,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         # We only care about the relocation in .data section
                         if r_offset - next_field_offset < data_section_offset:
                             continue
-                        elif r_offset - next_field_offset >= data_section_offset + size:
+
+                        if r_offset - next_field_offset >= data_section_offset + size:
                             break
 
                         # To find addend:
@@ -1789,7 +1790,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 )
                 return None
             raise SymbolUnresolvableError("thread_arena")
-        else:
+        else:  # noqa: RET506
             self._thread_arena_values[gdb.selected_thread().global_num] = self.main_arena.address
             return self.main_arena
 

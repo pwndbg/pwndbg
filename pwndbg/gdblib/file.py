@@ -93,9 +93,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
                         real_error.append(line)
                 if len(real_error):
                     error = "\n".join(real_error)
-                    raise OSError(
-                        "Could not download remote file %r:\n" "Error: %s" % (path, error)
-                    )
+                    raise OSError("Could not download remote file %r:\nError: %s" % (path, error))
         else:
             print(
                 message.warn(

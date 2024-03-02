@@ -48,6 +48,8 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
     ELF metadata and structures.
     """
 
+    __slots__ = ()
+
     @property
     def is_pic(self) -> bool:
         return self.header["e_type"] == "ET_DYN"
@@ -388,7 +390,7 @@ def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
 
 def map_inner(ei_class, ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not ehdr:
-        return tuple()
+        return ()
 
     base = int(ehdr.address)
 

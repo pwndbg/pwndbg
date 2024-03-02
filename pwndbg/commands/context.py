@@ -244,12 +244,12 @@ def contextoutput(section, path, clearing, banner="both", width=None):
     if width is not None:
         width = int(width)
     outputs[section] = path
-    output_settings[section] = dict(
-        clearing=clearing,
-        width=width,
-        banner_top=banner in ["both", "top"],
-        banner_bottom=banner in ["both", "bottom"],
-    )
+    output_settings[section] = {
+        "clearing": clearing,
+        "width": width,
+        "banner_top": banner in ["both", "top"],
+        "banner_bottom": banner in ["both", "bottom"],
+    }
 
 
 # Watches

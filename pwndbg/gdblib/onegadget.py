@@ -274,7 +274,7 @@ def run_onegadget() -> str:
     cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
     if os.path.exists(cache_file):
         # Cache hit
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             return f.read()
     # Cache miss
     output = subprocess.check_output(["one_gadget", "--level=100", libc_path], text=True)
@@ -328,10 +328,12 @@ def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
             output_msg += f"argv[{n}] = {expr}\n"
             n += 1
             continue
-        elif expr == "NULL":
+
+        if expr == "NULL":
             output_msg += f"argv[{n}] = {expr}\n"
             return UNKNOWN, output_msg
-        elif expr == "...":
+
+        if expr == "...":
             output_msg += f"argv doesn't end, please check argv[{n}..n] manually\n"
             return UNKNOWN, output_msg
 

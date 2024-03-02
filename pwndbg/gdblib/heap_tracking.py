@@ -50,7 +50,7 @@ that were not made explicit.
 from __future__ import annotations
 
 import gdb
-from sortedcontainers import SortedDict  # type: ignore
+from sortedcontainers import SortedDict  # type: ignore # noqa: PGH003
 
 import pwndbg.gdblib
 from pwndbg.color import message
@@ -180,8 +180,8 @@ class Tracker:
     def __init__(self):
         self.free_chunks = SortedDict()
         self.alloc_chunks = SortedDict()
-        self.free_whatchpoints = dict()
-        self.memory_management_calls = dict()
+        self.free_whatchpoints = {}
+        self.memory_management_calls = {}
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num

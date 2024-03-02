@@ -78,30 +78,30 @@ class RelocTypes:
 
 # Set of all type codes associated with jump slots, by architecture.
 JUMP_SLOTS = {
-    "x86-64": set([RelocTypes.R_X86_64_JUMP_SLOT]),
-    "i386": set([RelocTypes.R_386_JMP_SLOT]),
-    "aarch64": set([RelocTypes.R_AARCH64_JUMP_SLOT]),
-    "mips": set([RelocTypes.R_MIPS_JUMP_SLOT]),
-    "powerpc": set([RelocTypes.R_PPC_JMP_SLOT]),
-    "sparc": set([RelocTypes.R_SPARC_JMP_SLOT]),
-    "arm": set([RelocTypes.R_ARM_JUMP_SLOT]),
-    "armcm": set([RelocTypes.R_ARM_JUMP_SLOT]),
-    "rv32": set([RelocTypes.R_RISCV_JUMP_SLOT]),
-    "rv64": set([RelocTypes.R_RISCV_JUMP_SLOT]),
+    "x86-64": {RelocTypes.R_X86_64_JUMP_SLOT},
+    "i386": {RelocTypes.R_386_JMP_SLOT},
+    "aarch64": {RelocTypes.R_AARCH64_JUMP_SLOT},
+    "mips": {RelocTypes.R_MIPS_JUMP_SLOT},
+    "powerpc": {RelocTypes.R_PPC_JMP_SLOT},
+    "sparc": {RelocTypes.R_SPARC_JMP_SLOT},
+    "arm": {RelocTypes.R_ARM_JUMP_SLOT},
+    "armcm": {RelocTypes.R_ARM_JUMP_SLOT},
+    "rv32": {RelocTypes.R_RISCV_JUMP_SLOT},
+    "rv64": {RelocTypes.R_RISCV_JUMP_SLOT},
 }
 
 # Set of all type codes associated with irelative jump slots, by architecture.
 IRELATIVE_SLOTS = {
-    "x86-64": set([RelocTypes.R_X86_64_IRELATIVE]),
-    "i386": set([RelocTypes.R_386_IRELATIVE]),
-    "aarch64": set([RelocTypes.R_AARCH64_P32_IRELATIVE, RelocTypes.R_AARCH64_IRELATIVE]),
-    "mips": set([]),
-    "powerpc": set([RelocTypes.R_PPC_IRELATIVE]),
-    "sparc": set([RelocTypes.R_SPARC_IRELATIVE]),
-    "arm": set([RelocTypes.R_ARM_IRELATIVE]),
-    "armcm": set([RelocTypes.R_ARM_IRELATIVE]),
-    "rv32": set([RelocTypes.R_RISCV_IRELATIVE]),
-    "rv64": set([RelocTypes.R_RISCV_IRELATIVE]),
+    "x86-64": {RelocTypes.R_X86_64_IRELATIVE},
+    "i386": {RelocTypes.R_386_IRELATIVE},
+    "aarch64": {RelocTypes.R_AARCH64_P32_IRELATIVE, RelocTypes.R_AARCH64_IRELATIVE},
+    "mips": set(),
+    "powerpc": {RelocTypes.R_PPC_IRELATIVE},
+    "sparc": {RelocTypes.R_SPARC_IRELATIVE},
+    "arm": {RelocTypes.R_ARM_IRELATIVE},
+    "armcm": {RelocTypes.R_ARM_IRELATIVE},
+    "rv32": {RelocTypes.R_RISCV_IRELATIVE},
+    "rv64": {RelocTypes.R_RISCV_IRELATIVE},
 }
 
 

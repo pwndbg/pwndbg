@@ -54,12 +54,12 @@ class RegisterSet:
         pc: str = "pc",
         stack: str = "sp",
         frame: str | None = None,
-        retaddr: Tuple[str, ...] = tuple(),
+        retaddr: Tuple[str, ...] = (),
         flags: Dict[str, BitFlags] = {},
         extra_flags: Dict[str, BitFlags] = {},
-        gpr: Tuple[str, ...] = tuple(),
-        misc: Tuple[str, ...] = tuple(),
-        args: Tuple[str, ...] = tuple(),
+        gpr: Tuple[str, ...] = (),
+        misc: Tuple[str, ...] = (),
+        args: Tuple[str, ...] = (),
         retval: str | None = None,
     ) -> None:
         self.pc = pc
@@ -79,9 +79,7 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        self.all = (
-            {i for i in misc} | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
-        )
+        self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
 
     def __iter__(self) -> Iterator[str]:
