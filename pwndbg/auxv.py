@@ -3,6 +3,9 @@ from __future__ import annotations
 import os
 import re
 import sys
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 import gdb
 
@@ -82,16 +85,56 @@ AT_CONSTANTS = {
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
-class AUXV(TypedDict):
-    AT_EXECFN: str
-    AT_PLATFORM: str
-    AT_BASE: int
-    AT_ENTRY: int
-    AT_SYSINFO_EHDR: int
-    AT_SYSINFO: int
-    AT_PHDR: int
+class AUXV(Dict[str, Union[int, str]]):
+    @property
+    def AT_PHDR(self) -> Optional[int]:
+        res = self.get(AT_PHDR)
+        assert res is None or isinstance(res, int)
+        return res
 
-    def set(self, const: int, value) -> None:
+    @property
+    def AT_BASE(self) -> Optional[int]:
+        res = self.get(AT_BASE)
+        assert res is None or isinstance(res, int)
+        return res
+
+    @property
+    def AT_PLATFORM(self) -> Optional[str]:
+        res = self.get(AT_PLATFORM)
+        assert res is None or isinstance(res, str)
+        return res
+
+    @property
+    def AT_ENTRY(self) -> Optional[int]:
+        res = self.get(AT_ENTRY)
+        assert res is None or isinstance(res, int)
+        return res
+
+    @property
+    def AT_RANDOM(self) -> Optional[int]:
+        res = self.get(AT_RANDOM)
+        assert res is None or isinstance(res, int)
+        return res
+
+    @property
+    def AT_EXECFN(self) -> Optional[str]:
+        res = self.get(AT_EXECFN)
+        assert res is None or isinstance(res, str)
+        return res
+
+    @property
+    def AT_SYSINFO(self) -> Optional[int]:
+        res = self.get(AT_SYSINFO)
+        assert res is None or isinstance(res, int)
+        return res
+
+    @property
+    def AT_SYSINFO_EHDR(self) -> Optional[int]:
+        res = self.get(AT_SYSINFO_EHDR)
+        assert res is None or isinstance(res, int)
+        return res
+
+    def set(self, const: int, value: int) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:

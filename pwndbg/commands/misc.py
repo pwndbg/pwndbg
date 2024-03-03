@@ -6,7 +6,6 @@ from collections import defaultdict
 
 import gdb
 
-import pwndbg.auxv
 import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.gdblib.regs
