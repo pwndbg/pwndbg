@@ -45,12 +45,12 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
-  - git-committers:
-      repository: pwndbg/pwndbg
-      branch: dev
-      exclude:
-        - index.md
-        - docs/commands/**
+  # - git-committers:
+  #     repository: pwndbg/pwndbg
+  #     branch: dev
+  #     exclude:
+  #       - index.md
+  #       - docs/commands/**
   - gen-files:
       scripts:
         - scripts/gen_ref_pages.py
