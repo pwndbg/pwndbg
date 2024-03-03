@@ -3,8 +3,6 @@ from __future__ import annotations
 import os
 import re
 import sys
-from typing import Dict
-from typing import Union
 
 import gdb
 
@@ -80,10 +78,19 @@ AT_CONSTANTS = {
     37: "AT_L3_CACHESHAPE",
 }
 
+
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
-class AUXV(Dict[str, Union[int, str]]):
+class AUXV(TypedDict):
+    AT_EXECFN: str
+    AT_PLATFORM: str
+    AT_BASE: int
+    AT_ENTRY: int
+    AT_SYSINFO_EHDR: int
+    AT_SYSINFO: int
+    AT_PHDR: int
+
     def set(self, const: int, value) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 

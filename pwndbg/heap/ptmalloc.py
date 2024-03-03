@@ -1336,8 +1336,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
         """
-        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.gdblib.symbol.address(
-            "global_max_fast"
+        return (
+            pwndbg.gdblib.typeinfo.load("struct malloc_chunk") is not None
+            and pwndbg.gdblib.symbol.address("global_max_fast") is not None
         )
 
 

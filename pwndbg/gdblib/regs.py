@@ -10,7 +10,9 @@ import re
 import sys
 from types import ModuleType
 from typing import Any
+from typing import Dict
 from typing import Generator
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -20,6 +22,7 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
+from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import reg_sets
 
 
@@ -68,7 +71,7 @@ class module(ModuleType):
             gdb.execute(f"set ${attr} = {val}")
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getitem__(self, item: str) -> str | int | None:
+    def __getitem__(self, item: str) -> int | None:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -77,8 +80,8 @@ class module(ModuleType):
         item = item.lstrip("$")
         item = getattr(self, item.lower())
 
-        if isinstance(item, int):
-            return int(item) & pwndbg.gdblib.arch.ptrmask
+        if item is not None:
+            item &= pwndbg.gdblib.arch.ptrmask
 
         return item
 
@@ -96,11 +99,11 @@ class module(ModuleType):
 
     # TODO: All these should be able to do self.current
     @property
-    def gpr(self):
+    def gpr(self) -> Tuple[str, ...]:
         return reg_sets[pwndbg.gdblib.arch.current].gpr
 
     @property
-    def common(self):
+    def common(self) -> List[str]:
         return reg_sets[pwndbg.gdblib.arch.current].common
 
     @property
@@ -112,15 +115,15 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].retaddr
 
     @property
-    def flags(self):
+    def flags(self) -> Dict[str, BitFlags]:
         return reg_sets[pwndbg.gdblib.arch.current].flags
 
     @property
-    def extra_flags(self):
+    def extra_flags(self) -> Dict[str, BitFlags]:
         return reg_sets[pwndbg.gdblib.arch.current].extra_flags
 
     @property
-    def stack(self):
+    def stack(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].stack
 
     @property
@@ -163,7 +166,7 @@ class module(ModuleType):
     reg_sets = reg_sets
 
     @property
-    def changed(self):
+    def changed(self) -> List[str]:
         delta = []
         for reg, value in self.previous.items():
             if self[reg] != value:

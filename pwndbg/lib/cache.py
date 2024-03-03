@@ -110,7 +110,7 @@ _KWARGS_SEPARATOR = object()
 IS_CACHING = True
 
 
-def cache_until(*event_names: str):
+def cache_until(*event_names: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
