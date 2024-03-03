@@ -59,7 +59,7 @@ plugins:
       default_handler: python
       handlers:
         python:
-          paths: [pwndbg]
+          paths: []
           # load_external_modules: true
           options:
             allow_inspection: true
