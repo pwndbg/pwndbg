@@ -45,13 +45,11 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
-  - git-revision-date-localized
   - git-committers:
       repository: pwndbg/pwndbg
       branch: dev
       exclude:
         - index.md
-        - docs/source/**
         - docs/commands/**
   - gen-files:
       scripts:
