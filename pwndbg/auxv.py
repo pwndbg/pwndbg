@@ -85,55 +85,21 @@ AT_CONSTANTS = {
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
 
 
+from typing import Protocol
+
+
+class AUXVProtocol(Protocol):
+    AT_PHDR: Optional[int]
+    AT_BASE: Optional[int]
+    AT_PLATFORM: Optional[str]
+    AT_ENTRY: Optional[int]
+    AT_RANDOM: Optional[int]
+    AT_EXECFN: Optional[str]
+    AT_SYSINFO: Optional[int]
+    AT_SYSINFO_EHDR: Optional[int]
+
+
 class AUXV(Dict[str, Union[int, str]]):
-    @property
-    def AT_PHDR(self) -> Optional[int]:
-        res = self.get(AT_PHDR)
-        assert res is None or isinstance(res, int)
-        return res
-
-    @property
-    def AT_BASE(self) -> Optional[int]:
-        res = self.get(AT_BASE)
-        assert res is None or isinstance(res, int)
-        return res
-
-    @property
-    def AT_PLATFORM(self) -> Optional[str]:
-        res = self.get(AT_PLATFORM)
-        assert res is None or isinstance(res, str)
-        return res
-
-    @property
-    def AT_ENTRY(self) -> Optional[int]:
-        res = self.get(AT_ENTRY)
-        assert res is None or isinstance(res, int)
-        return res
-
-    @property
-    def AT_RANDOM(self) -> Optional[int]:
-        res = self.get(AT_RANDOM)
-        assert res is None or isinstance(res, int)
-        return res
-
-    @property
-    def AT_EXECFN(self) -> Optional[str]:
-        res = self.get(AT_EXECFN)
-        assert res is None or isinstance(res, str)
-        return res
-
-    @property
-    def AT_SYSINFO(self) -> Optional[int]:
-        res = self.get(AT_SYSINFO)
-        assert res is None or isinstance(res, int)
-        return res
-
-    @property
-    def AT_SYSINFO_EHDR(self) -> Optional[int]:
-        res = self.get(AT_SYSINFO_EHDR)
-        assert res is None or isinstance(res, int)
-        return res
-
     def set(self, const: int, value: int) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
@@ -155,11 +121,11 @@ class AUXV(Dict[str, Union[int, str]]):
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
-def get() -> AUXV:
-    return use_info_auxv() or walk_stack() or AUXV()
+def get() -> AUXVProtocol:
+    return use_info_auxv() or walk_stack() or Foo()  # AUXV()
 
 
-def use_info_auxv():
+def use_info_auxv() -> Optional[AUXV]:
     lines = pwndbg.gdblib.info.auxv().splitlines()
 
     if not lines:
