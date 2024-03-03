@@ -1,3 +1,4 @@
+site_url: https://pwndbg.re/pwndbg/
 site_name: Documentation
 site_description: >-
   pwndbg (/paʊnˈdiˌbʌɡ/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
