@@ -106,7 +106,7 @@ def write(addr: int, data: str | bytes | bytearray) -> None:
     gdb.selected_inferior().write_memory(addr, data)
 
 
-def peek(address: int):
+def peek(address: int) -> str | None:
     """peek(address) -> str
 
     Read one byte from the specified address.
@@ -119,7 +119,7 @@ def peek(address: int):
         address cannot be read.
     """
     try:
-        return read(address, 1)
+        return chr(read(address, 1)[0])
     except Exception:
         pass
     return None
@@ -173,7 +173,7 @@ def string(addr: int, max: int = 4096) -> bytearray:
         An empty bytearray, or a NULL-terminated bytearray.
     """
     if peek(addr):
-        data = bytearray(read(addr, max, partial=True))
+        data = read(addr, max, partial=True)
 
         try:
             return data[: data.index(b"\x00")]
@@ -255,7 +255,7 @@ def u64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
-def u(addr: int, size: int | None = None):
+def u(addr: int, size: int | None = None) -> int:
     """u(addr, size=None) -> int
 
     Read one ``unsigned`` integer from the specified address,

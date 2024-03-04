@@ -12,7 +12,7 @@ import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory
 
 
-def columns(rows, colors=None):
+def columns(rows, colors=None) -> None:
     """
     Print data formatted into distinct columns.
     """
@@ -119,7 +119,7 @@ def track_got(mode=None, soname=None, writable=False, fnname=None, address=None)
         raise AssertionError(f"track-got must never have invalid mode '{mode}'. this is a bug")
 
 
-def got_report(soname=".*", writable=False, fnname=".*"):
+def got_report(soname=".*", writable=False, fnname=".*") -> None:
     """
     Prints out a report of the current status of the GOT tracker.
     """
@@ -179,7 +179,7 @@ def got_report(soname=".*", writable=False, fnname=".*"):
         print()
 
 
-def got_tracking_status(address):
+def got_tracking_status(address) -> None:
     """
     Prints out information about a single GOT tracking entry.
     """
@@ -201,8 +201,7 @@ def got_tracking_status(address):
         print("command.")
         return
 
-    tracker, patcher = result
-    rows = []
+    tracker, _ = result
 
     dynamic = tracker.dynamic_section
     sym_index = tracker.relocation_fn(tracker.relocation_index, "r_sym")

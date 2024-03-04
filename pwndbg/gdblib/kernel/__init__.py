@@ -5,6 +5,9 @@ import math
 import re
 from abc import ABC
 from abc import abstractmethod
+from typing import Any
+from typing import Callable
+from typing import Dict
 from typing import Optional
 from typing import Tuple
 
@@ -34,8 +37,8 @@ def has_debug_syms() -> bool:
 
 
 # NOTE: This implies requires_debug_syms(), as it is needed for kconfig() to return non-None
-def requires_kconfig(default=None):
-    def decorator(f):
+def requires_kconfig(default: Any = None) -> Callable[..., Any]:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
         def func(*args, **kwargs):
             if kconfig():
@@ -53,8 +56,8 @@ def requires_kconfig(default=None):
     return decorator
 
 
-def requires_debug_syms(default=None):
-    def decorator(f):
+def requires_debug_syms(default: Any = None) -> Callable[..., Any]:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
         def func(*args, **kwargs):
             if has_debug_syms():

@@ -45,7 +45,7 @@ skipped_exceptions = (
 )
 
 
-def _get_debug_file_directory():
+def _get_debug_file_directory() -> str:
     """
     Retrieve the debug file directory path.
 

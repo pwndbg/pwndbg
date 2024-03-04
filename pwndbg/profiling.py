@@ -17,9 +17,9 @@ class Profiler:
         self._profiler = p
         self._start_time: float | None = None
 
-    def print_time_elapsed(self):
+    def print_time_elapsed(self) -> None:
         assert self._start_time is not None
-        return print("Time Elapsed:", time.time() - self._start_time)
+        print("Time Elapsed:", time.time() - self._start_time)
 
     def start(self) -> None:
         self._start_time = time.time()

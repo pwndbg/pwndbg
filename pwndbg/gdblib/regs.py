@@ -23,11 +23,12 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
 from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb_get_register(name: str):
+def gdb_get_register(name: str) -> gdb.Value:
     frame = gdb.selected_frame()
     try:
         return frame.read_register(name)
@@ -57,8 +58,7 @@ class module(ModuleType):
             value = value.cast(size)
             if attr == "pc" and pwndbg.gdblib.arch.current == "i8086":
                 value += self.cs * 16
-            value = int(value)
-            return value & pwndbg.gdblib.arch.ptrmask
+            return int(value) & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
@@ -94,7 +94,7 @@ class module(ModuleType):
         yield from regs
 
     @property
-    def current(self):
+    def current(self) -> RegisterSet:
         return reg_sets[pwndbg.gdblib.arch.current]
 
     # TODO: All these should be able to do self.current
@@ -111,7 +111,7 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].frame
 
     @property
-    def retaddr(self):
+    def retaddr(self) -> Tuple[str, ...]:
         return reg_sets[pwndbg.gdblib.arch.current].retaddr
 
     @property
@@ -127,7 +127,7 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].stack
 
     @property
-    def retval(self):
+    def retval(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].retval
 
     @property
@@ -175,12 +175,12 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def fsbase(self):
+    def fsbase(self) -> int:
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def gsbase(self):
+    def gsbase(self) -> int:
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.lib.cache.cache_until("stop")
@@ -189,7 +189,7 @@ class module(ModuleType):
         Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.gdblib.arch.current == "x86-64":
-            return gdb_get_register(regname)
+            return int(gdb_get_register(regname))
 
         # We can't really do anything if the process is remote.
         if pwndbg.gdblib.remote.is_remote():

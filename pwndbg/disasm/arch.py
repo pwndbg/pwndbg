@@ -20,7 +20,7 @@ for value1, name1 in dict(access).items():
 
 class DisassemblyAssistant:
     # Registry of all instances, {architecture: instance}
-    assistants = {}
+    assistants: Dict[str, DisassemblyAssistant] = {}
 
     def __init__(self, architecture) -> None:
         if architecture is not None:

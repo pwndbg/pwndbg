@@ -12,6 +12,11 @@ injecting our own code into the program space to track this.
 
 from __future__ import annotations
 
+from typing import Dict
+from typing import List
+from typing import Set
+from typing import Tuple
+
 import gdb
 
 import pwndbg.color.message as message
@@ -122,17 +127,17 @@ class TrapAllocator:
     block_capacity = 4096
     slot_size = 8
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._reset()
 
-    def _reset(self):
+    def _reset(self) -> None:
         """
         Reset the internal state of the allocator.
         """
-        self.blocks = []
+        self.blocks: List[int] = []
         self.current_block_occupancy = 0
-        self.vacant_slots = []
-        self.occupied_slots = set()
+        self.vacant_slots: List[int] = []
+        self.occupied_slots: Set[int] = set()
 
     def alloc(self):
         """
@@ -172,7 +177,7 @@ class TrapAllocator:
         self.occupied_slots.add(addr)
         return addr
 
-    def free(self, address):
+    def free(self, address) -> None:
         """
         Indicates that an address obtained from alloc() can be recycled.
         """
@@ -228,7 +233,7 @@ TRAP_ALLOCATOR = TrapAllocator()
 GOT_TRACKING = False
 
 # Map describing all of the currently installed analysis watchpoints.
-INSTALLED_WATCHPOINTS = {}
+INSTALLED_WATCHPOINTS: Dict[int, Tuple[Tracker, Patcher]] = {}
 
 
 class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
@@ -242,7 +247,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
     entry = 0
     tracker = None
 
-    def __init__(self, entry, tracker):
+    def __init__(self, entry, tracker) -> None:
         super().__init__(
             f"*(void**){entry:#x}", type=gdb.BP_WATCHPOINT, wp_class=gdb.WP_WRITE, internal=True
         )
@@ -266,7 +271,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
             )
         )
 
-    def should_stop(self):
+    def should_stop(self) -> bool:
         # Read the new branch target, and update the redirection target of the
         # tracker accordingly.
         new_target = pwndbg.gdblib.memory.pvoid(self.entry)
@@ -303,7 +308,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     function together.
     """
 
-    hits = {}
+    hits: Dict[Tuple[int, ...], int] = {}
     total_hits = 0
     trapped_address = 0
 
@@ -313,17 +318,17 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     relocation_index = 0
     link_map_entry = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.trapped_address = TRAP_ALLOCATOR.alloc()
         super().__init__(f"*{self.trapped_address:#x}", internal=True)
         self.hits = {}
         self.silent = True
 
-    def delete(self):
+    def delete(self) -> None:
         TRAP_ALLOCATOR.free(self.trapped_address)
         super().delete()
 
-    def should_stop(self):
+    def should_stop(self) -> bool:
         # Notify the user about calls made through this GOT entry.
         print(f"[*] {self.sym_display_name}@{self.obj_display_name} called via GOT")
 
@@ -331,7 +336,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
         stack = []
         frame = gdb.newest_frame().older()
         while frame is not None:
-            stack.append(frame.pc())
+            stack.append(int(frame.pc()))
             frame = frame.older()
         stack = tuple(stack)
         if stack not in self.hits:
@@ -344,7 +349,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
         return False
 
 
-def _update_watchpoints():
+def _update_watchpoints() -> None:
     """
     Internal function responsible for updating the watchpoints that track the
     accesses to the GOT.
@@ -443,7 +448,7 @@ def tracked_entry_by_address(address):
     return INSTALLED_WATCHPOINTS.get(address)
 
 
-def enable_got_call_tracking(disable_hardware_whatchpoints=True):
+def enable_got_call_tracking(disable_hardware_whatchpoints=True) -> None:
     """
     Enable the analysis of calls made through the GOT.
     """
@@ -491,7 +496,7 @@ def enable_got_call_tracking(disable_hardware_whatchpoints=True):
     print("disabled and re-enabled in order to update the hooks.")
 
 
-def disable_got_call_tracking():
+def disable_got_call_tracking() -> None:
     """
     Disable the analysis of calls made through the GOT.
     """

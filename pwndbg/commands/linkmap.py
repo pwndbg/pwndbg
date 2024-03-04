@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def linkmap():
+def linkmap() -> None:
     is_first = True
     rows = [["Node", "Objfile", "Load Bias", "Dynamic Segment"]]
     for obj in pwndbg.gdblib.dynamic.link_map():

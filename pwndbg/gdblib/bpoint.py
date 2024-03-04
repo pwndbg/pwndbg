@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Dict
+
 import gdb
 
 import pwndbg.lib.cache
@@ -28,7 +30,7 @@ class Breakpoint(gdb.Breakpoint):
         return True
 
 
-REGISTERED_BP_EVENTS = {}
+REGISTERED_BP_EVENTS: Dict[int, BreakpointEvent] = {}
 
 
 class BreakpointEvent(gdb.Breakpoint):
@@ -41,18 +43,18 @@ class BreakpointEvent(gdb.Breakpoint):
     after a breakpoint is hit.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         REGISTERED_BP_EVENTS[id(self)] = self
         self.commands = (
             f"python pwndbg.gdblib.bpoint.REGISTERED_BP_EVENTS[{id(self)}].on_breakpoint_hit()"
         )
 
-    def delete(self):
+    def delete(self) -> None:
         REGISTERED_BP_EVENTS.remove(id(self))
         super().delete()
 
-    def on_breakpoint_hit(self):
+    def on_breakpoint_hit(self) -> None:
         """
         This function is called whenever this breakpoint is hit in the code.
         """

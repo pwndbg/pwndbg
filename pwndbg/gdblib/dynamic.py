@@ -13,7 +13,11 @@ that may have a somewhat obtuse beahvior, due to limitations in GDB. See
 from __future__ import annotations
 
 from typing import Any
+from typing import Callable
 from typing import Dict
+from typing import List
+from typing import Set
+from typing import Tuple
 
 import gdb
 
@@ -46,7 +50,7 @@ def _r_debug():
         return None
 
 
-def is_dynamic():
+def is_dynamic() -> bool:
     """
     Returns whether the current inferior is dynamic.
 
@@ -61,7 +65,7 @@ def is_dynamic():
 
 # Reference to our hook in the link map update breakpoint, if it is installed.
 R_DEBUG_LINK_MAP_CHANGED_HOOK = None
-R_DEBUG_LINK_MAP_CHANGED_LISTENERS = set()
+R_DEBUG_LINK_MAP_CHANGED_LISTENERS: Set[Callable[..., Any]] = set()
 
 
 class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
@@ -80,17 +84,17 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
     [1]: https://elixir.bootlin.com/glibc/glibc-2.37/source/elf/link.h#L52
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.skip_this = True
         super().__init__(*args, **kwargs)
 
-    def stop(self):
+    def stop(self) -> bool:
         # Skip every other trigger, we only care about the completed link map
         # that is available after the library is loaded.
         self.skip_this = not self.skip_this
         return not self.skip_this
 
-    def on_breakpoint_hit(self):
+    def on_breakpoint_hit(self) -> None:
         # Clear the cache that is tied to link map updates, and signal all of
         # the interested parties that this event has occurred.
         for listener in R_DEBUG_LINK_MAP_CHANGED_LISTENERS:
@@ -102,7 +106,7 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
 # want is something that can run some arbitrary Python code at the same point
 # in the lifecycle of the inferior as the user would be put in if they were to
 # run `stepi`.
-def r_debug_install_link_map_changed_hook():
+def r_debug_install_link_map_changed_hook() -> None:
     """
     Installs the r_debug-based hook to the change event of the link map.
 
@@ -140,7 +144,7 @@ def r_debug_install_link_map_changed_hook():
     R_DEBUG_LINK_MAP_CHANGED_HOOK = bp
 
 
-def r_debug_link_map_changed_add_listener(handler):
+def r_debug_link_map_changed_add_listener(handler: Callable[..., Any]) -> None:
     """
     Install a callback to be called whenever r_debug signal of there being a
     change in the link map link map is triggered.
@@ -152,7 +156,7 @@ def r_debug_link_map_changed_add_listener(handler):
     R_DEBUG_LINK_MAP_CHANGED_LISTENERS.add(handler)
 
 
-def r_debug_link_map_changed_remove_listener(handler):
+def r_debug_link_map_changed_remove_listener(handler: Callable[..., Any]) -> None:
     """
     Removes a listener previously installed with
     r_debug_link_map_changed_add_listener().
@@ -193,7 +197,7 @@ class LinkMapEntry:
     An entry in the link map.
     """
 
-    def __init__(self, address):
+    def __init__(self, address) -> None:
         self.link_map = CStruct.link_map()
         self.link_map_address = address
 
@@ -245,7 +249,7 @@ class LinkMapEntry:
         else:
             return LinkMapEntry(ptr)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} node={self.link_map_address:#x} name={self.name()} load_bias={self.load_bias():#x} dynamic={self.dynamic():#x}>"
 
 
@@ -276,7 +280,7 @@ class DynamicSegment:
     symtab_addr = 0
     symtab_elem = None
 
-    entries_by_tag = {}
+    entries_by_tag: Dict[Any, Any] = {}
 
     has_jmprel = False
     has_rela = False
@@ -299,7 +303,7 @@ class DynamicSegment:
     rel_r_sym_fn = None
     rel_r_info_fn = None
 
-    def __init__(self, address, load_bias):
+    def __init__(self, address, load_bias) -> None:
         # Enumerate the ElfNN_Dyn entries.
         count = 0
         elf_dyn = CStruct.elfNN_dyn()
@@ -626,9 +630,9 @@ class CStruct:
     enough for the structs in ld.so and in the ELF program images.
     """
 
-    types = {}
-    offsets = {}
-    converters = {}
+    types: Dict[str, gdb.Type] = {}
+    offsets: Dict[str, int] = {}
+    converters: Dict[str, type] = {}
     size = 0
     align = 0
 
@@ -750,7 +754,7 @@ class CStruct:
             ]
         )
 
-    def __init__(self, fields):
+    def __init__(self, fields: List[Tuple[str, gdb.Type, type]]) -> None:
         # Calculate the offset of all of the fields in the struct.
         current_offset = 0
         alignment = 1
@@ -799,7 +803,7 @@ class CStruct:
         else:
             return val
 
-    def has_field(self, name):
+    def has_field(self, name) -> bool:
         """
         Returns whether a field with the given name exists in this struct.
         """

@@ -92,7 +92,7 @@ class Process:
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def cwd(self):
+    def cwd(self) -> str:
         link = pwndbg.gdblib.file.readlink(f"/proc/{self.pid}/cwd")
         return f"'{link}'"
 
