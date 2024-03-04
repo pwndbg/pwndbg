@@ -334,7 +334,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(pages)
 
 
-def parse_info_proc_mappings_line(line: str) -> Optional[pwndbg.lib.memory.Page]:
+def parse_info_proc_mappings_line(line: str, parse_flags: bool) -> Optional[pwndbg.lib.memory.Page]:
     """
     Parse a line from `info proc mappings` and return a pwndbg.lib.memory.Page
     object if the line is valid.
@@ -353,7 +353,7 @@ def parse_info_proc_mappings_line(line: str) -> Optional[pwndbg.lib.memory.Page]
 
         # Permission info is only available in GDB versions >=12.1
         # https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
-        # Assume "rw-p" on older gdb versions
+        # Assume "rwxp" on older gdb versions
         if len(split_line) < 6:
             start_str, _end, size_str, offset_str, objfile = split_line
             perm = "rwxp"
@@ -364,18 +364,19 @@ def parse_info_proc_mappings_line(line: str) -> Optional[pwndbg.lib.memory.Page]
         return None
 
     flags = 0
-    if "r" in perm:
-        flags |= 4
-    if "w" in perm:
-        flags |= 2
-    if "x" in perm:
-        flags |= 1
+    if parse_flags:
+        if "r" in perm:
+            flags |= 4
+        if "w" in perm:
+            flags |= 2
+        if "x" in perm:
+            flags |= 1
 
     return pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags=False) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
@@ -396,7 +397,7 @@ def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     pages: List[pwndbg.lib.memory.Page] = []
     for line in info_proc_mappings:
-        page = parse_info_proc_mappings_line(line)
+        page = parse_info_proc_mappings_line(line, parse_flags)
         if page is not None:
             pages.append(page)
 
