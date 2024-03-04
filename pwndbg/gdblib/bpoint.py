@@ -51,7 +51,7 @@ class BreakpointEvent(gdb.Breakpoint):
         )
 
     def delete(self) -> None:
-        REGISTERED_BP_EVENTS.remove(id(self))
+        del REGISTERED_BP_EVENTS[id(self)]
         super().delete()
 
     def on_breakpoint_hit(self) -> None:

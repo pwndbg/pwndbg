@@ -43,6 +43,7 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
+    previous: dict[str, int] = {}
     last: dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")

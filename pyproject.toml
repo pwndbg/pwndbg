@@ -73,22 +73,48 @@ pretty = true
 show_error_codes = true
 incremental = false
 disable_error_code = [
-    # Lots of dynamic attribute access
-    "attr-defined",
     # https://github.com/python/mypy/issues/6232
     "assignment"
 ]
 
 [[tool.mypy.overrides]]
 module = [
-   # Capstone constants
-   "pwndbg.disasm.*",
-   "pwndbg.gdblib.nearpc",
-   # Module fields
-   "pwndbg.gdblib.typeinfo",
-   "pwndbg.gdblib.elf",
+    "pwndbg.disasm.*",
+    "pwndbg.gdblib.elf",
 ]
 disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.color.*",
+    "pwndbg.commands.context",
+    "pwndbg.commands.cymbol",
+    "pwndbg.commands.hexdump",
+    "pwndbg.commands.procinfo",
+    "pwndbg.commands.reload",
+    "pwndbg.commands.telescope",
+    "pwndbg.commands.version",
+    "pwndbg.exception",
+    "pwndbg.disasm.jump",
+    "pwndbg.gdblib.dt",
+    "pwndbg.gdblib.dynamic",
+    "pwndbg.gdblib.events",
+    "pwndbg.gdblib.got",
+    "pwndbg.gdblib.heap_tracking",
+    "pwndbg.gdblib.stack",
+    "pwndbg.heap.*",
+    "pwndbg.hexdump",
+    "pwndbg.ui",
+    "pwndbg.wrappers.*",
+]
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.gdblib.nearpc",
+    "pwndbg.gdblib.typeinfo",
+]
+disable_error_code = ["name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
 module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt"]

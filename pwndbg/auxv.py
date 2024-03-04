@@ -98,9 +98,7 @@ class AUXV(Dict[str, Union[int, str]]):
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
             try:
-                value = gdb.Value(value)
-                value = value.cast(pwndbg.gdblib.typeinfo.pchar)
-                value = value.string()
+                value = gdb.Value(value).cast(pwndbg.gdblib.typeinfo.pchar).string()
             except Exception:
                 value = "couldnt read AUXV!"
 

@@ -232,7 +232,7 @@ class i386Ops(x86Ops):
     def __init__(self) -> None:
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_32_types.h#L18
         self._PAGE_OFFSET = int(kconfig()["CONFIG_PAGE_OFFSET"], 16)
-        self.START_KERNEL_map = self.PAGE_OFFSET
+        self.START_KERNEL_map = self._PAGE_OFFSET
 
     @property
     def ptr_size(self) -> int:
