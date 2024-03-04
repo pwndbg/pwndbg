@@ -153,7 +153,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[..., T]], Callable[...,
 
         # Set the cache on the function so it can be cleared on demand
         # this may be useful for tests
-        decorator.cache = cache
+        decorator.cache = cache  # type: ignore[attr-defined]
 
         # Register the cache for the given event so it can be cleared
         for event_name in event_names:

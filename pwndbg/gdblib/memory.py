@@ -43,15 +43,14 @@ def read(addr: int, count: int, partial: bool = False) -> bytearray:
         if not partial:
             raise
 
-        if not hasattr(e, "message"):
-            e.message = str(e)
+        message = str(e)
 
         stop_addr = addr
-        match = re.search(r"Memory at address (\w+) unavailable\.", e.message)
+        match = re.search(r"Memory at address (\w+) unavailable\.", message)
         if match:
             stop_addr = int(match.group(1), 0)
         else:
-            stop_addr = int(e.message.split()[-1], 0)
+            stop_addr = int(message.split()[-1], 0)
 
         if stop_addr != addr:
             return read(addr, stop_addr - addr)
