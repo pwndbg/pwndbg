@@ -22,6 +22,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             ARM64_INS_MOV: self.generic_register_destination,
+            # ADRP
+            ARM64_INS_ADRP: self.generic_register_destination,
             # LDR
             ARM64_INS_LDR: self.generic_register_destination,
             # ADD
