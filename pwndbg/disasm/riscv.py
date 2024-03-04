@@ -8,7 +8,7 @@ import pwndbg.gdblib.regs
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture):
+    def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
 

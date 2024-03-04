@@ -63,7 +63,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
-def sigreturn(address: int = None, display_all=False, print_address=False):
+def sigreturn(address: int = None, display_all=False, print_address=False) -> None:
     address = pwndbg.gdblib.regs.sp if address is None else address
 
     ptr_size = pwndbg.gdblib.arch.ptrsize
@@ -101,7 +101,7 @@ def sigreturn(address: int = None, display_all=False, print_address=False):
             print_value(f"{reg} {M.get(value)}", address + stack_offset, print_address)
 
 
-def print_value(string: str, address: int, print_address):
+def print_value(string: str, address: int, print_address) -> None:
     addr = ""
     if print_address:
         addr = f"{M.get(address)}: "

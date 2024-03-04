@@ -22,7 +22,7 @@ def retaddr() -> None:
     frame = gdb.newest_frame()
     addresses = []
     while frame:
-        addresses.append(frame.pc())
+        addresses.append(int(frame.pc()))
         frame = frame.older()
 
     # Find all of them on the stack

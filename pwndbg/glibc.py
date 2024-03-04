@@ -7,6 +7,9 @@ from __future__ import annotations
 import functools
 import os
 import re
+from typing import Any
+from typing import Callable
+from typing import TypeVar
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -22,6 +25,8 @@ import pwndbg.heap
 import pwndbg.lib.cache
 import pwndbg.search
 from pwndbg.color import message
+
+T = TypeVar("T")
 
 safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking",
@@ -151,13 +156,14 @@ def get_section_address_by_name(section_name: str) -> int:
     return 0
 
 
-def OnlyWhenGlibcLoaded(function):
+def OnlyWhenGlibcLoaded(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
-    def _OnlyWhenGlibcLoaded(*a, **kw):
+    def _OnlyWhenGlibcLoaded(*a: Any, **kw: Any) -> T | None:
         if get_version() is not None:
             return function(*a, **kw)
-        else:
-            print(f"{function.__name__}: GLibc not loaded yet.")
+
+        print(f"{function.__name__}: GLibc not loaded yet.")
+        return None
 
     return _OnlyWhenGlibcLoaded
 

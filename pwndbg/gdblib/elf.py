@@ -59,6 +59,10 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
         return self.is_pic
 
 
+Ehdr: Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
+Phdr: Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
+
+
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
 def update() -> None:

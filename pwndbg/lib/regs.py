@@ -5,7 +5,6 @@ standardized interface to registers like "sp" and "pc".
 
 from __future__ import annotations
 
-from typing import Any
 from typing import Dict
 from typing import Iterator
 from typing import OrderedDict
@@ -29,7 +28,7 @@ class RegisterSet:
     retaddr: Tuple[str, ...] | None = None
 
     #: Flags register (eflags, cpsr)
-    flags: Dict[str, Any] | None = None
+    flags: Dict[str, BitFlags] | None = None
 
     #: List of native-size general-purpose registers
     gpr: Tuple[str, ...] | None = None

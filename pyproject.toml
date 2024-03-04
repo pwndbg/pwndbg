@@ -60,7 +60,7 @@ builtins-ignorelist = [
 [tool.mypy]
 strict_optional = false
 check_untyped_defs = true
-allow_untyped_globals = true
+allow_untyped_globals = false
 allow_redefinition = true
 allow_any_generics = false
 warn_redundant_casts = true

@@ -148,7 +148,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
-def stepuntilasm(mnemonic, op_str):
+def stepuntilasm(mnemonic, op_str) -> None:
     if len(op_str) == 0:
         op_str = None
 
