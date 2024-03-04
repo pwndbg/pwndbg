@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 from typing import Dict
 from typing import Optional
 from typing import Union
@@ -81,9 +80,7 @@ AT_CONSTANTS = {
     37: "AT_L3_CACHESHAPE",
 }
 
-
-sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
-AT_NAMES = set(AT_CONSTANTS.values())
+AT_CONSTANT_NAMES = {v: k for k, v in AT_CONSTANTS.items()}
 
 
 class AUXV(Dict[str, Union[int, str]]):
@@ -110,7 +107,7 @@ class AUXV(Dict[str, Union[int, str]]):
         self[name] = value
 
     def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
-        if attr in AT_NAMES:
+        if attr in AT_CONSTANT_NAMES:
             return self.get(attr)
 
         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
@@ -236,7 +233,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # guaranteed to actually get us to AT_NULL, just to some
         # consecutive NULLs.  QEMU is pretty generous with NULLs.
         for i in range(1024):
-            if p.dereference() == AT_BASE:
+            if p.dereference() == AT_CONSTANT_NAMES["AT_BASE"]:
                 break
             p -= 2
         else:
@@ -255,7 +252,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
             const = int((p + 0).dereference()) & pwndbg.gdblib.arch.ptrmask
             value = int((p + 1).dereference()) & pwndbg.gdblib.arch.ptrmask
 
-            if const == AT_NULL:
+            if const == AT_CONSTANT_NAMES["AT_NULL"]:
                 break
 
             auxv.set(const, value)

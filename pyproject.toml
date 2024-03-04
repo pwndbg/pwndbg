@@ -87,7 +87,6 @@ module = [
    # Module fields
    "pwndbg.gdblib.typeinfo",
    "pwndbg.gdblib.elf",
-   "pwndbg.auxv",
 ]
 disable_error_code = ["name-defined"]
 
