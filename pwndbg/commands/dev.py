@@ -5,6 +5,7 @@ import argparse
 import pwndbg.commands
 import pwndbg.disasm
 import pwndbg.gdblib.nearpc
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Dump internal PwndbgInstruction attributes.")
 
@@ -28,20 +29,18 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DEV)
 @pwndbg.commands.OnlyWhenRunning
 def dev_dump_instruction(force_emulate=False, no_emulate=False) -> None:
     # Let argument override global 'emulate' setting
-    # None if not overriden
+    # None if not overridden
     override_setting = True if force_emulate else (False if no_emulate else None)
     use_emulation = (
         bool(pwndbg.gdblib.config.emulate) if override_setting is None else override_setting
     )
 
-    pc = pwndbg.gdblib.regs.pc
-
     instructions, index_of_pc = pwndbg.disasm.near(
-        pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
+        pwndbg.gdblib.regs.pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
     )
 
     if instructions:

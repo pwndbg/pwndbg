@@ -33,18 +33,18 @@ def good_instr(i) -> bool:
 
 def format_small_int(value: int) -> str:
     if value < 10:
-        return "%d" % value
+        return str(value)
     else:
-        return "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
+        return hex(value & pwndbg.gdblib.arch.ptrmask)
 
 
 def format_small_int_pair(first: int, second: int) -> tuple[str, str]:
     if first < 10 and second < 10:
-        return ("%d" % first, "%d" % second)
+        return (str(first), str(second))
     else:
         return (
-            "%#x" % int(first & pwndbg.gdblib.arch.ptrmask),
-            "%#x" % int(second & pwndbg.gdblib.arch.ptrmask),
+            hex(first & pwndbg.gdblib.arch.ptrmask),
+            hex(second & pwndbg.gdblib.arch.ptrmask),
         )
 
 

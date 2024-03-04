@@ -49,6 +49,7 @@ class CommandCategory(str, Enum):
     WINDBG = "WinDbg"
     PWNDBG = "pwndbg"
     SHELL = "Shell"
+    DEV = "Developer"
 
 
 def list_current_commands():

@@ -75,10 +75,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
-
         # Read from right operand
         if right.before_value is not None:
+            TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
+
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
             telescope_addresses, did_telescope = super().telescope(
                 right.before_value,

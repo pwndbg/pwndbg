@@ -94,9 +94,11 @@ CAPSTONE_ARCH_MAPPING_STRING = {
 # Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints
 class PwndbgInstruction:
     def __init__(self, cs_insn: CsInsn | None) -> None:
-        # The underlying Capstone instruction, if present
-        # Ideally, only the enhancement code will access the 'cs_insn' property
         self.cs_insn: CsInsn = cs_insn
+        """
+        The underlying Capstone instruction, if present.
+        Ideally, only the enhancement code will access the 'cs_insn' property
+        """
 
         # None if Capstone don't support the arch being disassembled
         # See "make_simple_instruction" function
@@ -105,25 +107,34 @@ class PwndbgInstruction:
 
         self.address: int = cs_insn.address
 
-        # Length of the instruction
         self.size: int = cs_insn.size
+        """
+        Length of the instruction
+        """
 
-        # Ex: 'MOV'
         self.mnemonic: str = cs_insn.mnemonic
-
-        # Ex: 'RAX, RDX'
+        """
+        Ex: 'MOV'
+        """
+        
         self.op_str: str = cs_insn.op_str
-
-        # Instruction groups that we belong to
-        # Integer constants defined in capstone.__init__.py
-        #   CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
+        """
+        Ex: 'RAX, RDX'
+        """
+        
         self.groups: list[int] = cs_insn.groups
+        """
+        Capstone instruction groups that we belong to.
+        Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
+        """
 
         self.groups_set = set(self.groups)
 
-        # The underlying Capstone ID for the instruction
-        # Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL
         self.id: int = cs_insn.id
+        """
+        The underlying Capstone ID for the instruction
+        Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL
+        """
 
         # For ease, for x86 we will assume Intel syntax (destination operand first).
         # However, Capstone will disassemble using the `set disassembly-flavor` preference,
@@ -138,46 +149,71 @@ class PwndbgInstruction:
         # in pwndbg.disasm.arch.py
         # ***********
 
-        # This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
-        # The address of the next instruction that is called after this, which is
-        # typically self.address + self.size (the next instruction in memory).
-        # If the instruction is "RET" or some sort of jump instruction (JMP, JNE)
-        # and if the jump is taken - unconditionally, or it's conditional and we know its taken - then
-        # we set the value to the jump target
-        # Not used for "call" instructions, to indicate we will eventually return to this address
+
         self.next: int = self.address + self.size
+        """
+        This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
+        This means it is the address of the next instruction to be executed in all cases except "call" instructions.
+        
+        Typically, it is `self.address + self.size` (the next instruction in memory)
 
-        # This is target of instructions that change the PC, regardless of if it's conditional or not,
-        # and whether or not we take the jump. This includes "call" and all other instructions that set the PC
-        # If the instruction is not one that changes the PC, target is set to "next"
+        If it is a jump and we know it is taken, then it is the value of the jump target.
+
+        Not set to "call" instruction targets, to indicate we will eventually (probably) return to this address
+        """
+
+
         self.target: int = None
+        """
+        This is target of instructions that change the PC, regardless of if it's conditional or not, 
+        and whether or not we take the jump. This includes "call" and all other instructions that set the PC
+        
+        If the instruction is not one that changes the PC, target is set to "next"
+        """
 
-        # String representation of the target address.
-        # Colorized symbol if a symbol exists at address, else colorized address
+
         self.target_string: str | None = None
+        """
+        String representation of the target address.
 
-        # Whether the target is a constant expression
+        Colorized symbol if a symbol exists at address, else colorized address
+        """
+
+
         self.target_const: bool | None = None
+        """
+        Whether the target is a constant expression
+        """
 
-        # Does the condition that the instruction checks for pass?
-        # Relevent for instructions that conditionally take an action
-        # For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
-        # See 'condition' function in pwndbg.disasm.x86 for examples
-        #
-        # UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions)
-        # TRUE if the instruction has a conditional action, and we determine it is taken
-        # FALSE if the instruction has a conditional action, and we know it is not taken
+
         self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
+        """
+        Does the condition that the instruction checks for pass?
+        
+        For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
+        See 'condition' function in pwndbg.disasm.x86 for example on setting this.
+        
+        UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
+        
+        TRUE if the instruction has a conditional action, and we determine it is taken.
+        
+        FALSE if the instruction has a conditional action, and we know it is not taken.
+        """
 
-        # The string is set in the "DisassemblyAssistant.enhance" function.
-        # It is used in the disasm print view to add context to the instruction, mostly operand value
-        # This string is not used for all cases - if the instruction is a call or a jump, the 'target'
-        # variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage
         self.annotation: str | None = None
+        """
+        The string is set in the "DisassemblyAssistant.enhance" function.
+        It is used in the disasm print view to add context to the instruction, mostly operand value.
+        This string is not used for all cases - if the instruction is a call or a jump, the 'target'.
+        variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage.
+        """
 
-        # The left adjustment padding that was used to previously print this.
-        # We retain it so the output is consistent between prints
+
         self.annotation_padding: int | None = None
+        """
+        The left adjustment padding that was used to previously print this.
+        We retain it so the output is consistent between prints
+        """
 
     @property
     def can_change_instruction_pointer(self) -> bool:
@@ -249,6 +285,7 @@ class PwndbgInstruction:
         """Return number of operands having same operand Capstone type 'op_type'"""
         return self.cs_insn.op_count(op_type)
 
+    # For debugging
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
@@ -266,30 +303,45 @@ class PwndbgInstruction:
 
 class EnhancedOperand:
     def __init__(self, cs_op):
-        # Underlying Capstone operand
-        # Takes a different value depending on the architecture
-        # x86 = capstone.x86.X86Op, arm = capstone.arm.ArmOp, mips = capstone.mips.MipsOp
+
         self.cs_op: typing.Any = cs_op
+        """
+        Underlying Capstone operand. Takes on a different value depending on the architecture.
+
+        x86 = capstone.x86.X86Op, arm = capstone.arm.ArmOp, mips = capstone.mips.MipsOp
+        """
 
         # ***********
         # The following member variables are set during instruction enhancement
         # in pwndbg.disasm.arch.py
         # ***********
 
-        # The value of the operand before the instruction executes.
-        # This is set only if the operand value can be reasoned about.
+
         self.before_value: int | None = None
+        """
+        The value of the operand before the instruction executes.
+        This is set only if the operand value can be reasoned about.
+        """
 
-        # The value of the operand after the instruction executes.
-        # Only set when using Emulation.
+
         self.after_value: int | None = None
+        """
+        The value of the operand after the instruction executes.
+        Only set when using emulation.
+        """
 
-        # String representing the operand
-        # Ex: "RAX", or "[0x7fffffffd9e8]". None if value cannot be determined in case of address.
+
         self.str: str | None = ""
+        """
+        String representing the operand
+        
+        Ex: "RAX", or "[0x7fffffffd9e8]". None if value cannot be determined.
+        """
 
-        # Resolved symbol name for this operand, if .before_value is set, else None.
         self.symbol: str | None = None
+        """
+        Resolved symbol name for this operand, if .before_value is set, else None.
+        """
 
     @property
     def type(self) -> int:
@@ -337,9 +389,11 @@ class EnhancedOperand:
         return f"[{info}]"
 
 
-# Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support
-# (as defined in the CapstoneArch structure)
+
 def make_simple_instruction(address: int) -> PwndbgInstruction:
+    """
+    Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support (as defined in the CapstoneArch structure)
+    """
     ins = gdb.newest_frame().architecture().disassemble(address)[0]
     asm = ins["asm"].split(maxsplit=1)
 

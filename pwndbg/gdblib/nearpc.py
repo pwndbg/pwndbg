@@ -287,6 +287,8 @@ def nearpc(
         # opcodes       = 0f bd c0                  Opcodes are enabled with the 'nearpc-num-opcode-bytes' setting
         # symbol        = <__strrchr_avx2+70>
         # asm           = bsr    eax, eax           (jump target/annotation would go here too)
+                
+        # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         # If there was a branch before this instruction which was not
