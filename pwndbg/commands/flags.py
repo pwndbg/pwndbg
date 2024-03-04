@@ -17,7 +17,7 @@ epilog = """Examples:
 
   To see flags registers:
     info reg eflags     -- on x86/x64
-    info reg cspr/xpsr  -- on ARM (specific register may vary)
+    info reg cpsr/xpsr  -- on ARM (specific register may vary)
 
 (This command supports flags registers that are defined for architectures in the pwndbg/regs.py file)
     """
@@ -34,31 +34,37 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
-def setflag(flag, value) -> None:
-    if value not in [0, 1]:
-        print("can only set flag bit to 0 or 1")
-        return
+def setflag(flag: str, value: int) -> None:
+    value = int(value)
 
-    register_set = pwndbg.gdblib.regs.reg_sets[pwndbg.gdblib.arch.current]
+    register_set = pwndbg.gdblib.regs.current
 
     flag = flag.upper()
     for flag_reg, flags in register_set.flags.items():
-        for flag_name, flag_bit in flags.items():
+        for flag_name, bit in flags.items():
             if flag_name == flag:
-                old_flags_reg_value = pwndbg.gdblib.regs[flag_reg]
-                bit_value = 1 << flag_bit
-
-                if value == 1:
-                    # novermin
-                    new_flags_reg_value = old_flags_reg_value | bit_value
+                # If the size is not specified, assume it's 1
+                if isinstance(bit, int):
+                    size = 1
                 else:
-                    new_flags_reg_value = old_flags_reg_value & ~bit_value
+                    assert len(bit) == 2
+                    size = bit[1]
+                    bit = bit[0]
 
-                setattr(pwndbg.gdblib.regs, flag_reg, new_flags_reg_value)
+                max_val = (1 << size) - 1
+                if value > max_val:
+                    print(f"Maximum value for flag is {max_val} (size={size})")
+                    return
+
+                old_val = int(pwndbg.gdblib.regs[flag_reg])
+                mask = max_val << bit
+                bit_value = value << bit
+
+                cleared_val = old_val & ~mask
+                new_val = cleared_val | bit_value
+
+                setattr(pwndbg.gdblib.regs, flag_reg, new_val)
                 print(
-                    "Set flag %s=%d in flag register %s (old val=%#x, new val=%#x)"
-                    % (flag, value, flag_reg, old_flags_reg_value, new_flags_reg_value)
+                    f"Set flag {flag}={value} in flag register {flag_reg} (old val={old_val:#x}, new val={new_val:#x})"
                 )
                 return
-
-    print(f"The {flag} not a valid/recognized flag")
