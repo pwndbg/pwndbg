@@ -121,7 +121,7 @@ class AUXV(Dict[str, Union[int, str]]):
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def get() -> AUXV:
-    return use_info_auxv() or walk_stack() or Foo()  # AUXV()
+    return use_info_auxv() or walk_stack() or AUXV()
 
 
 def use_info_auxv() -> Optional[AUXV]:
