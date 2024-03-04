@@ -18,6 +18,7 @@ load_gdblib()
 try:
     import pwndbg.disasm
     import pwndbg.disasm.arm
+    import pwndbg.disasm.aarch64
     import pwndbg.disasm.jump
     import pwndbg.disasm.mips
     import pwndbg.disasm.ppc
