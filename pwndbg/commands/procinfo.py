@@ -215,7 +215,7 @@ def procinfo() -> None:
                 " used directly by the qemu process)"
             )
         )
-    exe = pwndbg.auxv.get()["AT_EXECFN"]
+    exe = pwndbg.auxv.get().AT_EXECFN
     print("%-10s %r" % ("exe", exe))
 
     proc = Process()

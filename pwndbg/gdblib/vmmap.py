@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bisect
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 
@@ -251,25 +252,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     Parses `info proc mappings` and `maintenance info sections`
     and tries to make sense out of the result :)
     """
-    pages: List[pwndbg.lib.memory.Page] = []
-
-    try:
-        info_proc_mappings = pwndbg.gdblib.info.proc_mappings().splitlines()
-    except gdb.error:
-        # On qemu user emulation, we may get: gdb.error: Not supported on this target.
-        info_proc_mappings = []
-
-    for line in info_proc_mappings:
-        # We look for lines like:
-        # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', '/home/user/a.out']
-        try:
-            start, _end, size, offset, objfile = line.split()
-            start, size, offset = int(start, 16), int(size, 16), int(offset, 16)
-        except (IndexError, ValueError):
-            continue
-
-        # Note: we set flags=0 because we do not have this information here
-        pages.append(pwndbg.lib.memory.Page(start, size, 0, offset, objfile))
+    pages = list(info_proc_maps())
 
     started_sections = False
     for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
@@ -351,8 +334,49 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(pages)
 
 
+def parse_info_proc_mappings_line(line: str, parse_flags: bool) -> Optional[pwndbg.lib.memory.Page]:
+    """
+    Parse a line from `info proc mappings` and return a pwndbg.lib.memory.Page
+    object if the line is valid.
+
+    Args:
+        line: A line from `info proc mappings`.
+
+    Returns:
+        A pwndbg.lib.memory.Page object or None.
+    """
+
+    # We look for lines like:
+    # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
+    try:
+        split_line = line.split()
+
+        # Permission info is only available in GDB versions >=12.1
+        # https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
+        # Assume "rwxp" on older gdb versions
+        if len(split_line) < 6:
+            start_str, _end, size_str, offset_str, objfile = split_line
+            perm = "rwxp"
+        else:
+            start_str, _end, size_str, offset_str, perm, objfile = split_line
+        start, size, offset = int(start_str, 16), int(size_str, 16), int(offset_str, 16)
+    except (IndexError, ValueError):
+        return None
+
+    flags = 0
+    if parse_flags:
+        if "r" in perm:
+            flags |= 4
+        if "w" in perm:
+            flags |= 2
+        if "x" in perm:
+            flags |= 1
+
+    return pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
+
+
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags=False) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
@@ -361,7 +385,7 @@ def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     for more information.
 
     Returns:
-        A tuple of pwndbg.lib.memory.Page objects or None if
+        A tuple of pwndbg.lib.memory.Page objects or an empty tuple if
         info proc mapping is not supported on the target.
     """
 
@@ -373,32 +397,9 @@ def info_proc_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     pages: List[pwndbg.lib.memory.Page] = []
     for line in info_proc_mappings:
-        # We look for lines like:
-        # ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
-        try:
-            split_line = line.split()
-
-            # Permission info is only available in GDB versions >=12.1
-            # https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
-            # Assume "rw-p" on older gdb versions
-            if len(split_line) < 6:
-                start, _end, size, offset, objfile = split_line
-                perm = "rwxp"
-            else:
-                start, _end, size, offset, perm, objfile = split_line
-            start, size, offset = int(start, 16), int(size, 16), int(offset, 16)
-        except (IndexError, ValueError):
-            continue
-
-        flags = 0
-        if "r" in perm:
-            flags |= 4
-        if "w" in perm:
-            flags |= 2
-        if "x" in perm:
-            flags |= 1
-
-        pages.append(pwndbg.lib.memory.Page(start, size, flags, offset, objfile))
+        page = parse_info_proc_mappings_line(line, parse_flags)
+        if page is not None:
+            pages.append(page)
 
     return tuple(pages)
 

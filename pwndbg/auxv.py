@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from typing import Dict
+from typing import Optional
 from typing import Union
 
 import gdb
@@ -80,11 +81,22 @@ AT_CONSTANTS = {
     37: "AT_L3_CACHESHAPE",
 }
 
+
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
+AT_NAMES = set(AT_CONSTANTS.values())
 
 
 class AUXV(Dict[str, Union[int, str]]):
-    def set(self, const: int, value) -> None:
+    AT_PHDR: Optional[int]
+    AT_BASE: Optional[int]
+    AT_PLATFORM: Optional[str]
+    AT_ENTRY: Optional[int]
+    AT_RANDOM: Optional[int]
+    AT_EXECFN: Optional[str]
+    AT_SYSINFO: Optional[int]
+    AT_SYSINFO_EHDR: Optional[int]
+
+    def set(self, const: int, value: int) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
         if name in ["AT_EXECFN", "AT_PLATFORM"]:
@@ -97,8 +109,11 @@ class AUXV(Dict[str, Union[int, str]]):
 
         self[name] = value
 
-    def __getattr__(self, attr):
-        return self.get(attr)
+    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
+        if attr in AT_NAMES:
+            return self.get(attr)
+
+        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
 
     def __str__(self) -> str:
         return str({k: v for k, v in self.items() if v is not None})
@@ -106,10 +121,10 @@ class AUXV(Dict[str, Union[int, str]]):
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def get() -> AUXV:
-    return use_info_auxv() or walk_stack() or AUXV()
+    return use_info_auxv() or walk_stack() or Foo()  # AUXV()
 
 
-def use_info_auxv():
+def use_info_auxv() -> Optional[AUXV]:
     lines = pwndbg.gdblib.info.auxv().splitlines()
 
     if not lines:
