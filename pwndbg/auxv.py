@@ -83,12 +83,10 @@ AT_CONSTANTS = {
 
 
 sys.modules[__name__].__dict__.update({v: k for k, v in AT_CONSTANTS.items()})
+AT_NAMES = set(AT_CONSTANTS.values())
 
 
-from typing import Protocol
-
-
-class AUXVProtocol(Protocol):
+class AUXV(Dict[str, Union[int, str]]):
     AT_PHDR: Optional[int]
     AT_BASE: Optional[int]
     AT_PLATFORM: Optional[str]
@@ -98,8 +96,6 @@ class AUXVProtocol(Protocol):
     AT_SYSINFO: Optional[int]
     AT_SYSINFO_EHDR: Optional[int]
 
-
-class AUXV(Dict[str, Union[int, str]]):
     def set(self, const: int, value: int) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
 
@@ -113,15 +109,18 @@ class AUXV(Dict[str, Union[int, str]]):
 
         self[name] = value
 
-    def __getattr__(self, attr):
-        return self.get(attr)
+    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
+        if attr in AT_NAMES:
+            return self.get(attr)
+
+        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
 
     def __str__(self) -> str:
         return str({k: v for k, v in self.items() if v is not None})
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
-def get() -> AUXVProtocol:
+def get() -> AUXV:
     return use_info_auxv() or walk_stack() or Foo()  # AUXV()
 
 
