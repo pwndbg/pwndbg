@@ -20,14 +20,26 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
-            ARM64_INS_MOV: self.handle_mov
+            # MOV
+            ARM64_INS_MOV: self.generic_register_destination,
+            # LDR
+            ARM64_INS_LDR: self.generic_register_destination,
+            # ADD
+            ARM64_INS_ADD: self.generic_register_destination,
+            # SUB
+            ARM64_INS_SUB: self.generic_register_destination,
         }
 
-
-    def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def generic_register_destination(self, instruction, emu: Emulator) -> None:
+        """
+        This function can be used to annotate instructions that have a register destination,
+        which in AArch64 is always the first register. Works only while we are using emulating. 
         
-        left = instruction.operands[0]
+        In an ideal world, we have more specific code on a case-by-case basis to allow us to 
+        annotate results even when not emulating (as is done in many x86 handlers)
+        """
 
+        left = instruction.operands[0]
 
         # Emulating determined the value that was set in the destination register
         if left.after_value is not None:
