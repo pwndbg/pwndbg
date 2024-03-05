@@ -245,9 +245,8 @@ def fix_int(*a, **kw) -> int:
     return int(fix(*a, **kw))
 
 
-def fix_int_reraise(*a, **kw):
-    # Type error likely due to https://github.com/python/mypy/issues/6799
-    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
+def fix_int_reraise(*a, **kw) -> int:
+    return fix_int(*a, reraise=True, **kw)
 
 
 def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
@@ -505,7 +504,7 @@ class _ArgparsedCommand(Command):
         self,
         parser: argparse.ArgumentParser,
         function,
-        command_name=None,
+        command_name: Optional[str] = None,
         *a,
         **kw,
     ) -> None:
