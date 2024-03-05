@@ -5,7 +5,6 @@ import argparse
 from typing import Dict
 from typing import Tuple
 
-import gdb
 from pwnlib.asm import asm
 from pwnlib.asm import disasm
 
@@ -29,10 +28,7 @@ parser.add_argument("-q", "--quiet", action="store_true", help="don't print anyt
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def patch(address: gdb.Value | int, ins: str, quiet: bool) -> None:
-    # Make sure that any gdb.Value object is converted to int
-    address = int(address)
-
+def patch(address: int, ins: str, quiet: bool) -> None:
     new_mem = asm(ins)
 
     old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
@@ -54,10 +50,7 @@ parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 @pwndbg.commands.ArgparsedCommand(parser2)
 @pwndbg.commands.OnlyWhenRunning
-def patch_revert(address: gdb.Value | int) -> None:
-    # Make sure that any gdb.Value object is converted to int
-    address = int(address)
-
+def patch_revert(address: int) -> None:
     if not patches:
         print(message.notice("No patches to revert"))
         return

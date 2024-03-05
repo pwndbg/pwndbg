@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-
 import pwndbg.chain
 import pwndbg.color as C
 import pwndbg.commands
@@ -15,7 +13,7 @@ parser.add_argument("count", type=int, nargs="?", default=8, help="Number of arg
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-def valist(addr: gdb.Value, count: int) -> None:
+def valist(addr: int, count: int) -> None:
     # The `va_list` struct looks like this:
     #
     # ```
@@ -27,7 +25,6 @@ def valist(addr: gdb.Value, count: int) -> None:
     # } va_list[1];
     # ```
 
-    addr = int(addr)
     gp_offset = pwndbg.gdblib.memory.u32(addr)
     gp_index = gp_offset / 8
 

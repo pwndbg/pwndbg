@@ -442,13 +442,13 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
-def ln(value=None) -> None:
+def ln(value: int = None) -> None:
     """
     List the symbols nearest to the provided value.
     """
     if value is None:
         value = pwndbg.gdblib.regs.pc
-    value = int(value)
+
     x = pwndbg.gdblib.symbol.get(value)
     if x:
         result = f"({value:#x})   {x}"

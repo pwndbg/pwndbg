@@ -35,8 +35,6 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
 def setflag(flag: str, value: int) -> None:
-    value = int(value)
-
     register_set = pwndbg.gdblib.regs.current
 
     flag = flag.upper()

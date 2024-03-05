@@ -504,7 +504,7 @@ class _ArgparsedCommand(Command):
         self,
         parser: argparse.ArgumentParser,
         function,
-        command_name: Optional[str] = None,
+        command_name=None,
         *a,
         **kw,
     ) -> None:
