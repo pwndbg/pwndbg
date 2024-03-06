@@ -16,7 +16,6 @@ parser.add_argument(
 
 parser.add_argument(
     "--arch",
-    default=pwnlib.context.context.arch,
     choices=pwnlib.context.context.architectures.keys(),
     type=str,
     help="Target architecture",
@@ -62,6 +61,9 @@ def asm(shellcode, format, arch, avoid, infile) -> None:
         print(message.warn("Going to read from file: " + infile))
         with open(infile) as file:
             shellcode = [file.read()]
+
+    if not arch:
+        arch = pwnlib.context.context.arch
 
     bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
     assembly = pwnlib.asm.asm(" ".join(shellcode), arch=arch, bits=bits_for_arch)
