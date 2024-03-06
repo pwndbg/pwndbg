@@ -7,11 +7,13 @@ import os
 import site
 import sys
 import time
+import warnings
 from glob import glob
 from os import environ
 from os import path
 
 _profiler = cProfile.Profile()
+warnings.simplefilter("default", UnicodeWarning)
 
 _start_time = None
 if environ.get("PWNDBG_PROFILE") == "1":
@@ -60,14 +62,16 @@ else:
 encoding = locale.getpreferredencoding()
 
 if encoding != "UTF-8":
-    print("******")
-    print(f"Your encoding ({encoding}) is different than UTF-8. pwndbg might not work properly.")
-    print("You might try launching GDB with:")
-    print("    LC_CTYPE=C.UTF-8 gdb")
-    print(
-        "If that does not work, make sure that en_US.UTF-8 is uncommented in /etc/locale.gen and that you called `locale-gen` command"
-    )
-    print("******")
+    enc_warning_msg = """******
+    Your encoding ({}) is different than UTF-8. pwndbg might now work properly.
+    You might try launching GDB with:
+        LC_CTYPE=C.UTF-8 gdb
+
+    If that does not work, make sure that en_US.UTF-8 is uncommented in /etc/locale.gen and that you called `locale-gen` command.
+    ******
+    """.format(encoding)
+
+    warnings.warn(enc_warning_msg, UnicodeWarning)
 
 environ["PWNLIB_NOTERM"] = "1"
 
