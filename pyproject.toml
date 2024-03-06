@@ -315,6 +315,27 @@ unicorn = "2.0.1.post1"
 requests = "2.31.0"
 pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "89ea252f6efc5d75eacca16fc17ff8966a389690"}
 
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "24.2.0"
+coverage = {version = "7.4.3", extras = ["toml"]}
+isort = "5.13.2"
+mypy = "1.8.0"
+pytest = "8.0.2"
+pytest-cov = "4.1.0"
+rich = "13.7.1"
+ruff = "0.3.0"
+testresources = "2.0.1"
+tomli = "2.0.1"
+types-gdb = "12.1.4.20240305"
+types-psutil = "5.9.5.20240205"
+types-pygments = "2.17.0.20240106"
+types-requests = "2.31.0.20240218"
+types-tabulate = "0.9.0.20240106"
+vermin = "1.6.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
