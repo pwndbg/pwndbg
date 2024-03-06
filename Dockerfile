@@ -13,6 +13,7 @@ FROM $image
 
 WORKDIR /pwndbg
 
+ENV PIP_NO_CACHE_DIR=true
 ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
