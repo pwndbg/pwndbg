@@ -17,7 +17,7 @@ regs = None
 __all__ = ["ctypes", "memory", "typeinfo"]
 
 # Export parsed GDB version
-gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))  # type: ignore[attr-defined]
+gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 
 
 # TODO: should the imports above be moved here?
