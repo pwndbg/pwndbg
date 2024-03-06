@@ -66,8 +66,15 @@ if [[ $FIX == 1 ]]; then
 else
     isort --check-only --diff ${LINT_FILES}
     black --check --diff ${LINT_FILES}
-    ruff check --output-format=full ${LINT_FILES}
     call_shfmt
+
+    if [[ -z "$GITHUB_ACTIONS" ]]; then
+        RUFF_OUTPUT_FORMAT=full
+    else
+        RUFF_OUTPUT_FORMAT=github
+    fi
+
+    ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
 fi
 
 # Checking minimum python version
