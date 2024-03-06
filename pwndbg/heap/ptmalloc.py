@@ -1263,7 +1263,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )
@@ -1286,7 +1288,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )
@@ -1309,7 +1313,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )

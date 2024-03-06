@@ -14,8 +14,6 @@ from pwndbg.color.message import on
 from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.disasm.instruction import PwndbgInstruction
 
-
-
 capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
 
 c = ColorConfig(
@@ -75,13 +73,12 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     WHITESPACE_LIMIT = 20
 
-
     cur_padding_len = None
 
     # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
     # None if padding doesn't apply to the instruction
     paddings: list[int | None] = []
-    
+
     # Used for padding. List of groups.
     # Each group is a list of index into paddings list
     groups: list[list[int]] = []
@@ -114,7 +111,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
                 cur_padding_len = raw_len + MIN_SPACING
             else:
                 # This path allows the padding to be smaller again
-                # If the instruction has too much whitespace, put the annotation more to the left 
+                # If the instruction has too much whitespace, put the annotation more to the left
                 # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
                 if (
                     i < len(instructions) - 1

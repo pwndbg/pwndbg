@@ -25,7 +25,6 @@ c = ColorConfig(
 )
 
 
-
 def get_address_and_symbol(address: int) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`

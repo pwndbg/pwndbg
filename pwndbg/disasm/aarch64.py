@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Callable
 
 from capstone import *  # noqa: F403
@@ -15,7 +16,6 @@ from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
@@ -37,9 +37,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def generic_register_destination(self, instruction, emu: Emulator) -> None:
         """
         This function can be used to annotate instructions that have a register destination,
-        which in AArch64 is always the first register. Works only while we are using emulation. 
-        
-        In an ideal world, we have more specific code on a case-by-case basis to allow us to 
+        which in AArch64 is always the first register. Works only while we are using emulation.
+
+        In an ideal world, we have more specific code on a case-by-case basis to allow us to
         annotate results even when not emulating (as is done in many x86 handlers)
         """
 
@@ -61,18 +61,13 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
             if not telescope_addresses:
                 return
-            
-            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
+            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
 
     # Override
     def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
-
-
-
-
 
 
 assistant = DisassemblyAssistant("aarch64")

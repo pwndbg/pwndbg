@@ -116,12 +116,12 @@ class PwndbgInstruction:
         """
         Ex: 'MOV'
         """
-        
+
         self.op_str: str = cs_insn.op_str
         """
         Ex: 'RAX, RDX'
         """
-        
+
         self.groups: list[int] = cs_insn.groups
         """
         Capstone instruction groups that we belong to.
@@ -149,7 +149,6 @@ class PwndbgInstruction:
         # in pwndbg.disasm.arch.py
         # ***********
 
-
         self.next: int = self.address + self.size
         """
         This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
@@ -162,7 +161,6 @@ class PwndbgInstruction:
         Not set to "call" instruction targets, to indicate we will eventually (probably) return to this address
         """
 
-
         self.target: int = None
         """
         This is target of instructions that change the PC, regardless of if it's conditional or not, 
@@ -171,7 +169,6 @@ class PwndbgInstruction:
         If the instruction is not one that changes the PC, target is set to "next"
         """
 
-
         self.target_string: str | None = None
         """
         String representation of the target address.
@@ -179,12 +176,10 @@ class PwndbgInstruction:
         Colorized symbol if a symbol exists at address, else colorized address
         """
 
-
         self.target_const: bool | None = None
         """
         Whether the target is a constant expression
         """
-
 
         self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
         """
@@ -207,7 +202,6 @@ class PwndbgInstruction:
         This string is not used for all cases - if the instruction is a call or a jump, the 'target'.
         variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage.
         """
-
 
         self.annotation_padding: int | None = None
         """
@@ -303,7 +297,6 @@ class PwndbgInstruction:
 
 class EnhancedOperand:
     def __init__(self, cs_op):
-
         self.cs_op: typing.Any = cs_op
         """
         Underlying Capstone operand. Takes on a different value depending on the architecture.
@@ -316,20 +309,17 @@ class EnhancedOperand:
         # in pwndbg.disasm.arch.py
         # ***********
 
-
         self.before_value: int | None = None
         """
         The value of the operand before the instruction executes.
         This is set only if the operand value can be reasoned about.
         """
 
-
         self.after_value: int | None = None
         """
         The value of the operand after the instruction executes.
         Only set when using emulation.
         """
-
 
         self.str: str | None = ""
         """
@@ -387,7 +377,6 @@ class EnhancedOperand:
             )
 
         return f"[{info}]"
-
 
 
 def make_simple_instruction(address: int) -> PwndbgInstruction:
