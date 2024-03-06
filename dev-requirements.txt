@@ -8,7 +8,7 @@ rich==13.7.1
 ruff==0.3.0
 testresources==2.0.1
 tomli==2.0.1
-types-gdb==12.1.4.20240113
+types-gdb==12.1.4.20240305
 types-psutil==5.9.5.20240205
 types-Pygments==2.17.0.20240106
 types-requests==2.31.0.20240218
