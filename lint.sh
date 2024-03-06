@@ -39,7 +39,7 @@ LINT_FILES="pwndbg tests *.py"
 LINT_TOOLS="isort black ruff vermin mypy"
 
 if ! type ${LINT_TOOLS} &> /dev/null; then
-    PIP_CMD="pip install -Ur dev-requirements.txt"
+    PIP_CMD="poetry install --with dev"
     echo "Missing one of the following tools: ${LINT_TOOLS}"
     echo "Running '${PIP_CMD}'"
 
