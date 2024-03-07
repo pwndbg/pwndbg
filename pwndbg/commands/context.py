@@ -882,6 +882,10 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         original_thread = gdb.selected_thread()
     except SystemError:
         original_thread = None
+    try:
+        original_frame = gdb.selected_frame()
+    except gdb.error:
+        original_frame = None
 
     all_threads = gdb.selected_inferior().threads()[::-1]
 
@@ -945,6 +949,8 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     if original_thread is not None and original_thread.is_valid():
         original_thread.switch()
+    if original_frame is not None and original_frame.is_valid():
+        original_frame.select()
 
     return out
 
