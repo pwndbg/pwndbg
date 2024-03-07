@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 from enum import Enum
+from typing import TypedDict
 
 import gdb
 
@@ -153,7 +154,7 @@ class PwndbgInstruction:
         """
         This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
         This means it is the address of the next instruction to be executed in all cases except "call" instructions.
-        
+
         Typically, it is `self.address + self.size` (the next instruction in memory)
 
         If it is a jump and we know it is taken, then it is the value of the jump target.
@@ -163,9 +164,9 @@ class PwndbgInstruction:
 
         self.target: int = None
         """
-        This is target of instructions that change the PC, regardless of if it's conditional or not, 
+        This is target of instructions that change the PC, regardless of if it's conditional or not,
         and whether or not we take the jump. This includes "call" and all other instructions that set the PC
-        
+
         If the instruction is not one that changes the PC, target is set to "next"
         """
 
@@ -184,14 +185,14 @@ class PwndbgInstruction:
         self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
         """
         Does the condition that the instruction checks for pass?
-        
+
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
         See 'condition' function in pwndbg.disasm.x86 for example on setting this.
-        
+
         UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
-        
+
         TRUE if the instruction has a conditional action, and we determine it is taken.
-        
+
         FALSE if the instruction has a conditional action, and we know it is not taken.
         """
 
@@ -324,7 +325,7 @@ class EnhancedOperand:
         self.str: str | None = ""
         """
         String representing the operand
-        
+
         Ex: "RAX", or "[0x7fffffffd9e8]". None if value cannot be determined.
         """
 
@@ -379,11 +380,19 @@ class EnhancedOperand:
         return f"[{info}]"
 
 
+# GDB does not expose a type for this
+# Type defined here: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Architectures-In-Python.html#Architectures-In-Python
+class GDBDisassembledInstructionType(TypedDict):
+    addr: int
+    asm: str
+    length: int
+
+
 def make_simple_instruction(address: int) -> PwndbgInstruction:
     """
     Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support (as defined in the CapstoneArch structure)
     """
-    ins = gdb.newest_frame().architecture().disassemble(address)[0]
+    ins: GDBDisassembledInstructionType = gdb.newest_frame().architecture().disassemble(address)[0]
     asm = ins["asm"].split(maxsplit=1)
 
     pwn_ins = PwndbgInstruction(None)
