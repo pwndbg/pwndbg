@@ -751,7 +751,11 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         bannerline = (
             [pwndbg.ui.banner("Source (code)", target=target, width=width)] if with_banner else []
         )
-        return bannerline + ["In file: %s" % filename] + formatted_source
+        return (
+            bannerline
+            + ["In file: %s:%d" % (filename, gdb.selected_frame().find_sal().line)]
+            + formatted_source
+        )
 
     # Try getting source from IDA Pro Hex-Rays Decompiler
     if not pwndbg.ida.available():
