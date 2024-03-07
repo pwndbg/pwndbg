@@ -14,6 +14,7 @@ module, for example:
     >>> int(pwndbg.gdblib.config.example_value)
     7
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -105,14 +106,13 @@ class Parameter(gdb.Parameter):
 
     def __get_set_string_gdb_le_9(self) -> str:
         """Handles the GDB `set <param>` command for GDB < 9"""
-        if (self.param.param_class == gdb.PARAM_ZUINTEGER and self.value < 0) or (  # type: ignore
-            self.param.param_class == gdb.PARAM_ZUINTEGER_UNLIMITED and self.value < -1  # type: ignore
+        if (self.param.param_class == gdb.PARAM_ZUINTEGER and self.value < 0) or (  # type: ignore[operator]
+            self.param.param_class == gdb.PARAM_ZUINTEGER_UNLIMITED and self.value < -1  # type: ignore[operator]
         ):
-            err = "integer %d out of range" % self.value  # type: ignore
             # Restore the old value
             self.value = self.param.value
             # GDB < 9 is too buggy, it won't handle `gdb.GdbError`..., so we return a string here
-            return err
+            return "integer %d out of range" % self.value  # type: ignore[str-format]
         # the logic after this line is the same as GDB >= 9
         return self.__get_set_string_gdb_gte_9()
 

@@ -172,7 +172,13 @@ class Command(gdb.Command):
 
         last_line = lines[-1]
         number_str, command = last_line.split(maxsplit=1)
-        number = int(number_str)
+        try:
+            number = int(number_str)
+        except ValueError:
+            # In rare cases GDB will output a warning after executing `show commands`
+            # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
+            # symtab.)").
+            return False
 
         # A new command was entered by the user
         if number not in Command.history:
@@ -402,8 +408,8 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
             )
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
-        else:
-            pwndbg.exception.inform_verbose_and_debug()
+
+        pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
         e(f"{function.__name__}: An unknown error occurred when running this command.")
         if isinstance(pwndbg.heap.current, HeuristicHeap):
@@ -414,8 +420,8 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
             w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
         if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
             raise err
-        else:
-            pwndbg.exception.inform_verbose_and_debug()
+
+        pwndbg.exception.inform_verbose_and_debug()
     return None
 
 
@@ -526,7 +532,7 @@ class _ArgparsedCommand(Command):
 
     def split_args(self, argument: str):
         argv = gdb.string_to_argv(argument)
-        return tuple(), vars(self.parser.parse_args(argv))
+        return (), vars(self.parser.parse_args(argv))
 
 
 class ArgparsedCommand:
@@ -561,7 +567,7 @@ class ArgparsedCommand:
             if action.default is not None:
                 action.help += " (default: %(default)s)"
 
-    def __call__(self, function: Callable) -> _ArgparsedCommand:
+    def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
         for alias in self.aliases:
             _ArgparsedCommand(
                 self.parser, function, command_name=alias, is_alias=True, category=self.category
@@ -654,6 +660,7 @@ def load_commands() -> None:
     import pwndbg.commands.got
     import pwndbg.commands.got_tracking
     import pwndbg.commands.heap
+    import pwndbg.commands.heap_tracking
     import pwndbg.commands.hexdump
     import pwndbg.commands.ida
     import pwndbg.commands.ignore
@@ -672,6 +679,7 @@ def load_commands() -> None:
     import pwndbg.commands.mprotect
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
     import pwndbg.commands.peda

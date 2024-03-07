@@ -5,7 +5,6 @@ Determine whether the target is being run under QEMU.
 from __future__ import annotations
 
 import os
-from typing import Any
 
 import gdb
 import psutil
@@ -71,7 +70,7 @@ def exec_file_supported() -> bool:
 
 @start
 @pwndbg.lib.cache.cache_until("stop")
-def root() -> Any | None:
+def root() -> str | None:
     if not is_qemu_usermode():
         return None
 

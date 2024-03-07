@@ -100,7 +100,7 @@ install_apt() {
         gcc-aarch64-linux-gnu \
         gcc-riscv64-linux-gnu
 
-    if [[ "$1" == "22.04" ]]; then
+    if [[ "$1" != "" && "$1" != "20.04" ]]; then
         sudo apt install shfmt
     fi
 

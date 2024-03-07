@@ -40,7 +40,7 @@ class ABI:
         return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
-    def syscall() -> ABI:
+    def syscall() -> SyscallABI:
         return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
 
     @staticmethod
@@ -111,7 +111,7 @@ DEFAULT_ABIS: Dict[Tuple[int, str, str], ABI] = {
     (64, "rv64", "linux"): linux_riscv64,
 }
 
-SYSCALL_ABIS: Dict[Tuple[int, str, str], ABI] = {
+SYSCALL_ABIS: Dict[Tuple[int, str, str], SyscallABI] = {
     (32, "i386", "linux"): linux_i386_syscall,
     (64, "x86-64", "linux"): linux_amd64_syscall,
     (64, "aarch64", "linux"): linux_aarch64_syscall,

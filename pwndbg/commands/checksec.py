@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.file
@@ -23,5 +21,5 @@ def color_lines(output: str) -> str:
 @pwndbg.commands.ArgparsedCommand("Prints out the binary security settings using `checksec`.")
 @pwndbg.commands.OnlyWithFile
 def checksec() -> None:
-    output = cast(str, pwndbg.wrappers.checksec.get_raw_out(pwndbg.gdblib.file.get_proc_exe_file()))
+    output = pwndbg.wrappers.checksec.get_raw_out(pwndbg.gdblib.file.get_proc_exe_file())
     print(color_lines(output))

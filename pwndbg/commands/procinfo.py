@@ -92,7 +92,7 @@ class Process:
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def cwd(self):
+    def cwd(self) -> str:
         link = pwndbg.gdblib.file.readlink(f"/proc/{self.pid}/cwd")
         return f"'{link}'"
 
@@ -215,7 +215,7 @@ def procinfo() -> None:
                 " used directly by the qemu process)"
             )
         )
-    exe = pwndbg.auxv.get()["AT_EXECFN"]
+    exe = pwndbg.auxv.get().AT_EXECFN
     print("%-10s %r" % ("exe", exe))
 
     proc = Process()

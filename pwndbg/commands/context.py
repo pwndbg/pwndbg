@@ -5,7 +5,9 @@ import ast
 import os
 import sys
 from collections import defaultdict
+from typing import Any
 from typing import DefaultDict
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -21,6 +23,7 @@ import pwndbg.commands.telescope
 import pwndbg.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap_tracking
 import pwndbg.gdblib.nearpc
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
@@ -79,7 +82,7 @@ config_output = pwndbg.gdblib.config.add_param(
 )
 config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions threads",
+    "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.gdblib.config.add_param(
@@ -197,7 +200,7 @@ class CallOutput:
             return False
 
 
-def output(section):
+def output(section: str):
     """Creates a context manager corresponding to configured context output"""
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
@@ -241,12 +244,12 @@ def contextoutput(section, path, clearing, banner="both", width=None):
     if width is not None:
         width = int(width)
     outputs[section] = path
-    output_settings[section] = dict(
-        clearing=clearing,
-        width=width,
-        banner_top=banner in ["both", "top"],
-        banner_bottom=banner in ["both", "bottom"],
-    )
+    output_settings[section] = {
+        "clearing": clearing,
+        "width": width,
+        "banner_top": banner in ["both", "top"],
+        "banner_bottom": banner in ["both", "bottom"],
+    }
 
 
 # Watches
@@ -392,7 +395,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, dict] = defaultdict(dict)
+    result_settings: DefaultDict[str, dict[Any, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -521,40 +524,55 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     return banner + regs if with_banner else regs
 
 
+def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
+    if not pwndbg.gdblib.heap_tracking.is_enabled():
+        return []
+
+    banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
+
+    if pwndbg.gdblib.heap_tracking.last_issue is not None:
+        info = [f"Detected the following potential issue: {pwndbg.gdblib.heap_tracking.last_issue}"]
+        pwndbg.gdblib.heap_tracking.last_issue = None
+    else:
+        info = ["Nothing to report."]
+
+    return banner + info if with_banner else info
+
+
 parser = argparse.ArgumentParser(description="Print out all registers and enhance the information.")
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs=None) -> None:
+def regs(regs=[]) -> None:
     """Print out all registers and enhance the information."""
-    print("\n".join(get_regs(*regs)))
+    print("\n".join(get_regs(regs)))
 
 
 pwndbg.gdblib.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.gdblib.config.add_param("show-retaddr-reg", False, "whether to show return address register")
 
 
-def get_regs(*regs):
+def get_regs(regs: List[str] = None):
     result = []
 
-    if not regs and pwndbg.gdblib.config.show_retaddr_reg:
-        regs = (
-            pwndbg.gdblib.regs.gpr
-            + (pwndbg.gdblib.regs.frame, pwndbg.gdblib.regs.current.stack)
-            + pwndbg.gdblib.regs.retaddr
-            + (pwndbg.gdblib.regs.current.pc,)
-        )
-    elif not regs:
-        regs = pwndbg.gdblib.regs.gpr + (
-            pwndbg.gdblib.regs.frame,
-            pwndbg.gdblib.regs.current.stack,
-            pwndbg.gdblib.regs.current.pc,
-        )
+    if regs is None:
+        regs = []
 
-    if pwndbg.gdblib.config.show_flags:
-        regs += tuple(pwndbg.gdblib.regs.flags)
+    if len(regs) == 0:
+        regs += pwndbg.gdblib.regs.gpr
+
+        regs.append(pwndbg.gdblib.regs.frame)
+        regs.append(pwndbg.gdblib.regs.stack)
+
+        if pwndbg.gdblib.config.show_retaddr_reg:
+            regs += pwndbg.gdblib.regs.retaddr
+
+        regs.append(pwndbg.gdblib.regs.current.pc)
+
+        if pwndbg.gdblib.config.show_flags:
+            regs += pwndbg.gdblib.regs.flags.keys()
 
     changed = pwndbg.gdblib.regs.changed
 
@@ -562,11 +580,10 @@ def get_regs(*regs):
         if reg is None:
             continue
 
-        if reg not in pwndbg.gdblib.regs:
+        value = pwndbg.gdblib.regs[reg]
+        if value is None:
             print(message.warn("Unknown register: %r" % reg))
             continue
-
-        value = pwndbg.gdblib.regs[reg]
 
         # Make the register stand out and give a color if changed
         regname = C.register(reg.ljust(4).upper())
@@ -577,10 +594,14 @@ def get_regs(*regs):
         change_marker = "%s" % C.config_register_changed_marker
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
+        bit_flags = None
         if reg in pwndbg.gdblib.regs.flags:
-            desc = C.format_flags(
-                value, pwndbg.gdblib.regs.flags[reg], pwndbg.gdblib.regs.last.get(reg, 0)
-            )
+            bit_flags = pwndbg.gdblib.regs.flags[reg]
+        elif reg in pwndbg.gdblib.regs.extra_flags:
+            bit_flags = pwndbg.gdblib.regs.extra_flags[reg]
+
+        if bit_flags:
+            desc = C.format_flags(value, bit_flags, pwndbg.gdblib.regs.last.get(reg, 0))
 
         else:
             desc = pwndbg.chain.format(value)
@@ -977,6 +998,7 @@ context_sections = {
     "b": context_backtrace,
     "e": context_expressions,
     "g": context_ghidra,
+    "h": context_heap_tracker,
     "t": context_threads,
 }
 

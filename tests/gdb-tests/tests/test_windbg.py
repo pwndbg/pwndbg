@@ -195,7 +195,7 @@ def test_windbg_dX_commands(start_binary):
     )
 
     assert gdb.execute("dc data 3", to_string=True) == (
-        "+0000 0x400081  00 00 00                                          │... " "    │        │\n"
+        "+0000 0x400081  00 00 00                                          │...     │        │\n"
     )
 
     #################################################
@@ -209,7 +209,7 @@ def test_windbg_dX_commands(start_binary):
 
     # Check too low maxlen
     assert gdb.execute("ds short_str 5", to_string=True) == (
-        "Max str len of 5 too low, changing to 256\n" "4000d9 'some cstring here'\n"
+        "Max str len of 5 too low, changing to 256\n4000d9 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256

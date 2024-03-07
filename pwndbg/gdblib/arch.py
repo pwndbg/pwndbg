@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import gdb
 import pwnlib
 
@@ -41,6 +43,11 @@ pwnlib_archs_mapping = {
 
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
+
+name: str
+ptrsize: int
+ptrmask: int
+endian: Literal["little", "big"]
 
 
 def _get_arch(ptrsize: int):

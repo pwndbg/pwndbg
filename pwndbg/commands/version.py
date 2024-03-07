@@ -2,7 +2,6 @@
 Displays gdb, python and pwndbg versions.
 """
 
-
 from __future__ import annotations
 
 import argparse

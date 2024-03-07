@@ -17,7 +17,7 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     A breakpoint that only stops the inferior if a given branch is taken or not taken.
     """
 
-    def __init__(self, instruction, taken):
+    def __init__(self, instruction, taken) -> None:
         super().__init__("*%#x" % instruction.address, type=gdb.BP_BREAKPOINT, internal=False)
         self.instruction = instruction
         self.taken = taken
@@ -63,7 +63,7 @@ def break_if_not_taken(branch) -> None:
     install_breakpoint(branch, taken=False)
 
 
-def install_breakpoint(branch, taken):
+def install_breakpoint(branch, taken) -> None:
     # Do our best to interpret branch as an address locspec. Untimately, though,
     # we're limited in what we can do from inside Python in that front.
     #

@@ -1254,15 +1254,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             56 + (sz >> 6)
             if (sz >> 6) <= 38
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index_32_big(self, sz):
@@ -1273,15 +1277,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             49 + (sz >> 6)
             if (sz >> 6) <= 45
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index_64(self, sz):
@@ -1292,15 +1300,19 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return (
             48 + (sz >> 6)
             if (sz >> 6) <= 48
-            else 91 + (sz >> 9)
-            if (sz >> 9) <= 20
-            else 110 + (sz >> 12)
-            if (sz >> 12) <= 10
-            else 119 + (sz >> 15)
-            if (sz >> 15) <= 4
-            else 124 + (sz >> 18)
-            if (sz >> 18) <= 2
-            else 126
+            else (
+                91 + (sz >> 9)
+                if (sz >> 9) <= 20
+                else (
+                    110 + (sz >> 12)
+                    if (sz >> 12) <= 10
+                    else (
+                        119 + (sz >> 15)
+                        if (sz >> 15) <= 4
+                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                    )
+                )
+            )
         )
 
     def largebin_index(self, sz):
@@ -1324,8 +1336,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
         """
-        return pwndbg.gdblib.typeinfo.load("struct malloc_chunk") and pwndbg.gdblib.symbol.address(
-            "global_max_fast"
+        return (
+            pwndbg.gdblib.typeinfo.load("struct malloc_chunk") is not None
+            and pwndbg.gdblib.symbol.address("global_max_fast") is not None
         )
 
 
@@ -1521,10 +1534,10 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if not self._main_arena_addr:
             if self.is_statically_linked():
                 data_section = pwndbg.gdblib.proc.dump_elf_data_section()
-                data_section_address = pwndbg.gdblib.proc.get_data_section_address()
+                data_section_address = pwndbg.gdblib.proc.get_section_address_by_name(".data")
             else:
                 data_section = pwndbg.glibc.dump_elf_data_section()
-                data_section_address = pwndbg.glibc.get_data_section_address()
+                data_section_address = pwndbg.glibc.get_section_address_by_name(".data")
             if data_section and data_section_address:
                 data_section_offset, size, data_section_data = data_section
                 # Try to find the default main_arena struct in the .data section
@@ -1561,7 +1574,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         # We only care about the relocation in .data section
                         if r_offset - next_field_offset < data_section_offset:
                             continue
-                        elif r_offset - next_field_offset >= data_section_offset + size:
+
+                        if r_offset - next_field_offset >= data_section_offset + size:
                             break
 
                         # To find addend:
@@ -1675,9 +1689,9 @@ class HeuristicHeap(GlibcMemoryAllocator):
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
         if self.is_statically_linked():
-            got_address = pwndbg.gdblib.proc.get_got_section_address()
+            got_address = pwndbg.gdblib.proc.get_section_address_by_name(".got")
         else:
-            got_address = pwndbg.glibc.get_got_section_address()
+            got_address = pwndbg.glibc.get_section_address_by_name(".got")
         if not got_address:
             print(message.warn("Cannot find the address of the .got section."))
             return None
@@ -1777,7 +1791,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                 )
                 return None
             raise SymbolUnresolvableError("thread_arena")
-        else:
+        else:  # noqa: RET506
             self._thread_arena_values[gdb.selected_thread().global_num] = self.main_arena.address
             return self.main_arena
 
@@ -1874,10 +1888,10 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if not self._mp_addr:
             if self.is_statically_linked():
                 section = pwndbg.gdblib.proc.dump_elf_data_section()
-                section_address = pwndbg.gdblib.proc.get_data_section_address()
+                section_address = pwndbg.gdblib.proc.get_section_address_by_name(".data")
             else:
                 section = pwndbg.glibc.dump_elf_data_section()
-                section_address = pwndbg.glibc.get_data_section_address()
+                section_address = pwndbg.glibc.get_section_address_by_name(".data")
             if section and section_address:
                 _, _, data = section
 

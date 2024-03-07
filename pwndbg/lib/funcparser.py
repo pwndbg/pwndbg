@@ -8,7 +8,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from pycparser import CParser  # type: ignore
+from pycparser import CParser  # type: ignore # noqa: PGH003
 from pycparser import c_ast
 
 CAstNode = Union[

@@ -3,6 +3,7 @@ Talks to an XMLRPC server running inside of an active IDA Pro instance,
 in order to query it about the database.  Allows symbol resolution and
 interactive debugging.
 """
+
 from __future__ import annotations
 
 import errno
@@ -481,7 +482,7 @@ class IDC:
 
     def __init__(self) -> None:
         if available():
-            data: dict = _ida.eval(self.query)
+            data: dict[Any, Any] = _ida.eval(self.query)
             self.__dict__.update(data)
 
 

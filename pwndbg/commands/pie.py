@@ -22,7 +22,7 @@ def get_exe_name():
 
     NOTE: This might be wrong for remote targets.
     """
-    path = pwndbg.auxv.get().get("AT_EXECFN")
+    path = pwndbg.auxv.get().AT_EXECFN
 
     # When GDB is launched on a file that is a symlink to the target,
     # the AUXV's AT_EXECFN stores the absolute path of to the symlink.

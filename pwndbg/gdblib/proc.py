@@ -11,6 +11,7 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
+from typing import TypeVar
 
 import gdb
 from elftools.elf.relocation import Relocation
@@ -18,6 +19,22 @@ from elftools.elf.relocation import Relocation
 import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+
+T = TypeVar("T")
+
+pid: int
+tid: int
+thread_id: int
+alive: bool
+thread_is_stopped: bool
+stopped_with_signal: bool
+exe: str | None
+binary_base_addr: int
+binary_vmmap: tuple[pwndbg.lib.memory.Page, ...]
+# dump_elf_data_section: tuple[int, int, bytes] | None
+# dump_relocations_by_section_name: tuple[Relocation, ...] | None
+# get_section_address_by_name: Callable[[str], int]
+OnlyWhenRunning: Callable[[Callable[..., T]], Callable[..., T]]
 
 
 class module(ModuleType):
@@ -121,37 +138,26 @@ class module(ModuleType):
         )
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def get_data_section_address(self) -> int:
+    def get_section_address_by_name(self, section_name: str) -> int:
         """
-        Find .data section address of current process.
-        """
-        out = pwndbg.gdblib.info.files()
-        for line in out.splitlines():
-            if line.endswith(" is .data"):
-                return int(line.split()[0], 16)
-        return 0
-
-    @pwndbg.lib.cache.cache_until("start", "objfile")
-    def get_got_section_address(self) -> int:
-        """
-        Find .got section address of current process.
+        Find section address of current process by section name
         """
         out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
-            if line.endswith(" is .got"):
+            if line.endswith(f" is {section_name}"):
                 return int(line.split()[0], 16)
         return 0
 
-    def OnlyWhenRunning(self, func: Callable[..., Any]) -> Callable[..., Any]:
+    def OnlyWhenRunning(self, func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any):
+        def wrapper(*a: Any, **kw: Any) -> T:
             if self.alive:
                 return func(*a, **kw)
+            return None
 
         return wrapper
 
 
-OnlyWhenRunning: Callable[[Any], Any]
 # To prevent garbage collection
 tether = sys.modules[__name__]
 

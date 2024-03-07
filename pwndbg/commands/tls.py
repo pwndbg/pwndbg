@@ -1,6 +1,7 @@
 """
 Command to print the information of the current Thread Local Storage (TLS).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -100,7 +101,8 @@ def threads(num_threads, respect_config) -> None:
             pwndbg.commands.context.config_max_threads_display
         ):
             break
-        elif num_threads is not None and len(displayed_threads) >= num_threads:
+
+        if num_threads is not None and len(displayed_threads) >= num_threads:
             break
 
         if thread.is_valid() and thread is not original_thread:

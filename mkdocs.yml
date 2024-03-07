@@ -1,3 +1,4 @@
+site_url: https://pwndbg.re/pwndbg/
 site_name: Documentation
 site_description: >-
   pwndbg (/paʊnˈdiˌbʌɡ/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
@@ -45,14 +46,12 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
-  - git-revision-date-localized
-  - git-committers:
-      repository: pwndbg/pwndbg
-      branch: dev
-      exclude:
-        - index.md
-        - docs/source/**
-        - docs/commands/**
+  # - git-committers:
+  #     repository: pwndbg/pwndbg
+  #     branch: dev
+  #     exclude:
+  #       - index.md
+  #       - docs/commands/**
   - gen-files:
       scripts:
         - scripts/gen_ref_pages.py
@@ -60,7 +59,7 @@ plugins:
       default_handler: python
       handlers:
         python:
-          paths: [pwndbg]
+          paths: []
           # load_external_modules: true
           options:
             allow_inspection: true

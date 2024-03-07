@@ -4,7 +4,7 @@ set -o errexit
 
 CWD=$(dirname -- "$0")
 OUT_DIR="${CWD}/images"
-URL="https://github.com/pwndbg/linux-exploit-dev-env/releases/latest/download"
+URL=${URL:-"https://github.com/pwndbg/linux-exploit-dev-env/releases/latest/download"}
 
 mkdir -p "${OUT_DIR}"
 

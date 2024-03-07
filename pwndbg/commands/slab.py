@@ -4,10 +4,14 @@ Commands for dealing with Linux kernel slab allocator. Currently, only SLUB is s
 Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
 Some of the code here was inspired from https://github.com/osandov/drgn
 """
+
 from __future__ import annotations
 
 import argparse
 import sys
+from types import TracebackType
+from typing import Optional
+from typing import Type
 
 from tabulate import tabulate
 
@@ -71,7 +75,12 @@ class IndentContextManager:
     def __enter__(self) -> None:
         self.indent += 1
 
-    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         self.indent -= 1
         assert self.indent >= 0
 

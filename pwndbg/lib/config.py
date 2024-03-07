@@ -134,7 +134,7 @@ class Parameter:
 class Config:
     def __init__(self) -> None:
         self.params: Dict[str, Parameter] = {}
-        self.triggers: DefaultDict[str, List[Callable[..., Any]]] = defaultdict(lambda: [])
+        self.triggers: DefaultDict[str, List[Callable[..., Any]]] = defaultdict(list)
 
     def add_param(
         self,

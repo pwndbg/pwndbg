@@ -21,9 +21,9 @@ from pwndbg.lib.regs import i386
 # Offsets and names are from Linux kernel source. For example x86_64 is defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel /arch/x86/include/asm/sigframe.h)
 SIGRETURN_FRAME_LAYOUTS: dict[str, list[Tuple[int, str]]] = {
     "x86-64": sorted([(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items())),
-    "i386": sorted(list(pwnlib.rop.srop.registers["i386"].items())),
-    "aarch64": sorted(list(pwnlib.rop.srop.registers["aarch64"].items())),
-    "arm": sorted(list(pwnlib.rop.srop.registers["arm"].items())),
+    "i386": sorted(pwnlib.rop.srop.registers["i386"].items()),
+    "aarch64": sorted(pwnlib.rop.srop.registers["aarch64"].items()),
+    "arm": sorted(pwnlib.rop.srop.registers["arm"].items()),
 }
 
 # Always print these registers (as well as flag register, eflags / cpsr)
@@ -31,7 +31,7 @@ SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
     "x86-64": {*amd64.gpr, amd64.frame, amd64.stack, amd64.pc},
     "i386": {*i386.gpr, i386.frame, i386.stack, i386.pc},
     "aarch64": {*aarch64.gpr, "sp", "pc"},
-    "arm": {*arm.gpr, "fp" "ip", "sp", "lr", "pc"},
+    "arm": {*arm.gpr, "fp", "ip", "sp", "lr", "pc"},
 }
 
 
@@ -63,7 +63,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
-def sigreturn(address: int = None, display_all=False, print_address=False):
+def sigreturn(address: int = None, display_all=False, print_address=False) -> None:
     address = pwndbg.gdblib.regs.sp if address is None else address
 
     ptr_size = pwndbg.gdblib.arch.ptrsize
@@ -101,7 +101,7 @@ def sigreturn(address: int = None, display_all=False, print_address=False):
             print_value(f"{reg} {M.get(value)}", address + stack_offset, print_address)
 
 
-def print_value(string: str, address: int, print_address):
+def print_value(string: str, address: int, print_address) -> None:
     addr = ""
     if print_address:
         addr = f"{M.get(address)}: "

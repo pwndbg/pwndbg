@@ -39,7 +39,7 @@ def read_chunk(addr):
         val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
-    return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
+    return {renames.get(key, key): int(val[key]) for key in val.type.keys()}
 
 
 def format_bin(bins: Bins, verbose=False, offset=None):
@@ -719,8 +719,10 @@ parser.add_argument(
     "-a",
     action="store_true",
     default=False,
-    help="Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
-    + "chunks and for all chunks when Safe Linking is enabled",
+    help=(
+        "Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
+        "chunks and for all chunks when Safe Linking is enabled"
+    ),
 )
 parser.add_argument(
     "--glibc-fastbin-bug",
