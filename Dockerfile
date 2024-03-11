@@ -31,7 +31,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 ADD ./setup.sh /pwndbg/
 ADD ./poetry.lock /pwndbg/
 ADD ./pyproject.toml /pwndbg/
-ADD ./dev-requirements.txt /pwndbg/
+ADD ./poetry.toml /pwndbg/
 
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py

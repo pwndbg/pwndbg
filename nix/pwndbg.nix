@@ -13,6 +13,8 @@ let
   ]);
 
   pyEnv = pkgs.poetry2nix.mkPoetryEnv {
+    groups = [];  # put [ "dev" ] to build "dev" dependencies
+    checkGroups = [];  # put [ "dev" ] to build "dev" dependencies
     projectDir = inputs.pwndbg;
     python = python3;
     overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
