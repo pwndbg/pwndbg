@@ -57,7 +57,7 @@ install_zypper() {
 }
 
 install_emerge() {
-    emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip sys-devel/gdb
+    sudo emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip dev-debug/gdb
 }
 
 install_pacman() {
