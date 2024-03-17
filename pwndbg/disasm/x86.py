@@ -227,7 +227,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # This may return None if cannot dereference memory (or after_value is None).
         left_after = self.resolve_used_value(left.after_value, instruction, left, emu)
 
-        # TODO
         if left_after is not None:
             instruction.annotation = (
                 f"{left.str} => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"

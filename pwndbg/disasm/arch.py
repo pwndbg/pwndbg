@@ -170,6 +170,10 @@ class DisassemblyAssistant:
                 print(f"Emulation failed at {instruction.address=:#x}")
             emu = None
 
+        if emu is not None:
+            # We successfully used emulation for this instruction
+            instruction.emulated = True
+
         # Set the .condition field
         enhancer.enhance_conditional(instruction, emu)
 

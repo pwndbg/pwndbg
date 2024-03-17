@@ -210,6 +210,11 @@ class PwndbgInstruction:
         We retain it so the output is consistent between prints
         """
 
+        self.emulated: bool = False
+        """
+        If the enhancement successfully used emulation for this instruction
+        """
+
     @property
     def can_change_instruction_pointer(self) -> bool:
         """

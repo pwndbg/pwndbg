@@ -79,26 +79,28 @@ VariableInstructionSizeMax = {
 # Although `stepi` and `nexti` always go to the next machine instruction in memory, `step` and `next`
 # can skip over multiple when GDB has debugging symbols and sourcecode
 # In order to determine that we did a `stepi`, `nexti`, `step`, or `next`, whenever the process stops,
-# we check if the current program counter is at the address of one of the instructions that we 
+# we check if the current program counter is at the address of one of the instructions that we
 # emulated to the last time the process stopped. This allows use to skips a handful of instruction, but still retain the cache
 # Any larger changes of the program counter will cause the cache to reset.
 
 next_addresses_cache: set[int] = set()
 
+
 # Register GDB event listeners for all stop events
 @pwndbg.gdblib.events.stop
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.gdblib.regs.__getattr__.cache.clear()
+    pwndbg.gdblib.regs.__getattr__.cache.clear()  # type: ignore[attr-defined]
 
-    if(pwndbg.gdblib.regs.pc not in next_addresses_cache):
+    if pwndbg.gdblib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
+
 
 @pwndbg.gdblib.events.mem_changed
 @pwndbg.gdblib.events.reg_changed
 def clear_on_reg_mem_change() -> None:
-    
+
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
     for addr in next_addresses_cache:
@@ -186,8 +188,6 @@ def get_disassembler(pc):
     )
 
 
-# TODO: FIX THIS
-# @pwndbg.lib.cache.cache_until("cont")
 # If passed an emulator, this will pass it to the DisassemblyAssistant
 # which will single_step the emulator to determine the operand values before and after the instruction executes
 def get_one_instruction(
@@ -352,7 +352,7 @@ def near(
             else:
                 raise
 
-    # Start at the current instruction using emulating if available.
+    # Start at the current instruction using emulation if available.
     current = one(address, emu, put_cache=True)
 
     if DEBUG_ENHANCEMENT:
@@ -361,8 +361,6 @@ def near(
 
     if current is None:
         return ([], -1)
-    
-
 
     insns: list[PwndbgInstruction] = []
 
