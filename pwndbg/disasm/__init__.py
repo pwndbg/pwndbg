@@ -20,6 +20,7 @@ from capstone import *  # noqa: F403
 
 import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.ida
@@ -72,13 +73,45 @@ VariableInstructionSizeMax = {
 }
 
 
+# Caching strategy:
+# To ensure we don't have stale register/memory information in our cached PwndbgInstruction,
+# we clear the cache whenever we DON'T do a `stepi`, `nexti`, `step`, or `next` command.
+# Although `stepi` and `nexti` always go to the next machine instruction in memory, `step` and `next`
+# can skip over multiple when GDB has debugging symbols and sourcecode
+# In order to determine that we did a `stepi`, `nexti`, `step`, or `next`, whenever the process stops,
+# we check if the current program counter is at the address of one of the instructions that we 
+# emulated to the last time the process stopped. This allows use to skips a handful of instruction, but still retain the cache
+# Any larger changes of the program counter will cause the cache to reset.
+
+next_addresses_cache: set[int] = set()
+
+# Register GDB event listeners for all stop events
+@pwndbg.gdblib.events.stop
+def enhance_cache_listener() -> None:
+    # Clear the register value cache to ensure we get the correct program counter value
+    pwndbg.gdblib.regs.__getattr__.cache.clear()
+
+    if(pwndbg.gdblib.regs.pc not in next_addresses_cache):
+        # Clear the enhanced instruction cache to ensure we don't use stale values
+        computed_instruction_cache.clear()
+
+@pwndbg.gdblib.events.mem_changed
+@pwndbg.gdblib.events.reg_changed
+def clear_on_reg_mem_change() -> None:
+    
+    # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
+    # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    for addr in next_addresses_cache:
+        computed_instruction_cache.pop(addr, None)
+
+    next_addresses_cache.clear()
+
+
 # Dict of Address -> previous Address executed
+# This allows use to display the instructions that led to the current instruction
 backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
-# TODO:
-#   Implement a better caching mechanism that won't result in stale annotations.
-
-# This allows use to retain the annotation strings from previous instructions.
+# This allows use to retain the annotation strings from previous instructions
 computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(
     lambda: None
 )
@@ -328,6 +361,8 @@ def near(
 
     if current is None:
         return ([], -1)
+    
+
 
     insns: list[PwndbgInstruction] = []
 
@@ -357,6 +392,9 @@ def near(
     # and the instruction at 'address'.
     # Now, continue forwards.
 
+    next_addresses_cache.clear()
+    next_addresses_cache.add(current.target)
+
     insn = current
     total_instructions = 1 + (2 * instructions)
 
@@ -368,6 +406,7 @@ def near(
 
         # Address to disassemble & emulate
         target = insn.next
+        next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
         insn = one(target, emu, put_cache=True)
