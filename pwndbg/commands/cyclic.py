@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import string
+from typing import Optional
 
 import gdb
 from pwnlib.util.cyclic import cyclic
@@ -61,11 +62,8 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
-def cyclic_cmd(alphabet, length, lookup, count=100, filename="") -> None:
-    if length:
-        # Convert from gdb.Value
-        length = int(length)
-    else:
+def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") -> None:
+    if length is None:
         length = pwndbg.gdblib.arch.ptrsize
 
     if lookup:

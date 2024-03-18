@@ -236,13 +236,12 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-out"], category=CommandCategory.CONTEXT)
-def contextoutput(section, path, clearing, banner="both", width=None):
+def contextoutput(section, path, clearing, banner="both", width: int = None):
     if not banner:  # synonym for splitmind backwards compatibility
         banner = "none"
     if banner not in ("both", "top", "bottom", "none"):
         raise argparse.ArgumentError(banner_arg, f"banner can not be '{banner}'")
-    if width is not None:
-        width = int(width)
+
     outputs[section] = path
     output_settings[section] = {
         "clearing": clearing,

@@ -241,13 +241,17 @@ def fix(
     return None
 
 
+def fix_reraise(*a, **kw) -> str | gdb.Value | None:
+    # Type error likely due to https://github.com/python/mypy/issues/6799
+    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
+
+
 def fix_int(*a, **kw) -> int:
     return int(fix(*a, **kw))
 
 
-def fix_int_reraise(*a, **kw):
-    # Type error likely due to https://github.com/python/mypy/issues/6799
-    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
+def fix_int_reraise(*a, **kw) -> int:
+    return fix_int(*a, reraise=True, **kw)
 
 
 def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
@@ -562,8 +566,10 @@ class ArgparsedCommand:
                 action.type = str
             if action.dest == "help":
                 continue
-            if action.type in (int, None):
+            if action.type == int:
                 action.type = fix_int_reraise
+            if action.type is None:
+                action.type = fix_reraise
             if action.default is not None:
                 action.help += " (default: %(default)s)"
 
