@@ -24,7 +24,7 @@ from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
 from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import Heap
-
+from pwndbg.heap import heap_chain_limit
 
 def read_chunk(addr):
     """Read a chunk's metadata."""
@@ -81,7 +81,7 @@ def format_bin(bins: Bins, verbose=False, offset=None):
                 chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
             )
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
+            formatted_chain = pwndbg.chain.format(chain_fd[0], limit= heap_chain_limit, offset=offset, safe_linking=safe_lnk)
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:
