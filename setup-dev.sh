@@ -33,7 +33,9 @@ if [ -t 1 ]; then
     read yn
     if [[ "$yn" == [Yy]* ]]; then
         echo "$hook_script" > "$hook_script_path"
-        echo "pre-push hook installed to $hook_script_path"
+        # make the hook executable
+        chmod ug+x "$hook_script_path"
+        echo "pre-push hook installed to $hook_script_path and made executable"
     fi
 fi
 
