@@ -32,3 +32,17 @@ jobs:
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
         ./lint.sh
+        
+    - name: Run mypy
+      uses: tsuyoshicho/action-mypy@v4
+      with:
+        github_token: ${{ secrets.TOKEN }}
+        # Change reviewdog reporter if you need [github-pr-check,github-check,github-pr-review].
+        reporter: github-pr-review
+        # Change reporter level if you need.
+        # GitHub Status Check won't become failure with warning.
+        level: warning
+        # Change the current directory to run mypy command.
+        # mypy command reads setup.cfg or other settings file in this path.
+        execute_command: source ./.venv/bin/activate && mypy pwndbg
+
