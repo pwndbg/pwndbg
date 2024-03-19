@@ -34,8 +34,6 @@ jobs:
         ./lint.sh
         
     - name: Run mypy
-      env:
-        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.TOKEN }}
       uses: tsuyoshicho/action-mypy@v4
       with:
         github_token: ${{ secrets.TOKEN }}
