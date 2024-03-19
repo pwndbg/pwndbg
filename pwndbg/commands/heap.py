@@ -18,6 +18,7 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.commands.config import display_config
+from pwndbg.heap import heap_chain_limit
 from pwndbg.heap.ptmalloc import Arena
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
@@ -81,7 +82,9 @@ def format_bin(bins: Bins, verbose=False, offset=None):
                 chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
             )
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
+            formatted_chain = pwndbg.chain.format(
+                chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
+            )
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:
