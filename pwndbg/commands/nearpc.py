@@ -30,7 +30,9 @@ def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> 
     """
     print(
         "\n".join(
-            pwndbg.gdblib.nearpc.nearpc(pc, lines, emulate, nearpc.repeat, use_cache=use_cache, linear=linear)
+            pwndbg.gdblib.nearpc.nearpc(
+                pc, lines, emulate, nearpc.repeat, use_cache=use_cache, linear=linear
+            )
         )
     )
 
