@@ -5,6 +5,7 @@ import binascii
 import codecs
 import os
 import struct
+from typing import Set
 
 import gdb
 import pwnlib
@@ -20,7 +21,7 @@ import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-saved: set[int] = set()
+saved: Set[int] = set()
 
 
 def print_search_hit(address) -> None:

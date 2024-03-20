@@ -1297,6 +1297,21 @@ files = [
 ]
 
 [[package]]
+name = "sortedcontainers-stubs"
+version = "2.4.2"
+description = "Type stubs for sortedcontainers"
+optional = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "sortedcontainers_stubs-2.4.2-py3-none-any.whl", hash = "sha256:6cdbcf9c71198729dd6c0a8a7dc9742768f25b49384b91965d716a9d16ca7b2a"},
+    {file = "sortedcontainers_stubs-2.4.2.tar.gz", hash = "sha256:c24e33877effa5a3eb85357112496ba33a0b681c05e0d5d3745664fd3be75d82"},
+]
+
+[package.dependencies]
+sortedcontainers = ">=2,<3"
+typing-extensions = ">=4.1.0,<5.0.0"
+
+[[package]]
 name = "stack-data"
 version = "0.6.3"
 description = "Extract data from python stack frames and tracebacks for informative displays"
@@ -1385,13 +1400,13 @@ files = [
 
 [[package]]
 name = "types-gdb"
-version = "12.1.4.20240305"
+version = "12.1.4.20240401"
 description = "Typing stubs for gdb"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-gdb-12.1.4.20240305.tar.gz", hash = "sha256:9824fad40abee387334f1fdf5398f052bff5d3817026423079afb8f9fe62f9e9"},
-    {file = "types_gdb-12.1.4.20240305-py3-none-any.whl", hash = "sha256:c92faeb3a4da05ab25af71db3072c594d81f8e1f048d979bf2991db4582ca3c1"},
+    {file = "types-gdb-12.1.4.20240401.tar.gz", hash = "sha256:7a3ab7dec1cc67e39721624ad2995d1eecc0d92790c539d324fc7e3b9e905a47"},
+    {file = "types_gdb-12.1.4.20240401-py3-none-any.whl", hash = "sha256:485e7e49cc850961c965573fa026fce323e827ff552b1006fdce8e0bea2f09f5"},
 ]
 
 [[package]]
@@ -1527,4 +1542,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "22ccc4a92b32fd22da3a27860e04ad24947b41180186be2a72003bf92d8972be"
+content-hash = "4654c6e4ab1674e107636f5a7ae3e36e23233d009c1ebb7c7eca4acf71530f4d"

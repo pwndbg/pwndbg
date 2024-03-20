@@ -6,11 +6,14 @@ from typing import Sequence
 import gdb
 
 import pwndbg.gdblib.config
+import pwndbg.gdblib.events
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
 from pwndbg.color import message
+from pwndbg.gdblib.config import config
 
-current = None
+current: pwndbg.heap.heap.MemoryAllocator | None = None
 
 
 def add_heap_param(
@@ -22,7 +25,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return pwndbg.gdblib.config.add_param(
+    return config.add_param(
         name,
         default,
         set_show_doc,
@@ -93,7 +96,7 @@ def reset() -> None:
         symbol.value = "0"
 
 
-@pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
+@config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
     import pwndbg.heap.ptmalloc
 

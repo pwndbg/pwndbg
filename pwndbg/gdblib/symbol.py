@@ -63,11 +63,11 @@ def _get_debug_file_directory() -> str:
     return ""
 
 
-def _set_debug_file_directory(d) -> None:
+def _set_debug_file_directory(d: str) -> None:
     gdb.execute(f"set debug-file-directory {d}", to_string=True, from_tty=False)
 
 
-def _add_debug_file_directory(d) -> None:
+def _add_debug_file_directory(d: str) -> None:
     current = _get_debug_file_directory()
     if current:
         _set_debug_file_directory(f"{current}:{d}")
@@ -80,7 +80,7 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get(address: int, gdb_only=False) -> str:
+def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
     """
     Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
     Passing `gdb_only=True`

@@ -5,14 +5,13 @@ import math
 import re
 from abc import ABC
 from abc import abstractmethod
-from typing import Any
 from typing import Callable
-from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Tuple
+from typing import TypeVar
 
 import gdb
+from typing_extensions import ParamSpec
 
 import pwndbg.color.message as M
 import pwndbg.gdblib.memory
@@ -22,7 +21,11 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 
-_kconfig: pwndbg.lib.kernel.kconfig.Kconfig = None
+_kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
+
+P = ParamSpec("P")
+D = TypeVar("D")
+T = TypeVar("T")
 
 
 def BIT(shift: int):
@@ -40,10 +43,10 @@ def has_debug_syms() -> bool:
 
 
 # NOTE: This implies requires_debug_syms(), as it is needed for kconfig() to return non-None
-def requires_kconfig(default: Any = None) -> Callable[..., Any]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+def requires_kconfig(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+    def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
-        def func(*args, **kwargs):
+        def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
             if kconfig():
                 return f(*args, **kwargs)
 
@@ -59,10 +62,10 @@ def requires_kconfig(default: Any = None) -> Callable[..., Any]:
     return decorator
 
 
-def requires_debug_syms(default: Any = None) -> Callable[..., Any]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+    def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
-        def func(*args, **kwargs):
+        def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
             if has_debug_syms():
                 return f(*args, **kwargs)
 
@@ -85,7 +88,7 @@ def nproc() -> int:
 
 
 @requires_debug_syms(default={})
-def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
+def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
     config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
     if config_start is None or config_end is None:
@@ -97,7 +100,7 @@ def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
+def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     global _kconfig
     if _kconfig is None:
         _kconfig = load_kconfig()
@@ -122,7 +125,7 @@ def kversion() -> str:
 
 @requires_debug_syms()
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> tuple[int, ...]:
+def krelease() -> Tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
     if match:
         return tuple(int(x) for x in match.groups() if x)

@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import functools
-from typing import Any
 from typing import Callable
-from typing import Optional
 from typing import TypeVar
 
 import gdb
+from typing_extensions import ParamSpec
 
 import pwndbg.color.message as M
 
-T = TypeVar("T")
+_P = ParamSpec("_P")
+_D = TypeVar("_D")
+_T = TypeVar("_T")
 
-abi = None
+abi: str | None = None
 linux = False
 
 
@@ -51,15 +52,15 @@ def update() -> None:
 
 
 def LinuxOnly(
-    default: Optional[Any] = None,
-) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+    default: _D = None,
+) -> Callable[[Callable[_P, _T]], Callable[_P, _T | _D | None]]:
     """Create a decorator that the function will be called when ABI is Linux.
     Otherwise, return `default`.
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
+    def decorator(func: Callable[_P, _T | None]) -> Callable[_P, _T | _D | None]:
         @functools.wraps(func)
-        def caller(*args: Any, **kwargs: Any) -> Optional[T]:
+        def caller(*args: _P.args, **kwargs: _P.kwargs) -> _T | _D | None:
             if linux:
                 return func(*args, **kwargs)
             else:

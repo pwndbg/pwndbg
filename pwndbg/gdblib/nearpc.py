@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 import gdb
 from capstone import *  # noqa: F403
 
@@ -72,7 +74,7 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 
 def nearpc(
     pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False, linear=False
-) -> list[str]:
+) -> List[str]:
     """
     Disassemble near a specified address.
 
@@ -86,7 +88,7 @@ def nearpc(
         # that would require a larger refactor
         pc = nearpc.next_pc
 
-    result: list[str] = []
+    result: List[str] = []
 
     if pc is not None:
         pc = gdb.Value(pc).cast(pwndbg.gdblib.typeinfo.pvoid)
@@ -140,7 +142,7 @@ def nearpc(
     # Gather all addresses and symbols for each instruction
     # Ex: <main+43>
     symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]
-    addresses: list[str] = ["%#x" % i.address for i in instructions]
+    addresses: List[str] = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 

@@ -231,7 +231,7 @@ persistent = true
 
 # Minimum Python version to use for version dependent checks. Will default to the
 # version used to run pylint.
-py-version = "3.7"
+py-version = "3.8"
 
 # When enabled, pylint would attempt to guess common misconfiguration and emit
 # user-friendly hints instead of false-positive error messages.
@@ -324,9 +324,10 @@ pytest = "8.0.2"
 pytest-cov = "4.1.0"
 rich = "13.7.1"
 ruff = "0.4.1"
+sortedcontainers-stubs = "2.4.2"
 testresources = "2.0.1"
 tomli = "2.0.1"
-types-gdb = "12.1.4.20240305"
+types-gdb = "12.1.4.20240401"
 types-psutil = "5.9.5.20240205"
 types-pygments = "2.17.0.20240106"
 types-requests = "2.31.0.20240218"

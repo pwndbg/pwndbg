@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Generator
+from typing import List
+from typing import Set
 
 import gdb
 
@@ -65,7 +67,7 @@ _flags = {
 }
 
 
-def get_flags_list(flags: int) -> list[str]:
+def get_flags_list(flags: int) -> List[str]:
     return [flag_name for flag_name, mask in _flags.items() if flags & mask]
 
 
@@ -139,7 +141,7 @@ class SlabCache:
         return int(self._slab_cache["align"])
 
     @property
-    def flags(self) -> list[str]:
+    def flags(self) -> List[str]:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
@@ -210,7 +212,7 @@ class CpuCache:
         return Slab(_slab.dereference(), self, self.slab_cache)
 
     @property
-    def partial_slabs(self) -> list[Slab]:
+    def partial_slabs(self) -> List[Slab]:
         partial_slabs = []
         cur_slab = self._cpu_cache["partial"]
         while cur_slab:
@@ -231,7 +233,7 @@ class NodeCache:
         return int(self._node_cache)
 
     @property
-    def partial_slabs(self) -> list[Slab]:
+    def partial_slabs(self) -> List[Slab]:
         ret = []
         for slab in for_each_entry(self._node_cache["partial"], "struct slab", "slab_list"):
             ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
@@ -309,14 +311,14 @@ class Slab:
         )
 
     @property
-    def freelists(self) -> list[Freelist]:
+    def freelists(self) -> List[Freelist]:
         freelists = [self.freelist]
         if not self.is_partial:
             freelists.append(self.cpu_cache.freelist)
         return freelists
 
     @property
-    def free_objects(self) -> set[int]:
+    def free_objects(self) -> Set[int]:
         return {obj for freelist in self.freelists for obj in freelist}
 
 

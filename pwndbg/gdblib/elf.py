@@ -11,9 +11,12 @@ from __future__ import annotations
 import ctypes
 import importlib
 import sys
-from collections import namedtuple
+from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -24,11 +27,13 @@ from elftools.elf.relocation import RelocationSection
 import pwndbg.auxv
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.ctypes
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
@@ -43,12 +48,14 @@ ET_EXEC, ET_DYN = 2, 3
 module = sys.modules[__name__]
 
 
-class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
+class ELFInfo(NamedTuple):
     """
     ELF metadata and structures.
     """
 
-    __slots__ = ()
+    header: Dict[str, int | str]
+    sections: List[Dict[str, int | str]]
+    segments: List[Dict[str, int | str]]
 
     @property
     def is_pic(self) -> bool:
@@ -59,13 +66,14 @@ class ELFInfo(namedtuple("ELFInfo", "header sections segments")):
         return self.is_pic
 
 
-Ehdr: Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
-Phdr: Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
+Ehdr = Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
+Phdr = Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
 
 
 @pwndbg.gdblib.events.start
 @pwndbg.gdblib.events.new_objfile
 def update() -> None:
+    global Ehdr, Phdr
     importlib.reload(pwndbg.lib.elftypes)
 
     if pwndbg.gdblib.arch.ptrsize == 4:
@@ -80,8 +88,14 @@ def update() -> None:
 
 update()
 
+T = TypeVar(
+    "T",
+    Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr],
+    Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr],
+)
 
-def read(typ, address, blob=None):
+
+def read(typ: T, address: int, blob: bytearray | None = None) -> T:
     size = ctypes.sizeof(typ)
 
     if not blob:
@@ -138,20 +152,21 @@ def get_elf_info_rebased(filepath: str, vaddr: int) -> ELFInfo:
     # silently ignores "wrong" vaddr supplied for non-PIE ELF
     load = vaddr if raw_info.is_pic else 0
     headers = dict(raw_info.header)
-    headers["e_entry"] += load
+    headers["e_entry"] += load  # type: ignore[operator]
 
-    segments = []
+    segments: List[Dict[str, int | str]] = []
     for seg in raw_info.segments:
         s = dict(seg)
         for vaddr_attr in ["p_vaddr", "x_vaddr_mem_end", "x_vaddr_file_end"]:
-            s[vaddr_attr] += load
+            assert isinstance(headers[vaddr_attr], int)
+            s[vaddr_attr] += load  # type: ignore[operator]
         segments.append(s)
 
-    sections = []
+    sections: List[Dict[str, int | str]] = []
     for sec in raw_info.sections:
         s = dict(sec)
         for vaddr_attr in ["sh_addr", "x_addr_mem_end", "x_addr_file_end"]:
-            s[vaddr_attr] += load
+            s[vaddr_attr] += load  # type: ignore[operator]
         sections.append(s)
 
     return ELFInfo(headers, sections, segments)
@@ -166,7 +181,7 @@ def get_containing_segments(elf_filepath: str, elf_loadaddr: int, vaddr: int):
         if isinstance(seg["p_type"], int) or ("LOAD" not in seg["p_type"] and seg["p_filesz"] == 0):
             continue
         # disregard segments not containing vaddr
-        if vaddr < seg["p_vaddr"] or vaddr >= seg["x_vaddr_mem_end"]:
+        if vaddr < seg["p_vaddr"] or vaddr >= seg["x_vaddr_mem_end"]:  # type: ignore[operator]
             continue
         segments.append(dict(seg))
     return segments
@@ -180,7 +195,7 @@ def get_containing_sections(elf_filepath: str, elf_loadaddr: int, vaddr: int):
         if sec["sh_flags"] & SH_FLAGS.SHF_ALLOC == 0:
             continue
         # disregard sections that do not contain vaddr
-        if vaddr < sec["sh_addr"] or vaddr >= sec["x_addr_mem_end"]:
+        if vaddr < sec["sh_addr"] or vaddr >= sec["x_addr_mem_end"]:  # type: ignore[operator]
             continue
         sections.append(dict(sec))
     return sections
@@ -220,7 +235,7 @@ def dump_relocations_by_section_name(
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start")
-def exe():
+def exe() -> Ehdr | None:
     """
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
@@ -228,6 +243,7 @@ def exe():
     e = entry()
     if e:
         return load(e)
+    return None
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -256,7 +272,7 @@ def entry() -> int:
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return pwndbg.gdblib.symbol.address(name)
+            return pwndbg.gdblib.symbol.address(name) or 0
         except gdb.error:
             pass
 
@@ -264,7 +280,7 @@ def entry() -> int:
     return 0
 
 
-def load(pointer: int):
+def load(pointer: int) -> Ehdr | None:
     return get_ehdr(pointer)[1]
 
 
@@ -277,7 +293,7 @@ def reset_ehdr_type_loaded() -> None:
     ehdr_type_loaded = 0
 
 
-def get_ehdr(pointer: int):
+def get_ehdr(pointer: int) -> Tuple[int | None, Ehdr | None]:
     """
     Returns an ehdr object for the ELF pointer points into.
 
@@ -327,17 +343,17 @@ def get_ehdr(pointer: int):
     ei_class = pwndbg.gdblib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr = read(Ehdr, base)
+    Elfhdr: Elf32_Ehdr | Elf64_Ehdr | None = read(Ehdr, base)  # type: ignore[type-var]
     return ei_class, Elfhdr
 
 
-def get_phdrs(pointer):
+def get_phdrs(pointer: int):
     """
     Returns a tuple containing (phnum, phentsize, gdb.Value),
     where the gdb.Value object is an ELF Program Header with
     the architecture-appropriate structure type.
     """
-    ei_class, Elfhdr = get_ehdr(pointer)
+    _, Elfhdr = get_ehdr(pointer)
 
     if Elfhdr is None:
         return (0, 0, None)
@@ -346,11 +362,11 @@ def get_phdrs(pointer):
     phoff = Elfhdr.e_phoff
     phentsize = Elfhdr.e_phentsize
 
-    x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))
+    x = (phnum, phentsize, read(Phdr, Elfhdr.address + phoff))  # type: ignore[type-var]
     return x
 
 
-def iter_phdrs(ehdr):
+def iter_phdrs(ehdr: Ehdr):
     if not ehdr:
         return
 
@@ -392,7 +408,7 @@ def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
     return map_inner(ei_class, ehdr, objfile)
 
 
-def map_inner(ei_class, ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not ehdr:
         return ()
 

@@ -30,6 +30,7 @@
 from __future__ import annotations
 
 import ctypes
+from typing import Dict
 
 import pwndbg.gdblib.ctypes
 
@@ -49,7 +50,7 @@ Elf64_Xword = ctypes.c_uint64
 Elf64_Sxword = ctypes.c_int64
 
 
-AT_CONSTANTS: dict[int, str] = {
+AT_CONSTANTS: Dict[int, str] = {
     0: "AT_NULL",  # /* End of vector */
     1: "AT_IGNORE",  # /* Entry should be ignored */
     2: "AT_EXECFD",  # /* File descriptor of program */

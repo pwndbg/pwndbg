@@ -7,7 +7,9 @@ from __future__ import annotations
 
 from typing import Dict
 from typing import Iterator
+from typing import List
 from typing import OrderedDict
+from typing import Set
 from typing import Tuple
 from typing import Union
 
@@ -16,37 +18,37 @@ BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
 
 class RegisterSet:
     #: Program counter register
-    pc: str | None = None
+    pc: str
 
     #: Stack pointer register
-    stack: str | None = None
+    stack: str
 
     #: Frame pointer register
     frame: str | None = None
 
     #: Return address register
-    retaddr: Tuple[str, ...] | None = None
+    retaddr: Tuple[str, ...]
 
     #: Flags register (eflags, cpsr)
-    flags: Dict[str, BitFlags] | None = None
+    flags: Dict[str, BitFlags]
 
     #: List of native-size general-purpose registers
-    gpr: Tuple[str, ...] | None = None
+    gpr: Tuple[str, ...]
 
     #: List of miscellaneous, valid registers
-    misc: Tuple[str, ...] | None = None
+    misc: Tuple[str, ...]
 
     #: Register-based arguments for most common ABI
-    regs = None
+    args: Tuple[str, ...]
 
     #: Return value register
-    retval: str | None = None
+    retval: str | None
 
     #: Common registers which should be displayed in the register context
-    common: list[str] = []
+    common: List[str] = []
 
     #: All valid registers
-    all: set[str] | None = None
+    all: Set[str]
 
     def __init__(
         self,

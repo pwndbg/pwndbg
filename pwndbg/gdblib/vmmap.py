@@ -164,7 +164,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def find(address: int | None) -> pwndbg.lib.memory.Page | None:
+def find(address: int | gdb.Value | None) -> pwndbg.lib.memory.Page | None:
     if address is None:
         return None
 

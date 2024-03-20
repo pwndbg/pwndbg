@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import Any
+
+import gdb
+
 
 class MemoryAllocator:
     """Heap abstraction layer."""
 
-    def breakpoint(self, event):
+    def breakpoint(self, event: str) -> gdb.Breakpoint:
         """Enables breakpoints on the specific event.
 
         Arguments:
@@ -15,7 +19,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def summarize(self, address, **kwargs):
+    def summarize(self, address: int, **kwargs: Any) -> str:
         """Returns a textual summary of the specified address.
 
         Arguments:
@@ -26,7 +30,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def containing(self, address):
+    def containing(self, address: int) -> int:
         """Returns the address of the allocation which contains 'address'.
 
         Arguments:
@@ -37,7 +41,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         """Returns whether the allocator is initialized or not.
 
         Returns:
@@ -45,7 +49,7 @@ class MemoryAllocator:
         """
         raise NotImplementedError()
 
-    def libc_has_debug_syms(self):
+    def libc_has_debug_syms(self) -> bool:
         """Returns whether the libc has debug symbols or not.
 
         Returns:

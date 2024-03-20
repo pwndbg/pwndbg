@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 from random import choice
+from typing import List
 
 from pwndbg.color import message
 
-TIPS: list[str] = [
+TIPS: List[str] = [
     # GDB hints
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls",

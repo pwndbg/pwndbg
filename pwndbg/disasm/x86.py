@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable
+from typing import Dict
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
@@ -37,7 +38,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             X86_INS_MOV: self.handle_mov,
             X86_INS_MOVABS: self.handle_mov,

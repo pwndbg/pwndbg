@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable
+from typing import Dict
 
 from capstone import *  # noqa: F403
 from capstone.arm64 import *  # noqa: F403
@@ -17,7 +18,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             ARM64_INS_MOV: self.generic_register_destination,
             # ADR

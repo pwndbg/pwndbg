@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import argparse
 import queue
+from typing import Dict
+from typing import List
 
 import gdb
 
@@ -142,7 +144,7 @@ def leakfind(
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
     visited_set = {int(address)}
-    address_queue: queue.Queue[int] = queue.Queue()
+    address_queue = queue.Queue()  # type: ignore[var-annotated]
     address_queue.put(int(address))
     depth = 0
     time_to_depth_increase = 0
@@ -175,7 +177,7 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map: dict[int, list[str]] = {}
+    output_map: Dict[int, List[str]] = {}
     arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
 
     for child in visited_map:

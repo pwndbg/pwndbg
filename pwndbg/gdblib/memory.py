@@ -137,6 +137,8 @@ def is_readable_address(address: int) -> bool:
         :class:`bool`: Whether the address is readable.
     """
     # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
+    import pwndbg.gdblib.vmmap
+
     return pwndbg.gdblib.vmmap.find(address) is not None and peek(address) is not None
 
 
@@ -317,8 +319,8 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
-        for i in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
+        for _ in range(max_pages):
+            read(addr, 1)
             # import sys
             # sys.stdout.write(hex(addr) + '\n')
             addr += PAGE_SIZE
@@ -344,7 +346,7 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         for _ in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
+            read(addr, 1)
             addr -= PAGE_SIZE
 
             # Sanity check (see comment in find_upper_boundary)

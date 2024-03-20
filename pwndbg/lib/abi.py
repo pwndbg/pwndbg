@@ -37,15 +37,15 @@ class ABI:
 
     @staticmethod
     def default() -> ABI:
-        return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
 
     @staticmethod
     def syscall() -> SyscallABI:
-        return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
 
     @staticmethod
     def sigreturn() -> SigreturnABI:
-        return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.current, "linux")]
+        return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
 
 
 class SyscallABI(ABI):
