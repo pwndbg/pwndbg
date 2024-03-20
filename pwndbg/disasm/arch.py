@@ -7,8 +7,8 @@ from capstone import *  # noqa: F403
 
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.color.syntax_highlight as H
 import pwndbg.color.memory as MemoryColor
+import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
@@ -252,8 +252,9 @@ class DisassemblyAssistant:
 
                 if op.symbol and op.type == CS_OP_IMM:
                     # Make an inline replacement, so `jump 0x400122` becomes `jump function_name`
-                    instruction.asm_string = instruction.asm_string.replace(hex(op.before_value), op.symbol)
-
+                    instruction.asm_string = instruction.asm_string.replace(
+                        hex(op.before_value), op.symbol
+                    )
 
         # Execute the instruction and set after_value
         if emu and None not in emu.single_step(check_instruction_valid=False):

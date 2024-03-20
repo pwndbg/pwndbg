@@ -8,10 +8,11 @@ from capstone import CS_GRP_JUMP
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.disasm
+import pwndbg.disasm.arch
 import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.next
-import pwndbg.disasm.arch
 from pwndbg.disasm.instruction import PwndbgInstruction
+
 
 class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     """

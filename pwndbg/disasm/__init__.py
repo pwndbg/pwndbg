@@ -104,7 +104,7 @@ def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
     computed_instruction_cache.pop(pwndbg.gdblib.regs.pc, None)
-    
+
     for addr in next_addresses_cache:
         computed_instruction_cache.pop(addr, None)
 

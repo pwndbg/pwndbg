@@ -232,7 +232,9 @@ class PwndbgInstruction:
         """
         # The second check ensures that if the target address it itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the ALL_JUMP_GROUPS in the first part of this check.
-        return self.target not in (None, self.address + self.size) and (self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS))
+        return self.target not in (None, self.address + self.size) and (
+            self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS)
+        )
 
     @property
     def is_conditional_jump(self) -> bool:
