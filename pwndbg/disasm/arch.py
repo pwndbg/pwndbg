@@ -7,6 +7,7 @@ from capstone import *  # noqa: F403
 
 import pwndbg.chain
 import pwndbg.color.context as C
+import pwndbg.color.syntax_highlight as H
 import pwndbg.color.memory as MemoryColor
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
@@ -54,6 +55,11 @@ pwndbg.gdblib.config.add_param(
     50,
     "Number of characters in strings to display in disasm annotations",
 )
+
+
+def syntax_highlight(ins):
+    return H.syntax_highlight(ins, filename=".asm")
+
 
 DEBUG_ENHANCEMENT = False
 # DEBUG_ENHANCEMENT = True
@@ -114,7 +120,7 @@ class DisassemblyAssistant:
         }
 
     @staticmethod
-    def for_current_arch():
+    def for_current_arch() -> DisassemblyAssistant:
         return DisassemblyAssistant.assistants.get(pwndbg.gdblib.arch.current, None)
 
     # Mutates the "instruction" object
@@ -231,6 +237,10 @@ class DisassemblyAssistant:
         Return False if emulation fails (so we don't use it in additional enhancement steps)
         """
 
+        # Apply syntax highlighting to the assembly
+        if pwndbg.gdblib.config.syntax_highlight:
+            instruction.asm_string = syntax_highlight(instruction.asm_string)
+
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
         for op in instruction.operands:
@@ -239,6 +249,11 @@ class DisassemblyAssistant:
             if op.before_value is not None:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+
+                if op.symbol and op.type == CS_OP_IMM:
+                    # Make an inline replacement, so `jump 0x400122` becomes `jump function_name`
+                    instruction.asm_string = instruction.asm_string.replace(hex(op.before_value), op.symbol)
+
 
         # Execute the instruction and set after_value
         if emu and None not in emu.single_step(check_instruction_valid=False):

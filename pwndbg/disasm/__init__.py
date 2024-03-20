@@ -103,6 +103,8 @@ def clear_on_reg_mem_change() -> None:
 
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    computed_instruction_cache.pop(pwndbg.gdblib.regs.pc, None)
+    
     for addr in next_addresses_cache:
         computed_instruction_cache.pop(addr, None)
 
@@ -322,7 +324,7 @@ first_time_emulate = True
 
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
-    address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False
+    address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False, linear=False
 ) -> tuple[list[PwndbgInstruction], int]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
@@ -403,7 +405,8 @@ def near(
                 emu = None
 
         # Address to disassemble & emulate
-        target = insn.next
+        target = insn.next if not linear else insn.address + insn.size
+
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call

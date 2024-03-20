@@ -150,6 +150,16 @@ class PwndbgInstruction:
         # in pwndbg.disasm.arch.py
         # ***********
 
+        self.asm_string: str = "%-06s %s" % (self.mnemonic, self.op_str)
+        """
+        The full string representing the instruction - `mov    rdi, rsp` with appropriate padding.
+
+        This is syntax highlighted during enhancement.
+
+        This is additionally modified during enhancement for the purposes of replacing
+        immediate values with their corresponding symbols
+        """
+
         self.next: int = self.address + self.size
         """
         This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
@@ -220,7 +230,9 @@ class PwndbgInstruction:
         """
         True if we have determined that this instruction can explicitly change the program counter.
         """
-        return self.target not in (None, self.address + self.size)
+        # The second check ensures that if the target address it itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
+        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the ALL_JUMP_GROUPS in the first part of this check.
+        return self.target not in (None, self.address + self.size) and (self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS))
 
     @property
     def is_conditional_jump(self) -> bool:
@@ -291,6 +303,8 @@ class PwndbgInstruction:
 
         return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         ID: {self.id}, {self.cs_insn.insn_name()}
+        Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
+        New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
         Condition: {self.condition.name}
@@ -336,7 +350,7 @@ class EnhancedOperand:
 
         self.symbol: str | None = None
         """
-        Resolved symbol name for this operand, if .before_value is set, else None.
+        Colorized symbol name for this operand, if .before_value is set and symbol exists, else None.
         """
 
     @property

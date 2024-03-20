@@ -10,14 +10,15 @@ import pwndbg.commands
 import pwndbg.disasm
 import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.next
-
+import pwndbg.disasm.arch
+from pwndbg.disasm.instruction import PwndbgInstruction
 
 class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     """
     A breakpoint that only stops the inferior if a given branch is taken or not taken.
     """
 
-    def __init__(self, instruction, taken) -> None:
+    def __init__(self, instruction: PwndbgInstruction, taken: bool) -> None:
         super().__init__("*%#x" % instruction.address, type=gdb.BP_BREAKPOINT, internal=False)
         self.instruction = instruction
         self.taken = taken
@@ -26,11 +27,8 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
         # Use the assistant to figure out which if all the conditions this
         # branch requires in order to be taken have been met.
         assistant = pwndbg.disasm.arch.DisassemblyAssistant.for_current_arch()
-        condition_met = assistant.condition(self.instruction)
-        if condition_met is None:
-            # This branch is unconditional.
-            condition_met = 1
-        condition_met = condition_met != 0
+        assistant.enhance(self.instruction)
+        condition_met = self.instruction.is_conditional_jump_taken
 
         return condition_met == self.taken
 
@@ -63,7 +61,7 @@ def break_if_not_taken(branch) -> None:
     install_breakpoint(branch, taken=False)
 
 
-def install_breakpoint(branch, taken) -> None:
+def install_breakpoint(branch, taken: bool) -> None:
     # Do our best to interpret branch as an address locspec. Untimately, though,
     # we're limited in what we can do from inside Python in that front.
     #

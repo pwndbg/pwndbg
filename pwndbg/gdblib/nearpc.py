@@ -71,10 +71,12 @@ opcode_separator_bytes = pwndbg.gdblib.config.add_param(
 
 
 def nearpc(
-    pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False
+    pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False, linear=False
 ) -> list[str]:
     """
     Disassemble near a specified address.
+
+    The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
     """
 
     # Repeating nearpc (pressing enter) makes it show next addresses
@@ -125,7 +127,7 @@ def nearpc(
     #             pc_to_linenos[line.pc].append(line.line)
 
     instructions, index_of_pc = pwndbg.disasm.near(
-        pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache
+        pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
     )
 
     if pwndbg.gdblib.memory.peek(pc) and not instructions:

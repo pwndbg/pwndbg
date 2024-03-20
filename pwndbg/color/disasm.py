@@ -4,7 +4,6 @@ import capstone
 
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.color.syntax_highlight as H
 import pwndbg.disasm.jump
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -24,27 +23,14 @@ c = ColorConfig(
 )
 
 
-def syntax_highlight(ins):
-    return H.syntax_highlight(ins, filename=".asm")
-
-
 # Returns colorized instructions assembly and operands, and checkmark if branch is taken
 #  Example: `✔ je     _IO_file_xsputn+341`. Inline symbol replacements made. No annotation or branch targets shown.
 def one_instruction(ins: PwndbgInstruction) -> str:
-    asm = "%-06s %s" % (ins.mnemonic, ins.op_str)
-    if pwndbg.gdblib.config.syntax_highlight:
-        asm = syntax_highlight(asm)
+    asm = ins.asm_string
 
     # Highlight the current line if enabled
     if pwndbg.gdblib.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
-
-    if ins.can_change_instruction_pointer:
-        sym = ins.target_string
-
-        # If it's a constant expression (immediate value), color it directly in the asm.
-        if ins.target_const:
-            asm = asm.replace(hex(ins.target), sym)
 
     is_call_or_jump = ins.groups_set & capstone_branch_groups
 

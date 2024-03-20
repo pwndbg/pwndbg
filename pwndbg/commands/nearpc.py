@@ -24,13 +24,13 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def nearpc(pc=None, lines=None, emulate=False, use_cache=False) -> None:
+def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> None:
     """
     Disassemble near a specified address.
     """
     print(
         "\n".join(
-            pwndbg.gdblib.nearpc.nearpc(pc, lines, emulate, nearpc.repeat, use_cache=use_cache)
+            pwndbg.gdblib.nearpc.nearpc(pc, lines, emulate, nearpc.repeat, use_cache=use_cache, linear=linear)
         )
     )
 
@@ -55,4 +55,4 @@ def emulate(pc=None, lines=None, emulate_=True) -> None:
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
     nearpc.repeat = emulate.repeat
-    nearpc(pc, lines, emulate_, use_cache=True)
+    nearpc(pc, lines, emulate_, use_cache=True, linear=False)
