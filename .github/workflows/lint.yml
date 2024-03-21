@@ -48,4 +48,5 @@ jobs:
         install_types: false
         target: pwndbg
         filter_mode: nofilter
+        fail_on_error: true
 
