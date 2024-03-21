@@ -319,7 +319,7 @@ pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "89ea252f6efc5d7
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "24.2.0"
+black = "24.3.0"
 coverage = {version = "7.4.3", extras = ["toml"]}
 isort = "5.13.2"
 mypy = "1.8.0"
