@@ -30,7 +30,7 @@ title_position = theme.add_param("banner-title-position", "center", "banner titl
 
 
 @config.trigger(title_position)
-def check_title_position() -> int:  # just a test to see if mypy inline reviews work
+def check_title_position() -> None:
     valid_values = ["center", "left", "right"]
     if title_position not in valid_values:
         print(
