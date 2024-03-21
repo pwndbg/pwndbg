@@ -80,4 +80,7 @@ fi
 # Checking minimum python version
 vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
 
-mypy pwndbg
+# mypy is run in a separate step on GitHub Actions
+if [[ -z "$GITHUB_ACTIONS" ]]; then
+    mypy pwndbg
+fi
