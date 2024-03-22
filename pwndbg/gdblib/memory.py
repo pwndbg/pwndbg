@@ -360,3 +360,37 @@ def update_min_addr() -> None:
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0
+
+
+def fetch_struct_as_dictionary(struct_name: str, struct_address: int):
+    struct_type = gdb.lookup_type("struct " + struct_name)
+    fetched_struct = poi(struct_type, struct_address)
+
+    return pack_struct_into_dictionary(fetched_struct)
+
+
+def pack_struct_into_dictionary(fetched_struct: gdb.Value):
+    struct_as_dictionary = {}
+    for field in fetched_struct.type.fields():
+        if field.name is None:
+            # Flatten anonymous structs/unions
+            struct_as_dictionary.update(convert_gdb_value_to_python_value(fetched_struct[field]))
+        else:
+            key = field.name
+            value = convert_gdb_value_to_python_value(fetched_struct[field])
+            struct_as_dictionary[key] = value
+
+    return struct_as_dictionary
+
+
+def convert_gdb_value_to_python_value(gdb_value: gdb.Value):
+    type_code_conversions = {
+        gdb.TYPE_CODE_PTR: int,
+        gdb.TYPE_CODE_INT: int,
+        gdb.TYPE_CODE_STRUCT: pack_struct_into_dictionary,
+    }
+
+    gdb_type = gdb_value.type.strip_typedefs()
+    conversion_function = type_code_conversions[gdb_type.code]
+
+    return conversion_function(gdb_value)
