@@ -257,7 +257,7 @@ def search(
         return
 
     # If next is passed, only perform a manual search over previously saved addresses
-    if type=="asm":
+    if type == "asm":
         print("Searching for instruction (assembled value): " + repr(value))
     else:
         print("Searching for value: " + repr(value))
