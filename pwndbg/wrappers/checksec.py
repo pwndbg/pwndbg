@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pwnlib.elf import ELF
 
+
 def get_raw_out(local_path: str) -> str:
     elf = ELF(local_path)
     output = f"File: {elf.path}\n"

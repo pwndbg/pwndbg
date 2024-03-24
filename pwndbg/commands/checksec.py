@@ -1,17 +1,19 @@
 from __future__ import annotations
+
 import argparse
+
 
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.file
 import pwndbg.wrappers.checksec
-from pwnlib.elf import ELF
 
-parser = argparse.ArgumentParser(description="Prints out the binary security settings using `checksec`.")
-
-parser.add_argument(
-    "-f", "--file", type=str, help="Specify the file to run `checksec` on."
+parser = argparse.ArgumentParser(
+    description="Prints out the binary security settings using `checksec`."
 )
+
+parser.add_argument("-f", "--file", type=str, help="Specify the file to run `checksec` on.")
+
 
 def color_line(line: str) -> str:
     return pwndbg.color.normal(
