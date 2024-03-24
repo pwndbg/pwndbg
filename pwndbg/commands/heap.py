@@ -25,6 +25,7 @@ from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
 from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import Heap
+from pwndbg.hexdump import hexdump
 
 
 def read_chunk(addr):
@@ -423,13 +424,16 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
+parser.add_argument(
+    "-d", "--dump", action="store_true", help="Print a hexdump of the chunk."
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
+def malloc_chunk(addr, fake=False, verbose=False, simple=False, dump=False) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -503,7 +507,13 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
                 message.system(field_to_print) + f": 0x{getattr(chunk, field_to_print):02x}\n"
             )
 
+
+
     print(" | ".join(headers_to_print) + "\n" + out_fields)
+    
+    if dump:
+        print(C.banner("hexdump"))
+        pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size)
 
 
 parser = argparse.ArgumentParser(
