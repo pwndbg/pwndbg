@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib.file
