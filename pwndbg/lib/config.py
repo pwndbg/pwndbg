@@ -177,10 +177,9 @@ class Config:
     def validate_choices(self, name: str, value: Any) -> bool:
         name_with_underscores = name.replace("-", "_")
         p = self.params[name_with_underscores]
-        print(p, p.choices, value)
-        # value can be empty string
-        if p.choices is not None and value != "":
-            return value in p.choices
+        if p.choices is not None:
+            for v in value.split():
+                return v in p.choices
         return True
 
     def trigger(self, *params: Parameter) -> Callable[[Callable[..., T]], Callable[..., T]]:

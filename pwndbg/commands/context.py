@@ -94,6 +94,12 @@ config_context_sections = pwndbg.gdblib.config.add_param(
         "expressions",
         "threads",
         "heap-tracker",
+        "''",
+        '""',
+        "none",
+        "empty",
+        "-",
+        "",
     ],
 )
 config_max_threads_display = pwndbg.gdblib.config.add_param(
@@ -111,17 +117,15 @@ output_settings = {}
 def allow_empty_context_sections() -> None:
     # If someone tries to set an empty string, we let to do that informing about possible values
     # (so that it is possible to have no context at all)
-    if not config_context_sections.value or config_context_sections.value.lower() in (
-        "''",
-        '""',
-        "none",
-        "empty",
-        "-",
-    ):
+    special_values = ["''", '""', "none", "empty", "-", ""]
+    valid_values = [
+        e for e in config_context_sections.choices if e not in special_values
+    ]
+    if not config_context_sections.value or config_context_sections.value.lower() in special_values:
         config_context_sections.value = ""
         print(
             message.warn(
-                f"Sections set to be empty. FYI valid values are: {', '.join(config_context_sections.choices)}"
+                f"Sections set to be empty. FYI valid values are: {', '.join(valid_values)}"
             )
         )
         return
