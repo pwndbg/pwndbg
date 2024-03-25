@@ -173,7 +173,7 @@ class Config:
 
         self.params[attr_name] = p
         return p
-    
+
     def validate_choices(self, name: str, value: Any) -> bool:
         name_with_underscores = name.replace("-", "_")
         p = self.params[name_with_underscores]
