@@ -508,7 +508,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, dump=False) -> N
 
     if dump:
         print(C.banner("hexdump"))
-        
+
         ptr_size = pwndbg.gdblib.arch.ptrsize
         pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
