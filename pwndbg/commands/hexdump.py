@@ -86,7 +86,7 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
     group_width = pwndbg.gdblib.typeinfo.ptrsize if group_width == -1 else group_width
 
     # TODO: What if arch endian is big, and use_big_endian is false?
-    flip_group_endianess = (
+    flip_group_endianness = (
         pwndbg.gdblib.config.hexdump_group_use_big_endian and pwndbg.gdblib.arch.endian == "little"
     )
 
@@ -109,7 +109,7 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
         address=address,
         width=width,
         group_width=group_width,
-        flip_group_endianess=flip_group_endianess,
+        flip_group_endianness=flip_group_endianness,
         offset=hexdump.offset,
     )
     for i, line in enumerate(result):
