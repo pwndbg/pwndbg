@@ -84,6 +84,17 @@ config_context_sections = pwndbg.gdblib.config.add_param(
     "context-sections",
     "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
     "which context sections are displayed (controls order)",
+    choices=[
+        "regs",
+        "disasm",
+        "code",
+        "ghidra",
+        "stack",
+        "backtrace",
+        "expressions",
+        "threads",
+        "heap-tracker",
+    ],
 )
 config_max_threads_display = pwndbg.gdblib.config.add_param(
     "context-max-threads",
@@ -97,11 +108,7 @@ output_settings = {}
 
 
 @pwndbg.gdblib.config.trigger(config_context_sections)
-def validate_context_sections() -> None:
-    valid_values = [
-        context.__name__.replace("context_", "") for context in context_sections.values()
-    ]
-
+def allow_empty_context_sections() -> None:
     # If someone tries to set an empty string, we let to do that informing about possible values
     # (so that it is possible to have no context at all)
     if not config_context_sections.value or config_context_sections.value.lower() in (
@@ -114,19 +121,10 @@ def validate_context_sections() -> None:
         config_context_sections.value = ""
         print(
             message.warn(
-                f"Sections set to be empty. FYI valid values are: {', '.join(valid_values)}"
+                f"Sections set to be empty. FYI valid values are: {', '.join(config_context_sections.choices)}"
             )
         )
         return
-
-    for section in config_context_sections.split():
-        if section not in valid_values:
-            print(
-                message.warn(f"Invalid section: {section}, valid values: {', '.join(valid_values)}")
-            )
-            print(message.warn("(setting none of them like '' will make sections not appear)"))
-            config_context_sections.revert_default()
-            return
 
 
 class StdOutput:

@@ -40,6 +40,7 @@ class Parameter:
         param_class: int | None = None,
         enum_sequence: Sequence[str] | None = None,
         scope: str = "config",
+        choices: Sequence[str] | None = None,
     ) -> None:
         # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
         # The `set_doc` will be "Set the value of the foo."
@@ -54,6 +55,7 @@ class Parameter:
         self.param_class = param_class or PARAM_CLASSES[type(default)]
         self.enum_sequence = enum_sequence
         self.scope = scope
+        self.choices = choices
 
     @property
     def is_changed(self) -> bool:
@@ -146,6 +148,7 @@ class Config:
         param_class: int | None = None,
         enum_sequence: Sequence[str] | None = None,
         scope: str = "config",
+        choices: Sequence[str] | None = None,
     ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
@@ -158,6 +161,7 @@ class Config:
             param_class=param_class,
             enum_sequence=enum_sequence,
             scope=scope,
+            choices=choices,
         )
         return self.add_param_obj(p)
 
@@ -169,6 +173,15 @@ class Config:
 
         self.params[attr_name] = p
         return p
+    
+    def validate_choices(self, name: str, value: Any) -> bool:
+        name_with_underscores = name.replace("-", "_")
+        p = self.params[name_with_underscores]
+        print(p, p.choices, value)
+        # value can be empty string
+        if p.choices is not None and value != "":
+            return value in p.choices
+        return True
 
     def trigger(self, *params: Parameter) -> Callable[[Callable[..., T]], Callable[..., T]]:
         names = [p.name for p in params]

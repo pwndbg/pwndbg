@@ -95,6 +95,11 @@ class Parameter(gdb.Parameter):
             self.param.value = self.value
 
         for trigger in config.triggers[self.param.name]:
+            # validate param value before trigger
+            if not config.validate_choices(self.param.name, self.param.value):
+                self.param.revert_default()
+                return f"Invalid value '{self.param.value}' for parameter '{self.param.name}'. Valid choices are: {', '.join(self.param.choices)}"
+
             trigger()
 
         # No need to print anything if this is set before we get to a prompt,
