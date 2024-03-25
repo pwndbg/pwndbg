@@ -118,9 +118,7 @@ def allow_empty_context_sections() -> None:
     # If someone tries to set an empty string, we let to do that informing about possible values
     # (so that it is possible to have no context at all)
     special_values = ["''", '""', "none", "empty", "-", ""]
-    valid_values = [
-        e for e in config_context_sections.choices if e not in special_values
-    ]
+    valid_values = [e for e in config_context_sections.choices if e not in special_values]
     if not config_context_sections.value or config_context_sections.value.lower() in special_values:
         config_context_sections.value = ""
         print(
