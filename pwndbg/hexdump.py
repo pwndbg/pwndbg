@@ -74,7 +74,7 @@ def hexdump(
     address=0,
     width=16,
     group_width=4,
-    flip_group_endianess=False,
+    flip_group_endianness=False,
     skip=True,
     offset=0,
     size=0,
@@ -134,9 +134,9 @@ def hexdump(
             ]
 
             for group in groupby(group_width, line):
-                group = reversed(group) if flip_group_endianess else group
+                group = reversed(group) if flip_group_endianness else group
                 for idx, char in enumerate(group):
-                    if flip_group_endianess and idx == group_width - 1:
+                    if flip_group_endianness and idx == group_width - 1:
                         hexline.append(H.highlight_group_lsb(color_scheme[char]))
                     else:
                         hexline.append(color_scheme[char])
