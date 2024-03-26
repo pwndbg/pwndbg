@@ -68,9 +68,6 @@ def canary(all) -> None:
             continue
 
         found_canaries = True
-
-        print(message.success(f"Thread {thread}: Found valid canaries on stack."))
-
         num_canaries = len(stack_canaries)
         num_canaries_to_display = num_canaries
         some_canaries_not_shown = False
@@ -80,11 +77,16 @@ def canary(all) -> None:
             if num_canaries_to_display < num_canaries:
                 some_canaries_not_shown = True
 
+        if num_canaries > 1:
+            print(message.success(f"Thread {thread}: Found valid canaries."))
+        else:
+            print(message.success(f"Thread {thread}: Found valid canary."))
+
         for stack_canary in stack_canaries[:num_canaries_to_display]:
             pwndbg.commands.telescope.telescope(address=stack_canary, count=1)
 
     if found_canaries is False:
-        print(message.warn("No valid canaries found on the stacks."))
+        print(message.warn("No canaries found."))
 
     if some_canaries_not_shown is True:
         print(message.warn("Additional results hidden. Use --all to see them."))
