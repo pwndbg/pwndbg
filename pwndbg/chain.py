@@ -36,6 +36,7 @@ def get(
     hard_end=0,
     include_start=True,
     safe_linking=False,
+    only_read_only=False
 ):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
@@ -104,7 +105,7 @@ def format(
     hard_stop=None,
     hard_end=0,
     safe_linking=False,
-    enhance_can_dereference=True,
+    only_dereference_readonly_ptrs=False,
     enhance_string_len: int = None,
 ):
     """
@@ -119,8 +120,7 @@ def format(
         hard_stop(int): Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
         safe_linking(bool): whether this chain use safe-linking
-        enhance_can_dereference(bool): whether 'enhance' is allowed to dereference the value it is enhancing
-            Only takes effect when passing a list with a single value, and is used when it may be a pointer that is not meant to be dereferenced
+        only_dereference_readonly_ptrs(bool): whether 'enhance' is only allowed to dereference pointers that point to readonly memory
         enhance_string_len(int): The length of string to display for enhancement of the last pointer
     Returns:
         A string representing pointers of each address and reference
@@ -154,6 +154,18 @@ def format(
     # Otherwise replace last element with the enhanced information.
     rest = rest[:-1]
 
+
+    enhance_can_dereference = True
+
+    # This is used in rare cases when we pass in a list of pointers where the last
+    # pointer should not be dereferenced.
+    if only_dereference_readonly_ptrs:
+        page = pwndbg.gdblib.vmmap.find(value[-1] if len(chain) == 1 else value[-2])
+        if page and page.write:
+            enhance_can_dereference = False
+
+    print(enhance_can_dereference)
+    
     # Enhance the last entry
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
     # the only element there is.
@@ -164,8 +176,6 @@ def format(
             attempt_dereference=enhance_can_dereference,
             enhance_string_len=enhance_string_len,
         )
-
-    # Otherwise, the last element in the chain is the non-pointer value.
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
     elif len(chain) < limit + 1:
@@ -174,6 +184,7 @@ def format(
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
+            attempt_dereference=enhance_can_dereference
         )
 
     else:

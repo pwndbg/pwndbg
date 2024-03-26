@@ -112,7 +112,7 @@ def clear_on_reg_mem_change() -> None:
 
 
 # Dict of Address -> previous Address executed
-# This allows use to display the instructions that led to the current instruction
+# Used to display instructions that led to current instruction
 backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
 # This allows use to retain the annotation strings from previous instructions
@@ -190,8 +190,7 @@ def get_disassembler(pc):
     )
 
 
-# If passed an emulator, this will pass it to the DisassemblyAssistant
-# which will single_step the emulator to determine the operand values before and after the instruction executes
+
 def get_one_instruction(
     address,
     emu: pwndbg.emu.emulator.Emulator = None,
@@ -199,6 +198,10 @@ def get_one_instruction(
     from_cache=False,
     put_cache=False,
 ) -> PwndbgInstruction:
+    """
+    If passed an emulator, this will pass it to the DisassemblyAssistant which will
+    single_step the emulator to determine the operand values before and after the instruction executes.
+    """
     if from_cache:
         cached = computed_instruction_cache[address]
         if cached is not None:
