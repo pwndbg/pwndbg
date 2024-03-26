@@ -11,7 +11,7 @@ import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-DEFAULT_NUM_CANARIES_TO_DISPLAY = 2
+DEFAULT_NUM_CANARIES_TO_DISPLAY = 1
 
 
 def canary_value():
