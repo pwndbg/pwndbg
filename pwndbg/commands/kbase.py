@@ -6,7 +6,6 @@ import gdb
 
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.gdblib.kernel
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
@@ -39,7 +38,7 @@ def kbase() -> None:
     for mapping in mappings:
         # TODO: Check alignment
 
-        if not mapping.vaddr & 0xFFFF000000000000:
+        if not mapping.vaddr & (0xFFFF << 48):
             continue
         if not mapping.execute:
             continue
