@@ -55,7 +55,7 @@ def kbase() -> None:
             continue
         if b in magic:
             base = mapping.vaddr
-            if b != 0x4D:
+            if arch_name == "aarch64" and b != 0x4D:
                 # "MZ" header not found subtract 0x10000 from the address to get the kbase
                 base -= 0x10000
             print(M.success(f"Found virtual base address: {base:#x}"))
