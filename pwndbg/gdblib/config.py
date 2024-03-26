@@ -65,7 +65,7 @@ class Parameter(gdb.Parameter):
         )
 
     def get_set_string(self) -> str:
-        """Handles the GDB `set <param>` command for GDB >= 9"""
+        """Handles the GDB `set <param>`"""
         # GDB will set `self.value` to the user's input
         if self.value is None and self.param.param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
             # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
@@ -87,7 +87,7 @@ class Parameter(gdb.Parameter):
         return f"Set {self.param.set_show_doc} to {self.native_value!r}."
 
     def get_show_string(self, svalue: str) -> str:
-        """Handles the GDB `show <param>` command for GDB >= 9"""
+        """Handles the GDB `show <param>`"""
         more_information_hint = f" See `help set {self.param.name}` for more information."
         return "{} is {!r}.{}".format(
             self.param.set_show_doc.capitalize(),
