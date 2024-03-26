@@ -24,11 +24,12 @@ def kbase() -> None:
 
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "x86-64":
-        # First opcode, seems to be consistent
-        magic = 0x48
+        # 0x48 first opcode in older kernels
+        # 0xFC first opcode in newer kernels
+        magic = [0x48, 0xFC]
     elif arch_name == "aarch64":
         # First byte of "MZ" header
-        magic = 0x4D
+        magic = [0x4D]
     else:
         print(M.error(f"kbase does not support the {arch_name} architecture"))
         return
@@ -48,6 +49,6 @@ def kbase() -> None:
                 )
             )
             continue
-        if b == magic:
+        if b in magic:
             print(M.success(f"Found virtual base address: {mapping.vaddr:#x}"))
             break
