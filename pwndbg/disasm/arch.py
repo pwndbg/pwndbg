@@ -425,9 +425,22 @@ class DisassemblyAssistant:
         elif not can_read_process_state or operand.type == CS_OP_IMM:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
-            page = pwndbg.gdblib.vmmap.find(address)
-            if page and not page.write:
-                return (pwndbg.chain.get(address, limit=limit), True)
+
+            address_list = [address]
+
+            for _ in range(limit):
+                page = pwndbg.gdblib.vmmap.find(address)
+                if page and not page.write:
+                    try:
+                        address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+                        address &= pwndbg.gdblib.arch.ptrmask
+                        address_list.append(address)
+                    except gdb.MemoryError:
+                        break
+                else:
+                    break
+
+            return (address_list, False)
 
         # We cannot telescope, but we can still return the address.
         # Just without any further information
@@ -435,7 +448,7 @@ class DisassemblyAssistant:
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def telescope_format_list(
-        self, addresses: list[int], limit: int, emu: Emulator, enhance_can_dereference: bool
+        self, addresses: list[int], limit: int, emu: Emulator, only_dereference_readonly_ptrs: bool
     ) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
@@ -452,7 +465,7 @@ class DisassemblyAssistant:
             return pwndbg.chain.format(
                 addresses,
                 limit=limit,
-                enhance_can_dereference=enhance_can_dereference,
+                only_dereference_readonly_ptrs=only_dereference_readonly_ptrs,
                 enhance_string_len=enhance_string_len,
             )
 

@@ -47,17 +47,16 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     return asm
 
 
+
+MIN_SPACING = 5
+WHITESPACE_LIMIT = 20
+
 # To making the padding visually nicer, the following padding scheme is used for annotations:
 # All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
 # A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
 def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
-    assembly = [one_instruction(i) for i in instructions]
 
     result: list[str] = []
-
-    MIN_SPACING = 5
-
-    WHITESPACE_LIMIT = 20
 
     cur_padding_len = None
 
@@ -71,7 +70,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     current_group: list[int] = []
 
-    for i, (ins, asm) in enumerate(zip(instructions, assembly)):
+    for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
         if ins.can_change_instruction_pointer:
             sym = ins.target_string
 
@@ -91,8 +90,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
             if cur_padding_len is None:
                 cur_padding_len = raw_len + MIN_SPACING
-
-            if cur_padding_len - raw_len < MIN_SPACING:
+            elif cur_padding_len - raw_len < MIN_SPACING:
                 # Annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + MIN_SPACING
             else:
@@ -126,8 +124,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
             continue
 
         # Find minimum spacing
-        cur_paddings = [paddings[index] for index in group]
-        min_padding = max(cur_paddings)
+        min_padding = max(paddings[index] for index in group)
 
         # Make all the paddings in this group have the same padding
         for index in group:

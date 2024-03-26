@@ -80,7 +80,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
 
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
-            telescope_addresses, did_telescope = super().telescope(
+            telescope_addresses, full_safe_dereference = super().telescope(
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
@@ -101,11 +101,11 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                         f"<Cannot dereference [{MemoryColor.get(left.before_value)}]>"
                     )
                 else:
-                    instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+                    instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, not full_safe_dereference)}"
 
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
-                instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+                instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, not full_safe_dereference)}"
 
             # MOV REG, [MEM]
             elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
@@ -115,9 +115,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
                 # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
                 # it indicates that the dereference likely segfaults
-                if len(telescope_addresses) == 1 and did_telescope:
+
+                if not pwndbg.gdblib.memory.peek(right.before_value):
                     telescope_print = MessageColor.error(
-                        f"<Cannot dereference [{MemoryColor.get(right.before_value)}]>>"
+                        f"<Cannot dereference [{MemoryColor.get(right.before_value)}]>"
                     )
                 elif len(telescope_addresses) == 1:
                     # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
@@ -129,7 +130,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     telescope_print = None
                 else:
                     # Start showing at dereferenced by, hence the [1:]
-                    telescope_print = f"{super().telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu, did_telescope)}"
+                    telescope_print = f"{super().telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu, not full_safe_dereference)}"
 
                 if telescope_print is not None:
                     instruction.annotation = f"{left.str}, {right.str} => {telescope_print}"

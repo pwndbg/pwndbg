@@ -93,10 +93,10 @@ def enhance(
     if not attempt_dereference or not page or None is pwndbg.gdblib.memory.peek(value):
         can_read = False
 
-    # If it's a pointer that we told the function about, then color it accordingly and add symbol if can
+    # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
         return pwndbg.color.memory.get_address_and_symbol(value)
-
+    
     if not can_read:
         return E.integer(int_str(value))
 
@@ -173,7 +173,11 @@ def enhance(
 
     # And then integer
     else:
-        return E.integer(int_str(intval0))
+        # It might be an integer or just a plain pointer
+        if page:
+            return pwndbg.color.memory.get_address_and_symbol(intval0)
+        else:
+            return E.integer(int_str(intval0))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 
