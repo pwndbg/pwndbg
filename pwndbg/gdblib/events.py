@@ -12,12 +12,15 @@ from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import List
+from typing import TypeVar
 
 import gdb
 
 from pwndbg.gdblib.config import config
 
 debug = config.add_param("debug-events", False, "display internal event debugging info")
+
+T = TypeVar("T")
 
 
 # There is no GDB way to get a notification when the binary itself
@@ -90,7 +93,7 @@ registered: dict[Any, List[Callable[..., Any]]] = {
 objfile_cache: dict[str, set[str]] = {}
 
 
-def connect(func: Callable[..., Any], event_handler: Any, name: str = "") -> Callable[..., Any]:
+def connect(func: Callable[..., T], event_handler: Any, name: str = "") -> Callable[..., T]:
     if debug:
         print("Connecting", func.__name__, event_handler)
 
@@ -124,41 +127,41 @@ def connect(func: Callable[..., Any], event_handler: Any, name: str = "") -> Cal
     return func
 
 
-def exit(func: Callable[..., Any]) -> Callable[..., Any]:
+def exit(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.exited, "exit")
 
 
-def cont(func: Callable[..., Any]) -> Callable[..., Any]:
+def cont(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.cont, "cont")
 
 
-def new_objfile(func: Callable[..., Any]) -> Callable[..., Any]:
+def new_objfile(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.new_objfile, "obj")
 
 
-def stop(func: Callable[..., Any]) -> Callable[..., Any]:
+def stop(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.stop, "stop")
 
 
-def start(func: Callable[..., Any]) -> Callable[..., Any]:
+def start(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.start, "start")
 
 
-def thread(func: Callable[..., Any]) -> Callable[..., Any]:
+def thread(func: Callable[..., T]) -> Callable[..., T]:
     return connect(func, gdb.events.new_thread, "thread")
 
 
 before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")
 
 
-def reg_changed(func: Callable[..., Any]):
+def reg_changed(func: Callable[..., T]) -> Callable[..., T]:
     try:
         return connect(func, gdb.events.register_changed, "reg_changed")
     except AttributeError:
         return func
 
 
-def mem_changed(func: Callable[..., Any]):
+def mem_changed(func: Callable[..., T]) -> Callable[..., T]:
     try:
         return connect(func, gdb.events.memory_changed, "mem_changed")
     except AttributeError:

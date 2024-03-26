@@ -2,6 +2,9 @@
 line-length = 100
 
 [tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
 ignore = [
     "A003",
     "E402",
@@ -13,15 +16,28 @@ ignore = [
     "F841",
     "W505",
 ]
-line-length = 100
+
 select = [
-    "A",
-    "E",
-    "F",
-    "W",
+    "A",  # flake8-builtins
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "W",  # pycodestyle
+    "C4", # flake8-comprehensions
+    "ISC", # flake8-implicit-str-concat
+    "SLOT", # flake8-slots
+    "FLY", # flynt
+    "PGH", # pygrep-hooks
+    "RET506", # flake8-return: superfluous-else-raise
+    "RET507", # flake8-return: superfluous-else-continue
+    "RET508", # flake8-return: superfluous-else-break
+    # We want to enable the below lints, but they currently return too many errors
+    # "RET505", # flake8-return: superfluous-else-return
+    # "SLF" # flake8-self
+    # "SIM", # flake8-simplify
+    # "PTH", # flake8-use-pathlib
 ]
 
-[tool.ruff.flake8-builtins]
+[tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [
     "all",
     "bin",
@@ -38,14 +54,15 @@ builtins-ignorelist = [
     "type",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.mypy]
 strict_optional = false
 check_untyped_defs = true
-allow_untyped_globals = true
+allow_untyped_globals = false
 allow_redefinition = true
+allow_any_generics = false
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
@@ -56,23 +73,48 @@ pretty = true
 show_error_codes = true
 incremental = false
 disable_error_code = [
-    # Lots of dynamic attribute access
-    "attr-defined",
     # https://github.com/python/mypy/issues/6232
     "assignment"
 ]
 
 [[tool.mypy.overrides]]
 module = [
-   # Capstone constants
-   "pwndbg.disasm.*",
-   "pwndbg.gdblib.nearpc",
-   # Module fields
-   "pwndbg.gdblib.typeinfo",
-   "pwndbg.gdblib.elf",
-   "pwndbg.auxv",
+    "pwndbg.disasm.*",
+    "pwndbg.gdblib.elf",
 ]
 disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.color.*",
+    "pwndbg.commands.context",
+    "pwndbg.commands.cymbol",
+    "pwndbg.commands.hexdump",
+    "pwndbg.commands.procinfo",
+    "pwndbg.commands.reload",
+    "pwndbg.commands.telescope",
+    "pwndbg.commands.version",
+    "pwndbg.exception",
+    "pwndbg.disasm.jump",
+    "pwndbg.gdblib.dt",
+    "pwndbg.gdblib.dynamic",
+    "pwndbg.gdblib.events",
+    "pwndbg.gdblib.got",
+    "pwndbg.gdblib.heap_tracking",
+    "pwndbg.gdblib.stack",
+    "pwndbg.heap.*",
+    "pwndbg.hexdump",
+    "pwndbg.ui",
+    "pwndbg.wrappers.*",
+]
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.gdblib.nearpc",
+    "pwndbg.gdblib.typeinfo",
+]
+disable_error_code = ["name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
 module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt"]
@@ -257,6 +299,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 capstone = "5.0.0.post1"
+ipython = "8.12.3"
 # Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
 setuptools = "69.0.3"
 psutil = "5.9.5"
@@ -265,11 +308,33 @@ pycparser = "2.21"
 pyelftools = "0.29"
 pygments = "2.15.0"
 ropgadget = "7.2"
+sortedcontainers = "2.4.0"
 tabulate = "0.9.0"
 typing-extensions = "4.6.1"
 unicorn = "2.0.1.post1"
 requests = "2.31.0"
 pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "89ea252f6efc5d75eacca16fc17ff8966a389690"}
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "24.3.0"
+coverage = {version = "7.4.3", extras = ["toml"]}
+isort = "5.13.2"
+mypy = "1.8.0"
+pytest = "8.0.2"
+pytest-cov = "4.1.0"
+rich = "13.7.1"
+ruff = "0.3.0"
+testresources = "2.0.1"
+tomli = "2.0.1"
+types-gdb = "12.1.4.20240305"
+types-psutil = "5.9.5.20240205"
+types-pygments = "2.17.0.20240106"
+types-requests = "2.31.0.20240218"
+types-tabulate = "0.9.0.20240106"
+vermin = "1.6.0"
 
 [build-system]
 requires = ["poetry-core"]

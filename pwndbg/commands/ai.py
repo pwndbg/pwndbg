@@ -11,6 +11,7 @@ import json
 import os
 import pprint
 import re
+from typing import List
 
 import gdb
 
@@ -61,8 +62,8 @@ config.add_param(
     "whether to show how many tokens are used with each OpenAI API call",
 )
 
-last_question = []
-last_answer = []
+last_question: List[str] = []
+last_answer: List[str] = []
 last_pc = None
 last_command = None
 dummy = False
@@ -294,8 +295,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
             raise Exception(error_message)
-        else:
-            raise Exception(res)
+        raise Exception(res)
     if config.ai_show_usage:
         print(
             M.notice(
@@ -334,8 +334,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
             raise Exception(error_message)
-        else:
-            raise Exception(res)
+        raise Exception(res)
     reply = res["choices"][0]["text"]
     if config.ai_show_usage:
         print(
@@ -350,15 +349,15 @@ def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
     if "turbo" in model or model.startswith("gpt-4"):
-        if type(prompt) is str:
+        if isinstance(prompt, str):
             prompt = [{"role": "user", "content": prompt}]
         return query_openai_chat(prompt, model, max_tokens, temperature)
     elif model.startswith("claude"):
-        if type(prompt) is list:
+        if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_anthropic(prompt, model, max_tokens, temperature)
     else:
-        if type(prompt) is list:
+        if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_openai_completions(prompt, model, max_tokens, temperature)
 

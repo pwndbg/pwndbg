@@ -5,6 +5,7 @@ vice-versa.
 Uses IDA when available if there isn't sufficient symbol
 information available.
 """
+
 from __future__ import annotations
 
 import re
@@ -44,7 +45,7 @@ skipped_exceptions = (
 )
 
 
-def _get_debug_file_directory():
+def _get_debug_file_directory() -> str:
     """
     Retrieve the debug file directory path.
 

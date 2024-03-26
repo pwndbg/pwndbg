@@ -18,9 +18,7 @@ T = TypeVar("T")
 
 class OnlyWithCommand:
     def __init__(self, *commands: str | List[str]) -> None:
-        self.all_cmds: List[str] = list(
-            map(lambda cmd: cmd[0] if isinstance(cmd, list) else cmd, commands)
-        )
+        self.all_cmds: List[str] = [cmd[0] if isinstance(cmd, list) else cmd for cmd in commands]
         for command in commands:
             self.cmd: List[str] = command if isinstance(command, list) else [command]
             self.cmd_path: str | None = which(self.cmd[0])

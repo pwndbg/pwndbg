@@ -2,7 +2,6 @@
 Reading, writing, and describing memory.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -44,15 +43,14 @@ def read(addr: int, count: int, partial: bool = False) -> bytearray:
         if not partial:
             raise
 
-        if not hasattr(e, "message"):
-            e.message = str(e)
+        message = str(e)
 
         stop_addr = addr
-        match = re.search(r"Memory at address (\w+) unavailable\.", e.message)
+        match = re.search(r"Memory at address (\w+) unavailable\.", message)
         if match:
             stop_addr = int(match.group(1), 0)
         else:
-            stop_addr = int(e.message.split()[-1], 0)
+            stop_addr = int(message.split()[-1], 0)
 
         if stop_addr != addr:
             return read(addr, stop_addr - addr)
@@ -107,7 +105,7 @@ def write(addr: int, data: str | bytes | bytearray) -> None:
     gdb.selected_inferior().write_memory(addr, data)
 
 
-def peek(address: int):
+def peek(address: int) -> str | None:
     """peek(address) -> str
 
     Read one byte from the specified address.
@@ -120,7 +118,7 @@ def peek(address: int):
         address cannot be read.
     """
     try:
-        return read(address, 1)
+        return chr(read(address, 1)[0])
     except Exception:
         pass
     return None
@@ -174,7 +172,7 @@ def string(addr: int, max: int = 4096) -> bytearray:
         An empty bytearray, or a NULL-terminated bytearray.
     """
     if peek(addr):
-        data = bytearray(read(addr, max, partial=True))
+        data = read(addr, max, partial=True)
 
         try:
             return data[: data.index(b"\x00")]
@@ -256,7 +254,7 @@ def u64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.uint64, addr)
 
 
-def u(addr: int, size: int | None = None):
+def u(addr: int, size: int | None = None) -> int:
     """u(addr, size=None) -> int
 
     Read one ``unsigned`` integer from the specified address,

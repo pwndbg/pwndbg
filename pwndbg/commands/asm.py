@@ -16,7 +16,6 @@ parser.add_argument(
 
 parser.add_argument(
     "--arch",
-    default=pwnlib.context.context.arch,
     choices=pwnlib.context.context.architectures.keys(),
     type=str,
     help="Target architecture",
@@ -63,11 +62,14 @@ def asm(shellcode, format, arch, avoid, infile) -> None:
         with open(infile) as file:
             shellcode = [file.read()]
 
+    if not arch:
+        arch = pwnlib.context.context.arch
+
     bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
     assembly = pwnlib.asm.asm(" ".join(shellcode), arch=arch, bits=bits_for_arch)
 
     if avoid:
-        avoid = map(lambda byte: str(byte), avoid)
+        avoid = (str(byte) for byte in avoid)
         avoid = pwnlib.unhex("".join(avoid))
         print(message.warn("Going to avoid these bytes in hex: " + avoid.hex(" ")))
         assembly = pwnlib.encode(assembly, avoid)

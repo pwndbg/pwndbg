@@ -13,8 +13,7 @@ from pwndbg.commands import CommandCategory
 
 
 def canary_value():
-    auxv = pwndbg.auxv.get()
-    at_random = auxv.get("AT_RANDOM", None)
+    at_random = pwndbg.auxv.get().AT_RANDOM
     if at_random is None:
         return None, None
 

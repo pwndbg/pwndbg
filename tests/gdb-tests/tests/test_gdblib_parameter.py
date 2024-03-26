@@ -28,9 +28,9 @@ import pwndbg.gdblib.config
             0,
             "0",
             {
-                "param_class": gdb.PARAM_ZUINTEGER
-                if hasattr(gdb, "PARAM_ZUINTEGER")
-                else "PARAM_ZUINTEGER"
+                "param_class": (
+                    gdb.PARAM_ZUINTEGER if hasattr(gdb, "PARAM_ZUINTEGER") else "PARAM_ZUINTEGER"
+                )
             },
         ),
         (
@@ -38,9 +38,11 @@ import pwndbg.gdblib.config
             -1,
             "unlimited",
             {
-                "param_class": gdb.PARAM_ZUINTEGER_UNLIMITED
-                if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
-                else "PARAM_ZUINTEGER_UNLIMITED"
+                "param_class": (
+                    gdb.PARAM_ZUINTEGER_UNLIMITED
+                    if hasattr(gdb, "PARAM_ZUINTEGER_UNLIMITED")
+                    else "PARAM_ZUINTEGER_UNLIMITED"
+                )
             },
         ),
     ),

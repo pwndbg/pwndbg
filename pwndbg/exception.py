@@ -19,7 +19,7 @@ except ImportError:
 _rich_console = None
 
 
-def print_exception(exception_msg):
+def print_exception(exception_msg) -> None:
     global _rich_console
 
     if _rich_console is None:

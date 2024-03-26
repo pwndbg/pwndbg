@@ -154,7 +154,7 @@ def telescope(
         count = max(math.ceil(count / ptrsize), 1)
 
     # Map of address to register string
-    reg_values: DefaultDict[int, list[str]] = collections.defaultdict(lambda: [])
+    reg_values: DefaultDict[int, list[str]] = collections.defaultdict(list)
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
 

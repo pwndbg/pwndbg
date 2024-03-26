@@ -19,9 +19,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["allocated"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["allocated"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["allocated"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
@@ -34,9 +36,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["tcache"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["tcache"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["tcache"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
@@ -50,9 +54,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["fast"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["fast"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["fast"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
@@ -66,9 +72,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["small"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["small"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["small"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
@@ -83,9 +91,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["large"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["large"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["large"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
@@ -102,9 +112,11 @@ def generate_expected_malloc_chunk_output(chunks):
 
     size = int(
         chunks["unsorted"][
-            "mchunk_size"
-            if "mchunk_size" in (f.name for f in chunks["unsorted"].type.fields())
-            else "size"
+            (
+                "mchunk_size"
+                if "mchunk_size" in (f.name for f in chunks["unsorted"].type.fields())
+                else "size"
+            )
         ]
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)

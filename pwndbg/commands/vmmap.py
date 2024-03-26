@@ -1,6 +1,7 @@
 """
 Command to print the virtual memory map a la /proc/self/maps.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -96,13 +97,13 @@ def vmmap(
     total_pages = pwndbg.gdblib.vmmap.get()
 
     # Filtered memory pages, indicated by an backtrace arrow in results
-    filtered_pages = list()
+    filtered_pages = []
 
     # Only filter when -A and -B arguments are valid
     if gdbval_or_str and lines_after >= 0 and lines_before >= 0:
         # Find matching page in memory
         filtered_pages = list(filter(pages_filter(gdbval_or_str), total_pages))
-        pages_to_display = list()
+        pages_to_display = []
 
         for matched_page in filtered_pages:
             # Append matched page

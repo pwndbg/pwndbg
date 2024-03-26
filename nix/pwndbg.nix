@@ -13,11 +13,19 @@ let
   ]);
 
   pyEnv = pkgs.poetry2nix.mkPoetryEnv {
+    groups = [];  # put [ "dev" ] to build "dev" dependencies
+    checkGroups = [];  # put [ "dev" ] to build "dev" dependencies
     projectDir = inputs.pwndbg;
     python = python3;
     overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
       pip = python3.pkgs.pip;  # fix infinite loop in nix, look here: https://github.com/nix-community/poetry2nix/issues/1184#issuecomment-1644878841
       unicorn = python3.pkgs.unicorn;  # fix build for aarch64 (but it will use same version like in nixpkgs)
+
+      # disable build from source, because rust's hash had to be repaired many times, see: PR https://github.com/pwndbg/pwndbg/pull/2024
+      cryptography = super.cryptography.override {
+        preferWheel = true;
+      };
+
       pt = super.pt.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ [ super.poetry-core ];
       });

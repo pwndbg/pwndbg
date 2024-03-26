@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import collections
 import re
+import typing
 from typing import DefaultDict
 from typing import List
 from typing import Union
@@ -65,7 +66,7 @@ VariableInstructionSizeMax = {
     "rv64": 22,
 }
 
-backward_cache: DefaultDict = collections.defaultdict(lambda: None)
+backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -141,7 +142,7 @@ class SimpleInstruction:
     def __init__(self, address) -> None:
         self.address = address
         ins = gdb.newest_frame().architecture().disassemble(address)[0]
-        asm = ins["asm"].split(maxsplit=1)
+        asm = typing.cast(str, ins["asm"]).split(maxsplit=1)
         self.mnemonic = asm[0].strip()
         self.op_str = asm[1].strip() if len(asm) > 1 else ""
         self.size = ins["length"]

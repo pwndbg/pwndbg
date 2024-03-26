@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Generator
+
 import pwndbg.gdblib.arch
 
 
-def find_fastbin_size(mem: bytes, max_size: int, step: int):
+def find_fastbin_size(mem: bytes, max_size: int, step: int) -> Generator[int, None, None]:
     psize = pwndbg.gdblib.arch.ptrsize
     min_fast = 4 * psize
 

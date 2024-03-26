@@ -24,7 +24,7 @@ def config_to_key(name: str) -> str:
     return "CONFIG_" + name.upper()
 
 
-class Kconfig(UserDict):
+class Kconfig(UserDict):  # type: ignore[type-arg]
     def __init__(self, compressed_config: bytes) -> None:
         super().__init__()
         self.data = parse_compresed_config(compressed_config)

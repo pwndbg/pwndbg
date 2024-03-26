@@ -25,7 +25,7 @@ debug = NO_DEBUG
 debug_name = "regs"
 
 
-class DebugCacheDict(UserDict):
+class DebugCacheDict(UserDict):  # type: ignore[type-arg]
     def __init__(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.hits = 0
@@ -110,7 +110,7 @@ _KWARGS_SEPARATOR = object()
 IS_CACHING = True
 
 
-def cache_until(*event_names: str):
+def cache_until(*event_names: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
@@ -153,7 +153,7 @@ def cache_until(*event_names: str):
 
         # Set the cache on the function so it can be cleared on demand
         # this may be useful for tests
-        decorator.cache = cache
+        decorator.cache = cache  # type: ignore[attr-defined]
 
         # Register the cache for the given event so it can be cleared
         for event_name in event_names:

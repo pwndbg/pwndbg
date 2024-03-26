@@ -30,11 +30,11 @@ parser.add_argument(
 )
 parser.add_argument(
     "length",
-    help="Count of bytes to call mprotect on. Needs " "to be multiple of page size.",
+    help="Count of bytes to call mprotect on. Needs to be multiple of page size.",
     type=int,
 )
 parser.add_argument(
-    "prot", help="Prot string as in mprotect(2). Eg. " '"PROT_READ|PROT_EXEC"', type=str
+    "prot", help='Prot string as in mprotect(2). Eg. "PROT_READ|PROT_EXEC"', type=str
 )
 
 SYS_MPROTECT = 0x7D

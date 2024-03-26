@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+from typing import Any
 
 import gdb
 
@@ -122,7 +123,7 @@ class FakeGDBField:
 
 class CStruct2GDB:
     code = gdb.TYPE_CODE_STRUCT
-    _c_struct = None
+    _c_struct: pwndbg.gdblib.ctypes.Structure = None
 
     def __init__(self, address: int) -> None:
         self.address = address
@@ -202,7 +203,7 @@ class CStruct2GDB:
         return fake_gdb_fields
 
     @classmethod
-    def keys(cls) -> list:
+    def keys(cls) -> list[str]:
         """
         Return a list of the names of the fields in the struct to make it compatible with the `gdb.Type` interface.
         """
@@ -221,7 +222,7 @@ class CStruct2GDB:
         """
         return getattr(cls._c_struct, field).offset
 
-    def items(self) -> tuple:
+    def items(self) -> tuple[tuple[Any, Any], ...]:
         """
         Returns a tuple of (field name, field value) pairs.
         """
@@ -426,6 +427,8 @@ class MallocState(CStruct2GDB):
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
 
+    _c_struct: pwndbg.gdblib.ctypes.Structure
+
     if GLIBC_VERSION >= (2, 27):
         _c_struct = c_malloc_state_2_27
     elif GLIBC_VERSION >= (2, 23):
@@ -469,7 +472,7 @@ class HeapInfo(CStruct2GDB):
     This class represents heap_info struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct = c_heap_info
+    _c_struct: pwndbg.gdblib.ctypes.Structure = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
 
 
@@ -508,7 +511,7 @@ class MallocChunk(CStruct2GDB):
     This class represents malloc_chunk struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct = c_malloc_chunk
+    _c_struct: pwndbg.gdblib.ctypes.Structure = c_malloc_chunk
     sizeof = ctypes.sizeof(_c_struct)
 
 
@@ -555,6 +558,7 @@ class TcachePerthreadStruct(CStruct2GDB):
     This class represents tcache_perthread_struct with interface compatible with `gdb.Value`.
     """
 
+    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
@@ -599,6 +603,7 @@ class TcacheEntry(CStruct2GDB):
     This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
     """
 
+    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 29):
         _c_struct = c_tcache_entry_2_29
     else:
@@ -912,6 +917,7 @@ class MallocPar(CStruct2GDB):
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
 
+    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
     elif GLIBC_VERSION >= (2, 26):
@@ -942,7 +948,7 @@ class MallocPar(CStruct2GDB):
 #   .tcache_unsorted_limit = 0 /* No limit.  */
 # #endif
 # };
-DEFAULT_MP_ = MallocPar._c_struct()
+DEFAULT_MP_ = MallocPar._c_struct()  # type: ignore[operator]
 DEFAULT_MP_.top_pad = DEFAULT_TOP_PAD
 DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD

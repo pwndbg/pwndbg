@@ -221,7 +221,7 @@ class CpuCache:
 
 
 class NodeCache:
-    def __init__(self, node_cache: gdb.Value, slab_cache: SlabCache, node: int):
+    def __init__(self, node_cache: gdb.Value, slab_cache: SlabCache, node: int) -> None:
         self._node_cache = node_cache
         self.slab_cache = slab_cache
         self.node = node

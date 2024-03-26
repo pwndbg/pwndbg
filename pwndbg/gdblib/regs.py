@@ -2,6 +2,7 @@
 Reading register value from the inferior, and provides a
 standardized interface to registers like "sp" and "pc".
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -9,7 +10,9 @@ import re
 import sys
 from types import ModuleType
 from typing import Any
+from typing import Dict
 from typing import Generator
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -19,12 +22,18 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
+from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb_get_register(name: str):
-    return gdb.selected_frame().read_register(name)
+def gdb_get_register(name: str) -> gdb.Value:
+    frame = gdb.selected_frame()
+    try:
+        return frame.read_register(name)
+    except ValueError:
+        return frame.read_register(name.upper())
 
 
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
@@ -34,6 +43,7 @@ ARCH_GET_GS = 0x1004
 
 
 class module(ModuleType):
+    previous: dict[str, int] = {}
     last: dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
@@ -49,8 +59,7 @@ class module(ModuleType):
             value = value.cast(size)
             if attr == "pc" and pwndbg.gdblib.arch.current == "i8086":
                 value += self.cs * 16
-            value = int(value)
-            return value & pwndbg.gdblib.arch.ptrmask
+            return int(value) & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
@@ -63,7 +72,7 @@ class module(ModuleType):
             gdb.execute(f"set ${attr} = {val}")
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getitem__(self, item: str) -> str | int | None:
+    def __getitem__(self, item: str) -> int | None:
         if not isinstance(item, str):
             print("Unknown register type: %r" % (item))
             return None
@@ -72,8 +81,8 @@ class module(ModuleType):
         item = item.lstrip("$")
         item = getattr(self, item.lower())
 
-        if isinstance(item, int):
-            return int(item) & pwndbg.gdblib.arch.ptrmask
+        if item is not None:
+            item &= pwndbg.gdblib.arch.ptrmask
 
         return item
 
@@ -86,16 +95,16 @@ class module(ModuleType):
         yield from regs
 
     @property
-    def current(self):
+    def current(self) -> RegisterSet:
         return reg_sets[pwndbg.gdblib.arch.current]
 
     # TODO: All these should be able to do self.current
     @property
-    def gpr(self):
+    def gpr(self) -> Tuple[str, ...]:
         return reg_sets[pwndbg.gdblib.arch.current].gpr
 
     @property
-    def common(self):
+    def common(self) -> List[str]:
         return reg_sets[pwndbg.gdblib.arch.current].common
 
     @property
@@ -103,19 +112,23 @@ class module(ModuleType):
         return reg_sets[pwndbg.gdblib.arch.current].frame
 
     @property
-    def retaddr(self):
+    def retaddr(self) -> Tuple[str, ...]:
         return reg_sets[pwndbg.gdblib.arch.current].retaddr
 
     @property
-    def flags(self):
+    def flags(self) -> Dict[str, BitFlags]:
         return reg_sets[pwndbg.gdblib.arch.current].flags
 
     @property
-    def stack(self):
+    def extra_flags(self) -> Dict[str, BitFlags]:
+        return reg_sets[pwndbg.gdblib.arch.current].extra_flags
+
+    @property
+    def stack(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].stack
 
     @property
-    def retval(self):
+    def retval(self) -> str:
         return reg_sets[pwndbg.gdblib.arch.current].retval
 
     @property
@@ -133,7 +146,8 @@ class module(ModuleType):
         ):
             if regset is None:
                 continue
-            elif isinstance(regset, (list, tuple)):  # regs.retaddr
+
+            if isinstance(regset, (list, tuple)):  # regs.retaddr
                 retval.extend(regset)
             elif isinstance(regset, dict):  # regs.flags
                 retval.extend(regset.keys())
@@ -153,7 +167,7 @@ class module(ModuleType):
     reg_sets = reg_sets
 
     @property
-    def changed(self):
+    def changed(self) -> List[str]:
         delta = []
         for reg, value in self.previous.items():
             if self[reg] != value:
@@ -162,12 +176,12 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def fsbase(self):
+    def fsbase(self) -> int:
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def gsbase(self):
+    def gsbase(self) -> int:
         return self._fs_gs_helper("gs_base", ARCH_GET_GS)
 
     @pwndbg.lib.cache.cache_until("stop")
@@ -176,7 +190,7 @@ class module(ModuleType):
         Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.gdblib.arch.current == "x86-64":
-            return gdb_get_register(regname)
+            return int(gdb_get_register(regname))
 
         # We can't really do anything if the process is remote.
         if pwndbg.gdblib.remote.is_remote():

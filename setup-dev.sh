@@ -33,7 +33,9 @@ if [ -t 1 ]; then
     read yn
     if [[ "$yn" == [Yy]* ]]; then
         echo "$hook_script" > "$hook_script_path"
-        echo "pre-push hook installed to $hook_script_path"
+        # make the hook executable
+        chmod ug+x "$hook_script_path"
+        echo "pre-push hook installed to $hook_script_path and made executable"
     fi
 fi
 
@@ -100,7 +102,7 @@ install_apt() {
         gcc-aarch64-linux-gnu \
         gcc-riscv64-linux-gnu
 
-    if [[ "$1" == "22.04" ]]; then
+    if [[ "$1" != "" && "$1" != "20.04" ]]; then
         sudo apt install shfmt
     fi
 
@@ -188,6 +190,12 @@ if linux; then
         PWNDBG_VENV_PATH="./.venv"
     fi
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
-    PYTHON=${PWNDBG_VENV_PATH}/bin/python
-    ${PYTHON} -m pip install -r dev-requirements.txt
+
+    # Install poetry if not already installed
+    if ! hash poetry 2> /dev/null; then
+        curl -sSL https://install.python-poetry.org | python3 -
+    fi
+
+    source "${PWNDBG_VENV_PATH}/bin/activate"
+    ~/.local/bin/poetry install --with dev
 fi

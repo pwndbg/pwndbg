@@ -1,6 +1,7 @@
 """
 Command to print the information of the current Thread Local Storage (TLS).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -87,6 +88,10 @@ def threads(num_threads, respect_config) -> None:
         original_thread = gdb.selected_thread()
     except SystemError:
         original_thread = None
+    try:
+        original_frame = gdb.selected_frame()
+    except gdb.error:
+        original_frame = None
 
     all_threads = gdb.selected_inferior().threads()[::-1]
 
@@ -100,7 +105,8 @@ def threads(num_threads, respect_config) -> None:
             pwndbg.commands.context.config_max_threads_display
         ):
             break
-        elif num_threads is not None and len(displayed_threads) >= num_threads:
+
+        if num_threads is not None and len(displayed_threads) >= num_threads:
             break
 
         if thread.is_valid() and thread is not original_thread:
@@ -141,6 +147,8 @@ def threads(num_threads, respect_config) -> None:
 
     if original_thread is not None and original_thread.is_valid():
         original_thread.switch()
+    if original_frame is not None and original_frame.is_valid():
+        original_frame.select()
 
     print(tabulate(table, headers))
     print(f"\nShowing {len(displayed_threads)} of {len(all_threads)} threads.")

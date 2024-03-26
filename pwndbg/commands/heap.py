@@ -18,6 +18,7 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.commands.config import display_config
+from pwndbg.heap import heap_chain_limit
 from pwndbg.heap.ptmalloc import Arena
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
@@ -39,7 +40,7 @@ def read_chunk(addr):
         val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
-    return dict({renames.get(key, key): int(val[key]) for key in val.type.keys()})
+    return {renames.get(key, key): int(val[key]) for key in val.type.keys()}
 
 
 def format_bin(bins: Bins, verbose=False, offset=None):
@@ -81,7 +82,9 @@ def format_bin(bins: Bins, verbose=False, offset=None):
                 chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
             )
         else:
-            formatted_chain = pwndbg.chain.format(chain_fd[0], offset=offset, safe_linking=safe_lnk)
+            formatted_chain = pwndbg.chain.format(
+                chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
+            )
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:
@@ -719,8 +722,10 @@ parser.add_argument(
     "-a",
     action="store_true",
     default=False,
-    help="Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
-    + "chunks and for all chunks when Safe Linking is enabled",
+    help=(
+        "Whether the fake chunk must be aligned to MALLOC_ALIGNMENT. This is required for tcache "
+        "chunks and for all chunks when Safe Linking is enabled"
+    ),
 )
 parser.add_argument(
     "--glibc-fastbin-bug",

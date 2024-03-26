@@ -20,7 +20,7 @@ Killing all other threads may be useful to use GDB checkpoints, e.g., to test gi
 """,
 )
 
-parser.add_argument("thread_ids", nargs="*", help="Thread IDs to kill.")
+parser.add_argument("thread_ids", type=int, nargs="*", help="Thread IDs to kill.")
 parser.add_argument(
     "-a",
     "--all",
@@ -31,7 +31,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
-def killthreads(thread_ids: list | None = None, all: bool = False) -> None:
+def killthreads(thread_ids: list[int] | None = None, all: bool = False) -> None:
     if len(thread_ids) == 0 and not all:
         print(message.error("No thread IDs or --all flag specified"))
         return
