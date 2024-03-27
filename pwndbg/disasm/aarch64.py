@@ -48,7 +48,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
 
             # Telescope the address
-            telescope_addresses, did_telescope = super().telescope(
+            telescope_addresses, only_deref_readonly_ptrs = super().telescope(
                 left.after_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
@@ -60,7 +60,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             if not telescope_addresses:
                 return
 
-            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, did_telescope)}"
+            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu, only_deref_readonly_ptrs)}"
 
     # Override
     def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:

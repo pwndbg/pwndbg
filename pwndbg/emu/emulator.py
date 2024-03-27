@@ -840,3 +840,6 @@ class Emulator:
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
         debug(DEBUG_TRACE, "# trace_hook: %#-8x %r", (address, data))
+
+    def __repr__(self) -> str:
+        return f"Valid: {self.valid}, PC: {self.pc:#x}"

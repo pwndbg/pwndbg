@@ -47,9 +47,9 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     return asm
 
 
-
 MIN_SPACING = 5
 WHITESPACE_LIMIT = 20
+
 
 # To making the padding visually nicer, the following padding scheme is used for annotations:
 # All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.

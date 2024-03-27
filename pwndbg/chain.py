@@ -36,7 +36,6 @@ def get(
     hard_end=0,
     include_start=True,
     safe_linking=False,
-    only_read_only=False
 ):
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
@@ -154,7 +153,6 @@ def format(
     # Otherwise replace last element with the enhanced information.
     rest = rest[:-1]
 
-
     enhance_can_dereference = True
 
     # This is used in rare cases when we pass in a list of pointers where the last
@@ -164,8 +162,6 @@ def format(
         if page and page.write:
             enhance_can_dereference = False
 
-    print(enhance_can_dereference)
-    
     # Enhance the last entry
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
     # the only element there is.
@@ -184,7 +180,7 @@ def format(
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
-            attempt_dereference=enhance_can_dereference
+            attempt_dereference=enhance_can_dereference,
         )
 
     else:

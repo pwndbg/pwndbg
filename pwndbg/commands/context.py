@@ -609,13 +609,6 @@ def get_regs(regs: List[str] = None):
     return result
 
 
-pwndbg.gdblib.config.add_param(
-    "emulate",
-    True,
-    """
-Unicorn emulation of code near the current instruction
-""",
-)
 code_lines = pwndbg.gdblib.config.add_param(
     "context-code-lines", 10, "number of additional lines to print in the code context"
 )
@@ -640,16 +633,15 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         pwndbg.lib.cache.clear_caches()
 
     result = pwndbg.gdblib.nearpc.nearpc(
-        lines=code_lines // 2, emulate=bool(pwndbg.gdblib.config.emulate), use_cache=True
+        lines=code_lines // 2,
+        emulate=bool(not pwndbg.gdblib.config.emulate == "no"),
+        use_cache=True,
     )
 
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
-    info = " / {} / set emulate {}".format(
-        pwndbg.gdblib.arch.current,
-        "on" if bool(pwndbg.gdblib.config.emulate) else "off",
-    )
+    info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.gdblib.config.emulate)
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
 
     # If we didn't disassemble backward, try to make sure
