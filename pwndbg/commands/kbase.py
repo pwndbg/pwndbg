@@ -24,11 +24,12 @@ def kbase() -> None:
 
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "x86-64":
-        # First opcode, seems to be consistent
-        magic = 0x48
+        # first opcodes: 0x48: 5.x - 6.1.x, 0x49: > 6.6, 0xFC: 6.7.1
+        magic = [0x48, 0x49, 0xFC]
     elif arch_name == "aarch64":
-        # First byte of "MZ" header
-        magic = 0x4D
+        # searches for the first byte of the "MZ" header
+        # or the first opcode of the executable mapping (fixed offset 0x10000)
+        magic = [0x4D, 0x5F, 0xE0, 0xE9]
     else:
         print(M.error(f"kbase does not support the {arch_name} architecture"))
         return
@@ -36,7 +37,11 @@ def kbase() -> None:
     mappings = pwndbg.gdblib.vmmap.get()
     for mapping in mappings:
         # TODO: Check alignment
-        # TODO: Check if the supervisor bit is set for aarch64
+
+        # only search in kernel mappings:
+        # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+        if not mapping.vaddr & (0xFFFF << 48):
+            continue
         if not mapping.execute:
             continue
         try:
@@ -48,6 +53,10 @@ def kbase() -> None:
                 )
             )
             continue
-        if b == magic:
-            print(M.success(f"Found virtual base address: {mapping.vaddr:#x}"))
+        if b in magic:
+            base = mapping.vaddr
+            if arch_name == "aarch64" and b != 0x4D:
+                # "MZ" header not found subtract 0x10000 from the address to get the kbase
+                base -= 0x10000
+            print(M.success(f"Found virtual base address: {base:#x}"))
             break

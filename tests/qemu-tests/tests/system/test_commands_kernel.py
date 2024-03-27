@@ -6,7 +6,8 @@ import pwndbg
 
 
 def test_command_kbase():
-    pass  # TODO
+    res = gdb.execute("kbase", to_string=True)
+    assert len(res) > 0
 
 
 def test_command_kchecksec():
