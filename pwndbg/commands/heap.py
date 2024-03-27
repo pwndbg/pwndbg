@@ -444,8 +444,8 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
         for _ in range(next):
             chunk = chunk.next_chunk()
 
-            if chunk is None:
-                print("No next chunks found")
+            if not chunk:
+                print("No next chunk found")
                 break
 
             malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
