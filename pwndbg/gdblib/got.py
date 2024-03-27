@@ -193,12 +193,10 @@ class TrapAllocator:
         while len(self.blocks) > 0:
             block = self.blocks.pop()
             result = pwndbg.gdblib.shellcode.exec_syscall(
-                "SYS_munmap", block, self.block_capacity * self.slot_size, disable_breakpoints=True
+                "SYS_munmap", block, size, disable_breakpoints=True
             )
             if result != 0:
-                raise RuntimeError(
-                    f"SYS_munmap({block:#x}, {self.block_capacity * self.slot_size:#x}) failed ({result:#x})"
-                )
+                raise RuntimeError(f"SYS_munmap({block:#x}, {size:#x}) failed ({result:#x})")
         self._reset()
 
 

@@ -30,7 +30,6 @@ def get_arrsize(f: gdb.Value) -> int:
     if t.code != gdb.TYPE_CODE_ARRAY:
         return 0
     t2 = t.target()
-    s = t2.sizeof
     return int(t.sizeof / t2.sizeof)
 
 

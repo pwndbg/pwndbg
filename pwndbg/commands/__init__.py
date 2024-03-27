@@ -194,7 +194,7 @@ class Command(gdb.Command):
     def __call__(self, *args: Any, **kwargs: Any) -> str | None:
         try:
             return self.function(*args, **kwargs)
-        except TypeError as te:
+        except TypeError:
             print(f"{self.function.__name__.strip()!r}: {self.function.__doc__.strip()}")
             pwndbg.exception.handle(self.function.__name__)
         except Exception:

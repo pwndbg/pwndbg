@@ -26,7 +26,6 @@ def test_vis_heap_chunk_command(start_binary):
 
     # We will use `heap_addr` variable to fill in proper addresses below
     heap_addr = heap_page.start
-    heap_end = heap_page.end
 
     # We sometimes need that value, so let's cache it
     dq2 = None
@@ -173,10 +172,6 @@ def test_vis_heap_chunk_command(start_binary):
     freed_chunk += "<-- tcachebins[0x20][0/1]"
 
     heap_addr = heap_page.start
-
-    # This is not ideal, but hopefully it works on different builds // feel free to name it better
-    some_addr = heap_addr + 0x2C0
-    some_addr_hexdump = hexdump_16B(hex(heap_addr + 0x90))
 
     expected_all3 = [""]
 

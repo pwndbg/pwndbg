@@ -490,10 +490,8 @@ idc = IDC()
 
 
 def print_member(sid, offset) -> None:
-    mid = GetMemberId(sid, offset)
     mname = GetMemberName(sid, offset) or "(no name)"
     msize = GetMemberSize(sid, offset) or 0
-    mflag = GetMemberFlag(sid, offset) or 0
     print(f"    +{offset:#x} - {mname} [{msize:#x} bytes]")
 
 

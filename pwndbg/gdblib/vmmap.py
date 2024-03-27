@@ -319,7 +319,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if "AT_EXECFN" in line:
             try:
                 stack_addr = int(line.split()[-2], 16)
-            except Exception as e:
+            except Exception:
                 pass
             break
 
