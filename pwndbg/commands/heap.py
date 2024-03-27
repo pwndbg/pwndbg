@@ -447,11 +447,10 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
             if chunk is None:
                 print("No next chunks found")
                 break
-            
+
             malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
 
         return
-
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
