@@ -20,11 +20,12 @@ from __future__ import annotations
 from typing import Any
 
 import gdb
-
+import warnings
 import pwndbg.decorators
 import pwndbg.lib.config
 
 config = pwndbg.lib.config.Config()
+warnings.simplefilter("module", UnicodeWarning)
 
 
 # See this for details about the API of `gdb.Parameter`:
@@ -40,7 +41,14 @@ class Parameter(gdb.Parameter):
 
         self.init_super(param)
         self.param = param
-        self.value = param.value
+        try:
+            self.value = param.value
+        except UnicodeEncodeError:
+            encoding = locale.getpreferredencoding()
+
+            if encoding != "UTF-8":
+                warnings.warn(f'Your encoding ({encoding}) is not set to UTF-8. param.value unable to be encoded', UnicodeWarning)
+            self.value = ""
 
     def init_super(self, param: pwndbg.lib.config.Parameter) -> None:
         """Initializes the super class for GDB >= 9"""
