@@ -94,7 +94,10 @@ def get(address: int, gdb_only=False) -> str:
         return ""
 
     # This sucks, but there's not a GDB API for this.
-    result = gdb.execute("info symbol %#x" % int(address), to_string=True, from_tty=False)
+    try:
+        result = gdb.execute(f"info symbol 0x{address:x}", to_string=True, from_tty=False)
+    except gdb.error:
+        return ""
 
     if not gdb_only and result.startswith("No symbol"):
         address = int(address)
