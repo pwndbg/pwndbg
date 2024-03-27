@@ -11,11 +11,13 @@ def test_command_kbase():
 
 def test_command_kchecksec():
     res = gdb.execute("kchecksec", to_string=True)
+    assert res is not None # for F841 warning
     # TODO: do something with res
 
 
 def test_command_kcmdline():
     res = gdb.execute("kcmdline", to_string=True)
+    assert res is not None # for F841 warning
     # TODO: do something with res
 
 

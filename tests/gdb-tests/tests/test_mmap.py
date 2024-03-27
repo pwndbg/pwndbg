@@ -14,7 +14,6 @@ def test_mmap_executes_properly(start_binary):
     """
     start_binary(USE_FDS_BINARY)
 
-    pc = pwndbg.gdblib.regs.pc
     page_size = pwndbg.lib.memory.PAGE_SIZE
 
     # Checks for an mmap(2) error.
