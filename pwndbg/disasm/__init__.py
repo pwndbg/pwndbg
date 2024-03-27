@@ -190,7 +190,6 @@ def get_disassembler(pc):
     )
 
 
-
 def get_one_instruction(
     address,
     emu: pwndbg.emu.emulator.Emulator = None,

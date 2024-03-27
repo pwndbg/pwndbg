@@ -314,7 +314,8 @@ class PwndbgInstruction:
         Annotation: {self.annotation}
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
-        Unconditional jump: {self.is_unconditional_jump}"""
+        Unconditional jump: {self.is_unconditional_jump}
+        Can change PC: {self.can_change_instruction_pointer}"""
 
 
 class EnhancedOperand:

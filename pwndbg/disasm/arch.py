@@ -18,6 +18,25 @@ from pwndbg.disasm.instruction import InstructionCondition
 from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
+pwndbg.gdblib.config.add_param(
+    "emulate",
+    "on",
+    """
+Unicorn emulation of code near the current instruction
+""",
+    help_docstring="""\
+emulate can be:
+off             - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+jumps-only      - use QEMU's `monitor info mem` to render vmmap
+on              - disable vmmap rendering; useful if rendering is particularly slow
+
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+""",
+    param_class=gdb.PARAM_ENUM,
+    enum_sequence=["on", "off", "jumps-only"],
+)
+
+
 # Even if this is disabled, branch instructions will still have targets printed
 pwndbg.gdblib.config.add_param(
     "disasm-annotations",
@@ -75,8 +94,8 @@ for value1, name1 in dict(access).items():
 
 # These instruction types should not be emulated through, either
 # because they cannot be emulated without interfering (syscall, etc.)
-# or because they may take a long time (call, etc.), or because they
-# change privilege levels.
+# or because they change privilege levels.
+# There is an additional check for CS_GRP_CALL specially in the enhancement code, which we stop at
 DO_NOT_EMULATE = {
     CS_GRP_INT,
     CS_GRP_INVALID,
@@ -100,8 +119,6 @@ class DisassemblyAssistant:
         if architecture is not None:
             self.assistants[architecture] = self
 
-        # The Capstone type for the "Operand" depends on the Arch
-        # Types found in capstone.ARCH_NAME.py, such as capstone.x86.py
         self.op_handlers: dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
         ] = {
@@ -128,15 +145,24 @@ class DisassemblyAssistant:
     def enhance(instruction: PwndbgInstruction, emu: Emulator = None) -> None:
         # Assumed that the emulator's pc is at the instruction's address
 
+        # There are 3 degrees of emulation:
+        # 1. No emulation at all. In this case, the `emu` parameter should be None
+        # 2. Only emulate jumps - the only interaction with the emulator in this case is stepping it and reading the PC
+        # 3. Full emulation - read registers and memory from the emulator as well as determining jumps
+
         if DEBUG_ENHANCEMENT:
             print(
                 f"Start enhancing instruction at {hex(instruction.address)} - {instruction.mnemonic} {instruction.op_str}"
             )
 
-        # For both cases below, we still step the emulation so we can use it to determine jump target
-        # in the pwndbg.disasm.near() function. Then, set emu to None so we don't use it for annotation
+        # Get another reference to the emulator for the purposes of jumps
+        jump_emu = emu
+
+        if pwndbg.gdblib.config.emulate == "jumps-only":
+            emu = None
+
+        # For both cases below, set emu to None so we don't use it for annotation
         if emu and not bool(pwndbg.gdblib.config.emulate_annotations):
-            emu.single_step(check_instruction_valid=False)
             emu = None
 
         # Disable emulation for future annotations based on setting
@@ -145,7 +171,6 @@ class DisassemblyAssistant:
             and pwndbg.gdblib.regs.pc != instruction.address
             and not bool(pwndbg.gdblib.config.emulate_future_annotations)
         ):
-            emu.single_step(check_instruction_valid=False)
             emu = None
 
         # Ensure emulator's program counter is at the correct location.
@@ -171,12 +196,13 @@ class DisassemblyAssistant:
         )
 
         # This function will .single_step the emulation
-        if not enhancer.enhance_operands(instruction, emu):
+        if not enhancer.enhance_operands(instruction, emu, jump_emu):
             if emu is not None and DEBUG_ENHANCEMENT:
                 print(f"Emulation failed at {instruction.address=:#x}")
             emu = None
+            jump_emu = None
 
-        if emu is not None:
+        if jump_emu is not None:
             # We successfully used emulation for this instruction
             instruction.emulated = True
 
@@ -184,15 +210,16 @@ class DisassemblyAssistant:
         enhancer.enhance_conditional(instruction, emu)
 
         # Set the .target and .next fields
-        enhancer.enhance_next(instruction, emu)
+        enhancer.enhance_next(instruction, emu, jump_emu)
 
         if bool(pwndbg.gdblib.config.disasm_annotations):
             enhancer.set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
         # to determine the call's target address.
-        if emu and CS_GRP_CALL in set(instruction.groups):
-            emu.valid = False
+        if jump_emu and CS_GRP_CALL in set(instruction.groups):
+            jump_emu.valid = False
+            jump_emu = None
             emu = None
 
             if DEBUG_ENHANCEMENT:
@@ -210,7 +237,9 @@ class DisassemblyAssistant:
         """
         return None
 
-    def enhance_operands(self, instruction: PwndbgInstruction, emu: Emulator) -> bool:
+    def enhance_operands(
+        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+    ) -> bool:
         """
         Enhances the operands by determining values and symbols
 
@@ -256,8 +285,14 @@ class DisassemblyAssistant:
                         hex(op.before_value), op.symbol
                     )
 
-        # Execute the instruction and set after_value
-        if emu and None not in emu.single_step(check_instruction_valid=False):
+        # Execute the instruction
+        if jump_emu and None in jump_emu.single_step(check_instruction_valid=False):
+            # This branch is taken if stepping the emulator failed
+            jump_emu = None
+            emu = None
+
+        # Set after_value after single stepping the emulator
+        if emu is not None:
             # after_value
             for op in instruction.operands:
                 # Retrieve the value, either an immediate, from a register, or from memory
@@ -266,14 +301,12 @@ class DisassemblyAssistant:
                 )
                 if op.after_value is not None:
                     op.after_value &= pwndbg.gdblib.arch.ptrmask
-        else:
-            emu = None
 
         # Set .str value of operands, after emulation has been completed
         for op in instruction.operands:
             op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
 
-        return emu is not None
+        return jump_emu is not None
 
     # Determine if the program counter of the process equals the address of the function being executed.
     # If so, it means we can safely reason and read from registers and memory to represent values that
@@ -404,7 +437,7 @@ class DisassemblyAssistant:
         can_read_process_state = self.can_reason_about_process_state(instruction)
 
         if emu:
-            return (emu.telescope(address, limit, read_size=read_size), True)
+            return (emu.telescope(address, limit, read_size=read_size), False)
         elif can_read_process_state:
             # Can reason about memory in this case.
 
@@ -418,10 +451,10 @@ class DisassemblyAssistant:
                 except gdb.MemoryError:
                     pass
 
-                return (result, True)
+                return (result, False)
 
             else:
-                return (pwndbg.chain.get(address, limit=limit), True)
+                return (pwndbg.chain.get(address, limit=limit), False)
         elif not can_read_process_state or operand.type == CS_OP_IMM:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
@@ -429,10 +462,15 @@ class DisassemblyAssistant:
             address_list = [address]
 
             for _ in range(limit):
+                if address_list.count(address) >= 2:
+                    break
+
                 page = pwndbg.gdblib.vmmap.find(address)
                 if page and not page.write:
                     try:
-                        address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+                        address = int(
+                            pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
+                        )
                         address &= pwndbg.gdblib.arch.ptrmask
                         address_list.append(address)
                     except gdb.MemoryError:
@@ -440,11 +478,11 @@ class DisassemblyAssistant:
                 else:
                     break
 
-            return (address_list, False)
+            return (address_list, True)
 
         # We cannot telescope, but we can still return the address.
         # Just without any further information
-        return ([address], False)
+        return ([address], True)
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def telescope_format_list(
@@ -488,7 +526,9 @@ class DisassemblyAssistant:
     def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         return InstructionCondition.UNDETERMINED
 
-    def enhance_next(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def enhance_next(
+        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+    ) -> None:
         """
         Set the `next` and `target` field of the instruction.
 
@@ -521,7 +561,7 @@ class DisassemblyAssistant:
             next_addr = self.resolve_target(instruction, emu)
 
         # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
-        if next_addr is None and emu:
+        if next_addr is None and jump_emu:
             # Use emulator to determine the next address:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .conditional to False (which should override the emulators prediction)
@@ -529,7 +569,7 @@ class DisassemblyAssistant:
                 CS_GRP_CALL not in instruction.groups_set
                 and instruction.condition != InstructionCondition.FALSE
             ):
-                next_addr = emu.pc
+                next_addr = jump_emu.pc
 
         # All else fails, take the next instruction in memory
         if next_addr is None:
