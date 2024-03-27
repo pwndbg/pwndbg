@@ -423,13 +423,14 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
+parser.add_argument("-d", "--dump", action="store_true", help="Print a hexdump of the chunk.")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
+def malloc_chunk(addr, fake=False, verbose=False, simple=False, dump=False) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -504,6 +505,12 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             )
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
+
+    if dump:
+        print(C.banner("hexdump"))
+
+        ptr_size = pwndbg.gdblib.arch.ptrsize
+        pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
 
 parser = argparse.ArgumentParser(
