@@ -17,7 +17,6 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
-import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg import color
@@ -61,7 +60,6 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     """
     value = int(value)
 
-    name = pwndbg.gdblib.symbol.get(value) or None
     page = pwndbg.gdblib.vmmap.find(value)
 
     # If it's not in a page we know about, try to dereference

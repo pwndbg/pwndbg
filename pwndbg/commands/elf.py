@@ -73,8 +73,6 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
         print(message.error(f"Could not find section {section_name}"))
         return
 
-    elf_header = pwndbg.gdblib.elf.exe()
-
     # If we started the binary and it has PIE, rebase it
     if pwndbg.gdblib.proc.alive:
         bin_base_addr = pwndbg.gdblib.proc.binary_base_addr

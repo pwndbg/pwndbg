@@ -175,7 +175,6 @@ def link_map_head():
 
     r_debug = CStruct.r_debug()
 
-    r_version = r_debug.read(r_debug_address, "r_version")
     r_map = r_debug.read(r_debug_address, "r_map")
 
     if r_map != 0:

@@ -189,7 +189,7 @@ def build_context_prompt_body():
         try:
             source = pwndbg.ghidra.decompile()
             decompile = True
-        except Exception as e:
+        except Exception:
             pass
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"

@@ -70,7 +70,7 @@ def start(args=None) -> None:
         if not address:
             continue
 
-        b = gdb.Breakpoint(symbol, temporary=True)
+        gdb.Breakpoint(symbol, temporary=True)
         gdb.execute(run, from_tty=False, to_string=True)
         return
 

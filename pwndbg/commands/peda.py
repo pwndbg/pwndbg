@@ -36,13 +36,13 @@ def xuntil(target) -> None:
     except (TypeError, ValueError):
         # The following gdb command will throw an error if the symbol is not defined.
         try:
-            result = gdb.execute(f"info address {target}", to_string=True, from_tty=False)
+            gdb.execute(f"info address {target}", to_string=True, from_tty=False)
         except gdb.error:
             print(message.error(f"Unable to resolve {target}"))
             return
         spec = target
 
-    b = gdb.Breakpoint(spec, temporary=True)
+    gdb.Breakpoint(spec, temporary=True)
     if pwndbg.gdblib.proc.alive:
         gdb.execute("continue", from_tty=False)
     else:

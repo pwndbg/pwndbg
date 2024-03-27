@@ -27,8 +27,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return None
 
     def memory(self, instruction, op):
-        current = instruction.address == pwndbg.gdblib.regs.pc
-
+        # current = instruction.address == pwndbg.gdblib.regs.pc
         # The only register we can reason about if it's *not* the current
         # instruction is $rip.  For example:
         # lea rdi, [rip - 0x1f6]
@@ -62,7 +61,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def memory_sz(self, instruction, op):
         arith = False
         segment = op.mem.segment
-        disp = op.value.mem.disp
+        # disp = op.value.mem.disp
         base = op.value.mem.base
         index = op.value.mem.index
         scale = op.value.mem.scale
@@ -133,7 +132,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         cf = efl & (1 << 0)
         pf = efl & (1 << 2)
-        af = efl & (1 << 4)
+        # af = efl & (1 << 4)
         zf = efl & (1 << 6)
         sf = efl & (1 << 7)
         of = efl & (1 << 11)

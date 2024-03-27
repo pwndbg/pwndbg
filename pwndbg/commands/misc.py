@@ -114,7 +114,6 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
         filter_pattern, pwndbg_cmds, shell_cmds
     ):
         alias_str = ""
-        aliases_len = 0
         if aliases:
             aliases = map(C.blue, aliases)
             alias_str = f" [{', '.join(aliases)}]"
