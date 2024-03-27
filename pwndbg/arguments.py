@@ -21,6 +21,7 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
+from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.nearpc import c as N
 
 ida_replacements = {
@@ -51,7 +52,7 @@ ida_replacements = {
 }
 
 
-def get_syscall_name(instruction):
+def get_syscall_name(instruction: PwndbgInstruction):
     if CS_GRP_INT not in instruction.groups:
         return None
 
@@ -78,7 +79,7 @@ def get_syscall_name(instruction):
     return pwndbg.constants.syscall(syscall_number, syscall_arch) or "<unk_%d>" % syscall_number
 
 
-def get(instruction):
+def get(instruction: PwndbgInstruction):
     """
     Returns an array containing the arguments to the current function,
     if $pc is a 'call' or 'bl' type instruction.
@@ -103,7 +104,7 @@ def get(instruction):
         # a call instruction.
         assert len(instruction.operands) == 1
 
-        target = instruction.operands[0].int
+        target = instruction.operands[0].before_value
 
         if not target:
             return []
@@ -220,7 +221,7 @@ def arguments(abi=None):
         yield argname(i, abi), argument(i, abi)
 
 
-def format_args(instruction):
+def format_args(instruction: PwndbgInstruction):
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"

@@ -96,7 +96,17 @@ config_contiguous = theme.add_param(
 )
 
 
-def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
+def format(
+    value,
+    limit=LIMIT,
+    code=True,
+    offset=0,
+    hard_stop=None,
+    hard_end=0,
+    safe_linking=False,
+    only_dereference_readonly_ptrs=False,
+    enhance_string_len: int = None,
+):
     """
     Recursively dereferences an address into string representation, or convert the list representation
     of address dereferences into string representation.
@@ -109,7 +119,8 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         hard_stop(int): Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
         safe_linking(bool): whether this chain use safe-linking
-
+        only_dereference_readonly_ptrs(bool): whether 'enhance' is only allowed to dereference pointers that point to readonly memory
+        enhance_string_len(int): The length of string to display for enhancement of the last pointer
     Returns:
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
@@ -142,17 +153,35 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     # Otherwise replace last element with the enhanced information.
     rest = rest[:-1]
 
+    enhance_can_dereference = True
+
+    # This is used in rare cases when we pass in a list of pointers where the last
+    # pointer should not be dereferenced.
+    if only_dereference_readonly_ptrs:
+        page = pwndbg.gdblib.vmmap.find(value[-1] if len(chain) == 1 else value[-2])
+        if page and page.write:
+            enhance_can_dereference = False
+
     # Enhance the last entry
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
     # the only element there is.
     if len(chain) == 1:
-        enhanced = pwndbg.enhance.enhance(chain[-1], code=code)
-
-    # Otherwise, the last element in the chain is the non-pointer value.
+        enhanced = pwndbg.enhance.enhance(
+            chain[-1],
+            code=code,
+            attempt_dereference=enhance_can_dereference,
+            enhance_string_len=enhance_string_len,
+        )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
     elif len(chain) < limit + 1:
-        enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
+        enhanced = pwndbg.enhance.enhance(
+            chain[-2] + offset,
+            code=code,
+            safe_linking=safe_linking,
+            enhance_string_len=enhance_string_len,
+            attempt_dereference=enhance_can_dereference,
+        )
 
     else:
         enhanced = c.contiguous_marker(f"{config_contiguous}")

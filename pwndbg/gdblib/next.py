@@ -155,7 +155,7 @@ def break_next_call(symbol_regex=None):
         if (
             not symbol_regex
             or (ins.target_const and symbol_regex.match(hex(ins.target)))
-            or (ins.symbol and symbol_regex.match(ins.symbol))
+            or (ins.target_string and symbol_regex.match(ins.target_string))
         ):
             return ins
 
