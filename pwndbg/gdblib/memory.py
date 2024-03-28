@@ -362,23 +362,41 @@ def update_min_addr() -> None:
         MMAP_MIN_ADDR = 0
 
 
-def fetch_struct_as_dictionary(struct_name: str, struct_address: int):
+def fetch_struct_as_dictionary(
+    struct_name: str,
+    struct_address: int,
+    include_only_fields: list[str] | None = None,
+    exclude_fields: list[str] | None = None,
+):
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
 
-    return pack_struct_into_dictionary(fetched_struct)
+    return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
 
 
-def pack_struct_into_dictionary(fetched_struct: gdb.Value):
+def pack_struct_into_dictionary(
+    fetched_struct: gdb.Value,
+    include_only_fields: list[str] | None = None,
+    exclude_fields: list[str] | None = None,
+):
     struct_as_dictionary = {}
-    for field in fetched_struct.type.fields():
-        if field.name is None:
-            # Flatten anonymous structs/unions
-            struct_as_dictionary.update(convert_gdb_value_to_python_value(fetched_struct[field]))
-        else:
-            key = field.name
-            value = convert_gdb_value_to_python_value(fetched_struct[field])
+
+    if include_only_fields is not None:
+        for field_name in include_only_fields:
+            key = field_name
+            value = convert_gdb_value_to_python_value(fetched_struct[field_name])
             struct_as_dictionary[key] = value
+    else:
+        for field in fetched_struct.type.fields():
+            if field.name is None:
+                # Flatten anonymous structs/unions
+                struct_as_dictionary.update(
+                    convert_gdb_value_to_python_value(fetched_struct[field])
+                )
+            elif exclude_fields is None or field.name not in exclude_fields:
+                key = field.name
+                value = convert_gdb_value_to_python_value(fetched_struct[field])
+                struct_as_dictionary[key] = value
 
     return struct_as_dictionary
 
