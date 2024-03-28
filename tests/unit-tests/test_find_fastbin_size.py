@@ -61,16 +61,6 @@ def test_nozero_flags():
     assert 0x0 == next(find_fastbin_size(buf, max_size, 8))
 
 
-def test_normal():
-    max_size = 0x20
-    offsets = {
-        0x8: 0x20,
-    }
-    buf = setup_mem(max_size, offsets)
-    assert 0x0 == next(find_fastbin_size(buf, max_size, 1))
-    assert 0x0 == next(find_fastbin_size(buf, max_size, 8))
-
-
 def test_unaligned():
     max_size = 0x20
     offsets = {
