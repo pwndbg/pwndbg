@@ -40,7 +40,7 @@ def kbase() -> None:
 
         # only search in kernel mappings:
         # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
-        if not mapping.vaddr & (0xFFFF << 48):
+        if mapping.vaddr & (0xFFFF << 48) == 0:
             continue
         if not mapping.execute:
             continue
