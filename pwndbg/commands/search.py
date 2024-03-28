@@ -6,8 +6,8 @@ import codecs
 import os
 import struct
 
-import pwnlib
 import gdb
+import pwnlib
 
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -120,9 +120,7 @@ parser.add_argument(
     help="Target architecture",
 )
 parser.add_argument(
-    "--asmbp",
-    action="store_true",
-    help="Set breakpoint for found assembly instruction"
+    "--asmbp", action="store_true", help="Set breakpoint for found assembly instruction"
 )
 parser.add_argument(
     "-x", "--hex", action="store_true", help="Target is a hex-encoded (for bytes/strings)"
@@ -307,10 +305,10 @@ def search(
     ):
         if save:
             saved.add(address)
-        if type=="asm" and asmbp:
+        if type == "asm" and asmbp:
             ins = pwndbg.disasm.one(address)
             if ins:
-                #set breakpoint on the instruction
+                # set breakpoint on the instruction
                 gdb.Breakpoint("*%#x" % ins.address, temporary=True)
 
         if not trunc_out or i < 20:
