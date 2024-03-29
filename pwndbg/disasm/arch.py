@@ -414,7 +414,6 @@ class DisassemblyAssistant:
 
         return None
 
-
     def telescope(
         self,
         address: int,
@@ -426,7 +425,7 @@ class DisassemblyAssistant:
     ) -> list[int]:
         """
         Dereference an address recursively - takes into account emulation.
-        
+
         It will only dereference as it is safe to do so, meaning the last value in the returned list may be a pointer
 
         The list that the function returns is guaranteed have len >= 1
@@ -483,9 +482,7 @@ class DisassemblyAssistant:
         return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def telescope_format_list(
-        self, addresses: list[int], limit: int, emu: Emulator
-    ) -> str:
+    def telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
