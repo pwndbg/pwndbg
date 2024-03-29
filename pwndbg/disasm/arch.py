@@ -438,7 +438,7 @@ class DisassemblyAssistant:
         elif can_read_process_state:
             # Can reason about memory in this case.
 
-            if read_size is not None and read_size != pwndbg.gdblib.arch.ptrsize:
+            if read_size is not None and read_size < pwndbg.gdblib.arch.ptrsize:
                 result = [address]
 
                 size_type = pwndbg.gdblib.typeinfo.get_type(read_size)
