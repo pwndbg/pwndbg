@@ -795,7 +795,7 @@ class Emulator:
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
             debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc)
-        except U.unicorn.UcError as e:
+        except U.unicorn.UcError:
             debug(DEBUG_EXECUTING, "Emulator failed to execute instruction")
             self.last_single_step_result = InstructionExecutedResult(None, None)
 

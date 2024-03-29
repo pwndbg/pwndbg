@@ -200,7 +200,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
                     instruction.annotation = (
                         f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
     def handle_add_sub_handler(
@@ -460,15 +460,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             sz += f"{index}*{scale:#x}"
             arith = True
 
-        if op.mem.disp != 0:
-            if arith and op.mem.disp < 0:
+        if disp != 0:
+            if arith and disp < 0:
                 sz += " - "
-            elif arith and op.mem.disp >= 0:
+            elif arith and disp >= 0:
                 sz += " + "
-            sz += "%#x" % abs(op.mem.disp)
+            sz += "%#x" % abs(disp)
 
-        sz = f"[{sz}]"
-        return sz
+        return f"[{sz}]"
 
 
 assistant = DisassemblyAssistant("i386")

@@ -189,7 +189,7 @@ def nearpc(
         # If this instruction performs a memory access operation, we should tell
         # the user anything we can figure out about the memory it's trying to
         # access.
-        mem_access = ""
+        # mem_access = ""
         if instr.address == pc and False:
             accesses = []
             for operand in instr.operands:
@@ -262,7 +262,7 @@ def nearpc(
                         # This chunk is free. This is a UAF.
                         accesses.append(f"[UAF] {address:#x}")
                         continue
-            mem_access = " ".join(accesses)
+            # mem_access = " ".join(accesses)
 
         opcodes = ""
         if show_opcode_bytes > 0:

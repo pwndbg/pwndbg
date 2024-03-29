@@ -56,7 +56,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
     def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
-        segment = ""
         parts = []
 
         if op.mem.base != 0:
