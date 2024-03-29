@@ -181,12 +181,12 @@ class DisassemblyAssistant:
                     print(
                         f"Program counter and emu.pc do not line up: {hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=}"
                     )
-                emu = None
+                emu = jump_emu = None
 
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
-            emu = None
+            emu = jump_emu = None
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation - not emulating certain type of instruction")
@@ -197,7 +197,7 @@ class DisassemblyAssistant:
 
         # This function will .single_step the emulation
         if not enhancer.enhance_operands(instruction, emu, jump_emu):
-            if emu is not None and DEBUG_ENHANCEMENT:
+            if jump_emu is not None and DEBUG_ENHANCEMENT:
                 print(f"Emulation failed at {instruction.address=:#x}")
             emu = None
             jump_emu = None
@@ -279,8 +279,15 @@ class DisassemblyAssistant:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
 
+                if op.type == CS_OP_MEM:
+                    op.before_value_resolved = self.resolve_used_value(
+                        op.before_value, instruction, op, emu
+                    )
+                else:
+                    op.before_value_resolved = op.before_value
+
                 if op.symbol and op.type == CS_OP_IMM:
-                    # Make an inline replacement, so `jump 0x400122` becomes `jump function_name`
+                    # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
                     instruction.asm_string = instruction.asm_string.replace(
                         hex(op.before_value), op.symbol
                     )
@@ -299,6 +306,14 @@ class DisassemblyAssistant:
                 op.after_value = self.op_handlers.get(op.type, lambda *a: None)(
                     instruction, op, emu
                 )
+
+                if op.type == CS_OP_MEM:
+                    op.after_value_resolved = self.resolve_used_value(
+                        op.after_value, instruction, op, emu
+                    )
+                else:
+                    op.after_value_resolved = op.after_value
+
                 if op.after_value is not None:
                     op.after_value &= pwndbg.gdblib.arch.ptrmask
 
@@ -369,12 +384,11 @@ class DisassemblyAssistant:
         operand: EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
-        address_list, did_telescope = self.telescope(
-            address, 1, instruction, operand, emu, read_size=size
-        )
-        if did_telescope:
-            if len(address_list) >= 2:
-                return address_list[1]
+        address_list, _ = self.telescope(address, 1, instruction, operand, emu, read_size=size)
+
+        if len(address_list) >= 2:
+            return address_list[1]
+
         return None
 
     # Pass in a operand and it's value, and determine the actual value used during an instruction
@@ -552,19 +566,19 @@ class DisassemblyAssistant:
         #
         # Firstly, we check the condition field - this field is manually set by our enhancement code
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
-        # due to the way to step using the emulator. We want our own manualy checks to override the emulator
+        # due to the way we single-step the emulator. We want our own manual checks to override the emulator
 
         if instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
             # If condition is true, then this might be a conditional jump
             # There are some other instructions that run conditionally though - resolve_target returns None in those cases
-            # Or, if this is a unconditional jump, we will try to resolve the next instruction run
+            # Or, if this is a unconditional jump, we will try to resolve target
             next_addr = self.resolve_target(instruction, emu)
 
         # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
         if next_addr is None and jump_emu:
             # Use emulator to determine the next address:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
-            # 2. Make sure we haven't manually set .conditional to False (which should override the emulators prediction)
+            # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
             if (
                 CS_GRP_CALL not in instruction.groups_set
                 and instruction.condition != InstructionCondition.FALSE
@@ -585,7 +599,7 @@ class DisassemblyAssistant:
             instruction.target = instruction.next
 
         if instruction.can_change_instruction_pointer:
-            # Only bother doing the lookup when the target is not the next address in memory:
+            # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
 
         if (
@@ -626,22 +640,19 @@ class DisassemblyAssistant:
             # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
             # and use that as the target
 
-            best_guess_addr = None
-
             # Reversed order, just because through observation the immediates and labels are often farther right
             for op in reversed(instruction.operands):
                 resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
                 if resolved_addr:
                     resolved_addr &= pwndbg.gdblib.arch.ptrmask
                     if op.symbol:
-                        best_guess_addr = resolved_addr
+                        addr = resolved_addr
                     else:
                         page = pwndbg.gdblib.vmmap.find(resolved_addr)
                         if page and page.execute:
-                            best_guess_addr = resolved_addr
+                            addr = resolved_addr
 
-                if best_guess_addr is not None:
-                    addr = best_guess_addr
+                if addr is not None:
                     instruction.target_const = op.type == CS_OP_IMM
                     break
 
@@ -665,8 +676,10 @@ class DisassemblyAssistant:
 
         return "%#x" % value
 
-    # Return colorized register string
     def register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+        """
+        Return colorized register string
+        """
         reg = operand.reg
         name = C.register(instruction.cs_insn.reg_name(reg).upper())
 
@@ -680,8 +693,10 @@ class DisassemblyAssistant:
         else:
             return C.register_changed(name)
 
-    # Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
     def memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+        """
+        Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
+        """
         if operand.before_value is not None:
             return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
         else:

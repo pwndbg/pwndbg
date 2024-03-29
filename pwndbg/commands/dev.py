@@ -41,7 +41,6 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DEV)
 @pwndbg.commands.OnlyWhenRunning
 def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) -> None:
-    print(address)
     if address is not None:
         address = int(address)
         cached_instruction = pwndbg.disasm.computed_instruction_cache.get(address, None)
@@ -54,7 +53,7 @@ def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) ->
         # None if not overridden
         override_setting = True if force_emulate else (False if no_emulate else None)
         use_emulation = (
-            bool(pwndbg.gdblib.config.emulate == "yes")
+            bool(pwndbg.gdblib.config.emulate == "on")
             if override_setting is None
             else override_setting
         )

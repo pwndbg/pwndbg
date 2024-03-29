@@ -230,7 +230,7 @@ class PwndbgInstruction:
         """
         True if we have determined that this instruction can explicitly change the program counter.
         """
-        # The second check ensures that if the target address it itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
+        # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the ALL_JUMP_GROUPS in the first part of this check.
         return self.target not in (None, self.address + self.size) and (
             self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS)
@@ -342,6 +342,20 @@ class EnhancedOperand:
         """
         The value of the operand after the instruction executes.
         Only set when using emulation.
+        """
+
+        self.before_value_resolved: int | None = None
+        """
+        The 'resolved' value of the operand that is actually used in the instruction logic, before the instruction executes.
+        This is the same as before_value if it's not a memory operand, in which cases it's the dereferenced value.
+
+        Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
+        a register or a memory value to dereference, and we want the actual value used.
+        """
+
+        self.after_value_resolved: int | None = None
+        """
+        The 'resolved' value of the operand after the instruction executes.
         """
 
         self.str: str | None = ""

@@ -146,16 +146,18 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         left, right = instruction.operands
 
-        operand = left if left.type == CS_OP_MEM else (right if right.type == CS_OP_MEM else None)
+        mem_operand = (
+            left if left.type == CS_OP_MEM else (right if right.type == CS_OP_MEM else None)
+        )
 
-        if operand and operand.before_value is not None:
+        if mem_operand and mem_operand.before_value is not None:
             # operand.size is the width of memory in bytes (128, 256, or 512 bits = 16, 32, 64 bytes).
             # Pointer must be aligned to that memory width
-            alignment_mask = operand.cs_op.size - 1
+            alignment_mask = mem_operand.cs_op.size - 1
 
-            if operand.before_value & alignment_mask != 0:
+            if mem_operand.before_value & alignment_mask != 0:
                 instruction.annotation = MessageColor.error(
-                    f"<[{MemoryColor.get(operand.before_value)}] not aligned to {operand.cs_op.size} bytes>"
+                    f"<[{MemoryColor.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
                 )
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -173,14 +175,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        # Resolved values of left and right operand before xchg operation took place
-        left_before = self.resolve_used_value(left.before_value, instruction, left, emu)
-        right_before = self.resolve_used_value(right.before_value, instruction, right, emu)
-
-        if left_before is not None and right_before is not None:
+        if left.before_value_resolved is not None and right.before_value_resolved is not None:
             # Display the exchanged values. Doing it this way (instead of using .after_value) allows this to work without emulation
             # Don't telescope here for the sake of screen space
-            instruction.annotation = f"{left.str} => {MemoryColor.get_address_or_symbol(right_before)}, {right.str} => {MemoryColor.get_address_or_symbol(left_before)}"
+            instruction.annotation = f"{left.str} => {MemoryColor.get_address_or_symbol(right.before_value_resolved)}, {right.str} => {MemoryColor.get_address_or_symbol(left.before_value_resolved)}"
 
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
@@ -211,28 +209,21 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # char_to_separate_operands = "+" or "-"
         left, right = instruction.operands
 
-        # Used to set "(op1_value + op2_value)" at end of string
-        left_before = self.resolve_used_value(left.before_value, instruction, left, emu)
-        right_before = self.resolve_used_value(right.before_value, instruction, right, emu)
-
         # "a + b" or "a - b"
         plus_string = ""
 
-        if left_before is not None and right_before is not None:
+        # This path set plus_string to "op1_value + op2_value" (or with a minus sign)
+        if left.before_value_resolved is not None and right.before_value_resolved is not None:
             print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                left_before, right_before
+                left.before_value_resolved, right.before_value_resolved
             )
 
             plus_string = f"{print_left} {char_to_separate_operands} {print_right}"
 
-        # This may return None if cannot dereference memory (or after_value is None).
-        left_after = self.resolve_used_value(left.after_value, instruction, left, emu)
-
-        if left_after is not None:
-            instruction.annotation = (
-                f"{left.str} => {MemoryColor.get_address_and_symbol(left_after)} ({plus_string})"
-            )
+        if left.after_value_resolved is not None:
+            instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left.after_value_resolved)} ({plus_string})"
         elif plus_string:
+            # We didn't use emulation to determine the result - still display the operands
             instruction.annotation = f"{left.str} => {plus_string}"
 
     def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -251,13 +242,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # This function handles all combinations
         left, right = instruction.operands
 
-        # These may return None if cannot dereference memory (or before_value is None). Takes into account emulation
-        left_actual = self.resolve_used_value(left.before_value, instruction, left, emu)
-        right_actual = self.resolve_used_value(right.before_value, instruction, right, emu)
-
-        if left_actual is not None and right_actual is not None:
+        if left.before_value_resolved is not None and right.before_value_resolved is not None:
             print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                left_actual, right_actual
+                left.before_value_resolved, right.before_value_resolved
             )
             instruction.annotation = f"{print_left} {char_to_separate_operands} {print_right}"
 
@@ -282,28 +269,21 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
             instruction.annotation = f"{left.str} => 0"
         else:
-            left_after = self.resolve_used_value(left.after_value, instruction, left, emu)
-            if left_after is not None:
-                instruction.annotation = f"{left.str} => {left_after}"
+            if left.after_value_resolved is not None:
+                instruction.annotation = f"{left.str} => {left.after_value_resolved}"
 
     def handle_and(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        left_after = self.resolve_used_value(left.after_value, instruction, left, emu)
-
-        if left_after is not None:
-            instruction.annotation = f"{left.str} => {MemoryColor.get(left_after)}"
+        if left.after_value_resolved is not None:
+            instruction.annotation = f"{left.str} => {MemoryColor.get(left.after_value_resolved)}"
 
     def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # INC operand can be REG or [MEMORY]
         operand = instruction.operands[0]
 
-        operand_actual = self.resolve_used_value(operand.after_value, instruction, operand, emu)
-
-        if operand_actual is not None:
-            instruction.annotation = (
-                f"{operand.str} => {MemoryColor.get_address_and_symbol(operand_actual)}"
-            )
+        if operand.after_value_resolved is not None:
+            instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand.after_value_resolved)}"
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
