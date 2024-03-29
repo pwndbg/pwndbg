@@ -158,7 +158,7 @@ class DisassemblyAssistant:
         # Get another reference to the emulator for the purposes of jumps
         jump_emu = emu
 
-        if pwndbg.gdblib.config.emulate == "jumps-only":
+        if pwndbg.gdblib.config.emulate != "on":
             emu = None
 
         # For both cases below, set emu to None so we don't use it for annotation
@@ -279,12 +279,9 @@ class DisassemblyAssistant:
                 op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
 
-                if op.type == CS_OP_MEM:
-                    op.before_value_resolved = self.resolve_used_value(
-                        op.before_value, instruction, op, emu
-                    )
-                else:
-                    op.before_value_resolved = op.before_value
+                op.before_value_resolved = self.resolve_used_value(
+                    op.before_value, instruction, op, emu
+                )
 
                 if op.symbol and op.type == CS_OP_IMM:
                     # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
@@ -307,12 +304,9 @@ class DisassemblyAssistant:
                     instruction, op, emu
                 )
 
-                if op.type == CS_OP_MEM:
-                    op.after_value_resolved = self.resolve_used_value(
-                        op.after_value, instruction, op, emu
-                    )
-                else:
-                    op.after_value_resolved = op.after_value
+                op.after_value_resolved = self.resolve_used_value(
+                    op.after_value, instruction, op, emu
+                )
 
                 if op.after_value is not None:
                     op.after_value &= pwndbg.gdblib.arch.ptrmask
@@ -328,6 +322,9 @@ class DisassemblyAssistant:
     # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to
     # allow more details when the PC is at the instruction being enhanced
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
+        # can_read_process_state indicates if the current program counter of the process is the same as the instruction
+        # The way to determine this varies between architectures (some arches have PC a constant offset to instruction address),
+        # so subclasses need to specify
         return instruction.address == pwndbg.gdblib.regs.pc
 
     # Delegates to "read_register", which takes Capstone ID for register.
@@ -384,7 +381,7 @@ class DisassemblyAssistant:
         operand: EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
-        address_list, _ = self.telescope(address, 1, instruction, operand, emu, read_size=size)
+        address_list = self.telescope(address, 1, instruction, operand, emu, read_size=size)
 
         if len(address_list) >= 2:
             return address_list[1]
@@ -417,19 +414,7 @@ class DisassemblyAssistant:
 
         return None
 
-    # Dereference an address recursively - takes into account emulation.
-    # If cannot dereference safely, returns a list with just the passed in address.
-    # Note that this means the last value might be a pointer, while the format functions expect
-    # to receive a list of deferenced pointers with the last value being a non-pointer
-    #
-    # This is why we return a Tuple[list[int], did_telescope: boolean]
-    #   The first value is the list of addresses, the second is a boolean to indicate if telescoping occured,
-    #   or if the address was just sent back as the only value in a list.
-    #   This is important for the formatting function, as we pass the boolean there to indicate if during
-    #   enhancement of the last value in the chain we should attempt to dereference it or not.
-    #   We shouldn't dereference during enhancement if we cannot reason about the value in memory
-    #
-    # The list that the function returns is guaranteed have len >= 1
+
     def telescope(
         self,
         address: int,
@@ -438,20 +423,19 @@ class DisassemblyAssistant:
         operand: EnhancedOperand,
         emu: Emulator,
         read_size: int = None,
-    ) -> tuple[list[int], bool]:
-        # It is assumed proper checks have been made BEFORE calling this function so that `address`
-        # is not None, and so that in the case of non-emulation, pwndbg.chain.format will return values
-        # accurate to the program state after the instruction has executed. If just using operand values,
-        # this should work automatically, as `enhance_operands` only sets values it can reason about.
-        #
-        # can_read_process_state indicates if the current program counter of the process is the same as the instruction
-        # The way to determine this varies between architectures (some arches have PC a constant offset to instruction address),
-        # so subclasses need to specify
+    ) -> list[int]:
+        """
+        Dereference an address recursively - takes into account emulation.
+        
+        It will only dereference as it is safe to do so, meaning the last value in the returned list may be a pointer
+
+        The list that the function returns is guaranteed have len >= 1
+        """
 
         can_read_process_state = self.can_reason_about_process_state(instruction)
 
         if emu:
-            return (emu.telescope(address, limit, read_size=read_size), False)
+            return emu.telescope(address, limit, read_size=read_size)
         elif can_read_process_state:
             # Can reason about memory in this case.
 
@@ -465,10 +449,10 @@ class DisassemblyAssistant:
                 except gdb.MemoryError:
                     pass
 
-                return (result, False)
+                return result
 
             else:
-                return (pwndbg.chain.get(address, limit=limit), False)
+                return pwndbg.chain.get(address, limit=limit)
         elif not can_read_process_state or operand.type == CS_OP_IMM:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
@@ -492,15 +476,15 @@ class DisassemblyAssistant:
                 else:
                     break
 
-            return (address_list, True)
+            return address_list
 
         # We cannot telescope, but we can still return the address.
         # Just without any further information
-        return ([address], True)
+        return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def telescope_format_list(
-        self, addresses: list[int], limit: int, emu: Emulator, only_dereference_readonly_ptrs: bool
+        self, addresses: list[int], limit: int, emu: Emulator
     ) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
@@ -517,7 +501,6 @@ class DisassemblyAssistant:
             return pwndbg.chain.format(
                 addresses,
                 limit=limit,
-                only_dereference_readonly_ptrs=only_dereference_readonly_ptrs,
                 enhance_string_len=enhance_string_len,
             )
 

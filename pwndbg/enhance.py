@@ -173,7 +173,7 @@ def enhance(
 
     # And then integer
     else:
-        # It might be an integer or just a plain pointer
+        # It might be a pointer or just a plain integer
         new_page = pwndbg.gdblib.vmmap.find(intval0)
         if new_page:
             return pwndbg.color.memory.get_address_and_symbol(intval0)
