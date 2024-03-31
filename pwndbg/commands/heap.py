@@ -510,7 +510,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
     if next:
-        print(C.banner(f"Next {next} chunk(s)"))
+        print(C.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
             chunk = chunk.next_chunk()
 
