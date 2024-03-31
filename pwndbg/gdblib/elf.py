@@ -327,7 +327,7 @@ def get_ehdr(pointer: int):
     ei_class = pwndbg.gdblib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr = read(Ehdr, baseint(phdr.p_type)
+    Elfhdr = read(Ehdr, base)
     return ei_class, Elfhdr
 
 
