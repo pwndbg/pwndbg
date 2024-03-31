@@ -139,21 +139,18 @@ def test_malloc_chunk_dump_command(start_binary):
     gdb.execute("continue")
 
     chunk = pwndbg.gdblib.memory.poi(
-            pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol("test_chunk")[0].value()
-        )
+        pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol("test_chunk")[0].value()
+    )
     chunk_addr = chunk.address
 
     malloc_chunk = gdb.execute(f"malloc_chunk {chunk_addr} -d", to_string=True)
 
-
-    size = int(chunk[(
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunk.type.fields())
-                else "size"
-            )])
+    size = int(
+        chunk[("mchunk_size" if "mchunk_size" in (f.name for f in chunk.type.fields()) else "size")]
+    )
 
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
-    
+
     chunk_addr = int(chunk.address)
     expected = [
         "Allocated chunk | PREV_INUSE",
@@ -164,12 +161,11 @@ def test_malloc_chunk_dump_command(start_binary):
         f"+0000 0x{chunk_addr:x}  00 00 00 00 00 00 00 00  31 00 00 00 00 00 00 00  │........│1.......│",
         f"+0010 0x{chunk_addr+0x10:x}  54 68 69 73 20 69 73 20  61 20 74 65 73 74 20 73  │This.is.│a.test.s│",
         f"+0020 0x{chunk_addr+0x20:x}  74 72 69 6e 67 00 00 00  00 00 00 00 00 00 00 00  │tring...│........│",
-        f"+0030 0x{chunk_addr+0x30:x}  00 00 00 00 00 00 00 00                           │........│        │"
+        f"+0030 0x{chunk_addr+0x30:x}  00 00 00 00 00 00 00 00                           │........│        │",
     ]
 
     # now just compare the output
     assert malloc_chunk.splitlines() == expected
-
 
 
 def test_malloc_chunk_command(start_binary):
