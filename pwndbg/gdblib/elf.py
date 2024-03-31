@@ -327,7 +327,7 @@ def get_ehdr(pointer: int):
     ei_class = pwndbg.gdblib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr = read(Ehdr, base)
+    Elfhdr = read(Ehdr, baseint(phdr.p_type)
     return ei_class, Elfhdr
 
 
@@ -415,7 +415,6 @@ def map_inner(ei_class, ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...
         vaddr = int(phdr.p_vaddr)
         offset = int(phdr.p_offset)
         flags = int(phdr.p_flags)
-        # ptype = int(phdr.p_type)
 
         memsz += pwndbg.lib.memory.page_offset(vaddr)
         memsz = pwndbg.lib.memory.page_size_align(memsz)
