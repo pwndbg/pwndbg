@@ -439,19 +439,6 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
 
     chunk = Chunk(addr)
 
-    if next:
-        print(C.banner(f"Next {next} chunks after {hex(addr)}"))
-        for _ in range(next):
-            chunk = chunk.next_chunk()
-
-            if not chunk:
-                print("No next chunk found")
-                break
-
-            malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
-
-        return
-
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
     out_fields = f"Addr: {M.get(chunk.address)}\n"
@@ -521,6 +508,17 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
             )
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
+
+    if next:
+        print(C.banner(f"Next {next} chunk(s)"))
+        for _ in range(next):
+            chunk = chunk.next_chunk()
+
+            if not chunk:
+                print("No next chunk found")
+                break
+
+            malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
 
 
 parser = argparse.ArgumentParser(
