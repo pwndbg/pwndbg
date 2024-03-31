@@ -135,8 +135,8 @@ def generate_expected_malloc_chunk_output(chunks):
 
 def test_malloc_chunk_dump_command(start_binary):
     start_binary(HEAP_MALLOC_CHUNK_DUMP)
-    print(gdb.execute("break break_here"))
-    print(gdb.execute("continue"))
+    gdb.execute("break break_here")
+    gdb.execute("continue")
 
     chunk = pwndbg.gdblib.memory.poi(
             pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol("test_chunk")[0].value()
@@ -145,7 +145,6 @@ def test_malloc_chunk_dump_command(start_binary):
 
     malloc_chunk = gdb.execute(f"malloc_chunk {chunk_addr} -d", to_string=True)
 
-    print(malloc_chunk)
 
     size = int(chunk[(
                 "mchunk_size"
@@ -175,7 +174,7 @@ def test_malloc_chunk_dump_command(start_binary):
 
 def test_malloc_chunk_command(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
-    print(gdb.execute("break break_here"))
+    gdb.execute("break break_here")
     gdb.execute("continue")
 
     chunks = {}
