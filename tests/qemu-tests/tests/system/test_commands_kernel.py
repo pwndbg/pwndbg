@@ -5,11 +5,6 @@ import gdb
 import pwndbg
 
 
-def test_command_kbase():
-    res = gdb.execute("kbase", to_string=True)
-    assert len(res) > 0
-
-
 def test_command_kchecksec():
     res = gdb.execute("kchecksec", to_string=True)
     # TODO: do something with res

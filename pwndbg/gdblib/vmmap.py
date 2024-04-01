@@ -494,11 +494,11 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    import pt
+    import pt_gdb as pt
 
     retpages: List[pwndbg.lib.memory.Page] = []
 
-    p = pt.PageTableDump()
+    p = pt.PageTableDumpGdbFrontend()
     try:
         p.lazy_init()
     except Exception:
@@ -515,7 +515,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.gdblib.kernel.paging_enabled():
         return tuple(retpages)
 
-    pages = p.backend.parse_tables(p.cache, p.parser.parse_args(""))
+    pages = p.pt.arch_backend.parse_tables(p.pt.cache, p.pt.parser.parse_args(""))
 
     for page in pages:
         start = page.va
