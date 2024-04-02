@@ -12,7 +12,7 @@ void break_here(void) {}
 void* test_chunk = NULL;
 
 int main() {
-    void* str = malloc(0x20);
+    char* str = (char*)malloc(0x20);
     strncpy(str, "This is a test string", 0x20);
 
     test_chunk = mem2chunk(str);
