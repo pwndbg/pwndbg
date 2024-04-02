@@ -6,6 +6,7 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.regs
 import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.config import config
@@ -21,4 +22,4 @@ def kbase() -> None:
         print(M.error("kbase does not work when kernel-vmmap is set to none"))
         return
 
-    print(M.success(f"Found virtual base address: {hex(pwndbg.gdblib.kernel.kbase())}"))
+    print(M.success(f"Found virtual text base address: {hex(pwndbg.gdblib.kernel.kbase())}"))
