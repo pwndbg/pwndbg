@@ -53,4 +53,6 @@ def test_gdblib_kernel_nproc():
 @pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_gdblib_kernel_kbase():
     base = pwndbg.gdblib.kernel.kbase()
-    assert base == pwndbg.gdblib.symbol.address("_text") or base == pwndbg.gdblib.symbol.address("_stext")
+    assert base == pwndbg.gdblib.symbol.address("_text") or base == pwndbg.gdblib.symbol.address(
+        "_stext"
+    )
