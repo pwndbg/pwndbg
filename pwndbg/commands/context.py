@@ -634,7 +634,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     result = pwndbg.gdblib.nearpc.nearpc(
         lines=code_lines // 2,
-        emulate=bool(not pwndbg.gdblib.config.emulate == "no"),
+        emulate=bool(not pwndbg.gdblib.config.emulate == "off"),
         use_cache=True,
     )
 
