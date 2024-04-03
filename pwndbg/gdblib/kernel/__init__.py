@@ -143,12 +143,10 @@ def kbase() -> int | None:
     address = 0
 
     if arch_name == "x86-64":
-        # first opcodes: 0x48: 5.x - 6.1.x, 0x49: > 6.6, 0xFC: 6.7.1
-        magic = [0x48, 0x49, 0xFC]
+        address = get_idt_entries()[0].offset
     elif arch_name == "aarch64":
         address = pwndbg.gdblib.regs.vbar
     else:
-        print(M.error(f"kbase does not support the {arch_name} architecture"))
         return None
 
     mappings = pwndbg.gdblib.vmmap.get()
@@ -159,26 +157,69 @@ def kbase() -> int | None:
         # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
         if mapping.vaddr & (0xFFFF << 48) == 0:
             continue
-        if not mapping.execute:
-            continue
 
-        try:
-            b = pwndbg.gdblib.memory.byte(mapping.vaddr)
-        except gdb.MemoryError:
-            print(
-                M.error(
-                    f"Could not read memory at {mapping.vaddr:#x}. Kernel vmmap may be incorrect."
-                )
-            )
+        if not mapping.execute:
             continue
 
         if mapping.vaddr <= address <= mapping.vaddr + mapping.memsz:
             return mapping.vaddr
 
-        if b in magic:
-            return mapping.vaddr
-
     return None
+
+
+class IDTEntry:
+    """
+    Represents an entry in the Interrupt Descriptor Table (IDT)
+
+    The IDTEntry class stores information about an IDT entry, including its index,
+    offset, segment selector, descriptor privilege level (DPL), gate type, and
+    interrupt stack table (IST) index.
+
+    https://wiki.osdev.org/Interrupt_Descriptor_Table
+    """
+
+    def __init__(self, entry):
+        self.index = None
+        self.offset = None
+        self.segment = None
+        self.dpl = None
+        self.type = None
+        self.ist = None
+
+        self._parse_bytearray(entry)
+
+    def _parse_bytearray(self, entry):
+        self.offset = (
+            int.from_bytes(entry[8:12], byteorder="little") << 32
+            | (int.from_bytes(entry[6:8], byteorder="little") << 16)
+            | int.from_bytes(entry[0:2], byteorder="little")
+        )
+
+        self.segment = int.from_bytes(entry[2:4], byteorder="little")
+        self.ist = entry[4] & 0x7
+        self.type = (entry[5] >> 4) & 0xF
+        self.dpl = (entry[5] >> 2) & 0x3
+
+
+# TODO: add 32-bit support
+def get_idt_entries():
+    """
+    Retrieves the IDT entries from memory.
+    """
+    base = pwndbg.gdblib.regs.idt
+    limit = pwndbg.gdblib.regs.idt_limit
+
+    num_entries = (limit + 1) // 16
+
+    entries = []
+
+    # TODO: read the entire IDT in one call?
+    for i in range(num_entries):
+        entry_addr = base + i * 16
+        idt_entry = IDTEntry(pwndbg.gdblib.memory.read(entry_addr, 16))
+        entries.append(idt_entry)
+
+    return entries
 
 
 class ArchOps(ABC):
