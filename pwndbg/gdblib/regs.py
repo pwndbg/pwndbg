@@ -20,6 +20,7 @@ import gdb
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
 from pwndbg.lib.regs import BitFlags
@@ -194,22 +195,30 @@ class module(ModuleType):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def idt(self) -> int:
-        return get_privileged_register("IDT")
+        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
+            return get_privileged_register("IDT")
+        return 0
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def idt_limit(self) -> int:
-        return get_privileged_register("IDT_LIMIT")
+        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
+            return get_privileged_register("IDT_LIMIT")
+        return 0
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def gdt(self) -> int:
-        return get_privileged_register("GDT")
+        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
+            return get_privileged_register("GDT")
+        return 0
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def gdt_limit(self) -> int:
-        return get_privileged_register("GDT_LIMIT")
+    def gdt_limit(self) -> int | None:
+        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
+            return get_privileged_register("GDT_LIMIT")
+        return 0
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

@@ -8,6 +8,7 @@ from abc import abstractmethod
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -189,20 +190,20 @@ class IDTEntry:
         self._parse_bytearray(entry)
 
     def _parse_bytearray(self, entry):
-        self.offset = (
-            int.from_bytes(entry[8:12], byteorder="little") << 32
-            | (int.from_bytes(entry[6:8], byteorder="little") << 16)
-            | int.from_bytes(entry[0:2], byteorder="little")
-        )
+        entry = int.from_bytes(entry, byteorder="little")
 
-        self.segment = int.from_bytes(entry[2:4], byteorder="little")
-        self.ist = entry[4] & 0x7
-        self.type = (entry[5] >> 4) & 0xF
-        self.dpl = (entry[5] >> 2) & 0x3
+        self.offset = entry & 0xFFFF
+        self.offset |= ((entry >> 48) & 0xFFFF) << 16
+        self.offset |= ((entry >> 64) & 0xFFFFFFFF) << 32
+
+        self.segment = (entry >> 16) & 0xFFFF
+        self.ist = (entry >> 32) & 0x7
+        self.type = (entry >> 40) & 0xF
+        self.dpl = (entry >> 45) & 0x3
 
 
 # TODO: add 32-bit support
-def get_idt_entries():
+def get_idt_entries() -> List[IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
