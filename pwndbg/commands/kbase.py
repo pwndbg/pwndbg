@@ -7,9 +7,6 @@ import gdb
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.config import config
 
@@ -31,6 +28,5 @@ def kbase(rebase=None) -> None:
     print(M.success(f"Found virtual text base address: {hex(pwndbg.gdblib.kernel.kbase())}"))
 
     # TODO: check if file exists first ?
-
     if rebase:
         gdb.execute(f"add-symbol-file {rebase} {hex(pwndbg.gdblib.kernel.kbase())}")

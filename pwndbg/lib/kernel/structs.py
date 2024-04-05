@@ -24,11 +24,10 @@ class IDTEntry:
             self._parse_entry32(entry)
         elif len(entry) == 16:
             self._parse_entry64(entry)
-        else:
-            raise ValueError("Unsupoorted bit mode")
 
     def _parse_entry32(self, entry):
-        """Parse a 32-bit IDT entry.
+        """
+        Parse a 32-bit IDT entry.
 
                                 Gate Descriptor (32-bit)
         63                                  48  47  45 44        40               32
@@ -37,7 +36,7 @@ class IDTEntry:
         |    Offset 31..16                   |  |   |  |         |                |
         |                                    |  |   |  |         |                |
         +------------------+------------------+------------------+----------------+
-        31                                                                        0
+        31                                   16                                   0
         +-------------------------------------+------------------+----------------+
         |                                     |                                   |
         |          Segment Selector           |           Offset 15..0            |
