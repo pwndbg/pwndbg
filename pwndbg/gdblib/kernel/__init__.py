@@ -20,6 +20,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
+import pwndbg.lib.kernel.structs
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig = None
 
@@ -167,58 +168,23 @@ def kbase() -> int | None:
 
     return None
 
-
-class IDTEntry:
-    """
-    Represents an entry in the Interrupt Descriptor Table (IDT)
-
-    The IDTEntry class stores information about an IDT entry, including its index,
-    offset, segment selector, descriptor privilege level (DPL), gate type, and
-    interrupt stack table (IST) index.
-
-    https://wiki.osdev.org/Interrupt_Descriptor_Table
-    """
-
-    def __init__(self, entry):
-        self.index = None
-        self.offset = None
-        self.segment = None
-        self.dpl = None
-        self.type = None
-        self.ist = None
-
-        self._parse_bytearray(entry)
-
-    def _parse_bytearray(self, entry):
-        entry = int.from_bytes(entry, byteorder="little")
-
-        self.offset = entry & 0xFFFF
-        self.offset |= ((entry >> 48) & 0xFFFF) << 16
-        self.offset |= ((entry >> 64) & 0xFFFFFFFF) << 32
-
-        self.segment = (entry >> 16) & 0xFFFF
-        self.ist = (entry >> 32) & 0x7
-        self.type = (entry >> 40) & 0xF
-        self.dpl = (entry >> 45) & 0x3
-
-
-# TODO: add 32-bit support
-def get_idt_entries() -> List[IDTEntry]:
+def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
     base = pwndbg.gdblib.regs.idt
     limit = pwndbg.gdblib.regs.idt_limit
 
-    num_entries = (limit + 1) // 16
+    size = pwndbg.gdblib.arch.ptrsize * 2
+    num_entries = (limit + 1) // size
 
     entries = []
 
     # TODO: read the entire IDT in one call?
     for i in range(num_entries):
-        entry_addr = base + i * 16
-        idt_entry = IDTEntry(pwndbg.gdblib.memory.read(entry_addr, 16))
-        entries.append(idt_entry)
+        entry_addr = base + i * size
+        entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.gdblib.memory.read(entry_addr, size))
+        entries.append(entry)
 
     return entries
 

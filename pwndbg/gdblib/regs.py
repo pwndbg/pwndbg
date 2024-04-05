@@ -215,7 +215,7 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def gdt_limit(self) -> int | None:
+    def gdt_limit(self) -> int:
         if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
             return get_privileged_register("GDT_LIMIT")
         return 0
