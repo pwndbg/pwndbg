@@ -168,6 +168,7 @@ def kbase() -> int | None:
 
     return None
 
+
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.

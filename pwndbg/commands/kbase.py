@@ -15,7 +15,9 @@ from pwndbg.gdblib.config import config
 
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 
-parser.add_argument("-r", "--rebase", metavar="vmlinux", type=str, help="specify the vmlinux file path")
+parser.add_argument(
+    "-r", "--rebase", metavar="vmlinux", type=str, help="specify the vmlinux file path"
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
