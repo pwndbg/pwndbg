@@ -248,7 +248,7 @@ def search(
         value = value.encode()
         value += b"\x00"
 
-    elif type == "asm":
+    elif type == "asm" or asmbp:
         bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
         value = pwnlib.asm.asm(value, arch=arch, bits=bits_for_arch)
 
@@ -263,7 +263,7 @@ def search(
         return
 
     # If next is passed, only perform a manual search over previously saved addresses
-    if type == "asm":
+    if type == "asm" or asmbp:
         print("Searching for instruction (assembled value): " + repr(value))
     else:
         print("Searching for value: " + repr(value))
@@ -305,11 +305,9 @@ def search(
     ):
         if save:
             saved.add(address)
-        if type == "asm" and asmbp:
-            ins = pwndbg.disasm.one(address)
-            if ins:
-                # set breakpoint on the instruction
-                gdb.Breakpoint("*%#x" % ins.address, temporary=True)
+        if asmbp:
+            # set breakpoint on the instruction
+            gdb.Breakpoint("*%#x" % address, temporary=True)
 
         if not trunc_out or i < 20:
             print_search_hit(address)
