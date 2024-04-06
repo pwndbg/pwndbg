@@ -12,9 +12,7 @@ from pwndbg.gdblib.config import config
 
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 
-parser.add_argument(
-    "-r", "--rebase", metavar="vmlinux", type=str, help="specify the vmlinux file path"
-)
+parser.add_argument("-r", "--rebase", action="store_true", help="rebase loaded symbol file")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
@@ -27,6 +25,13 @@ def kbase(rebase=None) -> None:
 
     print(M.success(f"Found virtual text base address: {hex(pwndbg.gdblib.kernel.kbase())}"))
 
-    # TODO: check if file exists first ?
-    if rebase:
-        gdb.execute(f"add-symbol-file {rebase} {hex(pwndbg.gdblib.kernel.kbase())}")
+    if not rebase:
+        return
+
+    symbol_file = gdb.current_progspace().filename
+
+    if symbol_file:
+        gdb.execute("file", to_string=True)
+        gdb.execute(f"add-symbol-file {symbol_file} {hex(pwndbg.gdblib.kernel.kbase())}")
+    else:
+        print(M.error("No symbol file is currently loaded"))
