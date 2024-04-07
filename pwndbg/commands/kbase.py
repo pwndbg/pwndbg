@@ -18,7 +18,7 @@ parser.add_argument("-r", "--rebase", action="store_true", help="rebase loaded s
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kbase(rebase=None) -> None:
+def kbase(rebase=False) -> None:
     if config.kernel_vmmap == "none":
         print(M.error("kbase does not work when kernel-vmmap is set to none"))
         return
@@ -31,7 +31,7 @@ def kbase(rebase=None) -> None:
     symbol_file = gdb.current_progspace().filename
 
     if symbol_file:
-        gdb.execute("file", to_string=True)
+        gdb.execute("symbol-file", to_string=True)
         gdb.execute(f"add-symbol-file {symbol_file} {hex(pwndbg.gdblib.kernel.kbase())}")
     else:
         print(M.error("No symbol file is currently loaded"))

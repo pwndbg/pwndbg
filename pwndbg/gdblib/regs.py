@@ -208,20 +208,6 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def gdt(self) -> int:
-        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
-            return get_privileged_register("GDT")
-        return 0
-
-    @property
-    @pwndbg.lib.cache.cache_until("stop")
-    def gdt_limit(self) -> int:
-        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
-            return get_privileged_register("GDT_LIMIT")
-        return 0
-
-    @property
-    @pwndbg.lib.cache.cache_until("stop")
     def fsbase(self) -> int:
         return self._fs_gs_helper("fs_base", ARCH_GET_FS)
 
