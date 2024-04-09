@@ -307,7 +307,7 @@ def search(
             saved.add(address)
         if asmbp:
             # set breakpoint on the instruction
-            gdb.Breakpoint("*%#x" % address, temporary=True)
+            gdb.Breakpoint("*%#x" % address, temporary=False)
 
         if not trunc_out or i < 20:
             print_search_hit(address)
