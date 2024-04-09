@@ -163,7 +163,7 @@ def kbase() -> int | None:
         if not mapping.execute:
             continue
 
-        if mapping.vaddr <= address <= mapping.vaddr + mapping.memsz:
+        if address in mapping:
             return mapping.vaddr
 
     return None
