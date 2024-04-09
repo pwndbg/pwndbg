@@ -6,10 +6,12 @@ import codecs
 import os
 import struct
 
+import gdb
 import pwnlib
 
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.disasm
 import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
@@ -118,6 +120,9 @@ parser.add_argument(
     help="Target architecture",
 )
 parser.add_argument(
+    "--asmbp", action="store_true", help="Set breakpoint for found assembly instruction"
+)
+parser.add_argument(
     "-x", "--hex", action="store_true", help="Target is a hex-encoded (for bytes/strings)"
 )
 parser.add_argument(
@@ -174,6 +179,7 @@ parser.add_argument(
 def search(
     type,
     arch,
+    asmbp,
     hex,
     executable,
     writable,
@@ -242,7 +248,7 @@ def search(
         value = value.encode()
         value += b"\x00"
 
-    elif type == "asm":
+    elif type == "asm" or asmbp:
         bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
         value = pwnlib.asm.asm(value, arch=arch, bits=bits_for_arch)
 
@@ -257,7 +263,7 @@ def search(
         return
 
     # If next is passed, only perform a manual search over previously saved addresses
-    if type == "asm":
+    if type == "asm" or asmbp:
         print("Searching for instruction (assembled value): " + repr(value))
     else:
         print("Searching for value: " + repr(value))
@@ -299,6 +305,9 @@ def search(
     ):
         if save:
             saved.add(address)
+        if asmbp:
+            # set breakpoint on the instruction
+            gdb.Breakpoint("*%#x" % address, temporary=False)
 
         if not trunc_out or i < 20:
             print_search_hit(address)
