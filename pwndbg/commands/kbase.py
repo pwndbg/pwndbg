@@ -23,7 +23,13 @@ def kbase(rebase=False) -> None:
         print(M.error("kbase does not work when kernel-vmmap is set to none"))
         return
 
-    print(M.success(f"Found virtual text base address: {hex(pwndbg.gdblib.kernel.kbase())}"))
+    base = pwndbg.gdblib.kernel.kbase()
+
+    if base is None:
+        print(M.error("Unable to locate the kernel base"))
+        return
+
+    print(M.success(f"Found virtual text base address: {hex(base)}"))
 
     if not rebase:
         return
@@ -31,7 +37,7 @@ def kbase(rebase=False) -> None:
     symbol_file = gdb.current_progspace().filename
 
     if symbol_file:
-        gdb.execute("symbol-file", to_string=True)
-        gdb.execute(f"add-symbol-file {symbol_file} {hex(pwndbg.gdblib.kernel.kbase())}")
+        gdb.execute("symbol-file")
+        gdb.execute(f"add-symbol-file {symbol_file} {hex(base)}")
     else:
         print(M.error("No symbol file is currently loaded"))

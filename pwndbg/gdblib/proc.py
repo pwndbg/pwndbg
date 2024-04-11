@@ -35,6 +35,7 @@ binary_vmmap: tuple[pwndbg.lib.memory.Page, ...]
 # dump_relocations_by_section_name: tuple[Relocation, ...] | None
 # get_section_address_by_name: Callable[[str], int]
 OnlyWhenRunning: Callable[[Callable[..., T]], Callable[..., T]]
+OnlyWhenQemuKernel: Callable[[Callable[..., T]], Callable[..., T]]
 
 
 class module(ModuleType):
@@ -152,6 +153,15 @@ class module(ModuleType):
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> T:
             if self.alive:
+                return func(*a, **kw)
+            return None
+
+        return wrapper
+
+    def OnlyWhenQemuKernel(self, func: Callable[..., T]) -> Callable[..., T]:
+        @functools.wraps(func)
+        def wrapper(*a: Any, **kw: Any) -> T:
+            if pwndbg.gdblib.qemu.is_qemu_kernel():
                 return func(*a, **kw)
             return None
 

@@ -37,8 +37,9 @@ def gdb_get_register(name: str) -> gdb.Value:
         return frame.read_register(name.upper())
 
 
+@pwndbg.gdblib.proc.OnlyWhenQemuKernel
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def get_privileged_register(name: str) -> int:
+def get_qemu_register(name: str) -> int:
     out = gdb.execute("monitor info registers", to_string=True)
     match = re.search(rf'{name.split("_")[0]}=\s+([\da-fA-F]+)\s+([\da-fA-F]+)', out)
 
@@ -193,18 +194,20 @@ class module(ModuleType):
         return delta
 
     @property
+    @pwndbg.gdblib.proc.OnlyWhenQemuKernel
     @pwndbg.lib.cache.cache_until("stop")
     def idt(self) -> int:
-        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
-            return get_privileged_register("IDT")
-        return 0
+        if pwndbg.gdblib.arch.current == "x86-64":
+            return get_qemu_register("IDT")
+        return None
 
     @property
+    @pwndbg.gdblib.proc.OnlyWhenQemuKernel
     @pwndbg.lib.cache.cache_until("stop")
     def idt_limit(self) -> int:
-        if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current == "x86-64":
-            return get_privileged_register("IDT_LIMIT")
-        return 0
+        if pwndbg.gdblib.arch.current == "x86-64":
+            return get_qemu_register("IDT_LIMIT")
+        return None
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
