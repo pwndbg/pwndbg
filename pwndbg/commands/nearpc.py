@@ -30,7 +30,7 @@ def nearpc(pc=None, lines=None, emulate=False) -> None:
     """
     repeat = False
     for command in pwndbg.commands.commands:
-        if command.__module__ == "pwndbg.commands.nearpc" and command.repeat:
+        if command.__module__ == "pwndbg.commands.nearpc" and command.repeat == True:
             repeat = True
             break
 
