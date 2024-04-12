@@ -201,14 +201,6 @@ def test_try_free_corrupted_consolidate_backward(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-def test_try_free_corrupted_consolidate_backward(start_binary):
-    chunks = setup_heap(start_binary, 13)
-
-    result = gdb.execute(f"try_free {hex(chunks['e'])}", to_string=True)
-    assert "corrupted size vs. prev_size while consolidating" in result
-    os.remove(OUTPUT_FILE)
-
-
 @pytest.mark.skip(
     reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
 )
