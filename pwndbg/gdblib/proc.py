@@ -11,6 +11,8 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import Callable
+from typing import List
+from typing import Optional
 from typing import TypeVar
 
 import gdb
@@ -36,6 +38,7 @@ binary_vmmap: tuple[pwndbg.lib.memory.Page, ...]
 # get_section_address_by_name: Callable[[str], int]
 OnlyWhenRunning: Callable[[Callable[..., T]], Callable[..., T]]
 OnlyWhenQemuKernel: Callable[[Callable[..., T]], Callable[..., T]]
+OnlyWithArch: Callable[[List[str]], Callable[[Callable[..., T]], Callable[..., Optional[T]]]]
 
 
 class module(ModuleType):
@@ -166,6 +169,28 @@ class module(ModuleType):
             return None
 
         return wrapper
+
+    def OnlyWithArch(
+        self, arch_names: List[str]
+    ) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+        """Decorates function to work only with the specified archictectures."""
+        for arch in arch_names:
+            if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+                raise ValueError(
+                    f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
+                )
+
+        def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+            @functools.wraps(function)
+            def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
+                if pwndbg.gdblib.arch.name in arch_names:
+                    return function(*a, **kw)
+                else:
+                    return None
+
+            return _OnlyWithArch
+
+        return decorator
 
 
 # To prevent garbage collection

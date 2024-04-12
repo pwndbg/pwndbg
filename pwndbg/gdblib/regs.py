@@ -195,19 +195,17 @@ class module(ModuleType):
 
     @property
     @pwndbg.gdblib.proc.OnlyWhenQemuKernel
+    @pwndbg.gdblib.proc.OnlyWithArch(["i386", "x86-64"])
     @pwndbg.lib.cache.cache_until("stop")
     def idt(self) -> int:
-        if pwndbg.gdblib.arch.current == "x86-64":
-            return get_qemu_register("IDT")
-        return None
+        return get_qemu_register("IDT")
 
     @property
     @pwndbg.gdblib.proc.OnlyWhenQemuKernel
+    @pwndbg.gdblib.proc.OnlyWithArch(["i386", "x86-64"])
     @pwndbg.lib.cache.cache_until("stop")
     def idt_limit(self) -> int:
-        if pwndbg.gdblib.arch.current == "x86-64":
-            return get_qemu_register("IDT_LIMIT")
-        return None
+        return get_qemu_register("IDT_LIMIT")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
