@@ -182,3 +182,35 @@ def test_command_search_rwx(start_binary):
             result_count += 1
 
     assert result_count == 0
+
+def test_command_search_asm(start_binary):
+    """
+    Tests searching for asm instructions
+    """
+    start_binary(SEARCH_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    result_str = gdb.execute('search --asm "add rax, rdx" search_memory', to_string=True)
+    result_count=0
+    for line in result_str.split("\n"):
+        if line.startswith("search_memory"):
+            result_count+=1
+    assert result_count == 2
+
+def test_command_set_breakpoint_search_asm(start_binary):
+    """
+    Tests setting breakpoints on found asm instructions
+    """
+    start_binary(SEARCH_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    result_str = gdb.execute('search --asmbp "add rax, rdx" search_memory', to_string=True)
+    result_count=0
+    for line in result_str.split("\n"):
+        if line.startswith("Breakpoint"):
+            result_count+=1
+    assert result_count == 2
