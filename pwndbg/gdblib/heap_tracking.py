@@ -298,7 +298,6 @@ class Tracker:
                         continue
 
                     # Check if the chunk is free.
-                    found = False
                     for b in bins_list:
                         if b.contains_chunk(ch.real_size, ch.address):
                             # The chunk is free. Add it to the free list and install
@@ -310,9 +309,8 @@ class Tracker:
                             self.free_watchpoints[ch.address] = wp
 
                             # Move on to the next chunk.
-                            found = True
                             break
-        except IndexError as e:
+        except IndexError:
             import traceback
 
             traceback.print_exc()
@@ -374,7 +372,7 @@ def get_chunk(address, requested_size):
     # so, we separate them here.
     FLAGS_BITMASK = 7
 
-    flags = size & 7
+    flags = size & FLAGS_BITMASK
     size ^= flags
 
     return Chunk(address, size, requested_size, flags)

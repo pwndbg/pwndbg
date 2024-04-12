@@ -33,6 +33,6 @@ def ropper(argument) -> None:
         cmd += argument
 
         try:
-            io = subprocess.call(cmd)
+            subprocess.call(cmd)
         except Exception:
             print("Could not run ropper.  Please ensure it's installed and in $PATH.")

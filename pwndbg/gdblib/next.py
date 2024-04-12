@@ -246,7 +246,7 @@ def break_on_program_code() -> bool:
         if proc.stopped_with_signal:
             return False
 
-        o = gdb.execute("si", from_tty=False, to_string=True)
+        gdb.execute("si", from_tty=False, to_string=True)
 
         for start, end in binary_exec_page_ranges:
             if start <= regs.pc < end:

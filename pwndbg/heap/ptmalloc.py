@@ -1394,7 +1394,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             try:
                 self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
                 self._thread_cache["entries"].fetch_lazy()
-            except Exception as e:
+            except Exception:
                 print(
                     message.error(
                         "Error fetching tcache. GDB cannot access "

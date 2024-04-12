@@ -32,7 +32,6 @@ def valist(addr: int, count: int) -> None:
     reg_save_area = pwndbg.gdblib.memory.u64(addr + 16)
 
     indent = " " * len("gp_offset => ")
-    heading = C.blue("reg_save_area".ljust(len(indent) - 1))
     print(f"{C.blue('reg_save_area')}")
     for i in range(6):
         line = ""

@@ -63,7 +63,6 @@ def test_command_killthreads_produces_error_when_unknown_thread_passed(start_bin
 
     gdb.execute("break break_here")
     gdb.execute("run")
-    initial_thread_count = len(gdb.selected_inferior().threads())
     # check if thread with id 3 exists
     assert len([thread for thread in gdb.selected_inferior().threads() if thread.num == 3]) == 1
 

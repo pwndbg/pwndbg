@@ -39,7 +39,6 @@ def _which_binutils(util: str, arch: Arch, **kwargs: Any) -> str | None:
     ###############################
 
     arch_name = arch.name
-    bits = arch.ptrsize
 
     # Fix up binjitsu vs Debian triplet naming, and account
     # for 'thumb' being its own binjitsu architecture.

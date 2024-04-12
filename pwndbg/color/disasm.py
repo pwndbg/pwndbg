@@ -41,8 +41,6 @@ def instruction(ins):
         sym = pwndbg.gdblib.symbol.get(ins.target) or None
         target = M.get(ins.target)
         const = ins.target_const
-        hextarget = hex(ins.target)
-        hexlen = len(hextarget)
 
         # If it's a constant expression, color it directly in the asm.
         if const:

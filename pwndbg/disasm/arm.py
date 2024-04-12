@@ -11,7 +11,6 @@ import pwndbg.gdblib.regs
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     def memory_sz(self, instruction, op) -> str:
-        segment = ""
         parts = []
 
         if op.mem.base != 0:

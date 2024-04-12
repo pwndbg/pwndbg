@@ -64,8 +64,8 @@ Other Linux distributions are also supported via `setup.sh`, including:
 If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source. You can build it as:
 ```
 cd <gdb-sources-dir>
-mkdir build
-cd build
+mkdir build && cd build
+sudo apt install libgmp-dev libmpfr-dev libreadline-dev texinfo  # required by build
 ../configure --disable-nls --disable-werror --with-system-readline --with-python=`which python3` --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all
 make -j7
 ```

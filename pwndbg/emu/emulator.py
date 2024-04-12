@@ -438,7 +438,7 @@ class Emulator:
         try:
             self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
-        except U.unicorn.UcError as e:
+        except U.unicorn.UcError:
             self._single_step = (None, None)
 
         return self._single_step

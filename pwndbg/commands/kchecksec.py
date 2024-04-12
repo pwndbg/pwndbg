@@ -118,8 +118,6 @@ def kchecksec() -> None:
         )
         return
 
-    cmdline = pwndbg.gdblib.kernel.kcmdline()
-
     options = _hardening_options + _arch_hardening_options.get(pwndbg.gdblib.arch.name, [])
     for opt in options:
         config_name = opt.name
