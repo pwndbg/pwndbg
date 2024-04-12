@@ -424,12 +424,16 @@ parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
 
+parser.add_argument(
+    "-n", "--next", type=int, default=0, help="Print the next N chunks after the specified address."
+)
+
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
+def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -504,6 +508,17 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
             )
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
+
+    if next:
+        print(C.banner(f"Next {next} chunk(s):"))
+        for _ in range(next):
+            chunk = chunk.next_chunk()
+
+            if not chunk:
+                print("No next chunk found")
+                break
+
+            malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
 
 
 parser = argparse.ArgumentParser(
