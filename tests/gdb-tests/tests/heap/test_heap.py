@@ -29,7 +29,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["allocated"] = [
         "Allocated chunk | PREV_INUSE",
-        f"Addr: {chunks['allocated'].address}",
+        f"Chunk: {chunks['allocated'].address} Alloc: {chunks['allocated'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         "",
     ]
@@ -46,7 +46,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["tcache"] = [
         f"Free chunk ({'tcachebins' if pwndbg.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
-        f"Addr: {chunks['tcache'].address}",
+        f"Chunk: {chunks['tcache'].address} Alloc: {chunks['tcache'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['tcache']['fd']):02x}",
         "",
@@ -64,7 +64,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["fast"] = [
         "Free chunk (fastbins) | PREV_INUSE",
-        f"Addr: {chunks['fast'].address}",
+        f"Chunk: {chunks['fast'].address} Alloc: {chunks['fast'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['fast']['fd']):02x}",
         "",
@@ -82,7 +82,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["small"] = [
         "Free chunk (smallbins) | PREV_INUSE",
-        f"Addr: {chunks['small'].address}",
+        f"Chunk: {chunks['small'].address} Alloc: {chunks['small'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['small']['fd']):02x}",
         f"bk: 0x{int(chunks['small']['bk']):02x}",
@@ -101,7 +101,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["large"] = [
         "Free chunk (largebins) | PREV_INUSE",
-        f"Addr: {chunks['large'].address}",
+        f"Chunk: {chunks['large'].address} Alloc: {chunks['large'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['large']['fd']):02x}",
         f"bk: 0x{int(chunks['large']['bk']):02x}",
@@ -122,7 +122,7 @@ def generate_expected_malloc_chunk_output(chunks):
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["unsorted"] = [
         "Free chunk (unsortedbin) | PREV_INUSE",
-        f"Addr: {chunks['unsorted'].address}",
+        f"Chunk: {chunks['unsorted'].address} Alloc: {chunks['unsorted'].address+16}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['unsorted']['fd']):02x}",
         f"bk: 0x{int(chunks['unsorted']['bk']):02x}",

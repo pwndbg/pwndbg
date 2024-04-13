@@ -15,7 +15,7 @@ target_address = None
 def check_result(result, expected_size):
     ptrsize = pwndbg.gdblib.arch.ptrsize
 
-    matches = re.findall(r"\bAddr: (0x[0-9a-f]+)", result)
+    matches = re.findall(r"\bChunk: (0x[0-9a-f]+)", result)
     assert len(matches) == 1
     addr = int(matches[0], 16)
 
@@ -36,7 +36,7 @@ def check_result(result, expected_size):
 
 
 def check_no_results(result):
-    matches = re.findall(r"\bAddr: (0x[0-9a-f]+)", result)
+    matches = re.findall(r"\bChunk: (0x[0-9a-f]+)", result)
     assert len(matches) == 0
 
 

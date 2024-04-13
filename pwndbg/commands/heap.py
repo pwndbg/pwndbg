@@ -437,7 +437,7 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False) -> None:
 
     headers_to_print = []  # both state (free/allocated) and flags
     fields_to_print = set()  # in addition to addr and size
-    out_fields = f"Addr: {M.get(chunk.address)}\n"
+    out_fields = f"Chunk: {M.get(chunk.address)} Alloc: {M.get(chunk.address+16)}\n"
 
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
