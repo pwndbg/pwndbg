@@ -313,7 +313,13 @@ class Emulator:
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
     def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
         read_size = read_size if read_size is not None else pwndbg.gdblib.arch.ptrsize
+
         result = [address]
+
+        # This prevents a crash in `unpack_size` below with big (SIMD) memory reads
+        if not read_size <= 8:
+            return result
+
         for i in range(limit):
             if result.count(address) >= 2:
                 break
