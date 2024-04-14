@@ -524,8 +524,8 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0, dump=Fal
             if not chunk:
                 print("No next chunk found")
                 break
-            
-            print() # extra newline for better readability
+
+            print()  # extra newline for better readability
             malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple, dump=dump)
 
 
