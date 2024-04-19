@@ -48,3 +48,13 @@ def test_gdblib_kernel_is_kaslr_enabled():
 def test_gdblib_kernel_nproc():
     # make sure no exception occurs
     pwndbg.gdblib.kernel.nproc()
+
+
+@pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
+def test_gdblib_kernel_kbase():
+    # newer arm/arm64 kernels reserve (_stext, _end] and other kernels reserve [_text, _end)
+    # https://elixir.bootlin.com/linux/v6.8.4/source/arch/arm64/mm/init.c#L306
+    base = pwndbg.gdblib.kernel.kbase()
+    assert base == pwndbg.gdblib.symbol.address("_text") or base == pwndbg.gdblib.symbol.address(
+        "_stext"
+    )

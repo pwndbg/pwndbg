@@ -20,6 +20,7 @@ import gdb
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
 from pwndbg.lib.regs import BitFlags
@@ -34,6 +35,24 @@ def gdb_get_register(name: str) -> gdb.Value:
         return frame.read_register(name)
     except ValueError:
         return frame.read_register(name.upper())
+
+
+@pwndbg.gdblib.proc.OnlyWhenQemuKernel
+@pwndbg.gdblib.proc.OnlyWhenRunning
+def get_qemu_register(name: str) -> int:
+    out = gdb.execute("monitor info registers", to_string=True)
+    match = re.search(rf'{name.split("_")[0]}=\s+([\da-fA-F]+)\s+([\da-fA-F]+)', out)
+
+    if match:
+        base = int(match.group(1), 16)
+        limit = int(match.group(2), 16)
+
+        if name.endswith("LIMIT"):
+            return limit
+        else:
+            return base
+
+    return None
 
 
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
@@ -173,6 +192,20 @@ class module(ModuleType):
             if self[reg] != value:
                 delta.append(reg)
         return delta
+
+    @property
+    @pwndbg.gdblib.proc.OnlyWhenQemuKernel
+    @pwndbg.gdblib.proc.OnlyWithArch(["i386", "x86-64"])
+    @pwndbg.lib.cache.cache_until("stop")
+    def idt(self) -> int:
+        return get_qemu_register("IDT")
+
+    @property
+    @pwndbg.gdblib.proc.OnlyWhenQemuKernel
+    @pwndbg.gdblib.proc.OnlyWithArch(["i386", "x86-64"])
+    @pwndbg.lib.cache.cache_until("stop")
+    def idt_limit(self) -> int:
+        return get_qemu_register("IDT_LIMIT")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
