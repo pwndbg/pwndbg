@@ -11,6 +11,7 @@ from typing import Callable
 from typing import List
 from typing import Tuple
 from typing import TypeVar
+from typing import Union
 from typing import cast
 
 import gdb
@@ -61,7 +62,7 @@ def set_glibc_version() -> None:
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
 def get_version() -> Tuple[int, ...] | None:
-    return cast(Tuple[int, ...] | None, glibc_version) or _get_version()
+    return cast(Union[Tuple[int, ...], None], glibc_version) or _get_version()
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
