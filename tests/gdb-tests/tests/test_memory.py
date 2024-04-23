@@ -84,7 +84,7 @@ def test_fetch_struct_as_dictionary_include_filter(start_binary):
     result = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
         "outer_struct",
         struct_address,
-        include_only_fields=["outer_x", "inner", "anonymous_k", "anonymous_nested"],
+        include_only_fields={"outer_x", "inner", "anonymous_k", "anonymous_nested"},
     )
 
     assert result == expected_result
@@ -113,7 +113,7 @@ def test_fetch_struct_as_dictionary_exclude_filter(start_binary):
     result = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
         "outer_struct",
         struct_address,
-        exclude_fields=["outer_x", "inner", "outer_z"],
+        exclude_fields={"outer_x", "inner", "outer_z"},
     )
 
     assert result == expected_result
