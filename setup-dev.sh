@@ -175,7 +175,7 @@ install_dnf() {
         sudo dnf install shfmt
     fi
 
-    download_zig_binary 
+    download_zig_binary
 }
 
 if linux; then
