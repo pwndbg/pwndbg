@@ -1,30 +1,16 @@
 from __future__ import annotations
 
-from subprocess import CalledProcessError
-
-import pwndbg.commands
-import pwndbg.lib.cache
-import pwndbg.wrappers
-
-cmd_name = "checksec"
-cmd_pwntools = ["pwn", "checksec"]
+from pwnlib.elf import ELF
 
 
-@pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
-@pwndbg.lib.cache.cache_until("objfile")
 def get_raw_out(local_path: str) -> str:
-    try:
-        return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file=" + local_path])
-    except CalledProcessError:
-        pass
-    try:
-        return pwndbg.wrappers.call_cmd(get_raw_out.cmd + ["--file", local_path])
-    except CalledProcessError:
-        pass
-    return pwndbg.wrappers.call_cmd(get_raw_out.cmd + [local_path])
+    elf = ELF(local_path)
+    output = f"File: {elf.path}\n"
+    output += f"Arch: {elf.arch}\n"
+    output += elf.checksec()
+    return output
 
 
-@pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 def relro_status(local_path: str) -> str:
     relro = "No RELRO"
     out = get_raw_out(local_path)
@@ -37,7 +23,6 @@ def relro_status(local_path: str) -> str:
     return relro
 
 
-@pwndbg.wrappers.OnlyWithCommand(cmd_name, cmd_pwntools)
 def pie_status(local_path: str) -> str:
     pie = "No PIE"
     out = get_raw_out(local_path)
