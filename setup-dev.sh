@@ -156,6 +156,28 @@ EOF
     download_zig_binary
 }
 
+install_dnf() {
+    set_zigpath "$(pwd)/.zig"
+
+    sudo dnf upgrade || true
+    sudo dnf install -y \
+        nasm \
+        gcc \
+        curl \
+        gdb \
+        parallel \
+        qemu-system-arm \
+        qemu-user
+
+    command -v go &> /dev/null || sudo dnf install -y go
+
+    if [[ "$1" != "" ]]; then
+        sudo dnf install shfmt
+    fi
+
+    download_zig_binary 
+}
+
 if linux; then
     distro=$(
         . /etc/os-release
@@ -172,6 +194,13 @@ if linux; then
             ;;
         "arch")
             install_pacman
+            ;;
+        "fedora")
+            fedora_version=$(
+                . /etc/os-release
+                echo ${VERSION_ID} version
+            )
+            install_dnf $fedora_verion
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
