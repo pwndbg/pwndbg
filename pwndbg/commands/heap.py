@@ -423,6 +423,7 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--simple", action="store_true", help="Simply print malloc_chunk struct's contents."
 )
+parser.add_argument("-d", "--dump", action="store_true", help="Print a hexdump of the chunk.")
 
 parser.add_argument(
     "-n", "--next", type=int, default=0, help="Print the next N chunks after the specified address."
@@ -433,7 +434,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
+def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0, dump=False) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.heap.current
 
@@ -509,6 +510,12 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
+    if dump:
+        print(C.banner("hexdump"))
+
+        ptr_size = pwndbg.gdblib.arch.ptrsize
+        pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
+
     if next:
         print(C.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
@@ -518,7 +525,8 @@ def malloc_chunk(addr, fake=False, verbose=False, simple=False, next=0) -> None:
                 print("No next chunk found")
                 break
 
-            malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple)
+            print()  # extra newline for better readability
+            malloc_chunk(chunk.address, fake=fake, verbose=verbose, simple=simple, dump=dump)
 
 
 parser = argparse.ArgumentParser(
