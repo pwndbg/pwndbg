@@ -96,7 +96,16 @@ config_contiguous = theme.add_param(
 )
 
 
-def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, safe_linking=False):
+def format(
+    value,
+    limit=LIMIT,
+    code=True,
+    offset=0,
+    hard_stop=None,
+    hard_end=0,
+    safe_linking=False,
+    enhance_string_len: int = None,
+):
     """
     Recursively dereferences an address into string representation, or convert the list representation
     of address dereferences into string representation.
@@ -109,7 +118,7 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
         hard_stop(int): Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
         safe_linking(bool): whether this chain use safe-linking
-
+        enhance_string_len(int): The length of string to display for enhancement of the last pointer
     Returns:
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141
@@ -146,13 +155,28 @@ def format(value, limit=LIMIT, code=True, offset=0, hard_stop=None, hard_end=0, 
     # If there are no pointers (e.g. eax = 0x41414141), then enhance
     # the only element there is.
     if len(chain) == 1:
-        enhanced = pwndbg.enhance.enhance(chain[-1], code=code)
-
-    # Otherwise, the last element in the chain is the non-pointer value.
+        # Note the "attempt_dereference" argument, which is set to False.
+        # In general, this function assumes that the caller has manually fully dereferenced the input list of pointers.
+        # If the only value in the list is a pointer, the function assumes this is purposeful and that that pointer cannot be dereferenced.
+        # This is because the code that generated the list determined that we cannot safely reason about the dereferenced value at the current program state.
+        # This case only applies to lists of length one, because if the list has more than one value, we already know
+        # that the second to last value, chain[-2], can be safely dereferenced - how else would chain[-1] exist?
+        # In other case where chain[-1] is not a pointer, the argument has no effect.
+        enhanced = pwndbg.enhance.enhance(
+            chain[-1],
+            code=code,
+            attempt_dereference=False,
+            enhance_string_len=enhance_string_len,
+        )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
     elif len(chain) < limit + 1:
-        enhanced = pwndbg.enhance.enhance(chain[-2] + offset, code=code, safe_linking=safe_linking)
+        enhanced = pwndbg.enhance.enhance(
+            chain[-2] + offset,
+            code=code,
+            safe_linking=safe_linking,
+            enhance_string_len=enhance_string_len,
+        )
 
     else:
         enhanced = c.contiguous_marker(f"{config_contiguous}")

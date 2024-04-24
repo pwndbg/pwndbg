@@ -42,14 +42,14 @@ def test_context_disasm_show_fd_filepath(start_binary):
     # filename
     line_fd = line_fd.strip()
     assert re.match(
-        r"fd:\s+0x1 \((/dev/pts/\d+|/tmp/par.+\.par(?: \(deleted\))?|pipe:\[\d+\])\)", line_fd
+        r"fd:\s+1 \((/dev/pts/\d+|/tmp/par.+\.par(?: \(deleted\))?|pipe:\[\d+\])\)", line_fd
     )
 
     line_buf = line_buf.strip()
-    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0x0", line_buf)
+    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
 
     line_nbytes = line_nbytes.strip()
-    assert re.match(r"nbytes:\s+0x0", line_nbytes)
+    assert re.match(r"nbytes:\s+0", line_nbytes)
 
     # Stop on open(...)
     gdb.execute("nextcall")
@@ -66,11 +66,11 @@ def test_context_disasm_show_fd_filepath(start_binary):
 
     line_fd = line_fd.strip()
     assert re.match(
-        r"fd:\s+0x3 \([a-z/]*pwndbg/tests/gdb-tests/tests/binaries/use-fds.out\)", line_fd
+        r"fd:\s+3 \([a-z/]*pwndbg/tests/gdb-tests/tests/binaries/use-fds.out\)", line_fd
     )
 
     line_buf = line_buf.strip()
-    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0x0", line_buf)
+    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
 
     line_nbytes = line_nbytes.strip()
     assert re.match(r"nbytes:\s+0x10", line_nbytes)
@@ -152,15 +152,15 @@ def test_context_disasm_syscalls_args_display(start_binary):
     assert dis == (
         "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
         "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
-        "   0x400080 <_start>       mov    eax, 0\n"
-        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
-        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
-        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
         " ► 0x400094 <_start+20>    syscall  <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
-        "        nbytes:    0x0\n"
-        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        "        nbytes:    0\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
         "   0x40009b <_start+27>    int    0x80\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
@@ -174,11 +174,11 @@ def test_context_disasm_syscalls_args_display(start_binary):
     assert dis == (
         "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
         "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
-        "   0x400085 <_start+5>     mov    edi, 0x1337\n"
-        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef\n"
-        "   0x40008f <_start+15>    mov    ecx, 0x10\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
         "   0x400094 <_start+20>    syscall \n"
-        "   0x400096 <_start+22>    mov    eax, 0xa\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
         " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "        name:      0x1337\n"
         "   0x40009d                add    byte ptr [rax], al\n"

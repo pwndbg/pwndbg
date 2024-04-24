@@ -7,35 +7,20 @@ import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+from pwndbg.disasm.instruction import EnhancedOperand
+from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def memory_sz(self, instruction, op) -> str:
-        parts = []
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if instruction.cs_insn.cc == ARM_CC_AL:
+            return InstructionCondition.UNDETERMINED
 
-        if op.mem.base != 0:
-            parts.append(instruction.reg_name(op.mem.base))
-
-        if op.mem.disp != 0:
-            parts.append("%#x" % op.value.mem.disp)
-
-        if op.mem.index != 0:
-            index = pwndbg.gdblib.regs[instruction.reg_name(op.mem.index)]
-            scale = op.mem.scale
-            parts.append(f"{index}*{scale:#x}")
-
-        return f"[{(', '.join(parts))}]"
-
-    def immediate_sz(self, instruction, operand):
-        return "#" + super().immediate_sz(instruction, operand)
-
-    def condition(self, instruction):
         # We can't reason about anything except the current instruction
-        if instruction.cc == ARM_CC_AL:
-            return None
-
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return False
+            return InstructionCondition.UNDETERMINED
 
         value = (
             pwndbg.gdblib.regs.cpsr
@@ -63,9 +48,31 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             ARM_CC_LT: N != V,
             ARM_CC_GT: not Z and (N == V),
             ARM_CC_LE: Z or (N != V),
-        }.get(instruction.cc, None)
+        }.get(instruction.cs_insn.cc, None)
 
-        return cc
+        if cc is None:
+            return InstructionCondition.UNDETERMINED
+
+        return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
+
+    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
+        parts = []
+
+        if op.mem.base != 0:
+            parts.append(instruction.cs_insn.reg_name(op.mem.base))
+
+        if op.mem.disp != 0:
+            parts.append("%#x" % op.mem.disp)
+
+        if op.mem.index != 0:
+            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(op.mem.index)]
+            scale = op.mem.scale
+            parts.append(f"{index}*{scale:#x}")
+
+        return f"[{(', '.join(parts))}]"
+
+    def immediate_string(self, instruction, operand):
+        return "#" + super().immediate_string(instruction, operand)
 
 
 assistant = DisassemblyAssistant("arm")

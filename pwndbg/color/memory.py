@@ -4,6 +4,7 @@ from typing import Callable
 
 import gdb
 
+import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -22,6 +23,34 @@ c = ColorConfig(
         ColorParamSpec("rwx", "underline", "color added to all RWX memory"),
     ],
 )
+
+
+def get_address_and_symbol(address: int) -> str:
+    """
+    Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
+    If no symbol exists for the address, return colorized address
+    """
+    symbol = pwndbg.gdblib.symbol.get(address) or None
+    if symbol:
+        symbol = f"{address:#x} ({symbol})"
+    return get(address, symbol)
+
+
+def get_address_or_symbol(address: int) -> str:
+    """
+    Convert and colorize address to symbol if it can be resolved, else return colorized address
+    """
+    return attempt_colorized_symbol(address) or get(address)
+
+
+def attempt_colorized_symbol(address: int) -> str | None:
+    """
+    Convert address to colorized symbol (if symbol is there), else None
+    """
+    symbol = pwndbg.gdblib.symbol.get(address) or None
+    if symbol:
+        return get(address, symbol)
+    return None
 
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:

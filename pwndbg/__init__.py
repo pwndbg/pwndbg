@@ -17,6 +17,7 @@ load_gdblib()
 # TODO: Convert these to gdblib modules and remove this
 try:
     import pwndbg.disasm
+    import pwndbg.disasm.aarch64
     import pwndbg.disasm.arm
     import pwndbg.disasm.jump
     import pwndbg.disasm.mips

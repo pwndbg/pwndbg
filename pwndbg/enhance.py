@@ -12,6 +12,7 @@ from __future__ import annotations
 import string
 
 import pwndbg.color.enhance as E
+import pwndbg.color.memory
 import pwndbg.disasm
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
@@ -29,8 +30,25 @@ def good_instr(i) -> bool:
     return not any(bad in i for bad in bad_instrs)
 
 
+def format_small_int(value: int) -> str:
+    if value < 10:
+        return str(value)
+    else:
+        return hex(value & pwndbg.gdblib.arch.ptrmask)
+
+
+def format_small_int_pair(first: int, second: int) -> tuple[str, str]:
+    if first < 10 and second < 10:
+        return (str(first), str(second))
+    else:
+        return (
+            hex(first & pwndbg.gdblib.arch.ptrmask),
+            hex(second & pwndbg.gdblib.arch.ptrmask),
+        )
+
+
 def int_str(value: int) -> str:
-    retval = "%#x" % int(value & pwndbg.gdblib.arch.ptrmask)
+    retval = format_small_int(value)
 
     # Try to unpack the value as a string
     packed = pwndbg.gdblib.arch.pack(int(value))
@@ -42,7 +60,13 @@ def int_str(value: int) -> str:
 
 
 # @pwndbg.lib.cache.cache_until("stop")
-def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
+def enhance(
+    value: int,
+    code: bool = True,
+    safe_linking: bool = False,
+    attempt_dereference=True,
+    enhance_string_len: int = None,
+) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
 
@@ -57,6 +81,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
         value(obj): Value to enhance
         code(bool): Hint that indicates the value may be an instruction
         safe_linking(bool): Whether this chain use safe-linking
+        enhance_string_len(int): The length of string to display for enhancement of the last pointer
     """
     value = int(value)
 
@@ -65,15 +90,19 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not page or None is pwndbg.gdblib.memory.peek(value):
+    if not attempt_dereference or not page or None is pwndbg.gdblib.memory.peek(value):
         can_read = False
+
+    # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
+    if page and not attempt_dereference:
+        return pwndbg.color.memory.get_address_and_symbol(value)
 
     if not can_read:
         return E.integer(int_str(value))
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
-    instr = None
+    instr: str | None = None
     exe = page and page.execute
     rwx = page and page.rwx
 
@@ -87,13 +116,13 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
         rwx = exe = False
 
     if exe:
-        instr = pwndbg.disasm.one(value)
-        if instr:
-            instr = f"{instr.mnemonic} {instr.op_str}"
+        pwndbg_instr = pwndbg.disasm.one(value, enhance=False)
+        if pwndbg_instr:
+            instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
             if pwndbg.gdblib.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
-    szval = pwndbg.gdblib.strings.get(value) or None
+    szval = pwndbg.gdblib.strings.get(value, maxlen=enhance_string_len) or None
     szval0 = szval
     if szval:
         szval = E.string(repr(szval))
@@ -118,7 +147,7 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
         instr = None
 
     # If it's on the stack, don't display it as code in a chain.
-    if instr and "stack" in page.objfile:
+    if instr and "[stack" in page.objfile:
         retval = [intval, szval]
 
     # If it's RWX but a small value, don't display it as code in a chain.
@@ -144,7 +173,12 @@ def enhance(value: int, code: bool = True, safe_linking: bool = False) -> str:
 
     # And then integer
     else:
-        return E.integer(int_str(intval0))
+        # It might be a pointer or just a plain integer
+        new_page = pwndbg.gdblib.vmmap.find(intval0)
+        if new_page:
+            return pwndbg.color.memory.get_address_and_symbol(intval0)
+        else:
+            return E.integer(int_str(intval0))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 

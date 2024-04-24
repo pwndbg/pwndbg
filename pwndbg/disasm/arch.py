@@ -1,12 +1,87 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import gdb
 from capstone import *  # noqa: F403
 
+import pwndbg.chain
+import pwndbg.color.context as C
+import pwndbg.color.memory as MemoryColor
+import pwndbg.color.syntax_highlight as H
+import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
-import pwndbg.lib.cache
+import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.vmmap
+from pwndbg.disasm.instruction import EnhancedOperand
+from pwndbg.disasm.instruction import InstructionCondition
+from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.emu.emulator import Emulator
 
-debug = False
+pwndbg.gdblib.config.add_param(
+    "emulate",
+    "on",
+    """
+Unicorn emulation of code near the current instruction
+""",
+    help_docstring="""\
+emulate can be:
+off             - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+jumps-only      - use QEMU's `monitor info mem` to render vmmap
+on              - disable vmmap rendering; useful if rendering is particularly slow
+
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+""",
+    param_class=gdb.PARAM_ENUM,
+    enum_sequence=["on", "off", "jumps-only"],
+)
+
+
+# Even if this is disabled, branch instructions will still have targets printed
+pwndbg.gdblib.config.add_param(
+    "disasm-annotations",
+    True,
+    """
+Display annotations for instructions to provide context on operands and results
+""",
+)
+
+pwndbg.gdblib.config.add_param(
+    "emulate-annotations",
+    True,
+    """
+Unicorn emulation for register and memory value annotations on instructions
+""",
+)
+
+# If this is false, emulation is only used for the current instruction (if emulate-annotations is enabled)
+pwndbg.gdblib.config.add_param(
+    "emulate-future-annotations",
+    True,
+    """
+Unicorn emulation to annotate instructions after the current program counter
+""",
+)
+
+# Effects future instructions, as past ones have already been cached and reflect the process state at the time
+pwndbg.gdblib.config.add_param(
+    "disasm-telescope-depth", 3, "Depth of telescope for disasm annotations"
+)
+
+# In disasm view, long telescoped strings might cause lines wraps
+pwndbg.gdblib.config.add_param(
+    "disasm-telescope-string-length",
+    50,
+    "Number of characters in strings to display in disasm annotations",
+)
+
+
+def syntax_highlight(ins):
+    return H.syntax_highlight(ins, filename=".asm")
+
+
+DEBUG_ENHANCEMENT = False
+# DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -17,255 +92,595 @@ for value1, name1 in dict(access).items():
         # novermin
         access.setdefault(value1 | value2, f"{name1} | {name2}")
 
+# These instruction types should not be emulated through, either
+# because they cannot be emulated without interfering (syscall, etc.)
+# or because they change privilege levels.
+# There is an additional check for CS_GRP_CALL specially in the enhancement code, which we stop at
+DO_NOT_EMULATE = {
+    CS_GRP_INT,
+    CS_GRP_INVALID,
+    CS_GRP_IRET,
+    # Note that we explicitly do not include the PRIVILEGE category, since
+    # we may be in kernel code, and privileged instructions are just fine
+    # in that case.
+    # capstone.CS_GRP_PRIVILEGE,
+}
 
+
+# Enhances disassembly with memory values & symbols by adding member variables to an instruction
+# The only public method that should be called is "enhance"
+# The enhance function is passed an instance of the Unicorn emulator
+#  and will .single_step() it to determine operand values before and after executing the instruction
 class DisassemblyAssistant:
     # Registry of all instances, {architecture: instance}
     assistants: Dict[str, DisassemblyAssistant] = {}
 
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: str) -> None:
         if architecture is not None:
             self.assistants[architecture] = self
 
-        self.op_handlers = {
-            CS_OP_IMM: self.immediate,
-            CS_OP_REG: self.register,
-            CS_OP_MEM: self.memory,
+        self.op_handlers: dict[
+            int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
+        ] = {
+            CS_OP_IMM: self.parse_immediate,  # Return immediate value
+            CS_OP_REG: self.parse_register,  # Return value of register
+            # Handler for memory references (as dictated by Capstone), such as first operand of "mov qword ptr [rbx + rcx*4], rax"
+            CS_OP_MEM: self.parse_memory,  # Return parsed address, do not dereference
         }
 
-        self.op_names = {
-            CS_OP_IMM: self.immediate_sz,
-            CS_OP_REG: self.register_sz,
-            CS_OP_MEM: self.memory_sz,
+        # Return a string corresponding to operand. Used to reduce code duplication while printing
+        # REG type wil return register name, "RAX"
+        self.op_names: dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
+            CS_OP_IMM: self.immediate_string,
+            CS_OP_REG: self.register_string,
+            CS_OP_MEM: self.memory_string,
         }
 
     @staticmethod
-    def for_current_arch():
+    def for_current_arch() -> DisassemblyAssistant:
         return DisassemblyAssistant.assistants.get(pwndbg.gdblib.arch.current, None)
 
+    # Mutates the "instruction" object
     @staticmethod
-    def enhance(instruction) -> None:
-        enhancer = DisassemblyAssistant.assistants.get(
+    def enhance(instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+        # Assumed that the emulator's pc is at the instruction's address
+
+        # There are 3 degrees of emulation:
+        # 1. No emulation at all. In this case, the `emu` parameter should be None
+        # 2. Only emulate jumps - the only interaction with the emulator in this case is stepping it and reading the PC
+        # 3. Full emulation - read registers and memory from the emulator as well as determining jumps
+
+        if DEBUG_ENHANCEMENT:
+            print(
+                f"Start enhancing instruction at {hex(instruction.address)} - {instruction.mnemonic} {instruction.op_str}"
+            )
+
+        # Get another reference to the emulator for the purposes of jumps
+        jump_emu = emu
+
+        if pwndbg.gdblib.config.emulate != "on":
+            emu = None
+
+        # For both cases below, set emu to None so we don't use it for annotation
+        if emu and not bool(pwndbg.gdblib.config.emulate_annotations):
+            emu = None
+
+        # Disable emulation for future annotations based on setting
+        if (
+            emu
+            and pwndbg.gdblib.regs.pc != instruction.address
+            and not bool(pwndbg.gdblib.config.emulate_future_annotations)
+        ):
+            emu = None
+
+        # Ensure emulator's program counter is at the correct location.
+        # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
+        if emu:
+            if emu.pc != instruction.address:
+                if DEBUG_ENHANCEMENT:
+                    print(
+                        f"Program counter and emu.pc do not line up: {hex(pwndbg.gdblib.regs.pc)=} {hex(emu.pc)=}"
+                    )
+                emu = jump_emu = None
+
+        # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
+        if emu and set(instruction.groups) & DO_NOT_EMULATE:
+            emu.valid = False
+            emu = jump_emu = None
+
+            if DEBUG_ENHANCEMENT:
+                print("Turned off emulation - not emulating certain type of instruction")
+
+        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
             pwndbg.gdblib.arch.current, generic_assistant
         )
-        enhancer.enhance_operands(instruction)
-        enhancer.enhance_symbol(instruction)
-        enhancer.enhance_conditional(instruction)
-        enhancer.enhance_next(instruction)
 
-        if debug:
+        # This function will .single_step the emulation
+        if not enhancer.enhance_operands(instruction, emu, jump_emu):
+            if jump_emu is not None and DEBUG_ENHANCEMENT:
+                print(f"Emulation failed at {instruction.address=:#x}")
+            emu = None
+            jump_emu = None
+
+        if jump_emu is not None:
+            # We successfully used emulation for this instruction
+            instruction.emulated = True
+
+        # Set the .condition field
+        enhancer.enhance_conditional(instruction, emu)
+
+        # Set the .target and .next fields
+        enhancer.enhance_next(instruction, emu, jump_emu)
+
+        if bool(pwndbg.gdblib.config.disasm_annotations):
+            enhancer.set_annotation_string(instruction, emu)
+
+        # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
+        # to determine the call's target address.
+        if jump_emu and CS_GRP_CALL in set(instruction.groups):
+            jump_emu.valid = False
+            jump_emu = None
+            emu = None
+
+            if DEBUG_ENHANCEMENT:
+                print("Turned off emulation for call")
+
+        if DEBUG_ENHANCEMENT:
             print(enhancer.dump(instruction))
+            print("Done enhancing")
 
-    def enhance_conditional(self, instruction) -> None:
+    # Subclasses for specific architecture should override this
+    def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
-        Adds a ``condition`` field to the instruction.
+        The goal of this function is to set the `annotation` field of the instruction,
+        which is the string to be printed in a disasm view.
+        """
+        return None
 
-        If the instruction is always executed unconditionally, the value
-        of the field is ``None``.
+    def enhance_operands(
+        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+    ) -> bool:
+        """
+        Enhances the operands by determining values and symbols
+
+        When emulation is enabled, this will `single_step` the emulation to determine the value of registers
+        before and after the instrution has executed.
+
+        For each operand explicitly written to or read from (instruction.operands), sets the following fields:
+
+            operand.before_value
+                Integer value of the operand before instruction executes.
+                None if cannot be resolved/reasoned about.
+
+            operand.after_value
+                Integer value of the operand after instruction executes.
+                Only set when emulation is enabled. Otherwise None.
+                This is relevent if we read and write to the same registers within an instruction
+
+            operand.symbol:
+                Resolved symbol name for this operand, if .before_value is set, else None.
+
+            operand.str:
+                String representing the operand
+
+        Return False if emulation fails (so we don't use it in additional enhancement steps)
+        """
+
+        # Apply syntax highlighting to the assembly
+        if pwndbg.gdblib.config.syntax_highlight:
+            instruction.asm_string = syntax_highlight(instruction.asm_string)
+
+        # Populate the "operands" list of the instruction
+        # Set before_value, symbol, and str
+        for op in instruction.operands:
+            # Retrieve the value, either an immediate, from a register, or from memory
+            op.before_value = self.op_handlers.get(op.type, lambda *a: None)(instruction, op, emu)
+            if op.before_value is not None:
+                op.before_value &= pwndbg.gdblib.arch.ptrmask
+                op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+
+                op.before_value_resolved = self.resolve_used_value(
+                    op.before_value, instruction, op, emu
+                )
+
+                if op.symbol and op.type == CS_OP_IMM:
+                    # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
+                    instruction.asm_string = instruction.asm_string.replace(
+                        hex(op.before_value), op.symbol
+                    )
+
+        # Execute the instruction
+        if jump_emu and None in jump_emu.single_step(check_instruction_valid=False):
+            # This branch is taken if stepping the emulator failed
+            jump_emu = None
+            emu = None
+
+        # Set after_value after single stepping the emulator
+        if emu is not None:
+            # after_value
+            for op in instruction.operands:
+                # Retrieve the value, either an immediate, from a register, or from memory
+                op.after_value = self.op_handlers.get(op.type, lambda *a: None)(
+                    instruction, op, emu
+                )
+
+                op.after_value_resolved = self.resolve_used_value(
+                    op.after_value, instruction, op, emu
+                )
+
+                if op.after_value is not None:
+                    op.after_value &= pwndbg.gdblib.arch.ptrmask
+
+        # Set .str value of operands, after emulation has been completed
+        for op in instruction.operands:
+            op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
+
+        return jump_emu is not None
+
+    # Determine if the program counter of the process equals the address of the function being executed.
+    # If so, it means we can safely reason and read from registers and memory to represent values that
+    # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to
+    # allow more details when the PC is at the instruction being enhanced
+    def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
+        # can_read_process_state indicates if the current program counter of the process is the same as the instruction
+        # The way to determine this varies between architectures (some arches have PC a constant offset to instruction address),
+        # so subclasses need to specify
+        return instruction.address == pwndbg.gdblib.regs.pc
+
+    # Delegates to "read_register", which takes Capstone ID for register.
+    def parse_register(
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        reg = operand.reg
+        return self.read_register(instruction, reg, emu)
+
+    # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
+    # Subclasses override for specific architectures
+    def parse_memory(
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        return None
+
+    def parse_immediate(
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+    ):
+        return operand.imm
+
+    # Read value in register. Return None if cannot reason about the value in the register.
+    # Different architectures use registers in different patterns, so it is best to
+    # override this to get to best behavior for a given architecture. See x86.py as example.
+    def read_register(
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+    ) -> int | None:
+        # operand_id is the ID internal to Capstone
+        regname: str = instruction.cs_insn.reg_name(operand_id)
+
+        if emu:
+            # Will return the value of register after executing the instruction
+            value = emu.read_register(regname)
+            if DEBUG_ENHANCEMENT:
+                print(f"Register in emulation returned {regname}={hex(value)}")
+            return value
+        elif self.can_reason_about_process_state(instruction):
+            # When instruction address == pc, we can reason about all registers.
+            # The values will just reflect values prior to executing the instruction, instead of after,
+            # which is relevent if we are writing to this register.
+            # However, the information can still be useful for display purposes.
+            if DEBUG_ENHANCEMENT:
+                print(f"Read value from process register: {pwndbg.gdblib.regs[regname]}")
+            return pwndbg.gdblib.regs[regname]
+        else:
+            return None
+
+    # Read memory of given size, taking into account emulation and being able to reason about the memory location
+    def read_memory(
+        self,
+        address: int,
+        size: int,
+        instruction: PwndbgInstruction,
+        operand: EnhancedOperand,
+        emu: Emulator,
+    ) -> int | None:
+        address_list = self.telescope(address, 1, instruction, operand, emu, read_size=size)
+
+        if len(address_list) >= 2:
+            return address_list[1]
+
+        return None
+
+    # Pass in a operand and it's value, and determine the actual value used during an instruction
+    # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
+    # a register or a memory value to dereference, and we want the actual value used.
+    # Override this to implement memory lookups in given architecture (if it's relevent)
+    # Different architecture read memory differently:
+    # - Only a couple Capstone architectures support the memory .size field, which determines read width.
+    # - In others, read/write width is implied.
+    def resolve_used_value(
+        self,
+        value: int | None,
+        instruction: PwndbgInstruction,
+        operand: EnhancedOperand,
+        emu: Emulator,
+    ) -> int | None:
+        if value is None:
+            return None
+
+        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
+            return value
+        elif operand.type == CS_OP_MEM:
+            # Assume that we are reading ptrsize - subclasses should override this function
+            # to provide a more specific value if needed
+            self.read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, operand, emu)
+
+        return None
+
+    def telescope(
+        self,
+        address: int,
+        limit: int,
+        instruction: PwndbgInstruction,
+        operand: EnhancedOperand,
+        emu: Emulator,
+        read_size: int = None,
+    ) -> list[int]:
+        """
+        Dereference an address recursively - takes into account emulation.
+
+        It will only dereference as it is safe to do so, meaning the last value in the returned list may be a pointer
+
+        The list that the function returns is guaranteed have len >= 1
+        """
+
+        can_read_process_state = self.can_reason_about_process_state(instruction)
+
+        if emu:
+            return emu.telescope(address, limit, read_size=read_size)
+        elif can_read_process_state:
+            # Can reason about memory in this case.
+
+            if read_size is not None and read_size < pwndbg.gdblib.arch.ptrsize:
+                result = [address]
+
+                size_type = pwndbg.gdblib.typeinfo.get_type(read_size)
+                try:
+                    read_value = int(pwndbg.gdblib.memory.poi(size_type, address))
+                    result.append(read_value)
+                except gdb.MemoryError:
+                    pass
+
+                return result
+
+            else:
+                return pwndbg.chain.get(address, limit=limit)
+        elif not can_read_process_state or operand.type == CS_OP_IMM:
+            # If the target address is in a non-writeable map, we can pretty safely telescope
+            # This is best-effort to give a better experience
+
+            address_list = [address]
+
+            for _ in range(limit):
+                if address_list.count(address) >= 2:
+                    break
+
+                page = pwndbg.gdblib.vmmap.find(address)
+                if page and not page.write:
+                    try:
+                        address = int(
+                            pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
+                        )
+                        address &= pwndbg.gdblib.arch.ptrmask
+                        address_list.append(address)
+                    except gdb.MemoryError:
+                        break
+                else:
+                    break
+
+            return address_list
+
+        # We cannot telescope, but we can still return the address.
+        # Just without any further information
+        return [address]
+
+    # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
+    def telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
+        # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
+        #  will return values accurate to the program state at the time of instruction executing.
+
+        enhance_string_len = int(pwndbg.gdblib.config.disasm_telescope_string_length)
+
+        if emu:
+            return emu.format_telescope_list(
+                addresses, limit, enhance_string_len=enhance_string_len
+            )
+        else:
+            # We can format, but in some cases we may not be able to reason about memory, so don't allow
+            # it to dereference to last value in memory (we can't determine what value it is)
+            return pwndbg.chain.format(
+                addresses,
+                limit=limit,
+                enhance_string_len=enhance_string_len,
+            )
+
+    def enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        """
+        Sets the `condition` of the instruction
+
+        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
+        the value of the field is `InstructionCondition.UNDETERMINED`.
 
         If the instruction is executed conditionally, and we can be absolutely
-        sure that it will be executed, the value of the field is ``True``.
-        Generally, this implies that it is the next instruction to be executed.
+        sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
 
-        In all other cases, it is set to ``False``.
+        In all other cases, it is set to `InstructionCondition.FALSE`.
         """
-        c = self.condition(instruction)
 
-        if c:
-            c = True
-        elif c is not None:
-            c = False
+        instruction.condition = self.condition(instruction, emu)
 
-        instruction.condition = c
+    # Subclasses should override
+    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        return InstructionCondition.UNDETERMINED
 
-    def condition(self, instruction) -> bool:
-        return False
-
-    def enhance_next(self, instruction) -> None:
+    def enhance_next(
+        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+    ) -> None:
         """
-        Adds a ``next`` field to the instruction.
+        Set the `next` and `target` field of the instruction.
 
         By default, it is set to the address of the next linear
         instruction.
 
-        If the instruction is a non-"call" branch and either:
+        `next` is the address that the PC would be upon using the GDB `nexti` command,
+        `target` is the jump target whether or not the jump is taken, like `stepi` and assuming the jump is taken.
 
-        - Is unconditional
+        If the instruction is a non-"call" branch and either:
+        - Is unconditional, or is conditional and is known to be taken, a
         - Is conditional, but is known to be taken
 
         And the target can be resolved, it is set to the address
         of the jump target.
+
         """
-        next_addr = None
+        next_addr: int | None = None
 
-        if instruction.condition in (True, None):
-            next_addr = self.next(instruction)
+        # The order for the following statements in determining the next executed instruction is important
+        #
+        # Firstly, we check the condition field - this field is manually set by our enhancement code
+        # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
+        # due to the way we single-step the emulator. We want our own manual checks to override the emulator
 
-        instruction.target = None
-        instruction.target_const = None
-        instruction.next = None
+        if instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
+            # If condition is true, then this might be a conditional jump
+            # There are some other instructions that run conditionally though - resolve_target returns None in those cases
+            # Or, if this is a unconditional jump, we will try to resolve target
+            next_addr = self.resolve_target(instruction, emu)
 
+        # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
+        if next_addr is None and jump_emu:
+            # Use emulator to determine the next address:
+            # 1. Only use it to determine non-call's (`nexti` should step over calls)
+            # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
+            if (
+                CS_GRP_CALL not in instruction.groups_set
+                and instruction.condition != InstructionCondition.FALSE
+            ):
+                next_addr = jump_emu.pc
+
+        # All else fails, take the next instruction in memory
         if next_addr is None:
             next_addr = instruction.address + instruction.size
-            instruction.target = self.next(instruction, call=True)
+
+        # Determine the target of this address. This is the address that the instruction could change the program counter to.
+        # allowing call instructions
+        instruction.target = self.resolve_target(instruction, emu, call=True)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
         if instruction.target is None:
             instruction.target = instruction.next
 
-        if instruction.operands and instruction.operands[0].int:
+        if instruction.can_change_instruction_pointer:
+            # Only bother doing the symbol lookup if this is a jump
+            instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
+
+        if (
+            instruction.operands
+            and instruction.operands[0].before_value
+            and instruction.operands[0].type == CS_OP_IMM
+        ):
             instruction.target_const = True
 
-    def next(self, instruction, call=False):
+    # This is the default implementation.
+    # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
+    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """
         Architecture-specific hook point for enhance_next.
+
+        Returns the value of the instruction pointer assuming this instruction executes (and any conditional jumps are taken)
+
+        "call" specifies if we allow this to resolve call instruction targets
         """
+
         if CS_GRP_CALL in instruction.groups:
             if not call:
                 return None
-
         elif CS_GRP_JUMP not in instruction.groups:
             return None
 
+        addr = None
+
         # At this point, all operands have been resolved.
         # Assume only single-operand jumps.
-        if len(instruction.operands) != 1:
-            return None
+        if len(instruction.operands) == 1:
+            op = instruction.operands[0]
+            addr = self.resolve_used_value(op.before_value, instruction, op, emu)
+            if addr:
+                addr &= pwndbg.gdblib.arch.ptrmask
+        else:
+            # Some architectures have jumps with multiple operands. In this case, this default implementation
+            # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
+            # and use that as the target
 
-        # Memory operands must be dereferenced
-        op = instruction.operands[0]
-        addr = op.int
-        if addr:
-            addr &= pwndbg.gdblib.arch.ptrmask
-        if op.type == CS_OP_MEM:
-            if addr is None:
-                addr = self.memory(instruction, op)
+            # Reversed order, just because through observation the immediates and labels are often farther right
+            for op in reversed(instruction.operands):
+                resolved_addr = self.resolve_used_value(op.before_value, instruction, op, emu)
+                if resolved_addr:
+                    resolved_addr &= pwndbg.gdblib.arch.ptrmask
+                    if op.symbol:
+                        addr = resolved_addr
+                    else:
+                        page = pwndbg.gdblib.vmmap.find(resolved_addr)
+                        if page and page.execute:
+                            addr = resolved_addr
 
-            # self.memory may return none, so we need to check it here again
-            if addr is not None:
-                try:
-                    # fails with gdb.MemoryError if the dereferenced address
-                    # doesn't belong to any of process memory maps
-                    addr = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, addr))
-                except gdb.MemoryError:
-                    return None
-        if op.type == CS_OP_REG:
-            addr = self.register(instruction, op)
+                if addr is not None:
+                    instruction.target_const = op.type == CS_OP_IMM
+                    break
 
-        # Evidently this can happen?
         if addr is None:
             return None
 
         return int(addr)
 
-    def enhance_symbol(self, instruction) -> None:
+    def dump(self, instruction: PwndbgInstruction):
         """
-        Adds a ``symbol`` and ``symbol_addr`` fields to the instruction.
-
-        If, after parsing all of the operands, there is exactly one
-        value which resolved to a named symbol, it will be set to
-        that value.
-
-        In all other cases, the value is ``None``.
+        Debug-only method.
         """
-        instruction.symbol = None
-        operands = [o for o in instruction.operands if o.symbol]
+        return repr(instruction)
 
-        if len(operands) != 1:
-            return
-
-        o = operands[0]
-
-        instruction.symbol = o.symbol
-        instruction.symbol_addr = o.int
-
-    def enhance_operands(self, instruction) -> None:
-        """
-        Enhances all of the operands in the instruction, by adding the following
-        fields:
-
-        operand.str:
-            String of this operand, as it should appear in the
-            disassembly.
-
-        operand.int:
-            Integer value of the operand, if it can be resolved.
-
-        operand.symbol:
-            Resolved symbol name for this operand.
-        """
-        for i, op in enumerate(instruction.operands):
-            op.int = None
-            op.symbol = None
-
-            op.int = self.op_handlers.get(op.type, lambda *a: None)(instruction, op)
-            if op.int:
-                op.int &= pwndbg.gdblib.arch.ptrmask
-            op.str = self.op_names.get(op.type, lambda *a: None)(instruction, op)
-
-            if op.int:
-                op.symbol = pwndbg.gdblib.symbol.get(op.int)
-
-    def immediate(self, instruction, operand):
-        return operand.value.imm
-
-    def immediate_sz(self, instruction, operand) -> str:
-        value = operand.int
+    # String functions assume the .before_value and .after_value have been set
+    def immediate_string(self, instruction, operand) -> str:
+        value = operand.before_value
 
         if abs(value) < 0x10:
             return "%i" % value
 
         return "%#x" % value
 
-    def register(self, instruction, operand):
-        if instruction.address != pwndbg.gdblib.regs.pc:
+    def register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+        """
+        Return colorized register string
+        """
+        reg = operand.reg
+        name = C.register(instruction.cs_insn.reg_name(reg).upper())
+
+        # If using emulation and we determined the value didn't change, don't colorize
+        if (
+            operand.before_value is not None
+            and operand.after_value is not None
+            and operand.before_value == operand.after_value
+        ):
+            return name
+        else:
+            return C.register_changed(name)
+
+    def memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+        """
+        Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
+        """
+        if operand.before_value is not None:
+            return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
+        else:
             return None
-
-        # # Don't care about registers which are only overwritten
-        # if operand.access & CS_AC_WRITE and not operand.access & CS_AC_READ:
-        #     return None
-
-        reg = operand.value.reg
-        name = instruction.reg_name(reg)
-
-        return pwndbg.gdblib.regs[name]
-
-    def register_sz(self, instruction, operand):
-        reg = operand.value.reg
-        return instruction.reg_name(reg).lower()
-
-    def memory(self, instruction, operand):
-        return None
-
-    def memory_sz(self, instruction, operand):
-        return None  # raise NotImplementedError
-
-    def dump(self, instruction):
-        """
-        Debug-only method.
-        """
-        ins = instruction
-        rv = []
-        rv.append(f"{ins.mnemonic} {ins.op_str}")
-
-        for i, group in enumerate(ins.groups):
-            rv.append("   groups[%i]   = %s" % (i, groups.get(group, group)))
-
-        rv.append("           next = %#x" % (ins.next))
-        rv.append("      condition = %r" % (ins.condition))
-
-        for i, op in enumerate(ins.operands):
-            rv.append("   operands[%i] = %s" % (i, ops.get(op.type, op.type)))
-            rv.append("       access   = %s" % (access.get(op.access, op.access)))
-
-            if op.int is not None:
-                rv.append("            int = %#x" % (op.int))
-            if op.symbol is not None:
-                rv.append(f"            sym = {(op.symbol)}")
-            if op.str is not None:
-                rv.append(f"            str = {(op.str)}")
-
-        return "\n".join(rv)
 
 
 generic_assistant = DisassemblyAssistant(None)
