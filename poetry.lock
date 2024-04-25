@@ -82,19 +82,19 @@ typecheck = ["mypy"]
 
 [[package]]
 name = "capstone"
-version = "5.0.1"
+version = "5.0.0.post1"
 description = "Capstone disassembly engine"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
-    {file = "capstone-5.0.1-py3-none-macosx_10_9_universal2.whl", hash = "sha256:740a70624d3f258cf8503898dbfd968052c008ddd4fc4ab938c7046c8828c294"},
-    {file = "capstone-5.0.1-py3-none-manylinux1_i686.manylinux_2_5_i686.whl", hash = "sha256:3f34a949699c298e88d7c9a576a2fd7685dba658a9c432bce826eeb88676cf24"},
-    {file = "capstone-5.0.1-py3-none-manylinux1_i686.whl", hash = "sha256:08f16c2782e54d05c95f1d40e1ae0e58e4a57d6a6c3192f8c5ff61476f4130de"},
-    {file = "capstone-5.0.1-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:ea8d0be06d2faa39545937fe88db239fd62227915f9744d8990439011c479f05"},
-    {file = "capstone-5.0.1-py3-none-manylinux1_x86_64.whl", hash = "sha256:04223a4e5c2374f21da59c5c5a5b90471bfcef5cb938e7b32de68579cf863b7a"},
-    {file = "capstone-5.0.1-py3-none-win32.whl", hash = "sha256:4356bdee55639c4448d025dc9d8a3b6c07f2b188c62b88df3d554a84e2cd89af"},
-    {file = "capstone-5.0.1-py3-none-win_amd64.whl", hash = "sha256:1bfa5c81e6880caf41a31946cd6d2d069c048bcc22edf121254b501a048de675"},
-    {file = "capstone-5.0.1.tar.gz", hash = "sha256:740afacc29861db591316beefe30df382c4da08dcb0345a0d10f0cac4f8b1ee2"},
+    {file = "capstone-5.0.0.post1-py3-none-macosx_10_9_universal2.whl", hash = "sha256:7993fee5e069dae052ea6392fcab5d06c68e14dab8a755c686bd2077fbc73982"},
+    {file = "capstone-5.0.0.post1-py3-none-manylinux1_i686.manylinux_2_5_i686.whl", hash = "sha256:64d9b93425ca4d5d2136ce8d421591ddf6c2af6ea37f542016530018d1fa7ada"},
+    {file = "capstone-5.0.0.post1-py3-none-manylinux1_i686.whl", hash = "sha256:9e7d0e910505efe7e12a80e5eba1bfe039e87f3b004d880515d62445c0d3d253"},
+    {file = "capstone-5.0.0.post1-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:4d477559219683200ea3abe4f5c2d5b3563f1f94f72f42292ad83feb0913cc29"},
+    {file = "capstone-5.0.0.post1-py3-none-manylinux1_x86_64.whl", hash = "sha256:94fdea8158a1066c5ba5bb284d1da0132227f10d3eb57de1784f4c64445c76d7"},
+    {file = "capstone-5.0.0.post1-py3-none-win32.whl", hash = "sha256:209e2f2f961c225d627714a351e8beb6266e6498653353d15ba9abc11f140553"},
+    {file = "capstone-5.0.0.post1-py3-none-win_amd64.whl", hash = "sha256:bb3cc7bc4dbacbdc4ff80c80a003b022424bcb98dcabe215bac2aaa7d3dbb0c3"},
+    {file = "capstone-5.0.0.post1.tar.gz", hash = "sha256:fe0affca395c09ce76a21c5f0fac026e74396839a220798ca5e57c54305bcf65"},
 ]
 
 [[package]]
@@ -1210,18 +1210,18 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "ropgadget"
-version = "7.4"
+version = "7.3"
 description = "This tool lets you search your gadgets on your binaries to facilitate your ROP exploitation."
 optional = false
 python-versions = "*"
 files = [
-    {file = "ROPGadget-7.4-py2-none-any.whl", hash = "sha256:5bc70eee0ffee45f683df57eaea3e0692bbea3f35200f3cf5a1cf28d7d61a774"},
-    {file = "ROPGadget-7.4-py3-none-any.whl", hash = "sha256:394ba571277a28a987116fa91c5336524f9a89e9b60a54ba97f2c34823bd0270"},
-    {file = "ROPGadget-7.4.tar.gz", hash = "sha256:a40626a32cf867d06192ef24e16221b2b7ba82e2ec84ab5bfdfb0b017559342f"},
+    {file = "ROPGadget-7.3-py2-none-any.whl", hash = "sha256:67e904a0fada60b26c3cfcf3ce53970e8d92704ba895c1751ea4877923761582"},
+    {file = "ROPGadget-7.3-py3-none-any.whl", hash = "sha256:1e2cb62cc161bc235db09d2a017b5abaabe386e8919a2ee978725aa3382e967a"},
+    {file = "ROPGadget-7.3.tar.gz", hash = "sha256:4078e70601a2dc869123dfa352812dcc44767a4bbde482b7059d34b33bb67850"},
 ]
 
 [package.dependencies]
-capstone = ">=5.0.1"
+capstone = ">=5.0.0rc2"
 
 [[package]]
 name = "rpyc"
@@ -1604,4 +1604,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "dc7d03b43ef7908a0f80773d02e7e9839b85f99b917c94e873745f63b40557f0"
+content-hash = "bf5bd8c875870b335dc96f59665e66de27cc2f0fbc11ffae2f4fe1be443e03bb"
