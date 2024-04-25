@@ -100,7 +100,6 @@ def enhance_cache_listener() -> None:
 @pwndbg.gdblib.events.mem_changed
 @pwndbg.gdblib.events.reg_changed
 def clear_on_reg_mem_change() -> None:
-
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
     computed_instruction_cache.pop(pwndbg.gdblib.regs.pc, None)

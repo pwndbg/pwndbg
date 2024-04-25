@@ -36,7 +36,7 @@ source "${PWNDBG_VENV_PATH}/bin/activate"
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py"
-LINT_TOOLS="isort black ruff vermin mypy"
+LINT_TOOLS="isort ruff vermin mypy"
 
 if ! type ${LINT_TOOLS} &> /dev/null; then
     PIP_CMD="poetry install --with dev"
@@ -60,12 +60,12 @@ call_shfmt() {
 
 if [[ $FIX == 1 ]]; then
     isort ${LINT_FILES}
-    black ${LINT_FILES}
+    ruff format ${LINT_FILES}
     ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
 else
     isort --check-only --diff ${LINT_FILES}
-    black --check --diff ${LINT_FILES}
+    ruff format --check --diff ${LINT_FILES}
     call_shfmt
 
     if [[ -z "$GITHUB_ACTIONS" ]]; then
