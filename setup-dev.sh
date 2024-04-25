@@ -28,7 +28,7 @@ exit $exit_code
 EOF
 )
 
-if [ -t 1 ]; then
+if [ -t 1 ] && [ ! -f $hook_script_path ]; then
     echo "Install a git hook to automatically lint files before pushing? (y/N)"
     read yn
     if [[ "$yn" == [Yy]* ]]; then
