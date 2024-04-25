@@ -1263,7 +1263,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )
@@ -1286,7 +1288,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )
@@ -1309,7 +1313,9 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     else (
                         119 + (sz >> 15)
                         if (sz >> 15) <= 4
-                        else 124 + (sz >> 18) if (sz >> 18) <= 2 else 126
+                        else 124 + (sz >> 18)
+                        if (sz >> 18) <= 2
+                        else 126
                     )
                 )
             )
@@ -1584,8 +1590,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         if section_name != ".rela.dyn":
                             addend = int.from_bytes(
                                 data_section_data[
-                                    r_offset
-                                    - data_section_offset : r_offset
+                                    r_offset - data_section_offset : r_offset
                                     - data_section_offset
                                     + pwndbg.gdblib.arch.ptrsize
                                 ],
@@ -1598,8 +1603,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                         if r_offset - next_field_offset == addend:
                             # Check if we can construct the default main_arena struct we expect
                             tmp = data_section_data[
-                                addend
-                                - data_section_offset : addend
+                                addend - data_section_offset : addend
                                 - data_section_offset
                                 + malloc_state_size
                             ]

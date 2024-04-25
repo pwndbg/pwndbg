@@ -41,7 +41,7 @@ from pwndbg.gdblib import prompt
 
 prompt.set_prompt()
 
-pre_commands = """
+pre_commands = f"""
 set confirm off
 set verbose off
 set pagination off
@@ -51,14 +51,12 @@ set follow-fork-mode child
 set backtrace past-main on
 set step-mode on
 set print pretty on
-set width %i
+set width {pwndbg.ui.get_window_size()[1]}
 handle SIGALRM nostop print nopass
 handle SIGBUS  stop   print nopass
 handle SIGPIPE nostop print nopass
 handle SIGSEGV stop   print nopass
-""".strip() % (
-    pwndbg.ui.get_window_size()[1]
-)
+""".strip()
 
 # See https://github.com/pwndbg/pwndbg/issues/808
 if gdb_version[0] <= 9:

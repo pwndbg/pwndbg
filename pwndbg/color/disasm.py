@@ -55,7 +55,6 @@ WHITESPACE_LIMIT = 20
 # All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
 # A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
 def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
-
     result: list[str] = []
 
     cur_padding_len = None
