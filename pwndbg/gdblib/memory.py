@@ -5,8 +5,8 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import re
-from typing import Any
 from typing import Callable
+from typing import Union
 
 import gdb
 
@@ -18,6 +18,9 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
+
+GdbDict = dict[str, Union["GdbDict", int]]
+
 
 MMAP_MIN_ADDR = 0x8000
 
@@ -369,7 +372,7 @@ def fetch_struct_as_dictionary(
     struct_address: int,
     include_only_fields: set[str] = set(),
     exclude_fields: set[str] = set(),
-) -> dict[str, Any]:
+) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
 
@@ -380,7 +383,7 @@ def pack_struct_into_dictionary(
     fetched_struct: gdb.Value,
     include_only_fields: set[str] = set(),
     exclude_fields: set[str] = set(),
-) -> dict[str, Any]:
+) -> GdbDict:
     struct_as_dictionary = {}
 
     if len(include_only_fields) != 0:
@@ -403,8 +406,8 @@ def pack_struct_into_dictionary(
     return struct_as_dictionary
 
 
-def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | dict[str, Any]:
-    type_code_conversions: dict[int, Callable[[gdb.Value], int | dict[str, Any]]] = {
+def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
+    type_code_conversions: dict[int, Callable[[gdb.Value], int | GdbDict]] = {
         gdb.TYPE_CODE_PTR: int,
         gdb.TYPE_CODE_INT: int,
         gdb.TYPE_CODE_STRUCT: pack_struct_into_dictionary,
