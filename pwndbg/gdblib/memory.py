@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from typing import Callable
+from typing import Dict
 from typing import Union
 
 import gdb
@@ -19,7 +20,7 @@ import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
 
-GdbDict = dict[str, Union["GdbDict", int]]
+GdbDict = Dict[str, Union["GdbDict", int]]
 
 
 MMAP_MIN_ADDR = 0x8000
