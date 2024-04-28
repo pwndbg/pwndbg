@@ -155,17 +155,11 @@ before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="b
 
 
 def reg_changed(func: Callable[..., T]) -> Callable[..., T]:
-    try:
-        return connect(func, gdb.events.register_changed, "reg_changed")
-    except AttributeError:
-        return func
+    return connect(func, gdb.events.register_changed, "reg_changed")
 
 
 def mem_changed(func: Callable[..., T]) -> Callable[..., T]:
-    try:
-        return connect(func, gdb.events.memory_changed, "mem_changed")
-    except AttributeError:
-        return func
+    return connect(func, gdb.events.memory_changed, "mem_changed")
 
 
 # TODO/FIXME: type ofile with gdb.NewObjFileEvent | None = None
