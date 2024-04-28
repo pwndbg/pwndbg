@@ -320,7 +320,7 @@ optional = true
 coverage = {version = "^7.5.0", extras = ["toml"]}
 isort = "^5.13.2"
 mypy = "^1.10.0"
-pytest = "8.1.1"
+pytest = "8.0.2"
 pytest-cov = "^4.1.0"
 rich = "^13.7.1"
 ruff = "^0.4.1"
