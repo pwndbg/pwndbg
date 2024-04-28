@@ -296,7 +296,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+# Newer versions of capstone break tests
 capstone = "5.0.0.post1"
+# This is the last version of IPython that supports Python 3.8
 ipython = "8.12.3"
 # Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
 setuptools = "^69.5.1"
@@ -320,6 +322,7 @@ optional = true
 coverage = {version = "^7.5.0", extras = ["toml"]}
 isort = "^5.13.2"
 mypy = "^1.10.0"
+# Newer versions of pytest break CI on GitHub
 pytest = "8.0.2"
 pytest-cov = "^4.1.0"
 rich = "^13.7.1"
