@@ -296,7 +296,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+# Newer versions of capstone break tests
 capstone = "5.0.0.post1"
+# This is the last version of IPython that supports Python 3.8
 ipython = "8.12.3"
 # Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
 setuptools = "^69.5.1"
@@ -317,21 +319,22 @@ pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-coverage = {version = "7.4.3", extras = ["toml"]}
-isort = "5.13.2"
-mypy = "1.8.0"
+coverage = {version = "^7.5.0", extras = ["toml"]}
+isort = "^5.13.2"
+mypy = "^1.10.0"
+# Newer versions of pytest break CI on GitHub
 pytest = "8.0.2"
-pytest-cov = "4.1.0"
-rich = "13.7.1"
-ruff = "0.4.1"
-testresources = "2.0.1"
-tomli = "2.0.1"
-types-gdb = "12.1.4.20240305"
-types-psutil = "5.9.5.20240205"
-types-pygments = "2.17.0.20240106"
-types-requests = "2.31.0.20240218"
-types-tabulate = "0.9.0.20240106"
-vermin = "1.6.0"
+pytest-cov = "^4.1.0"
+rich = "^13.7.1"
+ruff = "^0.4.1"
+testresources = "^2.0.1"
+tomli = "^2.0.1"
+types-gdb = "^12.1.4.20240408"
+types-psutil = "^5.9.5.20240423"
+types-pygments = "^2.17.0.20240310"
+types-requests = "^2.31.0.20240406"
+types-tabulate = "^0.9.0.20240106"
+vermin = "^1.6.0"
 
 [build-system]
 requires = ["poetry-core"]
