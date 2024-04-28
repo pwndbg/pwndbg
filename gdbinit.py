@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import cProfile
-import locale
 import os
 import site
 import sys
@@ -54,19 +53,8 @@ else:
     sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
-
-# warn if the user has different encoding than utf-8
-encoding = locale.getpreferredencoding()
-
-if encoding != "UTF-8":
-    print("******")
-    print(f"Your encoding ({encoding}) is different than UTF-8. pwndbg might not work properly.")
-    print("You might try launching GDB with:")
-    print("    LC_CTYPE=C.UTF-8 gdb")
-    print(
-        "If that does not work, make sure that en_US.UTF-8 is uncommented in /etc/locale.gen and that you called `locale-gen` command"
-    )
-    print("******")
+# Force UTF-8 encoding (to_string=True to skip output appearing to the user)
+gdb.execute("set charset UTF-8", to_string=True)
 
 environ["PWNLIB_NOTERM"] = "1"
 
