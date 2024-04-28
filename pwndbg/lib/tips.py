@@ -13,7 +13,7 @@ TIPS: list[str] = [
     "Use GDB's `pi` command to run an interactive Python console where you can use Pwndbg APIs like `pwndbg.gdblib.memory.read(addr, len)`, `pwndbg.gdblib.memory.write(addr, data)`, `pwndbg.gdb.vmmap.get()` and so on!",
     "GDB's `set directories <path>` parameter can be used to debug e.g. glibc sources like the malloc/free functions!",
     "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
-    'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. If you want only the current thread to run for the function call, use `set scheduler-locking on`',
+    'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. Use `set scheduler-locking on` to lock the execution to current thread when calling functions',
     # Pwndbg hints
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
@@ -29,7 +29,7 @@ TIPS: list[str] = [
     "Use the `canary` command to see all stack canary/cookie values on the stack (based on the *usual* stack canary value initialized by glibc)",
     "Use the `procinfo` command for better process introspection (than the GDB's `info proc` command)",
     "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
-    "The $heap_base GDB variable can be used to refer to the starting address of the heap after running the `heap` command",
+    "Use `$base(\"heap\")` to get the start address of a [heap] memory page",
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
     "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration",
     "Use `vmmap -A|-B <number> <filter>` to display <number> of maps after/before filtered ones",
@@ -42,6 +42,9 @@ TIPS: list[str] = [
     "`stepuntilasm <assembly-instruction [operands]>` steps program forward until matching instruction occures",
     "Use `plist` command to dump elements of linked list",
     "If your program has multiple threads they will be displayed in the context display or using the `context threads` command",
+    "Use `track-got enable|info|query` to track GOT accesses - useful for hijacking control flow via writable GOT/PLT",
+    "Need to `mmap` or `mprotect` memory in the debugee? Use commands with the same name to inject and run such syscalls",
+    "Use `hi` to see if a an address belongs to a glibc heap chunk",
 ]
 
 
