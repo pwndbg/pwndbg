@@ -5,9 +5,7 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import re
-from typing import Callable
-from typing import Dict
-from typing import Union
+from typing import Callable, Dict, Union
 
 import gdb
 
@@ -17,8 +15,7 @@ import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.lib.memory import PAGE_MASK
-from pwndbg.lib.memory import PAGE_SIZE
+from pwndbg.lib.memory import PAGE_MASK, PAGE_SIZE
 
 GdbDict = Dict[str, Union["GdbDict", int]]
 
@@ -408,13 +405,13 @@ def pack_struct_into_dictionary(
 
 
 def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
-    type_code_conversions: dict[int, Callable[[gdb.Value], int | GdbDict]] = {
-        gdb.TYPE_CODE_PTR: int,
-        gdb.TYPE_CODE_INT: int,
-        gdb.TYPE_CODE_STRUCT: pack_struct_into_dictionary,
-    }
-
     gdb_type = gdb_value.type.strip_typedefs()
-    conversion_function = type_code_conversions[gdb_type.code]
 
-    return conversion_function(gdb_value)
+    if gdb_type.code == gdb.TYPE_CODE_PTR:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_INT:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_STRUCT:
+        return pack_struct_into_dictionary(gdb_value)
+
+    raise NotImplementedError
