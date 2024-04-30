@@ -5,7 +5,8 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import re
-from typing import Callable, Dict, Union
+from typing import Dict
+from typing import Union
 
 import gdb
 
@@ -15,7 +16,8 @@ import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.lib.memory import PAGE_MASK, PAGE_SIZE
+from pwndbg.lib.memory import PAGE_MASK
+from pwndbg.lib.memory import PAGE_SIZE
 
 GdbDict = Dict[str, Union["GdbDict", int]]
 
