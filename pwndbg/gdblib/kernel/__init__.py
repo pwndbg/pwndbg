@@ -85,27 +85,38 @@ def nproc() -> int:
     return int(gdb.lookup_global_symbol("nr_cpu_ids").value())
 
 
+def get_readonly_mapping():
+    """Returns the read-only kernel mapping which contains the linux_banner"""
+    base = kbase()
+
+    for mapping in pwndbg.gdblib.vmmap.get():
+        if mapping.execute or mapping.write:
+            continue
+        if mapping.vaddr < base:
+            continue
+
+        # search for the linux_banner to verify we have the correct mapping
+        results = list(pwndbg.search.search(b"Linux ", mappings=[mapping]))
+
+        if len(results) > 0:
+            return mapping
+
+    return None
+
+
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig:
     if has_debug_syms():
         config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
         config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
     else:
-        base = kbase()
-        ro_mapping = None
+        kernel_ro = get_readonly_mapping()
+        results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[kernel_ro]))
 
-        for mapping in pwndbg.gdblib.vmmap.get():
-            if mapping.execute or mapping.write:
-                continue
-            if mapping.vaddr < base:
-                continue
+        if len(results) == 0:
+            return None
 
-            ro_mapping = mapping
-            break
-
-        found = list(pwndbg.search.search(b"IKCFG_ST", mappings=[ro_mapping]))
-
-        config_start = found[0] + len("IKCFG_ST")
-        config_end = list(pwndbg.search.search(b"IKCFG_ED", start=found[0]))[0]
+        config_start = results[0] + len("IKCFG_ST")
+        config_end = list(pwndbg.search.search(b"IKCFG_ED", start=results[0]))[0]
 
     if config_start is None or config_end is None:
         return None
@@ -145,19 +156,9 @@ def kversion() -> str:
     if has_debug_syms():
         version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     else:
-        base = kbase()
-        ro_mapping = None
-
-        for mapping in pwndbg.gdblib.vmmap.get():
-            if mapping.execute or mapping.write:
-                continue
-            if mapping.vaddr < base:
-                continue
-
-            ro_mapping = mapping
-            break
-
-        version_addr = list(pwndbg.search.search(b"Linux", mappings=[ro_mapping]))[0]
+        kernel_ro = get_readonly_mapping()
+        version_addr_candidates = list(pwndbg.search.search(b"Linux", mappings=[kernel_ro]))
+        version_addr = version_addr_candidates[0]
 
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
 

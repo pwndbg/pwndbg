@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import re
-import string
 from struct import unpack_from
 
 from pwnlib.util.packing import p16
-from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 
 import pwndbg.color.message as M
@@ -23,8 +21,6 @@ def get_ks():
 
 class Kallsyms:
     """
-    CONFIG_KALLSYMS_BASE_RELATIVE=y
-
     - linux_banner >= 6.4
     - ... <= 6.4
     - kallsyms_offsets
@@ -42,24 +38,16 @@ class Kallsyms:
         self.kallsyms = {}
         self.kbase = pwndbg.gdblib.kernel.kbase()
 
-        for mapping in pwndbg.gdblib.vmmap.get():
-            # search for the first read-only page
-            if mapping.vaddr <= self.kbase:
-                continue
-            if mapping.execute or mapping.write:
-                continue
-
-            self.ro_base = mapping.vaddr
-            self.kernel_ro_mem = pwndbg.gdblib.memory.read(mapping.vaddr, mapping.memsz)
-            break
+        mapping = pwndbg.gdblib.kernel.get_readonly_mapping()
+        self.r_base = mapping.vaddr
+        self.kernel_ro_mem = pwndbg.gdblib.memory.read(mapping.vaddr, mapping.memsz)
 
         self.kernel_version = pwndbg.gdblib.kernel.krelease()
         self.token_table = self.find_token_table()
         self.token_index = self.find_token_index()
         self.markers = self.find_markers()
         self.offsets = self.find_offsets()
-        self.r_base = self.find_relative_base()
-
+        self.rbase_offset = self.find_relative_base()
         self.num_syms = self.find_num_syms()
         self.names = self.find_names()
         self.kernel_addresses = self.get_kernel_addresses()
@@ -86,10 +74,7 @@ class Kallsyms:
             else:
                 candidates.append(position)
 
-                if (
-                    chr(self.kernel_ro_mem[pos : pos + 1][0])
-                    in string.ascii_letters + string.digits + string.punctuation
-                ):
+                if 32 <= self.kernel_ro_mem[pos : pos + 1][0] < 126:
                     ascii_candidates.append(position)
 
         if len(candidates) != 1:
@@ -97,7 +82,6 @@ class Kallsyms:
                 candidates = ascii_candidates
             elif len(candidates) == 0:
                 print(M.error("No candidates for token_table"))
-                return None
 
         position = candidates[0]
 
@@ -113,7 +97,7 @@ class Kallsyms:
                     break
 
                 if chars_in_token >= 50 - 1:
-                    print("This structure is not a kallsyms_token_table")
+                    print(M.error("This structure is not a kallsyms_token_table"))
                     return None
 
         position += 1
@@ -166,8 +150,9 @@ class Kallsyms:
                 return None
 
             position -= position % elem_size  # aligning
+            size_marker = {4: "I", 8: "Q"}[elem_size]
 
-            entries = unpack_from("<4I", self.kernel_ro_mem, position)
+            entries = unpack_from(f"<4{size_marker}", self.kernel_ro_mem, position)
 
             if entries[0] != 0:
                 continue
@@ -181,8 +166,7 @@ class Kallsyms:
         return None
 
     def find_offsets(self):
-        # searches for kallsyms_offsets
-
+        # search for kallsyms_offsets
         forward_search = self.kernel_version >= (6, 4)
         position = self.token_index if forward_search else self.markers - 8
 
@@ -201,7 +185,7 @@ class Kallsyms:
         while True:
             x = u64(self.kernel_ro_mem[position : position + 8])
 
-            if x & 0xFFF == 0 and (x >> 48) & 0xFFFF == 0xFFFF:
+            if x == self.kbase:
                 return position
 
             position = position + 8
@@ -210,7 +194,7 @@ class Kallsyms:
 
     def find_num_syms(self):
         if self.kernel_version < (6, 4):
-            return self.r_base + 8
+            return self.rbase_offset + 8
         else:
             # num_syms is likely to be found behind linux_banner symbol
             pattern = rb"Linux[^0-9]*?(\d+\.\d+\.\d+)"
@@ -237,18 +221,18 @@ class Kallsyms:
         return self.num_syms + 8
 
     def get_kernel_addresses(self):
-        signed = lambda num: (num & 0xFFFFFFFF) - 0x100000000 if num & 0x80000000 else num
         kernel_addresses = []
-        kconfig_ = pwndbg.gdblib.kernel.kconfig()
-        position = self.offsets
-        rbase = u64(self.kernel_ro_mem[self.r_base : self.r_base + 8])
-        nsyms = u64(self.kernel_ro_mem[self.num_syms : self.num_syms + 8])
-        abs_percpu = kconfig_.get("CONFIG_KALLSYMS_ABSOLUTE_PERCPU")
-        for _ in range(nsyms):
-            offset = u32(self.kernel_ro_mem[position : position + 4])
 
-            if abs_percpu == "y" or abs_percpu is None:
-                offset = signed(offset)
+        rbase = u64(self.kernel_ro_mem[self.rbase_offset : self.rbase_offset + 8])
+        nsyms = u64(self.kernel_ro_mem[self.num_syms : self.num_syms + 8])
+
+        kernel_addresses = list(unpack_from(f"<{nsyms}i", self.kernel_ro_mem, self.offsets))
+
+        number_of_negatime_items = len([offset for offset in kernel_addresses if offset < 0])
+        abs_percpu = number_of_negatime_items / len(kernel_addresses) >= 0.5
+
+        for idx, offset in enumerate(kernel_addresses):
+            if abs_percpu:
                 if offset < 0:
                     offset = rbase - 1 - offset
                 else:
@@ -256,9 +240,7 @@ class Kallsyms:
             else:
                 offset = rbase + offset
 
-            kernel_addresses.append(offset)
-
-            position += 4
+            kernel_addresses[idx] = offset
 
         return kernel_addresses
 
