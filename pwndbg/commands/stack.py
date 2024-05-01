@@ -22,7 +22,9 @@ def retaddr() -> None:
     frame = gdb.newest_frame()
     addresses = []
     while frame:
-        addresses.append(int(frame.pc()))
+        addr = int(frame.pc())
+        if pwndbg.gdblib.memory.is_readable_address(addr):
+            addresses.append(addr)
         frame = frame.older()
 
     # Find all of them on the stack
