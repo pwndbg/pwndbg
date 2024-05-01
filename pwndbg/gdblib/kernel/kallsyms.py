@@ -4,6 +4,7 @@ import re
 from struct import unpack_from
 
 from pwnlib.util.packing import p16
+from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 
 import pwndbg.color.message as M
@@ -43,12 +44,19 @@ class Kallsyms:
         self.kernel_ro_mem = pwndbg.gdblib.memory.read(mapping.vaddr, mapping.memsz)
 
         self.kernel_version = pwndbg.gdblib.kernel.krelease()
+        self.is_offsets = False
+
+        self.rbase_offset = 0
+
         self.token_table = self.find_token_table()
         self.token_index = self.find_token_index()
         self.markers = self.find_markers()
-        self.offsets = self.find_offsets()
-        self.rbase_offset = self.find_relative_base()
         self.num_syms = self.find_num_syms()
+        self.offsets = self.find_offsets()
+
+        if self.is_offsets:
+            self.rbase_offset = self.find_relative_base()
+
         self.names = self.find_names()
         self.kernel_addresses = self.get_kernel_addresses()
         self.parse_symbol_table()
@@ -165,40 +173,24 @@ class Kallsyms:
 
         return None
 
-    def find_offsets(self):
-        # search for kallsyms_offsets
-        forward_search = self.kernel_version >= (6, 4)
-        position = self.token_index if forward_search else self.markers - 8
-
-        while True:
-            qword = u64(self.kernel_ro_mem[position : position + 8])
-            if qword & 0xFFFFFFFF == 0:
-                return position
-
-            position += 8 if forward_search else -8
-
-        return None
-
-    def find_relative_base(self):
-        position = self.offsets
-
-        while True:
-            x = u64(self.kernel_ro_mem[position : position + 8])
-
-            if x == self.kbase:
-                return position
-
-            position = position + 8
-
-        return None
-
     def find_num_syms(self):
         if self.kernel_version < (6, 4):
-            return self.rbase_offset + 8
+            # try to find num_syms first by walking backwards and looking for data like this: 0xffffffff823f8000	0x000000000001417c
+            # this should match both CONFIG_KALLSYMS_BASE_RELATIVE y and n
+            position = self.markers - 8
+
+            while True:
+                qword = u64(self.kernel_ro_mem[position : position + 8])
+                if (qword >> 32) & 0xFFFFFFFF == 0 and qword > 0:
+                    before_qword = u64(self.kernel_ro_mem[position - 8 : position])
+                    if (before_qword >> 48) & 0xFFFF == 0xFFFF and (before_qword & 0xFFF) == 0:
+                        # should be kallsyms_num_syms
+                        return position
+
+                position -= 8
         else:
             # num_syms is likely to be found behind linux_banner symbol
             pattern = rb"Linux[^0-9]*?(\d+\.\d+\.\d+)"
-
             matches = re.finditer(pattern, self.kernel_ro_mem)
 
             for match in matches:
@@ -217,6 +209,54 @@ class Kallsyms:
             position = (position + 7) & ~7
             return position
 
+    def find_offsets(self):
+        # search for kallsyms_offsets or kallsyms_addresses
+        forward_search = self.kernel_version >= (6, 4)
+
+        if forward_search:
+            position = self.token_index
+            self.is_offsets = True
+        else:
+            # kallsyms_offsets is at the top
+            position = self.num_syms
+            nsyms = u64(self.kernel_ro_mem[position : position + 8])
+
+            if (
+                self.kbase - 0x20000
+                < u64(self.kernel_ro_mem[position - 8 : position])
+                <= self.kbase
+            ):
+                # it should be kallsyms_offsets
+                self.is_offsets = True
+                position -= 8
+
+                dword = u32(self.kernel_ro_mem[position - 4 : position])
+
+                if dword == 0x0:
+                    position -= 4
+
+                return position - (nsyms * 4)
+
+            return position - (nsyms * 8)
+
+        while True:
+            qword = u64(self.kernel_ro_mem[position : position + 8])
+            if qword & 0xFFFFFFFF == 0:
+                return position
+
+            position += 8
+
+        return None
+
+    def find_relative_base(self):
+        position = self.offsets
+        nsyms = u64(self.kernel_ro_mem[self.num_syms : self.num_syms + 8])
+
+        position = position + (nsyms * 4)
+        position = (position + 7) & ~7
+
+        return position
+
     def find_names(self):
         return self.num_syms + 8
 
@@ -225,11 +265,16 @@ class Kallsyms:
 
         rbase = u64(self.kernel_ro_mem[self.rbase_offset : self.rbase_offset + 8])
         nsyms = u64(self.kernel_ro_mem[self.num_syms : self.num_syms + 8])
+        size_marker = "i" if self.is_offsets else "Q"
+        kernel_addresses = list(
+            unpack_from(f"<{nsyms}{size_marker}", self.kernel_ro_mem, self.offsets)
+        )
 
-        kernel_addresses = list(unpack_from(f"<{nsyms}i", self.kernel_ro_mem, self.offsets))
+        if not self.is_offsets:
+            return kernel_addresses
 
-        number_of_negatime_items = len([offset for offset in kernel_addresses if offset < 0])
-        abs_percpu = number_of_negatime_items / len(kernel_addresses) >= 0.5
+        number_of_negative_items = len([offset for offset in kernel_addresses if offset < 0])
+        abs_percpu = number_of_negative_items / len(kernel_addresses) >= 0.5
 
         for idx, offset in enumerate(kernel_addresses):
             if abs_percpu:
