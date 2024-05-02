@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from struct import unpack_from
 
 from pwnlib.util.packing import p16
@@ -62,6 +61,15 @@ class Kallsyms:
         self.parse_symbol_table()
 
     def find_token_table(self) -> int:
+        """
+        This function searches for the kallsyms_token_table structure in the kernel memory.
+
+        The kallsyms_token_table contains 256 zero-terminated tokens from which symbol names are built.
+
+        Example sructure:
+
+        TODO: add structure
+        """
         sequence_to_find = b"".join(b"%c\0" % i for i in range(ord("0"), ord("9") + 1))
         sequences_to_avoid = [b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0"]
 
@@ -115,6 +123,18 @@ class Kallsyms:
         return position
 
     def find_token_index(self) -> int | None:
+        """
+        This function searches for the kallsyms_token_index structure in the kernel memory
+        starting at kallsyms_token_table. The token index table provides offsets into the kallsyms_token_table
+        for each 256 byte-valued sub-table.
+
+        The kallsyms_token_index is typically located immediately after
+        the kallsyms_token_table in the kernel's read-only data section.
+
+        Example structure:
+
+        TODO: add
+        """
         position = self.token_table
 
         token_table_head = self.kernel_ro_mem[position : position + 256]
@@ -139,6 +159,17 @@ class Kallsyms:
         return position
 
     def find_markers(self) -> int | None:
+        """
+        This function searches for the kallsyms_markers structure in the kernel memory
+        starting at kallsyms_token_table and search backwards. The markers table contains
+        offsets to the corresponding symbol name for each kernel symbol.
+
+        The kallsyms_markers table is typically located immediately before the kallsyms_token_table
+        in the kernel's read-only data section.
+
+        Example structure:
+        TODO: add
+        """
         if self.kernel_version < (4, 20):
             elem_size = 8
         else:
@@ -175,9 +206,21 @@ class Kallsyms:
         return None
 
     def find_num_syms(self):
+        """
+        This function searches for the kallsyms_num_syms variable in the kernel memory
+        starting at kallsyms_markers. The kallsyms_num_syms holds the number of kernel symbols
+        in the symbol table.
+
+        The kallsyms_num_syms variable is typically located before the kallsyms_names table in the kernel's
+        read-only data section.
+
+        In newer kernel versions the kallsyms_num_syms is immediately behind the linux_banner and in older version
+        its behind kallsyms_base_relative or kallsyms_addresses (it depends on CONFIG_KALLSYMS_BASE_RELATIVE y/n)
+        """
         if self.kernel_version < (6, 4):
-            # try to find num_syms first by walking backwards and looking for data like this: 0xffffffff823f8000	0x000000000001417c
-            # this should match both CONFIG_KALLSYMS_BASE_RELATIVE y and n
+            # try to find num_syms first by walking backwards and looking
+            # for data like this a kernel address followed by num_syms
+            # 0xffffffff823f8000	0x000000000001417c
             position = self.markers - 8
 
             while True:
@@ -190,28 +233,33 @@ class Kallsyms:
 
                 position -= 8
         else:
-            # num_syms is likely to be found behind linux_banner symbol
-            pattern = rb"Linux version (\d+\.\d+\.\d+)"
-            matches = re.finditer(pattern, self.kernel_ro_mem)
+            # search from kallsyms_markers backwards and look for the linux_banner symbol
+            # the kallsyms_num_syms should be behind the linux_banner string
+            position = self.kernel_ro_mem.rfind(b"Linux version", 0, self.markers - 8)
 
-            for match in matches:
-                last_match = match
-
-            if last_match:
-                position = last_match.start(1)
+            if position == -1:
+                return None
 
             while True:
                 position = position + 1
-
                 if self.kernel_ro_mem[position] == 0:
-                    # found end of linux_banner string
                     break
 
-            position = (position + 7) & ~7
+            position = (position + 7) & ~7  # alignment
             return position
 
     def find_offsets(self):
-        # search for kallsyms_offsets or kallsyms_addresses
+        """
+        This function searches for the kallsyms_offsets/kallsyms_addresses table in the kernel memory
+        starting at kallsyms_token_index. The offsets/addresses table containts offsets / addresses of each
+        symbol in the kernel.
+
+        The kallsyms_addresses is typically located before the kallsyms_num_syms variable in the kernel's read-only
+        data section.
+
+        Example structure:
+        TODO: add
+        """
         forward_search = self.kernel_version >= (6, 4)
 
         if forward_search:
@@ -250,6 +298,14 @@ class Kallsyms:
         return None
 
     def find_relative_base(self):
+        """
+        This function searches for the kallsyms_relative_base variable in the kernel memory.
+        The relative base is used to calculate the actual virtual addresses of symbols from
+        their offsets in the kallsyms_offsets table.
+
+        The kallsyms_relative_base variable is typically located after the kallsyms_offsets table
+        in the kernel's read-only data section.
+        """
         position = self.offsets
         nsyms = u64(self.kernel_ro_mem[self.num_syms : self.num_syms + 8])
 
