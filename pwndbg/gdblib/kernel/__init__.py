@@ -94,7 +94,7 @@ def get_readonly_mapping():
             continue
 
         # search for the linux_banner to verify we have the correct mapping
-        results = list(pwndbg.search.search(b"Linux ", mappings=[mapping]))
+        results = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))
 
         if len(results) > 0:
             return mapping
@@ -155,7 +155,7 @@ def kversion() -> str:
         version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     else:
         kernel_ro = get_readonly_mapping()
-        version_addr_candidates = list(pwndbg.search.search(b"Linux ", mappings=[kernel_ro]))
+        version_addr_candidates = list(pwndbg.search.search(b"Linux version", mappings=[kernel_ro]))
         version_addr = version_addr_candidates[0]
 
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
