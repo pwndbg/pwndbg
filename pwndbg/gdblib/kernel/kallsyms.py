@@ -190,7 +190,7 @@ class Kallsyms:
                 position -= 8
         else:
             # num_syms is likely to be found behind linux_banner symbol
-            pattern = rb"Linux[^0-9]*?(\d+\.\d+\.\d+)"
+            pattern = rb"Linux version (\d+\.\d+\.\d+)"
             matches = re.finditer(pattern, self.kernel_ro_mem)
 
             for match in matches:

@@ -86,12 +86,10 @@ def nproc() -> int:
 
 
 def get_readonly_mapping():
-    """Returns the read-only kernel mapping which contains the linux_banner"""
+    """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
 
     for mapping in pwndbg.gdblib.vmmap.get():
-        if mapping.execute or mapping.write:
-            continue
         if mapping.vaddr < base:
             continue
 
@@ -157,7 +155,7 @@ def kversion() -> str:
         version_addr = pwndbg.gdblib.symbol.address("linux_banner")
     else:
         kernel_ro = get_readonly_mapping()
-        version_addr_candidates = list(pwndbg.search.search(b"Linux", mappings=[kernel_ro]))
+        version_addr_candidates = list(pwndbg.search.search(b"Linux ", mappings=[kernel_ro]))
         version_addr = version_addr_candidates[0]
 
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
