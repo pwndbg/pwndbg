@@ -11,7 +11,6 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
 from pwndbg.color import message
-from pwndbg.gdblib.config import config
 
 current: pwndbg.heap.heap.MemoryAllocator | None = None
 
@@ -25,7 +24,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return config.add_param(
+    return pwndbg.gdblib.config.add_param(
         name,
         default,
         set_show_doc,
@@ -96,7 +95,7 @@ def reset() -> None:
         symbol.value = "0"
 
 
-@config.trigger(resolve_heap_via_heuristic)
+@pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
     import pwndbg.heap.ptmalloc
 

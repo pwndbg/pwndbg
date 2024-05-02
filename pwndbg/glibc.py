@@ -28,24 +28,23 @@ import pwndbg.heap
 import pwndbg.lib.cache
 import pwndbg.search
 from pwndbg.color import message
-from pwndbg.gdblib.config import config
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
-safe_lnk = config.add_param(
+safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking",
     None,
     "whether glibc use safe-linking (on/off/auto)",
     param_class=gdb.PARAM_AUTO_BOOLEAN,
 )
 
-glibc_version = config.add_param(
+glibc_version = pwndbg.gdblib.config.add_param(
     "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
 )
 
 
-@config.trigger(glibc_version)
+@pwndbg.gdblib.config.trigger(glibc_version)
 def set_glibc_version() -> None:
     ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
     if ret:

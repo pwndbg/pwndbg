@@ -3,7 +3,7 @@ from __future__ import annotations
 import cProfile
 import time
 
-profiler: Profiler
+profiler: Profiler | None = None
 
 
 def init(p: cProfile.Profile, _start_time: float | None) -> None:

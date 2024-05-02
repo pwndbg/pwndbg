@@ -12,6 +12,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
@@ -137,8 +138,6 @@ def is_readable_address(address: int) -> bool:
         :class:`bool`: Whether the address is readable.
     """
     # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
-    import pwndbg.gdblib.vmmap
-
     return pwndbg.gdblib.vmmap.find(address) is not None and peek(address) is not None
 
 

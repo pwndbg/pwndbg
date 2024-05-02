@@ -9,9 +9,9 @@ from typing_extensions import ParamSpec
 
 import pwndbg.color.message as M
 
-_P = ParamSpec("_P")
-_D = TypeVar("_D")
-_T = TypeVar("_T")
+P = ParamSpec("P")
+D = TypeVar("D")
+T = TypeVar("T")
 
 abi: str | None = None
 linux = False
@@ -52,15 +52,15 @@ def update() -> None:
 
 
 def LinuxOnly(
-    default: _D = None,
-) -> Callable[[Callable[_P, _T]], Callable[_P, _T | _D | None]]:
+    default: D = None,
+) -> Callable[[Callable[P, T]], Callable[P, T | D | None]]:
     """Create a decorator that the function will be called when ABI is Linux.
     Otherwise, return `default`.
     """
 
-    def decorator(func: Callable[_P, _T | None]) -> Callable[_P, _T | _D | None]:
+    def decorator(func: Callable[P, T | None]) -> Callable[P, T | D | None]:
         @functools.wraps(func)
-        def caller(*args: _P.args, **kwargs: _P.kwargs) -> _T | _D | None:
+        def caller(*args: P.args, **kwargs: P.kwargs) -> T | D | None:
             if linux:
                 return func(*args, **kwargs)
             else:

@@ -19,6 +19,7 @@ import gdb
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
+import pwndbg.gdblib.info
 import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 import pwndbg.lib.memory
@@ -158,8 +159,6 @@ class module(ModuleType):
         """
         Find section address of current process by section name
         """
-        import pwndbg.gdblib.info
-
         out = pwndbg.gdblib.info.files()
         for line in out.splitlines():
             if line.endswith(f" is {section_name}"):
