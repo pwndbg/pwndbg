@@ -90,6 +90,7 @@ class Kallsyms:
                 candidates = ascii_candidates
             elif len(candidates) == 0:
                 print(M.error("No candidates for token_table"))
+                return None
 
         position = candidates[0]
 
