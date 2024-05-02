@@ -5,6 +5,9 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import re
+from typing import Dict
+from typing import Set
+from typing import Union
 
 import gdb
 
@@ -17,6 +20,9 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
+
+GdbDict = Dict[str, Union["GdbDict", int]]
+
 
 MMAP_MIN_ADDR = 0x8000
 
@@ -361,3 +367,55 @@ def update_min_addr() -> None:
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0
+
+
+def fetch_struct_as_dictionary(
+    struct_name: str,
+    struct_address: int,
+    include_only_fields: Set[str] = set(),
+    exclude_fields: Set[str] = set(),
+) -> GdbDict:
+    struct_type = gdb.lookup_type("struct " + struct_name)
+    fetched_struct = poi(struct_type, struct_address)
+
+    return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
+
+
+def pack_struct_into_dictionary(
+    fetched_struct: gdb.Value,
+    include_only_fields: Set[str] = set(),
+    exclude_fields: Set[str] = set(),
+) -> GdbDict:
+    struct_as_dictionary = {}
+
+    if len(include_only_fields) != 0:
+        for field_name in include_only_fields:
+            key = field_name
+            value = convert_gdb_value_to_python_value(fetched_struct[field_name])
+            struct_as_dictionary[key] = value
+    else:
+        for field in fetched_struct.type.fields():
+            if field.name is None:
+                # Flatten anonymous structs/unions
+                anon_type = convert_gdb_value_to_python_value(fetched_struct[field])
+                assert isinstance(anon_type, dict)
+                struct_as_dictionary.update(anon_type)
+            elif field.name not in exclude_fields:
+                key = field.name
+                value = convert_gdb_value_to_python_value(fetched_struct[field])
+                struct_as_dictionary[key] = value
+
+    return struct_as_dictionary
+
+
+def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
+    gdb_type = gdb_value.type.strip_typedefs()
+
+    if gdb_type.code == gdb.TYPE_CODE_PTR:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_INT:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_STRUCT:
+        return pack_struct_into_dictionary(gdb_value)
+
+    raise NotImplementedError

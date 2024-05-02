@@ -23,15 +23,16 @@ pwndbg.gdblib.config.add_param(
     "emulate",
     "on",
     """
-Unicorn emulation of code near the current instruction
+Unicorn emulation of code from the current PC register
 """,
     help_docstring="""\
 emulate can be:
-off             - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
-jumps-only      - use QEMU's `monitor info mem` to render vmmap
-on              - disable vmmap rendering; useful if rendering is particularly slow
+off             - no emulation is performed
+jumps-only      - emulation is done only to resolve branch instructions
+on              - emulation is done to resolve registers/memory values etc.
 
-Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+Emulation can slow down Pwndbg. Disabling it may improve performance.
+Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
 """,
     param_class=gdb.PARAM_ENUM,
     enum_sequence=["on", "off", "jumps-only"],
