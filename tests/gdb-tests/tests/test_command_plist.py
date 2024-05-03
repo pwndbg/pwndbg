@@ -4,24 +4,15 @@ import re
 
 import gdb
 
-import tests
-
-LINKED_LISTS_BINARY = tests.binaries.get("linked-lists.out")
+from . import start_and_break_on
 
 
-def startup(start_binary):
-    start_binary(LINKED_LISTS_BINARY)
-
-    gdb.execute("break break_here")
-    gdb.execute("run")
-    gdb.execute("up")
-
-
-def test_command_plist_flat_no_flags(start_binary):
+@start_and_break_on("linked-lists.out", ["break_here"])
+def test_command_plist_flat_no_flags():
     """
     Tests the plist for a non-nested linked list
     """
-    startup(start_binary)
+    gdb.execute("up")
 
     expected_out = re.compile(
         """\
@@ -43,11 +34,12 @@ def test_command_plist_flat_no_flags(start_binary):
     assert expected_out.match(result_str) is not None
 
 
-def test_command_plist_flat_field(start_binary):
+@start_and_break_on("linked-lists.out", ["break_here"])
+def test_command_plist_flat_field():
     """
     Tests the plist command for a non-nested linked list with field flag
     """
-    startup(start_binary)
+    gdb.execute("up")
 
     expected_out = re.compile(
         """\
@@ -61,11 +53,12 @@ def test_command_plist_flat_field(start_binary):
     assert expected_out.match(result_str) is not None
 
 
-def test_command_plist_flat_sentinel(start_binary):
+@start_and_break_on("linked-lists.out", ["break_here"])
+def test_command_plist_flat_sentinel():
     """
     Tests the plist command for a non-nested linked list with field flag
     """
-    startup(start_binary)
+    gdb.execute("up")
 
     sentinel = int(gdb.lookup_symbol("node_c")[0].value().address)
     expected_out = re.compile(
@@ -84,11 +77,12 @@ def test_command_plist_flat_sentinel(start_binary):
     assert expected_out.match(result_str) is not None
 
 
-def test_command_plist_nested_direct(start_binary):
+@start_and_break_on("linked-lists.out", ["break_here"])
+def test_command_plist_nested_direct():
     """
     Tests the plist for a nested linked list pointing to the outer structure
     """
-    startup(start_binary)
+    gdb.execute("up")
 
     expected_out = re.compile(
         """\
@@ -116,11 +110,12 @@ def test_command_plist_nested_direct(start_binary):
     assert expected_out.match(result_str) is not None
 
 
-def test_command_plist_nested_indirect(start_binary):
+@start_and_break_on("linked-lists.out", ["break_here"])
+def test_command_plist_nested_indirect():
     """
     Tests the plist for a nested linked list pointing to the inner structure
     """
-    startup(start_binary)
+    gdb.execute("up")
 
     expected_out = re.compile(
         """\
