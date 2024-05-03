@@ -62,5 +62,5 @@ def test_gdblib_kernel_kbase():
 
 @pytest.mark.skipif(not pwndbg.gdblib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_gdblib_kernel_kallsyms():
-    ks = pwndbg.gdblib.kernel.kallsyms.get_ks()
+    ks = pwndbg.gdblib.kernel.kallsyms.get()
     assert ks["commit_creds"][0] == pwndbg.gdblib.symbol.address("commit_creds")

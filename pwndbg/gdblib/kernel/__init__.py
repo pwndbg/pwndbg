@@ -143,7 +143,7 @@ def kcmdline() -> str:
         )
     else:
         cmdline_addr = pwndbg.gdblib.memory.pvoid(
-            pwndbg.gdblib.kernel.kallsyms.get_ks()["saved_command_line"][0]
+            pwndbg.gdblib.kernel.kallsyms.get()["saved_command_line"][0]
         )
 
     return pwndbg.gdblib.memory.string(cmdline_addr).decode("ascii")
