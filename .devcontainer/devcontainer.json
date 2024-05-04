@@ -41,7 +41,8 @@
                         "source.organizeImports": "explicit"
                     },
                     "editor.formatOnType": true
-                }
+                },
+                "ruff.organizeImports": false
             },
             "extensions": [
                 "charliermarsh.ruff",
