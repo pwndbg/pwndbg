@@ -46,10 +46,8 @@
             "extensions": [
                 "charliermarsh.ruff",
                 "ms-azuretools.vscode-docker",
-                "ms-python.black-formatter",
                 "ms-python.isort",
                 "ms-python.mypy-type-checker",
-                "ms-python.pylint",
                 "ms-python.python",
                 "ms-python.vscode-pylance"
             ]
