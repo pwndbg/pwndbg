@@ -60,7 +60,8 @@ else:
 # warn if the user has different encoding than utf-8
 encoding = locale.getpreferredencoding()
 
-if encoding != "UTF-8":
+# use casefold, since the string may be "UTF-8" on some platforms and "utf-8" on others
+if encoding.casefold() != "utf-8":
     print("******")
     print(f"Your encoding ({encoding}) is different than UTF-8. pwndbg might not work properly.")
     print("You might try launching GDB with:")
