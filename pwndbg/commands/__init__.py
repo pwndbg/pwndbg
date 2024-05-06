@@ -697,6 +697,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.radare2
     import pwndbg.commands.reload
+    import pwndbg.commands.retaddr
     import pwndbg.commands.rizin
     import pwndbg.commands.rop
     import pwndbg.commands.ropper
@@ -706,7 +707,6 @@ def load_commands() -> None:
     import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
-    import pwndbg.commands.stack
     import pwndbg.commands.start
     import pwndbg.commands.telescope
     import pwndbg.commands.tips
