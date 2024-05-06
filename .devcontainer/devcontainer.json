@@ -36,20 +36,19 @@
                 "python.linting.pylintUseMinimalCheckers": false,
                 "python.venvPath": "/venv",
                 "[python]": {
-                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": "explicit"
                     },
                     "editor.formatOnType": true
-                }
+                },
+                "ruff.organizeImports": false
             },
             "extensions": [
                 "charliermarsh.ruff",
                 "ms-azuretools.vscode-docker",
-                "ms-python.black-formatter",
                 "ms-python.isort",
                 "ms-python.mypy-type-checker",
-                "ms-python.pylint",
                 "ms-python.python",
                 "ms-python.vscode-pylance"
             ]
