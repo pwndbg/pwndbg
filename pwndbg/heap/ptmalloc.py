@@ -141,6 +141,51 @@ class ChunkField(Enum):
     BK_NEXTSIZE = 6
 
 
+def fetch_chunk_metadata(address: int, include_only_fields: set[ChunkField] = set()):
+    prev_size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"prev_size", "mchunk_prev_size"}
+    )
+    size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"size", "mchunk_size"}
+    )
+    requested_fields: set[str] = set()
+
+    for field in include_only_fields:
+        if field is ChunkField.PREV_SIZE:
+            requested_fields.add(prev_size_field_name)
+        elif field is ChunkField.SIZE:
+            requested_fields.add(size_field_name)
+        elif field is ChunkField.FD:
+            requested_fields.add("fd")
+        elif field is ChunkField.BK:
+            requested_fields.add("bk")
+        elif field is ChunkField.FD_NEXTSIZE:
+            requested_fields.add("fd_nextsize")
+        elif field is ChunkField.BK_NEXTSIZE:
+            requested_fields.add("bk_nextsize")
+
+    fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+        "malloc_chunk", address, include_only_fields=requested_fields
+    )
+
+    normalized_struct = dict()
+    for field in fetched_struct:
+        if field == prev_size_field_name:
+            normalized_struct[ChunkField.PREV_SIZE] = fetched_struct[prev_size_field_name]
+        elif field == size_field_name:
+            normalized_struct[ChunkField.SIZE] = fetched_struct[size_field_name]
+        elif field == "fd":
+            normalized_struct[ChunkField.FD] = fetched_struct["fd"]
+        elif field == "bk":
+            normalized_struct[ChunkField.BK] = fetched_struct["bk"]
+        elif field == "fd_nextsize":
+            normalized_struct[ChunkField.FD_NEXTSIZE] = fetched_struct["fd_nextsize"]
+        elif field == "bk_nextsize":
+            normalized_struct[ChunkField.BK_NEXTSIZE] = fetched_struct["bk_nextsize"]
+
+    return normalized_struct
+
+
 class Chunk:
     __slots__ = (
         "_gdbValue",
