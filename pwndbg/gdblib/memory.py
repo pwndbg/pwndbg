@@ -419,11 +419,11 @@ def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
     raise NotImplementedError
 
 
-def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str | None:
+def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str:
     struct_type = gdb.lookup_type("struct " + struct_name)
 
     for field_name in possible_field_names:
         if gdb.types.has_field(struct_type, field_name):
             return field_name
 
-    return None
+    raise ValueError(f"Field name did not match any of {possible_field_names}.")
