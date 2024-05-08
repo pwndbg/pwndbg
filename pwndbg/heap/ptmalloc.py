@@ -132,6 +132,15 @@ def heap_for_ptr(ptr):
     return ptr & ~(HEAP_MAX_SIZE - 1)
 
 
+class ChunkField(Enum):
+    PREV_SIZE = 1
+    SIZE = 2
+    FD = 3
+    BK = 4
+    FD_NEXTSIZE = 5
+    BK_NEXTSIZE = 6
+
+
 class Chunk:
     __slots__ = (
         "_gdbValue",
