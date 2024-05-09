@@ -172,7 +172,7 @@ def fetch_chunk_metadata(address: int, include_only_fields: set[ChunkField] | No
             "malloc_chunk", address, include_only_fields=requested_fields
         )
 
-    normalized_struct = dict()
+    normalized_struct = {}
     for field in fetched_struct:
         if field == prev_size_field_name:
             normalized_struct[ChunkField.PREV_SIZE] = fetched_struct[prev_size_field_name]
