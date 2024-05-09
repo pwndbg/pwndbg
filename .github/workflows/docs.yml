@@ -40,4 +40,6 @@ jobs:
         run: poetry install --with docs
 
       - name: Deploy site
-        run: mkdocs gh-deploy --force
+        run: |
+          source .venv/bin/activate
+          mkdocs gh-deploy --force
