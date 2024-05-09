@@ -26,7 +26,9 @@ jobs:
         run: poetry install --with docs
 
       - name: Build site
-        run: mkdocs build
+        run: |
+          source .venv/bin/activate
+          mkdocs build
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
