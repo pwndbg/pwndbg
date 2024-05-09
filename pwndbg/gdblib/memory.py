@@ -370,8 +370,8 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int,
-    include_only_fields: set[str] = set(),
-    exclude_fields: set[str] = set(),
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
@@ -381,12 +381,15 @@ def fetch_struct_as_dictionary(
 
 def pack_struct_into_dictionary(
     fetched_struct: gdb.Value,
-    include_only_fields: set[str] = set(),
-    exclude_fields: set[str] = set(),
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
     struct_as_dictionary = {}
 
-    if len(include_only_fields) != 0:
+    if exclude_fields is None:
+        exclude_fields = set()
+
+    if include_only_fields is not None:
         for field_name in include_only_fields:
             key = field_name
             value = convert_gdb_value_to_python_value(fetched_struct[field_name])
