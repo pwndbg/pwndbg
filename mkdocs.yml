@@ -9,7 +9,6 @@ repo_url: https://github.com/pwndbg/pwndbg/
 theme:
   logo: assets/icon.png
   name: material
-  custom_dir: docs/theme
   font:
     text: Roboto
     code: Roboto Mono
@@ -30,14 +29,13 @@ theme:
     - search.suggest
     - toc.integrate
     - toc.follow
-  palette: 
+  palette:
     scheme: slate
     primary: black
     accent: purple
 
   favicon: assets/favicon.ico
-  icon:
-    logo:logo
+  icon: logo:logo
 
 # Plugins
 plugins:
@@ -78,12 +76,12 @@ plugins:
             show_docstring_return: true
             show_docstring_raises: true
   - rss:
-      match_path: blog/posts/.* 
+      match_path: blog/posts/.*
       date_from_meta:
         as_creation: date
       categories:
         - categories
-        - tags 
+        - tags
 
 # Additional configuration
 extra:
@@ -114,7 +112,7 @@ markdown_extensions:
   - fenced_code
   - toc:
       permalink: true
-      toc_depth : "1-2"
+      toc_depth: "1-2"
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.betterem:
@@ -157,7 +155,7 @@ markdown_extensions:
       custom_checkbox: true
   - pymdownx.tilde
 
-nav: 
+nav:
   - Home: index.md
   # - Getting started: getting_started.md
   - Setup: setup.md
