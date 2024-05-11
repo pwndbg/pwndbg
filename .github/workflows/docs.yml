@@ -6,21 +6,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   build:
     name: Build docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-python@v5.0.0
-        with:
-          python-version: 3.x
-      - uses: actions/cache@v3.3.2
-        with:
-          key: ${{ github.ref }}
-          path: .cache
-      - run: pip install -r docs/requirements.txt
-      - run: mkdocs build
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Install poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: poetry install --with docs
+
+      - name: Build site
+        run: |
+          source .venv/bin/activate
+          mkdocs build
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
@@ -28,15 +30,16 @@ jobs:
     name: Deploy docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.1
-        with:
-          fetch-depth: '0'
-      - uses: actions/setup-python@v5.0.0
-        with:
-          python-version: 3.x
-      - uses: actions/cache@v3.3.2
-        with:
-          key: ${{ github.ref }}
-          path: .cache
-      - run: pip install -r docs/requirements.txt
-      - run: mkdocs gh-deploy --force
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Install poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: poetry install --with docs
+
+      - name: Deploy site
+        run: |
+          source .venv/bin/activate
+          mkdocs gh-deploy --force

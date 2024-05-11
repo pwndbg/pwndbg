@@ -8,6 +8,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 from __future__ import annotations
 
 from typing import Dict
+from typing import List
 
 import gdb
 
@@ -155,3 +156,18 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     curr_thread.switch()
 
     return stacks
+
+
+def callstack() -> List[int]:
+    """
+    Return the address of the return address for the current frame.
+    """
+    frame = gdb.newest_frame()
+    addresses = []
+    while frame:
+        addr = int(frame.pc())
+        if pwndbg.gdblib.memory.is_readable_address(addr):
+            addresses.append(addr)
+        frame = frame.older()
+
+    return addresses
