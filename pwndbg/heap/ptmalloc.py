@@ -43,6 +43,10 @@ from pwndbg.color import message
 from pwndbg.color.memory import c as M
 from pwndbg.constants import ptmalloc
 
+# The `pwndbg.heap.structs` module is only imported at runtime when
+# the heap heuristics are used in `HeuristicHeap.struct_module` and
+# uses runtime information to select the correct structs.
+# Only import it globally during static type checking.
 if typing.TYPE_CHECKING:
     import pwndbg.heap.structs
 
@@ -102,8 +106,8 @@ class Bin:
 
     @staticmethod
     def size_to_display_name(size: int | str) -> str:
-        if size == "all":
-            return size  # type: ignore[return-value]
+        if isinstance(size, str) and size == "all":
+            return size
 
         assert isinstance(size, int)
 

@@ -32,6 +32,7 @@ from pwndbg.heap.ptmalloc import Arena
 from pwndbg.heap.ptmalloc import Bins
 from pwndbg.heap.ptmalloc import BinType
 from pwndbg.heap.ptmalloc import Chunk
+from pwndbg.heap.ptmalloc import DebugSymsHeap
 from pwndbg.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.heap.ptmalloc import Heap
 
@@ -47,7 +48,7 @@ def read_chunk(addr: int) -> Dict[str, int]:
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
+    if isinstance(pwndbg.heap.current, DebugSymsHeap):
         val = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
