@@ -16,13 +16,13 @@ FIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-    -f | --fix)
-        FIX=1
-        shift
-        ;;
-    *)
-        help_and_exit
-        ;;
+        -f | --fix)
+            FIX=1
+            shift
+            ;;
+        *)
+            help_and_exit
+            ;;
     esac
 done
 
