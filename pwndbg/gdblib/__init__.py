@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import re
+from types import ModuleType
 
 import gdb
 
 from pwndbg.gdblib import arch as arch_mod
 from pwndbg.gdblib import config as config_mod
-from pwndbg.gdblib.arch import arch
-from pwndbg.gdblib.config import config
+from pwndbg.gdblib.arch import arch as arch
+from pwndbg.gdblib.config import config as config
 
 regs = None
 

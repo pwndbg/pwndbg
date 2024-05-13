@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import ctypes
 from typing import Any
+from typing import Dict
+from typing import List
+from typing import Tuple
+from typing import Type
 
 import gdb
 
@@ -12,7 +16,7 @@ import pwndbg.glibc
 from pwndbg.gdblib.ctypes import Structure
 
 
-def request2size(req):
+def request2size(req: int) -> int:
     if req + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE:
         return MINSIZE
     return (req + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK
@@ -29,7 +33,7 @@ GLIBC_VERSION = pwndbg.glibc.get_version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.gdblib.arch.ptrsize
 MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
-if pwndbg.gdblib.arch.current == "i386" and GLIBC_VERSION >= (2, 26):
+if pwndbg.gdblib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):
     # i386 will override it to 16 when GLIBC version >= 2.26
     # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
     MALLOC_ALIGN = 16
@@ -88,9 +92,13 @@ C2GDB_MAPPING = {
 
 # Use correct endian for the dictionary keys
 if pwndbg.gdblib.arch.endian == "little":
-    C2GDB_MAPPING = {k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()}
+    C2GDB_MAPPING: Dict[Type[ctypes.c_char], gdb.Type] = {  # type: ignore[no-redef]
+        k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()
+    }
 else:
-    C2GDB_MAPPING = {k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()}
+    C2GDB_MAPPING: Dict[Type[ctypes.c_char], gdb.Type] = {  # type: ignore[no-redef]
+        k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()
+    }
 
 
 class FakeGDBField:
@@ -100,14 +108,14 @@ class FakeGDBField:
 
     def __init__(
         self,
-        bitpos,
-        name: str,
+        bitpos: int,
+        name: str | None,
         type,
         parent_type,
-        enumval=None,
-        artificial=False,
-        is_base_class=False,
-        bitsize=0,
+        enumval: int | None = None,
+        artificial: bool = False,
+        is_base_class: bool = False,
+        bitsize: int = 0,
     ) -> None:
         # Note: pwndbg only uses `name` currently
         self.bitpos = bitpos
@@ -123,7 +131,7 @@ class FakeGDBField:
 
 class CStruct2GDB:
     code = gdb.TYPE_CODE_STRUCT
-    _c_struct: pwndbg.gdblib.ctypes.Structure = None
+    _c_struct: Type[ctypes.Structure]
 
     def __init__(self, address: int) -> None:
         self.address = address
@@ -146,7 +154,7 @@ class CStruct2GDB:
         """
         return self.read_field(key)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return self.address == int(other)
 
     def __str__(self) -> str:
@@ -185,11 +193,11 @@ class CStruct2GDB:
         return cls
 
     @classmethod
-    def fields(cls):
+    def fields(cls) -> List[FakeGDBField]:
         """
         Return fields of the struct to make it compatible with the `gdb.Type` interface.
         """
-        fake_gdb_fields = []
+        fake_gdb_fields: List[FakeGDBField] = []
         for f in cls._c_struct._fields_:
             field_name = f[0]
             field_type = f[1]
@@ -203,7 +211,7 @@ class CStruct2GDB:
         return fake_gdb_fields
 
     @classmethod
-    def keys(cls) -> list[str]:
+    def keys(cls) -> List[str]:
         """
         Return a list of the names of the fields in the struct to make it compatible with the `gdb.Type` interface.
         """
@@ -222,7 +230,7 @@ class CStruct2GDB:
         """
         return getattr(cls._c_struct, field).offset
 
-    def items(self) -> tuple[tuple[Any, Any], ...]:
+    def items(self) -> Tuple[Tuple[Any, Any], ...]:
         """
         Returns a tuple of (field name, field value) pairs.
         """
@@ -427,8 +435,6 @@ class MallocState(CStruct2GDB):
     This class represents malloc_state struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure
-
     if GLIBC_VERSION >= (2, 27):
         _c_struct = c_malloc_state_2_27
     elif GLIBC_VERSION >= (2, 23):
@@ -472,7 +478,7 @@ class HeapInfo(CStruct2GDB):
     This class represents heap_info struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure = c_heap_info
+    _c_struct = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
 
 
@@ -511,7 +517,7 @@ class MallocChunk(CStruct2GDB):
     This class represents malloc_chunk struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure = c_malloc_chunk
+    _c_struct = c_malloc_chunk
     sizeof = ctypes.sizeof(_c_struct)
 
 
@@ -558,7 +564,6 @@ class TcachePerthreadStruct(CStruct2GDB):
     This class represents tcache_perthread_struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
@@ -603,7 +608,6 @@ class TcacheEntry(CStruct2GDB):
     This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 29):
         _c_struct = c_tcache_entry_2_29
     else:
@@ -917,7 +921,6 @@ class MallocPar(CStruct2GDB):
     This class represents the malloc_par struct with interface compatible with `gdb.Value`.
     """
 
-    _c_struct: pwndbg.gdblib.ctypes.Structure
     if GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
     elif GLIBC_VERSION >= (2, 26):
@@ -948,7 +951,7 @@ class MallocPar(CStruct2GDB):
 #   .tcache_unsorted_limit = 0 /* No limit.  */
 # #endif
 # };
-DEFAULT_MP_ = MallocPar._c_struct()  # type: ignore[operator]
+DEFAULT_MP_ = MallocPar._c_struct()
 DEFAULT_MP_.top_pad = DEFAULT_TOP_PAD
 DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD

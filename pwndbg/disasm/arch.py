@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable
+from typing import Dict
 
 import gdb
 from capstone import *  # noqa: F403
@@ -120,7 +121,7 @@ class DisassemblyAssistant:
         if architecture is not None:
             self.assistants[architecture] = self
 
-        self.op_handlers: dict[
+        self.op_handlers: Dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
         ] = {
             CS_OP_IMM: self.parse_immediate,  # Return immediate value
@@ -131,7 +132,7 @@ class DisassemblyAssistant:
 
         # Return a string corresponding to operand. Used to reduce code duplication while printing
         # REG type wil return register name, "RAX"
-        self.op_names: dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
+        self.op_names: Dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
             CS_OP_IMM: self.immediate_string,
             CS_OP_REG: self.register_string,
             CS_OP_MEM: self.memory_string,
@@ -423,7 +424,7 @@ class DisassemblyAssistant:
         operand: EnhancedOperand,
         emu: Emulator,
         read_size: int = None,
-    ) -> list[int]:
+    ) -> List[int]:
         """
         Dereference an address recursively - takes into account emulation.
 
@@ -483,7 +484,7 @@ class DisassemblyAssistant:
         return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
+    def telescope_format_list(self, addresses: List[int], limit: int, emu: Emulator) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 

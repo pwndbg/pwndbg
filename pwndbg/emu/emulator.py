@@ -7,6 +7,8 @@ from __future__ import annotations
 import binascii
 import re
 import string
+from typing import Dict
+from typing import List
 from typing import NamedTuple
 from typing import Tuple
 
@@ -31,14 +33,14 @@ from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 
-def parse_consts(u_consts) -> dict[str, int]:
+def parse_consts(u_consts) -> Dict[str, int]:
     """
     Unicorn "consts" is a python module consisting of a variable definition
     for each known entity. We repack it here as a dict for performance.
 
     Maps "UC_*" -> integer value of the constant
     """
-    consts: dict[str, int] = {}
+    consts: Dict[str, int] = {}
     for name in dir(u_consts):
         if name.startswith("UC_"):
             consts[name] = getattr(u_consts, name)
@@ -47,14 +49,14 @@ def parse_consts(u_consts) -> dict[str, int]:
 
 # Generate Map<Register name, unicorn constant>
 def create_reg_to_const_map(
-    base_consts: dict[str, int], additional_mapping: dict[str, int] = None
-) -> dict[str, int]:
+    base_consts: Dict[str, int], additional_mapping: Dict[str, int] = None
+) -> Dict[str, int]:
     # base_consts is Map<"UC_*_REG_", constant>
     # additional mapping is the manually additions that add to the returned dict
 
     # Create a map of "register_name" -> Capstone ID, for faster lookup
     # Example of one field in the mapping for x86: { "RAX": 35 }
-    reg_to_const: dict[str, int] = {}
+    reg_to_const: Dict[str, int] = {}
 
     r = re.compile(r"^UC_.*_REG_(.*)$")
     for k, v in base_consts.items():
@@ -311,7 +313,7 @@ class Emulator:
     # Recursively dereference memory, return list of addresses
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
-    def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
+    def telescope(self, address: int, limit: int, read_size: int = None) -> List[int]:
         read_size = read_size if read_size is not None else pwndbg.gdblib.arch.ptrsize
 
         result = [address]
@@ -342,7 +344,7 @@ class Emulator:
         return self.format_telescope_list(address_list, limit)
 
     def format_telescope_list(
-        self, chain: list[int], limit: int, enhance_string_len: int = None
+        self, chain: List[int], limit: int, enhance_string_len: int = None
     ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
@@ -475,7 +477,7 @@ class Emulator:
         else:
             return E.integer(pwndbg.enhance.int_str(intval0))
 
-        retval_final: tuple[str] = tuple(filter(lambda x: x is not None, retval))
+        retval_final: Tuple[str] = tuple(filter(lambda x: x is not None, retval))
 
         if len(retval_final) == 0:
             return E.unknown("???")

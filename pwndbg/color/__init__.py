@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import re
 from typing import Callable
+from typing import Dict
+from typing import List
 from typing import NamedTuple
 
 from pwndbg.lib.config import Parameter
@@ -134,8 +136,10 @@ disable_colors = theme.add_param(
 )
 
 
-def generateColorFunctionInner(old: Callable[[str], str], new: Callable[[str], str]):
-    def wrapper(text: str) -> str:
+def generateColorFunctionInner(
+    old: Callable[[object], str], new: Callable[[str], str]
+) -> Callable[[object], str]:
+    def wrapper(text: object) -> str:
         return new(old(text))
 
     return wrapper
@@ -148,9 +152,9 @@ class ColorParamSpec(NamedTuple):
 
 
 class ColorConfig:
-    def __init__(self, namespace: str, params: list[ColorParamSpec]) -> None:
+    def __init__(self, namespace: str, params: List[ColorParamSpec]) -> None:
         self._namespace = namespace
-        self._params: dict[str, Parameter] = {}
+        self._params: Dict[str, Parameter] = {}
         for param in params:
             self._params[param.name] = theme.add_color_param(
                 f"{self._namespace}-{param.name}-color", param.default, param.doc
@@ -165,7 +169,7 @@ class ColorConfig:
 
 
 def generateColorFunction(
-    config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
+    config: str | Parameter, _globals: Dict[str, Callable[[str], str]] = globals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value

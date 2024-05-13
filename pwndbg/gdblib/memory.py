@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from typing import Dict
+from typing import Set
 from typing import Union
 
 import gdb
@@ -14,6 +15,7 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
@@ -322,8 +324,8 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
     """
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
-        for i in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
+        for _ in range(max_pages):
+            read(addr, 1)
             # import sys
             # sys.stdout.write(hex(addr) + '\n')
             addr += PAGE_SIZE
@@ -349,7 +351,7 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
     addr = pwndbg.lib.memory.page_align(int(addr))
     try:
         for _ in range(max_pages):
-            pwndbg.gdblib.memory.read(addr, 1)
+            read(addr, 1)
             addr -= PAGE_SIZE
 
             # Sanity check (see comment in find_upper_boundary)
@@ -370,8 +372,8 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int,
-    include_only_fields: set[str] = set(),
-    exclude_fields: set[str] = set(),
+    include_only_fields: Set[str] = set(),
+    exclude_fields: Set[str] = set(),
 ) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
@@ -381,8 +383,8 @@ def fetch_struct_as_dictionary(
 
 def pack_struct_into_dictionary(
     fetched_struct: gdb.Value,
-    include_only_fields: set[str] = set(),
-    exclude_fields: set[str] = set(),
+    include_only_fields: Set[str] = set(),
+    exclude_fields: Set[str] = set(),
 ) -> GdbDict:
     struct_as_dictionary = {}
 

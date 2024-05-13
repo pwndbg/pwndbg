@@ -14,8 +14,14 @@ import time
 import traceback
 import xmlrpc.client
 from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import TypeVar
 
 import gdb
+from typing_extensions import Concatenate
+from typing_extensions import ParamSpec
 
 import pwndbg.decorators
 import pwndbg.gdblib.arch
@@ -41,13 +47,16 @@ ida_timeout = pwndbg.gdblib.config.add_param(
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
 
-_ida = None
+_ida: xmlrpc.client.ServerProxy | None = None
 
 # to avoid printing the same exception multiple times, we store the last exception here
 _ida_last_exception = None
 
 # to avoid checking the connection multiple times with no delay, we store the last time we checked it
 _ida_last_connection_check = 0
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 @pwndbg.decorators.only_after_first_prompt()
@@ -122,40 +131,40 @@ def init_ida_rpc_client() -> None:
     _ida_last_connection_check = now
 
 
-class withIDA:
-    def __init__(self, fn) -> None:
-        self.fn = fn
-        functools.update_wrapper(self, fn)
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any | None:
+def withIDA(func: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
         if _ida is None:
             init_ida_rpc_client()
         if _ida is not None:
-            return self.fn(*args, **kwargs)
+            return func(*args, **kwargs)
         return None
-
-
-def withHexrays(f):
-    @withIDA
-    @functools.wraps(f)
-    def wrapper(*a, **kw):
-        if _ida.init_hexrays_plugin():
-            return f(*a, **kw)
 
     return wrapper
 
 
-def takes_address(function):
+def withHexrays(func: Callable[P, T]) -> Callable[P, T | None]:
+    @withIDA
+    @functools.wraps(func)
+    def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
+        if _ida is not None and _ida.init_hexrays_plugin():
+            return func(*a, **kw)
+        return None
+
+    return wrapper
+
+
+def takes_address(function: Callable[Concatenate[int, P], T]) -> Callable[Concatenate[int, P], T]:
     @functools.wraps(function)
-    def wrapper(address, *args, **kwargs):
+    def wrapper(address: int, *args: P.args, **kwargs: P.kwargs) -> T:
         return function(l2r(address), *args, **kwargs)
 
     return wrapper
 
 
-def returns_address(function):
+def returns_address(function: Callable[P, int]) -> Callable[P, int]:
     @functools.wraps(function)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> int:
         return r2l(function(*args, **kwargs))
 
     return wrapper
@@ -173,7 +182,7 @@ def can_connect() -> bool:
     return True
 
 
-def l2r(addr):
+def l2r(addr: int) -> int:
     exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
@@ -181,7 +190,7 @@ def l2r(addr):
     return result
 
 
-def r2l(addr):
+def r2l(addr: int) -> int:
     exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
@@ -206,21 +215,21 @@ def base():
 
 @withIDA
 @takes_address
-def Comment(addr):
+def Comment(addr: int):
     return _ida.get_cmt(addr, 0) or _ida.get_cmt(addr)
 
 
 @withIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
-def Name(addr):
+def Name(addr: int):
     return _ida.get_name(addr, 0x1)  # GN_VISIBLE
 
 
 @withIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
-def GetFuncOffset(addr):
+def GetFuncOffset(addr: int):
     rv = _ida.get_func_off_str(addr)
     return rv
 
@@ -228,20 +237,20 @@ def GetFuncOffset(addr):
 @withIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
-def GetType(addr):
+def GetType(addr: int):
     rv = _ida.get_type(addr)
     return rv
 
 
 @withIDA
 @returns_address
-def here():
-    return _ida.here()
+def here() -> int:
+    return _ida.here()  # type: ignore[return-value]
 
 
 @withIDA
 @takes_address
-def Jump(addr):
+def Jump(addr: int):
     # uses C++ api instead of idc one to avoid activating the IDA window
     return _ida.jumpto(addr, -1, 0)
 
@@ -249,7 +258,7 @@ def Jump(addr):
 @withIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
-def Anterior(addr):
+def Anterior(addr: int):
     hexrays_prefix = b"\x01\x04; "
     lines = []
     for i in range(10):
@@ -275,11 +284,11 @@ def GetBptQty():
 
 @withIDA
 @returns_address
-def GetBptEA(i):
-    return _ida.get_bpt_ea(i)
+def GetBptEA(i: int) -> int:
+    return _ida.get_bpt_ea(i)  # type: ignore[return-value]
 
 
-_breakpoints: list[gdb.Breakpoint] = []
+_breakpoints: List[gdb.Breakpoint] = []
 
 
 @pwndbg.gdblib.events.cont
@@ -334,8 +343,8 @@ def Auto_UnColor_PC() -> None:
 @withIDA
 @returns_address
 @pwndbg.lib.cache.cache_until("objfile")
-def LocByName(name):
-    return _ida.get_name_ea_simple(str(name))
+def LocByName(name) -> int:
+    return _ida.get_name_ea_simple(str(name))  # type: ignore[return-value]
 
 
 @withIDA
@@ -413,8 +422,8 @@ def decompile_context(pc, context_lines):
 
 @withIDA
 @pwndbg.lib.cache.cache_until("forever")
-def get_ida_versions():
-    return _ida.versions()
+def get_ida_versions() -> Dict[str, str]:
+    return _ida.versions()  # type: ignore[return-value]
 
 
 @withIDA
@@ -482,7 +491,7 @@ class IDC:
 
     def __init__(self) -> None:
         if available():
-            data: dict[Any, Any] = _ida.eval(self.query)
+            data: Dict[Any, Any] = _ida.eval(self.query)
             self.__dict__.update(data)
 
 

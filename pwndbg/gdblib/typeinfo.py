@@ -6,10 +6,11 @@ via GCC.
 from __future__ import annotations
 
 import sys
+from typing import Dict
+from typing import Optional
 
 import gdb
 
-import pwndbg.lib.cache
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
 
@@ -27,13 +28,13 @@ uint8: gdb.Type
 uint16: gdb.Type
 uint32: gdb.Type
 uint64: gdb.Type
-unsigned: dict[int, gdb.Type]
+unsigned: Dict[int, gdb.Type]
 
 int8: gdb.Type
 int16: gdb.Type
 int32: gdb.Type
 int64: gdb.Type
-signed: dict[int, gdb.Type]
+signed: Dict[int, gdb.Type]
 
 pvoid: gdb.Type
 ppvoid: gdb.Type
@@ -130,9 +131,11 @@ def load(name: str) -> Optional[gdb.Type]:
         return None
 
 
-def read_gdbvalue(type_name: str, addr) -> gdb.Value:
+def read_gdbvalue(type_name: str, addr: int) -> gdb.Value:
     """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
+    gdb_type = load(type_name)
+    if gdb_type is None:
+        raise ValueError(f"Type {type_name} not found")
     return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
 

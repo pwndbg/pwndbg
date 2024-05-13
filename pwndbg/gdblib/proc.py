@@ -9,19 +9,22 @@ from __future__ import annotations
 import functools
 import sys
 from types import ModuleType
-from typing import Any
 from typing import Callable
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TypeVar
 
 import gdb
 from elftools.elf.relocation import Relocation
+from typing_extensions import ParamSpec
 
+import pwndbg.gdblib.info
 import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 
+P = ParamSpec("P")
 T = TypeVar("T")
 
 pid: int
@@ -32,13 +35,17 @@ thread_is_stopped: bool
 stopped_with_signal: bool
 exe: str | None
 binary_base_addr: int
-binary_vmmap: tuple[pwndbg.lib.memory.Page, ...]
-# dump_elf_data_section: tuple[int, int, bytes] | None
-# dump_relocations_by_section_name: tuple[Relocation, ...] | None
+binary_vmmap: Tuple[pwndbg.lib.memory.Page, ...]
+# dump_elf_data_section: Tuple[int, int, bytes] | None
+# dump_relocations_by_section_name: Tuple[Relocation, ...] | None
 # get_section_address_by_name: Callable[[str], int]
-OnlyWhenRunning: Callable[[Callable[..., T]], Callable[..., T]]
-OnlyWhenQemuKernel: Callable[[Callable[..., T]], Callable[..., T]]
-OnlyWithArch: Callable[[List[str]], Callable[[Callable[..., T]], Callable[..., Optional[T]]]]
+
+
+def OnlyWhenRunning(func: Callable[P, T]) -> Callable[P, T | None]: ...
+def OnlyWhenQemuKernel(func: Callable[P, T]) -> Callable[P, T]: ...
+def OnlyWithArch(
+    arch_names: List[str],
+) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]: ...
 
 
 class module(ModuleType):
@@ -122,21 +129,27 @@ class module(ModuleType):
 
     @property
     @pwndbg.lib.cache.cache_until("start", "stop")
-    def binary_vmmap(self) -> tuple[pwndbg.lib.memory.Page, ...]:
+    def binary_vmmap(self) -> Tuple[pwndbg.lib.memory.Page, ...]:
+        import pwndbg.gdblib.vmmap
+
         return tuple(p for p in pwndbg.gdblib.vmmap.get() if p.objfile == self.exe)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_elf_data_section(self) -> tuple[int, int, bytes] | None:
+    def dump_elf_data_section(self) -> Tuple[int, int, bytes] | None:
         """
         Dump .data section of current process's ELF file
         """
+        import pwndbg.gdblib.elf
+
         return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
-    def dump_relocations_by_section_name(self, section_name: str) -> tuple[Relocation, ...] | None:
+    def dump_relocations_by_section_name(self, section_name: str) -> Tuple[Relocation, ...] | None:
         """
         Dump relocations of a section by section name of current process's ELF file
         """
+        import pwndbg.gdblib.elf
+
         return pwndbg.gdblib.elf.dump_relocations_by_section_name(
             self.exe, section_name, try_local_path=True
         )
@@ -152,18 +165,18 @@ class module(ModuleType):
                 return int(line.split()[0], 16)
         return 0
 
-    def OnlyWhenRunning(self, func: Callable[..., T]) -> Callable[..., T]:
+    def OnlyWhenRunning(self, func: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any) -> T:
+        def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
             if self.alive:
                 return func(*a, **kw)
             return None
 
         return wrapper
 
-    def OnlyWhenQemuKernel(self, func: Callable[..., T]) -> Callable[..., T]:
+    def OnlyWhenQemuKernel(self, func: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any) -> T:
+        def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
             if pwndbg.gdblib.qemu.is_qemu_kernel():
                 return func(*a, **kw)
             return None
@@ -172,7 +185,7 @@ class module(ModuleType):
 
     def OnlyWithArch(
         self, arch_names: List[str]
-    ) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+    ) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
         """Decorates function to work only with the specified archictectures."""
         for arch in arch_names:
             if arch not in pwndbg.gdblib.arch_mod.ARCHS:
@@ -180,9 +193,9 @@ class module(ModuleType):
                     f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
                 )
 
-        def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+        def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             @functools.wraps(function)
-            def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
+            def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
                 if pwndbg.gdblib.arch.name in arch_names:
                     return function(*a, **kw)
                 else:

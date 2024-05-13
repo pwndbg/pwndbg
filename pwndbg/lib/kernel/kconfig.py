@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import zlib
 from collections import UserDict
+from typing import Any
+from typing import Dict
 
 
-def parse_config(config_text: bytes) -> dict[str, str]:
-    res = {}
+def parse_config(config_text: bytes) -> Dict[str, str]:
+    res: Dict[str, str] = {}
 
     for line in config_text.split(b"\n"):
         if b"=" in line:
@@ -15,7 +17,7 @@ def parse_config(config_text: bytes) -> dict[str, str]:
     return res
 
 
-def parse_compresed_config(compressed_config: bytes) -> dict[str, str]:
+def parse_compresed_config(compressed_config: bytes) -> Dict[str, str]:
     config_text = zlib.decompress(compressed_config, 16)
     return parse_config(config_text)
 
@@ -25,8 +27,8 @@ def config_to_key(name: str) -> str:
 
 
 class Kconfig(UserDict):  # type: ignore[type-arg]
-    def __init__(self, compressed_config: bytes) -> None:
-        super().__init__()
+    def __init__(self, compressed_config: bytes, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.data = parse_compresed_config(compressed_config)
 
     def get_key(self, name: str) -> str | None:
@@ -50,7 +52,9 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
         raise KeyError(f"Key {name} not found")
 
-    def __contains__(self, name: str) -> bool:  # type: ignore[override]
+    def __contains__(self, name: object) -> bool:
+        if not isinstance(name, str):
+            return False
         return self.get_key(name) is not None
 
     def __getattr__(self, name: str):

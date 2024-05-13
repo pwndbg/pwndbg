@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 from typing import Callable
+from typing import Dict
+from typing import List
 
 from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
@@ -31,7 +33,7 @@ def to_signed(unsigned: int):
         return unsigned - ((unsigned & 0x80000000) << 1)
 
 
-CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
+CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
@@ -55,7 +57,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
-        resolved_operands: list[int] = []
+        resolved_operands: List[int] = []
         for op in instruction.operands:
             resolved_operands.append(
                 super().resolve_used_value(op.before_value, instruction, op, emu)

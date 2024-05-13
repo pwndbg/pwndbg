@@ -78,7 +78,7 @@ else
 fi
 
 # Checking minimum python version
-vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
+vermin -vvv --no-tips -t=3.8- --eval-annotations --violations ./pwndbg/
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then

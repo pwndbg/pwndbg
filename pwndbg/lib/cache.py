@@ -11,11 +11,15 @@ from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
+from typing_extensions import ParamSpec
+
 T = TypeVar("T")
+P = ParamSpec("P")
 
 # Set to enable print logging of cache hits/misses/clears
 NO_DEBUG, DEBUG_GET, DEBUG_CLEAR, DEBUG_SET = 0, 1, 2, 4
@@ -26,7 +30,7 @@ debug_name = "regs"
 
 
 class DebugCacheDict(UserDict):  # type: ignore[type-arg]
-    def __init__(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, func: Callable[P, T], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.hits = 0
         self.misses = 0
@@ -57,12 +61,12 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.misses = 0
 
 
-Cache = Union[Dict[Tuple[Any], Any], DebugCacheDict]
+Cache = Union[Dict[Tuple[Any, ...], Any], DebugCacheDict]
 
 
 class _CacheUntilEvent:
     def __init__(self) -> None:
-        self.caches: list[Cache] = []
+        self.caches: List[Cache] = []
 
     def connect_event_hooks(self, event_hooks: Tuple[Any, ...]) -> None:
         """
@@ -110,14 +114,14 @@ _KWARGS_SEPARATOR = object()
 IS_CACHING = True
 
 
-def cache_until(*event_names: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
+def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
             f"Expected: {_ALL_CACHE_EVENT_NAMES}"
         )
 
-    def inner(func: Callable[..., T]) -> Callable[..., T]:
+    def inner(func: Callable[P, T]) -> Callable[P, T]:
         if hasattr(func, "cache"):
             raise ValueError(
                 f"Cannot cache the {func.__name__} function twice! "
@@ -127,16 +131,16 @@ def cache_until(*event_names: str) -> Callable[[Callable[..., T]], Callable[...,
         cache: Cache = {} if not debug else DebugCacheDict(func)
 
         @wraps(func)
-        def decorator(*a: Any, **kw: Any) -> T:
+        def decorator(*a: P.args, **kw: P.kwargs) -> T:
             if IS_CACHING:
-                key: Tuple[Any] = (a, _KWARGS_SEPARATOR, *kw.items())
+                key: Tuple[Any, ...] = (a, _KWARGS_SEPARATOR, *kw.items())
 
                 # Check if the value is in the cache; if we have a cache miss,
                 # we return a special singleton object `_NOT_FOUND_IN_CACHE`. This way
                 # we can also cache a result of 'None' from a function
-                value = cache.get(key, _NOT_FOUND_IN_CACHE)
-                if value is not _NOT_FOUND_IN_CACHE:
-                    return value
+                cached_value: Any = cache.get(key, _NOT_FOUND_IN_CACHE)
+                if cached_value is not _NOT_FOUND_IN_CACHE:
+                    return cached_value
 
                 value = func(*a, **kw)
 
