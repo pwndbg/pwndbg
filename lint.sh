@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o errexit
 
@@ -16,13 +16,13 @@ FIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f | --format)
-            FIX=1
-            shift
-            ;;
-        *)
-            help_and_exit
-            ;;
+    -f | --fix)
+        FIX=1
+        shift
+        ;;
+    *)
+        help_and_exit
+        ;;
     esac
 done
 
@@ -31,14 +31,16 @@ if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 
-source "${PWNDBG_VENV_PATH}/bin/activate"
+if [[ "${PWNDBG_VENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then
+    source "${PWNDBG_VENV_PATH}/bin/activate"
+fi
 
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py"
 LINT_TOOLS="isort ruff vermin mypy"
 
-if ! type ${LINT_TOOLS} &> /dev/null; then
+if ! type ${LINT_TOOLS} &>/dev/null; then
     PIP_CMD="poetry install --with dev"
     echo "Missing one of the following tools: ${LINT_TOOLS}"
     echo "Running '${PIP_CMD}'"
