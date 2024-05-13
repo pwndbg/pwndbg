@@ -1,12 +1,13 @@
 - [Development Basics](#development-basics)
-  * [Environment setup](#environment-setup)
-  * [Testing](#testing)
-  * [Linting](#linting)
-  * [Minimum Supported Versions](#minimum-supported-versions)
+  - [Environment setup](#environment-setup)
+  - [Testing](#testing)
+  - [Linting](#linting)
+  - [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
 - [Adding a Configuration Option](#adding-a-configuration-option)
-  * [Configuration Docstrings](#configuration-docstrings)
-  * [Triggers](#triggers)
+  - [Configuration Docstrings](#configuration-docstrings)
+  - [Triggers](#triggers)
+- [Porting public tools](#porting-public-tools)
 - [Random developer notes](#random-developer-notes)
 
 # Development Basics
@@ -123,7 +124,14 @@ TODO: There are many places GDB shows docstrings, and they show up slightly diff
 
 ## Triggers
 
-TODO: If we want to do something when user changes config/theme - we can do it defining a function and decorating it with `pwndbg.config.Trigger`.
+TODO: If we want to do something when user changes config/theme - we can do it defining a function and decorating it
+with `pwndbg.config.Trigger`.
+
+# Porting public tools
+
+If porting a public tool to pwndbg, please make a point of crediting the original author in the pwndbg source code. This
+can be added to [CREDITS.md](./CREDITS.md) noting the original author/inspiration, and linking to the original tool/article. Also
+please be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
 
 # Random developer notes
 
@@ -133,7 +141,7 @@ Feel free to update the list below!
 
 * If there is possibility, don't use `gdb.execute` as this requires us to parse the string and so on; there are some cases in which there is no other choice. Most of the time we try to wrap GDB's API to our own/easier API.
 
-* We have our own `pwndbg.config.Parameter` (which extends `gdb.Parameter`) - all of our parameters can be seen using `config` or `theme` commands. 
+* We have our own `pwndbg.config.Parameter` (which extends `gdb.Parameter`) - all of our parameters can be seen using `config` or `theme` commands.
 
 * The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's prompt hook (which we defined in `pwndbg/prompt.py` as `prompt_hook_on_stop`).
 
