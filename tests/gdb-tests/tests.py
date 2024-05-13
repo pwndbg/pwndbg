@@ -5,6 +5,7 @@ import concurrent.futures
 import os
 import re
 import subprocess
+import sys
 import time
 from subprocess import CompletedProcess
 from typing import Tuple
@@ -159,6 +160,11 @@ def parse_args():
         "-s", "--serial", action="store_true", help="run tests one at a time instead of in parallel"
     )
     parser.add_argument(
+        "--nix",
+        action="store_true",
+        help="run tests using gdbinit.py built for nix environment",
+    )
+    parser.add_argument(
         "--collect-only",
         action="store_true",
         help="only show the output of test collection, don't run any tests",
@@ -176,6 +182,14 @@ if __name__ == "__main__":
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
+    if args.nix:
+        gdbinit_path = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
+        if not os.path.exists(gdbinit_path):
+            print("ERROR: No nix-compatible gdbinit.py found. Run nix build .#pwndbg-dev")
+            sys.exit(1)
+        GDB_INIT_PATH = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
+        # This tells tests/utils.py where to find the gdbinit.py file when used by various tests
+        os.environ["GDB_INIT_PATH"] = GDB_INIT_PATH
     ensureZigPath()
     makeBinaries()
     tests: list[str] = getTestsList(args.collect_only, args.test_name_filter)

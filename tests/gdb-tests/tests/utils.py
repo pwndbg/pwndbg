@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import codecs
+import os
 import re
 import subprocess
 
+if os.environ.get("GDB_INIT_PATH"):
+    GDB_INIT_PATH = os.environ["GDB_INIT_PATH"]
+else:
+    GDB_INIT_PATH = "../../gdbinit.py"
+
 
 def run_gdb_with_script(
-    binary="", core="", stdin_input=None, pybefore=None, pyafter=None, timeout=None
+    binary="",
+    core="",
+    stdin_input=None,
+    pybefore=None,
+    pyafter=None,
+    timeout=None,
 ):
     """
     Runs GDB with given commands launched before and after loading of gdbinit.py
@@ -20,7 +31,7 @@ def run_gdb_with_script(
     for cmd in pybefore:
         command += ["--eval-command", cmd]
 
-    command += ["--command", "../../gdbinit.py"]
+    command += ["--command", GDB_INIT_PATH]
 
     if binary:
         command += [binary]
