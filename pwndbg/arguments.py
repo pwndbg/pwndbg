@@ -71,7 +71,7 @@ def get_syscall_name(instruction: PwndbgInstruction) -> str | None:
     if syscall_register in ("eax", "rax"):
         mnemonic = instruction.mnemonic
 
-        is_32bit = mnemonic == "int" and instruction.op_str == "0x80"
+        is_32bit = mnemonic == "int" and instruction.operands[0].before_value == 0x80
         if not (mnemonic == "syscall" or is_32bit):
             return None
 
