@@ -18,6 +18,7 @@ import gdb
 import pwndbg
 import pwndbg.color.message as M
 import pwndbg.commands
+import pwndbg.lib.strings
 from pwndbg.commands import CommandCategory
 from pwndbg.commands import context
 from pwndbg.gdblib import config
@@ -250,7 +251,7 @@ def build_context_prompt_body():
 {source}
 ```
 """
-    return strip_colors(prompt)
+    return pwndbg.lib.strings.strip_colors(prompt)
 
 
 def build_command_prompt_body(command):
@@ -260,12 +261,7 @@ def build_command_prompt_body(command):
     output = gdb.execute(command, to_string=True)
     print(output)
     prompt += f"""\n```\n{output}\n```\n\n"""
-    return strip_colors(prompt)
-
-
-def strip_colors(text):
-    ## Now remove all ANSI color codes from the prompt
-    return re.sub(r"\x1b[^m]*m", "", text)
+    return pwndbg.lib.strings.strip_colors(prompt)
 
 
 def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):
