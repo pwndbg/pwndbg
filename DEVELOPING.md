@@ -129,9 +129,9 @@ with `pwndbg.config.Trigger`.
 
 # Porting public tools
 
-If porting a public tool to pwndbg, please make a point of crediting the original author in the pwndbg source code. This
-can be added to [CREDITS.md](./CREDITS.md) noting the original author/inspiration, and linking to the original tool/article. Also
-please be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
+If porting a public tool to pwndbg, please make a point of crediting the original author. This can be added to
+[CREDITS.md](./CREDITS.md) noting the original author/inspiration, and linking to the original tool/article. Also please
+be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
 
 # Random developer notes
 
