@@ -93,7 +93,7 @@ def readtype(gdb_type: gdb.Type, addr: int) -> int:
     Returns:
         :class:`int`
     """
-    return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
+    return int(get_typed_pointer_value(gdb_type, addr))
 
 
 def write(addr: int, data: str | bytes | bytearray) -> None:
@@ -305,13 +305,29 @@ def s64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.int64, addr)
 
 
-# TODO: `readtype` is just `int(poi(type, addr))`
-def poi(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
-    """poi(addr) -> gdb.Value
+def cast_pointer(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
+    """Create a gdb.Value at given address and cast it to the pointer of specified type"""
+    if isinstance(addr, int):
+        addr = gdb.Value(addr)
+    return addr.cast(type.pointer())
 
-    Read one ``gdb.Type`` object at the specified address.
-    """
-    return gdb.Value(addr).cast(type.pointer()).dereference()
+
+def get_typed_pointer(type: str | gdb.Type, addr: int | gdb.Value) -> gdb.Value:
+    """Look up a type by name if necessary and return a gdb.Value of addr cast to that type"""
+    if isinstance(type, str):
+        gdb_type = pwndbg.gdblib.typeinfo.load(type)
+        if gdb_type is None:
+            raise ValueError(f"Type '{type}' not found")
+    elif isinstance(type, gdb.Type):
+        gdb_type = type
+    else:
+        raise ValueError(f"Invalid type: {type}")
+    return cast_pointer(gdb_type, addr)
+
+
+def get_typed_pointer_value(type_name: str | gdb.Type, addr: int | gdb.Value) -> gdb.Value:
+    """Read the pointer value of addr cast to type specified by type_name"""
+    return get_typed_pointer(type_name, addr).dereference()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -376,7 +392,7 @@ def fetch_struct_as_dictionary(
     exclude_fields: Set[str] = set(),
 ) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
-    fetched_struct = poi(struct_type, struct_address)
+    fetched_struct = get_typed_pointer_value(struct_type, struct_address)
 
     return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
 

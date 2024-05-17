@@ -370,7 +370,9 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         address = (pwndbg.gdblib.regs.sp) + (pwndbg.gdblib.arch.ptrsize * pop)
 
         if pwndbg.gdblib.memory.peek(address):
-            return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+            return int(
+                pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
+            )
 
     # Override
     def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:

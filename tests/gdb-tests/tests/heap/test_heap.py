@@ -142,7 +142,7 @@ def test_malloc_chunk_command(start_binary):
     results = {}
     chunk_types = ["allocated", "tcache", "fast", "small", "large", "unsorted"]
     for name in chunk_types:
-        chunks[name] = pwndbg.gdblib.memory.poi(
+        chunks[name] = pwndbg.gdblib.memory.get_typed_pointer_value(
             pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol(f"{name}_chunk")[0].value()
         )
         results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
@@ -164,7 +164,7 @@ def test_malloc_chunk_command(start_binary):
 
     # Test some non-main-arena chunks
     for name in chunk_types:
-        chunks[name] = pwndbg.gdblib.memory.poi(
+        chunks[name] = pwndbg.gdblib.memory.get_typed_pointer_value(
             pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol(f"{name}_chunk")[0].value()
         )
         results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
@@ -241,7 +241,7 @@ def test_malloc_chunk_dump_command(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    chunk = pwndbg.gdblib.memory.poi(
+    chunk = pwndbg.gdblib.memory.get_typed_pointer_value(
         pwndbg.heap.current.malloc_chunk, gdb.lookup_symbol("test_chunk")[0].value()
     )
     chunk_addr = chunk.address
