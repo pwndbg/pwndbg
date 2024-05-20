@@ -20,10 +20,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> InstructionCondition:
         # B-type instructions have two source registers that are compared
-        src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
+        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
-            src2_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 2), emu)
+            src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
         else:
             src2_unsigned = 0
 
@@ -96,7 +96,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
             target = (
-                self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
+                instruction.op_find(CS_OP_REG, 1).before_value
                 + instruction.op_find(CS_OP_IMM, 1).imm
             ) & ptrmask
             # Clear the lowest bit without knowing the register width
