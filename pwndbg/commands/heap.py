@@ -1506,7 +1506,7 @@ def arenas_info() -> None:
     # todo: move this in same loop in future
     # get arena details
     for arena in arenas:
-        print("Arena Address: ", arena)
+        print("Arena Address: ", hex(arena))
         # get arena details
         arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
         arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
