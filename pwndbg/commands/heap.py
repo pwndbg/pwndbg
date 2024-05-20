@@ -1479,3 +1479,51 @@ def heap_config(filter_pattern) -> None:
             "Some config values (e.g. main_arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )
+
+
+# Jemalloc
+
+# Basic commands for initial testing and learning
+
+parser = argparse.ArgumentParser(description="Print arenas information")
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
+def arenas_info() -> None:
+    # get value of symbol "narenas" as int
+    narenas = pwndbg.gdblib.symbol.address("narenas")
+    narenas = pwndbg.gdblib.memory.pvoid(narenas)
+
+    print("Number of arenas: ", narenas)
+
+    arena_address = gdb.parse_and_eval('*je_arenas@{}'.format(narenas))
+
+    arenas = []
+    for i in range(narenas):
+        arena = arena_address[i]['repr']
+        arenas.append(int(arena))
+
+    # todo: move this in same loop in future
+    # get arena details
+    for arena in arenas:
+        print("Arena Address: ", arena)
+        # get arena details
+        arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
+        arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
+
+        # bin details (assuming 4KiB page size)
+        # https://jemalloc.net/jemalloc.3.html#size_classes
+
+        nbins = 36
+        # bin_s = pwndbg.gdblib.typeinfo.load("struct bin_info_s")
+        bin_s = pwndbg.gdblib.typeinfo.load("struct bin_s")
+        bin_s_size = bin_s.sizeof
+
+        print("Index\tAddress\tSlabcur")
+        addr = int(arena_info['bins'].address)
+        
+        for i in range(nbins):
+            bin_addr = int(addr) + i*bin_s_size
+            # get bin details
+            bin_info = pwndbg.gdblib.memory.poi(bin_s, bin_addr)
+            slabcur = bin_info['slabcur']
+            print(i, hex(bin_addr), slabcur)
