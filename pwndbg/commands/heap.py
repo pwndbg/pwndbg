@@ -1487,6 +1487,7 @@ def heap_config(filter_pattern) -> None:
 
 parser = argparse.ArgumentParser(description="Print arenas information")
 
+
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 def arenas_info() -> None:
     # get value of symbol "narenas" as int
@@ -1495,11 +1496,11 @@ def arenas_info() -> None:
 
     print("Number of arenas: ", narenas)
 
-    arena_address = gdb.parse_and_eval('*je_arenas@{}'.format(narenas))
+    arena_address = gdb.parse_and_eval("*je_arenas@{}".format(narenas))
 
     arenas = []
     for i in range(narenas):
-        arena = arena_address[i]['repr']
+        arena = arena_address[i]["repr"]
         arenas.append(int(arena))
 
     # todo: move this in same loop in future
@@ -1519,11 +1520,11 @@ def arenas_info() -> None:
         bin_s_size = bin_s.sizeof
 
         print("Index\tAddress\tSlabcur")
-        addr = int(arena_info['bins'].address)
-        
+        addr = int(arena_info["bins"].address)
+
         for i in range(nbins):
-            bin_addr = int(addr) + i*bin_s_size
+            bin_addr = int(addr) + i * bin_s_size
             # get bin details
             bin_info = pwndbg.gdblib.memory.poi(bin_s, bin_addr)
-            slabcur = bin_info['slabcur']
+            slabcur = bin_info["slabcur"]
             print(i, hex(bin_addr), slabcur)
