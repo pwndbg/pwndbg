@@ -95,10 +95,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
-            target = (
-                instruction.op_find(CS_OP_REG, 1).before_value
-                + instruction.op_find(CS_OP_IMM, 1).imm
-            ) & ptrmask
+            target = instruction.op_find(CS_OP_REG, 1).before_value
+            if instruction.id == RISCV_INS_JALR:
+                target += instruction.op_find(CS_OP_IMM, 1).imm
+            target &= ptrmask
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 

@@ -15,6 +15,7 @@ from capstone import CS_GRP_INT
 import pwndbg.chain
 import pwndbg.constants
 import pwndbg.disasm
+import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
@@ -71,7 +72,7 @@ def get_syscall_name(instruction: PwndbgInstruction) -> str | None:
     if syscall_register in ("eax", "rax"):
         mnemonic = instruction.mnemonic
 
-        is_32bit = mnemonic == "int" and instruction.op_str == "0x80"
+        is_32bit = mnemonic == "int" and instruction.operands[0].before_value == 0x80
         if not (mnemonic == "syscall" or is_32bit):
             return None
 
@@ -87,7 +88,7 @@ def get_syscall_name(instruction: PwndbgInstruction) -> str | None:
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
-    if $pc is a 'call' or 'bl' type instruction.
+    if $pc is a 'call', 'bl', or 'jalr' type instruction.
 
     Otherwise, returns None.
     """
@@ -105,18 +106,11 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         except KeyError:
             return []
 
-        # Not sure of any OS which allows multiple operands on
-        # a call instruction.
-        assert len(instruction.operands) == 1
-
-        target = instruction.operands[0].before_value
+        assistant = pwndbg.disasm.arch.DisassemblyAssistant.for_current_arch()
+        target = assistant.resolve_target(instruction, None, call=True)
 
         if not target:
             return []
-
-        if pwndbg.gdblib.arch.name in ["rv32", "rv64"]:
-            target += instruction.address
-            target &= pwndbg.gdblib.arch.ptrmask
 
         name = pwndbg.gdblib.symbol.get(target)
         if not name:
