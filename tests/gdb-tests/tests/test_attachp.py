@@ -29,7 +29,8 @@ REASON_CANNOT_ATTACH = (
 @pytest.fixture
 def launched_bash_binary():
     path = tempfile.mktemp()
-    subprocess.check_output(["cp", "/bin/bash", path])
+    bash_path = subprocess.check_output(["which", "bash"]).decode().strip()
+    subprocess.check_output(["cp", bash_path, path])
 
     process = subprocess.Popen([path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 
