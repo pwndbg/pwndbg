@@ -187,9 +187,8 @@ if __name__ == "__main__":
         if not os.path.exists(gdbinit_path):
             print("ERROR: No nix-compatible gdbinit.py found. Run nix build .#pwndbg-dev")
             sys.exit(1)
-        GDB_INIT_PATH = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
         # This tells tests/utils.py where to find the gdbinit.py file when used by various tests
-        os.environ["GDB_INIT_PATH"] = GDB_INIT_PATH
+        os.environ["GDB_INIT_PATH"] = gdbinit_path
     ensureZigPath()
     makeBinaries()
     tests: list[str] = getTestsList(args.collect_only, args.test_name_filter)

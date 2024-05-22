@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 
-GDB_INIT_PATH = os.environ.get("GDB_INIT_PATH", "../../gdbinit.py")
+gdb_init_path = os.environ.get("GDB_INIT_PATH", "../../gdbinit.py")
 
 
 def run_gdb_with_script(
@@ -28,7 +28,7 @@ def run_gdb_with_script(
     for cmd in pybefore:
         command += ["--eval-command", cmd]
 
-    command += ["--command", GDB_INIT_PATH]
+    command += ["--command", gdb_init_path]
 
     if binary:
         command += [binary]
