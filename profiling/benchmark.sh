@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Benchmark context command
 make test > /dev/null
 git log --abbrev-commit --pretty=oneline HEAD^..HEAD
