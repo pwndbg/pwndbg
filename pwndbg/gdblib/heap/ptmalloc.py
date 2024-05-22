@@ -41,7 +41,15 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.color.memory import c as M
-from pwndbg.constants import ptmalloc
+
+PREV_INUSE = 1
+IS_MMAPPED = 2
+NON_MAIN_ARENA = 4
+SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA
+NONCONTIGUOUS_BIT = 2
+
+NBINS = 128
+NSMALLBINS = 64
 
 # The `pwndbg.gdblib.heap.structs` module is only imported at runtime when
 # the heap heuristics are used in `HeuristicHeap.struct_module` and
@@ -307,7 +315,7 @@ class Chunk:
         if self._real_size is None:
             try:
                 self._real_size = int(
-                    self._gdbValue[self.__match_renamed_field("size")] & ~(ptmalloc.SIZE_BITS)
+                    self._gdbValue[self.__match_renamed_field("size")] & ~(SIZE_BITS)
                 )
             except gdb.MemoryError:
                 pass
@@ -336,7 +344,7 @@ class Chunk:
         if self._non_main_arena is None:
             sz = self.size
             if sz is not None:
-                self._non_main_arena = bool(sz & ptmalloc.NON_MAIN_ARENA)
+                self._non_main_arena = bool(sz & NON_MAIN_ARENA)
 
         return self._non_main_arena
 
@@ -345,7 +353,7 @@ class Chunk:
         if self._is_mmapped is None:
             sz = self.size
             if sz is not None:
-                self._is_mmapped = bool(sz & ptmalloc.IS_MMAPPED)
+                self._is_mmapped = bool(sz & IS_MMAPPED)
 
         return self._is_mmapped
 
@@ -354,7 +362,7 @@ class Chunk:
         if self._prev_inuse is None:
             sz = self.size
             if sz is not None:
-                self._prev_inuse = bool(sz & ptmalloc.PREV_INUSE)
+                self._prev_inuse = bool(sz & PREV_INUSE)
 
         return self._prev_inuse
 
@@ -638,7 +646,7 @@ class Arena:
         if self._non_contiguous is None:
             flags = self.flags
             if flags is not None:
-                self._non_contiguous = bool(flags & ptmalloc.NONCONTIGUOUS_BIT)
+                self._non_contiguous = bool(flags & NONCONTIGUOUS_BIT)
 
         return self._non_contiguous
 
@@ -1147,9 +1155,9 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
 
     def chunk_flags(self, size: int) -> Tuple[int, int, int]:
         return (
-            size & ptmalloc.PREV_INUSE,
-            size & ptmalloc.IS_MMAPPED,
-            size & ptmalloc.NON_MAIN_ARENA,
+            size & PREV_INUSE,
+            size & IS_MMAPPED,
+            size & NON_MAIN_ARENA,
         )
 
     def chunk_key_offset(self, key: str) -> int | None:

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Tuple
 
 import gdb
 from capstone import *  # noqa: F403
+from pwnlib.constants import linux
 
 import pwndbg.chain
 import pwndbg.color.context as C
@@ -521,6 +523,39 @@ class DisassemblyAssistant:
                 enhance_string_len=enhance_string_len,
             )
 
+    @staticmethod
+    def _syscall_name(number: int, arch: str) -> str | None:
+        """
+        Given a syscall number and architecture, returns the name of the syscall.
+        E.g. execve == 59 on x86-64
+        """
+        arch_module = {
+            "arm": linux.arm,
+            "armcm": linux.arm,
+            "i386": linux.i386,
+            "mips": linux.mips,
+            "x86-64": linux.amd64,
+            "aarch64": linux.aarch64,
+            "rv32": linux.riscv64,
+            "rv64": linux.riscv64,
+        }.get(arch)
+
+        if arch_module is None:
+            return None
+
+        prefix = "__NR_"
+
+        for k, v in arch_module.__dict__.items():
+            if v != number:
+                continue
+
+            if not k.startswith(prefix):
+                continue
+
+            return k[len(prefix) :].lower()
+
+        return None
+
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT not in instruction.groups:
             return None
@@ -533,7 +568,7 @@ class DisassemblyAssistant:
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
             instruction.syscall_name = (
-                pwndbg.constants.syscall(instruction.syscall, syscall_arch)
+                DisassemblyAssistant._syscall_name(instruction.syscall, syscall_arch)
                 or "<unk_%d>" % instruction.syscall
             )
 
