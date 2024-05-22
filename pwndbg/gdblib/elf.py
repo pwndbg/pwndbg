@@ -39,6 +39,7 @@ import pwndbg.gdblib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
+from pwndbg.color import message
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -74,7 +75,12 @@ Phdr = Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
 @pwndbg.gdblib.events.new_objfile
 def update() -> None:
     global Ehdr, Phdr
-    importlib.reload(pwndbg.lib.elftypes)
+    try:
+        importlib.reload(pwndbg.lib.elftypes)
+
+    except ImportError:
+        print(message.warn("Failed to reload pwndbg.lib.elftypes"))
+        pass
 
     if pwndbg.gdblib.arch.ptrsize == 4:
         Ehdr = pwndbg.lib.elftypes.Elf32_Ehdr
