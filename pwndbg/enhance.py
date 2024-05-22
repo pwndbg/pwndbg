@@ -10,6 +10,7 @@ supplemental information sources (e.g. active IDA Pro connection).
 from __future__ import annotations
 
 import string
+from typing import Tuple
 
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
@@ -37,7 +38,7 @@ def format_small_int(value: int) -> str:
         return hex(value & pwndbg.gdblib.arch.ptrmask)
 
 
-def format_small_int_pair(first: int, second: int) -> tuple[str, str]:
+def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
     if first < 10 and second < 10:
         return (str(first), str(second))
     else:

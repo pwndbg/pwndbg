@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -e
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
@@ -8,7 +9,7 @@ echo "# --------------------------------------"
 hook_script_path=".git/hooks/pre-push"
 hook_script=$(
     cat << 'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 diff_command="git diff --no-ext-diff --ignore-submodules"
 

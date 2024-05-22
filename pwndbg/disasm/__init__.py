@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import collections
 import re
-import typing
-from dataclasses import dataclass
 from typing import Any
 from typing import DefaultDict
 from typing import List
+from typing import Tuple
 from typing import Union
 
 import capstone
@@ -83,7 +82,7 @@ VariableInstructionSizeMax = {
 # emulated to the last time the process stopped. This allows use to skips a handful of instruction, but still retain the cache
 # Any larger changes of the program counter will cause the cache to reset.
 
-next_addresses_cache: set[int] = set()
+next_addresses_cache: Set[int] = set()
 
 
 # Register GDB event listeners for all stop events
@@ -266,14 +265,14 @@ def get(
     enhance=True,
     from_cache=False,
     put_cache=False,
-) -> list[PwndbgInstruction]:
+) -> List[PwndbgInstruction]:
     address = int(address)
 
     # Dont disassemble if there's no memory
     if not pwndbg.gdblib.memory.peek(address):
         return []
 
-    retval: list[PwndbgInstruction] = []
+    retval: List[PwndbgInstruction] = []
     for _ in range(instructions):
         i = get_one_instruction(
             address, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache
@@ -326,7 +325,7 @@ first_time_emulate = True
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False, linear=False
-) -> tuple[list[PwndbgInstruction], int]:
+) -> Tuple[List[PwndbgInstruction], int]:
     """
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -365,7 +364,7 @@ def near(
     if current is None:
         return ([], -1)
 
-    insns: list[PwndbgInstruction] = []
+    insns: List[PwndbgInstruction] = []
 
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:

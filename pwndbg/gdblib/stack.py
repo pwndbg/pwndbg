@@ -7,6 +7,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
+from typing import Dict
 from typing import List
 
 import gdb
@@ -42,7 +43,7 @@ def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get() -> dict[int, pwndbg.lib.memory.Page]:
+def get() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     For each running thread, return the known address range for its stack
     Returns a dict which should never be modified (since its cached)
@@ -79,8 +80,8 @@ def is_executable() -> bool:
     return not nx
 
 
-def _fetch_via_vmmap() -> dict[int, pwndbg.lib.memory.Page]:
-    stacks: dict[int, pwndbg.lib.memory.Page] = {}
+def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
+    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
     pages = pwndbg.gdblib.vmmap.get()
 
@@ -114,7 +115,7 @@ def _fetch_via_vmmap() -> dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
+def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     TODO/FIXME: This exploration is not great since it now hits on each stop
     (based on how this function is used). Ideally, explored stacks should be
@@ -128,7 +129,7 @@ def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
     An alternative to this is dumping this functionality completely and this
     will be decided hopefully after a next release.
     """
-    stacks: dict[int, pwndbg.lib.memory.Page] = {}
+    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
     curr_thread = gdb.selected_thread()
     for thread in gdb.selected_inferior().threads():

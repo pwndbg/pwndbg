@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from typing import Dict
+from typing import List
+from typing import Set
 from typing import Tuple
 
 import pwnlib.rop.srop
@@ -19,7 +22,7 @@ from pwndbg.lib.regs import i386
 
 # Grab frame values from pwntools. Offsets are defined as the offset to stack pointer when syscall instruction is called
 # Offsets and names are from Linux kernel source. For example x86_64 is defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel /arch/x86/include/asm/sigframe.h)
-SIGRETURN_FRAME_LAYOUTS: dict[str, list[Tuple[int, str]]] = {
+SIGRETURN_FRAME_LAYOUTS: Dict[str, List[Tuple[int, str]]] = {
     "x86-64": sorted([(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items())),
     "i386": sorted(pwnlib.rop.srop.registers["i386"].items()),
     "aarch64": sorted(pwnlib.rop.srop.registers["aarch64"].items()),
@@ -27,7 +30,7 @@ SIGRETURN_FRAME_LAYOUTS: dict[str, list[Tuple[int, str]]] = {
 }
 
 # Always print these registers (as well as flag register, eflags / cpsr)
-SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
+SIGRETURN_CORE_REGISTER: Dict[str, Set[str]] = {
     "x86-64": {*amd64.gpr, amd64.frame, amd64.stack, amd64.pc},
     "i386": {*i386.gpr, i386.frame, i386.stack, i386.pc},
     "aarch64": {*aarch64.gpr, "sp", "pc"},

@@ -52,9 +52,13 @@ from __future__ import annotations
 from typing import Dict
 
 import gdb
-from sortedcontainers import SortedDict  # type: ignore # noqa: PGH003
+from sortedcontainers import SortedDict
 
 import pwndbg.gdblib
+import pwndbg.gdblib.symbol
+import pwndbg.heap
+import pwndbg.heap.ptmalloc
+import pwndbg.lib.cache
 from pwndbg.color import message
 
 LIBC_NAME = "libc.so.6"
@@ -63,7 +67,7 @@ CALLOC_NAME = "calloc"
 REALLOC_NAME = "realloc"
 FREE_NAME = "free"
 
-last_issue = None
+last_issue: str | None = None
 
 # Useful to track possbile collision errors.
 PRINT_DEBUG = False
@@ -82,13 +86,6 @@ def is_enabled() -> bool:
     assert all(installed) == any(installed)
 
     return any(installed)
-
-
-def _basename(val) -> None:
-    """
-    Returns the last component of a path.
-    """
-    val.split("/")[-1]
 
 
 def resolve_address(name: str) -> int | None:
@@ -126,7 +123,7 @@ def resolve_address(name: str) -> int | None:
 
 
 class FreeChunkWatchpoint(gdb.Breakpoint):
-    def __init__(self, chunk, tracker) -> None:
+    def __init__(self, chunk: Chunk, tracker: Tracker) -> None:
         self.chunk = chunk
         self.tracker = tracker
 
@@ -162,7 +159,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
 
 
 class AllocChunkWatchpoint(gdb.Breakpoint):
-    def __init__(self, chunk) -> None:
+    def __init__(self, chunk: Chunk) -> None:
         self.chunk = chunk
         super().__init__(f"*(char[{chunk.size}]*){chunk.address:#x}", internal=True)
 
@@ -171,7 +168,7 @@ class AllocChunkWatchpoint(gdb.Breakpoint):
 
 
 class Chunk:
-    def __init__(self, address, size, requested_size, flags) -> None:
+    def __init__(self, address: int, size: int, requested_size: int, flags: int) -> None:
         self.address = address
         self.size = size
         self.requested_size = requested_size
@@ -180,8 +177,8 @@ class Chunk:
 
 class Tracker:
     def __init__(self) -> None:
-        self.free_chunks = SortedDict()
-        self.alloc_chunks = SortedDict()
+        self.free_chunks: SortedDict[int, Chunk] = SortedDict()
+        self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: Dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: Dict[int, bool] = {}
 
@@ -192,7 +189,7 @@ class Tracker:
         else:
             return self.memory_management_calls[thread]
 
-    def enter_memory_management(self, name) -> None:
+    def enter_memory_management(self, name: str) -> None:
         thread = gdb.selected_thread().global_num
 
         # We don't support re-entry.
@@ -212,7 +209,7 @@ class Tracker:
 
         self.memory_management_calls[thread] = False
 
-    def malloc(self, chunk) -> None:
+    def malloc(self, chunk: Chunk) -> None:
         # malloc()s may arbitrarily change the structure of freed blocks, to the
         # point our chunk maps may become invalid, so, we update them here if
         # anything looks wrong.
@@ -237,6 +234,7 @@ class Tracker:
 
                 lo_heap = pwndbg.heap.ptmalloc.Heap(lo_addr)
                 hi_heap = pwndbg.heap.ptmalloc.Heap(hi_addr - 1)
+                assert lo_heap.arena is not None and hi_heap.arena is not None
 
                 # TODO: Can this ever actually fail in real world use?
                 #
@@ -269,6 +267,7 @@ class Tracker:
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
                 allocator = pwndbg.heap.current
+                assert isinstance(allocator, pwndbg.heap.ptmalloc.GlibcMemoryAllocator)
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),
@@ -317,7 +316,7 @@ class Tracker:
 
         self.alloc_chunks[chunk.address] = chunk
 
-    def free(self, address) -> bool:
+    def free(self, address: int) -> bool:
         if address not in self.alloc_chunks:
             return False
         chunk = self.alloc_chunks[address]

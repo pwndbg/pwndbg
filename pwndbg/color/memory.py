@@ -64,6 +64,7 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
     """
     address = int(address)
     page = pwndbg.gdblib.vmmap.find(address)
+    color: Callable[[str], str]
 
     if page is None:
         color = normal

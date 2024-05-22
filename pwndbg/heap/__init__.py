@@ -6,11 +6,13 @@ from typing import Sequence
 import gdb
 
 import pwndbg.gdblib.config
+import pwndbg.gdblib.events
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.heap.heap
 from pwndbg.color import message
 
-current = None
+current: pwndbg.heap.heap.MemoryAllocator | None = None
 
 
 def add_heap_param(

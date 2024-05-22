@@ -14,18 +14,22 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+from typing_extensions import ParamSpec
 
 import pwndbg.exception
 import pwndbg.gdblib.kernel
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
 import pwndbg.heap
 from pwndbg.color import message
 from pwndbg.heap.ptmalloc import DebugSymsHeap
+from pwndbg.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.heap.ptmalloc import HeuristicHeap
 from pwndbg.heap.ptmalloc import SymbolUnresolvableError
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 commands: List[Command] = []
 command_names: Set[str] = set()
@@ -255,9 +259,9 @@ def fix_int_reraise(*a, **kw) -> int:
     return fix_int(*a, reraise=True, **kw)
 
 
-def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithFile(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
@@ -270,9 +274,9 @@ def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWithFile
 
 
-def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenQemuKernel(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
@@ -284,9 +288,9 @@ def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]
     return _OnlyWhenQemuKernel
 
 
-def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenUserspace(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if not pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
@@ -298,7 +302,7 @@ def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.gdblib.arch_mod.ARCHS:
@@ -306,9 +310,9 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
+        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
             if pwndbg.gdblib.arch.name in arch_names:
                 return function(*a, **kw)
             else:
@@ -324,9 +328,9 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable
     return decorator
 
 
-def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWithKernelDebugSyms(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.kernel.has_debug_syms():
             return function(*a, **kw)
         else:
@@ -338,9 +342,9 @@ def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optiona
     return _OnlyWithKernelDebugSyms
 
 
-def OnlyWhenPagingEnabled(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenPagingEnabled(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
@@ -350,9 +354,9 @@ def OnlyWhenPagingEnabled(function: Callable[..., T]) -> Callable[..., Optional[
     return _OnlyWhenPagingEnabled
 
 
-def OnlyWhenRunning(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenRunning(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
@@ -362,9 +366,10 @@ def OnlyWhenRunning(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWhenRunning
 
 
-def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithTcache(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        assert isinstance(pwndbg.heap.current, GlibcMemoryAllocator)
         if pwndbg.heap.current.has_tcache():
             return function(*a, **kw)
         else:
@@ -376,10 +381,10 @@ def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWithTcache
 
 
-def OnlyWhenHeapIsInitialized(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a: Any, **kw: Any) -> Optional[T]:
-        if pwndbg.heap.current.is_initialized():
+    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.heap.current is not None and pwndbg.heap.current.is_initialized():
             return function(*a, **kw)
         else:
             print(f"{function.__name__}: Heap is not initialized yet.")
@@ -394,7 +399,7 @@ def _is_statically_linked() -> bool:
     return "No shared libraries loaded at this time." in out
 
 
-def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) -> str | None:
+def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
     e = lambda s: print(message.error(s))
     w = lambda s: print(message.warn(s))
     # Note: We will still raise the error for developers when exception-* is set to "on"
@@ -430,9 +435,9 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
     return None
 
 
-def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
+def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a: Any, **kw: Any):
+    def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
         e = lambda s: print(message.error(s))
         w = lambda s: print(message.warn(s))
         if (
@@ -442,8 +447,12 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
         ):
             # In auto mode, we will try to use the debug symbols if possible
             pwndbg.heap.current = DebugSymsHeap()
-        if pwndbg.heap.current.can_be_resolved():
-            return _try2run_heap_command(function, a, kw)  # type: ignore[arg-type]
+        if (
+            pwndbg.heap.current is not None
+            and isinstance(pwndbg.heap.current, GlibcMemoryAllocator)
+            and pwndbg.heap.current.can_be_resolved()
+        ):
+            return _try2run_heap_command(function, *a, **kw)
         else:
             if (
                 isinstance(pwndbg.heap.current, DebugSymsHeap)
@@ -457,7 +466,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
                         "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
                         "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
                     )
-                    return _try2run_heap_command(function, a, kw)
+                    return _try2run_heap_command(function, *a, **kw)
                 elif _is_statically_linked():
                     e(
                         "Can't find GLIBC version required for this command to work since this is a statically linked binary"
@@ -501,6 +510,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
                 pwndbg.exception.inform_report_issue(
                     "An unknown error occurred when resolved the heap"
                 )
+        return None
 
     return _OnlyWithResolvedHeapSyms
 

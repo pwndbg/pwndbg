@@ -7,6 +7,8 @@ import re
 import subprocess
 from enum import Enum
 from typing import Any
+from typing import Dict
+from typing import Tuple
 
 import gdb
 from tabulate import tabulate
@@ -182,13 +184,13 @@ class Lambda:
         self.deref_count -= 1
         return self
 
-    def evaluate(self, context: dict[Any, Any]) -> int | Lambda:
+    def evaluate(self, context: Dict[Any, Any]) -> int | Lambda:
         if self.deref_count > 0 or (self.obj and self.obj not in context):
             raise ValueError(f"Can't eval {self}")
         return context[self.obj] + self.immi
 
     @staticmethod
-    def parse(argument: str, predefined: dict[Any, Any] = {}) -> int | Lambda:
+    def parse(argument: str, predefined: Dict[Any, Any] = {}) -> int | Lambda:
         if not argument or argument == "!":
             return 0
         try:
@@ -215,7 +217,7 @@ class Lambda:
         return obj
 
     @staticmethod
-    def mem_obj(arg: str) -> tuple[str, int]:
+    def mem_obj(arg: str) -> Tuple[str, int]:
         tokens = re.split(r"[+\-]", arg)
         if len(tokens) == 1:
             return tokens[0], 0
@@ -283,7 +285,7 @@ def run_onegadget() -> str:
     return output
 
 
-def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
+def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
     """
     Parse expression, return the result, colorized string and error message
     """
@@ -315,7 +317,7 @@ def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
-def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
+def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     """
     Check argv that's on the stack, return the result and the message
     """
@@ -367,7 +369,7 @@ def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
     return SAT, output_msg
 
 
-def check_non_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
+def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     """
     Check argv that's not on the stack, return the result and the message
     """
@@ -402,7 +404,7 @@ def check_non_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
         n += 1
 
 
-def check_argv(expr: str) -> tuple[CheckSatResult, str]:
+def check_argv(expr: str) -> Tuple[CheckSatResult, str]:
     """
     Check argv, return the result and the message
     """
@@ -411,7 +413,7 @@ def check_argv(expr: str) -> tuple[CheckSatResult, str]:
     return check_non_stack_argv(expr)
 
 
-def check_envp(expr: str) -> tuple[bool, str]:
+def check_envp(expr: str) -> Tuple[bool, str]:
     """
     Check envp, return the result and the message
     """
@@ -446,7 +448,7 @@ def check_envp(expr: str) -> tuple[bool, str]:
         n += 1
 
 
-def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
+def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
     """
     Parse constraint, return the result and the message
     """
@@ -585,7 +587,7 @@ def check_gadget(
 
 def find_gadgets(
     show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
-) -> dict[CheckSatResult, int]:
+) -> Dict[CheckSatResult, int]:
     """
     Find gadgets by parsing the output of onegadget, return there's any valid gadget
     """

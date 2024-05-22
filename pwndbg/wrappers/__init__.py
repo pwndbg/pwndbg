@@ -3,16 +3,16 @@ from __future__ import annotations
 import functools
 import subprocess
 from subprocess import STDOUT
-from typing import Any
 from typing import Callable
 from typing import List
 from typing import TypeVar
-from typing import cast
 
 from pwnlib.util.misc import which
+from typing_extensions import ParamSpec
 
 import pwndbg.commands
 
+P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -25,18 +25,18 @@ class OnlyWithCommand:
             if self.cmd_path:
                 break
 
-    def __call__(self, function: Callable[..., T]) -> Callable[..., T]:
+    def __call__(self, function: Callable[P, T]) -> Callable[P, T | None]:
         function.cmd = self.cmd
 
         @pwndbg.commands.OnlyWithFile
         @functools.wraps(function)
-        def _OnlyWithCommand(*a: Any, **kw: Any) -> T:
+        def _OnlyWithCommand(*a: P.args, **kw: P.kwargs) -> T | None:
             if self.cmd_path:
                 return function(*a, **kw)
             else:
                 raise OSError(f"Could not find command(s) {', '.join(self.all_cmds)} in $PATH")
 
-        return cast(Callable[..., T], _OnlyWithCommand)
+        return _OnlyWithCommand
 
 
 def call_cmd(cmd: str | List[str]) -> str:

@@ -160,7 +160,7 @@ sortedcontainers = "^2.4.0"
 tabulate = "^0.9.0"
 typing-extensions = "^4.11.0"
 unicorn = "^2.0.1.post1"
-requests = "^2.31.0"
+requests = "^2.32.0"
 pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb"}
 
 [tool.poetry.group.dev]
@@ -175,6 +175,7 @@ pytest = "8.0.2"
 pytest-cov = "^4.1.0"
 rich = "^13.7.1"
 ruff = "^0.4.1"
+sortedcontainers-stubs = "^2.4.2"
 testresources = "^2.0.1"
 tomli = "^2.0.1"
 types-gdb = "^12.1.4.20240408"
@@ -183,6 +184,20 @@ types-pygments = "^2.17.0.20240310"
 types-requests = "^2.31.0.20240406"
 types-tabulate = "^0.9.0.20240106"
 vermin = "^1.6.0"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mdutils = "*"
+mkdocs = "*"
+mkdocs-gen-files = "*"
+mkdocs-material = "*"
+mkdocs-minify-plugin = "*"
+mkdocs-rss-plugin = "*"
+mkdocstrings = "*"
+mkdocstrings-python = "*"
+pymdown-extensions = "*"
 
 [build-system]
 requires = ["poetry-core"]

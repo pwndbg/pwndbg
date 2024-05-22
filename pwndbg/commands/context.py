@@ -7,6 +7,7 @@ import sys
 from collections import defaultdict
 from typing import Any
 from typing import DefaultDict
+from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -92,7 +93,7 @@ config_max_threads_display = pwndbg.gdblib.config.add_param(
 )
 
 # Storing output configuration per section
-outputs: dict[str, str] = {}
+outputs: Dict[str, str] = {}
 output_settings = {}
 
 
@@ -394,7 +395,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, dict[Any, Any]] = defaultdict(dict)
+    result_settings: DefaultDict[str, Dict[Any, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -852,7 +853,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal: list[str] = []
+last_signal: List[str] = []
 
 thread_status_messages = {
     "running": pwndbg.color.light_green("running"),

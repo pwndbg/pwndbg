@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import typing
 from enum import Enum
+from typing import Dict
+from typing import List
+from typing import Set
 from typing import TypedDict
 
 import gdb
@@ -43,7 +46,7 @@ from capstone.x86 import X86Op
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 # The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
 # so we don't need to manually specify those for each architecture
-UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
+UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
     CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
     CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
@@ -123,7 +126,7 @@ class PwndbgInstruction:
         Ex: 'RAX, RDX'
         """
 
-        self.groups: list[int] = cs_insn.groups
+        self.groups: List[int] = cs_insn.groups
         """
         Capstone instruction groups that we belong to.
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
@@ -143,7 +146,7 @@ class PwndbgInstruction:
         if self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
             self.cs_insn.operands.reverse()
 
-        self.operands: list[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
+        self.operands: List[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
 
         # ***********
         # The following member variables are set during instruction enhancement
