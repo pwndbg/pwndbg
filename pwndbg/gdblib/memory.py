@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from typing import Dict
+from typing import Set
 from typing import Union
 
 import gdb
@@ -371,8 +372,8 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int,
-    include_only_fields: set[str] | None = None,
-    exclude_fields: set[str] | None = None,
+    include_only_fields: Set[str] | None = None,
+    exclude_fields: Set[str] | None = None,
 ) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
@@ -382,8 +383,8 @@ def fetch_struct_as_dictionary(
 
 def pack_struct_into_dictionary(
     fetched_struct: gdb.Value,
-    include_only_fields: set[str] | None = None,
-    exclude_fields: set[str] | None = None,
+    include_only_fields: Set[str] | None = None,
+    exclude_fields: Set[str] | None = None,
 ) -> GdbDict:
     struct_as_dictionary = {}
 
@@ -423,7 +424,7 @@ def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
     raise NotImplementedError
 
 
-def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str:
+def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str]) -> str:
     struct_type = gdb.lookup_type("struct " + struct_name)
 
     for field_name in possible_field_names:
