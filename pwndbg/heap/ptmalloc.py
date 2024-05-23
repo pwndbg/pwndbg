@@ -175,7 +175,7 @@ class ChunkField(Enum):
     BK_NEXTSIZE = 6
 
 
-def fetch_chunk_metadata(address: int, include_only_fields: set[ChunkField] | None = None):
+def fetch_chunk_metadata(address: int, include_only_fields: Set[ChunkField] | None = None):
     prev_size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
         "malloc_chunk", {"prev_size", "mchunk_prev_size"}
     )
@@ -186,7 +186,7 @@ def fetch_chunk_metadata(address: int, include_only_fields: set[ChunkField] | No
     if include_only_fields is None:
         fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary("malloc_chunk", address)
     else:
-        requested_fields: set[str] = set()
+        requested_fields: Set[str] = set()
 
         for field in include_only_fields:
             if field is ChunkField.PREV_SIZE:
