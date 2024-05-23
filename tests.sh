@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Run integration tests
 (cd tests/gdb-tests && python3 tests.py $@)
