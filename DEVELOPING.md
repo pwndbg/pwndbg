@@ -1,6 +1,8 @@
 - [Development Basics](#development-basics)
   - [Environment setup](#environment-setup)
+    - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
+    - [Testing Under Nix](#testing-under-nix)
   - [Linting](#linting)
   - [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
@@ -9,6 +11,12 @@
   - [Triggers](#triggers)
 - [Porting public tools](#porting-public-tools)
 - [Random developer notes](#random-developer-notes)
+- [Annotations](#annotations)
+  - [Enhancing](#enhancing)
+  - [When to use emulation / reasoning about process state](#when-to-use-emulation--reasoning-about-process-state)
+  - [What if the emulator fails?](#what-if-the-emulator-fails)
+  - [Caching annotations](#caching-annotations)
+  - [Other random annotation details](#other-random-annotation-details)
 
 # Development Basics
 ## Environment setup
@@ -24,6 +32,13 @@ If you'd like to use `docker compose`, you can run
 ```bash
 docker compose run -i main
 ```
+
+### Development using Nix
+
+There is a development shell defined in the flake that should install all of the development requirements. To enter the
+environment run `nix develop` or automatically enter the environment using `direnv`.
+
+When testing changes run ``nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
 
 ## Testing
 
@@ -59,6 +74,15 @@ def test_hexdump(start_binary):
 
 Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
+### Testing Under Nix
+
+You will need to build a nix-compatible gdbinit.py file, which you can do with `nix build .#pwndbg-dev`. Then simply run
+the test by adding the `--nix` flag:
+
+```bash
+./tests.sh --nix [filter]
+```
+
 ## Linting
 
 The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
@@ -66,8 +90,9 @@ The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isor
 When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
 You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to automatically be run before every push:
+
 ```bash
-#!/bin/sh
+#!/usr/bin/env bash
 
 ./lint.sh || exit 1
 ```
@@ -168,19 +193,19 @@ Feel free to update the list below!
 
 
 # Annotations
-Alongside the disassembled instructions in the dashboard, Pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis. 
+Alongside the disassembled instructions in the dashboard, Pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis.
 
 The main hurdle in providing annotations is determining what each instruction does, getting the relevent CPU registers and memory that are accessed, and then resolving concrete values of the operands. We call the process of determining this information "enhancement", as we enhance the information provided natively by GDB.
 
 The Capstone Engine disassembly framework is used to statically determine information about instructions and their operands. Take the x86 instruction `sub rax, rdx`. Given the raw bytes of the machine instructions, Capstone creates an object that provides an API that, among many things, exposes the names of the operands and the fact that they are both 8-byte wide registers. It provides all the information necessary to describe each operand. It also tells the general 'group' that a instruction belongs to, like if its a JUMP-like instruction, a RET, or a CALL. These groups are architecture agnostic.
 
-However, the Capstone Engine doesn't fill in concrete values that those registers take on. It has no way of knowing the value in `rdx`, nor can it actually read from memory. 
+However, the Capstone Engine doesn't fill in concrete values that those registers take on. It has no way of knowing the value in `rdx`, nor can it actually read from memory.
 
 To determine the actual values that the operands take on, and to determine the results of executing an instruction, we use the Unicorn Engine, a CPU emulator framework. The emulator has its own internal CPU register set and memory pages that mirror that of the host process, and it can execute instructions to mutate its internal state. Note that the Unicorn Engine cannot execute syscalls - it doesn't have knowledge of a kernel.
 
 We have the ability to single-step the emulator - tell it to execute the instruction at the program counter inside the emulator. After doing so, we can inspect the state of the emulator - read from its registers and memory. The Unicorn Engine itself doesn't expose information regarding what each instruction is doing - what is the instruction (is it an `add`, `mov`, `push`?) and what registers/memory locations is it reading to and writing from? - which is why we use the Capstone engine to statically determine this information.
 
-Using what we know about the instruction based on the Capstone engine - such as that it was a `sub` instruction and `rax` was written to - we query the emulator after stepping in to determine the results of the instruction. 
+Using what we know about the instruction based on the Capstone engine - such as that it was a `sub` instruction and `rax` was written to - we query the emulator after stepping in to determine the results of the instruction.
 
 We also read the program counter from the emulator to determine jumps and so we can display the instructions that will actually be executed, as opposed to displaying the instructions that follow consecutively in memory.
 
@@ -194,7 +219,7 @@ When the process stops, we instantiate the emulator from scratch. We copy all th
 
 The enhancement is broken into a couple stops:
 
-1. First, we resolve the values of all the operands of the instruction before stepping the emulator. This means we read values from registers and dereference memory depending on the operand type. This gives us the values of operands before the instruction executes. 
+1. First, we resolve the values of all the operands of the instruction before stepping the emulator. This means we read values from registers and dereference memory depending on the operand type. This gives us the values of operands before the instruction executes.
 2. Then, we step the emulator, executing a single instruction.
 3. We resolve the values of all operands again, giving us the `after_value` of each operand.
 4. Then, we enhance the "condition" field of PwndbgInstructions, where we determine if the instruction is conditional (conditional branch or conditional mov are common) and if the action is taken.
@@ -244,12 +269,12 @@ For example, say we have the following instructions with the first number being 
    0x555555556266 <main+566>    mov    rsi, rax
    0x555555556269 <main+569>    mov    qword ptr [rsp + 0x78], rax
    0x55555555626e <main+574>    call   qword ptr [rip + 0x6d6c]    <fstat64>
- 
+
  ► 0x555555556274 <main+580>    mov    edx, 5                  EDX => 5
    0x555555556279 <main+585>    lea    rsi, [rip + 0x3f30]     RSI => 0x55555555a1b0 ◂— 'standard output'
    0x555555556280 <main+592>    test   eax, eax
    0x555555556282 <main+594>    js     main+3784                   <main+3784>
- 
+
    0x555555556288 <main+600>    mov    rsi, qword ptr [rsp + 0xc8]
    0x555555556290 <main+608>    mov    edi, dword ptr [rsp + 0xa8]
 ```
