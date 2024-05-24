@@ -137,6 +137,21 @@ def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
+def value(symbol):
+    """Get gdb.Value object for given symbol"""
+
+    try:
+        symbol_obj = gdb.lookup_symbol(symbol)[0]
+        if symbol_obj:
+            return symbol_obj.value()
+        else:
+            return None
+    except gdb.error as e:
+        if all(x not in str(e) for x in skipped_exceptions):
+            raise e
+
+
+@pwndbg.lib.cache.cache_until("objfile")
 def address(symbol: str) -> int | None:
     """
     Get the address for `symbol`
