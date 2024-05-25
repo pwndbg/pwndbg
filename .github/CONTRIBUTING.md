@@ -20,5 +20,5 @@ Some guides:
 
 ### Contact
 
-If you want to talk with other contributors and pwndbg users 
+If you want to talk with other contributors and pwndbg users
 join us at our [Discord server](https://discord.gg/x47DssnGwm)!
