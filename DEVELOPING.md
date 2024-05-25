@@ -38,7 +38,7 @@ docker compose run -i main
 There is a development shell defined in the flake that should install all of the development requirements. To enter the
 environment run `nix develop` or automatically enter the environment using `direnv`.
 
-When testing changes run ``nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
+When testing changes run `nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
 
 ## Testing
 
