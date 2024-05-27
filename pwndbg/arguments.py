@@ -106,8 +106,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         except KeyError:
             return []
 
-        assistant = pwndbg.disasm.arch.DisassemblyAssistant.for_current_arch()
-        target = assistant.resolve_target(instruction, None, call=True)
+        target = instruction.target
 
         if not target:
             return []
