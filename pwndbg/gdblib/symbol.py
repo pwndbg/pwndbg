@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import re
-import tempfile
 from typing import Dict
 
 import gdb
@@ -49,43 +48,42 @@ skipped_exceptions = (
 )
 
 
-def _create_symboled_elf(symbols: Dict[str, int], base_addr: int = 0, filename: str = None) -> str:
-    # TODO: cache kernel symbol elfs for kallsyms command
-    fd, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="symbols-", suffix=".c")
-    os.fdopen(fd, "w").write("int main(){}")
-    os.system(
-        f"gcc {pwndbg_debug_symbols_output_file} -o {pwndbg_debug_symbols_output_file[0:-2]}.debug"
-    )
-    os.unlink(f"{pwndbg_debug_symbols_output_file}")
+def create_symboled_elf(symbols: Dict[str, int], base_addr: int = 0, filename: str = None) -> str:
+    if not os.path.exists(filename + ".debug"):
+        filename = filename + ".c"
+        with open(filename, "w") as f:
+            f.write("int main(){}")
 
-    pwndbg_debug_symbols_output_file = pwndbg_debug_symbols_output_file[0:-2]
+        os.system(f"gcc {filename} -o {filename[0:-2]}.debug")
+        os.unlink(f"{filename}")
 
-    os.system(f"objcopy --only-keep-debug {pwndbg_debug_symbols_output_file}.debug")
-    os.system(f"objcopy --strip-all {pwndbg_debug_symbols_output_file}.debug")
+        filename = filename[0:-2]
 
-    elf = ELFFile(open(f"{pwndbg_debug_symbols_output_file}.debug", "rb"))
+        os.system(f"objcopy --only-keep-debug {filename}.debug")
+        os.system(f"objcopy --strip-all {filename}.debug")
 
-    required_sections = [".text", ".interp", ".rela.dyn", ".dynamic", ".bss"]
+        elf = ELFFile(open(f"{filename}.debug", "rb"))
 
-    removable_sections = ""
+        required_sections = [".text", ".interp", ".rela.dyn", ".dynamic", ".bss"]
 
-    for s in elf.iter_sections():
-        if s.name in required_sections:
-            continue
+        removable_sections = ""
 
-        removable_sections += f"--remove-section={s.name} "
+        for s in elf.iter_sections():
+            if s.name in required_sections:
+                continue
 
-    os.system(f"objcopy {removable_sections} {pwndbg_debug_symbols_output_file}.debug 2>/dev/null")
-    os.system(
-        f"objcopy --change-section-address .text={base_addr:#x} {pwndbg_debug_symbols_output_file}.debug"
-    )
+            removable_sections += f"--remove-section={s.name} "
 
+        os.system(f"objcopy {removable_sections} {filename}.debug 2>/dev/null")
+        os.system(f"objcopy --change-section-address .text={base_addr:#x} {filename}.debug")
+
+    # TODO: add more symbols in one call
     for symbol in symbols.items():
         os.system(
-            f"objcopy --add-symbol {symbol[0]}=.text:{symbol[1]:#x},global,function {pwndbg_debug_symbols_output_file}.debug"
+            f"objcopy --add-symbol {symbol[0]}=.text:{symbol[1]:#x},global,function {filename}.debug"
         )
 
-    return f"{pwndbg_debug_symbols_output_file}.debug"
+    return f"{filename}.debug"
 
 
 def _get_debug_file_directory() -> str:
