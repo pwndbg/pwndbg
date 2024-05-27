@@ -8,9 +8,13 @@ information available.
 
 from __future__ import annotations
 
+import os
 import re
+import tempfile
+from typing import Dict
 
 import gdb
+from elftools.elf.elffile import ELFFile
 
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
@@ -43,6 +47,45 @@ skipped_exceptions = (
     # This reproduced on GDB 12.1 and caused #1878
     "Symbol requires a frame to compute its value",
 )
+
+
+def _create_symboled_elf(symbols: Dict[str, int], base_addr: int = 0, filename: str = None) -> str:
+    # TODO: cache kernel symbol elfs for kallsyms command
+    fd, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="symbols-", suffix=".c")
+    os.fdopen(fd, "w").write("int main(){}")
+    os.system(
+        f"gcc {pwndbg_debug_symbols_output_file} -o {pwndbg_debug_symbols_output_file[0:-2]}.debug"
+    )
+    os.unlink(f"{pwndbg_debug_symbols_output_file}")
+
+    pwndbg_debug_symbols_output_file = pwndbg_debug_symbols_output_file[0:-2]
+
+    os.system(f"objcopy --only-keep-debug {pwndbg_debug_symbols_output_file}.debug")
+    os.system(f"objcopy --strip-all {pwndbg_debug_symbols_output_file}.debug")
+
+    elf = ELFFile(open(f"{pwndbg_debug_symbols_output_file}.debug", "rb"))
+
+    required_sections = [".text", ".interp", ".rela.dyn", ".dynamic", ".bss"]
+
+    removable_sections = ""
+
+    for s in elf.iter_sections():
+        if s.name in required_sections:
+            continue
+
+        removable_sections += f"--remove-section={s.name} "
+
+    os.system(f"objcopy {removable_sections} {pwndbg_debug_symbols_output_file}.debug 2>/dev/null")
+    os.system(
+        f"objcopy --change-section-address .text={base_addr:#x} {pwndbg_debug_symbols_output_file}.debug"
+    )
+
+    for symbol in symbols.items():
+        os.system(
+            f"objcopy --add-symbol {symbol[0]}=.text:{symbol[1]:#x},global,function {pwndbg_debug_symbols_output_file}.debug"
+        )
+
+    return f"{pwndbg_debug_symbols_output_file}.debug"
 
 
 def _get_debug_file_directory() -> str:
