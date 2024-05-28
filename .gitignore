@@ -93,3 +93,6 @@ gdb.txt
 
 # Nix build stuff
 result-*
+
+# Vim
+*.swp
