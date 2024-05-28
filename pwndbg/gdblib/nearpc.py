@@ -11,7 +11,7 @@ import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
@@ -128,7 +128,7 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.disasm.near(
+    instructions, index_of_pc = pwndbg.gdblib.disasm.near(
         pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
     )
 
@@ -224,13 +224,13 @@ def nearpc(
                 # know where it's going yet. It could be going to either memory
                 # managed by libc or memory managed by the program itself.
 
-                if not pwndbg.heap.current.is_initialized():
+                if not pwndbg.gdblib.heap.current.is_initialized():
                     # The libc heap hasn't been initialized yet. There's not a
                     # lot that we can say beyond this point.
                     continue
-                allocator = pwndbg.heap.current
+                allocator = pwndbg.gdblib.heap.current
 
-                heap = pwndbg.heap.ptmalloc.Heap(address)
+                heap = pwndbg.gdblib.heap.ptmalloc.Heap(address)
                 chunk = None
                 for ch in heap:
                     # Find the chunk in this heap the corresponds to the address

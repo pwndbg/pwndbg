@@ -21,7 +21,7 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking
@@ -624,10 +624,10 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         else:
             raise
 
-    syntax = pwndbg.disasm.CapstoneSyntax[flavor]
+    syntax = pwndbg.gdblib.disasm.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()), None)
+    cs = next(iter(pwndbg.gdblib.disasm.get_disassembler_cached.cache.values()), None)
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
@@ -841,7 +841,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
 
 def context_args(with_banner=True, target=sys.stdout, width=None):
-    args = pwndbg.arguments.format_args(pwndbg.disasm.one())
+    args = pwndbg.arguments.format_args(pwndbg.gdblib.disasm.one())
 
     # early exit to skip section if no arg found
     if not args:

@@ -158,7 +158,7 @@ def test_try_free_invalid_fastbin_entry(start_binary):
 
 def test_try_free_double_free_or_corruption_top(start_binary):
     setup_heap(start_binary, 9)
-    allocator = pwndbg.heap.current
+    allocator = pwndbg.gdblib.heap.current
 
     ptr_size = pwndbg.gdblib.arch.ptrsize
     arena = allocator.thread_arena or allocator.main_arena

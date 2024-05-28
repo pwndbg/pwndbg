@@ -12,7 +12,7 @@ import pwnlib
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config

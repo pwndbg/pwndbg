@@ -6,16 +6,16 @@ import pytest
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
-import pwndbg.heap
+import pwndbg.gdblib.heap
 import tests
-from pwndbg.heap.ptmalloc import BinType
+from pwndbg.gdblib.heap.ptmalloc import BinType
 
 BINARY = tests.binaries.get("heap_bins.out")
 
 
 def test_heap_bins(start_binary):
     """
-    Tests pwndbg heap bins commands
+    Tests pwndbg.gdblib.heap bins commands
     """
     start_binary(BINARY)
     gdb.execute("set context-output /dev/null")
@@ -23,7 +23,7 @@ def test_heap_bins(start_binary):
 
     # check if all bins are empty at first
     gdb.execute("continue")
-    allocator = pwndbg.heap.current
+    allocator = pwndbg.gdblib.heap.current
 
     addr = pwndbg.gdblib.symbol.address("tcache_size")
     tcache_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))

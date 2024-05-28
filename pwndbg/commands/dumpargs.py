@@ -7,7 +7,7 @@ import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.arch
 
 parser = argparse.ArgumentParser(description="Prints determined arguments for call instruction.")
@@ -36,7 +36,7 @@ def call_args() -> List[str]:
     """
     results: List[str] = []
 
-    for arg, value in pwndbg.arguments.get(pwndbg.disasm.one()):
+    for arg, value in pwndbg.arguments.get(pwndbg.gdblib.disasm.one()):
         code = arg.type != "char"
         pretty = pwndbg.chain.format(value, code=code)
         results.append("        %-10s %s" % (arg.name + ":", pretty))

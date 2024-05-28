@@ -17,7 +17,7 @@ import capstone
 import gdb
 from capstone import *  # noqa: F403
 
-import pwndbg.disasm.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
@@ -25,9 +25,9 @@ import pwndbg.gdblib.symbol
 import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
-from pwndbg.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.disasm.instruction import PwndbgInstruction
-from pwndbg.disasm.instruction import make_simple_instruction
+from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import make_simple_instruction
 
 try:
     import pwndbg.emu.emulator
@@ -214,7 +214,7 @@ def get_one_instruction(
         pwn_ins = PwndbgInstruction(ins)
 
         if enhance:
-            pwndbg.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
+            pwndbg.gdblib.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
 
         if put_cache:
             computed_instruction_cache[address] = pwn_ins

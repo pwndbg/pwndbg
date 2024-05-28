@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from capstone import CS_GRP_JUMP
 
-import pwndbg.disasm.x86
+import pwndbg.gdblib.disasm.x86
 import pwndbg.gdblib.arch
 
 
@@ -23,6 +23,6 @@ def is_jump_taken(instruction):
         return False
 
     return {
-        "i386": pwndbg.disasm.x86.is_jump_taken,
-        "x86-64": pwndbg.disasm.x86.is_jump_taken,
+        "i386": pwndbg.gdblib.disasm.x86.is_jump_taken,
+        "x86-64": pwndbg.gdblib.disasm.x86.is_jump_taken,
     }.get(pwndbg.gdblib.arch.current, lambda *a: False)(instruction)

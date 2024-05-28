@@ -6,14 +6,14 @@ import capstone
 
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.disasm.jump
+import pwndbg.gdblib.disasm.jump
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
 
