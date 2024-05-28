@@ -14,10 +14,10 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
-from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 pwndbg.gdblib.config.add_param(
     "emulate",

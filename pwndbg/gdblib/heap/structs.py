@@ -30,7 +30,7 @@ def fastbin_index(size: int) -> int:
 
 
 GLIBC_VERSION = pwndbg.glibc.get_version()
-# TODO: Move these heap constants and macros to elsewhere, because pwndbg/heap/ptmalloc.py also uses them, we are duplicating them here.
+# TODO: Move these heap constants and macros to elsewhere, because pwndbg/gdblib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.gdblib.arch.ptrsize
 MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
 if pwndbg.gdblib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):

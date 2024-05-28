@@ -15,16 +15,16 @@ load_gdblib()
 
 # TODO: Convert these to gdblib modules and remove this
 try:
-    import pwndbg.disasm
-    import pwndbg.disasm.aarch64
-    import pwndbg.disasm.arm
-    import pwndbg.disasm.jump
-    import pwndbg.disasm.mips
-    import pwndbg.disasm.ppc
-    import pwndbg.disasm.riscv
-    import pwndbg.disasm.sparc
-    import pwndbg.disasm.x86
-    import pwndbg.heap
+    import pwndbg.gdblib.disasm
+    import pwndbg.gdblib.disasm.aarch64
+    import pwndbg.gdblib.disasm.arm
+    import pwndbg.gdblib.disasm.jump
+    import pwndbg.gdblib.disasm.mips
+    import pwndbg.gdblib.disasm.ppc
+    import pwndbg.gdblib.disasm.riscv
+    import pwndbg.gdblib.disasm.sparc
+    import pwndbg.gdblib.disasm.x86
+    import pwndbg.gdblib.heap
 except ModuleNotFoundError:
     pass
 
