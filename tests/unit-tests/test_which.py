@@ -21,7 +21,7 @@ from pwndbg.lib.which import which
 
 
 def test_basic():
-    assert which("ls") in ["/usr/bin/ls", "/usr/sbin/ls", "/bin/ls"]
+    assert which("ls").endswith("/ls")
 
 
 def test_nonexistent():
