@@ -1510,7 +1510,7 @@ def jemalloc_arenas() -> None:
         print("Arena Address: ", hex(arena))
         # get arena details
         arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
-        arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
+        # arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
 
         # bin details (assuming 4KiB page size)
         # https://jemalloc.net/jemalloc.3.html#size_classes
@@ -1562,7 +1562,7 @@ def jemalloc_find_extent(addr) -> None:
 
     rtree = gdb.lookup_global_symbol("je_arena_emap_global").value()
     rtree = rtree["rtree"]
-    rtree_root = rtree["root"]
+    # rtree_root = rtree["root"]
 
     # adapted from jemalloc source 5.3.0
     LG_VADDR = 48
