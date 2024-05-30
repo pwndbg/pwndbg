@@ -1,1 +1,11 @@
+# Heap flags
+from __future__ import annotations
 
+PREV_INUSE = 1
+IS_MMAPPED = 2
+NON_MAIN_ARENA = 4
+SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA
+NONCONTIGUOUS_BIT = 2
+
+NBINS = 128
+NSMALLBINS = 64
