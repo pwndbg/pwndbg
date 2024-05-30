@@ -24,7 +24,7 @@ int main(void)
         *(unsigned int *)(p + i) = 0xd00dbeef;
     }
 
-    // Pattern we want to avoid with -a 0x8 
+    // Pattern we want to avoid with -a 0x8
     for (int i = 0; i < 0x100000; i += 0x100) {
         *(unsigned int *)(p + i + 0x17) = 0xd00dbeef;
     }

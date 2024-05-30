@@ -7,9 +7,9 @@
 ## Start
 
 -  [attachp](attachp/attachp.md) Attaches to a given pid, process name or device file.
--  [entry](start/entry.md) 
+-  [entry](start/entry.md)
 -  [sstart](start/sstart.md) Alias for 'tbreak __libc_start_main; run'.
--  [start](start/start.md) 
+-  [start](start/start.md)
 
 ## Integrations
 
@@ -28,7 +28,7 @@
 -  [argc](argv/argc.md) Prints out the number of arguments.
 -  [argv](argv/argv.md) Prints out the contents of argv.
 -  [envp](argv/envp.md) Prints out the contents of the environment.
--  [aslr](aslr/aslr.md) 
+-  [aslr](aslr/aslr.md)
 -  [auxv](auxv/auxv.md) Print information from the Auxiliary ELF Vector.
 -  [elfsections](elf/elfsections.md) Prints the section mappings contained in the ELF header.
 -  [gotplt](elf/gotplt.md) Prints any symbols found in the .got.plt section if it exists.
@@ -50,7 +50,7 @@
 -  [comm](comments/comm.md) Put comments in assembly code.
 -  [cyclic](cyclic/cyclic_cmd.md) Cyclic pattern creator/finder.
 -  [cymbol](cymbol/cymbol.md) Add, show, load, edit, or delete custom structures in plain C.
--  [dt](dt/dt.md) 
+-  [dt](dt/dt.md)
 -  [dumpargs](dumpargs/dumpargs.md) Prints determined arguments for call instruction.
 -  [down](ida/down.md) Select and print stack frame called by this one.
 -  [up](ida/up.md) Select and print stack frame that called this one.
@@ -79,7 +79,7 @@
 -  [configfile](config/configfile.md) Generates a configuration file for the current pwndbg options.
 -  [theme](config/theme.md) Shows pwndbg-specific theme configuration.
 -  [themefile](config/themefile.md) Generates a configuration file for the current pwndbg theme options.
--  [memoize](memoize/memoize.md) 
+-  [memoize](memoize/memoize.md)
 -  [pwndbg](misc/pwndbg_.md) Prints out a list of all pwndbg commands.
 -  [reinit_pwndbg](reload/reinit_pwndbg.md) Makes pwndbg reinitialize all state.
 -  [reload](reload/reload.md) Reload pwndbg.
@@ -91,7 +91,7 @@
 -  [context](context/context.md) Print out the current register, instruction, and stack context.
 -  [contextoutput](context/contextoutput.md) Sets the output of a context section.
 -  [contextunwatch](context/contextunwatch.md) Removes an expression previously added to be watched.
--  [contextwatch](context/contextwatch.md) 
+-  [contextwatch](context/contextwatch.md)
 -  [regs](context/regs.md) Print out all registers and enhance the information.
 -  [xinfo](xinfo/xinfo.md) Shows offsets of the specified address from various useful locations.
 
@@ -106,13 +106,13 @@
 
 -  [distance](distance/distance.md) Print the distance between the two arguments, or print the offset to the address's page base.
 -  [hexdump](hexdump/hexdump.md) Hexdumps data at the specified address or module name.
--  [leakfind](leakfind/leakfind.md) 
--  [mmap](mmap/mmap.md) 
--  [mprotect](mprotect/mprotect.md) 
+-  [leakfind](leakfind/leakfind.md)
+-  [mmap](mmap/mmap.md)
+-  [mprotect](mprotect/mprotect.md)
 -  [p2p](p2p/p2p.md) Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
 -  [telescope](p2p/ts.md) Recursively dereferences pointers starting at the specified address.
 -  [telescope](peda/xprint.md) Recursively dereferences pointers starting at the specified address.
--  [probeleak](probeleak/probeleak.md) 
+-  [probeleak](probeleak/probeleak.md)
 -  [search](search/search.md) Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](telescope/telescope.md) Recursively dereferences pointers starting at the specified address.
 -  [vmmap](vmmap/vmmap.md) Print virtual memory map pages.

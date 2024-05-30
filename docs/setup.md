@@ -41,7 +41,7 @@ The portable version includes all necessary dependencies and should work without
 
 ### Download the Portable Version:
 
-Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version. 
+Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version.
 Choose the appropriate version for your system architecture (x86_64 or aarch64).
 
 ### Installation on RPM-based Systems (CentOS/Alma/Rocky/RHEL):

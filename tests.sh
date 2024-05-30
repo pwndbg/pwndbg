@@ -2,6 +2,7 @@
 
 # Run integration tests
 (cd tests/gdb-tests && python3 tests.py $@)
+exit_code=$?
 
 COV=0
 # Run unit tests
@@ -17,3 +18,7 @@ if [ $COV -eq 1 ]; then
 else
     pytest tests/unit-tests
 fi
+
+exit_code=$((exit_code + $?))
+
+exit $exit_code

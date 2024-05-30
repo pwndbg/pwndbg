@@ -76,7 +76,7 @@ The portable version includes all necessary dependencies and should work without
 
 ### Download the Portable Version:
 
-Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version. 
+Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version.
 Choose the appropriate version for your system architecture (x86_64 or aarch64).
 
 ### Installation on RPM-based Systems (CentOS/Alma/Rocky/RHEL):
@@ -129,7 +129,7 @@ Want to help with development? Read [CONTRIBUTING](.github/CONTRIBUTING.md) or [
 ## How to develop?
 To run tests locally you can do this in docker image, after cloning repo run simply
 ```shell
-docker-compose run main ./tests.sh 
+docker-compose run main ./tests.sh
 ```
 Disclaimer - this won't work on apple silicon macs.
 
