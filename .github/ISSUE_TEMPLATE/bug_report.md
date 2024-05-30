@@ -28,7 +28,7 @@ Briefly describe the problem you are having in a few paragraphs.
 
 <!--
 What do we have to do to reproduce the problem?
-If this is connected to particular C/asm code, 
+If this is connected to particular C/asm code,
 please provide the smallest C code that reproduces the issue.
 -->
 

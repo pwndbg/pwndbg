@@ -1,5 +1,5 @@
 name: Lint
-on: 
+on:
   pull_request:
     paths:
       - '**'
@@ -32,7 +32,7 @@ jobs:
       run: |
         git diff-index --quiet HEAD -- pwndbg tests
         ./lint.sh
-        
+
     - name: Run mypy
       uses: tsuyoshicho/action-mypy@v4
       with:

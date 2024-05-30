@@ -1,5 +1,5 @@
 name: Docker build
-on: 
+on:
   pull_request:
     paths:
       - '**'
