@@ -61,6 +61,11 @@ environ["PWNLIB_NOTERM"] = "1"
 import pwndbg  # noqa: F401
 import pwndbg.profiling
 
+import pwndbg.dbg
+import pwndbg.dbg.gdb
+pwndbg.dbg.dbg = pwndbg.dbg.gdb.GDB()
+pwndbg.dbg.dbg.setup()
+
 pwndbg.profiling.init(_profiler, _start_time)
 if environ.get("PWNDBG_PROFILE") == "1":
     pwndbg.profiling.profiler.stop("pwndbg-load.pstats")

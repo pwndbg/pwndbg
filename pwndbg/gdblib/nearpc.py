@@ -18,6 +18,7 @@ import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.ida
+import pwndbg.lib.config
 import pwndbg.lib.functions
 import pwndbg.ui
 from pwndbg.color import ColorConfig
@@ -62,13 +63,13 @@ show_opcode_bytes = pwndbg.gdblib.config.add_param(
     "nearpc-num-opcode-bytes",
     0,
     "number of opcode bytes to print for each instruction",
-    param_class=gdb.PARAM_ZUINTEGER,
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
 opcode_separator_bytes = pwndbg.gdblib.config.add_param(
     "nearpc-opcode-separator-bytes",
     1,
     "number of spaces between opcode bytes",
-    param_class=gdb.PARAM_ZUINTEGER,
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
 
 

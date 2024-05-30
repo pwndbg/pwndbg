@@ -14,6 +14,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
+import pwndbg.lib.config
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -34,7 +35,7 @@ on              - emulation is done to resolve registers/memory values etc.
 Emulation can slow down Pwndbg. Disabling it may improve performance.
 Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
 """,
-    param_class=gdb.PARAM_ENUM,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["on", "off", "jumps-only"],
 )
 

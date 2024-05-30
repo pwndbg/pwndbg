@@ -26,6 +26,7 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.heap
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
 
@@ -36,7 +37,7 @@ safe_lnk = pwndbg.gdblib.config.add_param(
     "safe-linking",
     None,
     "whether glibc use safe-linking (on/off/auto)",
-    param_class=gdb.PARAM_AUTO_BOOLEAN,
+    param_class=pwndbg.lib.config.PARAM_AUTO_BOOLEAN,
 )
 
 glibc_version = pwndbg.gdblib.config.add_param(

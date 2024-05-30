@@ -10,16 +10,16 @@ import struct
 import sys
 import termios
 
-import gdb
+#import gdb
 
 import pwndbg.color.context as C
-import pwndbg.gdblib.arch
+#import pwndbg.gdblib.arch
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
-from pwndbg.gdblib import config
+from pwndbg.config import config
 
 theme.add_param("banner-separator", "─", "repeated banner separator character")
 theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")
@@ -63,6 +63,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
 
 
 def addrsz(address) -> str:
+    return "%#16x"
     address = int(address) & pwndbg.gdblib.arch.ptrmask
     return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
 
@@ -95,6 +96,7 @@ def get_cmd_window_size():
     Output of "info win" in non-TUI mode:
     (gdb) info win
     The TUI is not active."""
+    return 80,24
     try:
         info_out = gdb.execute("info win", to_string=True).split()
     except gdb.error:

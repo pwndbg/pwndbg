@@ -8,6 +8,7 @@ import argparse
 
 import pwndbg.commands
 import pwndbg.gdblib.config
+import pwndbg.lib.config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
@@ -161,10 +162,10 @@ def configfile_print_scope(scope: str, show_all: bool = False) -> None:
             print(hint("Showing only changed values:"))
         for p in params:
             native_default = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.default, param_class=p.param_class
+                p.default, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             native_value = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.value, param_class=p.param_class
+                p.value, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             print(f"# {p.name}: {p.set_show_doc}")
             print(f"# default: {native_default}")

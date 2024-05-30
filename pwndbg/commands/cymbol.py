@@ -32,6 +32,7 @@ from typing_extensions import Protocol
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.arch
+import pwndbg.lib.config
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
 from pwndbg.color import message
@@ -43,14 +44,14 @@ gcc_compiler_path = pwndbg.gdblib.config.add_param(
     "gcc-compiler-path",
     "",
     "path to the gcc/g++ toolchain for generating imported symbols",
-    param_class=gdb.PARAM_OPTIONAL_FILENAME,
+    param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
 )
 
 cymbol_editor = pwndbg.gdblib.config.add_param(
     "cymbol-editor",
     "",
     "path to the editor for editing custom structures",
-    param_class=gdb.PARAM_OPTIONAL_FILENAME,
+    param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.

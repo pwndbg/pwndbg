@@ -10,22 +10,34 @@ from typing import List
 from typing import Sequence
 from typing import TypeVar
 
-import gdb
-
 T = TypeVar("T")
+
+# Boolean value. True or False, same as in Python.
+PARAM_BOOLEAN = 0
+# Signed integer value.
+PARAM_ZINTEGER = 1
+# String value. Accepts escape sequences.
+PARAM_STRING = 2
+# Unsigned integer value.
+PARAM_ZUINTEGER = 3
+# String value, accepts only one of a number of possible values, specified at
+# parameter creation.
+PARAM_ENUM = 4
+# String value corresponding to the name of a file, if present.
+PARAM_OPTIONAL_FILENAME = 5
+# Boolean value, or 'auto'.
+PARAM_AUTO_BOOLEAN = 6
 
 PARAM_CLASSES = {
     # The Python boolean values, True and False are the only valid values.
-    bool: gdb.PARAM_BOOLEAN,
+    bool: PARAM_BOOLEAN,
     # This is like PARAM_INTEGER, except 0 is interpreted as itself.
-    int: gdb.PARAM_ZINTEGER,
+    int: PARAM_ZINTEGER,
     # When the user modifies the string, any escape sequences,
     # such as ‘\t’, ‘\f’, and octal escapes, are translated into
     # corresponding characters and encoded into the current host charset.
-    str: gdb.PARAM_STRING,
+    str: PARAM_STRING,
 }
-
-
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
 # other comparison operators handled for us
 @total_ordering
