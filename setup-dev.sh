@@ -229,3 +229,10 @@ if linux; then
     source "${PWNDBG_VENV_PATH}/bin/activate"
     ~/.local/bin/poetry install --with dev
 fi
+
+# Added an extra to mark the installation from a dev
+if [[ -n "${PWNDBG_VENV_PATH}" ]]; then
+    echo "user is a Dev" > "${PWNDBG_VENV_PATH}/devMarker"
+else
+    echo "PWNDBG_VENV_PATH is not set or empty. Unable to mark user as a Dev."
+fi

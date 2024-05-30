@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import cProfile
+import hashlib
 import os
 import site
+import subprocess
 import sys
 import time
 from glob import glob
@@ -31,6 +33,34 @@ else:
     if not os.path.exists(venv_path):
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
+
+    poetry_lock_file = os.path.join(directory, "poetry.lock")
+    poetry_lock_hash_file = os.path.join(venv_path, "poetry.lock.hash")
+
+    if os.path.exists(poetry_lock_hash_file):
+        # Compare hashes
+        with open(poetry_lock_hash_file, "r") as f:
+            saved_hash = f.read().strip()
+        with open(poetry_lock_file, "rb") as f:
+            current_hash = hashlib.sha256(f.read()).hexdigest()
+        if saved_hash == current_hash:
+            # Hashes match, no need to install dependencies
+            sys.exit(0)
+    else:
+        dev_marker_file = os.path.join(venv_path, "devMarker")
+        if os.path.exists(dev_marker_file):
+            command = ["poetry", "install", "-with", "dev"]
+        else:
+            command = ["poetry", "install"]
+
+        # Run the command
+        subprocess.run(command, check=True)
+
+        # Compute hash of poetry.lock and save it
+        with open(poetry_lock_file, "rb") as f:
+            current_hash = hashlib.sha256(f.read()).hexdigest()
+        with open(poetry_lock_hash_file, "w") as f:
+            f.write(current_hash)
 
     site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
