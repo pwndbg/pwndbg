@@ -11,7 +11,6 @@ from glob import glob
 from os import environ
 from os import path
 
-
 _profiler = cProfile.Profile()
 
 _start_time = None
