@@ -5,7 +5,7 @@ from typing import Sequence
 
 import gdb
 
-import pwndbg.gdblib.config
+import pwndbg.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
@@ -25,7 +25,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return pwndbg.gdblib.config.add_param(
+    return pwndbg.config.add_param(
         name,
         default,
         set_show_doc,
@@ -96,7 +96,7 @@ def reset() -> None:
         symbol.value = "0"
 
 
-@pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
+@pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
     import pwndbg.gdblib.heap.ptmalloc
 

@@ -2,7 +2,7 @@
 Dynamic configuration system for pwndbg, using GDB's built-in Parameter
 mechanism.
 
-To create a new pwndbg configuration point, call ``pwndbg.gdblib.config.add_param``.
+To create a new pwndbg configuration point, call ``pwndbg.config.add_param``.
 
 Parameters should be declared in the module in which they are primarily
 used, or in this module for general-purpose parameters.
@@ -10,8 +10,8 @@ used, or in this module for general-purpose parameters.
 All pwndbg Parameter types are accessible via property access on this
 module, for example:
 
-    >>> pwndbg.gdblib.config.add_param('example-value', 7, 'an example')
-    >>> int(pwndbg.gdblib.config.example_value)
+    >>> pwndbg.config.add_param('example-value', 7, 'an example')
+    >>> int(pwndbg.config.example_value)
     7
 """
 
@@ -34,7 +34,10 @@ CLASS_MAPPING = {
     pwndbg.lib.config.PARAM_STRING: gdb.PARAM_STRING,
     pwndbg.lib.config.PARAM_ZUINTEGER: gdb.PARAM_ZUINTEGER,
     pwndbg.lib.config.PARAM_ENUM: gdb.PARAM_ENUM,
-    pwndbg.lib.config.PARAM_OPTIONAL_FILENAME: gdb.PARAM_OPTIONAL_FILENAME
+    pwndbg.lib.config.PARAM_OPTIONAL_FILENAME: gdb.PARAM_OPTIONAL_FILENAME,
+    pwndbg.lib.config.PARAM_ZUINTEGER_UNLIMITED: gdb.PARAM_ZUINTEGER_UNLIMITED,
+    pwndbg.lib.config.PARAM_INTEGER: gdb.PARAM_INTEGER,
+    pwndbg.lib.config.PARAM_UINTEGER: gdb.PARAM_UINTEGER,
 }
 
 # See this for details about the API of `gdb.Parameter`:
@@ -88,7 +91,7 @@ class Parameter(gdb.Parameter):
         else:
             self.param.value = self.value
 
-        for trigger in pwndbg.config.config.triggers[self.param.name]:
+        for trigger in pwndbg.config.triggers[self.param.name]:
             trigger()
 
         # No need to print anything if this is set before we get to a prompt,
@@ -129,6 +132,6 @@ class Parameter(gdb.Parameter):
 
 def init_params() -> None:
     # Create a gdb.Parameter for each parameter
-    for p in pwndbg.config.config.params.values():
+    for p in pwndbg.config.params.values():
         # We don't need to store this anywhere, GDB will handle this
         Parameter(p)

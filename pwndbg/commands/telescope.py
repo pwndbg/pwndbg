@@ -17,27 +17,27 @@ import pwndbg.chain
 import pwndbg.color.telescope as T
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
+import pwndbg.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 
-telescope_lines = pwndbg.gdblib.config.add_param(
+telescope_lines = pwndbg.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
 )
-skip_repeating_values = pwndbg.gdblib.config.add_param(
+skip_repeating_values = pwndbg.config.add_param(
     "telescope-skip-repeating-val",
     True,
     "whether to skip repeating values of the telescope command",
 )
-skip_repeating_values_minimum = pwndbg.gdblib.config.add_param(
+skip_repeating_values_minimum = pwndbg.config.add_param(
     "telescope-skip-repeating-val-minimum",
     3,
     "minimum amount of repeated values before skipping lines",
 )
-print_framepointer_offset = pwndbg.gdblib.config.add_param(
+print_framepointer_offset = pwndbg.config.add_param(
     "telescope-framepointer-offset",
     True,
     "print offset to framepointer for each address, if sufficiently small",

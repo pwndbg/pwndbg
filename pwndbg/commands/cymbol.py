@@ -40,14 +40,14 @@ from pwndbg.color import message
 P = ParamSpec("P")
 T = TypeVar("T")
 
-gcc_compiler_path = pwndbg.gdblib.config.add_param(
+gcc_compiler_path = pwndbg.config.add_param(
     "gcc-compiler-path",
     "",
     "path to the gcc/g++ toolchain for generating imported symbols",
     param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
 )
 
-cymbol_editor = pwndbg.gdblib.config.add_param(
+cymbol_editor = pwndbg.config.add_param(
     "cymbol-editor",
     "",
     "path to the editor for editing custom structures",

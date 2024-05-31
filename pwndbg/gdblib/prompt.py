@@ -35,7 +35,7 @@ for line in hint_lines:
     print(message.prompt("pwndbg: ") + message.system(line))
 
 # noinspection PyPackageRequirements
-show_tip = pwndbg.gdblib.config.add_param(
+show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
@@ -84,7 +84,7 @@ def reset_context_shown(*a: Any) -> None:
     context_shown = False
 
 
-@pwndbg.gdblib.config.trigger(message.config_prompt_color, disable_colors)
+@pwndbg.config.trigger(message.config_prompt_color, disable_colors)
 def set_prompt() -> None:
     prompt = "pwndbg> "
 

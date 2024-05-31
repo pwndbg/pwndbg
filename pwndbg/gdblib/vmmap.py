@@ -43,14 +43,14 @@ explored_pages: List[pwndbg.lib.memory.Page] = []
 custom_pages: List[pwndbg.lib.memory.Page] = []
 
 
-kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
+kernel_vmmap_via_pt = pwndbg.config.add_param(
     "kernel-vmmap-via-page-tables",
     "deprecated",
     "the deprecated config of the method get kernel vmmap",
     help_docstring="Deprecated in favor of `kernel-vmmap`",
 )
 
-kernel_vmmap = pwndbg.gdblib.config.add_param(
+kernel_vmmap = pwndbg.config.add_param(
     "kernel-vmmap",
     "page-tables",
     "the method to get vmmap information when debugging via QEMU kernel",

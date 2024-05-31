@@ -53,7 +53,7 @@ def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) ->
         # None if not overridden
         override_setting = True if force_emulate else (False if no_emulate else None)
         use_emulation = (
-            bool(pwndbg.gdblib.config.emulate == "on")
+            bool(pwndbg.config.emulate == "on")
             if override_setting is None
             else override_setting
         )

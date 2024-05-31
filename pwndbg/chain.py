@@ -15,7 +15,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
 
-LIMIT = pwndbg.gdblib.config.add_param(
+LIMIT = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 

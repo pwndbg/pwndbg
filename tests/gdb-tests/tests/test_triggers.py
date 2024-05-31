@@ -4,7 +4,8 @@ from unittest import mock
 
 import gdb
 
-from pwndbg.gdblib import config
+import pwndbg.lib.config
+from pwndbg.config import config
 
 
 def set_show(param_name, value):
@@ -32,12 +33,12 @@ def test_triggers():
             set_show(param_name, 0)
             set_show(param_name, 1)
             set_show(param_name, -1)
-        elif isinstance(p.value, str) and p.param_class != gdb.PARAM_ENUM:
+        elif isinstance(p.value, str) and p.param_class != pwndbg.lib.config.PARAM_ENUM:
             set_show(param_name, "")
             set_show(param_name, "some invalid text")
             set_show(param_name, "red")
             set_show(param_name, "bold,yellow")
-        elif isinstance(p.value, str) and p.param_class == gdb.PARAM_ENUM:
+        elif isinstance(p.value, str) and p.param_class == pwndbg.lib.config.PARAM_ENUM:
             # Only valid values are allowed, invalid values will cause an error
             for enum in p.enum_sequence:
                 set_show(param_name, enum)

@@ -21,7 +21,7 @@ _NEWEST = "newest"
 _ASK = "ask"
 _OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "attachp-resolution-method",
     _ASK,
     f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_NONE}" or "{_ASK}"(default))',
@@ -87,7 +87,7 @@ def attachp(no_truncate, target) -> None:
                 return
 
             if len(pids) > 1:
-                method = pwndbg.gdblib.config.attachp_resolution_method
+                method = pwndbg.config.attachp_resolution_method
 
                 if method not in _OPTIONS:
                     print(

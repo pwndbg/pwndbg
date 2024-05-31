@@ -15,7 +15,7 @@ import pwndbg.commands
 import pwndbg.gdblib.disasm
 import pwndbg.enhance
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
+import pwndbg.config
 import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message
@@ -47,7 +47,7 @@ def print_search_hit(address) -> None:
     print(region, addr, display)
 
 
-auto_save = pwndbg.gdblib.config.add_param(
+auto_save = pwndbg.config.add_param(
     "auto-save-search", False, 'automatically pass --save to "search" command'
 )
 parser = argparse.ArgumentParser(
@@ -209,7 +209,7 @@ def search(
         type = {4: "dword", 8: "qword"}[pwndbg.gdblib.arch.ptrsize]
 
     if save is None:
-        save = bool(pwndbg.gdblib.config.auto_save_search)
+        save = bool(pwndbg.config.auto_save_search)
 
     if hex:
         try:

@@ -9,9 +9,9 @@ from types import ModuleType
 import gdb
 
 from pwndbg.gdblib import arch as arch_mod
-from pwndbg.gdblib import config as config_mod
 from pwndbg.gdblib.arch import arch as arch
-from pwndbg.gdblib.config import config as config
+
+from pwndbg.gdblib import config as config_mod
 
 regs = None
 

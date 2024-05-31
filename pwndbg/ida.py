@@ -25,7 +25,7 @@ from typing_extensions import ParamSpec
 
 import pwndbg.decorators
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
+import pwndbg.config
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
@@ -33,14 +33,14 @@ import pwndbg.gdblib.regs
 import pwndbg.lib.cache
 from pwndbg.color import message
 
-ida_rpc_host = pwndbg.gdblib.config.add_param(
+ida_rpc_host = pwndbg.config.add_param(
     "ida-rpc-host", "127.0.0.1", "ida xmlrpc server address"
 )
-ida_rpc_port = pwndbg.gdblib.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
-ida_enabled = pwndbg.gdblib.config.add_param(
+ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
+ida_enabled = pwndbg.config.add_param(
     "ida-enabled", False, "whether to enable ida integration"
 )
-ida_timeout = pwndbg.gdblib.config.add_param(
+ida_timeout = pwndbg.config.add_param(
     "ida-timeout", 2, "time to wait for ida xmlrpc in seconds"
 )
 
@@ -60,7 +60,7 @@ T = TypeVar("T")
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.gdblib.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
+@pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
 def init_ida_rpc_client() -> None:
     global _ida, _ida_last_exception, _ida_last_connection_check
 
@@ -97,8 +97,8 @@ def init_ida_rpc_client() -> None:
             or _ida_last_exception.args != exception[1].args
         ):
             if (
-                hasattr(pwndbg.gdblib.config, "exception_verbose")
-                and pwndbg.gdblib.config.exception_verbose
+                hasattr(pwndbg.config, "exception_verbose")
+                and pwndbg.config.exception_verbose
             ):
                 print(message.error("[!] Ida Pro xmlrpc error"))
                 traceback.print_exception(*exception)

@@ -20,7 +20,7 @@ import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.commands import context
-from pwndbg.gdblib import config
+from pwndbg.config import config
 from pwndbg.gdblib import regs as REGS
 
 config.add_param(

@@ -27,6 +27,12 @@ PARAM_ENUM = 4
 PARAM_OPTIONAL_FILENAME = 5
 # Boolean value, or 'auto'.
 PARAM_AUTO_BOOLEAN = 6
+# Unlimited ZUINTEGER.
+PARAM_ZUINTEGER_UNLIMITED = 7
+# Signed integer value. Disallows zero.
+PARAM_INTEGER = 8
+# Unsigned integer value. Disallows zero.
+PARAM_UINTEGER = 9
 
 PARAM_CLASSES = {
     # The Python boolean values, True and False are the only valid values.
