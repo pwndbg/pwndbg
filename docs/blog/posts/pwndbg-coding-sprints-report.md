@@ -104,8 +104,8 @@ I won't lie: most people that came were friends of mine, some of which I play [C
 On the EP sprint, since we were just a group of four, we focused on small improvements to the codebase. In total, we did the following:
 * [reviewed and merged the fs/gs_base fetching improvement PR](https://github.com/pwndbg/pwndbg/pull/1030),
 * [pinned the project's dependencies](https://github.com/pwndbg/pwndbg/pull/1033),
-* [updated the unicorn dependency version](https://github.com/pwndbg/pwndbg/pull/1034), 
-* [added a "tip of the day" feature](https://github.com/pwndbg/pwndbg/pull/1036), 
+* [updated the unicorn dependency version](https://github.com/pwndbg/pwndbg/pull/1034),
+* [added a "tip of the day" feature](https://github.com/pwndbg/pwndbg/pull/1036),
 * [improved the UX of using Pwndbg within a Python virtual environment](https://github.com/pwndbg/pwndbg/pull/1037),
 * and also [worked on enhancing the display of arguments when stopping on a call to the printf functions family](https://github.com/pwndbg/pwndbg/pull/1038).
 

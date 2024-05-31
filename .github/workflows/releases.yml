@@ -7,7 +7,7 @@ on:
     paths:
       - '**'
       - '!mkdocs.yml'
-      - '!docs/**'      
+      - '!docs/**'
     tags:
       - '*'
 

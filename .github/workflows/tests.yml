@@ -47,6 +47,7 @@ jobs:
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
       run: |
+        source .venv/bin/activate
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov

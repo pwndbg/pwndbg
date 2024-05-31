@@ -14,7 +14,7 @@ from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
             return InstructionCondition.UNDETERMINED
 
@@ -71,8 +71,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
-    def immediate_string(self, instruction, operand):
-        return "#" + super().immediate_string(instruction, operand)
+    def _immediate_string(self, instruction, operand):
+        return "#" + super()._immediate_string(instruction, operand)
 
 
 assistant = DisassemblyAssistant("arm")

@@ -52,7 +52,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
 
     # Override
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
@@ -60,7 +60,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         resolved_operands: List[int] = []
         for op in instruction.operands:
             resolved_operands.append(
-                super().resolve_used_value(op.before_value, instruction, op, emu)
+                super()._resolve_used_value(op.before_value, instruction, op, emu)
             )
 
         # If any of the relevent operands are None (we can't reason about them), quit.

@@ -235,7 +235,9 @@ class NodeCache:
     @property
     def partial_slabs(self) -> List[Slab]:
         ret = []
-        for slab in for_each_entry(self._node_cache["partial"], "struct slab", "slab_list"):
+        for slab in for_each_entry(
+            self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
+        ):
             ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
         return ret
 

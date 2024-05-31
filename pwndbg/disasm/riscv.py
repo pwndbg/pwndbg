@@ -52,7 +52,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
@@ -72,7 +72,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.UNDETERMINED
 
-    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
@@ -102,7 +102,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
-        return super().resolve_target(instruction, emu, call)
+        return super()._resolve_target(instruction, emu, call)
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")
