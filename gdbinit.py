@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import cProfile
+import hashlib
 import os
 import site
+import subprocess
 import sys
 import time
-import hashlib
-import subprocess
-import os
-
-from pwndbg import config
 from glob import glob
 from os import environ
 from os import path
+
 
 _profiler = cProfile.Profile()
 
@@ -25,40 +23,43 @@ if environ.get("PWNDBG_PROFILE") == "1":
 # Get virtualenv's site-packages path
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
+
 def calculate_hash(file_path):
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         file_hash = hashlib.sha256()
         while chunk := f.read(8192):
             file_hash.update(chunk)
     return file_hash.hexdigest()
 
+
 def run_poetry_install(dev=False):
-    command = ['poetry', 'install']
+    command = ["poetry", "install"]
     if dev:
-        command = ['poetry', 'install', '--with', 'dev']
+        command = ["poetry", "install", "--with", "dev"]
     subprocess.run(command, check=True)
 
-PWNDBG_VENV_PATH = os.getenv('PWNDBG_VENV_PATH')
-POETRY_LOCK_PATH = os.path.join(os.path.dirname(__file__), 'poetry.lock')
-POETRY_LOCK_HASH_PATH = os.path.join(PWNDBG_VENV_PATH, 'poetry.lock.hash')
-DEV_MARKER_PATH = os.path.join(PWNDBG_VENV_PATH, 'dev.marker')
+
+PWNDBG_VENV_PATH = os.getenv("PWNDBG_VENV_PATH")
+POETRY_LOCK_PATH = os.path.join(os.path.dirname(__file__), "poetry.lock")
+POETRY_LOCK_HASH_PATH = os.path.join(PWNDBG_VENV_PATH, "poetry.lock.hash")
+DEV_MARKER_PATH = os.path.join(PWNDBG_VENV_PATH, "dev.marker")
 
 # verify virtual environment path exists
 os.makedirs(PWNDBG_VENV_PATH, exist_ok=True)
 
 current_hash = calculate_hash(POETRY_LOCK_PATH)
 if os.path.exists(POETRY_LOCK_HASH_PATH):
-    with open(POETRY_LOCK_HASH_PATH, 'r') as f:
+    with open(POETRY_LOCK_HASH_PATH, "r") as f:
         stored_hash = f.read().strip()
 else:
     stored_hash = None
 
-dev_mode = os.path.exists(DEV_MARKER_PATH) # checks if dev.Marker exists
+dev_mode = os.path.exists(DEV_MARKER_PATH)  # checks if dev.marker exists
 
-# if hashes doesn't match, run the appropriate command based dev.marker file 
+# if hashes doesn't match, run the appropriate command based dev.marker file
 if current_hash != stored_hash:
     run_poetry_install(dev=dev_mode)
-    with open(POETRY_LOCK_HASH_PATH, 'w') as f:
+    with open(POETRY_LOCK_HASH_PATH, "w") as f:
         f.write(current_hash)
 
 if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
