@@ -24,12 +24,7 @@ venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
 def calculate_hash(file_path):
-    with open(file_path, "rb") as f:
-        file_hash = hashlib.sha256()
-        while chunk := f.read(8192):
-            file_hash.update(chunk)
-    return file_hash.hexdigest()
-
+    return hashlib.file_digest(open(file_path, "rb"), "sha256").hexdigest()
 
 def run_poetry_install(dev=False):
     command = ["poetry", "install"]
@@ -53,8 +48,9 @@ if os.path.exists(POETRY_LOCK_HASH_PATH):
 else:
     stored_hash = None
 
-dev_mode = os.path.exists(DEV_MARKER_PATH)  # checks if dev.marker exists
-
+# checks if dev.marker exists
+dev_mode = os.path.exists(DEV_MARKER_PATH) 
+ 
 # if hashes doesn't match, run the appropriate command based dev.marker file
 if current_hash != stored_hash:
     run_poetry_install(dev=dev_mode)
