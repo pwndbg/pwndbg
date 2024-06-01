@@ -42,7 +42,7 @@ printf("a=%p\nb=%p\nc=%p\nd=%p\ne=%p\nf=%p\ng=%p\n", a, b, c, d, e, f, g);
 
 /*
 Every function MUST have two comments: "break1" and "break2"
-One after setup, second just before line triggering the bug 
+One after setup, second just before line triggering the bug
 */
 
 void invalid_pointer_overflow() {
@@ -241,7 +241,7 @@ int main(int argc, char const *argv[]) {
         case 14: corrupted_unsorted_chunks(); break;
         default: printf("Unknown\n");
     }
-    
+
     puts("END");
     return 0;
 }

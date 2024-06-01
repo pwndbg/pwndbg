@@ -81,7 +81,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
-            telescope_addresses = super().telescope(
+            telescope_addresses = super()._telescope(
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
@@ -102,11 +102,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                         f"<Cannot dereference [{MemoryColor.get(left.before_value)}]>"
                     )
                 else:
-                    instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+                    instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
-                instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+                instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
             # MOV REG, [MEM]
             elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
@@ -131,7 +131,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     telescope_print = None
                 else:
                     # Start showing at dereferenced by, hence the [1:]
-                    telescope_print = f"{super().telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                    telescope_print = f"{super()._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
 
                 if telescope_print is not None:
                     instruction.annotation = f"{left.str}, {right.str} => {telescope_print}"
@@ -168,10 +168,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
         if right.before_value is not None:
-            telescope_addresses = super().telescope(
+            telescope_addresses = super()._telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, right, emu
             )
-            instruction.annotation = f"{left.str} => {super().telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
     def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
@@ -295,7 +295,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     # Override
-    def resolve_used_value(
+    def _resolve_used_value(
         self,
         value: int | None,
         instruction: PwndbgInstruction,
@@ -306,12 +306,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return None
 
         if operand.type == CS_OP_MEM:
-            return self.read_memory(value, operand.cs_op.size, instruction, operand, emu)
+            return self._read_memory(value, operand.cs_op.size, instruction, operand, emu)
         else:
-            return super().resolve_used_value(value, instruction, operand, emu)
+            return super()._resolve_used_value(value, instruction, operand, emu)
 
     # Override
-    def read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
+    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
         if operand_id == X86_REG_RIP:
@@ -319,10 +319,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
         else:
-            return super().read_register(instruction, operand_id, emu)
+            return super()._read_register(instruction, operand_id, emu)
 
     # Override
-    def parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
+    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
 
@@ -332,8 +332,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return None
 
         if op.mem.base != 0:
-            base = self.read_register(instruction, op.mem.base, emu)
-            # read_register(instruction, op.mem.base)
+            base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
                 return None
             target += base
@@ -343,8 +342,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         if op.mem.index != 0:
             scale = op.mem.scale
-            index = self.read_register(instruction, op.mem.index, emu)
-            # index = self.read_register(instruction, op.mem.index)
+            index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
 
@@ -353,14 +351,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return target
 
     # Override
-    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
-            return super().resolve_target(instruction, emu, call=call)
+            return super()._resolve_target(instruction, emu, call=call)
 
         # Stop disassembling at RET if we won't know where it goes to without emulation
         if instruction.address != pwndbg.gdblib.regs.pc:
-            return super().resolve_target(instruction, emu, call=call)
+            return super()._resolve_target(instruction, emu, call=call)
 
         # Otherwise, resolve the return on the stack
         pop = 0
@@ -373,7 +371,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
 
     # Override
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return InstructionCondition.UNDETERMINED
