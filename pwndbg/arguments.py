@@ -58,7 +58,6 @@ ida_replacements = {
 }
 
 
-
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,

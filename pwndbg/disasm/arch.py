@@ -191,7 +191,7 @@ class DisassemblyAssistant:
 
         # Don't disable emulation yet, as we can use it to read the syscall register
         enhancer._enhance_syscall(instruction, emu)
-        
+
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
@@ -199,7 +199,6 @@ class DisassemblyAssistant:
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation - not emulating certain type of instruction")
-
 
         # This function will .single_step the emulation
         if not enhancer._enhance_operands(instruction, emu, jump_emu):
@@ -384,7 +383,7 @@ class DisassemblyAssistant:
             return pwndbg.gdblib.regs[regname]
         else:
             return None
-    
+
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
         self,
@@ -515,9 +514,8 @@ class DisassemblyAssistant:
             )
 
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        
         if CS_GRP_INT not in instruction.groups:
-                return None
+            return None
 
         syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
         syscall_arch = pwndbg.gdblib.arch.name
@@ -538,10 +536,12 @@ class DisassemblyAssistant:
             if is_32bit:
                 syscall_arch = "i386"
 
-        instruction.syscall = self._read_register_name(instruction,syscall_register,emu)
+        instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
-            instruction.syscall_name = pwndbg.constants.syscall(instruction.syscall, syscall_arch) or "<unk_%d>" % instruction.syscall
-
+            instruction.syscall_name = (
+                pwndbg.constants.syscall(instruction.syscall, syscall_arch)
+                or "<unk_%d>" % instruction.syscall
+            )
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """

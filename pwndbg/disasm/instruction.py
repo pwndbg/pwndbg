@@ -223,7 +223,6 @@ class PwndbgInstruction:
         We retain it so the output is consistent between prints
         """
 
-
         self.syscall: int | None = None
         """
         The syscall number for this instruction, if it is a syscall. Otherwise None.
