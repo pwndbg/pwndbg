@@ -307,8 +307,6 @@ def nearpc(
             if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
 
-        if instr.syscall is not None:
-            line += " <%s>" % c.syscall_name("SYS_" + instr.syscall_name)
 
         # For Comment Function
         try:
