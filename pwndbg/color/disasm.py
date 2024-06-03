@@ -72,15 +72,15 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
     current_group: List[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
-        added_padding = False
-
-        if ins.syscall is not None:
-            asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
-
-        elif ins.can_change_instruction_pointer:
+        if ins.can_change_instruction_pointer:
             sym = ins.target_string
 
             asm = f"{ljust_colored(asm, 36)} <{sym}>"
+
+            paddings.append(None)
+            if current_group:
+                groups.append(current_group)
+                current_group = []
         else:
             if ins.syscall is not None:
                 asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
@@ -116,13 +116,6 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                     ins.annotation_padding = cur_padding_len
 
             paddings.append(cur_padding_len)
-            added_padding = True
-
-        if not added_padding:
-            paddings.append(None)
-            if current_group:
-                groups.append(current_group)
-                current_group = []
 
         result.append(asm)
 
