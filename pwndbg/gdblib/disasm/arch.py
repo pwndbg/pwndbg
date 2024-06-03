@@ -84,7 +84,7 @@ def syntax_highlight(ins):
 
 
 DEBUG_ENHANCEMENT = False
-DEBUG_ENHANCEMENT = True
+# DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
