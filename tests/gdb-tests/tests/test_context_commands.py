@@ -177,7 +177,7 @@ def test_context_disasm_syscalls_args_display(start_binary):
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall  <SYS_read>\n"
         "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
         " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "        name:      0x1337\n"
