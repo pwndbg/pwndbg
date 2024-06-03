@@ -21,6 +21,7 @@ c = ColorConfig(
         ColorParamSpec("data", "purple", "color for all other writable memory"),
         ColorParamSpec("rodata", "normal", "color for all read only memory"),
         ColorParamSpec("rwx", "underline", "color added to all RWX memory"),
+        ColorParamSpec("guard", "cyan", "color added to all guard pages (no perms)"),
     ],
 )
 
@@ -76,6 +77,8 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
         color = c.code
     elif page.rw:
         color = c.data
+    elif page.is_guard:
+        color = c.guard
     else:
         color = c.rodata
 
