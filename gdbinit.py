@@ -21,14 +21,17 @@ if environ.get("PWNDBG_PROFILE") == "1":
 # Get virtualenv's site-packages path
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
+
 def calculate_hash(file_path):
     return hashlib.file_digest(open(file_path, "rb"), "sha256").hexdigest()
+
 
 def run_poetry_install(dev=False):
     command = ["poetry", "install"]
     if dev:
         command = ["poetry", "install", "--with", "dev"]
     subprocess.run(command, check=True)
+
 
 def update_deps():
     poetry_lock_path = os.path.join(os.path.dirname(__file__), "poetry.lock")
@@ -50,6 +53,7 @@ def update_deps():
         with open(poetry_lock_hash_path, "w") as f:
             f.write(current_hash)
 
+
 if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
     pass
 else:
@@ -64,7 +68,7 @@ else:
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
     update_deps()
-    
+
     site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
     # add virtualenv's site-packages to sys.path and run .pth files
