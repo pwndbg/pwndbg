@@ -185,6 +185,13 @@ class DisassemblyAssistant:
                     )
                 emu = jump_emu = None
 
+        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
+            pwndbg.gdblib.arch.current, generic_assistant
+        )
+
+        # Don't disable emulation yet, as we can use it to read the syscall register
+        enhancer._enhance_syscall(instruction, emu)
+        
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
@@ -193,9 +200,6 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation - not emulating certain type of instruction")
 
-        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
-            pwndbg.gdblib.arch.current, generic_assistant
-        )
 
         # This function will .single_step the emulation
         if not enhancer._enhance_operands(instruction, emu, jump_emu):
@@ -354,9 +358,16 @@ class DisassemblyAssistant:
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        # operand_id is the ID internal to Capstone
+        """
+        operand_id is the ID internal to Capstone
+        """
         regname: str = instruction.cs_insn.reg_name(operand_id)
+        return self._read_register_name(instruction, regname, emu)
 
+    # Read register by its name
+    def _read_register_name(
+        self, instruction: PwndbgInstruction, regname: str, emu: Emulator
+    ) -> int | None:
         if emu:
             # Will return the value of register after executing the instruction
             value = emu.read_register(regname)
@@ -373,7 +384,7 @@ class DisassemblyAssistant:
             return pwndbg.gdblib.regs[regname]
         else:
             return None
-
+    
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
         self,
@@ -502,6 +513,35 @@ class DisassemblyAssistant:
                 limit=limit,
                 enhance_string_len=enhance_string_len,
             )
+
+    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        
+        if CS_GRP_INT not in instruction.groups:
+                return None
+
+        syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
+        syscall_arch = pwndbg.gdblib.arch.name
+
+        # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
+        # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
+        # So here, we return no syscall name for other instructions and we also
+        # handle a case when 32-bit syscalls are executed on x64
+        if syscall_register in ("eax", "rax"):
+            mnemonic = instruction.mnemonic
+
+            is_32bit = mnemonic == "int" and instruction.operands[0].before_value == 0x80
+            if not (mnemonic == "syscall" or is_32bit):
+                return None
+
+            # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
+            # On x86, the syscall_arch is already i386, so its all fine
+            if is_32bit:
+                syscall_arch = "i386"
+
+        instruction.syscall = self._read_register_name(instruction,syscall_register,emu)
+        if instruction.syscall is not None:
+            instruction.syscall_name = pwndbg.constants.syscall(instruction.syscall, syscall_arch) or "<unk_%d>" % instruction.syscall
+
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
