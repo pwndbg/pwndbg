@@ -306,7 +306,6 @@ def nearpc(
             if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
 
-
         # For Comment Function
         try:
             line += " " * 10 + C.comment(
