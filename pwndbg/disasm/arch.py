@@ -529,9 +529,9 @@ class DisassemblyAssistant:
 
     def _get_syscall_arch(self, instruction) -> str | None:
         """
-        Return name of syscall architecture, or None to indicate it's not a syscall 
+        Return name of syscall architecture, or None to indicate it's not a syscall
         """
-        return pwndbg.gdblib.arch.name 
+        return pwndbg.gdblib.arch.name
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """

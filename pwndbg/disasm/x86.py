@@ -434,7 +434,7 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
     # Override
     def _get_syscall_arch(self, instruction: PwndbgInstruction) -> str | None:
         syscall_arch = pwndbg.gdblib.arch.name
-        
+
         # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
         # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
         # So here, we return no syscall name for other instructions and we also
@@ -452,7 +452,6 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             syscall_arch = "i386"
 
         return syscall_arch
-
 
     # Currently not used
     def memory_string_with_components_resolved(
