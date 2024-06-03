@@ -68,7 +68,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
     current_group: List[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
-        added_padding=False
+        added_padding = False
 
         if ins.syscall is not None:
             asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
@@ -113,7 +113,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
 
             paddings.append(cur_padding_len)
             added_padding = True
-        
+
         if not added_padding:
             paddings.append(None)
             if current_group:
