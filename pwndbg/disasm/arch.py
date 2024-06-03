@@ -527,6 +527,7 @@ class DisassemblyAssistant:
         if syscall_register in ("eax", "rax"):
             mnemonic = instruction.mnemonic
 
+            # We read .imm directly, because at this point we haven't enhanced the operands with values
             is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
             if not (mnemonic == "syscall" or is_32bit):
                 return None
