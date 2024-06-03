@@ -192,7 +192,7 @@ class DisassemblyAssistant:
 
         # Don't disable emulation yet, as we can use it to read the syscall register
         enhancer._enhance_syscall(instruction, emu)
-
+        
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
@@ -200,6 +200,7 @@ class DisassemblyAssistant:
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation - not emulating certain type of instruction")
+
 
         # This function will .single_step the emulation
         if not enhancer._enhance_operands(instruction, emu, jump_emu):
@@ -354,13 +355,7 @@ class DisassemblyAssistant:
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        """
-        Read value in register. Return None if cannot reason about the value in the register.
-        Different architectures use registers in different patterns, so it is best to
-        override this to get to best behavior for a given architecture. See x86.py as example.
-
-        operand_id is the ID internal to Capstone
-        """
+        # operand_id is the ID internal to Capstone
         regname: str = instruction.cs_insn.reg_name(operand_id)
         return self._read_register_name(instruction, regname, emu)
 
@@ -385,7 +380,7 @@ class DisassemblyAssistant:
             return pwndbg.gdblib.regs[regname]
         else:
             return None
-
+    
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
         self,

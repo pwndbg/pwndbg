@@ -252,6 +252,32 @@ class PwndbgInstruction:
         Ex: "openat", "read"
         """
 
+
+        self.syscall: int | None = None
+        """
+        The syscall number for this instruction, if it is a syscall. Otherwise None.
+        """
+
+        self.syscall_name: str | None = None
+        """
+        The syscall name as a string
+
+        Ex: "openat", "read"
+        """
+
+
+        self.syscall: int | None = None
+        """
+        The syscall number for this instruction, if it is a syscall. Otherwise None.
+        """
+
+        self.syscall_name: str | None = None
+        """
+        The syscall name as a string
+
+        Ex: "openat", "read"
+        """
+
         self.emulated: bool = False
         """
         If the enhancement successfully used emulation for this instruction
