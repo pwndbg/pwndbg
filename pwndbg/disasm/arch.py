@@ -83,7 +83,7 @@ def syntax_highlight(ins):
 
 
 DEBUG_ENHANCEMENT = False
-# DEBUG_ENHANCEMENT = True
+DEBUG_ENHANCEMENT = True
 
 groups = {v: k for k, v in globals().items() if k.startswith("CS_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("CS_OP_")}
@@ -527,7 +527,7 @@ class DisassemblyAssistant:
         if syscall_register in ("eax", "rax"):
             mnemonic = instruction.mnemonic
 
-            is_32bit = mnemonic == "int" and instruction.operands[0].before_value == 0x80
+            is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
             if not (mnemonic == "syscall" or is_32bit):
                 return None
 
