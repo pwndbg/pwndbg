@@ -518,24 +518,7 @@ class DisassemblyAssistant:
             return None
 
         syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
-        syscall_arch = pwndbg.gdblib.arch.name
-
-        # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
-        # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
-        # So here, we return no syscall name for other instructions and we also
-        # handle a case when 32-bit syscalls are executed on x64
-        if syscall_register in ("eax", "rax"):
-            mnemonic = instruction.mnemonic
-
-            # We read .imm directly, because at this point we haven't enhanced the operands with values
-            is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
-            if not (mnemonic == "syscall" or is_32bit):
-                return None
-
-            # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
-            # On x86, the syscall_arch is already i386, so its all fine
-            if is_32bit:
-                syscall_arch = "i386"
+        syscall_arch = self._get_syscall_arch(instruction)
 
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
@@ -543,6 +526,12 @@ class DisassemblyAssistant:
                 pwndbg.constants.syscall(instruction.syscall, syscall_arch)
                 or "<unk_%d>" % instruction.syscall
             )
+
+    def _get_syscall_arch(self, instruction) -> str | None:
+        """
+        Return name of syscall architecture, or None to indicate it's not a syscall 
+        """
+        return pwndbg.gdblib.arch.name 
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
