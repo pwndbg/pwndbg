@@ -20,6 +20,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
+import pwndbg.search
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
 
@@ -87,12 +88,39 @@ def nproc() -> int:
     return int(gdb.lookup_global_symbol("nr_cpu_ids").value())
 
 
-@requires_debug_syms(default={})
+def get_first_kernel_ro():
+    """Returns the first kernel mapping which contains the linux_banner"""
+    base = kbase()
+
+    for mapping in pwndbg.gdblib.vmmap.get():
+        if mapping.vaddr < base:
+            continue
+
+        results = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))
+
+        if len(results) > 0:
+            return mapping
+
+    return None
+
+
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
-    config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
-    config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
+    if has_debug_syms():
+        config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
+        config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
+    else:
+        mapping = get_first_kernel_ro()
+        results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]))
+
+        if len(results) == 0:
+            return None
+
+        config_start = results[0] + len("IKCFG_ST")
+        config_end = list(pwndbg.search.search(b"IKCFG_ED", start=config_start))[0]
+
     if config_start is None or config_end is None:
         return None
+
     config_size = config_end - config_start
 
     compressed_config = pwndbg.gdblib.memory.read(config_start, config_size)
@@ -116,14 +144,17 @@ def kcmdline() -> str:
     return pwndbg.gdblib.memory.string(cmdline_addr).decode("ascii")
 
 
-@requires_debug_syms(default="")
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
-    version_addr = pwndbg.gdblib.symbol.address("linux_banner")
+    if has_debug_syms():
+        version_addr = pwndbg.gdblib.symbol.address("linux_banner")
+    else:
+        mapping = get_first_kernel_ro()
+        version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
+
     return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
 
 
-@requires_debug_syms()
 @pwndbg.lib.cache.cache_until("start")
 def krelease() -> Tuple[int, ...]:
     match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
