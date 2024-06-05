@@ -15,10 +15,10 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.lib.config
+from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.emu.emulator import Emulator
 
 pwndbg.config.add_param(
     "emulate",
@@ -67,9 +67,7 @@ Unicorn emulation to annotate instructions after the current program counter
 )
 
 # Effects future instructions, as past ones have already been cached and reflect the process state at the time
-pwndbg.config.add_param(
-    "disasm-telescope-depth", 3, "Depth of telescope for disasm annotations"
-)
+pwndbg.config.add_param("disasm-telescope-depth", 3, "Depth of telescope for disasm annotations")
 
 # In disasm view, long telescoped strings might cause lines wraps
 pwndbg.config.add_param(

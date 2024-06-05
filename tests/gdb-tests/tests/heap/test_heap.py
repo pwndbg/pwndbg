@@ -4,10 +4,10 @@ import gdb
 import pytest
 
 import pwndbg
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.gdblib.heap
 import tests
 from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
 
@@ -329,7 +329,9 @@ def test_main_arena_heuristic(start_binary):
         pwndbg.gdblib.heap.current.main_arena._gdbValue.type.sizeof
         == pwndbg.gdblib.typeinfo.lookup_types("struct malloc_state").sizeof
     )
-    pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+    pwndbg.gdblib.heap.current = type(
+        pwndbg.gdblib.heap.current
+    )()  # Reset the heap object of pwndbg
 
     # Check if we can get the address of `main_arena` by parsing the .data section of the ELF of libc
     with mock_for_heuristic(["main_arena"]):
@@ -358,7 +360,9 @@ def test_mp_heuristic(start_binary):
         pwndbg.gdblib.heap.current.mp.type.sizeof
         == pwndbg.gdblib.typeinfo.lookup_types("struct malloc_par").sizeof
     )
-    pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+    pwndbg.gdblib.heap.current = type(
+        pwndbg.gdblib.heap.current
+    )()  # Reset the heap object of pwndbg
 
     # Check if we can get the address of `mp_` by parsing the .data section of the ELF of libc
     with mock_for_heuristic(["mp_"]):
@@ -395,14 +399,18 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
         pwndbg.gdblib.heap.current.thread_cache.type.sizeof
         == pwndbg.gdblib.typeinfo.lookup_types("struct tcache_perthread_struct").sizeof
     )
-    pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+    pwndbg.gdblib.heap.current = type(
+        pwndbg.gdblib.heap.current
+    )()  # Reset the heap object of pwndbg
 
     # Check if we can get the address of `tcache` by using the first chunk or by brute force
     with mock_for_heuristic(["tcache"]):
         # Check if we can find tcache by brute force
         pwndbg.gdblib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: True
         assert pwndbg.gdblib.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
-        pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+        pwndbg.gdblib.heap.current = type(
+            pwndbg.gdblib.heap.current
+        )()  # Reset the heap object of pwndbg
         # Check if we can find tcache by using the first chunk
         # # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
         pwndbg.gdblib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
@@ -434,7 +442,9 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     assert pwndbg.gdblib.heap.current.thread_arena is not None
     # Check the address of `thread_arena` is correct
     assert pwndbg.gdblib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
-    pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+    pwndbg.gdblib.heap.current = type(
+        pwndbg.gdblib.heap.current
+    )()  # Reset the heap object of pwndbg
 
     # Check if we can use brute-force to find the `thread_arena` when multi-threaded, and if we can use the `main_arena` as the `thread_arena` when single-threaded
     with mock_for_heuristic(["thread_arena"]):
@@ -462,7 +472,9 @@ def test_global_max_fast_heuristic(start_binary):
     assert pwndbg.gdblib.heap.current.global_max_fast is not None
     # Check the address of `global_max_fast` is correct
     assert pwndbg.gdblib.heap.current._global_max_fast_addr == global_max_fast_addr_via_debug_symbol
-    pwndbg.gdblib.heap.current = type(pwndbg.gdblib.heap.current)()  # Reset the heap object of pwndbg
+    pwndbg.gdblib.heap.current = type(
+        pwndbg.gdblib.heap.current
+    )()  # Reset the heap object of pwndbg
 
     # Check if we can return the default value even if we can NOT find the address of `global_max_fast`
     with mock_for_heuristic(["global_max_fast"]):

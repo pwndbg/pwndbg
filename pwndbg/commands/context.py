@@ -21,8 +21,8 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.gdblib.disasm
 import pwndbg.config
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking
 import pwndbg.gdblib.nearpc
@@ -433,9 +433,7 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "show-compact-regs-columns", 2, "the number of columns (0 for dynamic number of columns)"
 )
-pwndbg.config.add_param(
-    "show-compact-regs-min-width", 20, "the minimum width of each column"
-)
+pwndbg.config.add_param("show-compact-regs-min-width", 20, "the minimum width of each column")
 pwndbg.config.add_param(
     "show-compact-regs-separation", 4, "the number of spaces separating columns"
 )

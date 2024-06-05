@@ -16,8 +16,8 @@ from typing import List
 import pwndbg.chain
 import pwndbg.color.telescope as T
 import pwndbg.commands
-import pwndbg.gdblib.arch
 import pwndbg.config
+import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo

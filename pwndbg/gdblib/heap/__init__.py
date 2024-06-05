@@ -7,9 +7,9 @@ import gdb
 
 import pwndbg.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
-import pwndbg.gdblib.heap.heap
 import pwndbg.lib.config
 from pwndbg.color import message
 

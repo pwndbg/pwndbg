@@ -15,13 +15,13 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.config
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
-import pwndbg.gdblib.heap
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
@@ -1063,10 +1063,7 @@ def vis_heap_chunks(
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
-        pwndbg.lib.memory.round_up(
-            int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2
-        )
-        >> 1
+        pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2) >> 1
     )
 
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)

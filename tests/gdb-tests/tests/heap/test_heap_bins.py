@@ -3,10 +3,10 @@ from __future__ import annotations
 import gdb
 import pytest
 
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
-import pwndbg.gdblib.heap
 import tests
 from pwndbg.gdblib.heap.ptmalloc import BinType
 

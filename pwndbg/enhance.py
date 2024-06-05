@@ -14,9 +14,9 @@ from typing import Tuple
 
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
-import pwndbg.gdblib.disasm
-import pwndbg.gdblib.arch
 import pwndbg.config
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo

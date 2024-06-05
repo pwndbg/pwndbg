@@ -10,16 +10,16 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
-import pwndbg.gdblib.disasm.arch
 import pwndbg.enhance
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
+from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.emu.emulator import Emulator
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}

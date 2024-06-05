@@ -7,8 +7,8 @@ import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.gdblib.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm
 
 parser = argparse.ArgumentParser(description="Prints determined arguments for call instruction.")
 parser.add_argument("-f", "--force", action="store_true", help="Force displaying of all arguments.")

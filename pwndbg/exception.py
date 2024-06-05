@@ -140,4 +140,3 @@ pdb.set_trace = set_trace
 def update() -> None:
     enable = verbose or debug
     pwndbg.dbg.set_python_diagnostics(enable)
-

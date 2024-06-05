@@ -21,10 +21,10 @@ from typing import Any
 
 import gdb
 
+import pwndbg.config
 import pwndbg.decorators
 import pwndbg.lib.config
 
-import pwndbg.config
 pwndbg.config.config = pwndbg.lib.config.Config()
 
 CLASS_MAPPING = {
@@ -39,6 +39,7 @@ CLASS_MAPPING = {
     pwndbg.lib.config.PARAM_INTEGER: gdb.PARAM_INTEGER,
     pwndbg.lib.config.PARAM_UINTEGER: gdb.PARAM_UINTEGER,
 }
+
 
 # See this for details about the API of `gdb.Parameter`:
 # https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html
@@ -71,7 +72,8 @@ class Parameter(gdb.Parameter):
     @property
     def native_value(self):
         return Parameter._value_to_gdb_native(
-            self.param.value, param_class=CLASS_MAPPING[self.param.param_class])
+            self.param.value, param_class=CLASS_MAPPING[self.param.param_class]
+        )
 
     @property
     def native_default(self):
@@ -82,7 +84,10 @@ class Parameter(gdb.Parameter):
     def get_set_string(self) -> str:
         """Handles the GDB `set <param>`"""
         # GDB will set `self.value` to the user's input
-        if self.value is None and CLASS_MAPPING[self.param.param_class] in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
+        if self.value is None and CLASS_MAPPING[self.param.param_class] in (
+            gdb.PARAM_UINTEGER,
+            gdb.PARAM_INTEGER,
+        ):
             # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
             # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
             # Maybe it's a bug of GDB?

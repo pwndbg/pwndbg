@@ -7,9 +7,9 @@ from capstone import CS_GRP_JUMP
 
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.next
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 

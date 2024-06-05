@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from capstone import CS_GRP_JUMP
 
-import pwndbg.gdblib.disasm.x86
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.x86
 
 
 def is_jump_taken(instruction):

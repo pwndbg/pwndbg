@@ -23,9 +23,9 @@ import gdb
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 
+import pwndbg.config
 import pwndbg.decorators
 import pwndbg.gdblib.arch
-import pwndbg.config
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
@@ -33,16 +33,10 @@ import pwndbg.gdblib.regs
 import pwndbg.lib.cache
 from pwndbg.color import message
 
-ida_rpc_host = pwndbg.config.add_param(
-    "ida-rpc-host", "127.0.0.1", "ida xmlrpc server address"
-)
+ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
-ida_enabled = pwndbg.config.add_param(
-    "ida-enabled", False, "whether to enable ida integration"
-)
-ida_timeout = pwndbg.config.add_param(
-    "ida-timeout", 2, "time to wait for ida xmlrpc in seconds"
-)
+ida_enabled = pwndbg.config.add_param("ida-enabled", False, "whether to enable ida integration")
+ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
 
@@ -96,10 +90,7 @@ def init_ida_rpc_client() -> None:
             not isinstance(_ida_last_exception, exception[0])
             or _ida_last_exception.args != exception[1].args
         ):
-            if (
-                hasattr(pwndbg.config, "exception_verbose")
-                and pwndbg.config.exception_verbose
-            ):
+            if hasattr(pwndbg.config, "exception_verbose") and pwndbg.config.exception_verbose:
                 print(message.error("[!] Ida Pro xmlrpc error"))
                 traceback.print_exception(*exception)
             else:

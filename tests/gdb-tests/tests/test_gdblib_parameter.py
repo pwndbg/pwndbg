@@ -6,6 +6,7 @@ import pytest
 import pwndbg.config
 import pwndbg.lib.config
 
+
 @pytest.mark.parametrize(
     "params",
     (
@@ -20,7 +21,10 @@ import pwndbg.lib.config
             "enum",
             "enum1",
             "enum1",
-            {"param_class": pwndbg.lib.config.PARAM_ENUM, "enum_sequence": ["enum1", "enum2", "enum3"]},
+            {
+                "param_class": pwndbg.lib.config.PARAM_ENUM,
+                "enum_sequence": ["enum1", "enum2", "enum3"],
+            },
         ),
         # Note: GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
         (
@@ -29,7 +33,9 @@ import pwndbg.lib.config
             "0",
             {
                 "param_class": (
-                    pwndbg.lib.config.PARAM_ZUINTEGER if hasattr(gdb, "PARAM_ZUINTEGER") else "PARAM_ZUINTEGER"
+                    pwndbg.lib.config.PARAM_ZUINTEGER
+                    if hasattr(gdb, "PARAM_ZUINTEGER")
+                    else "PARAM_ZUINTEGER"
                 )
             },
         ),
@@ -75,7 +81,8 @@ def test_gdb_parameter_default_value_works(start_binary, params):
         == f"{set_show_doc.capitalize()} is {displayed_value!r}. See `help set {param_name}` for more information.\n"
     )
     if (
-        optional_kwargs.get("param_class") in (pwndbg.lib.config.PARAM_UINTEGER, pwndbg.lib.config.PARAM_INTEGER)
+        optional_kwargs.get("param_class")
+        in (pwndbg.lib.config.PARAM_UINTEGER, pwndbg.lib.config.PARAM_INTEGER)
         and default_value == 0
     ):
         # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/

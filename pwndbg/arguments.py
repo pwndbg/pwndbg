@@ -14,9 +14,9 @@ from capstone import CS_GRP_INT
 
 import pwndbg.chain
 import pwndbg.constants
+import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc

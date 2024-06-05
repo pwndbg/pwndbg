@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 
 def register_class_as_cmd(debugger, cmd, c):
     mod = c.__module__
@@ -5,5 +7,3 @@ def register_class_as_cmd(debugger, cmd, c):
     name = f"{mod if mod else ''}.{name}"
 
     print(debugger.HandleCommand(f"command script add -c {name} -s synchronous {cmd}"))
-    
-

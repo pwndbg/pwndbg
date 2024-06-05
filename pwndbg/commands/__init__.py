@@ -17,11 +17,11 @@ import gdb
 from typing_extensions import ParamSpec
 
 import pwndbg.exception
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.kernel
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
-import pwndbg.gdblib.heap
 from pwndbg.color import message
 from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator

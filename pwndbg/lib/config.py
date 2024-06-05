@@ -44,6 +44,8 @@ PARAM_CLASSES = {
     # corresponding characters and encoded into the current host charset.
     str: PARAM_STRING,
 }
+
+
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
 # other comparison operators handled for us
 @total_ordering

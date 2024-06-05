@@ -17,8 +17,8 @@ import capstone
 import gdb
 from capstone import *  # noqa: F403
 
-import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol

@@ -55,9 +55,9 @@ import gdb
 from sortedcontainers import SortedDict
 
 import pwndbg.gdblib
-import pwndbg.gdblib.symbol
 import pwndbg.gdblib.heap
 import pwndbg.gdblib.heap.ptmalloc
+import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 from pwndbg.color import message
 

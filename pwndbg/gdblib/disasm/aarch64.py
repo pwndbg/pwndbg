@@ -6,12 +6,12 @@ from typing import Dict
 from capstone import *  # noqa: F403
 from capstone.arm64 import *  # noqa: F403
 
-import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):

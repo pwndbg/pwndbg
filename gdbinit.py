@@ -59,9 +59,9 @@ gdb.execute("set charset UTF-8", to_string=True)
 environ["PWNLIB_NOTERM"] = "1"
 
 import pwndbg  # noqa: F401
+import pwndbg.dbg.gdb
 import pwndbg.profiling
 
-import pwndbg.dbg.gdb
 pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
 pwndbg.dbg.setup()
 

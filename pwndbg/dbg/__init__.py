@@ -2,7 +2,10 @@
 The abstracted debugger interface.
 """
 
+from __future__ import annotations
+
 dbg = None
+
 
 class Debugger:
     """

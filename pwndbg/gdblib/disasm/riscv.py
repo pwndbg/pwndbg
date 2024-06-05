@@ -3,12 +3,12 @@ from __future__ import annotations
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 
-import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
+from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.emu.emulator import Emulator
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):

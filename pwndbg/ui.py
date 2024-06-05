@@ -11,13 +11,13 @@ import sys
 import termios
 
 import pwndbg.color.context as C
+import pwndbg.dbg
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
 from pwndbg.config import config
-import pwndbg.dbg
 
 theme.add_param("banner-separator", "─", "repeated banner separator character")
 theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")
@@ -63,6 +63,7 @@ def banner(title, target=sys.stdin, width=None, extra=""):
 def addrsz(address) -> str:
     return pwndbg.dbg.addrsz(address)
 
+
 def get_window_size(target=sys.stdin):
     fallback = (int(os.environ.get("LINES", 20)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
@@ -79,5 +80,4 @@ def get_window_size(target=sys.stdin):
 
 
 def get_cmd_window_size():
-   return pwndbg.dbg.get_cmd_window_size()
-
+    return pwndbg.dbg.get_cmd_window_size()

@@ -14,17 +14,16 @@ from typing import TypeVar
 from typing import Union
 from typing import cast
 
-import gdb
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
-import pwndbg.gdblib.heap
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.search

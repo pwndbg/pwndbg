@@ -11,8 +11,8 @@ import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.gdblib.disasm
 import pwndbg.config
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol

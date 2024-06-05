@@ -21,9 +21,9 @@ from capstone.mips import *  # noqa: F403
 
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
+from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.emu.emulator import Emulator
 
 
 def to_signed(unsigned: int):

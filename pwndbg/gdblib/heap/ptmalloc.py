@@ -28,14 +28,14 @@ import gdb
 import pwndbg.chain
 import pwndbg.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap
+import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
-import pwndbg.gdblib.heap
-import pwndbg.gdblib.heap.heap
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.search
@@ -1569,7 +1569,8 @@ class SymbolUnresolvableError(Exception):
 
 class HeuristicHeap(
     GlibcMemoryAllocator[
-        typing.Type["pwndbg.gdblib.heap.structs.CStruct2GDB"], "pwndbg.gdblib.heap.structs.CStruct2GDB"
+        typing.Type["pwndbg.gdblib.heap.structs.CStruct2GDB"],
+        "pwndbg.gdblib.heap.structs.CStruct2GDB",
     ]
 ):
     def __init__(self) -> None:
@@ -1825,7 +1826,10 @@ class HeuristicHeap(
             return Arena(thread_arena_value)
 
         assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
-        if self.main_arena.address != pwndbg.gdblib.heap.current.main_arena.next or self.multithreaded:
+        if (
+            self.main_arena.address != pwndbg.gdblib.heap.current.main_arena.next
+            or self.multithreaded
+        ):
             if pwndbg.gdblib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
                 # TODO: Support other architectures
                 raise SymbolUnresolvableError("thread_arena")
@@ -2026,7 +2030,9 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_perthread_struct(self) -> Type["pwndbg.gdblib.heap.structs.TcachePerthreadStruct"] | None:
+    def tcache_perthread_struct(
+        self,
+    ) -> Type["pwndbg.gdblib.heap.structs.TcachePerthreadStruct"] | None:
         if not self.struct_module:
             return None
         return self.struct_module.TcachePerthreadStruct

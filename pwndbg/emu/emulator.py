@@ -20,9 +20,9 @@ import unicorn.riscv_const
 import pwndbg.chain
 import pwndbg.color.enhance as E
 import pwndbg.color.memory as M
-import pwndbg.gdblib.disasm
 import pwndbg.enhance
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
