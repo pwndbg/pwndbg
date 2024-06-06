@@ -372,8 +372,8 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int,
-    include_only_fields: Set[str] = set(),
-    exclude_fields: Set[str] = set(),
+    include_only_fields: Set[str] | None = None,
+    exclude_fields: Set[str] | None = None,
 ) -> GdbDict:
     struct_type = gdb.lookup_type("struct " + struct_name)
     fetched_struct = poi(struct_type, struct_address)
@@ -383,12 +383,15 @@ def fetch_struct_as_dictionary(
 
 def pack_struct_into_dictionary(
     fetched_struct: gdb.Value,
-    include_only_fields: Set[str] = set(),
-    exclude_fields: Set[str] = set(),
+    include_only_fields: Set[str] | None = None,
+    exclude_fields: Set[str] | None = None,
 ) -> GdbDict:
     struct_as_dictionary = {}
 
-    if len(include_only_fields) != 0:
+    if exclude_fields is None:
+        exclude_fields = set()
+
+    if include_only_fields is not None:
         for field_name in include_only_fields:
             key = field_name
             value = convert_gdb_value_to_python_value(fetched_struct[field_name])
@@ -419,3 +422,13 @@ def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
         return pack_struct_into_dictionary(gdb_value)
 
     raise NotImplementedError
+
+
+def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str]) -> str:
+    struct_type = gdb.lookup_type("struct " + struct_name)
+
+    for field_name in possible_field_names:
+        if gdb.types.has_field(struct_type, field_name):
+            return field_name
+
+    raise ValueError(f"Field name did not match any of {possible_field_names}.")
