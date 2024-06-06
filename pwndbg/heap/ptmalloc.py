@@ -167,7 +167,7 @@ def heap_for_ptr(ptr: int) -> int:
     return ptr & ~(HEAP_MAX_SIZE - 1)
 
 
-class ChunkField(Enum):
+class ChunkField(int, Enum):
     PREV_SIZE = 1
     SIZE = 2
     FD = 3
