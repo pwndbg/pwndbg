@@ -105,7 +105,6 @@ parser = argparse.ArgumentParser(description="Checks for kernel hardening config
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kchecksec() -> None:
     kconfig = pwndbg.gdblib.kernel.kconfig()
