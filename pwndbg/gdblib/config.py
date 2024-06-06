@@ -121,13 +121,13 @@ class Parameter(gdb.Parameter):
         if isinstance(value, bool):
             # Convert booleans to "on" or "off".
             return "on" if value else "off"
-        elif value is None and param_class == gdb.PARAM_AUTO_BOOLEAN:
+        elif value is None and CLASS_MAPPING[param_class] == gdb.PARAM_AUTO_BOOLEAN:
             # None for gdb.PARAM_AUTO_BOOLEAN means "auto".
             return "auto"
-        elif value == 0 and param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
+        elif value == 0 and CLASS_MAPPING[param_class] in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
             # 0 for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER means "unlimited".
             return "unlimited"
-        elif value == -1 and param_class == gdb.PARAM_ZUINTEGER_UNLIMITED:
+        elif value == -1 and CLASS_MAPPING[param_class] == gdb.PARAM_ZUINTEGER_UNLIMITED:
             # -1 for gdb.PARAM_ZUINTEGER_UNLIMITED means "unlimited".
             return "unlimited"
 
