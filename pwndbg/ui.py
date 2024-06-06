@@ -51,12 +51,14 @@ def banner(title, target=sys.stdin, width=None, extra=""):
             config.banner_title_surrounding_right,
         )
     if "left" == title_position:
-        banner = ljust_colored(title, width, config.banner_separator)
+        banner = ljust_colored(title, width, str(config.banner_separator))
     elif "right" == title_position:
-        banner = rjust_colored(title, width, config.banner_separator)
+        banner = rjust_colored(title, width, str(config.banner_separator))
     else:
-        banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
-        banner = ljust_colored(banner, width, config.banner_separator)
+        banner = rjust_colored(
+            title, (width + len(strip(title))) // 2, str(config.banner_separator)
+        )
+        banner = ljust_colored(banner, width, str(config.banner_separator))
     return C.banner(banner)
 
 

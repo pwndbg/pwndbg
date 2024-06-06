@@ -13,6 +13,7 @@ def set_show(param_name, value):
     gdb.execute(f"set {param_name} {value}")
     gdb.execute(f"show {param_name}")
 
+
 def single_param(param_name, triggers):
     p = getattr(config, param_name.replace("-", "_"))
 
@@ -48,6 +49,7 @@ def single_param(param_name, triggers):
         mock_trigger.assert_called()
 
     config.triggers[param_name] = orig_triggers
+
 
 def test_triggers():
     # The behavior of some triggers depend on the value of other parameters!

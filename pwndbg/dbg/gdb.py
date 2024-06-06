@@ -65,6 +65,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
+        pwndbg.gdblib.prompt.show_hint()
+
     def addrsz(self, address):
         address = int(address) & pwndbg.gdblib.arch.ptrmask
         return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address

@@ -25,8 +25,6 @@ import pwndbg.config
 import pwndbg.decorators
 import pwndbg.lib.config
 
-pwndbg.config.config = pwndbg.lib.config.Config()
-
 CLASS_MAPPING = {
     pwndbg.lib.config.PARAM_BOOLEAN: gdb.PARAM_BOOLEAN,
     pwndbg.lib.config.PARAM_AUTO_BOOLEAN: gdb.PARAM_AUTO_BOOLEAN,
