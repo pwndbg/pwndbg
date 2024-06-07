@@ -49,7 +49,8 @@ install_swupd() {
 install_zypper() {
     sudo zypper mr -e repo-oss-debug || sudo zypper mr -e repo-debug
     sudo zypper refresh || true
-    sudo zypper install -y gdb gdbserver python-devel python3-devel python2-pip python3-pip glib2-devel make glibc-debuginfo
+    sudo zypper install -y gdb gdbserver python-devel python3-devel python3-pip glib2-devel make glibc-debuginfo
+    sudo zypper install -y python2-pip || true  # skip py2 installation if it doesn't exist
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
