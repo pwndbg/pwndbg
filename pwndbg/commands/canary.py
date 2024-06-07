@@ -51,7 +51,6 @@ def canary(all) -> None:
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
     found_canaries = False
-    results_hidden = False
     global_canary_packed = pwndbg.gdblib.arch.pack(global_canary)
     thread_stacks = pwndbg.gdblib.stack.get()
 
