@@ -166,7 +166,7 @@ def hexdump(
 
         for i in range(count):
             try:
-                gval = pwndbg.gdblib.memory.poi(size_type, address + i * size)
+                gval = pwndbg.gdblib.memory.get_typed_pointer_value(size_type, address + i * size)
                 values.append(int(gval))
             except gdb.MemoryError:
                 break

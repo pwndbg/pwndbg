@@ -428,7 +428,7 @@ class Emulator:
             return E.integer(pwndbg.enhance.int_str(value))
 
         # Read from emulator memory
-        # intval = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
+        # intval = int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.pvoid, value))
         read_value = self.read_memory(value, pwndbg.gdblib.arch.ptrsize)
         if read_value is not None:
             # intval = pwndbg.gdblib.arch.unpack(read_value)
