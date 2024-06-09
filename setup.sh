@@ -4,7 +4,7 @@ set -e
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
-if ! hash sudo 2> /dev/null && whoami | grep root; then
+if ! hash sudo 2>/dev/null && whoami | grep root; then
     sudo() {
         ${*}
     }
@@ -12,17 +12,17 @@ fi
 
 # Helper functions
 linux() {
-    uname | grep -i Linux &> /dev/null
+    uname | grep -i Linux &>/dev/null
 }
 osx() {
-    uname | grep -i Darwin &> /dev/null
+    uname | grep -i Darwin &>/dev/null
 }
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools libglib2.0-dev libc6-dbg
+    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-pip python3-setuptools libglib2.0-dev libc6-dbg
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep x86_64 >/dev/null; then
         sudo dpkg --add-architecture i386 || true
         sudo apt-get update || true
         sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386 || true
@@ -51,7 +51,7 @@ install_zypper() {
     sudo zypper refresh || true
     sudo zypper install -y gdb gdbserver python-devel python3-devel glib2-devel make glibc-debuginfo
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep x86_64 >/dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
     fi
 }
@@ -69,7 +69,7 @@ install_pacman() {
     fi
     sudo pacman -S --noconfirm --needed git gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
     if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
-        echo "set debuginfod enabled on" >> ~/.gdbinit
+        echo "set debuginfod enabled on" >>~/.gdbinit
     fi
 }
 
@@ -86,20 +86,20 @@ usage() {
 UPDATE_MODE=
 for arg in "$@"; do
     case $arg in
-        --update)
-            UPDATE_MODE=1
-            ;;
-        -h | --help)
-            set +x
-            usage
-            exit 0
-            ;;
-        *)
-            set +x
-            echo "Unknown argument: $arg"
-            usage
-            exit 1
-            ;;
+    --update)
+        UPDATE_MODE=1
+        ;;
+    -h | --help)
+        set +x
+        usage
+        exit 0
+        ;;
+    *)
+        set +x
+        echo "Unknown argument: $arg"
+        usage
+        exit 1
+        ;;
     esac
 done
 
@@ -120,48 +120,48 @@ if linux; then
     distro=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed -e 's/"//g')
 
     case $distro in
-        "ubuntu")
+    "ubuntu")
+        install_apt
+        ;;
+    "fedora")
+        install_dnf
+        ;;
+    "clear-linux-os")
+        install_swupd
+        ;;
+    "opensuse-leap" | "opensuse-tumbleweed")
+        install_zypper
+        ;;
+    "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda" | "cachyos" | "archcraft")
+        install_pacman
+        echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
+        echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
+        ;;
+    "void")
+        install_xbps
+        ;;
+    "gentoo")
+        install_emerge
+        if ! hash sudo 2>/dev/null && whoami | grep root; then
+            sudo() {
+                ${*}
+            }
+        fi
+        ;;
+    "freebsd")
+        install_freebsd
+        ;;
+    *) # we can add more install command for each distros.
+        echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
+        if hash apt; then
             install_apt
-            ;;
-        "fedora")
+        elif hash dnf; then
             install_dnf
-            ;;
-        "clear-linux-os")
-            install_swupd
-            ;;
-        "opensuse-leap" | "opensuse-tumbleweed")
-            install_zypper
-            ;;
-        "arch" | "archarm" | "endeavouros" | "manjaro" | "garuda" | "cachyos" | "archcraft")
-            install_pacman
-            echo "Logging off and in or conducting a power cycle is required to get debuginfod to work."
-            echo "Alternatively you can manually set the environment variable: DEBUGINFOD_URLS=https://debuginfod.archlinux.org"
-            ;;
-        "void")
-            install_xbps
-            ;;
-        "gentoo")
-            install_emerge
-            if ! hash sudo 2> /dev/null && whoami | grep root; then
-                sudo() {
-                    ${*}
-                }
-            fi
-            ;;
-        "freebsd")
-            install_freebsd
-            ;;
-        *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
-            if hash apt; then
-                install_apt
-            elif hash dnf; then
-                install_dnf
-            else
-                echo "\"$distro\" is not supported and your distro don't have a package manager that we support currently."
-                exit
-            fi
-            ;;
+        else
+            echo "\"$distro\" is not supported and your distro don't have a package manager that we support currently."
+            exit
+        fi
+        ;;
     esac
 fi
 
@@ -179,20 +179,20 @@ if ! osx; then
 fi
 
 # Install poetry if not already installed
-if ! hash poetry 2> /dev/null; then
+if ! hash poetry 2>/dev/null; then
     curl -sSL https://install.python-poetry.org | python3 -
 fi
 
 if [[ -z "${POETRY_HOME}" ]]; then
-    POETRY_HOME="/.poetry"
+    POETRY_HOME=".poetry"
 fi
 
 # Create Poetry env
-$POETRY_HOME/bin/poetry install
+~/.local/bin/poetry install
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
-    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit 2> /dev/null; then
+    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit 2>/dev/null; then
         if ! osx; then
             sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
         else
@@ -202,6 +202,6 @@ if [ -z "$UPDATE_MODE" ]; then
     fi
 
     # Load Pwndbg into GDB on every launch.
-    echo "source $PWD/gdbinit.py" >> ~/.gdbinit
+    echo "source $PWD/gdbinit.py" >>~/.gdbinit
     echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
 fi

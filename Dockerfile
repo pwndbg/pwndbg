@@ -46,12 +46,10 @@ ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 ADD . /pwndbg/
-
-ENV PATH="${PWNDBG_PENV_PATH}:${POETRY_HOME}/bin:${PATH}"
+ENV PATH="${PWNDBG_VENV_PATH}:~/.local/bin/:${PATH}"
 
 ARG LOW_PRIVILEGE_USER="vscode"
 
-RUN chown ${LOW_PRIVILEGE_USER} ${PWNDBG_PENV_PATH}
 
 # Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
 # This is useful for a VSCode dev container, not really for test builds

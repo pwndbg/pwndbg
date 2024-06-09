@@ -17,13 +17,13 @@ ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
 ENV POETRY_HOME=/usr/local/poetry
-ENV PWNDBG_PENV_PATH=${POETRY_HOME}/venv
+ENV PWNDBG_VENV_PATH=${POETRY_HOME}/venv
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    pacman -Syu --noconfirm && \
-    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
-    pacman -S --noconfirm vim && \
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime &&
+    echo $TZ >/etc/timezone &&
+    pacman -Syu --noconfirm &&
+    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 &&
+    pacman -S --noconfirm vim &&
     pacman -Scc --noconfirm
 
 ADD ./setup.sh /pwndbg/
@@ -34,7 +34,7 @@ ADD ./poetry.toml /pwndbg/
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
-RUN sed -i 's/read -p "Do you want to do a full system update?/#read/' ./setup.sh && \
+RUN sed -i 's/read -p "Do you want to do a full system update?/#read/' ./setup.sh &&
     ./setup.sh
 
 # Cleanup dummy files
@@ -46,9 +46,9 @@ RUN ./setup-dev.sh
 
 ADD . /pwndbg/
 
-ENV PATH="${PWNDBG_PENV_PATH}:${POETRY_HOME}/bin:${PATH}"
+ENV PATH="${PWNDBG_VENV_PATH}:~/.local/bin/:${PATH}"
 
-RUN echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit.py && \
-    echo "PYTHON_MINOR=$(python3 -c "import sys;print(sys.version_info.minor)")" >> /root/.bashrc && \
-    echo "PYTHON_PATH=\"/usr/local/lib/python3.${PYTHON_MINOR}/dist-packages/bin\"" >> /root/.bashrc && \
-    echo "export PATH=$PATH:$PYTHON_PATH" >> /root/.bashrc
+RUN echo "source /pwndbg/gdbinit.py" >>~/.gdbinit.py &&
+    echo "PYTHON_MINOR=$(python3 -c "import sys;print(sys.version_info.minor)")" >>/root/.bashrc &&
+    echo "PYTHON_PATH=\"/usr/local/lib/python3.${PYTHON_MINOR}/dist-packages/bin\"" >>/root/.bashrc &&
+    echo "export PATH=$PATH:$PYTHON_PATH" >>/root/.bashrc

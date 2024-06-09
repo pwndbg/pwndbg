@@ -16,13 +16,13 @@ FIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f | --fix)
-            FIX=1
-            shift
-            ;;
-        *)
-            help_and_exit
-            ;;
+    -f | --fix)
+        FIX=1
+        shift
+        ;;
+    *)
+        help_and_exit
+        ;;
     esac
 done
 
@@ -40,7 +40,7 @@ set -o xtrace
 LINT_FILES="pwndbg tests *.py"
 LINT_TOOLS="isort ruff vermin mypy"
 
-if ! type ${LINT_TOOLS} &> /dev/null; then
+if ! type ${LINT_TOOLS} &>/dev/null; then
     PIP_CMD="poetry install --with dev"
     echo "Missing one of the following tools: ${LINT_TOOLS}"
     echo "Running '${PIP_CMD}'"
