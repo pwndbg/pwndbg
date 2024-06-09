@@ -16,7 +16,7 @@ WORKDIR /pwndbg
 ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
-ENV POETRY_HOME=/usr/local/poetry
+ENV POETRY_HOME=/.poetry
 ENV PWNDBG_PENV_PATH=${POETRY_HOME}/venv
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
@@ -46,7 +46,7 @@ ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 ADD . /pwndbg/
-ENV PATH="${PWNDBG_VENV_PATH}:~/.local/bin/:${PATH}"
+ENV PATH="${PWNDBG_VENV_PATH}:${POETRY_HOME}/bin:${PATH}"
 
 ARG LOW_PRIVILEGE_USER="vscode"
 

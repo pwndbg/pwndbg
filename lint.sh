@@ -26,9 +26,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Use Python virtual env for all programs used here
+# Use virtual env for all programs used here
+
+if [[ -z "${POETRY_HOME}" ]]; then
+    POETRY_HOME="/.poetry"
+fi
+
 if [[ -z "${PWNDBG_PENV_PATH}" ]]; then
-    PWNDBG_PENV_PATH="./.venv"
+    PWNDBG_PENV_PATH="${POETRY_HOME}/venv"
 fi
 
 if [[ "${PWNDBG_PENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then

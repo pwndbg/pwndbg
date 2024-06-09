@@ -183,12 +183,8 @@ if ! hash poetry 2>/dev/null; then
     curl -sSL https://install.python-poetry.org | python3 -
 fi
 
-if [[ -z "${POETRY_HOME}" ]]; then
-    POETRY_HOME=".poetry"
-fi
-
 # Create Poetry env
-~/.local/bin/poetry install
+${POETRY_HOME}/bin/poetry install
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
