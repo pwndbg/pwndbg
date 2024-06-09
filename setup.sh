@@ -171,28 +171,23 @@ if ! hash gdb; then
     exit
 fi
 
-# Find the Python version used by GDB.
-PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
-PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
-
-if ! osx; then
-    PYTHON+="${PYVER}"
+# Install Poetry
+if ! command -v poetry &> /dev/null; then
+    echo "Poetry not found. Installing Poetry..."
+    curl -sSL https://install.python-poetry.org | python3 -
+    export PATH="$HOME/.local/bin:$PATH"
+else
+    echo "Poetry is already installed."
 fi
 
-# Create Python virtualenv
+# Create the Python virtual environment and install dependencies using poetry
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 
-${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
-PYTHON=${PWNDBG_VENV_PATH}/bin/python
-
-# Upgrade pip itself
-${PYTHON} -m pip install --upgrade pip
-
-# Create Python virtual environment and install dependencies in it
-${PWNDBG_VENV_PATH}/bin/pip install -e .
+poetry config virtualenvs.path ${PWNDBG_VENV_PATH}
+poetry install
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
