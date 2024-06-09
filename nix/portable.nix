@@ -20,7 +20,7 @@ let
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
     export PYTHONHOME="$dir"
     export PYTHONPYCACHEPREFIX="$dir/cache/"
-    export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
+    export PWNDBG_PENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
     exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --early-init-eval-command="set charset UTF-8" --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
   '';
   # for cache: pwndbg --eval-command="py import compileall; compileall.compile_dir('/usr/lib/pwndbg/'); exit()"

@@ -20,7 +20,7 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-pip python3-setuptools libglib2.0-dev libc6-dbg
+    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools libglib2.0-dev libc6-dbg
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo dpkg --add-architecture i386 || true
@@ -31,13 +31,13 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel python-pip python3-pip glib2-devel make
+    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel glib2-devel make
     sudo dnf -y debuginfo-install glibc
 }
 
 install_xbps() {
     sudo xbps-install -Su
-    sudo xbps-install -Sy gdb gcc python-devel python3-devel python-pip python3-pip glibc-devel make
+    sudo xbps-install -Sy gdb gcc python-devel python3-devel glibc-devel make
     sudo xbps-install -Sy glibc-dbg
 }
 
@@ -49,8 +49,7 @@ install_swupd() {
 install_zypper() {
     sudo zypper mr -e repo-oss-debug || sudo zypper mr -e repo-debug
     sudo zypper refresh || true
-    sudo zypper install -y gdb gdbserver python-devel python3-devel python3-pip glib2-devel make glibc-debuginfo
-    sudo zypper install -y python2-pip || true # skip py2 installation if it doesn't exist
+    sudo zypper install -y gdb gdbserver python-devel python3-devel glib2-devel make glibc-debuginfo
 
     if uname -m | grep x86_64 > /dev/null; then
         sudo zypper install -y glibc-32bit-debuginfo || true
@@ -58,7 +57,7 @@ install_zypper() {
 }
 
 install_emerge() {
-    sudo emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-python/pip dev-debug/gdb
+    sudo emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-debug/gdb
 }
 
 install_pacman() {
@@ -68,14 +67,14 @@ install_pacman() {
     if [[ "$answer" == "y" ]]; then
         sudo pacman -Syu || true
     fi
-    sudo pacman -S --noconfirm --needed git gdb python python-pip python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
+    sudo pacman -S --noconfirm --needed git gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod
     if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
         echo "set debuginfod enabled on" >> ~/.gdbinit
     fi
 }
 
 install_freebsd() {
-    sudo pkg install git gdb python py39-pip cmake gmake
+    sudo pkg install git gdb python cmake gmake
     which rustc || sudo pkg install rust
 }
 
@@ -179,20 +178,17 @@ if ! osx; then
     PYTHON+="${PYVER}"
 fi
 
-# Create Python virtualenv
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
+# Install poetry if not already installed
+if ! hash poetry 2> /dev/null; then
+    curl -sSL https://install.python-poetry.org | python3 -
 fi
-echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 
-${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
-PYTHON=${PWNDBG_VENV_PATH}/bin/python
+if [[ -z "${POETRY_HOME}" ]]; then
+    POETRY_HOME="/.poetry"
+fi
 
-# Upgrade pip itself
-${PYTHON} -m pip install --upgrade pip
-
-# Create Python virtual environment and install dependencies in it
-${PWNDBG_VENV_PATH}/bin/pip install -e .
+# Create Poetry env
+$POETRY_HOME/bin/poetry install
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out

@@ -17,7 +17,7 @@ if environ.get("PWNDBG_PROFILE") == "1":
     _profiler.enable()
 
 # Get virtualenv's site-packages path
-venv_path = os.environ.get("PWNDBG_VENV_PATH")
+venv_path = os.environ.get("PWNDBG_PENV_PATH")
 if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
     pass
 else:
@@ -26,7 +26,7 @@ else:
     directory = path.abspath(directory)
 
     if not venv_path:
-        venv_path = os.path.join(directory, ".venv")
+        venv_path = os.path.join(directory, "venv")
 
     if not os.path.exists(venv_path):
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")

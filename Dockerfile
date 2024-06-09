@@ -13,11 +13,11 @@ FROM $image
 
 WORKDIR /pwndbg
 
-ENV PIP_NO_CACHE_DIR=true
 ENV LANG en_US.utf8
 ENV TZ=America/New_York
 ENV ZIGPATH=/opt/zig
-ENV PWNDBG_VENV_PATH=/venv
+ENV POETRY_HOME=/usr/local/poetry
+ENV PWNDBG_PENV_PATH=${POETRY_HOME}/venv
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
@@ -47,9 +47,11 @@ RUN ./setup-dev.sh
 
 ADD . /pwndbg/
 
+ENV PATH="${PWNDBG_PENV_PATH}:${POETRY_HOME}/bin:${PATH}"
+
 ARG LOW_PRIVILEGE_USER="vscode"
 
-ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"
+RUN chown ${LOW_PRIVILEGE_USER} ${PWNDBG_PENV_PATH}
 
 # Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
 # This is useful for a VSCode dev container, not really for test builds

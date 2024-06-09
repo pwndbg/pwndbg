@@ -27,12 +27,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Use Python virtual env for all programs used here
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
+if [[ -z "${PWNDBG_PENV_PATH}" ]]; then
+    PWNDBG_PENV_PATH="./.venv"
 fi
 
-if [[ "${PWNDBG_VENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then
-    source "${PWNDBG_VENV_PATH}/bin/activate"
+if [[ "${PWNDBG_PENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then
+    source "${PWNDBG_PENV_PATH}/bin/activate"
 fi
 
 set -o xtrace
