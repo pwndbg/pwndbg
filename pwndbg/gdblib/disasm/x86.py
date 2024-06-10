@@ -10,16 +10,16 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
-import pwndbg.disasm.arch
 import pwndbg.enhance
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
-from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
@@ -34,7 +34,7 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Access through EnhancedOperand.cs_op.size
 
 
-class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
