@@ -365,7 +365,7 @@ def get_chunk(address, requested_size):
     Reads a chunk from a given address.
     """
     ty = pwndbg.gdblib.typeinfo.ppvoid
-    size = int(pwndbg.gdblib.memory.poi(ty, address - ty.sizeof))
+    size = int(pwndbg.gdblib.memory.get_typed_pointer_value(ty, address - ty.sizeof))
 
     # GLibc bakes the chunk flags in the lowest 3 bits of the size value,
     # so, we separate them here.

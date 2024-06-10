@@ -796,7 +796,9 @@ class CStruct:
         Reads the field with the given name from the struct instance located at
         the given address.
         """
-        val = pwndbg.gdblib.memory.poi(self.types[name], address + self.offsets[name])
+        val = pwndbg.gdblib.memory.get_typed_pointer_value(
+            self.types[name], address + self.offsets[name]
+        )
         if self.converters[name] is not None:
             return self.converters[name](val)
         else:

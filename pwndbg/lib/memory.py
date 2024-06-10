@@ -119,6 +119,10 @@ class Page:
         return self.read and self.write and self.execute
 
     @property
+    def is_guard(self) -> bool:
+        return not (self.read or self.write or self.execute)
+
+    @property
     def permstr(self) -> str:
         flags = self.flags
         return "".join(
