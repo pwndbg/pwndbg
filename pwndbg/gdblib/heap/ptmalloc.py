@@ -19,6 +19,7 @@ from typing import Dict
 from typing import Generic
 from typing import List
 from typing import OrderedDict as OrderedDictType
+from typing import Set
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
@@ -166,6 +167,64 @@ def heap_for_ptr(ptr: int) -> int:
     return ptr & ~(HEAP_MAX_SIZE - 1)
 
 
+class ChunkField(int, Enum):
+    PREV_SIZE = 1
+    SIZE = 2
+    FD = 3
+    BK = 4
+    FD_NEXTSIZE = 5
+    BK_NEXTSIZE = 6
+
+
+def fetch_chunk_metadata(address: int, include_only_fields: Set[ChunkField] | None = None):
+    prev_size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"prev_size", "mchunk_prev_size"}
+    )
+    size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"size", "mchunk_size"}
+    )
+
+    if include_only_fields is None:
+        fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary("malloc_chunk", address)
+    else:
+        requested_fields: Set[str] = set()
+
+        for field in include_only_fields:
+            if field is ChunkField.PREV_SIZE:
+                requested_fields.add(prev_size_field_name)
+            elif field is ChunkField.SIZE:
+                requested_fields.add(size_field_name)
+            elif field is ChunkField.FD:
+                requested_fields.add("fd")
+            elif field is ChunkField.BK:
+                requested_fields.add("bk")
+            elif field is ChunkField.FD_NEXTSIZE:
+                requested_fields.add("fd_nextsize")
+            elif field is ChunkField.BK_NEXTSIZE:
+                requested_fields.add("bk_nextsize")
+
+        fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+            "malloc_chunk", address, include_only_fields=requested_fields
+        )
+
+    normalized_struct = {}
+    for field in fetched_struct:
+        if field == prev_size_field_name:
+            normalized_struct[ChunkField.PREV_SIZE] = fetched_struct[prev_size_field_name]
+        elif field == size_field_name:
+            normalized_struct[ChunkField.SIZE] = fetched_struct[size_field_name]
+        elif field == "fd":
+            normalized_struct[ChunkField.FD] = fetched_struct["fd"]
+        elif field == "bk":
+            normalized_struct[ChunkField.BK] = fetched_struct["bk"]
+        elif field == "fd_nextsize":
+            normalized_struct[ChunkField.FD_NEXTSIZE] = fetched_struct["fd_nextsize"]
+        elif field == "bk_nextsize":
+            normalized_struct[ChunkField.BK_NEXTSIZE] = fetched_struct["bk_nextsize"]
+
+    return normalized_struct
+
+
 class Chunk:
     __slots__ = (
         "_gdbValue",
@@ -190,7 +249,9 @@ class Chunk:
         assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
         assert pwndbg.gdblib.heap.current.malloc_chunk is not None
         if isinstance(pwndbg.gdblib.heap.current.malloc_chunk, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.gdblib.heap.current.malloc_chunk, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.gdblib.heap.current.malloc_chunk, addr
+            )
         else:
             self._gdbValue = pwndbg.gdblib.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
@@ -514,7 +575,9 @@ class Arena:
         assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
         assert pwndbg.gdblib.heap.current.malloc_state is not None
         if isinstance(pwndbg.gdblib.heap.current.malloc_state, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.gdblib.heap.current.malloc_state, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.gdblib.heap.current.malloc_state, addr
+            )
         else:
             self._gdbValue = pwndbg.gdblib.heap.current.malloc_state(addr)
 
@@ -1451,7 +1514,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[gdb.Type, gdb.Value]):
                 tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
-                self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
+                self._thread_cache = pwndbg.gdblib.memory.get_typed_pointer_value(
+                    self.tcache_perthread_struct, tcache
+                )
                 self._thread_cache["entries"].fetch_lazy()
             except Exception:
                 print(
@@ -1473,7 +1538,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[gdb.Type, gdb.Value]):
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
         if self._mp_addr is not None and self.malloc_par is not None:
-            self._mp = pwndbg.gdblib.memory.poi(self.malloc_par, self._mp_addr)
+            self._mp = pwndbg.gdblib.memory.get_typed_pointer_value(self.malloc_par, self._mp_addr)
 
         return self._mp
 
@@ -1526,13 +1591,15 @@ class DebugSymsHeap(GlibcMemoryAllocator[gdb.Type, gdb.Value]):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         if self.heap_info is None:
             return None
-        return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
+        return pwndbg.gdblib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
 
     def get_tcache(self, tcache_addr: int | gdb.Value | None = None) -> gdb.Value | None:
         if tcache_addr is None:
             return self.thread_cache
 
-        return pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache_addr)
+        return pwndbg.gdblib.memory.get_typed_pointer_value(
+            self.tcache_perthread_struct, tcache_addr
+        )
 
     def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
         """Return a Page object representing the sbrk heap region.

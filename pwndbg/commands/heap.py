@@ -49,7 +49,9 @@ def read_chunk(addr: int) -> Dict[str, int]:
         "mchunk_prev_size": "prev_size",
     }
     if isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap):
-        val = pwndbg.gdblib.memory.poi(pwndbg.gdblib.heap.current.malloc_chunk, addr)
+        val = pwndbg.gdblib.memory.get_typed_pointer_value(
+            pwndbg.gdblib.heap.current.malloc_chunk, addr
+        )
     else:
         val = pwndbg.gdblib.heap.current.malloc_chunk(addr)
     value_keys: List[str] = val.type.keys()

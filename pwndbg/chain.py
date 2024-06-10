@@ -77,7 +77,9 @@ def get(
             if not pwndbg.gdblib.abi.linux and not pwndbg.gdblib.vmmap.find(address):
                 break
 
-            next_address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+            next_address = int(
+                pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
+            )
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.gdblib.arch.ptrmask
             result.append(address)
