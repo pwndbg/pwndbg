@@ -13,6 +13,9 @@ import pwndbg.commands
 import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
 import pwndbg.glibc
+
+# jemalloc
+import pwndbg.heap.jemalloc as jemalloc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
@@ -1483,54 +1486,7 @@ def heap_config(filter_pattern) -> None:
 
 # Jemalloc
 
-# Basic commands for initial testing and learning
-
-parser = argparse.ArgumentParser(description="Print arenas information. For jemalloc 5.3.0.")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def jemalloc_arenas() -> None:
-    print("Only for jemalloc 5.3.0")
-    # get value of symbol "narenas" as int
-    narenas = pwndbg.gdblib.symbol.address("narenas")
-    narenas = pwndbg.gdblib.memory.pvoid(narenas)
-
-    print("Number of arenas: ", narenas)
-
-    arena_address = gdb.parse_and_eval("*je_arenas@{}".format(narenas))
-
-    arenas = []
-    for i in range(narenas):
-        arena = arena_address[i]["repr"]
-        arenas.append(int(arena))
-
-    # todo: move this in same loop in future
-    # get arena details
-    for arena in arenas:
-        print("Arena Address: ", hex(arena))
-        # get arena details
-        arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
-        # arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
-
-        # bin details (assuming 4KiB page size)
-        # https://jemalloc.net/jemalloc.3.html#size_classes
-
-        nbins = 36
-        # bin_s = pwndbg.gdblib.typeinfo.load("struct bin_info_s")
-        bin_s = pwndbg.gdblib.typeinfo.load("struct bin_s")
-        bin_s_size = bin_s.sizeof
-
-        print("Index\tAddress\tSlabcur")
-        addr = int(arena_info["bins"].address)
-
-        for i in range(nbins):
-            bin_addr = int(addr) + i * bin_s_size
-            # get bin details
-            bin_info = pwndbg.gdblib.memory.poi(bin_s, bin_addr)
-            slabcur = bin_info["slabcur"]
-            print(i, hex(bin_addr), slabcur)
-
-
+# NOTE: Only being used for testing rigt now, will be removed later
 parser = argparse.ArgumentParser(description="Parse all base info")
 
 
@@ -1538,77 +1494,10 @@ parser = argparse.ArgumentParser(description="Parse all base info")
 def jemalloc_base_info() -> None:
     # TODO: Using only first arena for now
 
-    arena_address = gdb.parse_and_eval("*je_arenas")["repr"]
+    addr_arena = gdb.parse_and_eval("*je_arenas")["repr"]
 
-    print("Arena Address: ", hex(arena_address))
+    # jemalloc
+    arena = jemalloc.Arena(addr_arena)
 
-    arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
-    arena_info = pwndbg.gdblib.memory.poi(arena_s, arena)
-
-
-parser = argparse.ArgumentParser(
-    description="Performs rtree leaf element lookup. For internal use later on."
-)
-
-parser.add_argument("addr", nargs="?", type=int, default=None, help="Memory Address")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def jemalloc_find_extent(addr) -> None:
-    # Get rtree that stores edata information
-    # Source code: jemalloc/include/jemalloc/internal/rtree.h
-    # For self note: it's similar to how radix tree is implemented in linux kernel
-    # https://lwn.net/Articles/175432/
-
-    rtree = gdb.lookup_global_symbol("je_arena_emap_global").value()
-    rtree = rtree["rtree"]
-    # rtree_root = rtree["root"]
-
-    # adapted from jemalloc source 5.3.0
-    LG_VADDR = 48
-    LG_PAGE = 12
-    RTREE_NLIB = LG_PAGE
-    # obj/include/jemalloc/jemalloc.h
-    LG_SIZEOF_PTR = 3
-
-    RTREE_NSB = LG_VADDR - RTREE_NLIB
-
-    RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
-
-    # Set RTREE_HEIGHT = 2 for now
-    RTREE_HEIGHT = 2
-
-    # Key look up code
-    # Adpated from jemalloc/include/jemalloc/internal/rtree.h
-
-    rtree_levels = [
-        # for height == 1
-        [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
-        # for height == 2
-        [
-            {"bits": RTREE_NSB // 2, "cumbits": RTREE_NHIB + RTREE_NSB // 2},
-            {"bits": RTREE_NSB // 2 + RTREE_NSB % 2, "cumbits": RTREE_NHIB + RTREE_NSB},
-        ],
-        # for height == 3
-        [
-            {"bits": RTREE_NSB // 3, "cumbits": RTREE_NHIB + RTREE_NSB // 3},
-            {
-                "bits": RTREE_NSB // 3 + RTREE_NSB % 3 // 2,
-                "cumbits": RTREE_NHIB + RTREE_NSB // 3 * 2 + RTREE_NSB % 3 // 2,
-            },
-            {
-                "bits": RTREE_NSB // 3 + RTREE_NSB % 3 - RTREE_NSB % 3 // 2,
-                "cumbits": RTREE_NHIB + RTREE_NSB,
-            },
-        ],
-    ]
-
-    # quick function for testing
-    # from include/jemalloc/internal/rtree.h
-    def rtree_subkey(key, level):
-        ptrbits = 1 << (LG_SIZEOF_PTR + 3)
-        cumbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
-        shiftbits = ptrbits - cumbits
-        maskbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
-        mask = (1 << maskbits) - 1
-        return (key >> shiftbits) & mask
+    print(arena.bins)
+    print(arena.extents)
