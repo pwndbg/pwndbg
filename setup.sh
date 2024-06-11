@@ -171,6 +171,14 @@ if ! hash gdb; then
     exit
 fi
 
+# Find the Python version used by GDB.
+PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
+PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
+
+if ! osx; then
+    PYTHON+="${PYVER}"
+fi
+
 # Install Poetry
 if ! command -v poetry &> /dev/null; then
     echo "Poetry not found. Installing Poetry..."
