@@ -72,7 +72,8 @@ def clear_screen(out=sys.stdout) -> None:
     # If n is 3, clear entire screen and delete all lines saved in the
     # scrollback buffer (this feature was added for xterm and is supported
     # by other terminal applications
-    out.write("\x1b[H\x1b[2J")
+    os.system("printf '\\e[%dS' $((LINES-1))&&tput -x clear")
+
 
 
 config_clear_screen = pwndbg.gdblib.config.add_param(
