@@ -30,7 +30,7 @@ def calculate_hash(file_path):
 def run_poetry_install(dev=False):
     command = ["poetry", "install"]
     if dev:
-        command = ["poetry", "install", "--with", "dev"]
+        command.extend(("--with", "dev"))
     subprocess.run(command, check=True)
 
 
