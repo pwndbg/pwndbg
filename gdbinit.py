@@ -6,6 +6,7 @@ import site
 import subprocess
 import sys
 import time
+import hashlib
 from glob import glob
 from os import environ
 from os import path
@@ -22,9 +23,11 @@ venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
 def calculate_hash(file_path):
-    result = subprocess.run(["sha256sum", file_path], capture_output=True, text=True)
-    checksum = result.stdout.split()[0]
-    return checksum
+    with open(file_path, 'rb') as f:
+        file_hash = hashlib.sha256()
+        while chunk := f.read(8192):
+            file_hash.update(chunk)
+    return file_hash.hexdigest()
 
 
 def run_poetry_install(dev=False):
