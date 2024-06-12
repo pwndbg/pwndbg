@@ -153,11 +153,13 @@ if linux; then
             install_freebsd
             ;;
         *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'dnf' package managers."
+            echo "\"$distro\" is not supported distro. Will search for 'apt', 'dnf' or 'pacman' package managers."
             if hash apt; then
                 install_apt
             elif hash dnf; then
                 install_dnf
+            elif hash pacman; then
+                install_pacman
             else
                 echo "\"$distro\" is not supported and your distro don't have a package manager that we support currently."
                 exit
