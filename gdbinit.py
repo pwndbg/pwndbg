@@ -25,9 +25,13 @@ venv_path = os.environ.get("PWNDBG_VENV_PATH")
 def calculate_hash(file_path):
     with open(file_path, 'rb') as f:
         file_hash = hashlib.sha256()
-        while chunk := f.read(8192):
+        while True:
+            chunk = f.read(8192)
+            if not chunk:
+                break
             file_hash.update(chunk)
     return file_hash.hexdigest()
+
 
 
 def run_poetry_install(dev=False):
