@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import cProfile
+import hashlib
 import os
 import site
 import subprocess
 import sys
 import time
-import hashlib
 from glob import glob
 from os import environ
 from os import path
@@ -23,7 +23,7 @@ venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
 def calculate_hash(file_path):
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         file_hash = hashlib.sha256()
         while True:
             chunk = f.read(8192)
@@ -31,7 +31,6 @@ def calculate_hash(file_path):
                 break
             file_hash.update(chunk)
     return file_hash.hexdigest()
-
 
 
 def run_poetry_install(dev=False):
