@@ -87,8 +87,17 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 # (there is no way to unregister a command in GDB 12.x)
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
+def fallback_lex_args(command_line: str) -> list[str]:
+    """
+    Lexes the given command line into a list of arguments, according to the
+    conventions of the debugger being used and of the interactive session.
 
-class Command(gdb.Command):
+    This is the fallback version, for use when `pwndbg.dbg.session()` is not
+    available.
+    """
+    return command_line.split()
+
+class Command:
     """Generic command wrapper"""
 
     builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
@@ -112,7 +121,10 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        def _handler(_debugger, arguments, is_interactive):
+            self.invoke(arguments, is_interactive)
+
+        self.handle = pwndbg.dbg.add_command(command_name, _handler)
         self.function = function
 
         if command_name in command_names:
@@ -139,7 +151,11 @@ class Command(gdb.Command):
             A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
-        return gdb.string_to_argv(argument), {}
+        session = pwndbg.dbg.session()
+        if not session:
+            return fallback_lex_args(argument), {}
+        else:
+            return session.lex_args(argument), {}
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -168,8 +184,11 @@ class Command(gdb.Command):
         if not from_tty:
             return False
 
-        lines = gdb.execute("show commands", from_tty=False, to_string=True)
-        lines = lines.splitlines()
+        session = pwndbg.dbg.session()
+        if not session:
+            # No interactive session we can draw a history from.
+            return False
+        lines = session.history()
 
         # No history
         if not lines:
@@ -546,7 +565,11 @@ class _ArgparsedCommand(Command):
         )
 
     def split_args(self, argument: str):
-        argv = gdb.string_to_argv(argument)
+        session = pwndbg.dbg.session()
+        if not session:
+            argv = fallback_lex_args(argument)
+        else:
+            argv = session.lex_args(argument)
         return (), vars(self.parser.parse_args(argv))
 
 

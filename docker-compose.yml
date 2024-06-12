@@ -53,3 +53,5 @@ services:
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
+    volumes:
+      - .:/pwndbg
