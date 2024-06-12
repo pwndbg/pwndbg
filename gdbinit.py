@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import cProfile
-import hashlib
 import os
 import site
 import subprocess
@@ -23,7 +22,9 @@ venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
 def calculate_hash(file_path):
-    return hashlib.file_digest(open(file_path, "rb"), "sha256").hexdigest()
+    result = subprocess.run(["sha256sum", file_path], capture_output=True, text=True)
+    checksum = result.stdout.split()[0]
+    return checksum
 
 
 def run_poetry_install(dev=False):
