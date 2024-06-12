@@ -40,30 +40,30 @@ def run_poetry_install(dev=False):
     subprocess.run(command, check=True)
 
 
-def update_deps():
-    poetry_lock_path = os.path.join(os.path.dirname(__file__), "poetry.lock")
+def update_deps(file_path):
+    poetry_lock_path = os.path.join(os.path.dirname(file_path), "poetry.lock")
     poetry_lock_hash_path = os.path.join(venv_path, "poetry.lock.hash")
     dev_marker_path = os.path.join(venv_path, "dev.marker")
 
     current_hash = calculate_hash(poetry_lock_path)
     stored_hash = None
     if os.path.exists(poetry_lock_hash_path):
-        with open(poetry_lock_path, "r") as f:
+        with open(poetry_lock_hash_path, "r") as f:
             stored_hash = f.read().strip()
 
     # checks if dev.marker exists
     dev_mode = os.path.exists(dev_marker_path)
 
-    # if hashes doesn't match, run the appropriate command based dev.marker file
+    # if hashes don't match, run the appropriate command based on dev.marker file
     if current_hash != stored_hash:
         run_poetry_install(dev=dev_mode)
         with open(poetry_lock_hash_path, "w") as f:
             f.write(current_hash)
 
 
-if venv_path == "PWNDBG_PLEASE_SKIP_VENV" or path.exists(path.dirname(__file__) + "/.skip-venv"):
-    pass
-else:
+if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
+    path.dirname(__file__) + "/.skip-venv"
+):
     directory, file = path.split(__file__)
     directory = path.expanduser(directory)
     directory = path.abspath(directory)
@@ -74,7 +74,8 @@ else:
     if not os.path.exists(venv_path):
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
-    update_deps()
+
+    update_deps(__file__)
 
     site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
@@ -97,9 +98,8 @@ else:
     sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
-# Force UTF-8 encoding (to_string=True to skip output appearing to the user)
+# Assuming `gdb` is imported elsewhere
 gdb.execute("set charset UTF-8", to_string=True)
-
 environ["PWNLIB_NOTERM"] = "1"
 
 import pwndbg  # noqa: F401
