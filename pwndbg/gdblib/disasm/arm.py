@@ -3,17 +3,17 @@ from __future__ import annotations
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 
-import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
-from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
-class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
             return InstructionCondition.UNDETERMINED

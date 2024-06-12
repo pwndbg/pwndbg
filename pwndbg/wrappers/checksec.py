@@ -37,22 +37,10 @@ def get_raw_out(local_path: str) -> str:
 
 
 def relro_status(local_path: str) -> str:
-    relro = "No RELRO"
-    out = get_raw_out(local_path)
-
-    if "Full RELRO" in out:
-        relro = "Full RELRO"
-    elif "Partial RELRO" in out:
-        relro = "Partial RELRO"
-
-    return relro
+    return {"Full": "Full RELRO", "Partial": "Partial RELRO", None: "No RELRO"}[
+        ELF(local_path).relro
+    ]
 
 
 def pie_status(local_path: str) -> str:
-    pie = "No PIE"
-    out = get_raw_out(local_path)
-
-    if "PIE enabled" in out:
-        pie = "PIE enabled"
-
-    return pie
+    return "PIE enabled" if ELF(local_path).pie else "No PIE"

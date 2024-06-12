@@ -1,6 +1,8 @@
 - [Development Basics](#development-basics)
   - [Environment setup](#environment-setup)
+    - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
+    - [Testing Under Nix](#testing-under-nix)
   - [Linting](#linting)
   - [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
@@ -9,6 +11,12 @@
   - [Triggers](#triggers)
 - [Porting public tools](#porting-public-tools)
 - [Random developer notes](#random-developer-notes)
+- [Annotations](#annotations)
+  - [Enhancing](#enhancing)
+  - [When to use emulation / reasoning about process state](#when-to-use-emulation--reasoning-about-process-state)
+  - [What if the emulator fails?](#what-if-the-emulator-fails)
+  - [Caching annotations](#caching-annotations)
+  - [Other random annotation details](#other-random-annotation-details)
 
 # Development Basics
 ## Environment setup
@@ -24,6 +32,13 @@ If you'd like to use `docker compose`, you can run
 ```bash
 docker compose run -i main
 ```
+
+### Development using Nix
+
+There is a development shell defined in the flake that should install all of the development requirements. To enter the
+environment run `nix develop` or automatically enter the environment using `direnv`.
+
+When testing changes run `nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
 
 ## Testing
 
@@ -59,6 +74,15 @@ def test_hexdump(start_binary):
 
 Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
+### Testing Under Nix
+
+You will need to build a nix-compatible gdbinit.py file, which you can do with `nix build .#pwndbg-dev`. Then simply run
+the test by adding the `--nix` flag:
+
+```bash
+./tests.sh --nix [filter]
+```
+
 ## Linting
 
 The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isort` and `black` are able to automatically fix any issues they detect, and you can enable this by running `./lint.sh -f`. You can find the configuration files for these tools in `setup.cfg` and `pyproject.toml`.
@@ -66,8 +90,9 @@ The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isor
 When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
 You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to automatically be run before every push:
+
 ```bash
-#!/bin/sh
+#!/usr/bin/env bash
 
 ./lint.sh || exit 1
 ```

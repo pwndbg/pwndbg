@@ -8,6 +8,7 @@ import pytest
 import pwndbg
 import tests
 
+GAPS_MAP_BINARY = tests.binaries.get("mmap_gaps.out")
 CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
 BINARY_ISSUE_1565 = tests.binaries.get("issue_1565.out")
 
@@ -182,3 +183,27 @@ def test_vmmap_issue_1565(start_binary):
     gdb.execute("run")
     gdb.execute("next")
     gdb.execute("context")
+
+
+def test_vmmap_gaps_option(start_binary):
+    start_binary(GAPS_MAP_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    # Test vmmap with gap option
+    vmmaps = gdb.execute("vmmap --gaps", to_string=True).splitlines()
+    seen_gap = False
+    seen_adjacent = False
+    seen_guard = False
+    # Skip the first line since the legend has gard and
+    for line in vmmaps[1:]:
+        if "GAP" in line:
+            seen_gap = True
+        if "ADJACENT" in line:
+            seen_adjacent = True
+        if "GUARD" in line:
+            seen_guard = True
+    assert seen_gap
+    assert seen_adjacent
+    assert seen_guard

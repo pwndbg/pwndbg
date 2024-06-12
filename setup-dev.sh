@@ -221,11 +221,6 @@ if linux; then
     fi
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
-    # Install poetry if not already installed
-    if ! hash poetry 2> /dev/null; then
-        curl -sSL https://install.python-poetry.org | python3 -
-    fi
-
     source "${PWNDBG_VENV_PATH}/bin/activate"
     ~/.local/bin/poetry install --with dev
 

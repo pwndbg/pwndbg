@@ -74,7 +74,7 @@ disable_error_code = [
 
 [[tool.mypy.overrides]]
 module = [
-    "pwndbg.disasm.*",
+    "pwndbg.gdblib.disasm.*",
     "pwndbg.gdblib.elf",
 ]
 disable_error_code = ["name-defined"]
@@ -90,14 +90,14 @@ module = [
     "pwndbg.commands.telescope",
     "pwndbg.commands.version",
     "pwndbg.exception",
-    "pwndbg.disasm.jump",
+    "pwndbg.gdblib.disasm.jump",
     "pwndbg.gdblib.dt",
     "pwndbg.gdblib.dynamic",
     "pwndbg.gdblib.events",
     "pwndbg.gdblib.got",
     "pwndbg.gdblib.heap_tracking",
     "pwndbg.gdblib.stack",
-    "pwndbg.heap.*",
+    "pwndbg.gdblib.heap.*",
     "pwndbg.hexdump",
     "pwndbg.ui",
     "pwndbg.wrappers.*",

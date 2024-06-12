@@ -368,7 +368,7 @@ def plist(path, next, sentinel, inner_name, field_name) -> None:
                 target_type = field_type
                 target_address = address + field_offset
 
-            value = pwndbg.gdblib.memory.poi(target_type, target_address)
+            value = pwndbg.gdblib.memory.get_typed_pointer_value(target_type, target_address)
 
             symbol = pwndbg.gdblib.symbol.get(target_address)
             symbol = f"<{symbol}>" if symbol else ""

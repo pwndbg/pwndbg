@@ -338,7 +338,7 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
         return None
 
     page_type = gdb.lookup_type("struct page")
-    page = memory.poi(page_type, kernel.virt_to_page(addr))
+    page = memory.get_typed_pointer_value(page_type, kernel.virt_to_page(addr))
     head_page = compound_head(page)
 
     slab_type = gdb.lookup_type(f"struct {slab_struct_type()}")
