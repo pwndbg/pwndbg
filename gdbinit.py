@@ -98,7 +98,7 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
     sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
-# Assuming `gdb` is imported elsewhere
+# Force UTF-8 encoding (to_string=True to skip output appearing to the user)
 gdb.execute("set charset UTF-8", to_string=True)
 environ["PWNLIB_NOTERM"] = "1"
 
