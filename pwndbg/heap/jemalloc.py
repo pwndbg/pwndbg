@@ -20,6 +20,10 @@ RTREE_NSB = LG_VADDR - RTREE_NLIB
 RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
 
 
+def MASK(current_field_width, current_field_shift):
+    return ((1 << current_field_width) - 1) << current_field_shift
+
+
 EXTENT_BITS_ARENA_WIDTH = MALLOCX_ARENA_BITS
 EXTENT_BITS_ARENA_SHIFT = 0
 EXTENT_BITS_ARENA_MASK = MASK(EXTENT_BITS_ARENA_WIDTH, EXTENT_BITS_ARENA_SHIFT)
@@ -241,4 +245,4 @@ class Extent:
         """
         Returns True if the extent is used for small size classes.
         """
-        return ((self.e_bits & EXTENT_BITS_SLAB_MASK) >> EXTENT_BITS_SLAB_SHIFT) != 0
+        return ((self.bits & EXTENT_BITS_SLAB_MASK) >> EXTENT_BITS_SLAB_SHIFT) != 0

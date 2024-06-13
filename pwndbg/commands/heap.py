@@ -1495,7 +1495,7 @@ def jemalloc_base_info() -> None:
     addr_arena = gdb.parse_and_eval("*je_arenas")["repr"]
 
     # jemalloc
-    arena = jemalloc.Arena(addr_arena)
+    arena = jemalloc.Arena(int(addr_arena))
 
     print(arena.bins)
     print(arena.extents)
@@ -1515,3 +1515,4 @@ def get_extent(addr) -> None:
     print(extent)
 
     print(extent.address)
+    print(extent.has_slab)
