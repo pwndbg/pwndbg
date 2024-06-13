@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cProfile
 import hashlib
+import logging
 import os
 import shutil
 import site
@@ -136,6 +137,16 @@ def main() -> None:
         start_time = time.time()
         profiler.enable()
 
+    handler = logging.StreamHandler()
+
+    # Add the handler to the root logger
+    logging.getLogger().addHandler(handler)
+
+    log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
+    log_level = getattr(logging, log_level_env.upper())
+
+    logging.basicConfig(level=log_level)
+
     src_root = Path(__file__).parent.resolve()
     if not skip_venv(src_root):
         venv_path = get_venv_path(src_root)
@@ -156,7 +167,11 @@ def main() -> None:
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()
 
+    import pwndbg.log
     import pwndbg.profiling
+
+    # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
+    handler.setFormatter(pwndbg.log.ColorFormatter())
 
     pwndbg.profiling.init(profiler, start_time)
     if os.environ.get("PWNDBG_PROFILE") == "1":
