@@ -1492,15 +1492,13 @@ parser = argparse.ArgumentParser(description="Parse all base info")
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 def jemalloc_base_info() -> None:
-    # TODO: Using only first arena for now
-
     addr_arena = gdb.parse_and_eval("*je_arenas")["repr"]
 
     # jemalloc
-    # arena = jemalloc.Arena(addr_arena)
+    arena = jemalloc.Arena(addr_arena)
 
-    # print(arena.bins)
-    # print(arena.extents)
+    print(arena.bins)
+    print(arena.extents)
 
 
 # command get_extent with address
