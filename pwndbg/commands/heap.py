@@ -1497,7 +1497,23 @@ def jemalloc_base_info() -> None:
     addr_arena = gdb.parse_and_eval("*je_arenas")["repr"]
 
     # jemalloc
-    arena = jemalloc.Arena(addr_arena)
+    # arena = jemalloc.Arena(addr_arena)
 
-    print(arena.bins)
-    print(arena.extents)
+    # print(arena.bins)
+    # print(arena.extents)
+
+
+# command get_extent with address
+parser = argparse.ArgumentParser(description="Get extent with address")
+parser.add_argument("addr", type=int, help="Address of the extent")
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
+def get_extent(addr) -> None:
+    addr = int(addr)
+
+    rtree = jemalloc.RTree.get_rtree()
+    extent = rtree.lookup_hard(addr)
+    print(extent)
+
+    print(extent.address)

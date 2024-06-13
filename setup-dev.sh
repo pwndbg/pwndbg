@@ -178,7 +178,6 @@ install_dnf() {
     download_zig_binary
 }
 
-
 install_jemalloc() {
 
     # Install jemalloc version 5.3.0
@@ -243,8 +242,7 @@ if linux; then
             ;;
     esac
 
-    install_jemalloc    
-
+    install_jemalloc
     if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
         PWNDBG_VENV_PATH="./.venv"
     fi

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 
@@ -10,11 +11,119 @@ RTREE_HEIGHT = 2
 LG_VADDR = 48
 LG_PAGE = 12
 RTREE_NLIB = LG_PAGE
+# jemalloc/include/jemalloc/internal/jemalloc_internal_types.h
+MALLOCX_ARENA_BITS = 12
 # obj/include/jemalloc/jemalloc.h
 LG_SIZEOF_PTR = 3
 
 RTREE_NSB = LG_VADDR - RTREE_NLIB
 RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
+
+
+EXTENT_BITS_ARENA_WIDTH = MALLOCX_ARENA_BITS
+EXTENT_BITS_ARENA_SHIFT = 0
+EXTENT_BITS_ARENA_MASK = MASK(EXTENT_BITS_ARENA_WIDTH, EXTENT_BITS_ARENA_SHIFT)
+
+EXTENT_BITS_SLAB_WIDTH = 1
+EXTENT_BITS_SLAB_SHIFT = EXTENT_BITS_ARENA_WIDTH + EXTENT_BITS_ARENA_SHIFT
+EXTENT_BITS_SLAB_MASK = MASK(EXTENT_BITS_SLAB_WIDTH, EXTENT_BITS_SLAB_SHIFT)
+
+
+# TODO: Move all rtree operations to different class / helper class
+# TODO: Figure out where to move this definition
+rtree_levels = [
+    # for height == 1
+    [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
+    # for height == 2
+    [
+        {"bits": RTREE_NSB // 2, "cumbits": RTREE_NHIB + RTREE_NSB // 2},
+        {"bits": RTREE_NSB // 2 + RTREE_NSB % 2, "cumbits": RTREE_NHIB + RTREE_NSB},
+    ],
+    # for height == 3
+    [
+        {"bits": RTREE_NSB // 3, "cumbits": RTREE_NHIB + RTREE_NSB // 3},
+        {
+            "bits": RTREE_NSB // 3 + RTREE_NSB % 3 // 2,
+            "cumbits": RTREE_NHIB + RTREE_NSB // 3 * 2 + RTREE_NSB % 3 // 2,
+        },
+        {
+            "bits": RTREE_NSB // 3 + RTREE_NSB % 3 - RTREE_NSB % 3 // 2,
+            "cumbits": RTREE_NHIB + RTREE_NSB,
+        },
+    ],
+]
+
+
+class RTree:
+    def __init__(self, addr: int) -> None:
+        self._addr = addr
+
+        # gdb value with struct emap_s
+        emap_s = pwndbg.gdblib.typeinfo.load("struct emap_s")
+        self._gdbValue = pwndbg.gdblib.memory.poi(emap_s, self._addr)
+
+    @staticmethod
+    def get_rtree() -> RTree:
+        try:
+            addr = pwndbg.gdblib.info.address("je_arena_emap_global")
+            if addr is None:
+                return None
+
+        except gdb.MemoryError:
+            return None
+
+        return RTree(addr)
+
+    @property
+    def rtree(self):
+        return self._gdbValue["rtree"]
+
+    @property
+    def root(self):
+        return self.rtree["root"]
+
+    # from include/jemalloc/internal/rtree.h
+    def __subkey(self, key, level):
+        ptrbits = 1 << (LG_SIZEOF_PTR + 3)
+        cumbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
+        shiftbits = ptrbits - cumbits
+        maskbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
+        mask = (1 << maskbits) - 1
+        return (key >> shiftbits) & mask
+
+    def lookup_hard(self, key):
+        """
+        Lookup the key in the rtree and return the value.
+        """
+        rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
+        rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
+
+        # Credits: 盏一's jegdb
+
+        # For subkey 0
+        subkey = self.__subkey(key, 1)
+        addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
+        print(int(self.root.address), subkey, rtree_node_elm_s.sizeof)
+        print("addr:", addr)
+        node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
+        if node["child"]["repr"] == 0:
+            return None
+
+        # For subkey 1
+        subkey = self.__subkey(key, 2)
+        addr = int(node["child"]["repr"]) + subkey * rtree_leaf_elm_s.sizeof
+        leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, addr)
+        if leaf["le_bits"]["repr"] == 0:
+            return None
+
+        val = int(leaf["le_bits"]["repr"])
+        ls = (val << RTREE_NHIB) & ((2**64) - 1)
+        ptr = ((ls >> RTREE_NHIB) >> 1) << 1
+
+        if ptr == 0:
+            return None
+
+        return Extent(ptr)
 
 
 class Arena:
@@ -27,7 +136,6 @@ class Arena:
 
         self._nbins = None
 
-        # TODO: Perhaps create bins, extents class and only store needed/useful information, remove mutexes, etc.
         self._bins = None
         self._extents = None
 
@@ -55,34 +163,11 @@ class Arena:
 
     @property
     def extents(self):
-        # TODO: Figure out where to move this definition
-        rtree_levels = [
-            # for height == 1
-            [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
-            # for height == 2
-            [
-                {"bits": RTREE_NSB // 2, "cumbits": RTREE_NHIB + RTREE_NSB // 2},
-                {"bits": RTREE_NSB // 2 + RTREE_NSB % 2, "cumbits": RTREE_NHIB + RTREE_NSB},
-            ],
-            # for height == 3
-            [
-                {"bits": RTREE_NSB // 3, "cumbits": RTREE_NHIB + RTREE_NSB // 3},
-                {
-                    "bits": RTREE_NSB // 3 + RTREE_NSB % 3 // 2,
-                    "cumbits": RTREE_NHIB + RTREE_NSB // 3 * 2 + RTREE_NSB % 3 // 2,
-                },
-                {
-                    "bits": RTREE_NSB // 3 + RTREE_NSB % 3 - RTREE_NSB % 3 // 2,
-                    "cumbits": RTREE_NHIB + RTREE_NSB,
-                },
-            ],
-        ]
+        # NOTE: Generating whole extents list is slow as it requires parsing whole rtree
 
-        if self._extents is None:
+        if self._extents is None:  # TODO: handling cache on extents changes
             self._extents = []
             try:
-                edata_s = pwndbg.gdblib.typeinfo.load("struct edata_s")
-
                 rtree = gdb.lookup_global_symbol("je_arena_emap_global").value()
                 root = rtree["rtree"]["root"]
 
@@ -108,26 +193,52 @@ class Arena:
 
                         val = int(leaf["le_bits"]["repr"])
 
-                        # https://hidva.com/assets/jegdb.py
                         ls = (val << RTREE_NHIB) & ((2**64) - 1)
                         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
 
                         if ptr == 0:
                             continue
 
-                        extent = pwndbg.gdblib.memory.poi(edata_s, ptr)
-
-                        # print(extent)
-                        print("edata address: ", hex(ptr))
-                        print("e_bits: ", extent["e_bits"])
-                        print("e_addr: ", extent["e_addr"])
-                        # size
-                        print("e_size_esn: ", extent["e_size_esn"])
-                        print("e_bsize: ", extent["e_bsize"])
-
+                        extent = Extent(ptr)
                         self._extents.append(extent)
 
             except gdb.MemoryError:
                 pass
 
         return self._extents
+
+
+class Extent:
+    def __init__(self, addr: int) -> None:
+        self._addr = addr
+
+        # gdb value with edata_t structure
+        edata_s = pwndbg.gdblib.typeinfo.load("struct edata_s")
+        self._gdbValue = pwndbg.gdblib.memory.poi(edata_s, self._addr)
+
+    @property
+    def size(self):
+        return self._gdbValue["e_size_esn"]
+
+    @property
+    def address(self):
+        """
+        Returns the address of the memory location the extent is pointing to.
+        """
+        return self._gdbValue["e_addr"]
+
+    @property
+    def bsize(self):
+        return self._gdbValue["e_bsize"]
+
+    @property
+    def bits(self):
+        return self._gdbValue["e_bits"]
+
+    # boolean
+    @property
+    def has_slab(self):
+        """
+        Returns True if the extent is used for small size classes.
+        """
+        return ((self.e_bits & EXTENT_BITS_SLAB_MASK) >> EXTENT_BITS_SLAB_SHIFT) != 0
