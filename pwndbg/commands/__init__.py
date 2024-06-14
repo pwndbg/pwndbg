@@ -208,9 +208,9 @@ class Command(gdb.Command):
 
 
 def fix(
-    arg: gdb.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
-) -> str | gdb.Value | None:
-    """Fix a single command-line argument coming from the GDB CLI.
+    arg: pwndbg.dbg_mod.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+) -> str | pwndbg.dbg_mod.Value | None:
+    """Fix a single command-line argument coming from the CLI.
 
     Arguments:
         arg(str): Original string representation (e.g. '0', '$rax', '$rax+44')
@@ -219,21 +219,21 @@ def fix(
         reraise(bool): If an error occurs, raise the exception. (default: False)
 
     Returns:
-        Ideally ``gdb.Value`` object.  May return a ``str`` if ``sloppy==True``.
+        Ideally a ``Value`` object.  May return a ``str`` if ``sloppy==True``.
         May return ``None`` if ``sloppy == False and reraise == False``.
     """
-    if isinstance(arg, gdb.Value):
+    if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
 
     try:
-        parsed = gdb.parse_and_eval(arg)
+        parsed = pwndbg.dbg.evaluate_expression(arg)
         return parsed
     except Exception:
         pass
 
     try:
         arg = pwndbg.gdblib.regs.fix(arg)
-        return gdb.parse_and_eval(arg)
+        return pwndbg.dbg.evaluate_expression(arg)
     except Exception as e:
         if not quiet:
             print(e)
@@ -246,7 +246,7 @@ def fix(
     return None
 
 
-def fix_reraise(*a, **kw) -> str | gdb.Value | None:
+def fix_reraise(*a, **kw) -> str | pwndbg.dbg_mod.Value | None:
     # Type error likely due to https://github.com/python/mypy/issues/6799
     return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
@@ -616,7 +616,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
     :return: Whatever gdb.parse_and_eval returns or string.
     """
     try:
-        val = gdb.parse_and_eval(s)
+        val = pwndbg.dbg.evaluate_expression(s)
         # We can't just return int(val) because GDB may return:
         # "Python Exception <class 'gdb.error'> Cannot convert value to long."
         # e.g. for:

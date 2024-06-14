@@ -4,7 +4,6 @@ import argparse
 import string
 from typing import Optional
 
-import gdb
 from pwnlib.util.cyclic import cyclic
 from pwnlib.util.cyclic import cyclic_find
 
@@ -69,7 +68,7 @@ def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") 
     if lookup:
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
-        if isinstance(lookup, (gdb.Value, int)):
+        if isinstance(lookup, (pwndbg.dbg_mod.Value, int)):
             lookup = int(lookup).to_bytes(length, pwndbg.gdblib.arch.endian)
         elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")

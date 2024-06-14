@@ -10,17 +10,20 @@ from typing import Tuple
 
 dbg: Debugger = None
 
+
 class TypeCode(Enum):
     """
     Broad categories of types.
     """
+
     POINTER = 1
-    ARRAY   = 2
-    STRUCT  = 3
+    ARRAY = 2
+    STRUCT = 3
     TYPEDEF = 4
-    UNION   = 5
-    INT     = 6
-    ENUM    = 7
+    UNION = 5
+    INT = 6
+    ENUM = 7
+
 
 class TypeField:
     """
@@ -49,10 +52,12 @@ class TypeField:
         self.is_base_class = is_base_class
         self.bitsize = bitsize
 
+
 class Type:
     """
     Class representing a type in the context of an inferior process.
     """
+
     @property
     def alignof(self) -> int:
         """
@@ -98,11 +103,12 @@ class Type:
         """
         raise NotImplementedError()
 
+
 class Value:
     """
     Class representing a value in the context of an inferior process.
     """
-    
+
     @property
     def address(self) -> Value | None:
         """
@@ -132,8 +138,7 @@ class Value:
         """
         raise NotImplementedError()
 
-
-    # The intent of this function has a great deal of overlap with that of 
+    # The intent of this function has a great deal of overlap with that of
     # `pwndbg.gdblib.memory.string()`. It probably makes sense to take this
     # functionality out of the debugger API.
     #
@@ -150,6 +155,20 @@ class Value:
         Fetches the value if it is lazy, does nothing otherwise.
         """
         raise NotImplementedError()
+
+    def __int__(self) -> int:
+        """
+        Converts this value to an integer, if possible.
+        """
+        raise NotImplementedError()
+
+    def cast(self, type: Type) -> Value:
+        """
+        Returns a new value with the same value as this object, but of the
+        given type.
+        """
+        raise NotImplementedError()
+
 
 class Debugger:
     """
@@ -177,6 +196,18 @@ class Debugger:
     # pwndbg under LLDB without breaking it under GDB. Expect most of them to be
     # removed or replaced as the porting work continues.
     #
+
+    # This function will be split up into a frame-context and a global-context
+    # versions very soon, in a way that properly represents the way evaluation
+    # works under both GDB and LLDB.
+    #
+    # TODO: Split up `evaluate_expressions` into its global and local versions.
+    def evaluate_expression(self, expression: str) -> Value:
+        """
+        Evaluate the given expression in the context of the current frame, and
+        return a `Value`.
+        """
+        raise NotImplementedError()
 
     def addrsz(self, address: Any) -> str:
         """
