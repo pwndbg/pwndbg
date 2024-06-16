@@ -37,7 +37,8 @@ def run_poetry_install(dev=False):
     command = ["poetry", "install"]
     if dev:
         command.extend(("--with", "dev"))
-    subprocess.run(command, check=True)
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
 def update_deps(file_path):
