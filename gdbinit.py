@@ -60,10 +60,11 @@ def update_deps(file_path):
         stdout, stderr, returncode = run_poetry_install(dev=dev_mode)
         with open(poetry_lock_hash_path, "w") as f:
             f.write(current_hash)
-if returncode == 0 and ("No dependencies to install or update" not in stdout):
+        if returncode == 0 and ("No dependencies to install or update" not in stdout):
             print(stdout)
         elif returncode != 0:
             print(stderr, file=sys.stderr)
+
 
 if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
     path.dirname(__file__) + "/.skip-venv"
