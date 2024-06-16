@@ -223,4 +223,9 @@ if linux; then
 
     source "${PWNDBG_VENV_PATH}/bin/activate"
     ~/.local/bin/poetry install --with dev
+
+    # Create a developer marker file
+    DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
+    touch "${DEV_MARKER_PATH}"
+    echo "Developer marker created at ${DEV_MARKER_PATH}"
 fi
