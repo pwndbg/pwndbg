@@ -57,7 +57,7 @@ def update_deps(file_path):
 
     # if hashes don't match, run the appropriate command based on dev.marker file
     if current_hash != stored_hash:
-        run_poetry_install(dev=dev_mode)
+        stdout, stderr, returncode = run_poetry_install(dev=dev_mode)
         with open(poetry_lock_hash_path, "w") as f:
             f.write(current_hash)
 
