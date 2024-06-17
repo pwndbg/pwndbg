@@ -230,6 +230,9 @@ def fix(
     )
     assert target, "Reached command expression evaluation with no frame or inferior"
 
+    # Try to evaluate the expression in the local, or, failing that, global
+    # context.
+    ex = None
     try:
         return target.evaluate_expression(arg)
     except Exception:
@@ -239,6 +242,21 @@ def fix(
         arg = pwndbg.gdblib.regs.fix(arg)
         return target.evaluate_expression(arg)
     except Exception as e:
+        ex = e
+
+    # If that fails, try to treat the argument as the name of a register, and
+    # see if that yields anything.
+    if frame:
+        regs = frame.regs()
+        if arg.startswith("$"):
+            arg = arg[1:]
+        reg = regs.by_name(arg)
+        if reg:
+            return reg
+
+    # If both fail, check whether we want to print or re-raise the error we
+    # might've gotten from `evaluate_expression`.
+    if ex:
         if not quiet:
             print(e)
         if reraise:

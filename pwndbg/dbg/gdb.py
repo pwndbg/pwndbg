@@ -16,6 +16,18 @@ from pwndbg.commands import load_commands
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
+class GDBRegisters(pwndbg.dbg_mod.Registers):
+    def __init__(self, frame: GDBFrame):
+        self.frame = frame
+
+    @override
+    def by_name(self, name: str):
+        try:
+            return GDBValue(self.frame.inner.read_register(name))
+        except gdb.error:
+            # GDB throws an exception if the name is unknown, we just return
+            # None when that is the case.
+            pass
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
     """
@@ -49,6 +61,9 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
         return GDBValue(value)
 
+    @override
+    def regs(self):
+        return GDBRegisters(self)
 
 class GDBThread(pwndbg.dbg_mod.Thread):
     def __init__(self, inner: gdb.InferiorThread):
