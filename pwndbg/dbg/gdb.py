@@ -38,8 +38,8 @@ class GDBType(pwndbg.dbg_mod.Type):
     @property
     @override
     def code(self):
-        assert self.inner.code in CODE_MAPPING, "missing mapping for type code"
-        return CODE_MAPPING[self.inner.code]
+        assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
+        return GDBType.CODE_MAPPING[self.inner.code]
 
     @override
     def fields(self):
@@ -47,19 +47,19 @@ class GDBType(pwndbg.dbg_mod.Type):
             pwndbg.dbg_mod.TypeField(
                 field.bitpos,
                 field.name,
-                field.type,
+                GDBType(field.type),
                 field.parent_type,
                 field.enumval,
                 field.artificial,
                 field.is_base_class,
                 field.bitsize,
             )
-            for field in self.inner.fields
+            for field in self.inner.fields()
         ]
 
     @override
-    def array(self):
-        return GDBType(self.inner.array())
+    def array(self, count):
+        return GDBType(self.inner.array(count))
 
     @override
     def pointer(self):

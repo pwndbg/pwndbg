@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any
+from typing import List
 from typing import Tuple
 
 dbg: Debugger = None
@@ -72,13 +73,13 @@ class Type:
         """
         raise NotImplementedError()
 
-    def fields(self) -> list[TypeField] | None:
+    def fields(self) -> List[TypeField] | None:
         """
         List of all fields in this type, if it is a structured type.
         """
         raise NotImplementedError()
 
-    def array(self) -> Type:
+    def array(self, count: int) -> Type:
         """
         Return a type that corresponds to an array whole elements have this type.
         """
@@ -162,7 +163,11 @@ class Value:
         """
         raise NotImplementedError()
 
-    def cast(self, type: Type) -> Value:
+    # Because casting is still sloppy (i.e. it acceps `gdb.Type` objects) in
+    # some places, we have to allow it here for lints to pass.
+    #
+    # TODO: Remove Any type from this function.
+    def cast(self, type: Type | Any) -> Value:
         """
         Returns a new value with the same value as this object, but of the
         given type.
