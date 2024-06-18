@@ -12,15 +12,18 @@ from typing import Tuple
 
 dbg: Debugger = None
 
+
 class Registers:
     """
     A handle to the register values in a frame.
     """
+
     def by_name(self, name: str) -> Value | None:
         """
         Gets the value of a register if it exists, None otherwise.
         """
         raise NotImplementedError()
+
 
 class Frame:
     def evaluate_expression(self, expression: str) -> Value:
@@ -36,12 +39,14 @@ class Frame:
         """
         raise NotImplementedError()
 
+
 class Thread:
     def bottom_frame(self) -> Frame:
         """
         Frame at the bottom of the call stack for this thread.
         """
         raise NotImplementedError()
+
 
 class Process:
     def threads(self) -> List[Thread]:

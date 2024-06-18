@@ -258,9 +258,9 @@ def fix(
     # might've gotten from `evaluate_expression`.
     if ex:
         if not quiet:
-            print(e)
+            print(ex)
         if reraise:
-            raise e
+            raise ex
 
     if sloppy:
         return arg

@@ -16,6 +16,7 @@ from pwndbg.commands import load_commands
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
+
 class GDBRegisters(pwndbg.dbg_mod.Registers):
     def __init__(self, frame: GDBFrame):
         self.frame = frame
@@ -64,6 +65,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
     @override
     def regs(self):
         return GDBRegisters(self)
+
 
 class GDBThread(pwndbg.dbg_mod.Thread):
     def __init__(self, inner: gdb.InferiorThread):
