@@ -5,7 +5,8 @@ from typing import Any
 from typing import Tuple
 
 import gdb
-from typing_extensions import override, Callable
+from typing_extensions import Callable
+from typing_extensions import override
 
 import pwndbg
 import pwndbg.commands
@@ -14,24 +15,32 @@ from pwndbg.commands import load_commands
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
+
 class GDBSession(pwndbg.dbg_mod.Session):
     @override
     def history(self):
         lines = gdb.execute("show commands", from_tty=False, to_string=True)
         return lines.splitlines()
-    
+
     @override
     def lex_args(self, command_line):
         return gdb.string_to_argv(command_line)
 
+
 class GDBCommand(gdb.Command):
-    def __init__(self, debugger: GDB, name: str, handler: Callable[str, bool]):
+    def __init__(
+        self,
+        debugger: GDB,
+        name: str,
+        handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
+    ):
         self.debugger = debugger
         self.handler = handler
         super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.handler(self.debugger, args, from_tty)
+
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, command: gdb.Command):
@@ -41,6 +50,7 @@ class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
         # GDB doesn't support command removal?
         pass
 
+
 class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self):
@@ -48,6 +58,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         load_commands()
 
         from pwndbg.gdblib import prompt
+
         prompt.set_prompt()
 
         pre_commands = f"""
@@ -101,7 +112,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
     def add_command(self, command, handler):
         command = GDBCommand(self, command, handler)
         return GDBCommandHandle(command)
-    
+
     @override
     def session(self):
         # FIXME: Creating a new object every time is unnecessary.

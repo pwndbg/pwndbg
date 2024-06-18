@@ -87,7 +87,8 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 # (there is no way to unregister a command in GDB 12.x)
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
-def fallback_lex_args(command_line: str) -> list[str]:
+
+def fallback_lex_args(command_line: str) -> List[str]:
     """
     Lexes the given command line into a list of arguments, according to the
     conventions of the debugger being used and of the interactive session.
@@ -96,6 +97,7 @@ def fallback_lex_args(command_line: str) -> list[str]:
     available.
     """
     return command_line.split()
+
 
 class Command:
     """Generic command wrapper"""
