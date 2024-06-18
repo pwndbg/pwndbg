@@ -17,6 +17,7 @@ from typing import TypeVar
 from typing_extensions import ParamSpec
 
 import pwndbg.exception
+
 # These aren't available under LLDB, and we can't get rid of them until all of
 # this functionality has been ported to the Debugger API.
 #
@@ -62,8 +63,7 @@ class CommandCategory(str, Enum):
     DEV = "Developer"
 
 
-assert pwndbg.dbg.session(), "Tried to set up commands with no interactive session"
-GDB_BUILTIN_COMMANDS = pwndbg.dbg.session().commands()
+GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
 
 # Set in `reload` command so that we can skip double checking for registration
 # of an already existing command when re-registering GDB CLI commands

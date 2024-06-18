@@ -7,6 +7,7 @@ from typing import Tuple
 
 import gdb
 from typing_extensions import Callable
+from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
@@ -28,7 +29,6 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
-
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
@@ -40,9 +40,6 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         if selected != self.inner:
             self.inner.select()
             restore = True
-
-        if restore:
-            selected.select()
 
         ex = None
         try:
@@ -418,7 +415,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         except gdb.error:
             pass
         return None
-    
+
     def commands(self):
         current_pagination = gdb.execute("show pagination", to_string=True)
         current_pagination = current_pagination.split()[-1].rstrip(

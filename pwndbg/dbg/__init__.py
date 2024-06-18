@@ -34,7 +34,6 @@ class Thread:
         raise NotImplementedError()
 
 
-
 class Process:
     def threads(self) -> List[Thread]:
         """
@@ -283,7 +282,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def commands(self) -> list[str]:
+    def commands(self) -> List[str]:
         """
         List the commands available in this session.
         """
