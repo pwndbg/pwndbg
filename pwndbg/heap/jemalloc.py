@@ -20,18 +20,120 @@ RTREE_NSB = LG_VADDR - RTREE_NLIB
 RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
 
 
-def MASK(current_field_width, current_field_shift):
+# TODO: Move to relevant place
+# include/jemalloc/internal/edata.h
+
+
+def mask(current_field_width, current_field_shift):
     return ((1 << current_field_width) - 1) << current_field_shift
 
 
-EXTENT_BITS_ARENA_WIDTH = MALLOCX_ARENA_BITS
-EXTENT_BITS_ARENA_SHIFT = 0
-EXTENT_BITS_ARENA_MASK = MASK(EXTENT_BITS_ARENA_WIDTH, EXTENT_BITS_ARENA_SHIFT)
+LG_QUANTUM = 4  # TODO: lookup value acc to architecture from include/jemalloc/internal/quantum.h (currently set for arch64)
+SC_LG_TINY_MIN = 3
+SC_NTINY = LG_QUANTUM - SC_LG_TINY_MIN
 
-EXTENT_BITS_SLAB_WIDTH = 1
-EXTENT_BITS_SLAB_SHIFT = EXTENT_BITS_ARENA_WIDTH + EXTENT_BITS_ARENA_SHIFT
-EXTENT_BITS_SLAB_MASK = MASK(EXTENT_BITS_SLAB_WIDTH, EXTENT_BITS_SLAB_SHIFT)
+SC_LG_NGROUP = 2
+SC_NGROUP = 1 << SC_LG_NGROUP
+SC_NPSEUDO = SC_NGROUP
+SC_PTR_BITS = (1 << LG_SIZEOF_PTR) * 8
+SC_LG_BASE_MAX = SC_PTR_BITS - 2
+SC_LG_FIRST_REGULAR_BASE = LG_QUANTUM + SC_LG_NGROUP
+SC_NREGULAR = SC_NGROUP * (SC_LG_BASE_MAX - SC_LG_FIRST_REGULAR_BASE + 1) - 1
 
+SC_NSIZES = SC_NTINY + SC_NPSEUDO + SC_NREGULAR
+
+SC_LG_SLAB_MAXREGS = LG_PAGE - SC_LG_TINY_MIN
+
+
+def lg_floor_1(x):
+    return 0
+
+
+def lg_floor_2(x):
+    return lg_floor_1(x) if x < (1 << 1) else 1 + lg_floor_1(x >> 1)
+
+
+def lg_floor_4(x):
+    return lg_floor_2(x) if x < (1 << 2) else 2 + lg_floor_2(x >> 2)
+
+
+def lg_floor_8(x):
+    return lg_floor_4(x) if x < (1 << 4) else 4 + lg_floor_4(x >> 4)
+
+
+def lg_floor_16(x):
+    return lg_floor_8(x) if x < (1 << 8) else 8 + lg_floor_8(x >> 8)
+
+
+def lg_floor_32(x):
+    return lg_floor_16(x) if x < (1 << 16) else 16 + lg_floor_16(x >> 16)
+
+
+def lg_floor_64(x):
+    return lg_floor_32(x) if x < (1 << 32) else 32 + lg_floor_32(x >> 32)
+
+
+def lg_floor(x):
+    return lg_floor_32(x) if LG_SIZEOF_PTR == 2 else lg_floor_64(x)
+
+
+def lg_ceil(x):
+    return lg_floor(x) + (0 if (x & (x - 1)) == 0 else 1)
+
+
+# Arena width and mask definitions
+EDATA_BITS_ARENA_WIDTH = MALLOCX_ARENA_BITS
+EDATA_BITS_ARENA_SHIFT = 0
+EDATA_BITS_ARENA_MASK = mask(EDATA_BITS_ARENA_WIDTH, EDATA_BITS_ARENA_SHIFT)
+
+# Slab width and mask definitions
+EDATA_BITS_SLAB_WIDTH = 1
+EDATA_BITS_SLAB_SHIFT = EDATA_BITS_ARENA_WIDTH + EDATA_BITS_ARENA_SHIFT
+EDATA_BITS_SLAB_MASK = mask(EDATA_BITS_SLAB_WIDTH, EDATA_BITS_SLAB_SHIFT)
+
+# Committed width and mask definitions
+EDATA_BITS_COMMITTED_WIDTH = 1
+EDATA_BITS_COMMITTED_SHIFT = EDATA_BITS_SLAB_WIDTH + EDATA_BITS_SLAB_SHIFT
+EDATA_BITS_COMMITTED_MASK = mask(EDATA_BITS_COMMITTED_WIDTH, EDATA_BITS_COMMITTED_SHIFT)
+
+# PAI width and mask definitions
+EDATA_BITS_PAI_WIDTH = 1
+EDATA_BITS_PAI_SHIFT = EDATA_BITS_COMMITTED_WIDTH + EDATA_BITS_COMMITTED_SHIFT
+EDATA_BITS_PAI_MASK = mask(EDATA_BITS_PAI_WIDTH, EDATA_BITS_PAI_SHIFT)
+
+# Zeroed width and mask definitions
+EDATA_BITS_ZEROED_WIDTH = 1
+EDATA_BITS_ZEROED_SHIFT = EDATA_BITS_PAI_WIDTH + EDATA_BITS_PAI_SHIFT
+EDATA_BITS_ZEROED_MASK = mask(EDATA_BITS_ZEROED_WIDTH, EDATA_BITS_ZEROED_SHIFT)
+
+# Guarded width and mask definitions
+EDATA_BITS_GUARDED_WIDTH = 1
+EDATA_BITS_GUARDED_SHIFT = EDATA_BITS_ZEROED_WIDTH + EDATA_BITS_ZEROED_SHIFT
+EDATA_BITS_GUARDED_MASK = mask(EDATA_BITS_GUARDED_WIDTH, EDATA_BITS_GUARDED_SHIFT)
+
+# State width and mask definitions
+EDATA_BITS_STATE_WIDTH = 3
+EDATA_BITS_STATE_SHIFT = EDATA_BITS_GUARDED_WIDTH + EDATA_BITS_GUARDED_SHIFT
+EDATA_BITS_STATE_MASK = mask(EDATA_BITS_STATE_WIDTH, EDATA_BITS_STATE_SHIFT)
+
+EDATA_BITS_SZIND_WIDTH = lg_ceil(SC_NSIZES)
+EDATA_BITS_SZIND_SHIFT = EDATA_BITS_STATE_WIDTH + EDATA_BITS_STATE_SHIFT
+EDATA_BITS_SZIND_MASK = mask(EDATA_BITS_SZIND_WIDTH, EDATA_BITS_SZIND_SHIFT)
+
+# Nfree width and mask definitions
+EDATA_BITS_NFREE_WIDTH = SC_LG_SLAB_MAXREGS + 1
+EDATA_BITS_NFREE_SHIFT = EDATA_BITS_SZIND_WIDTH + EDATA_BITS_SZIND_SHIFT
+EDATA_BITS_NFREE_MASK = mask(EDATA_BITS_NFREE_WIDTH, EDATA_BITS_NFREE_SHIFT)
+
+# Binshard width and mask definitions
+EDATA_BITS_BINSHARD_WIDTH = 6
+EDATA_BITS_BINSHARD_SHIFT = EDATA_BITS_NFREE_WIDTH + EDATA_BITS_NFREE_SHIFT
+EDATA_BITS_BINSHARD_MASK = mask(EDATA_BITS_BINSHARD_WIDTH, EDATA_BITS_BINSHARD_SHIFT)
+
+# Is head width and mask definitions
+EDATA_BITS_IS_HEAD_WIDTH = 1
+EDATA_BITS_IS_HEAD_SHIFT = EDATA_BITS_BINSHARD_WIDTH + EDATA_BITS_BINSHARD_SHIFT
+EDATA_BITS_IS_HEAD_MASK = mask(EDATA_BITS_IS_HEAD_WIDTH, EDATA_BITS_IS_HEAD_SHIFT)
 
 # TODO: Move all rtree operations to different class / helper class
 # TODO: Figure out where to move this definition
@@ -59,12 +161,16 @@ rtree_levels = [
 
 
 class RTree:
+    # TODO: Check rtee_ctx cache in
+    # tsd_nominal_tsds.qlh_first.cant_access_tsd_items_directly_use_a_getter_or_setter_rtree_ctx.cache
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
         # gdb value with struct emap_s
         emap_s = pwndbg.gdblib.typeinfo.load("struct emap_s")
         self._gdbValue = pwndbg.gdblib.memory.poi(emap_s, self._addr)
+
+        self._extents = None
 
     @staticmethod
     def get_rtree() -> RTree:
@@ -107,8 +213,6 @@ class RTree:
         # For subkey 0
         subkey = self.__subkey(key, 1)
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        print(int(self.root.address), subkey, rtree_node_elm_s.sizeof)
-        print("addr:", addr)
         node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
         if node["child"]["repr"] == 0:
             return None
@@ -129,6 +233,58 @@ class RTree:
 
         return Extent(ptr)
 
+    @property
+    def extents(self):
+        # NOTE: Generating whole extents list is slow as it requires parsing whole rtree
+
+        if self._extents is None:  # TODO: handling cache on extents changes
+            self._extents = []
+            try:
+                root = self.root
+
+                rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
+                rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
+
+                max_subkeys = 1 << rtree_levels[RTREE_HEIGHT - 1][0]["bits"]
+                # print("max_subkeys: ", max_subkeys)
+
+                for i in range(max_subkeys):
+                    node = int(root.address) + i * rtree_node_elm_s.sizeof
+                    node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
+                    if node["child"]["repr"] == 0:
+                        continue
+                    leaf0 = node["child"]["repr"]
+                    # print("leaf0: ", leaf0)
+
+                    # level 1
+                    for j in range(max_subkeys):
+                        leaf = int(leaf0) + j * rtree_leaf_elm_s.sizeof
+                        leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, leaf)
+                        if leaf["le_bits"]["repr"] == 0:
+                            continue
+
+                        val = int(leaf["le_bits"]["repr"])
+                        # print("val: ", hex(val))
+
+                        ls = (val << RTREE_NHIB) & ((2**64) - 1)
+                        ptr = ((ls >> RTREE_NHIB) >> 1) << 1
+
+                        if ptr == 0:
+                            continue
+
+                        # print("ptr: ", hex(ptr))
+
+                        extent = Extent(ptr)
+                        self._extents.append(extent)
+                        # print("extent addr: ", hex(extent.extent_address))
+                        # print("allocated addr: ", hex(extent.allocated_address))
+                        # print()
+
+            except gdb.MemoryError:
+                pass
+
+        return self._extents
+
 
 class Arena:
     def __init__(self, addr: int) -> None:
@@ -141,7 +297,6 @@ class Arena:
         self._nbins = None
 
         self._bins = None
-        self._extents = None
 
     @property
     def bins(self):
@@ -165,52 +320,6 @@ class Arena:
 
         return self._bins
 
-    @property
-    def extents(self):
-        # NOTE: Generating whole extents list is slow as it requires parsing whole rtree
-
-        if self._extents is None:  # TODO: handling cache on extents changes
-            self._extents = []
-            try:
-                rtree = gdb.lookup_global_symbol("je_arena_emap_global").value()
-                root = rtree["rtree"]["root"]
-
-                rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
-                rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
-
-                max_subkeys = 1 << rtree_levels[RTREE_HEIGHT - 1][0]["bits"]
-                print("max_subkeys: ", max_subkeys)
-
-                for i in range(max_subkeys):
-                    node = int(root.address) + i * rtree_node_elm_s.sizeof
-                    node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
-                    if node["child"]["repr"] == 0:
-                        continue
-                    leaf0 = node["child"]["repr"]
-
-                    # level 1
-                    for j in range(max_subkeys):
-                        leaf = int(leaf0) + j * rtree_leaf_elm_s.sizeof
-                        leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, leaf)
-                        if leaf["le_bits"]["repr"] == 0:
-                            continue
-
-                        val = int(leaf["le_bits"]["repr"])
-
-                        ls = (val << RTREE_NHIB) & ((2**64) - 1)
-                        ptr = ((ls >> RTREE_NHIB) >> 1) << 1
-
-                        if ptr == 0:
-                            continue
-
-                        extent = Extent(ptr)
-                        self._extents.append(extent)
-
-            except gdb.MemoryError:
-                pass
-
-        return self._extents
-
 
 class Extent:
     def __init__(self, addr: int) -> None:
@@ -220,15 +329,25 @@ class Extent:
         edata_s = pwndbg.gdblib.typeinfo.load("struct edata_s")
         self._gdbValue = pwndbg.gdblib.memory.poi(edata_s, self._addr)
 
+        self._bitfields = None
+
     @property
     def size(self):
+        """
+        May be larger in case of large size class allocation when cache_oblivious is enabled.
+        """
         return self._gdbValue["e_size_esn"]
 
     @property
-    def address(self):
+    def extent_address(self):
         """
         Returns the address of the memory location the extent is pointing to.
         """
+        return self._addr
+
+    # Address of allocated memory address
+    @property
+    def allocated_address(self):
         return self._gdbValue["e_addr"]
 
     @property
@@ -239,10 +358,59 @@ class Extent:
     def bits(self):
         return self._gdbValue["e_bits"]
 
-    # boolean
+    @property
+    def bitfields(self):
+        """
+        Extract bitfields
+
+        arena_ind: Arena from which this extent came, or all 1 bits if unassociated.
+        slab: The slab flag indicates whether the extent is used for a slab of small regions. This helps differentiate small size classes, and it indicates whether interior pointers can be looked up via iealloc().
+        committed: The committed flag indicates whether physical memory is committed to the extent, whether explicitly or implicitly as on a system that overcommits and satisfies physical memory needs on demand via soft page faults.
+        pai: The pai flag is an extent_pai_t.
+        zeroed: The zeroed flag is used by extent recycling code to track whether memory is zero-filled.
+        guarded: The guarded flag is used by the sanitizer to track whether the extent has page guards around it.
+        state: The state flag is an extent_state_t.
+        szind: The szind flag indicates usable size class index for allocations residing in this extent, regardless of whether the extent is a slab. Extent size and usable size often differ even for non-slabs, either due to sz_large_pad or promotion of sampled small regions.
+        nfree: Number of free regions in slab.
+        bin_shard: The shard of the bin from which this extent came.
+        """
+
+        if self._bitfields is None:
+            self._bitfields = {
+                "arena_ind": (self.bits & EDATA_BITS_ARENA_MASK) >> EDATA_BITS_ARENA_SHIFT,
+                "slab": (self.bits & EDATA_BITS_SLAB_MASK) >> EDATA_BITS_SLAB_SHIFT,
+                "committed": (self.bits & EDATA_BITS_COMMITTED_MASK) >> EDATA_BITS_COMMITTED_SHIFT,
+                "pai": (self.bits & EDATA_BITS_PAI_MASK) >> EDATA_BITS_PAI_SHIFT,
+                "zeroed": (self.bits & EDATA_BITS_ZEROED_MASK) >> EDATA_BITS_ZEROED_SHIFT,
+                "guarded": (self.bits & EDATA_BITS_GUARDED_MASK) >> EDATA_BITS_GUARDED_SHIFT,
+                "state": (self.bits & EDATA_BITS_STATE_MASK) >> EDATA_BITS_STATE_SHIFT,
+                "szind": (self.bits & EDATA_BITS_SZIND_MASK) >> EDATA_BITS_SZIND_SHIFT,
+                "nfree": (self.bits & EDATA_BITS_NFREE_MASK) >> EDATA_BITS_NFREE_SHIFT,
+                "bin_shard": (self.bits & EDATA_BITS_BINSHARD_MASK) >> EDATA_BITS_BINSHARD_SHIFT,
+            }
+
+        return self._bitfields
+
     @property
     def has_slab(self):
         """
         Returns True if the extent is used for small size classes.
         """
-        return ((self.bits & EXTENT_BITS_SLAB_MASK) >> EXTENT_BITS_SLAB_SHIFT) != 0
+        return self.bitfields["slab"] != 0
+
+    @property
+    def is_free(self):
+        """
+        Returns True if the extent is free.
+        """
+        pass
+
+    @property
+    def pai(self):
+        """
+        Page Allocator Interface
+        """
+        if self.bitfields["pai"] == 0:
+            return "PAC"  # Page for extent
+        return "HPA"  # Huge Page
+        return "HPA"  # Huge Page
