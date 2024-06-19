@@ -350,10 +350,17 @@ class DisassemblyAssistant:
     ):
         return operand.imm
 
+
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        # operand_id is the ID internal to Capstone
+        """
+        Read value in register. Return None if cannot reason about the value in the register.
+        Different architectures use registers in different patterns, so it is best to
+        override this to get to best behavior for a given architecture. See x86.py as example.
+
+        operand_id is the ID internal to Capstone
+        """
         regname: str = instruction.cs_insn.reg_name(operand_id)
         return self._read_register_name(instruction, regname, emu)
 
@@ -515,9 +522,9 @@ class DisassemblyAssistant:
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT not in instruction.groups:
             return None
-            return None
 
-        syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
+        syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
+        syscall_arch = self._get_syscall_arch(instruction)
 
         if syscall_arch is None:
             return None

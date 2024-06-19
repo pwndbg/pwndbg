@@ -36,7 +36,10 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Ex: AL has size = 1
 # Access through EnhancedOperand.cs_op.size
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> cf1bf2f9 (comments)
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -439,9 +442,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
     @override
+<<<<<<< HEAD
     def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
+=======
+    def _get_syscall_arch(self, instruction: PwndbgInstruction) -> str | None:
+        # Since this class handles both x86 and x86_64, we need to choose the correct
+        # syscall arch depending on the instruction being executed.
+
+        syscall_arch = pwndbg.gdblib.arch.name
+>>>>>>> cf1bf2f9 (comments)
 
         # On x86_x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
         # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
@@ -457,9 +468,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
         # On x86, the syscall_arch is already i386, so its all fine
         if is_32bit:
+<<<<<<< HEAD
             return ("i386", "eax")
         else:
             return ("x86-64", "rax")
+=======
+            return "i386"
+
+        return syscall_arch
+>>>>>>> cf1bf2f9 (comments)
 
     # Currently not used
     def memory_string_with_components_resolved(
