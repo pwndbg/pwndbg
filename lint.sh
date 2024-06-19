@@ -84,5 +84,5 @@ vermin -vvv --no-tips -t=3.8- --eval-annotations --violations ${LINT_FILES}
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    mypy pwndbg
+    mypy pwndbg gdbinit.py
 fi
