@@ -45,7 +45,7 @@ def run_poetry_install(dev=False):
     check_poetry()  # Check if poetry executable exists in PATH
     poetry_path = shutil.which("poetry")
     if poetry_path is None:
-        print("Poetry is not installed. Please install it and try again.")
+        print("Poetry was not found on the $PATH. Please ensure it is installed and on the path, or run `./setup.sh` to update Python dependencies.")
         sys.exit(1)
 
     command = [poetry_path, "install"]
