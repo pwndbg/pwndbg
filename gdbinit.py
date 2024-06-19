@@ -80,8 +80,6 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
 
-    update_deps(__file__)
-
     site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
     # add virtualenv's site-packages to sys.path and run .pth files
@@ -96,12 +94,15 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
     bin_path = os.path.join(venv_path, "bin")
     os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
 
+    update_deps(__file__)
+
     # Add pwndbg directory to sys.path so it can be imported
     sys.path.insert(0, directory)
 
     # Push virtualenv's site-packages to the front
     sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
+
 
 # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
 gdb.execute("set charset UTF-8", to_string=True)
