@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing_extensions import override
 
 from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
@@ -51,7 +52,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
-    # Override
+    @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED

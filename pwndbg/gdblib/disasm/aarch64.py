@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing_extensions import override
 
 from capstone import *  # noqa: F403
 from capstone.arm64 import *  # noqa: F403
@@ -63,7 +64,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
-    # Override
+    @override
     def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)

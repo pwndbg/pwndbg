@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing_extensions import override
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
@@ -289,12 +290,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
 
-    # Override
+    @override
     def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-    # Override
+    @override
     def _resolve_used_value(
         self,
         value: int | None,
@@ -310,7 +311,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             return super()._resolve_used_value(value, instruction, operand, emu)
 
-    # Override
+    @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
@@ -321,7 +322,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             return super()._read_register(instruction, operand_id, emu)
 
-    # Override
+    @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
@@ -350,7 +351,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return target
 
-    # Override
+    @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
@@ -372,7 +373,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
             )
 
-    # Override
+    @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
@@ -433,7 +434,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
-    # Override
+    @override
     def _get_syscall_arch(self, instruction: PwndbgInstruction) -> str | None:
         syscall_arch = pwndbg.gdblib.arch.name
 
