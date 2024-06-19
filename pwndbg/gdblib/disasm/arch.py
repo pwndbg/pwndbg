@@ -350,7 +350,6 @@ class DisassemblyAssistant:
     ):
         return operand.imm
 
-
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
