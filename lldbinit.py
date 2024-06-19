@@ -123,7 +123,6 @@ def skip_venv(src_root) -> bool:
         or (src_root / ".skip-venv").exists()
     )
 
-
 class Test:
     def __init__(self, debugger, _):
         pass

@@ -7,6 +7,8 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
+import sys
+import random
 
 class LLDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: lldb.SBFrame):
@@ -216,6 +218,10 @@ class LLDBSession(pwndbg.dbg_mod.Session):
         if f.IsValid():
             return LLDBFrame(f)
 
+class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
+    def __init__(self, handler_name: str):
+        self.handler_name = handler_name   
+
 class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self, *args):
@@ -224,9 +230,21 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             debugger.__class__ is lldb.SBDebugger
         ), "lldbinit.py should call setup() with an lldb.SBDebugger object"
 
+        module = args[1]
+        assert module.__class__ is str, "lldbinit.py should call setup() with __name__"
+
+        self.module = module
         self.debugger = debugger
 
         import pwndbg.commands
+        pwndbg.commands.load_commands()
+
+        import argparse
+        parser = argparse.ArgumentParser(description="Prints a test message.")
+
+        @pwndbg.commands.ArgparsedCommand(parser)
+        def test2():
+            print("Awoooo!")
 
     @override
     def inferior(self):
@@ -239,14 +257,39 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             raise RuntimeError("Multiple LLDB targets are not supported")
 
         target = self.debugger.GetTargetAtIndex(0)
-        process = self.debugger.GetProcess()
-        
         assert target.IsValid(), "Target must be valid at this point"
+
+        process = target.GetProcess()
         if not process.IsValid():
             # No process we can use.
             return None
 
         return LLDBProcess(process, target)
+
+    @override
+    def add_command(self, command_name, handler):
+        debugger = self
+        class CommandHandler:
+            def __init__(self, debugger, _):
+                pass
+
+            def __call__(self, _, command, exe_context, result):
+                handler(debugger, command, True)
+
+        # LLDB is very particular with the object paths it will accept. It is at
+        # its happiest when its pulling objects straight off the module that was
+        # first imported with `command script import`, so, we install the class
+        # we've just created as a global value in its dictionary.
+        rand = round(random.random() * 0xffffffff) // 1
+        rand = f"{rand:08x}"
+        
+        name = f"__{rand}_LLDB_COMMAND_{command_name}"
+        print(f"adding command {command_name}, under the path {self.module}.{name}")
+
+        sys.modules[self.module].__dict__[name] = CommandHandler
+
+        # Install the command under the name we've just picked.
+        self.debugger.HandleCommand(f"command script add -c {self.module}.{name} -s synchronous {command_name}")
 
     @override
     def session(self):
