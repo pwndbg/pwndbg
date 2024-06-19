@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
-from typing_extensions import override
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.chain
 import pwndbg.color.context as C
@@ -33,6 +33,7 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Ex: dword ptr [RDX] has size = 4
 # Ex: AL has size = 1
 # Access through EnhancedOperand.cs_op.size
+
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing_extensions import override
-
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
@@ -16,7 +15,6 @@ from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
-    
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing_extensions import override
-
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch

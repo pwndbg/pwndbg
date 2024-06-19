@@ -322,7 +322,6 @@ class DisassemblyAssistant:
 
         return jump_emu is not None
 
-
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
         """
         Determine if the program counter of the process equals the address of the instruction being enhanced.
@@ -350,7 +349,6 @@ class DisassemblyAssistant:
         self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
     ):
         return operand.imm
-
 
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
