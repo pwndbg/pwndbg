@@ -46,7 +46,7 @@ def run_poetry_install(dev=False):
             print(
                 "Poetry was not found on the $PATH. Please ensure it is installed and on the path, or run `./setup.sh` to update Python dependencies."
             )
-            return 1
+            return "", "", 1
 
     command = [poetry_path, "install"]
     if dev:
