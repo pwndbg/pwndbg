@@ -154,6 +154,15 @@ class Value:
         """
         raise NotImplementedError()
 
+    # is_optimized_out is a very janky piece of API and I hate it. It makes it
+    # so that one's ability to call all other methods in this class is often
+    # conditional on it being false, and it effectively splits the type into
+    # two.
+    #
+    # There's only _one_ part of Pwndbg that uses it, and I really feel like we
+    # should handle variables that have been optimized out some other way.
+    #
+    # TODO: Remove uses of is_optimized_out from plist and get rid of this.
     @property
     def is_optimized_out(self) -> bool:
         """
