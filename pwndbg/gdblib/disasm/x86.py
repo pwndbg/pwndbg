@@ -36,10 +36,6 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Ex: AL has size = 1
 # Access through EnhancedOperand.cs_op.size
 
-<<<<<<< HEAD
-
-=======
->>>>>>> cf1bf2f9 (comments)
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
