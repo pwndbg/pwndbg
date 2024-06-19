@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing_extensions import override
 from typing import Tuple
 
 from capstone import *  # noqa: F403
