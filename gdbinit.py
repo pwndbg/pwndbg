@@ -3,6 +3,7 @@ from __future__ import annotations
 import cProfile
 import hashlib
 import os
+import shutil
 import site
 import subprocess
 import sys
@@ -22,6 +23,13 @@ if environ.get("PWNDBG_PROFILE") == "1":
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
+def check_poetry():
+    if shutil.which("poetry") is None:
+        print("Poetry is not installed or not found in your PATH.")
+        print("Please run './setup.sh' to install Poetry")
+        sys.exit(1)
+
+
 def calculate_hash(file_path):
     with open(file_path, "rb") as f:
         file_hash = hashlib.sha256()
@@ -34,7 +42,13 @@ def calculate_hash(file_path):
 
 
 def run_poetry_install(dev=False):
-    command = ["poetry", "install"]
+    check_poetry()  # Check if poetry executable exists in PATH
+    poetry_path = shutil.which("poetry")
+    if poetry_path is None:
+        print("Poetry is not installed. Please install it and try again.")
+        sys.exit(1)
+
+    command = [poetry_path, "install"]
     if dev:
         command.extend(("--with", "dev"))
     result = subprocess.run(command, capture_output=True, text=True)
@@ -80,8 +94,6 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
         print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
         sys.exit(1)
 
-    update_deps(__file__)
-
     site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
 
     # add virtualenv's site-packages to sys.path and run .pth files
@@ -95,6 +107,8 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
     # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
     bin_path = os.path.join(venv_path, "bin")
     os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
+
+    update_deps(__file__)
 
     # Add pwndbg directory to sys.path so it can be imported
     sys.path.insert(0, directory)
