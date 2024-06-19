@@ -218,7 +218,7 @@ class DisassemblyAssistant:
         enhancer._enhance_next(instruction, emu, jump_emu)
 
         if bool(pwndbg.gdblib.config.disasm_annotations):
-            enhancer.set_annotation_string(instruction, emu)
+            enhancer._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
         # to determine the call's target address.
@@ -235,7 +235,7 @@ class DisassemblyAssistant:
             print("Done enhancing")
 
     # Subclasses for specific architecture should override this
-    def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
@@ -322,14 +322,14 @@ class DisassemblyAssistant:
 
         return jump_emu is not None
 
-    # Determine if the program counter of the process equals the address of the function being executed.
-    # If so, it means we can safely reason and read from registers and memory to represent values that
-    # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to
-    # allow more details when the PC is at the instruction being enhanced
+
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
-        # can_read_process_state indicates if the current program counter of the process is the same as the instruction
-        # The way to determine this varies between architectures (some arches have PC a constant offset to instruction address),
-        # so subclasses need to specify
+        """
+        Determine if the program counter of the process equals the address of the instruction being enhanced.
+        If so, it means we can safely reason and read from registers and memory to enhance values that
+        we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
+        allow more details when the PC is at the instruction being enhanced
+        """
         return instruction.address == pwndbg.gdblib.regs.pc
 
     # Delegates to "read_register", which takes Capstone ID for register.
@@ -351,13 +351,15 @@ class DisassemblyAssistant:
     ):
         return operand.imm
 
-    # Read value in register. Return None if cannot reason about the value in the register.
-    # Different architectures use registers in different patterns, so it is best to
-    # override this to get to best behavior for a given architecture. See x86.py as example.
+
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
         """
+        Read value in register. Return None if cannot reason about the value in the register.
+        Different architectures use registers in different patterns, so it is best to
+        override this to get to best behavior for a given architecture. See x86.py as example.
+
         operand_id is the ID internal to Capstone
         """
         regname: str = instruction.cs_insn.reg_name(operand_id)
@@ -523,6 +525,9 @@ class DisassemblyAssistant:
 
         syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
         syscall_arch = self._get_syscall_arch(instruction)
+
+        if syscall_arch is None:
+            return None
 
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:

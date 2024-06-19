@@ -34,7 +34,8 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Ex: AL has size = 1
 # Access through EnhancedOperand.cs_op.size
 
-
+# This class handles enhancement for x86 and x86_64. This is because Capstone itself
+# represents both architectures using the same class
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -291,7 +292,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         self.handle_inc(instruction, emu)
 
     @override
-    def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
@@ -436,6 +437,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _get_syscall_arch(self, instruction: PwndbgInstruction) -> str | None:
+        # Since this class handles both x86 and x86_64, we need to choose the correct
+        # syscall arch depending on the instruction being executed.
+
         syscall_arch = pwndbg.gdblib.arch.name
 
         # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
@@ -452,7 +456,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
         # On x86, the syscall_arch is already i386, so its all fine
         if is_32bit:
-            syscall_arch = "i386"
+            return "i386"
 
         return syscall_arch
 
