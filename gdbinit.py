@@ -23,13 +23,6 @@ if environ.get("PWNDBG_PROFILE") == "1":
 venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
 
-def check_poetry():
-    if shutil.which("poetry") is None:
-        print("Poetry is not installed or not found in your PATH.")
-        print("Please run './setup.sh' to install Poetry")
-        sys.exit(1)
-
-
 def calculate_hash(file_path):
     with open(file_path, "rb") as f:
         file_hash = hashlib.sha256()
@@ -42,11 +35,18 @@ def calculate_hash(file_path):
 
 
 def run_poetry_install(dev=False):
-    check_poetry()  # Check if poetry executable exists in PATH
     poetry_path = shutil.which("poetry")
     if poetry_path is None:
-        print("Poetry was not found on the $PATH. Please ensure it is installed and on the path, or run `./setup.sh` to update Python dependencies.")
-        sys.exit(1)
+        # Additional check: Look for poetry at $HOME/.local/bin/poetry
+        home_poetry_path = os.path.expanduser("~/.local/bin/poetry")
+        if os.path.exists(home_poetry_path):
+            print(f"Found Poetry at {home_poetry_path}")
+            poetry_path = home_poetry_path
+        else:
+            print(
+                "Poetry was not found on the $PATH. Please ensure it is installed and on the path, or run `./setup.sh` to update Python dependencies."
+            )
+            return 1
 
     command = [poetry_path, "install"]
     if dev:
