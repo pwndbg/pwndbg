@@ -150,7 +150,7 @@ class PwndbgInstruction:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.disasm.arch.py
+        # in pwndbg.gdblib.disasm.arch.py
         # ***********
 
         self.asm_string: str = "%-06s %s" % (self.mnemonic, self.op_str)
@@ -200,7 +200,7 @@ class PwndbgInstruction:
         Does the condition that the instruction checks for pass?
 
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
-        See 'condition' function in pwndbg.disasm.x86 for example on setting this.
+        See 'condition' function in pwndbg.gdblib.disasm.x86 for example on setting this.
 
         UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
 
@@ -345,7 +345,7 @@ class EnhancedOperand:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.disasm.arch.py
+        # in pwndbg.gdblib.disasm.arch.py
         # ***********
 
         self.before_value: int | None = None

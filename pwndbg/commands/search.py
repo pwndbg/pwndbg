@@ -12,10 +12,10 @@ import pwnlib
 
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.disasm
 import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message

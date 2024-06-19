@@ -7,12 +7,12 @@ import gdb
 
 import pwndbg.gdblib.config
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
-import pwndbg.heap.heap
 from pwndbg.color import message
 
-current: pwndbg.heap.heap.MemoryAllocator | None = None
+current: pwndbg.gdblib.heap.heap.MemoryAllocator | None = None
 
 
 def add_heap_param(
@@ -97,11 +97,11 @@ def reset() -> None:
 
 @pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
-    import pwndbg.heap.ptmalloc
+    import pwndbg.gdblib.heap.ptmalloc
 
     global current
     if resolve_heap_via_heuristic == "force":
-        current = pwndbg.heap.ptmalloc.HeuristicHeap()
+        current = pwndbg.gdblib.heap.ptmalloc.HeuristicHeap()
         if not is_first_run and pwndbg.gdblib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
@@ -110,4 +110,4 @@ def resolve_heap(is_first_run: bool = False) -> None:
                 )
             )
     else:
-        current = pwndbg.heap.ptmalloc.DebugSymsHeap()
+        current = pwndbg.gdblib.heap.ptmalloc.DebugSymsHeap()

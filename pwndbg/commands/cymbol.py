@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Add, load, show, edit, or delete symbols for custom structures.
 

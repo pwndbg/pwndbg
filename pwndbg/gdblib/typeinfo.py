@@ -131,14 +131,6 @@ def load(name: str) -> Optional[gdb.Type]:
         return None
 
 
-def read_gdbvalue(type_name: str, addr: int) -> gdb.Value:
-    """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    gdb_type = load(type_name)
-    if gdb_type is None:
-        raise ValueError(f"Type {type_name} not found")
-    return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
-
-
 def get_type(size: int) -> gdb.Type:
     return {
         1: pwndbg.gdblib.typeinfo.uint8,

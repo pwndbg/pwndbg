@@ -14,10 +14,10 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
-from pwndbg.disasm.instruction import EnhancedOperand
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 pwndbg.gdblib.config.add_param(
     "emulate",
@@ -455,7 +455,9 @@ class DisassemblyAssistant:
 
                 size_type = pwndbg.gdblib.typeinfo.get_type(read_size)
                 try:
-                    read_value = int(pwndbg.gdblib.memory.poi(size_type, address))
+                    read_value = int(
+                        pwndbg.gdblib.memory.get_typed_pointer_value(size_type, address)
+                    )
                     result.append(read_value)
                 except gdb.MemoryError:
                     pass
@@ -478,7 +480,9 @@ class DisassemblyAssistant:
                 if page and not page.write:
                     try:
                         address = int(
-                            pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address)
+                            pwndbg.gdblib.memory.get_typed_pointer_value(
+                                pwndbg.gdblib.typeinfo.ppvoid, address
+                            )
                         )
                         address &= pwndbg.gdblib.arch.ptrmask
                         address_list.append(address)
