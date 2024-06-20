@@ -9,21 +9,21 @@ import subprocess
 import sys
 import time
 from glob import glob
-from os import environ
-from os import path
+from pathlib import Path
+from typing import List
+from typing import Tuple
+
+import gdb
 
 _profiler = cProfile.Profile()
 
 _start_time = None
-if environ.get("PWNDBG_PROFILE") == "1":
+if os.environ.get("PWNDBG_PROFILE") == "1":
     _start_time = time.time()
     _profiler.enable()
 
-# Get virtualenv's site-packages path
-venv_path = os.environ.get("PWNDBG_VENV_PATH")
 
-
-def calculate_hash(file_path):
+def hash_file(file_path: str | Path) -> str:
     with open(file_path, "rb") as f:
         file_hash = hashlib.sha256()
         while True:
@@ -34,67 +34,66 @@ def calculate_hash(file_path):
     return file_hash.hexdigest()
 
 
-def run_poetry_install(dev=False):
-    poetry_path = shutil.which("poetry")
-    if poetry_path is None:
-        # Additional check: Look for poetry at $HOME/.local/bin/poetry
-        home_poetry_path = os.path.expanduser("~/.local/bin/poetry")
-        if os.path.exists(home_poetry_path):
-            print(f"Found Poetry at {home_poetry_path}")
-            poetry_path = home_poetry_path
-        else:
-            print(
-                "Poetry was not found on the $PATH. Please ensure it is installed and on the path, or run `./setup.sh` to update Python dependencies."
-            )
-            return "", "", 1
-
-    command = [poetry_path, "install"]
+def run_poetry_install(poetry_path: os.PathLike[str], dev: bool = False) -> Tuple[str, str, int]:
+    command: List[str | os.PathLike[str]] = [poetry_path, "install"]
     if dev:
         command.extend(("--with", "dev"))
     result = subprocess.run(command, capture_output=True, text=True)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def update_deps(file_path):
-    poetry_lock_path = os.path.join(os.path.dirname(file_path), "poetry.lock")
-    poetry_lock_hash_path = os.path.join(venv_path, "poetry.lock.hash")
-    dev_marker_path = os.path.join(venv_path, "dev.marker")
+def find_poetry() -> Path | None:
+    poetry_path = shutil.which("poetry")
+    if poetry_path is not None:
+        return Path(poetry_path)
 
-    current_hash = calculate_hash(poetry_lock_path)
+    # On some systems `poetry` is installed in "~/.local/bin/" but this directory is
+    # not on the $PATH
+    poetry_path = Path("~/.local/bin/poetry").expanduser()
+    if poetry_path.exists():
+        return poetry_path
+
+    return None
+
+
+def is_dev_mode(venv_path: Path) -> bool:
+    # If "dev.marker" exists in the venv directory, the user ran setup-dev.sh and is
+    # considered a developer
+    return (venv_path / "dev.marker").exists()
+
+
+def update_deps(src_root: Path, venv_path: Path) -> None:
+    poetry_lock_hash_path = venv_path / "poetry.lock.hash"
+
+    current_hash = hash_file(src_root / "poetry.lock")
     stored_hash = None
-    if os.path.exists(poetry_lock_hash_path):
-        with open(poetry_lock_hash_path, "r") as f:
-            stored_hash = f.read().strip()
+    if poetry_lock_hash_path.exists():
+        stored_hash = poetry_lock_hash_path.read_text().strip()
 
-    # checks if dev.marker exists
-    dev_mode = os.path.exists(dev_marker_path)
-
-    # if hashes don't match, run the appropriate command based on dev.marker file
+    # If the hashes don't match, update the dependencies
     if current_hash != stored_hash:
-        stdout, stderr, returncode = run_poetry_install(dev=dev_mode)
-        with open(poetry_lock_hash_path, "w") as f:
-            f.write(current_hash)
-        if returncode == 0 and ("No dependencies to install or update" not in stdout):
-            print(stdout)
-        elif returncode != 0:
+        poetry_path = find_poetry()
+        if poetry_path is None:
+            print(
+                "Poetry was not found on the $PATH. Please ensure it is installed and on the path, "
+                "or run `./setup.sh` to manually update Python dependencies."
+            )
+            return
+
+        dev_mode = is_dev_mode(venv_path)
+        stdout, stderr, return_code = run_poetry_install(poetry_path, dev=dev_mode)
+        if return_code == 0:
+            poetry_lock_hash_path.write_text(current_hash)
+
+            # Only print the poetry output if anything was actually updated
+            if "No dependencies to install or update" not in stdout:
+                print(stdout)
+        else:
             print(stderr, file=sys.stderr)
 
 
-if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
-    path.dirname(__file__) + "/.skip-venv"
-):
-    directory, file = path.split(__file__)
-    directory = path.expanduser(directory)
-    directory = path.abspath(directory)
-
-    if not venv_path:
-        venv_path = os.path.join(directory, ".venv")
-
-    if not os.path.exists(venv_path):
-        print(f"Cannot find Pwndbg virtualenv directory: {venv_path}: please re-run setup.sh")
-        sys.exit(1)
-
-    site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
+def fixup_paths(src_root: Path, venv_path: Path):
+    site_pkgs_path = glob(str(venv_path / "lib/*/site-packages"))[0]
 
     # add virtualenv's site-packages to sys.path and run .pth files
     site.addsitedir(site_pkgs_path)
@@ -105,26 +104,51 @@ if venv_path != "PWNDBG_PLEASE_SKIP_VENV" and not path.exists(
             sys.path.remove(site_packages)
 
     # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
-    bin_path = os.path.join(venv_path, "bin")
+    bin_path = str(venv_path / "bin")
     os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
 
-    update_deps(__file__)
-
     # Add pwndbg directory to sys.path so it can be imported
-    sys.path.insert(0, directory)
+    sys.path.insert(0, str(src_root))
 
     # Push virtualenv's site-packages to the front
     sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
+
+def get_venv_path(src_root: Path):
+    venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
+    if venv_path_env:
+        return Path(venv_path_env).expanduser().resolve()
+    else:
+        return src_root / ".venv"
+
+
+def skip_venv(src_root) -> bool:
+    return (
+        os.environ.get("PWNDBG_VENV_PATH") == "PWNDBG_PLEASE_SKIP_VENV"
+        or (src_root / ".skip-venv").exists()
+    )
+
+
+src_root = Path(__file__).parent.resolve()
+if not skip_venv(src_root):
+    venv_path = get_venv_path(src_root)
+    if not venv_path.exists():
+        print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
+        sys.exit(1)
+
+    update_deps(src_root, venv_path)
+    fixup_paths(src_root, venv_path)
+
+
 # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
 gdb.execute("set charset UTF-8", to_string=True)
-environ["PWNLIB_NOTERM"] = "1"
+os.environ["PWNLIB_NOTERM"] = "1"
 
 import pwndbg  # noqa: F401
 import pwndbg.profiling
 
 pwndbg.profiling.init(_profiler, _start_time)
-if environ.get("PWNDBG_PROFILE") == "1":
+if os.environ.get("PWNDBG_PROFILE") == "1":
     pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
     pwndbg.profiling.profiler.start()
