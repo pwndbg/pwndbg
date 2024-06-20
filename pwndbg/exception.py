@@ -4,8 +4,6 @@ import functools
 import sys
 import traceback
 
-import gdb
-
 import pwndbg.lib.cache
 import pwndbg.lib.stdio
 from pwndbg.color import message
@@ -140,9 +138,5 @@ pdb.set_trace = set_trace
 
 @config.trigger(verbose, debug)
 def update() -> None:
-    if verbose or debug:
-        command = "set python print-stack full"
-    else:
-        command = "set python print-stack message"
-
-    gdb.execute(command, from_tty=True, to_string=True)
+    enable = verbose or debug
+    pwndbg.dbg.set_python_diagnostics(enable)
