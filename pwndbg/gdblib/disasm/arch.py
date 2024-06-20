@@ -369,7 +369,8 @@ class DisassemblyAssistant:
         self, instruction: PwndbgInstruction, regname: str, emu: Emulator
     ) -> int | None:
         if emu:
-            # Will return the value of register after executing the instruction
+            # Will read the value of register from the emulator
+            # Be concious about calling this before/after stepping the emulator
             value = emu.read_register(regname)
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
