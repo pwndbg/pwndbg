@@ -89,6 +89,10 @@ registered: Dict[Any, List[Callable[..., Any]]] = {
     gdb.events.register_changed: [],
 }
 
+# Registered events are wrapped and aren't directly connected to GDB
+# This is a map from event to the actual handler connected to GDB
+connected = {}
+
 
 # When performing remote debugging, gdbserver is very noisy about which
 # objects are loaded.  This greatly slows down the debugging session.
@@ -97,7 +101,9 @@ registered: Dict[Any, List[Callable[..., Any]]] = {
 objfile_cache: Dict[str, Set[str]] = {}
 
 
-def connect(func: Callable[P, T], event_handler: Any, name: str = "") -> Callable[P, T]:
+def connect(
+    func: Callable[P, T], event_handler: Any, name: str = "", priority: bool = False
+) -> Callable[P, T]:
     if debug:
         print("Connecting", func.__name__, event_handler)
 
@@ -127,45 +133,53 @@ def connect(func: Callable[P, T], event_handler: Any, name: str = "") -> Callabl
 
             pwndbg.exception.handle()
             raise e
-
-    registered[event_handler].append(caller)
-    event_handler.connect(caller)
+    if priority:
+        registered[event_handler].insert(0, caller)
+    else:
+        registered[event_handler].append(caller)
+    if event_handler not in connected:
+        def handle(*a: P.args, **kw: P.kwargs) -> None:
+            for f in registered[event_handler]:
+                f(*a, **kw)
+        event_handler.connect(handle)
+        connected[event_handler] = handle
     return func
 
 
-def exit(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.exited, "exit")
+def exit(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.exited, "exit", **kwargs)
 
 
-def cont(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.cont, "cont")
+def cont(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.cont, "cont", **kwargs)
 
 
-def new_objfile(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.new_objfile, "obj")
+def new_objfile(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.new_objfile, "obj", **kwargs)
 
 
-def stop(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.stop, "stop")
+def stop(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.stop, "stop", **kwargs)
 
 
-def start(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.start, "start")
+def start(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.start, "start", **kwargs)
 
 
-def thread(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.new_thread, "thread")
+def thread(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.new_thread, "thread", **kwargs)
 
 
-before_prompt = partial(connect, event_handler=gdb.events.before_prompt, name="before_prompt")
+def before_prompt(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.before_prompt, "before_prompt", **kwargs)
 
 
-def reg_changed(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.register_changed, "reg_changed")
+def reg_changed(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.register_changed, "reg_changed", **kwargs)
 
 
-def mem_changed(func: Callable[[], T]) -> Callable[[], T]:
-    return connect(func, gdb.events.memory_changed, "mem_changed")
+def mem_changed(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+    return connect(func, gdb.events.memory_changed, "mem_changed", **kwargs)
 
 
 def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
@@ -182,28 +196,24 @@ def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
 gdb.events.new_objfile.connect(log_objfiles)
 
 
+# invoke all registered handlers of a certain event type
+def invoke_event(event: Any) -> None:
+    if event in registered:
+        for f in registered[event]:
+            f()
+
+
 def after_reload(start: bool = True) -> None:
     if gdb.selected_inferior().pid:
-        if gdb.events.stop in registered:
-            for f in registered[gdb.events.stop]:
-                f()
-        if gdb.events.start in registered:
-            for f in registered[gdb.events.start]:
-                if start:
-                    f()
-        if gdb.events.new_objfile in registered:
-            for f in registered[gdb.events.new_objfile]:
-                f()
-        if gdb.events.before_prompt in registered:
-            for f in registered[gdb.events.before_prompt]:
-                f()
+        invoke_event(gdb.events.stop)
+        invoke_event(gdb.events.start)
+        invoke_event(gdb.events.new_objfile)
+        invoke_event(gdb.events.before_prompt)
 
 
 def on_reload() -> None:
-    for event, functions in registered.items():
-        for function in functions:
-            event.disconnect(function)
-        registered[event] = []
+    for functions in registered.values():
+        functions.clear()
 
 
 @new_objfile

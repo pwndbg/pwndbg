@@ -75,7 +75,7 @@ class _CacheUntilEvent:
         by `stop`, `mem_changed` and `reg_changed` events.
         """
         for event_hook in event_hooks:
-            event_hook(self.clear)
+            event_hook(self.clear, priority=True)
 
     def clear(self) -> None:
         for cache in self.caches:
