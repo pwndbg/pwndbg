@@ -522,8 +522,7 @@ class DisassemblyAssistant:
         if CS_GRP_INT not in instruction.groups:
             return None
 
-        syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
-        syscall_arch = self._get_syscall_arch(instruction)
+        syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
 
         if syscall_arch is None:
             return None

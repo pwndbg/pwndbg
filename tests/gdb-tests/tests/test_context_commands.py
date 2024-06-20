@@ -146,12 +146,23 @@ def test_source_code_tabstop(start_binary):
 
 
 def test_context_disasm_syscalls_args_display(start_binary):
+    helper_context_disasm_syscalls_args_display(start_binary, emulate=True)
+
+
+def test_context_disasm_syscalls_args_display_no_emulate(start_binary):
+    gdb.execute("set emulate off")
+    helper_context_disasm_syscalls_args_display(start_binary, emulate=False)
+
+
+def helper_context_disasm_syscalls_args_display(start_binary, emulate: bool):
+    emulate_string = "on" if emulate else "off"
+
     start_binary(SYSCALLS_BINARY)
     gdb.execute("nextsyscall")
     dis = gdb.execute("context disasm", to_string=True)
     assert dis == (
         "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
-        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        f"──────────────────────[ DISASM / x86-64 / set emulate {emulate_string} ]──────────────────────\n"
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
@@ -173,7 +184,7 @@ def test_context_disasm_syscalls_args_display(start_binary):
     dis = gdb.execute("context disasm", to_string=True)
     assert dis == (
         "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA\n"
-        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        f"──────────────────────[ DISASM / x86-64 / set emulate {emulate_string} ]──────────────────────\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
@@ -190,6 +201,7 @@ def test_context_disasm_syscalls_args_display(start_binary):
     )
 
 
+<<<<<<< HEAD
 def test_context_disasm_syscalls_args_display_no_emulate(start_binary):
     gdb.execute("set emulate off")
 
@@ -237,6 +249,8 @@ def test_context_disasm_syscalls_args_display_no_emulate(start_binary):
     )
 
 
+=======
+>>>>>>> edac333b (Fix x86/x86_64 edge cases with syscall register reading, and add test for emulation off for syscalls)
 def test_context_backtrace_show_proper_symbol_names(start_binary):
     start_binary(MANGLING_BINARY)
     gdb.execute("break A::foo")
