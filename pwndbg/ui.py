@@ -10,10 +10,8 @@ import struct
 import sys
 import termios
 
-import gdb
-
 import pwndbg.color.context as C
-import pwndbg.gdblib.arch
+import pwndbg.dbg
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
@@ -53,18 +51,19 @@ def banner(title, target=sys.stdin, width=None, extra=""):
             config.banner_title_surrounding_right,
         )
     if "left" == title_position:
-        banner = ljust_colored(title, width, config.banner_separator)
+        banner = ljust_colored(title, width, str(config.banner_separator))
     elif "right" == title_position:
-        banner = rjust_colored(title, width, config.banner_separator)
+        banner = rjust_colored(title, width, str(config.banner_separator))
     else:
-        banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
-        banner = ljust_colored(banner, width, config.banner_separator)
+        banner = rjust_colored(
+            title, (width + len(strip(title))) // 2, str(config.banner_separator)
+        )
+        banner = ljust_colored(banner, width, str(config.banner_separator))
     return C.banner(banner)
 
 
 def addrsz(address) -> str:
-    address = int(address) & pwndbg.gdblib.arch.ptrmask
-    return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
+    return pwndbg.dbg.addrsz(address)
 
 
 def get_window_size(target=sys.stdin):
@@ -83,32 +82,4 @@ def get_window_size(target=sys.stdin):
 
 
 def get_cmd_window_size():
-    """Get the size of the command window in TUI mode which could be different than the terminal window width \
-    with horizontal split "tui new-layout hsrc { -horizontal src 1 cmd 1 } 1".
-
-    Possible output of "info win" in TUI mode:
-    (gdb) info win
-    Name       Lines Columns Focus
-    src           77     104 (has focus)
-    cmd           77     105
-
-    Output of "info win" in non-TUI mode:
-    (gdb) info win
-    The TUI is not active."""
-    try:
-        info_out = gdb.execute("info win", to_string=True).split()
-    except gdb.error:
-        # Return None if the command is not compiled into GDB
-        # (gdb.error: Undefined info command: "win".  Try "help info")
-        return None, None
-    if "cmd" not in info_out:
-        # if TUI is not enabled, info win will output "The TUI is not active."
-        return None, None
-    # parse cmd window size from the output of "info win"
-    cmd_win_index = info_out.index("cmd")
-    if len(info_out) <= cmd_win_index + 2:
-        return None, None
-    elif not info_out[cmd_win_index + 1].isdigit() and not info_out[cmd_win_index + 2].isdigit():
-        return None, None
-    else:
-        return int(info_out[cmd_win_index + 1]), int(info_out[cmd_win_index + 2])
+    return pwndbg.dbg.get_cmd_window_size()
