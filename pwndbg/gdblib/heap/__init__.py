@@ -5,11 +5,12 @@ from typing import Sequence
 
 import gdb
 
-import pwndbg.gdblib.config
+import pwndbg.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
+import pwndbg.lib.config
 from pwndbg.color import message
 
 current: pwndbg.gdblib.heap.heap.MemoryAllocator | None = None
@@ -24,7 +25,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return pwndbg.gdblib.config.add_param(
+    return pwndbg.config.add_param(
         name,
         default,
         set_show_doc,
@@ -75,7 +76,7 @@ sudo apt-get install libc-dbg:i386
 
 If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
 """,
-    param_class=gdb.PARAM_ENUM,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["auto", "force", "never"],
 )
 
@@ -95,7 +96,7 @@ def reset() -> None:
         symbol.value = "0"
 
 
-@pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
+@pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
     import pwndbg.gdblib.heap.ptmalloc
 

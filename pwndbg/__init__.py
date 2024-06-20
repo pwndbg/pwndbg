@@ -4,6 +4,11 @@ import signal
 
 import gdb
 
+# isort: off
+from pwndbg.config import config as config
+import pwndbg.config as config_mod
+# isort: on
+
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.gdblib
@@ -81,6 +86,10 @@ from pwndbg.commands import comments
 
 comments.init()
 
-from pwndbg.gdblib import config_mod
+from pwndbg.gdblib import config_mod as gdblib_config_mod
 
-config_mod.init_params()
+gdblib_config_mod.init_params()
+
+from pwndbg.gdblib.prompt import show_hint
+
+show_hint()

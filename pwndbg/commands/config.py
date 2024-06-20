@@ -7,7 +7,9 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.commands
+import pwndbg.config
 import pwndbg.gdblib.config
+import pwndbg.lib.config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
@@ -41,7 +43,7 @@ def extend_value_with_default(value, default):
 def get_config_parameters(scope, filter_pattern):
     values = [
         v
-        for k, v in pwndbg.gdblib.config.params.items()
+        for k, v in pwndbg.config.params.items()
         if isinstance(v, pwndbg.lib.config.Parameter) and v.scope == scope
     ]
 
@@ -151,7 +153,7 @@ def themefile(show_all=False) -> None:
 
 
 def configfile_print_scope(scope: str, show_all: bool = False) -> None:
-    params = pwndbg.gdblib.config.get_params(scope)
+    params = pwndbg.config.get_params(scope)
 
     if not show_all:
         params = list(filter(lambda p: p.is_changed, params))
@@ -161,10 +163,10 @@ def configfile_print_scope(scope: str, show_all: bool = False) -> None:
             print(hint("Showing only changed values:"))
         for p in params:
             native_default = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.default, param_class=p.param_class
+                p.default, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             native_value = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.value, param_class=p.param_class
+                p.value, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             print(f"# {p.name}: {p.set_show_doc}")
             print(f"# default: {native_default}")

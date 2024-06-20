@@ -413,7 +413,7 @@ class Emulator:
             pwndbg_instr = pwndbg.gdblib.disasm.one_raw(value)
             if pwndbg_instr:
                 instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
-                if pwndbg.gdblib.config.syntax_highlight:
+                if pwndbg.config.syntax_highlight:
                     instr = syntax_highlight(instr)
 
         # szval = pwndbg.gdblib.strings.get(value) or None

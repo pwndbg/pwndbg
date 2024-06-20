@@ -14,12 +14,13 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
+import pwndbg.lib.config
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "emulate",
     "on",
     """
@@ -34,13 +35,13 @@ on              - emulation is done to resolve registers/memory values etc.
 Emulation can slow down Pwndbg. Disabling it may improve performance.
 Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
 """,
-    param_class=gdb.PARAM_ENUM,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["on", "off", "jumps-only"],
 )
 
 
 # Even if this is disabled, branch instructions will still have targets printed
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "disasm-annotations",
     True,
     """
@@ -48,7 +49,7 @@ Display annotations for instructions to provide context on operands and results
 """,
 )
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "emulate-annotations",
     True,
     """
@@ -57,7 +58,7 @@ Unicorn emulation for register and memory value annotations on instructions
 )
 
 # If this is false, emulation is only used for the current instruction (if emulate-annotations is enabled)
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "emulate-future-annotations",
     True,
     """
@@ -66,12 +67,10 @@ Unicorn emulation to annotate instructions after the current program counter
 )
 
 # Effects future instructions, as past ones have already been cached and reflect the process state at the time
-pwndbg.gdblib.config.add_param(
-    "disasm-telescope-depth", 3, "Depth of telescope for disasm annotations"
-)
+pwndbg.config.add_param("disasm-telescope-depth", 3, "Depth of telescope for disasm annotations")
 
 # In disasm view, long telescoped strings might cause lines wraps
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "disasm-telescope-string-length",
     50,
     "Number of characters in strings to display in disasm annotations",
@@ -160,18 +159,18 @@ class DisassemblyAssistant:
         # Get another reference to the emulator for the purposes of jumps
         jump_emu = emu
 
-        if pwndbg.gdblib.config.emulate != "on":
+        if pwndbg.config.emulate != "on":
             emu = None
 
         # For both cases below, set emu to None so we don't use it for annotation
-        if emu and not bool(pwndbg.gdblib.config.emulate_annotations):
+        if emu and not bool(pwndbg.config.emulate_annotations):
             emu = None
 
         # Disable emulation for future annotations based on setting
         if (
             emu
             and pwndbg.gdblib.regs.pc != instruction.address
-            and not bool(pwndbg.gdblib.config.emulate_future_annotations)
+            and not bool(pwndbg.config.emulate_future_annotations)
         ):
             emu = None
 
@@ -214,7 +213,7 @@ class DisassemblyAssistant:
         # Set the .target and .next fields
         enhancer._enhance_next(instruction, emu, jump_emu)
 
-        if bool(pwndbg.gdblib.config.disasm_annotations):
+        if bool(pwndbg.config.disasm_annotations):
             enhancer.set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
@@ -269,7 +268,7 @@ class DisassemblyAssistant:
         """
 
         # Apply syntax highlighting to the assembly
-        if pwndbg.gdblib.config.syntax_highlight:
+        if pwndbg.config.syntax_highlight:
             instruction.asm_string = syntax_highlight(instruction.asm_string)
 
         # Populate the "operands" list of the instruction
@@ -492,7 +491,7 @@ class DisassemblyAssistant:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
-        enhance_string_len = int(pwndbg.gdblib.config.disasm_telescope_string_length)
+        enhance_string_len = int(pwndbg.config.disasm_telescope_string_length)
 
         if emu:
             return emu.format_telescope_list(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
+from pwndbg.config import config
 
 offset_color = theme.add_color_param(
     "telescope-offset-color", "normal", "color of the telescope command (offset prefix)"

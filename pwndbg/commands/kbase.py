@@ -8,7 +8,7 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.config import config
+from pwndbg.config import config
 
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 

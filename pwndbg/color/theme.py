@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pwndbg.gdblib import config
+from pwndbg.config import config
 from pwndbg.lib.config import Parameter
 
 
