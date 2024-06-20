@@ -7,7 +7,6 @@ by using a decorator.
 from __future__ import annotations
 
 import sys
-from functools import partial
 from functools import wraps
 from typing import Any
 from typing import Callable
@@ -133,14 +132,17 @@ def connect(
 
             pwndbg.exception.handle()
             raise e
+
     if priority:
         registered[event_handler].insert(0, caller)
     else:
         registered[event_handler].append(caller)
     if event_handler not in connected:
+
         def handle(*a: P.args, **kw: P.kwargs) -> None:
             for f in registered[event_handler]:
                 f(*a, **kw)
+
         event_handler.connect(handle)
         connected[event_handler] = handle
     return func

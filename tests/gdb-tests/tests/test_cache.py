@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import tests
 import pwndbg.gdblib.events
+import tests
 from pwndbg.lib import cache
 
 BINARY = tests.binaries.get("reference-binary.out")
