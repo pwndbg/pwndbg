@@ -190,6 +190,11 @@ def test_context_disasm_syscalls_args_display(start_binary):
     )
 
 
+def test_context_disasm_syscalls_args_display_no_emulate(start_binary):
+    gdb.execute("set emulate off")
+    test_context_disasm_syscalls_args_display(start_binary)
+
+
 def test_context_backtrace_show_proper_symbol_names(start_binary):
     start_binary(MANGLING_BINARY)
     gdb.execute("break A::foo")
