@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing import Tuple
 
 import gdb
 from capstone import *  # noqa: F403
@@ -521,8 +522,7 @@ class DisassemblyAssistant:
         if CS_GRP_INT not in instruction.groups:
             return None
 
-        syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
-        syscall_arch = self._get_syscall_arch(instruction)
+        syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
 
         if syscall_arch is None:
             return None
@@ -534,11 +534,13 @@ class DisassemblyAssistant:
                 or "<unk_%d>" % instruction.syscall
             )
 
-    def _get_syscall_arch(self, instruction) -> str | None:
+    def _get_syscall_arch_info(self, instruction) -> Tuple[str, str]:
         """
-        Return name of syscall architecture, or None to indicate it's not a syscall
+        Return tuple of (name of syscall architecture, syscall register name)
+
+        Elements of the tuple will be None to indicate it's not a syscall
         """
-        return pwndbg.gdblib.arch.name
+        return (pwndbg.gdblib.arch.name, pwndbg.lib.abi.ABI.syscall().syscall_register)
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
