@@ -438,12 +438,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
     @override
-<<<<<<< HEAD
     def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
-        # Since this class handles both x86 and x86_64, we need to choose the correct
-        # syscall arch depending on the instruction being executed.
-=======
-    def _get_syscall_arch(self, instruction: PwndbgInstruction) -> str | None:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 
@@ -460,19 +455,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
         if not (mnemonic == "syscall" or is_32bit):
             return (None, None)
+            return (None, None)
 
         # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
         # On x86, the syscall_arch is already i386, so its all fine
         if is_32bit:
-<<<<<<< HEAD
             return ("i386", "eax")
         else:
             return ("x86-64", "rax")
-=======
-            return "i386"
-
-        return syscall_arch
->>>>>>> cf1bf2f9 (comments)
 
     # Currently not used
     def memory_string_with_components_resolved(
