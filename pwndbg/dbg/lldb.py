@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+from typing import Tuple
+
 import lldb
 from typing_extensions import override
 
@@ -17,15 +20,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.debugger = debugger
 
     @override
-    def get_cmd_window_size(self):
+    def get_cmd_window_size(self) -> Tuple[int, int]:
         import pwndbg.ui
 
         return pwndbg.ui.get_window_size()
 
     @override
-    def addrsz(self, address):
+    def addrsz(self, address: Any) -> str:
         return "%#16x" % address
 
     @override
-    def set_python_diagnostics(self, enabled):
+    def set_python_diagnostics(self, enabled: bool) -> None:
         pass
