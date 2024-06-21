@@ -80,6 +80,10 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
 
             # Only print the poetry output if anything was actually updated
             if "No dependencies to install or update" not in stdout:
+                # The output is usually long and ends up paginated. This
+                # normally gets disabled later during initialization, but in
+                # this case we disable it here to avoid pagination.
+                gdb.execute("set pagination off", to_string=True)
                 print(stdout)
         else:
             print(stderr, file=sys.stderr)
