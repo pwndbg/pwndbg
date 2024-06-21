@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from subprocess import CompletedProcess
+from typing import List
 from typing import Tuple
 
 root_dir = os.path.realpath("../../")
@@ -28,7 +29,7 @@ def makeBinaries():
         exit(1)
 
 
-def run_gdb(gdb_args: list[str], env=None, capture_output=True) -> CompletedProcess[str]:
+def run_gdb(gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
     env = os.environ if env is None else env
     return subprocess.run(
         ["gdb", "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
@@ -38,7 +39,7 @@ def run_gdb(gdb_args: list[str], env=None, capture_output=True) -> CompletedProc
     )
 
 
-def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -> list[str]:
+def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -> List[str]:
     # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
     # we decided to run each test in a separate GDB session
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_collect.py"]
@@ -85,9 +86,9 @@ def run_test(
     return (result, test_case)
 
 
-def run_tests_and_print_stats(tests_list: list[str], args: argparse.Namespace, gdbinit_path: str):
+def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdbinit_path: str):
     start = time.time()
-    test_results: list[Tuple[CompletedProcess[str], str]] = []
+    test_results: List[Tuple[CompletedProcess[str], str]] = []
 
     def handle_parallel_test_result(test_result: Tuple[CompletedProcess[str], str]):
         test_results.append(test_result)
@@ -193,5 +194,5 @@ if __name__ == "__main__":
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
     ensureZigPath()
     makeBinaries()
-    tests: list[str] = getTestsList(args.collect_only, args.test_name_filter, gdbinit_path)
+    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdbinit_path)
     run_tests_and_print_stats(tests, args, gdbinit_path)
