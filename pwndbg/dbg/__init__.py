@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 from typing import Tuple
 
-dbg = None
+dbg: Debugger = None
 
 
 class Debugger:

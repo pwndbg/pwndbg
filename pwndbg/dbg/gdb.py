@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import signal
+from typing import Any
+from typing import Tuple
 
 import gdb
 from typing_extensions import override
@@ -70,12 +72,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
         pwndbg.gdblib.prompt.show_hint()
 
     @override
-    def addrsz(self, address):
+    def addrsz(self, address: Any) -> str:
         address = int(address) & pwndbg.gdblib.arch.ptrmask
         return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
 
     @override
-    def get_cmd_window_size(self):
+    def get_cmd_window_size(self) -> Tuple[int, int]:
         """Get the size of the command window in TUI mode which could be different than the terminal window width \
         with horizontal split "tui new-layout hsrc { -horizontal src 1 cmd 1 } 1".
 
@@ -109,7 +111,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             return int(info_out[cmd_win_index + 1]), int(info_out[cmd_win_index + 2])
 
     @override
-    def set_python_diagnostics(self, enabled):
+    def set_python_diagnostics(self, enabled: bool) -> None:
         if enabled:
             command = "set python print-stack full"
         else:
