@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from collections import defaultdict
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -28,6 +29,7 @@ from capstone.arm64 import ARM64_INS_BLR
 from capstone.arm64 import ARM64_INS_BR
 from capstone.mips import MIPS_INS_B
 from capstone.mips import MIPS_INS_BAL
+from capstone.mips import MIPS_INS_BLTZAL
 from capstone.mips import MIPS_INS_J
 from capstone.mips import MIPS_INS_JAL
 from capstone.mips import MIPS_INS_JALR
@@ -64,12 +66,23 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
+BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
+    MIPS_INS_BAL,
+    MIPS_INS_BLTZAL,
+    MIPS_INS_JAL,
+    MIPS_INS_JALR,
+}
+
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups
 ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
+
+# All non-ret jumps
+FORWARD_JUMP_GROUP = {CS_GRP_CALL} | GENERIC_JUMP_GROUPS
 
 
 class InstructionCondition(Enum):
@@ -239,6 +252,18 @@ class PwndbgInstruction:
         """
         If the enhancement successfully used emulation for this instruction
         """
+
+    @property
+    def call_like(self) -> bool:
+        """
+        True if this is a call-like instruction, meaning either it's a CALL or a branch and link.
+
+        Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
+        """
+        return (
+            CS_GRP_CALL in self.groups_set
+            or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
+        )
 
     @property
     def can_change_instruction_pointer(self) -> bool:
