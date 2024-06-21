@@ -151,7 +151,6 @@ def main() -> None:
 
     import pwndbg  # noqa: F811
     import pwndbg.dbg.gdb
-    import pwndbg.profiling
 
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()

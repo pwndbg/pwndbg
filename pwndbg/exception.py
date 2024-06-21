@@ -139,4 +139,4 @@ pdb.set_trace = set_trace
 @config.trigger(verbose, debug)
 def update() -> None:
     enable = verbose or debug
-    pwndbg.dbg.set_python_diagnostics(enable)
+    pwndbg.dbg.set_python_diagnostics(bool(enable))
