@@ -15,13 +15,6 @@ from typing import Tuple
 
 import gdb
 
-_profiler = cProfile.Profile()
-
-_start_time = None
-if os.environ.get("PWNDBG_PROFILE") == "1":
-    _start_time = time.time()
-    _profiler.enable()
-
 
 def hash_file(file_path: str | Path) -> str:
     with open(file_path, "rb") as f:
@@ -87,6 +80,10 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
 
             # Only print the poetry output if anything was actually updated
             if "No dependencies to install or update" not in stdout:
+                # The output is usually long and ends up paginated. This
+                # normally gets disabled later during initialization, but in
+                # this case we disable it here to avoid pagination.
+                gdb.execute("set pagination off", to_string=True)
                 print(stdout)
         else:
             print(stderr, file=sys.stderr)
@@ -130,25 +127,39 @@ def skip_venv(src_root) -> bool:
     )
 
 
-src_root = Path(__file__).parent.resolve()
-if not skip_venv(src_root):
-    venv_path = get_venv_path(src_root)
-    if not venv_path.exists():
-        print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
-        sys.exit(1)
+def main() -> None:
+    profiler = cProfile.Profile()
 
-    update_deps(src_root, venv_path)
-    fixup_paths(src_root, venv_path)
+    start_time = None
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        start_time = time.time()
+        profiler.enable()
+
+    src_root = Path(__file__).parent.resolve()
+    if not skip_venv(src_root):
+        venv_path = get_venv_path(src_root)
+        if not venv_path.exists():
+            print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
+            sys.exit(1)
+
+        update_deps(src_root, venv_path)
+        fixup_paths(src_root, venv_path)
+
+    # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
+    gdb.execute("set charset UTF-8", to_string=True)
+    os.environ["PWNLIB_NOTERM"] = "1"
+
+    import pwndbg  # noqa: F811
+    import pwndbg.profiling
+
+    pwndbg.profiling.init(profiler, start_time)
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+        pwndbg.profiling.profiler.start()
 
 
-# Force UTF-8 encoding (to_string=True to skip output appearing to the user)
-gdb.execute("set charset UTF-8", to_string=True)
-os.environ["PWNLIB_NOTERM"] = "1"
+main()
 
+# We've already imported this in `main`, but we reimport it here so that it's available
+# at the global scope when some starts a Python interpreter in GDB
 import pwndbg  # noqa: F401
-import pwndbg.profiling
-
-pwndbg.profiling.init(_profiler, _start_time)
-if os.environ.get("PWNDBG_PROFILE") == "1":
-    pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
-    pwndbg.profiling.profiler.start()
