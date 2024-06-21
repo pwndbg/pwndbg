@@ -9,6 +9,14 @@ from mocks.config import Config
 from mocks.typeinfo import Amd64TypeInfo
 
 
+class GdbLibPrompt(types.ModuleType):
+    def __init__(self, module_name):
+        super().__init__(module_name)
+
+    def show_hint(self):
+        pass
+
+
 class GdbLib(types.ModuleType):
     def __init__(self, module_name):
         super().__init__(module_name)
@@ -19,13 +27,13 @@ class GdbLib(types.ModuleType):
         self.arch = Amd64Arch(module_name + ".arch")
         self.typeinfo = Amd64TypeInfo(module_name + ".typeinfo")
         self.regs = MagicMock(__name__=module_name + ".regs")
-
-        self.prompt = MagicMock()
+        self.prompt = MagicMock(__name__=module_name + ".prompt")
 
         sys.modules[self.config_mod.__name__] = self.config_mod
         sys.modules[self.arch.__name__] = self.arch
         sys.modules[self.typeinfo.__name__] = self.typeinfo
         sys.modules[self.regs.__name__] = self.regs
+        sys.modules[self.prompt.__name__] = self.prompt
 
     def load_gdblib(self):
         pass

@@ -466,6 +466,9 @@ class Heap:
         "first_chunk",
     )
 
+    start: int
+    end: int
+
     def __init__(self, addr: int, arena: Arena | None = None) -> None:
         """Build a Heap object given an address on that heap.
         Heap regions are treated differently depending on their arena:
