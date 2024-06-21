@@ -429,14 +429,17 @@ def near(
                 backward_cache[split_insn.address] = insn.address
 
 
+                # Because the emulator failed, we manually set the address of the next instruction
+                # This is the address that typing "nexti" in GDB will take us to
+                target = split_insn.address + split_insn.size
+                
+                if not insn.call_like and (insn.is_unconditional_jump or insn.is_conditional_jump_taken):
+                    target = insn.target
+
             if insn.is_unconditional_jump or insn.is_conditional_jump_taken:
                 split_insn.split = SplitType.BRANCH_TAKEN
-                if insn.causes_branch_delay:
-                    target = insn.target
             else:
                 split_insn.split = SplitType.BRANCH_NOT_TAKEN
-                if insn.causes_branch_delay:
-                    target = split_insn.address + split_insn.size
 
         # Address to disassemble & emulate
         next_addresses_cache.add(target)
