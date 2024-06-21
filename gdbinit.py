@@ -149,7 +149,7 @@ def main() -> None:
     gdb.execute("set charset UTF-8", to_string=True)
     os.environ["PWNLIB_NOTERM"] = "1"
 
-    import pwndbg  # noqa: F401
+    import pwndbg  # noqa: F811
     import pwndbg.profiling
 
     pwndbg.profiling.init(profiler, start_time)
@@ -159,3 +159,7 @@ def main() -> None:
 
 
 main()
+
+# We've already imported this in `main`, but we reimport it here so that it's available
+# at the global scope when some starts a Python interpreter in GDB
+import pwndbg  # noqa: F401
