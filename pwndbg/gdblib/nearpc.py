@@ -5,19 +5,20 @@ from typing import List
 import gdb
 from capstone import *  # noqa: F403
 
+import pwndbg
 import pwndbg.arguments
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.gdblib.config
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.ida
+import pwndbg.lib.config
 import pwndbg.lib.functions
 import pwndbg.ui
 from pwndbg.color import ColorConfig
@@ -51,24 +52,24 @@ nearpc_branch_marker_contiguous = pwndbg.color.theme.add_param(
 )
 pwndbg.color.theme.add_param("highlight-pc", True, "whether to highlight the current instruction")
 pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc command")
-pwndbg.gdblib.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
-nearpc_lines = pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
+nearpc_lines = pwndbg.config.add_param(
     "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
 )
-show_args = pwndbg.gdblib.config.add_param(
+show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
-show_opcode_bytes = pwndbg.gdblib.config.add_param(
+show_opcode_bytes = pwndbg.config.add_param(
     "nearpc-num-opcode-bytes",
     0,
     "number of opcode bytes to print for each instruction",
-    param_class=gdb.PARAM_ZUINTEGER,
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
-opcode_separator_bytes = pwndbg.gdblib.config.add_param(
+opcode_separator_bytes = pwndbg.config.add_param(
     "nearpc-opcode-separator-bytes",
     1,
     "number of spaces between opcode bytes",
-    param_class=gdb.PARAM_ZUINTEGER,
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
 
 
@@ -150,7 +151,7 @@ def nearpc(
     symbols = [f"<{sym}> " if sym else "" for sym in symbols]
 
     # Pad out all of the symbols and addresses
-    if pwndbg.gdblib.config.left_pad_disasm and not repeat:
+    if pwndbg.config.left_pad_disasm and not repeat:
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
@@ -162,7 +163,7 @@ def nearpc(
     for i, (address_str, symbol, instr, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        prefix_sign = pwndbg.gdblib.config.nearpc_prefix
+        prefix_sign = pwndbg.config.nearpc_prefix
 
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
@@ -178,10 +179,10 @@ def nearpc(
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        if not pwndbg.gdblib.config.highlight_pc or instr.address != pc or repeat:
+        if not pwndbg.config.highlight_pc or instr.address != pc or repeat:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
+        elif pwndbg.config.highlight_pc and i == index_of_pc:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
@@ -281,7 +282,7 @@ def nearpc(
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
-            if pwndbg.gdblib.config.highlight_pc and i == index_of_pc:
+            if pwndbg.config.highlight_pc and i == index_of_pc:
                 opcodes = C.highlight(opcodes)
 
         # Example line:

@@ -19,7 +19,7 @@ from typing import TypeVar
 import gdb
 from typing_extensions import ParamSpec
 
-from pwndbg.gdblib.config import config
+from pwndbg import config
 
 debug = config.add_param("debug-events", False, "display internal event debugging info")
 

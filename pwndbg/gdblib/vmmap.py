@@ -32,6 +32,7 @@ import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.memory
 
 # List of manually-explored pages which were discovered
@@ -42,14 +43,14 @@ explored_pages: List[pwndbg.lib.memory.Page] = []
 custom_pages: List[pwndbg.lib.memory.Page] = []
 
 
-kernel_vmmap_via_pt = pwndbg.gdblib.config.add_param(
+kernel_vmmap_via_pt = pwndbg.config.add_param(
     "kernel-vmmap-via-page-tables",
     "deprecated",
     "the deprecated config of the method get kernel vmmap",
     help_docstring="Deprecated in favor of `kernel-vmmap`",
 )
 
-kernel_vmmap = pwndbg.gdblib.config.add_param(
+kernel_vmmap = pwndbg.config.add_param(
     "kernel-vmmap",
     "page-tables",
     "the method to get vmmap information when debugging via QEMU kernel",
@@ -61,7 +62,7 @@ none           - disable vmmap rendering; useful if rendering is particularly sl
 
 Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 """,
-    param_class=gdb.PARAM_ENUM,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["page-tables", "monitor", "none"],
 )
 

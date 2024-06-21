@@ -14,12 +14,12 @@ import gdb
 
 import pwndbg.color.context as C
 import pwndbg.gdblib.arch
+from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 
 theme.add_param("banner-separator", "─", "repeated banner separator character")
 theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")
@@ -53,12 +53,14 @@ def banner(title, target=sys.stdin, width=None, extra=""):
             config.banner_title_surrounding_right,
         )
     if "left" == title_position:
-        banner = ljust_colored(title, width, config.banner_separator)
+        banner = ljust_colored(title, width, str(config.banner_separator))
     elif "right" == title_position:
-        banner = rjust_colored(title, width, config.banner_separator)
+        banner = rjust_colored(title, width, str(config.banner_separator))
     else:
-        banner = rjust_colored(title, (width + len(strip(title))) // 2, config.banner_separator)
-        banner = ljust_colored(banner, width, config.banner_separator)
+        banner = rjust_colored(
+            title, (width + len(strip(title))) // 2, str(config.banner_separator)
+        )
+        banner = ljust_colored(banner, width, str(config.banner_separator))
     return C.banner(banner)
 
 

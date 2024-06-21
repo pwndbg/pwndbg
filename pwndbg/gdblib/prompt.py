@@ -19,23 +19,8 @@ from pwndbg.color import message
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
-funcs_list_str = ", ".join(message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions)
-
-num_pwndbg_cmds = sum(
-    1 for _ in filter(lambda c: not (c.shell or c.is_alias), pwndbg.commands.commands)
-)
-num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
-hint_lines = (
-    "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
-    % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
-    f"created {funcs_list_str} GDB functions (can be used with print/break)",
-)
-
-for line in hint_lines:
-    print(message.prompt("pwndbg: ") + message.system(line))
-
 # noinspection PyPackageRequirements
-show_tip = pwndbg.gdblib.config.add_param(
+show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
@@ -64,6 +49,25 @@ def initial_hook(*a: Any) -> None:
 context_shown = False
 
 
+def show_hint() -> None:
+    funcs_list_str = ", ".join(
+        message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions
+    )
+
+    num_pwndbg_cmds = sum(
+        1 for _ in filter(lambda c: not (c.shell or c.is_alias), pwndbg.commands.commands)
+    )
+    num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
+    hint_lines = (
+        "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
+        % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
+        f"created {funcs_list_str} GDB functions (can be used with print/break)",
+    )
+
+    for line in hint_lines:
+        print(message.prompt("pwndbg: ") + message.system(line))
+
+
 def prompt_hook(*a: Any) -> None:
     global cur, context_shown
 
@@ -84,7 +88,7 @@ def reset_context_shown(*a: Any) -> None:
     context_shown = False
 
 
-@pwndbg.gdblib.config.trigger(message.config_prompt_color, disable_colors)
+@pwndbg.config.trigger(message.config_prompt_color, disable_colors)
 def set_prompt() -> None:
     prompt = "pwndbg> "
 

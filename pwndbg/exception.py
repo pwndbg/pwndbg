@@ -8,8 +8,8 @@ import gdb
 
 import pwndbg.lib.cache
 import pwndbg.lib.stdio
+from pwndbg import config
 from pwndbg.color import message
-from pwndbg.gdblib import config
 
 try:
     import ipdb as pdb
