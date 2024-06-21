@@ -7,6 +7,8 @@ from typing import List
 from typing import Set
 from typing import TypedDict
 
+from collections import defaultdict
+
 import gdb
 
 # Reverse lookup tables for debug printing
@@ -32,6 +34,7 @@ from capstone.mips import MIPS_INS_J
 from capstone.mips import MIPS_INS_JAL
 from capstone.mips import MIPS_INS_JALR
 from capstone.mips import MIPS_INS_JR
+from capstone.mips import MIPS_INS_BLTZAL
 from capstone.ppc import PPC_INS_B
 from capstone.ppc import PPC_INS_BA
 from capstone.ppc import PPC_INS_BL
@@ -64,6 +67,9 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
+BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {MIPS_INS_BAL,MIPS_INS_BLTZAL,MIPS_INS_JAL,MIPS_INS_JALR}
+
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
@@ -71,6 +77,8 @@ GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups
 ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
 
+# All non-ret jumps
+FORWARD_JUMP_GROUP = {CS_GRP_CALL} | GENERIC_JUMP_GROUPS
 
 class InstructionCondition(Enum):
     # Conditional instruction, and action is taken
@@ -80,6 +88,10 @@ class InstructionCondition(Enum):
     # Unconditional instructions (most instructions), or we cannot reason about the instruction
     UNDETERMINED = 3
 
+class SplitType(Enum):
+    NO_SPLIT = 1
+    BRANCH_TAKEN = 2
+    BRANCH_NOT_TAKEN = 3
 
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
@@ -235,10 +247,33 @@ class PwndbgInstruction:
         Ex: "openat", "read"
         """
 
+        self.causes_branch_delay: bool = False
+        """
+        Whether or not this instruction has a single branch delay slot
+        """
+
+        self.split: SplitType = SplitType.NO_SPLIT
+        """
+        The type of split in the disasm display this instruction causes:
+            
+            NO_SPLIT            - no extra spacing between this and the next instruction
+            BRANCH_TAKEN        - a newline with an arrow pointing down
+            BRANCH_NOT_TAKEN    - an empty newline
+        """
+
         self.emulated: bool = False
         """
         If the enhancement successfully used emulation for this instruction
         """
+
+    @property
+    def call_like(self) -> bool:
+        """
+        True if this is a call-like instruction, meaning either it's a CALL or a branch and link.
+
+        Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
+        """
+        return CS_GRP_CALL in self.groups_set or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
 
     @property
     def can_change_instruction_pointer(self) -> bool:
@@ -331,7 +366,10 @@ class PwndbgInstruction:
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
         Can change PC: {self.can_change_instruction_pointer}
-        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
+        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
+        Causes Delay slot: {self.causes_branch_delay}
+        Split: {SplitType(self.split).name}
+        Call-like: {self.call_like}"""
 
 
 class EnhancedOperand:

@@ -13,6 +13,7 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.gdblib.config
 import pwndbg.gdblib.disasm
+from pwndbg.gdblib.disasm.instruction import SplitType
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
@@ -295,17 +296,6 @@ def nearpc(
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
-        # If there was a branch before this instruction which was not
-        # contiguous, put in some ellipses.
-        if prev and prev.address + prev.size != instr.address:
-            result.append(c.branch_marker(f"{nearpc_branch_marker}"))
-
-        # Otherwise if it's a branch and it *is* contiguous, just put
-        # and empty line.
-        elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            if nearpc_branch_marker_contiguous:
-                result.append("%s" % nearpc_branch_marker_contiguous)
-
         # For Comment Function
         try:
             line += " " * 10 + C.comment(
@@ -315,6 +305,17 @@ def nearpc(
             pass
 
         result.append(line)
+
+        # If there was a branch before this instruction which was not
+        # contiguous, put in some ellipses.
+        if instr.split == SplitType.BRANCH_TAKEN:
+            result.append(c.branch_marker(f"{nearpc_branch_marker}"))
+
+        # Otherwise if it's a branch and it *is* contiguous, just put
+        # and empty line.
+        elif instr.split == SplitType.BRANCH_NOT_TAKEN:
+            if nearpc_branch_marker_contiguous:
+                result.append("%s" % nearpc_branch_marker_contiguous)
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.

@@ -73,7 +73,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
-    if CS_GRP_CALL in instruction.groups:
+    if instruction.call_like:
         try:
             abi = pwndbg.lib.abi.ABI.default()
         except KeyError:

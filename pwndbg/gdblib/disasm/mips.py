@@ -23,9 +23,23 @@ from typing_extensions import override
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP, InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
+BRANCH_LIKELY_INSTRUCTIONS = {
+    MIPS_INS_BC0TL,
+    MIPS_INS_BC1TL,
+    MIPS_INS_BC0FL,
+    MIPS_INS_BC1FL,
+    MIPS_INS_BEQL,
+    MIPS_INS_BGEZALL,
+    MIPS_INS_BGEZL,
+    MIPS_INS_BGTZL,
+    MIPS_INS_BLEZL,
+    MIPS_INS_BLTZALL,
+    MIPS_INS_BLTZL,
+    MIPS_INS_BNEL,
+}
 
 def to_signed(unsigned: int):
     if pwndbg.gdblib.arch.ptrsize == 8:
@@ -77,5 +91,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
+    @override
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+        
+        if bool(instruction.groups_set & FORWARD_JUMP_GROUP) and not bool(instruction.groups_set & BRANCH_LIKELY_INSTRUCTIONS):
+            instruction.causes_branch_delay = True
+
+        return super()._resolve_target(instruction, emu, call)
 
 assistant = DisassemblyAssistant("mips")
