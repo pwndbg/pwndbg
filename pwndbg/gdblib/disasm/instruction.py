@@ -94,6 +94,12 @@ class InstructionCondition(Enum):
     UNDETERMINED = 3
 
 
+class SplitType(Enum):
+    NO_SPLIT = 1
+    BRANCH_TAKEN = 2
+    BRANCH_NOT_TAKEN = 3
+
+
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_ARM: "arm",
@@ -248,6 +254,20 @@ class PwndbgInstruction:
         Ex: "openat", "read"
         """
 
+        self.causes_branch_delay: bool = False
+        """
+        Whether or not this instruction has a single branch delay slot
+        """
+
+        self.split: SplitType = SplitType.NO_SPLIT
+        """
+        The type of split in the disasm display this instruction causes:
+
+            NO_SPLIT            - no extra spacing between this and the next instruction
+            BRANCH_TAKEN        - a newline with an arrow pointing down
+            BRANCH_NOT_TAKEN    - an empty newline
+        """
+
         self.emulated: bool = False
         """
         If the enhancement successfully used emulation for this instruction
@@ -356,7 +376,10 @@ class PwndbgInstruction:
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
         Can change PC: {self.can_change_instruction_pointer}
-        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
+        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
+        Causes Delay slot: {self.causes_branch_delay}
+        Split: {SplitType(self.split).name}
+        Call-like: {self.call_like}"""
 
 
 class EnhancedOperand:
