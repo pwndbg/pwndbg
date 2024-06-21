@@ -72,12 +72,12 @@ def test_vis_heap_chunk_command(start_binary):
 
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
     gdb.execute("set default-visualize-chunk-number 1")
-    assert pwndbg.gdblib.config.default_visualize_chunk_number == 1
+    assert pwndbg.config.default_visualize_chunk_number == 1
     result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
     assert result == expected
     gdb.execute(
         "set default-visualize-chunk-number %d"
-        % pwndbg.gdblib.config.default_visualize_chunk_number.default
+        % pwndbg.config.default_visualize_chunk_number.default
     )
 
     del result

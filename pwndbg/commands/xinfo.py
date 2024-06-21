@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.stack

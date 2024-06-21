@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import List
 
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 from pwndbg.lib.regs import BitFlags
 
 config_prefix_color = theme.add_color_param(

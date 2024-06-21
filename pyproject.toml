@@ -112,13 +112,13 @@ module = [
 disable_error_code = ["name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
-module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb"]
+module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb", "lldb.*"]
 ignore_missing_imports = true
 
 [tool.isort]
 profile = "black"
 force_single_line = true
-known_third_party = ["capstone", "unicorn", "psutil", "pycparser", "gdb"]
+known_third_party = ["capstone", "unicorn", "psutil", "pycparser", "gdb", "lldb"]
 add_imports = "from __future__ import annotations"
 
 [tool.coverage.run]

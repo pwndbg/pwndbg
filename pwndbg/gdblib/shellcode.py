@@ -13,6 +13,11 @@ import pwnlib.asm
 import pwnlib.shellcraft
 
 import pwndbg
+import pwndbg.gdblib.arch
+import pwndbg.gdblib.memory
+import pwndbg.gdblib.prompt
+import pwndbg.gdblib.regs
+import pwndbg.gdblib.vmmap
 
 
 def _get_syscall_return_value():

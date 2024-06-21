@@ -10,11 +10,11 @@ from typing import Set
 import gdb
 from tabulate import tabulate
 
+import pwndbg
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.config
 import pwndbg.gdblib.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
@@ -920,13 +920,13 @@ def find_fake_fast(
             break
 
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "max-visualize-chunk-size",
     0,
     "max display size for heap chunks visualization (0 for display all)",
 )
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "default-visualize-chunk-number",
     10,
     "default number of chunks to visualize (default is 10)",
@@ -943,7 +943,7 @@ group.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
-    default=pwndbg.gdblib.config.default_visualize_chunk_number,
+    default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize.",
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
@@ -1065,10 +1065,7 @@ def vis_heap_chunks(
     has_huge_chunk = False
     # round up to align with 4*ptr_size and get half
     half_max_size = (
-        pwndbg.lib.memory.round_up(
-            int(pwndbg.gdblib.config.max_visualize_chunk_size), ptr_size << 2
-        )
-        >> 1
+        pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2) >> 1
     )
 
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
@@ -1120,7 +1117,7 @@ def vis_heap_chunks(
 
     print(out)
 
-    if has_huge_chunk and pwndbg.gdblib.config.max_visualize_chunk_size == 0:
+    if has_huge_chunk and pwndbg.config.max_visualize_chunk_size == 0:
         print(
             message.warn(
                 "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"
