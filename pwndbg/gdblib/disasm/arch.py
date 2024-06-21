@@ -16,6 +16,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -223,7 +224,7 @@ class DisassemblyAssistant:
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
         # to determine the call's target address.
-        if jump_emu and CS_GRP_CALL in set(instruction.groups):
+        if jump_emu and instruction.call_like:
             jump_emu.valid = False
             jump_emu = None
             emu = None
@@ -601,10 +602,7 @@ class DisassemblyAssistant:
             # Use emulator to determine the next address:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
-            if (
-                CS_GRP_CALL not in instruction.groups_set
-                and instruction.condition != InstructionCondition.FALSE
-            ):
+            if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
                 next_addr = jump_emu.pc
 
         # All else fails, take the next instruction in memory
@@ -642,10 +640,10 @@ class DisassemblyAssistant:
         "call" specifies if we allow this to resolve call instruction targets
         """
 
-        if CS_GRP_CALL in instruction.groups:
+        if instruction.call_like:
             if not call:
                 return None
-        elif CS_GRP_JUMP not in instruction.groups:
+        elif not bool(instruction.groups_set & FORWARD_JUMP_GROUP):
             return None
 
         addr = None
