@@ -9,7 +9,6 @@ from typing import List
 from typing import Tuple
 
 import gdb
-from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import typing
+from collections import defaultdict
 from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Set
 from typing import TypedDict
-
-from collections import defaultdict
 
 import gdb
 
@@ -30,11 +29,11 @@ from capstone.arm64 import ARM64_INS_BLR
 from capstone.arm64 import ARM64_INS_BR
 from capstone.mips import MIPS_INS_B
 from capstone.mips import MIPS_INS_BAL
+from capstone.mips import MIPS_INS_BLTZAL
 from capstone.mips import MIPS_INS_J
 from capstone.mips import MIPS_INS_JAL
 from capstone.mips import MIPS_INS_JALR
 from capstone.mips import MIPS_INS_JR
-from capstone.mips import MIPS_INS_BLTZAL
 from capstone.ppc import PPC_INS_B
 from capstone.ppc import PPC_INS_BA
 from capstone.ppc import PPC_INS_BL
@@ -68,7 +67,12 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
 }
 
 BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
-BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {MIPS_INS_BAL,MIPS_INS_BLTZAL,MIPS_INS_JAL,MIPS_INS_JALR}
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
+    MIPS_INS_BAL,
+    MIPS_INS_BLTZAL,
+    MIPS_INS_JAL,
+    MIPS_INS_JALR,
+}
 
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
@@ -80,6 +84,7 @@ ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
 # All non-ret jumps
 FORWARD_JUMP_GROUP = {CS_GRP_CALL} | GENERIC_JUMP_GROUPS
 
+
 class InstructionCondition(Enum):
     # Conditional instruction, and action is taken
     TRUE = 1
@@ -88,10 +93,12 @@ class InstructionCondition(Enum):
     # Unconditional instructions (most instructions), or we cannot reason about the instruction
     UNDETERMINED = 3
 
+
 class SplitType(Enum):
     NO_SPLIT = 1
     BRANCH_TAKEN = 2
     BRANCH_NOT_TAKEN = 3
+
 
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
@@ -255,7 +262,7 @@ class PwndbgInstruction:
         self.split: SplitType = SplitType.NO_SPLIT
         """
         The type of split in the disasm display this instruction causes:
-            
+
             NO_SPLIT            - no extra spacing between this and the next instruction
             BRANCH_TAKEN        - a newline with an arrow pointing down
             BRANCH_NOT_TAKEN    - an empty newline
@@ -273,7 +280,10 @@ class PwndbgInstruction:
 
         Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
         """
-        return CS_GRP_CALL in self.groups_set or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
+        return (
+            CS_GRP_CALL in self.groups_set
+            or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
+        )
 
     @property
     def can_change_instruction_pointer(self) -> bool:

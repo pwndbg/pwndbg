@@ -26,7 +26,9 @@ import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS, PwndbgInstruction, SplitType
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import SplitType
 from pwndbg.gdblib.disasm.instruction import make_simple_instruction
 
 try:
@@ -232,7 +234,7 @@ def one(
     enhance=True,
     from_cache=False,
     put_cache=False,
-    put_backward_cache=True
+    put_backward_cache=True,
 ) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.gdblib.regs.pc
@@ -401,7 +403,6 @@ def near(
     total_instructions = 1 + (2 * instructions)
 
     while insn and len(insns) < total_instructions:
-        
         target = insn.next if not linear else insn.address + insn.size
 
         # Emulation may have failed or been disabled in the last call to one()
@@ -428,12 +429,13 @@ def near(
                 backward_cache[split_insn.address + split_insn.size] = split_insn.address
                 backward_cache[split_insn.address] = insn.address
 
-
                 # Because the emulator failed, we manually set the address of the next instruction
                 # This is the address that typing "nexti" in GDB will take us to
                 target = split_insn.address + split_insn.size
-                
-                if not insn.call_like and (insn.is_unconditional_jump or insn.is_conditional_jump_taken):
+
+                if not insn.call_like and (
+                    insn.is_unconditional_jump or insn.is_conditional_jump_taken
+                ):
                     target = insn.target
 
             if insn.is_unconditional_jump or insn.is_conditional_jump_taken:

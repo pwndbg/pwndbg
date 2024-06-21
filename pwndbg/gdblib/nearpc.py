@@ -13,7 +13,6 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.gdblib.config
 import pwndbg.gdblib.disasm
-from pwndbg.gdblib.disasm.instruction import SplitType
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
@@ -24,6 +23,7 @@ import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
+from pwndbg.gdblib.disasm.instruction import SplitType
 
 
 def ljust_padding(lst):
@@ -156,8 +156,6 @@ def nearpc(
         addresses = ljust_padding(addresses)
 
     assembly_strings = D.instructions_and_padding(instructions)
-
-    prev = None
 
     # Print out each instruction
     for i, (address_str, symbol, instr, asm) in enumerate(
@@ -323,8 +321,6 @@ def nearpc(
             result.extend(
                 "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
             )
-
-        prev = instr
 
     return result
 
