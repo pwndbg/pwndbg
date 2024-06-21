@@ -26,8 +26,8 @@ from typing import TypeVar
 
 import gdb
 
+import pwndbg
 import pwndbg.chain
-import pwndbg.config
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap
 import pwndbg.gdblib.heap.heap

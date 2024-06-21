@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import pwndbg.config
+import pwndbg
 import pwndbg.lib.config
 
 

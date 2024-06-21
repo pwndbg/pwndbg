@@ -4,8 +4,8 @@ import argparse
 
 import gdb
 
+import pwndbg
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs

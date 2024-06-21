@@ -5,7 +5,7 @@ from unittest import mock
 import gdb
 
 import pwndbg.lib.config
-from pwndbg.config import config
+from pwndbg import config
 
 
 def set_show(param_name, value):

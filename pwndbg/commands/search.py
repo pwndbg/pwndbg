@@ -10,9 +10,9 @@ from typing import Set
 import gdb
 import pwnlib
 
+import pwndbg
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.enhance
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm

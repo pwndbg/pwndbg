@@ -10,11 +10,11 @@ from typing import Set
 import gdb
 from tabulate import tabulate
 
+import pwndbg
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc

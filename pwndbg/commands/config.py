@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.config
 import pwndbg.lib.config
 from pwndbg.color import generateColorFunction

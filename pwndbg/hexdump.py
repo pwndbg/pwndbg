@@ -10,8 +10,8 @@ import string
 import gdb
 import pwnlib.util.lists
 
+import pwndbg
 import pwndbg.color.hexdump as H
-import pwndbg.config
 import pwndbg.gdblib.typeinfo
 from pwndbg.color import theme
 from pwndbg.commands.windbg import enhex

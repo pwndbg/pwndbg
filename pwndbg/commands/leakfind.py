@@ -11,9 +11,9 @@ from typing import List
 
 import gdb
 
+import pwndbg
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.vmmap
 from pwndbg.chain import c as C
 from pwndbg.color import message

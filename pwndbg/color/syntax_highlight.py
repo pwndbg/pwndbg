@@ -11,7 +11,7 @@ import pygments.lexers
 import pygments.util
 from pwnlib.lexer import PwntoolsLexer
 
-import pwndbg.config
+import pwndbg
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme

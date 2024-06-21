@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+# isort: off
+import pwndbg.lib.config
+
+config: pwndbg.lib.config.Config = pwndbg.lib.config.Config()
+# isort: on
+
 import pwndbg.color
 import pwndbg.exception
 import pwndbg.lib.version
