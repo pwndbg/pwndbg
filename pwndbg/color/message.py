@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.config import config
 
 config_status_on_color = theme.add_color_param(
     "message-status-on-color", "green", "color of on status messages"

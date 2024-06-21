@@ -13,10 +13,10 @@ from typing import DefaultDict
 from typing import Dict
 from typing import List
 
+import pwndbg
 import pwndbg.chain
 import pwndbg.color.telescope as T
 import pwndbg.commands
-import pwndbg.config
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs

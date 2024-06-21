@@ -13,6 +13,7 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -21,7 +22,6 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.config
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking

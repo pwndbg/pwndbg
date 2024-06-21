@@ -5,7 +5,7 @@ from typing import Sequence
 
 import gdb
 
-import pwndbg.config
+import pwndbg
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.proc

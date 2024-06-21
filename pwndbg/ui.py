@@ -14,12 +14,12 @@ import gdb
 
 import pwndbg.color.context as C
 import pwndbg.gdblib.arch
+from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
-from pwndbg.config import config
 
 theme.add_param("banner-separator", "─", "repeated banner separator character")
 theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding char (left side)")

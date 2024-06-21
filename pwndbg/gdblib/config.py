@@ -21,7 +21,7 @@ from typing import Any
 
 import gdb
 
-import pwndbg.config
+import pwndbg
 import pwndbg.decorators
 import pwndbg.lib.config
 

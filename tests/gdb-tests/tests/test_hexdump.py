@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.config
+import pwndbg
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.vmmap

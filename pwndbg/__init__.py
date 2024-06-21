@@ -5,8 +5,9 @@ import signal
 import gdb
 
 # isort: off
-from pwndbg.config import config as config
-import pwndbg.config as config_mod
+import pwndbg.lib.config
+
+config: pwndbg.lib.config.Config = pwndbg.lib.config.Config()
 # isort: on
 
 import pwndbg.color

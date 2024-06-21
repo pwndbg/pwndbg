@@ -5,13 +5,13 @@ from typing import List
 import gdb
 from capstone import *  # noqa: F403
 
+import pwndbg
 import pwndbg.arguments
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.config
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings

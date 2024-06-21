@@ -12,9 +12,9 @@ from __future__ import annotations
 import string
 from typing import Tuple
 
+import pwndbg
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
-import pwndbg.config
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory

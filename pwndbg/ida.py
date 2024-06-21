@@ -23,7 +23,7 @@ import gdb
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 
-import pwndbg.config
+import pwndbg
 import pwndbg.decorators
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
