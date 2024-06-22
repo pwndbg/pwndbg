@@ -150,6 +150,11 @@ def main() -> None:
     os.environ["PWNLIB_NOTERM"] = "1"
 
     import pwndbg  # noqa: F811
+    import pwndbg.dbg.gdb
+
+    pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
+    pwndbg.dbg.setup()
+
     import pwndbg.profiling
 
     pwndbg.profiling.init(profiler, start_time)
