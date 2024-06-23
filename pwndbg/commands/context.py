@@ -549,7 +549,7 @@ def regs(regs=[]) -> None:
 
 
 pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
-pwndbg.config.add_param("show-retaddr-reg", False, "whether to show return address register")
+pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
 def get_regs(regs: List[str] = None):
