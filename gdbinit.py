@@ -8,6 +8,7 @@ import site
 import subprocess
 import sys
 import time
+import traceback
 from glob import glob
 from pathlib import Path
 from typing import List
@@ -163,8 +164,15 @@ def main() -> None:
         pwndbg.profiling.profiler.start()
 
 
-main()
+# We wrap everything in try/except so that we can exit GDB with an error code
+# This is used by tests to check if gdbinit.py failed
+try:
+    main()
 
-# We've already imported this in `main`, but we reimport it here so that it's available
-# at the global scope when some starts a Python interpreter in GDB
-import pwndbg  # noqa: F401
+    # We've already imported this in `main`, but we reimport it here so that it's
+    # available at the global scope when some starts a Python interpreter in GDB
+    import pwndbg  # noqa: F401
+
+except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
+    sys.exit(1)
