@@ -307,12 +307,6 @@ def nearpc(
             if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
 
-        # For syscall instructions, put the name on the side
-        if instr.address == pc:
-            syscall_name = pwndbg.arguments.get_syscall_name(instr)
-            if syscall_name:
-                line += " <%s>" % c.syscall_name("SYS_" + syscall_name)
-
         # For Comment Function
         try:
             line += " " * 10 + C.comment(

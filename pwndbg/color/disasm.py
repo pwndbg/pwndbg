@@ -82,6 +82,9 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 groups.append(current_group)
                 current_group = []
         else:
+            if ins.syscall is not None:
+                asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
+
             # Padding the string for a nicer output
             # This path calculates the padding for each instruction - even if there we don't have annotations for it.
             # This allows groups to have uniform padding, even if some of the instructions don't have annotations

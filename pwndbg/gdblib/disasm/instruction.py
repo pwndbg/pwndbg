@@ -223,6 +223,18 @@ class PwndbgInstruction:
         We retain it so the output is consistent between prints
         """
 
+        self.syscall: int | None = None
+        """
+        The syscall number for this instruction, if it is a syscall. Otherwise None.
+        """
+
+        self.syscall_name: str | None = None
+        """
+        The syscall name as a string
+
+        Ex: "openat", "read"
+        """
+
         self.emulated: bool = False
         """
         If the enhancement successfully used emulation for this instruction
@@ -318,7 +330,8 @@ class PwndbgInstruction:
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
-        Can change PC: {self.can_change_instruction_pointer}"""
+        Can change PC: {self.can_change_instruction_pointer}
+        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
 
 
 class EnhancedOperand:

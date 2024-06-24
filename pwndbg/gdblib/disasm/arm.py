@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
@@ -14,6 +15,7 @@ from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+    @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
             return InstructionCondition.UNDETERMINED
@@ -55,7 +57,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
-    def memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
+    @override
+    def _memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
         parts = []
 
         if op.mem.base != 0:
@@ -71,6 +74,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
+    @override
     def _immediate_string(self, instruction, operand):
         return "#" + super()._immediate_string(instruction, operand)
 

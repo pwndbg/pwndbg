@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing import Tuple
 
 import gdb
 from capstone import *  # noqa: F403
@@ -184,6 +185,13 @@ class DisassemblyAssistant:
                     )
                 emu = jump_emu = None
 
+        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
+            pwndbg.gdblib.arch.current, generic_assistant
+        )
+
+        # Don't disable emulation yet, as we can use it to read the syscall register
+        enhancer._enhance_syscall(instruction, emu)
+
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
             emu.valid = False
@@ -191,10 +199,6 @@ class DisassemblyAssistant:
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation - not emulating certain type of instruction")
-
-        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
-            pwndbg.gdblib.arch.current, generic_assistant
-        )
 
         # This function will .single_step the emulation
         if not enhancer._enhance_operands(instruction, emu, jump_emu):
@@ -213,8 +217,8 @@ class DisassemblyAssistant:
         # Set the .target and .next fields
         enhancer._enhance_next(instruction, emu, jump_emu)
 
-        if bool(pwndbg.config.disasm_annotations):
-            enhancer.set_annotation_string(instruction, emu)
+        if bool(pwndbg.gdblib.config.disasm_annotations):
+            enhancer._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
         # to determine the call's target address.
@@ -231,7 +235,7 @@ class DisassemblyAssistant:
             print("Done enhancing")
 
     # Subclasses for specific architecture should override this
-    def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
@@ -318,14 +322,13 @@ class DisassemblyAssistant:
 
         return jump_emu is not None
 
-    # Determine if the program counter of the process equals the address of the function being executed.
-    # If so, it means we can safely reason and read from registers and memory to represent values that
-    # we can add to the .info_string. This becomes relevent when NOT emulating, and is meant to
-    # allow more details when the PC is at the instruction being enhanced
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
-        # can_read_process_state indicates if the current program counter of the process is the same as the instruction
-        # The way to determine this varies between architectures (some arches have PC a constant offset to instruction address),
-        # so subclasses need to specify
+        """
+        Determine if the program counter of the process equals the address of the instruction being enhanced.
+        If so, it means we can safely reason and read from registers and memory to enhance values that
+        we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
+        allow more details when the PC is at the instruction being enhanced
+        """
         return instruction.address == pwndbg.gdblib.regs.pc
 
     # Delegates to "read_register", which takes Capstone ID for register.
@@ -347,17 +350,26 @@ class DisassemblyAssistant:
     ):
         return operand.imm
 
-    # Read value in register. Return None if cannot reason about the value in the register.
-    # Different architectures use registers in different patterns, so it is best to
-    # override this to get to best behavior for a given architecture. See x86.py as example.
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        # operand_id is the ID internal to Capstone
-        regname: str = instruction.cs_insn.reg_name(operand_id)
+        """
+        Read value in register. Return None if cannot reason about the value in the register.
+        Different architectures use registers in different patterns, so it is best to
+        override this to get to best behavior for a given architecture. See x86.py as example.
 
+        operand_id is the ID internal to Capstone
+        """
+        regname: str = instruction.cs_insn.reg_name(operand_id)
+        return self._read_register_name(instruction, regname, emu)
+
+    # Read register by its name
+    def _read_register_name(
+        self, instruction: PwndbgInstruction, regname: str, emu: Emulator
+    ) -> int | None:
         if emu:
-            # Will return the value of register after executing the instruction
+            # Will read the value of register from the emulator
+            # Be concious about calling this before/after stepping the emulator
             value = emu.read_register(regname)
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
@@ -505,6 +517,30 @@ class DisassemblyAssistant:
                 limit=limit,
                 enhance_string_len=enhance_string_len,
             )
+
+    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        if CS_GRP_INT not in instruction.groups:
+            return None
+
+        syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
+
+        if syscall_arch is None:
+            return None
+
+        instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
+        if instruction.syscall is not None:
+            instruction.syscall_name = (
+                pwndbg.constants.syscall(instruction.syscall, syscall_arch)
+                or "<unk_%d>" % instruction.syscall
+            )
+
+    def _get_syscall_arch_info(self, instruction) -> Tuple[str, str]:
+        """
+        Return tuple of (name of syscall architecture, syscall register name)
+
+        Elements of the tuple will be None to indicate it's not a syscall
+        """
+        return (pwndbg.gdblib.arch.name, pwndbg.lib.abi.ABI.syscall().syscall_register)
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing import Tuple
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.chain
 import pwndbg.color.context as C
@@ -34,6 +36,8 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Access through EnhancedOperand.cs_op.size
 
 
+# This class handles enhancement for x86 and x86_64. This is because Capstone itself
+# represents both architectures using the same class
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -289,12 +293,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
 
-    # Override
-    def set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-    # Override
+    @override
     def _resolve_used_value(
         self,
         value: int | None,
@@ -310,7 +314,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             return super()._resolve_used_value(value, instruction, operand, emu)
 
-    # Override
+    @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
@@ -321,7 +325,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             return super()._read_register(instruction, operand_id, emu)
 
-    # Override
+    @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
@@ -350,7 +354,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return target
 
-    # Override
+    @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
@@ -372,7 +376,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
             )
 
-    # Override
+    @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
@@ -432,6 +436,29 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
+
+    @override
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
+        # Since this class handles both x86 and x86_64, we need to choose the correct
+        # syscall arch depending on the instruction being executed.
+
+        # On x86_x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
+        # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
+        # So here, we return no syscall name for other instructions and we also
+        # handle a case when 32-bit syscalls are executed on x64
+        mnemonic = instruction.mnemonic
+
+        # We read .imm directly, because at this point we haven't enhanced the operands with values
+        is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
+        if not (mnemonic == "syscall" or is_32bit):
+            return (None, None)
+
+        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
+        # On x86, the syscall_arch is already i386, so its all fine
+        if is_32bit:
+            return ("i386", "eax")
+        else:
+            return ("x86-64", "rax")
 
     # Currently not used
     def memory_string_with_components_resolved(
