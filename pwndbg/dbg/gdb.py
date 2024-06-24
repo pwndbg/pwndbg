@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import signal
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -18,12 +19,12 @@ from pwndbg.gdblib import load_gdblib
 
 class GDBSession(pwndbg.dbg_mod.Session):
     @override
-    def history(self):
+    def history(self) -> List[str]:
         lines = gdb.execute("show commands", from_tty=False, to_string=True)
         return lines.splitlines()
 
     @override
-    def lex_args(self, command_line):
+    def lex_args(self, command_line: str) -> List[str]:
         return gdb.string_to_argv(command_line)
 
 
@@ -46,7 +47,7 @@ class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, command: gdb.Command):
         self.command = command
 
-    def remove(self):
+    def remove(self) -> None:
         # GDB doesn't support command removal?
         pass
 
@@ -109,12 +110,14 @@ class GDB(pwndbg.dbg_mod.Debugger):
         prompt.show_hint()
 
     @override
-    def add_command(self, command, handler):
-        command = GDBCommand(self, command, handler)
+    def add_command(
+        self, name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
+    ) -> pwndbg.dbg_mod.CommandHandle:
+        command = GDBCommand(self, name, handler)
         return GDBCommandHandle(command)
 
     @override
-    def session(self):
+    def session(self) -> pwndbg.dbg_mod.Session | None:
         # FIXME: Creating a new object every time is unnecessary.
         return GDBSession()
 
