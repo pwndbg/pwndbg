@@ -217,7 +217,7 @@ class DisassemblyAssistant:
         # Set the .target and .next fields
         enhancer._enhance_next(instruction, emu, jump_emu)
 
-        if bool(pwndbg.gdblib.config.disasm_annotations):
+        if bool(pwndbg.config.disasm_annotations):
             enhancer._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
