@@ -501,3 +501,36 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
         _test_heuristic_fail_gracefully("global_max_fast")
         _test_heuristic_fail_gracefully("thread_cache")
         _test_heuristic_fail_gracefully("thread_arena")
+
+
+##
+# Jemalloc Tests
+##
+HEAP_JEMALLOC_EXTENT_INFO = tests.binaries.get("heap_jemalloc_extent_info.out")
+
+
+def test_jemalloc_extent_info(start_binary):
+    start_binary(HEAP_JEMALLOC_EXTENT_INFO)
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    EXPECTED_PTR_ADDRESS = 0x7FFFF7808000
+    EXPECTED_EXTENT_ADDRESS = 0x7FFFF7A16580
+
+    # run jemalloc extent_info command
+    result = gdb.execute(
+        f"jemalloc_extent_info {EXPECTED_EXTENT_ADDRESS}", to_string=True
+    ).splitlines()
+
+    expected_output = [
+        "Jemalloc extent info",
+        "This command only support jemalloc 5.3.0",
+        "",
+        "Allocated Address: {}".format(hex(EXPECTED_PTR_ADDRESS)),
+        "Extent Address: {}".format(hex(EXPECTED_EXTENT_ADDRESS)),
+        "Size: 0x1000",
+        "Small class: True",
+    ]
+
+    for i in range(len(expected_output)):
+        assert expected_output[i] == result[i]
