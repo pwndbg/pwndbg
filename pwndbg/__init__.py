@@ -4,9 +4,6 @@ from __future__ import annotations
 import pwndbg.lib.config
 
 config: pwndbg.lib.config.Config = pwndbg.lib.config.Config()
-
-from pwndbg import dbg as dbg_mod
-from pwndbg.dbg import dbg as dbg
 # isort: on
 
 import pwndbg.color
