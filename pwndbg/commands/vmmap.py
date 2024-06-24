@@ -255,7 +255,7 @@ def vmmap(
 
         if page in filtered_pages:
             # If page was one of the original results, add an arrow for clarity
-            backtrace_prefix = str(pwndbg.gdblib.config.backtrace_prefix)
+            backtrace_prefix = str(pwndbg.config.backtrace_prefix)
 
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):

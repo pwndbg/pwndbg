@@ -14,7 +14,6 @@ from typing import TypeVar
 from typing import Union
 from typing import cast
 
-import gdb
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
@@ -26,25 +25,26 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
-safe_lnk = pwndbg.gdblib.config.add_param(
+safe_lnk = pwndbg.config.add_param(
     "safe-linking",
     None,
     "whether glibc use safe-linking (on/off/auto)",
-    param_class=gdb.PARAM_AUTO_BOOLEAN,
+    param_class=pwndbg.lib.config.PARAM_AUTO_BOOLEAN,
 )
 
-glibc_version = pwndbg.gdblib.config.add_param(
+glibc_version = pwndbg.config.add_param(
     "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
 )
 
 
-@pwndbg.gdblib.config.trigger(glibc_version)
+@pwndbg.config.trigger(glibc_version)
 def set_glibc_version() -> None:
     ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
     if ret:

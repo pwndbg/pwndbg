@@ -47,7 +47,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         # Emulating determined the value that was set in the destination register
         if left.after_value is not None:
-            TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             # Telescope the address
             telescope_addresses = super()._telescope(

@@ -82,7 +82,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         # Read from right operand
         if right.before_value is not None:
-            TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
             telescope_addresses = super()._telescope(
@@ -169,7 +169,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Example: lea    rdx, [rax*8]
         left, right = instruction.operands
 
-        TELESCOPE_DEPTH = max(0, int(pwndbg.gdblib.config.disasm_telescope_depth))
+        TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
         if right.before_value is not None:
             telescope_addresses = super()._telescope(

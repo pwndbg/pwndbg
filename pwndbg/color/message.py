@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pwndbg.lib.config
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 
 config_status_on_color = theme.add_color_param(
     "message-status-on-color", "green", "color of on status messages"
@@ -36,7 +37,9 @@ config_signal_color = theme.add_color_param(
     "message-signal-color", "bold,red", "color of signal messages"
 )
 
-config_prompt_color = theme.add_color_param("prompt-color", "bold,red", "prompt color")
+config_prompt_color: pwndbg.lib.config.Parameter = theme.add_color_param(
+    "prompt-color", "bold,red", "prompt color"
+)
 
 
 def on(msg: object) -> str:

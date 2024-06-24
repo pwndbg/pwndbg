@@ -19,9 +19,9 @@ import pwndbg
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.lib.strings
+from pwndbg import config
 from pwndbg.commands import CommandCategory
 from pwndbg.commands import context
-from pwndbg.gdblib import config
 from pwndbg.gdblib import regs as REGS
 
 config.add_param(

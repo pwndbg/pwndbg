@@ -4,7 +4,7 @@ set -e
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
-if ! hash sudo 2> /dev/null && whoami | grep root; then
+if ! hash sudo 2> /dev/null && whoami | grep -q root; then
     sudo() {
         ${*}
     }
@@ -12,17 +12,17 @@ fi
 
 # Helper functions
 linux() {
-    uname | grep -i Linux &> /dev/null
+    uname | grep -iqs Linux
 }
 osx() {
-    uname | grep -i Darwin &> /dev/null
+    uname | grep -iqs Darwin
 }
 
 install_apt() {
     sudo apt-get update || true
     sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools libglib2.0-dev libc6-dbg curl
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep -q x86_64; then
         sudo dpkg --add-architecture i386 || true
         sudo apt-get update || true
         sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386 || true
@@ -52,7 +52,7 @@ install_zypper() {
     sudo zypper install -y gdb gdbserver python-devel python3-devel glib2-devel make glibc-debuginfo curl
     sudo zypper install -y python2-pip || true # skip py2 installation if it doesn't exist
 
-    if uname -m | grep x86_64 > /dev/null; then
+    if uname -m | grep -q x86_64; then
         sudo zypper install -y glibc-32bit-debuginfo || true
     fi
 }
@@ -69,7 +69,7 @@ install_pacman() {
         sudo pacman -Syu || true
     fi
     sudo pacman -S --noconfirm --needed git gdb python python-capstone python-unicorn python-pycparser python-psutil python-ptrace python-pyelftools python-six python-pygments which debuginfod curl
-    if ! grep -q "^set debuginfod enabled on" ~/.gdbinit; then
+    if ! grep -qs "^set debuginfod enabled on" ~/.gdbinit; then
         echo "set debuginfod enabled on" >> ~/.gdbinit
     fi
 }
@@ -107,7 +107,7 @@ done
 PYTHON=''
 
 # Check for the presence of the initializer line in the user's ~/.gdbinit file
-if [ -z "$UPDATE_MODE" ] && grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
+if [ -z "$UPDATE_MODE" ] && grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
     # Ask the user if they want to proceed and override the initializer line
     read -p "A Pwndbg initializer line was found in your ~/.gdbinit file. Do you want to proceed and override it? (y/n) " answer
 
@@ -202,7 +202,7 @@ poetry install
 
 if [ -z "$UPDATE_MODE" ]; then
     # Comment old configs out
-    if grep -q '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit 2> /dev/null; then
+    if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
         if ! osx; then
             sed -i '/^[^#]*source.*pwndbg\/gdbinit.py/ s/^/# /' ~/.gdbinit
         else

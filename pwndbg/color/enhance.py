@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 
 config_integer_color = theme.add_color_param(
     "enhance-integer-value-color", "none", "color of value enhance (integer)"

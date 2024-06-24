@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List
 from typing import Tuple
 
-import gdb
+import lldb
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -80,10 +80,6 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
 
             # Only print the poetry output if anything was actually updated
             if "No dependencies to install or update" not in stdout:
-                # The output is usually long and ends up paginated. This
-                # normally gets disabled later during initialization, but in
-                # this case we disable it here to avoid pagination.
-                gdb.execute("set pagination off", to_string=True)
                 print(stdout)
         else:
             print(stderr, file=sys.stderr)
@@ -108,7 +104,8 @@ def fixup_paths(src_root: Path, venv_path: Path):
     sys.path.insert(0, str(src_root))
 
     # Push virtualenv's site-packages to the front
-    sys.path.remove(site_pkgs_path)
+    if site_pkgs_path in sys.path:
+        sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
 
@@ -127,7 +124,15 @@ def skip_venv(src_root) -> bool:
     )
 
 
-def main() -> None:
+class Test:
+    def __init__(self, debugger, _):
+        pass
+
+    def __call__(self, debugger, command, exe_context, result):
+        print(f"{debugger}, {command}, {exe_context}, {result}")
+
+
+def main(debugger: lldb.SBDebugger) -> None:
     profiler = cProfile.Profile()
 
     start_time = None
@@ -145,15 +150,17 @@ def main() -> None:
         update_deps(src_root, venv_path)
         fixup_paths(src_root, venv_path)
 
-    # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
-    gdb.execute("set charset UTF-8", to_string=True)
     os.environ["PWNLIB_NOTERM"] = "1"
 
     import pwndbg  # noqa: F811
-    import pwndbg.dbg.gdb
+    import pwndbg.dbg.lldb
 
-    pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
-    pwndbg.dbg.setup()
+    pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
+    pwndbg.dbg.setup(debugger)
+
+    import pwndbg.lldblib
+
+    pwndbg.lldblib.register_class_as_cmd(debugger, "test", Test)
 
     import pwndbg.profiling
 
@@ -163,8 +170,13 @@ def main() -> None:
         pwndbg.profiling.profiler.start()
 
 
-main()
+def __lldb_init_module(debugger, _):
+    """
+    Actually handles the setup bits for LLDB.
 
-# We've already imported this in `main`, but we reimport it here so that it's available
-# at the global scope when some starts a Python interpreter in GDB
-import pwndbg  # noqa: F401
+    LLDB, unlike GDB, exposes the bits we're interested in through object
+    instances, and we are initially only passed the instance for the interactive
+    debugger through this function.
+    """
+
+    main(debugger)

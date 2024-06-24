@@ -31,7 +31,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     asm = ins.asm_string
 
     # Highlight the current line if enabled
-    if pwndbg.gdblib.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
+    if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
     is_call_or_jump = ins.groups_set & capstone_branch_groups

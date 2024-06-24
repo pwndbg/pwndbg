@@ -416,7 +416,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
             w(
                 f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
             )
-        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
 
         pwndbg.exception.inform_verbose_and_debug()
@@ -428,7 +428,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
             )
         else:
             w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
-        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
 
         pwndbg.exception.inform_verbose_and_debug()
@@ -442,7 +442,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         w = lambda s: print(message.warn(s))
         if (
             isinstance(pwndbg.gdblib.heap.current, HeuristicHeap)
-            and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
             and DebugSymsHeap().can_be_resolved()
         ):
             # In auto mode, we will try to use the debug symbols if possible
@@ -456,7 +456,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         else:
             if (
                 isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
-                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+                and pwndbg.config.resolve_heap_via_heuristic == "auto"
             ):
                 # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
                 heuristic_heap = HeuristicHeap()
@@ -484,7 +484,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                     )
             elif (
                 isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
-                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "force"
+                and pwndbg.config.resolve_heap_via_heuristic == "force"
             ):
                 e(
                     "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."

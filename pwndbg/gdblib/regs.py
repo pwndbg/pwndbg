@@ -287,5 +287,5 @@ def update_last() -> None:
     M: module = cast(module, sys.modules[__name__])
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
-    if pwndbg.gdblib.config.show_retaddr_reg:
+    if pwndbg.config.show_retaddr_reg:
         M.last.update({k: M[k] for k in M.retaddr})
