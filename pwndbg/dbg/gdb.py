@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import signal
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import gdb
@@ -32,17 +33,17 @@ class GDBType(pwndbg.dbg_mod.Type):
 
     @property
     @override
-    def alignof(self):
+    def alignof(self) -> int:
         return self.inner.alignof
 
     @property
     @override
-    def code(self):
+    def code(self) -> pwndbg.dbg_mod.TypeCode:
         assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
         return GDBType.CODE_MAPPING[self.inner.code]
 
     @override
-    def fields(self):
+    def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
         return [
             pwndbg.dbg_mod.TypeField(
                 field.bitpos,
@@ -58,19 +59,19 @@ class GDBType(pwndbg.dbg_mod.Type):
         ]
 
     @override
-    def array(self, count):
+    def array(self, count: int) -> pwndbg.dbg_mod.Type:
         return GDBType(self.inner.array(count))
 
     @override
-    def pointer(self):
+    def pointer(self) -> pwndbg.dbg_mod.Type:
         return GDBType(self.inner.pointer())
 
     @override
-    def strip_typedefs(self):
+    def strip_typedefs(self) -> pwndbg.dbg_mod.Type:
         return GDBType(self.inner.strip_typedefs())
 
     @override
-    def target(self):
+    def target(self) -> pwndbg.dbg_mod.Type:
         return GDBType(self.inner.target())
 
 
@@ -80,37 +81,37 @@ class GDBValue(pwndbg.dbg_mod.Value):
 
     @property
     @override
-    def address(self):
+    def address(self) -> pwndbg.dbg_mod.Value | None:
         return GDBValue(self.inner.address)
 
     @property
     @override
-    def is_optimized_out(self):
+    def is_optimized_out(self) -> bool:
         return self.inner.is_optimized_out
 
     @property
     @override
-    def type(self):
+    def type(self) -> pwndbg.dbg_mod.Type:
         return GDBType(self.inner.type)
 
     @override
-    def dereference(self):
+    def dereference(self) -> pwndbg.dbg_mod.Value:
         return GDBValue(self.inner.dereference())
 
     @override
-    def string(self):
+    def string(self) -> str:
         return self.inner.string()
 
     @override
-    def fetch_lazy(self):
+    def fetch_lazy(self) -> None:
         self.inner.fetch_lazy()
 
     @override
-    def __int__(self):
+    def __int__(self) -> int:
         return int(self.inner)
 
     @override
-    def cast(self, type):
+    def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
         # We let the consumers of this function just pass it a `gdb.Type`.
         # This keeps us from breaking functionality under GDB until we have
         # better support for type lookup under LLDB and start porting the
@@ -120,7 +121,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
         if isinstance(type, gdb.Type):
             return GDBValue(self.inner.cast(type))
 
-        return GDBValue(self.inner.cast(type.inner))
+        assert isinstance(type, GDBType)
+        t: GDBType = type
+
+        return GDBValue(self.inner.cast(t.inner))
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
@@ -179,7 +183,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         pwndbg.gdblib.prompt.show_hint()
 
     @override
-    def evaluate_expression(self, expression):
+    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         return GDBValue(gdb.parse_and_eval(expression))
 
     @override
