@@ -62,10 +62,6 @@ class StartEvent:
         self.running = True
 
         for function in self.registered:
-            if debug:
-                sys.stdout.write(
-                    "{!r} {}.{}\n".format("start", function.__module__, function.__name__)
-                )
             function()
 
     def on_exited(self) -> None:
