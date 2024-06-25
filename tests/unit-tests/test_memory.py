@@ -14,7 +14,8 @@ import mocks.gdb
 import mocks.gdblib  # noqa: F401
 
 # We must import the function under test after all the mocks are imported
-from pwndbg.lib.memory import round_down, round_up
+from pwndbg.lib.memory import round_down
+from pwndbg.lib.memory import round_up
 
 
 def test_basic_rounding():
