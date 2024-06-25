@@ -72,7 +72,8 @@ pwndbg.lib.cache.connect_clear_caching_events(
         "thread": (pwndbg.gdblib.events.thread,),
         "prompt": (pwndbg.gdblib.events.before_prompt,),
         "forever": (),
-    }
+    },
+    priority=pwndbg.gdblib.events.HandlerPriority.CACHE_CLEAR,
 )
 
 
