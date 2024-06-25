@@ -18,8 +18,6 @@ from typing import Union
 
 from typing_extensions import ParamSpec
 
-import pwndbg.gdblib.events
-
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -70,14 +68,14 @@ class _CacheUntilEvent:
     def __init__(self) -> None:
         self.caches: List[Cache] = []
 
-    def connect_event_hooks(self, event_hooks: Tuple[Any, ...]) -> None:
+    def connect_event_hooks(self, event_hooks: Tuple[Any, ...], **kwargs: Any) -> None:
         """
         A given _CacheUntilEvent object may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
         by `stop`, `mem_changed` and `reg_changed` events.
         """
         for event_hook in event_hooks:
-            event_hook(self.clear, priority=pwndbg.gdblib.events.HandlerPriority.CACHE_CLEAR)
+            event_hook(self.clear, **kwargs)
 
     def clear(self) -> None:
         for cache in self.caches:
@@ -100,12 +98,12 @@ _ALL_CACHE_UNTIL_EVENTS: Dict[str, _CacheUntilEvent] = {
 _ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())
 
 
-def connect_clear_caching_events(event_dicts: Dict[str, Tuple[Any, ...]]) -> None:
+def connect_clear_caching_events(event_dicts: Dict[str, Tuple[Any, ...]], **kwargs: Any) -> None:
     """
     Connect given debugger event hooks to correspoonding _CacheUntilEvent instances
     """
     for event_name, event_hooks in event_dicts.items():
-        _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks)
+        _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks, **kwargs)
 
 
 # A singleton used to mark a cache miss
