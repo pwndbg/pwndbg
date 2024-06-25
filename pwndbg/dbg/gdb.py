@@ -22,13 +22,14 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
         self.frame = frame
 
     @override
-    def by_name(self, name: str):
+    def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
         try:
             return GDBValue(self.frame.inner.read_register(name))
         except gdb.error:
             # GDB throws an exception if the name is unknown, we just return
             # None when that is the case.
             pass
+        return None
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
     """
@@ -63,7 +64,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         return GDBValue(value)
 
     @override
-    def regs(self):
+    def regs(self) -> pwndbg.dbg_mod.Registers:
         return GDBRegisters(self)
 
 
