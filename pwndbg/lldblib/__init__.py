@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from typing import Any
+
 import lldb
 
-from typing_extensions import Callable
 
-def register_class_as_cmd(debugger: lldb.SBDebugger, cmd: str, handler: Callable[..., None], path: str = None):
+def register_class_as_cmd(debugger: lldb.SBDebugger, cmd: str, handler: Any, path: str = None):
     name = path
     if not name:
         mod = handler.__module__

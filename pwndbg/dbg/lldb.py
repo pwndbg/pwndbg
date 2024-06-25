@@ -1,29 +1,33 @@
 from __future__ import annotations
 
+import random
+import sys
 from typing import Any
+from typing import Callable
+from typing import List
 from typing import Tuple
 
 import lldb
 from typing_extensions import override
 
 import pwndbg
-import sys
-import random
+
 
 class LLDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: lldb.SBFrame):
         self.inner = inner
 
     @override
-    def evaluate_expression(self, expression):
+    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         value = self.inner.EvaluateExpression(expression)
-        opt_out = is_optimized_out(value)
-    
+        opt_out = _is_optimized_out(value)
+
         if not value.error.Success() and not opt_out:
             raise pwndbg.dbg_mod.Error(value.error.description)
 
-        return LLDBValue(value, opt_out)
-        
+        return LLDBValue(value)
+
+
 def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
     """
     Determines the type code of a given LLDB SBType.
@@ -31,8 +35,7 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
     c = type.GetTypeCode()
     f = type.GetTypeFlags()
 
-    assert c != lldb.eTypeClassInvalid, \
-        "passed eTypeClassInvalid to map_type_code"
+    assert c != lldb.eTypeClassInvalid, "passed eTypeClassInvalid to map_type_code"
 
     if c == lldb.eTypeClassUnion:
         return pwndbg.dbg_mod.TypeCode.UNION
@@ -47,10 +50,11 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
 
     if f & lldb.eTypeIsInteger != 0:
         return pwndbg.dbg_mod.TypeCode.INT
-    
+
     raise RuntimeError("missing mapping for type code")
 
-def is_optimized_out(value: lldb.SBValue) -> bool:
+
+def _is_optimized_out(value: lldb.SBValue) -> bool:
     """
     Returns whether the given value is likely to have been optimized out.
     """
@@ -73,71 +77,100 @@ def is_optimized_out(value: lldb.SBValue) -> bool:
     # shoulnd't really be that bad.
     return value.error.description and "optimized out" in value.error.description
 
+
 class LLDBType(pwndbg.dbg_mod.Type):
     def __init__(self, inner: lldb.SBType):
         self.inner = inner
 
-    def alignof(self):
+    @property
+    @override
+    def alignof(self) -> int:
         return self.inner.GetByteAlign()
 
-    def code(self):
+    @property
+    @override
+    def code(self) -> pwndbg.dbg_mod.TypeCode:
         return map_type_code(self.inner)
 
-    def fields(self):
+    @override
+    def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
         fields = self.inner.get_fields_array()
-        return [LLDBType(t) for t in fields] if len(fields) > 0 else None
+        return (
+            [
+                pwndbg.dbg_mod.TypeField(
+                    field.bit_offset,
+                    field.name,
+                    LLDBType(field.type),
+                    self,
+                    0,  # TODO: Handle fields for enum types differently.
+                    False,
+                    False,  # TODO: Handle base class members differently.
+                    field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize(),
+                )
+                for field in fields
+            ]
+            if len(fields) > 0
+            else None
+        )
 
-    def array(self, count):
+    @override
+    def array(self, count: int) -> pwndbg.dbg_mod.Type:
         return LLDBType(self.inner.GetArrayType(count))
 
-    def pointer(self):
+    @override
+    def pointer(self) -> pwndbg.dbg_mod.Type:
         return LLDBType(self.inner.GetPointerType())
 
-    def strip_typedefs(self):
+    @override
+    def strip_typedefs(self) -> pwndbg.dbg_mod.Type:
         t = self.inner
         while t.IsTypedefType():
             t = t.GetTypedefedType
 
         return LLDBType(t)
-    
-    def target(self):
+
+    @override
+    def target(self) -> pwndbg.dbg_mod.Type:
         t = self.inner.GetPointeeType()
         if not t.IsValid():
             raise pwndbg.dbg_mod.Error("tried to get target type of non-pointer type")
-    
+
         return LLDBType(t)
+
 
 class LLDBValue(pwndbg.dbg_mod.Value):
     def __init__(self, inner: lldb.SBValue):
         self.inner = inner
 
+    @property
     @override
-    def address(self):
+    def address(self) -> pwndbg.dbg_mod.Value | None:
         addr = self.inner.AddressOf()
         return LLDBValue(addr) if addr.IsValid() else None
 
+    @property
     @override
-    def is_optimized_out(self):
-        return is_optimised_out(self.inner)
+    def is_optimized_out(self) -> bool:
+        return _is_optimized_out(self.inner)
 
+    @property
     @override
-    def type(self):
-        assert not self.is_optimized_out(), \
-            "tried to get type of optimized-out value"
+    def type(self) -> pwndbg.dbg_mod.Type:
+        assert not self.is_optimized_out, "tried to get type of optimized-out value"
 
         return LLDBType(self.type)
 
     @override
-    def dereference(self):
+    def dereference(self) -> pwndbg.dbg_mod.Value:
         deref = self.inner.Dereference()
 
         if not deref.IsValid():
-            raise pwndbg.dbg_api.Error(f"could not dereference value")
+            raise pwndbg.dbg_mod.Error("could not dereference value")
 
         return LLDBValue(deref)
-    
+
     @override
-    def string(self):
+    def string(self) -> str:
         addr = self.inner.unsigned
         error = lldb.SBError()
 
@@ -147,27 +180,33 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         for i in range(8, 33):
             s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
-                raise pwndbg.dbg_api.Error(f"could not read value as string: {error.description}")
+                raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")
             if last_str is not None and len(s) == len(last_str):
                 break
             last_str = s
 
             buf *= 2
-        
+
         return last_str
 
     @override
-    def fetch_lazy(self):
+    def fetch_lazy(self) -> None:
         # Not needed under LLDB.
         pass
 
     @override
-    def __int__(self):
+    def __int__(self) -> int:
         return self.inner.signed
 
     @override
-    def cast(self, type):
+    def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
+        assert isinstance(type, LLDBType)
+        t: LLDBType = type
+
+        return LLDBValue(self.inner.cast(t.inner))
+
         return LLDBValue(self.inner.Cast(type.inner))
+
 
 class LLDBProcess(pwndbg.dbg_mod.Process):
     def __init__(self, process: lldb.SBProcess, target: lldb.SBTarget):
@@ -175,52 +214,55 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         self.target = target
 
     @override
-    def threads(self):
-        pass
-
-    @override
-    def evaluate_expression(self, expression):
+    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         value = self.target.EvaluateExpression(expression)
-        opt_out = is_optimized_out(value)
-    
+        opt_out = _is_optimized_out(value)
+
         if not value.error.Success() and not opt_out:
             raise pwndbg.dbg_mod.Error(value.error.description)
 
-        return LLDBValue(value, opt_out)
-        
+        return LLDBValue(value)
+
 
 class LLDBSession(pwndbg.dbg_mod.Session):
     @override
-    def history(self):
+    def history(self) -> List[str]:
         # Figure out a way to retrieve history later.
         return []
 
     @override
-    def commands(self):
+    def commands(self) -> List[str]:
         # Figure out a way to retrieve the command list later.
         return []
 
     @override
-    def lex_args(self, command_line):
+    def lex_args(self, command_line: str) -> List[str]:
         return command_line.split()
 
     @override
-    def selected_inferior(self):
+    def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
         p = lldb.process
         t = lldb.target
 
         if p.IsValid() and t.IsValid():
             return LLDBProcess(p, t)
 
+        return None
+
     @override
-    def selected_frame(self):
+    def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
         f = lldb.frame
         if f.IsValid():
             return LLDBFrame(f)
 
+        return None
+
+
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
-    def __init__(self, handler_name: str):
-        self.handler_name = handler_name   
+    def __init__(self, handler_name: str, command_name: str):
+        self.handler_name = handler_name
+        self.command_name = command_name
+
 
 class LLDB(pwndbg.dbg_mod.Debugger):
     @override
@@ -237,9 +279,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.debugger = debugger
 
         import pwndbg.commands
+
         pwndbg.commands.load_commands()
 
         import argparse
+
         parser = argparse.ArgumentParser(description="Prints a test message.")
 
         @pwndbg.commands.ArgparsedCommand(parser)
@@ -247,7 +291,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             print("Awoooo!")
 
     @override
-    def inferior(self):
+    def inferior(self) -> pwndbg.dbg_mod.Process | None:
         target_count = self.debugger.GetNumTargets()
         if target_count == 0:
             # No targets are available.
@@ -267,8 +311,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         return LLDBProcess(process, target)
 
     @override
-    def add_command(self, command_name, handler):
+    def add_command(
+        self, command_name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
+    ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
+
         class CommandHandler:
             def __init__(self, debugger, _):
                 pass
@@ -280,19 +327,23 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
         # we've just created as a global value in its dictionary.
-        rand = round(random.random() * 0xffffffff) // 1
+        rand = round(random.random() * 0xFFFFFFFF) // 1
         rand = f"{rand:08x}"
-        
+
         name = f"__{rand}_LLDB_COMMAND_{command_name}"
         print(f"adding command {command_name}, under the path {self.module}.{name}")
 
         sys.modules[self.module].__dict__[name] = CommandHandler
 
         # Install the command under the name we've just picked.
-        self.debugger.HandleCommand(f"command script add -c {self.module}.{name} -s synchronous {command_name}")
+        self.debugger.HandleCommand(
+            f"command script add -c {self.module}.{name} -s synchronous {command_name}"
+        )
+
+        return LLDBCommand(name, command_name)
 
     @override
-    def session(self):
+    def session(self) -> pwndbg.dbg_mod.Session | None:
         return LLDBSession()
 
     @override
@@ -300,7 +351,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         import pwndbg.ui
 
         return pwndbg.ui.get_window_size()
-    
+
     def is_gdblib_available(self):
         return False
 
