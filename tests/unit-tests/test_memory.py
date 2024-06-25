@@ -17,12 +17,12 @@ import mocks.gdblib  # noqa: F401
 from pwndbg.lib.memory import round_down, round_up
 
 
-def test_basic():
+def test_basic_rounding():
     assert round_down(0xDEADBEEF, 0x1000) == 0xDEADB000
     assert round_up(0xDEADBEEF, 0x1000) == 0xDEADC000
 
 
-def test_many():
+def test_many_rounding():
     for n in range(0x100):
         for i in range(8):
             alignment = 1 << i
