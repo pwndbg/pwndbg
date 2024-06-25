@@ -7,6 +7,9 @@ by using a decorator.
 from __future__ import annotations
 
 import sys
+from enum import Enum
+from enum import auto
+from functools import partial
 from functools import wraps
 from typing import Any
 from typing import Callable
@@ -74,18 +77,28 @@ class StartEvent:
 
 gdb.events.start = StartEvent()
 
+
+class HandlerPriority(Enum):
+    """
+    A priority level for an event handler, ordered from highest to lowest priority.
+    """
+
+    CACHE_CLEAR = auto()
+    LOW = auto()
+
+
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: Dict[Any, List[Callable[..., Any]]] = {
-    gdb.events.exited: [],
-    gdb.events.cont: [],
-    gdb.events.new_objfile: [],
-    gdb.events.stop: [],
-    gdb.events.start: [],
-    gdb.events.new_thread: [],
-    gdb.events.before_prompt: [],  # The real event might not exist, but we wrap it
-    gdb.events.memory_changed: [],
-    gdb.events.register_changed: [],
+registered: Dict[Any, Dict[HandlerPriority, List[Callable[..., Any]]]] = {
+    gdb.events.exited: {},
+    gdb.events.cont: {},
+    gdb.events.new_objfile: {},
+    gdb.events.stop: {},
+    gdb.events.start: {},
+    gdb.events.new_thread: {},
+    gdb.events.before_prompt: {},  # The real event might not exist, but we wrap it
+    gdb.events.memory_changed: {},
+    gdb.events.register_changed: {},
 }
 
 # Registered events are wrapped and aren't directly connected to GDB
@@ -101,7 +114,10 @@ objfile_cache: Dict[str, Set[str]] = {}
 
 
 def connect(
-    func: Callable[P, T], event_handler: Any, name: str = "", priority: bool = False
+    func: Callable[P, T],
+    event_handler: Any,
+    name: str = "",
+    priority: HandlerPriority = HandlerPriority.LOW,
 ) -> Callable[P, T]:
     if debug:
         print("Connecting", func.__name__, event_handler)
@@ -133,16 +149,9 @@ def connect(
             pwndbg.exception.handle()
             raise e
 
-    if priority:
-        registered[event_handler].insert(0, caller)
-    else:
-        registered[event_handler].append(caller)
+    registered[event_handler].setdefault(priority, []).append(caller)
     if event_handler not in connected:
-
-        def handle(*a: P.args, **kw: P.kwargs) -> None:
-            for f in registered[event_handler]:
-                f(*a, **kw)
-
+        handle = partial(invoke_event, event_handler)
         event_handler.connect(handle)
         connected[event_handler] = handle
     return func
@@ -199,10 +208,12 @@ gdb.events.new_objfile.connect(log_objfiles)
 
 
 # invoke all registered handlers of a certain event type
-def invoke_event(event: Any) -> None:
-    if event in registered:
-        for f in registered[event]:
-            f()
+def invoke_event(event: Any, *args: Any, **kwargs: Any) -> None:
+    handlers = registered.get(event)
+    if handlers is not None:
+        for prio in HandlerPriority:
+            for f in handlers.get(prio, []):
+                f(*args, **kwargs)
 
 
 def after_reload(start: bool = True) -> None:

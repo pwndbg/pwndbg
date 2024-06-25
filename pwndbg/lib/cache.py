@@ -18,6 +18,8 @@ from typing import Union
 
 from typing_extensions import ParamSpec
 
+import pwndbg.gdblib.events
+
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -75,7 +77,7 @@ class _CacheUntilEvent:
         by `stop`, `mem_changed` and `reg_changed` events.
         """
         for event_hook in event_hooks:
-            event_hook(self.clear, priority=True)
+            event_hook(self.clear, priority=pwndbg.gdblib.events.HandlerPriority.CACHE_CLEAR)
 
     def clear(self) -> None:
         for cache in self.caches:
