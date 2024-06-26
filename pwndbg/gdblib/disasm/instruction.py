@@ -75,7 +75,7 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
 }
 
 # Everything that is a CALL or a RET is a unconditional jump
-GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
+GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET, CS_GRP_IRET}
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups

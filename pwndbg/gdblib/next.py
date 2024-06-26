@@ -12,12 +12,12 @@ import capstone
 import gdb
 
 import pwndbg.gdblib.disasm
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
 
-jumps = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET}
 
 interrupts = {capstone.CS_GRP_INT}
 
@@ -45,10 +45,9 @@ def next_int(address=None):
 
     ins = pwndbg.gdblib.disasm.one(address)
     while ins:
-        ins_groups = set(ins.groups)
-        if ins_groups & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             return None
-        elif ins_groups & interrupts:
+        elif ins.groups_set & interrupts:
             return ins
         ins = pwndbg.gdblib.disasm.one(ins.next)
 
@@ -64,7 +63,7 @@ def next_branch(address=None):
 
     ins = pwndbg.gdblib.disasm.one(address)
     while ins:
-        if set(ins.groups) & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             return ins
         ins = pwndbg.gdblib.disasm.one(ins.next)
 
@@ -104,7 +103,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
         if mnemonic_match and op_str_match:
             return ins
 
-        if set(ins.groups) & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             # No matching instruction until the next branch, and we're
             # not trying to match the branch instruction itself.
             return None

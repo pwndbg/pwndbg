@@ -676,8 +676,6 @@ class Emulator:
         debug(DEBUG_MEM_READ, "uc.mem_read(*%r, **%r)", (a, kw))
         return self.uc.mem_read(*a, **kw)
 
-    jump_types = {C.CS_GRP_CALL, C.CS_GRP_JUMP, C.CS_GRP_RET}
-
     def until_jump(self, pc=None):
         """
         Emulates instructions starting at the specified address until the
@@ -739,7 +737,7 @@ class Emulator:
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
 
-        while target and C.CS_GRP_CALL not in pwndbg.gdblib.disasm.one_raw(addr).groups:
+        while target and not pwndbg.gdblib.disasm.one_raw(addr).call_like:
             addr, target = self.until_jump(target)
 
         return addr, target
