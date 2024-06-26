@@ -12,7 +12,45 @@ import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import InstructionCondition, PwndbgInstruction, boolean_to_instruction_condition
+from pwndbg.lib.regs import BitFlags
+
+
+
+def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
+    """
+    Given a condition and the NZCV flag bits, determine when the condition is satisfied
+    
+    The condition is a Capstone constant
+    """
+
+    n = (cpsr >> 31) & 1
+    z = (cpsr >> 30) & 1
+    c = (cpsr >> 29) & 1
+    v = (cpsr >> 28) & 1
+
+    condition = {
+        ARM64_CC_INVALID: True, # Capstone uses this code for the 'B' instruction, the unconditional branch
+        ARM64_CC_EQ: z == 1,
+        ARM64_CC_NE: z == 0,
+        ARM64_CC_HS: c == 1,
+        ARM64_CC_LO: c == 0,
+        ARM64_CC_MI: n == 1,
+        ARM64_CC_PL: n == 0,
+        ARM64_CC_VS: v == 1,
+        ARM64_CC_VC: v == 0,
+        ARM64_CC_HI: c == 1 and z == 0,
+        ARM64_CC_LS: not (c == 1 and z == 0),
+        ARM64_CC_GE: n == v,
+        ARM64_CC_LT: n != v,
+        ARM64_CC_GT: z == 0 and n == v,
+        ARM64_CC_LE: not (z == 0 and n == v),
+        ARM64_CC_AL: True,
+        ARM64_CC_NV: True
+    }.get(condition, False)
+
+    return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
+
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -63,6 +101,43 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 return
 
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
+
+    @override
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> pwndbg.gdblib.disasm.arch.InstructionCondition:
+        
+        # For the given instructions, determine
+
+        # In ARM64, only branches have the conditional code in the instruction,
+        # as opposed to ARM32 which allows most instructions to be conditional
+        if instruction.id == ARM64_INS_B:
+            print("resolving conditional")
+            return resolve_condition(instruction.cs_insn.cc,pwndbg.gdblib.regs.cpsr)
+        
+        elif instruction.id == ARM64_INS_CBNZ:
+            op_val = instruction.operands[0].before_value
+            return boolean_to_instruction_condition(op_val != None and op_val != 0)
+        
+        elif instruction.id == ARM64_INS_CBZ:
+            op_val = instruction.operands[0].before_value
+            return boolean_to_instruction_condition(op_val != None and op_val == 0)
+
+        elif instruction.id == ARM64_INS_TBNZ:
+            op_val, bit = instruction.operands[0].before_value, instruction.operands[1].before_value, 
+
+            if op_val is not None and bit is not None:
+                return boolean_to_instruction_condition(bool((op_val >> bit) & 1))
+            
+        elif instruction.id == ARM64_INS_TBZ:
+            op_val, bit = instruction.operands[0].before_value, instruction.operands[1].before_value, 
+
+            if op_val is not None and bit is not None:
+                return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
+            
+
+        # Addtionally, the "conditional comparisons" and "conditional selects" support conditional execution
+
+        return super()._condition(instruction, emu)
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
