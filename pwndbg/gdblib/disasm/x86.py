@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
-from typing_extensions import override
 from typing import Tuple
 
 from capstone import *  # noqa: F403
@@ -35,6 +34,7 @@ access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 # Ex: dword ptr [RDX] has size = 4
 # Ex: AL has size = 1
 # Access through EnhancedOperand.cs_op.size
+
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
@@ -442,9 +442,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 
-        syscall_arch = pwndbg.gdblib.arch.name
->>>>>>> cf1bf2f9 (comments)
-
         # On x86_x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
         # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
         # So here, we return no syscall name for other instructions and we also
@@ -454,7 +451,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # We read .imm directly, because at this point we haven't enhanced the operands with values
         is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
         if not (mnemonic == "syscall" or is_32bit):
-            return (None, None)
             return (None, None)
 
         # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
