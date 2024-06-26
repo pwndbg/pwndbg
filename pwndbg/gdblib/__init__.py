@@ -45,6 +45,7 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.symbol
     import pwndbg.gdblib.typeinfo
     import pwndbg.gdblib.vmmap
+    import pwndbg.gdblib.disasm
 
     # This is necessary so that mypy understands the actual type of the regs module
     regs_: regs_mod.module = regs_mod

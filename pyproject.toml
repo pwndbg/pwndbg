@@ -90,7 +90,6 @@ module = [
     "pwndbg.commands.telescope",
     "pwndbg.commands.version",
     "pwndbg.exception",
-    "pwndbg.gdblib.disasm.jump",
     "pwndbg.gdblib.dt",
     "pwndbg.gdblib.dynamic",
     "pwndbg.gdblib.events",
