@@ -42,7 +42,6 @@ from capstone.sparc import SPARC_INS_JMP
 from capstone.sparc import SPARC_INS_JMPL
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
-from capstone.arm64 import CsArm64
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 # The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
@@ -81,8 +80,10 @@ class InstructionCondition(Enum):
     # Unconditional instructions (most instructions), or we cannot reason about the instruction
     UNDETERMINED = 3
 
+
 def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
+
 
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
@@ -337,7 +338,7 @@ class PwndbgInstruction:
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
 
         # Hacky, but this is just for debugging
-        if hasattr(self.cs_insn, 'cc'):
+        if hasattr(self.cs_insn, "cc"):
             info += f"\n\tARM condition code: {self.cs_insn.cc}"
 
         return info
