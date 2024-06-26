@@ -110,6 +110,10 @@ class Page:
         return self.read and self.write
 
     @property
+    def wx(self) -> bool:
+        return self.write and self.execute
+
+    @property
     def rwx(self) -> bool:
         return self.read and self.write and self.execute
 
