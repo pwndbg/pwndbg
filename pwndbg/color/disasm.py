@@ -6,7 +6,6 @@ import capstone
 
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.gdblib.disasm.jump
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
