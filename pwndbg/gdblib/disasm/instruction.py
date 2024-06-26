@@ -81,6 +81,10 @@ class InstructionCondition(Enum):
     UNDETERMINED = 3
 
 
+def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
+    return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
+
+
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_ARM: "arm",
@@ -318,7 +322,7 @@ class PwndbgInstruction:
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
-        return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         ID: {self.id}, {self.cs_insn.insn_name()}
         Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
@@ -332,6 +336,12 @@ class PwndbgInstruction:
         Unconditional jump: {self.is_unconditional_jump}
         Can change PC: {self.can_change_instruction_pointer}
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
+
+        # Hacky, but this is just for debugging
+        if hasattr(self.cs_insn, "cc"):
+            info += f"\n\tARM condition code: {self.cs_insn.cc}"
+
+        return info
 
 
 class EnhancedOperand:
