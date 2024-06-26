@@ -438,7 +438,7 @@ def near(
                 ):
                     target = insn.target
 
-            if insn.is_unconditional_jump or insn.is_conditional_jump_taken:
+            if not linear and insn.is_unconditional_jump or insn.is_conditional_jump_taken:
                 split_insn.split = SplitType.BRANCH_TAKEN
             else:
                 split_insn.split = SplitType.BRANCH_NOT_TAKEN
