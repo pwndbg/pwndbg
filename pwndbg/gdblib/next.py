@@ -12,11 +12,16 @@ import capstone
 import gdb
 
 import pwndbg.gdblib.disasm
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
+<<<<<<< HEAD
 from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
+=======
+
+>>>>>>> f940f97a (Add IRET to jump groups, and remove multiple places in codebase where jumps groups are defined (non uniformly))
 
 interrupts = {capstone.CS_GRP_INT}
 
