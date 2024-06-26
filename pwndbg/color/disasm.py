@@ -12,7 +12,8 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS, InstructionCondition
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 c = ColorConfig(

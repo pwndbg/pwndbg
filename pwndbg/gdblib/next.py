@@ -12,12 +12,11 @@ import capstone
 import gdb
 
 import pwndbg.gdblib.disasm
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
-
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 
 interrupts = {capstone.CS_GRP_INT}
 
