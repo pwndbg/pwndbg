@@ -20,7 +20,7 @@ c = ColorConfig(
         ColorParamSpec("code", "red", "color for executable memory"),
         ColorParamSpec("data", "purple", "color for all other writable memory"),
         ColorParamSpec("rodata", "normal", "color for all read only memory"),
-        ColorParamSpec("rwx", "underline", "color added to all RWX memory"),
+        ColorParamSpec("wx", "underline", "color added to all WX memory"),
         ColorParamSpec("guard", "cyan", "color added to all guard pages (no perms)"),
     ],
 )
@@ -82,9 +82,9 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
     else:
         color = c.rodata
 
-    if page and page.rwx:
+    if page and page.wx:
         old_color = color
-        color = lambda x: c.rwx(old_color(x))
+        color = lambda x: c.wx(old_color(x))
 
     if text is None and isinstance(address, int) and address > 255:
         text = hex(int(address))
@@ -105,7 +105,8 @@ def legend():
             c.heap("HEAP"),
             c.code("CODE"),
             c.data("DATA"),
-            c.rwx("RWX"),
+            # WX segments will also be marked as code, so do 2 formatters here
+            c.wx(c.code("WX")),
             c.rodata("RODATA"),
         )
     )

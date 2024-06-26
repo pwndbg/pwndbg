@@ -49,7 +49,7 @@ def get_proc_maps():
 def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_file):
     """
     Example vmmap when debugging binary:
-        LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+        LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
                   0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffa000     0x7ffff7ffd000 r--p     3000 0      [vvar]
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 0      [vdso]
@@ -57,7 +57,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 0      [vsyscall]
 
     The same vmmap when debugging coredump:
-        LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+        LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
                   0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 1158   load2
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
@@ -78,7 +78,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
 
     # Basic asserts
     assert len(vmmaps) == len(expected_maps) + 2  # +2 for header and legend
-    assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA"
 
     # Split vmmaps
     vmmaps = [i.split() for i in vmmaps[2:]]
@@ -102,7 +102,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Note: we will now see one less vmmap page as [vvar] will be missing
-    assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA"
+    assert vmmaps[0] == "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA"
     vmmaps = [i.split() for i in vmmaps[2:]]
 
     has_proc_maps = "warning: unable to find mappings in core file" not in gdb.execute(
