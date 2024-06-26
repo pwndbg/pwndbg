@@ -9,7 +9,6 @@ from typing import List
 from typing import Tuple
 
 import gdb
-from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain
@@ -73,7 +72,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
-    if CS_GRP_CALL in instruction.groups:
+    if instruction.call_like:
         try:
             abi = pwndbg.lib.abi.ABI.default()
         except KeyError:
