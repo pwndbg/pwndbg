@@ -12,7 +12,7 @@ import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import InstructionCondition, PwndbgInstruction, boolean_to_instruction_condition
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS, InstructionCondition, PwndbgInstruction, boolean_to_instruction_condition
 from pwndbg.lib.regs import BitFlags
 
 
@@ -106,13 +106,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> pwndbg.gdblib.disasm.arch.InstructionCondition:
         
-        # For the given instructions, determine
 
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == ARM64_INS_B:
-            print("resolving conditional")
-            return resolve_condition(instruction.cs_insn.cc,pwndbg.gdblib.regs.cpsr)
+
+            flags = super()._read_register_name(instruction,"cpsr",emu)
+            if flags is not None:
+                return resolve_condition(instruction.cs_insn.cc,flags)
         
         elif instruction.id == ARM64_INS_CBNZ:
             op_val = instruction.operands[0].before_value
@@ -138,6 +139,21 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Addtionally, the "conditional comparisons" and "conditional selects" support conditional execution
 
         return super()._condition(instruction, emu)
+
+    @override
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+
+        if not bool(instruction.groups_set & ALL_JUMP_GROUPS):
+            return None
+
+        if len(instruction.operands) > 0:
+            # For all AArch64 branches, the target is either an immediate or a register and is the last operand
+            return instruction.operands[-1].before_value
+        elif instruction.id == ARM64_INS_RET:
+            # If this is a ret WITHOUT an operand, it means we should read from the LR/x30 register
+            return super()._read_register_name(instruction, "lr", emu)
+
+        return super()._resolve_target(instruction, emu, call)
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
