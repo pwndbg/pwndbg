@@ -98,6 +98,12 @@ def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
 
+class SplitType(Enum):
+    NO_SPLIT = 1
+    BRANCH_TAKEN = 2
+    BRANCH_NOT_TAKEN = 3
+
+
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_ARM: "arm",
@@ -250,6 +256,20 @@ class PwndbgInstruction:
         The syscall name as a string
 
         Ex: "openat", "read"
+        """
+
+        self.causes_branch_delay: bool = False
+        """
+        Whether or not this instruction has a single branch delay slot
+        """
+
+        self.split: SplitType = SplitType.NO_SPLIT
+        """
+        The type of split in the disasm display this instruction causes:
+
+            NO_SPLIT            - no extra spacing between this and the next instruction
+            BRANCH_TAKEN        - a newline with an arrow pointing down
+            BRANCH_NOT_TAKEN    - an empty newline
         """
 
         self.emulated: bool = False
