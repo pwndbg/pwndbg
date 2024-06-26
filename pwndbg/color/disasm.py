@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import List
 
-import capstone
-
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.gdblib.disasm.jump
