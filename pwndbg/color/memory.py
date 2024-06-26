@@ -105,7 +105,8 @@ def legend():
             c.heap("HEAP"),
             c.code("CODE"),
             c.data("DATA"),
-            c.wx("WX"),
+            # WX segments will also be marked as code, so do 2 formatters here
+            c.wx(c.code("WX")),
             c.rodata("RODATA"),
         )
     )
