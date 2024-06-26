@@ -139,7 +139,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if op_val is not None and bit is not None:
                 return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
 
-        # Addtionally, the "conditional comparisons" and "conditional selects" support conditional execution
+        # TODO: Additionally, the "conditional comparisons" and "conditional selects" support conditional execution
 
         return super()._condition(instruction, emu)
 
