@@ -23,13 +23,14 @@ import gdb
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 
+import pwndbg
 import pwndbg.decorators
 import pwndbg.gdblib.arch
-import pwndbg
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.color import message
 
@@ -37,9 +38,6 @@ bn_rpc_host = pwndbg.config.add_param(
     "bn-rpc-host", "127.0.0.1", "binary ninja xmlrpc server address"
 )
 bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 31337, "binary ninja xmlrpc server port")
-bn_enabled = pwndbg.config.add_param(
-    "bn-enabled", False, "whether to enable binary ninja integration"
-)
 bn_timeout = pwndbg.config.add_param(
     "bn-timeout", 2, "time to wait for binary ninja xmlrpc in seconds"
 )
@@ -58,11 +56,11 @@ T = TypeVar("T")
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.config.trigger(bn_rpc_host, bn_rpc_port, bn_enabled, bn_timeout)
+@pwndbg.config.trigger(bn_rpc_host, bn_rpc_port, pwndbg.integration.provider_name, bn_timeout)
 def init_bn_rpc_client() -> None:
     global _bn, _bn_last_exception, _bn_last_connection_check
 
-    if not bn_enabled:
+    if pwndbg.integration.provider_name.value != "binja":
         return
 
     now = time.time()
@@ -227,3 +225,15 @@ def auto_clear_pc() -> None:
 @with_bn
 def navigate_to(addr: int) -> None:
     _bn.navigate_to(l2r(addr))
+
+class BinjaProvider(pwndbg.integration.IntegrationProvider):
+    @pwndbg.decorators.suppress_errors()
+    @with_bn
+    def get_symbol(self, addr: int) -> str | None:
+        sym = _bn.get_symbol(l2r(addr))
+        if sym is not None:
+            return sym
+        func = _bn.get_func_info(l2r(addr))
+        if func is not None:
+            return f"{func[0]}{addr - r2l(func[1]):+}"
+        return None

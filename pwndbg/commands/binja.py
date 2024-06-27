@@ -1,8 +1,11 @@
-import pwndbg.binja
-import pwndbg.gdblib.events
-import pwndbg.commands
-from pwndbg.commands import CommandCategory
+from __future__ import annotations
+
 import gdb
+
+import pwndbg.binja
+import pwndbg.commands
+import pwndbg.gdblib.events
+from pwndbg.commands import CommandCategory
 
 
 @pwndbg.commands.ArgparsedCommand(

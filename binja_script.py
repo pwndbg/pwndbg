@@ -88,6 +88,20 @@ class ServerHandler:
         return [t.addr for t in get_tag_refs(self.bv, "pwndbg-bp")]
 
     @should_register
+    def get_symbol(self, addr: int) -> str | None:
+        sym = self.bv.get_symbol_at(addr)
+        if sym is None:
+            return None
+        return sym.full_name
+
+    @should_register
+    def get_func_info(self, addr: int) -> tuple[str, int] | None:
+        func = get_widest_func(self.bv, addr)
+        if func is None:
+            return None
+        return (func.symbol.full_name, func.start)
+
+    @should_register
     def get_base(self) -> int:
         return self.bv.start
 
@@ -100,6 +114,7 @@ server: SimpleXMLRPCServer | None = None
 handler: ServerHandler | None = None
 
 
+# TODO: enable switching with this
 def start_server(bv: binaryninja.BinaryView) -> None:
     global server
 

@@ -30,12 +30,12 @@ import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.color import message
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
-ida_enabled = pwndbg.config.add_param("ida-enabled", False, "whether to enable ida integration")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
@@ -54,11 +54,11 @@ T = TypeVar("T")
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
+@pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, pwndbg.integration.provider_name, ida_timeout)
 def init_ida_rpc_client() -> None:
     global _ida, _ida_last_exception, _ida_last_connection_check
 
-    if not ida_enabled:
+    if pwndbg.integration.provider_name.value != "ida":
         return
 
     now = time.time()
@@ -163,7 +163,7 @@ def returns_address(function: Callable[P, int]) -> Callable[P, int]:
 
 @pwndbg.lib.cache.cache_until("stop")
 def available() -> bool:
-    if not ida_enabled:
+    if pwndbg.integration.provider_name.value != "ida":
         return False
     return can_connect()
 
@@ -508,3 +508,15 @@ def print_structs() -> None:
         while offset < size:
             print_member(sid, offset)
             offset = GetStrucNextOff(sid, offset)
+
+
+class IdaProvider(pwndbg.integration.IntegrationProvider):
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_symbol(self, addr: int) -> str | None:
+        exe = pwndbg.gdblib.elf.exe()
+        if exe:
+            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
+            if exe_map and addr in exe_map:
+                return Name(addr) or GetFuncOffset(addr) or None
+        return None
