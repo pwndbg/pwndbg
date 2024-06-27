@@ -190,22 +190,13 @@ class Command:
         if not session:
             # No interactive session we can draw a history from.
             return False
-        lines = session.history()
+        last_line = session.history(1)
 
         # No history
-        if not lines:
+        if not last_line:
             return False
 
-        last_line = lines[-1]
-        number_str, command = last_line.split(maxsplit=1)
-        try:
-            number = int(number_str)
-        except ValueError:
-            # In rare cases GDB will output a warning after executing `show commands`
-            # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
-            # symtab.)").
-            return False
-
+        number, command = last_line[-1]
         # A new command was entered by the user
         if number not in Command.history:
             Command.history[number] = command

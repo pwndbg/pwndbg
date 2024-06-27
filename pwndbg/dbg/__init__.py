@@ -17,9 +17,14 @@ class Session:
     Interactive debugger session. Handles things like commands and history.
     """
 
-    def history(self) -> List[str]:
+    def history(self, last: int = 10) -> List[Tuple[int, str]]:
         """
         The command history of this interactive session.
+
+        This function returns the last `last` items in the command history, as
+        an oldest-to-youngest-sorted list of tuples, where the first element in
+        each tuple is the index of the command in the history, and the second
+        element is a string giving the command itself.
         """
         raise NotImplementedError()
 
@@ -52,21 +57,23 @@ class Debugger:
         """
         Perform debugger-specific initialization.
 
+        This method should be run immediately after `pwndbg.dbg` is set to an
+        instance of this class, and, as such, is allowed to run code that
+        depends on it being set.
+
         Because we can't really know what a given debugger object will need as
         part of its setup process, we allow for as many arguments as desired to
         be passed in, and leave it up to the implementations to decide what they
-        need.
-
-        This shouldn't be a problem, seeing as, unlike other methods in this
-        class, this should only be called as part of the debugger-specific
+        need. This shouldn't be a problem, seeing as, unlike other methods in
+        this class, this should only be called as part of the debugger-specific
         bringup code.
         """
         raise NotImplementedError()
 
-    def session(self) -> Session | None:
+    def session(self) -> Session:
         """
         Returns a reference to the interactive session associated with this
-        debugger, if any.
+        debugger.
         """
         raise NotImplementedError()
 
