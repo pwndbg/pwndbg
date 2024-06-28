@@ -226,7 +226,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
 class LLDBSession(pwndbg.dbg_mod.Session):
     @override
-    def history(self) -> List[str]:
+    def history(self, last: int = 10) -> List[str]:
         # Figure out a way to retrieve history later.
         return []
 
