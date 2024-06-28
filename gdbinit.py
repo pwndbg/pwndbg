@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cProfile
 import hashlib
+import logging
 import os
 import shutil
 import site
@@ -29,9 +30,10 @@ def hash_file(file_path: str | Path) -> str:
 
 
 def run_poetry_install(poetry_path: os.PathLike[str], dev: bool = False) -> Tuple[str, str, int]:
-    command: List[str | os.PathLike[str]] = [poetry_path, "install"]
+    command: List[str] = [str(poetry_path), "install"]
     if dev:
         command.extend(("--with", "dev"))
+    logging.debug(f"Updating deps with command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -60,9 +62,14 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
     poetry_lock_hash_path = venv_path / "poetry.lock.hash"
 
     current_hash = hash_file(src_root / "poetry.lock")
+    logging.debug(f"Current poetry.lock hash: {current_hash}")
+
     stored_hash = None
     if poetry_lock_hash_path.exists():
         stored_hash = poetry_lock_hash_path.read_text().strip()
+        logging.debug(f"Stored poetry.lock hash: {stored_hash}")
+    else:
+        logging.debug("No stored hash found")
 
     # If the hashes don't match, update the dependencies
     if current_hash != stored_hash:
@@ -128,6 +135,21 @@ def skip_venv(src_root) -> bool:
     )
 
 
+def init_logger():
+    log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
+    log_level = getattr(logging, log_level_env.upper())
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Add a custom StreamHandler we will use to customize log message formatting. We
+    # configure the handler later, after pwndbg has been imported.
+    handler = logging.StreamHandler()
+    root_logger.addHandler(handler)
+
+    return handler
+
+
 def main() -> None:
     profiler = cProfile.Profile()
 
@@ -135,6 +157,8 @@ def main() -> None:
     if os.environ.get("PWNDBG_PROFILE") == "1":
         start_time = time.time()
         profiler.enable()
+
+    handler = init_logger()
 
     src_root = Path(__file__).parent.resolve()
     if not skip_venv(src_root):
@@ -156,7 +180,11 @@ def main() -> None:
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()
 
+    import pwndbg.log
     import pwndbg.profiling
+
+    # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
+    handler.setFormatter(pwndbg.log.ColorFormatter())
 
     pwndbg.profiling.init(profiler, start_time)
     if os.environ.get("PWNDBG_PROFILE") == "1":

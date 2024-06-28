@@ -21,6 +21,8 @@ config_hint_color = theme.add_color_param(
 config_success_color = theme.add_color_param(
     "message-success-color", "green", "color of success messages"
 )
+config_debug_color = theme.add_color_param("message-debug-color", "blue", "color of debug messages")
+config_info_color = theme.add_color_param("message-info-color", "white", "color of info messages")
 config_warning_color = theme.add_color_param(
     "message-warning-color", "yellow", "color of warning messages"
 )
@@ -60,6 +62,14 @@ def hint(msg: object) -> str:
 
 def success(msg: object) -> str:
     return generateColorFunction(config.message_success_color)(msg)
+
+
+def debug(msg: object) -> str:
+    return generateColorFunction(config.message_warning_color)(msg)
+
+
+def info(msg: object) -> str:
+    return generateColorFunction(config.message_warning_color)(msg)
 
 
 def warn(msg: object) -> str:
