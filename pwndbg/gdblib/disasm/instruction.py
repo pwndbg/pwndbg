@@ -7,6 +7,7 @@ from typing import Dict
 from typing import List
 from typing import Set
 from typing import TypedDict
+from typing import TypeVar
 
 import gdb
 
@@ -96,6 +97,21 @@ class InstructionCondition(Enum):
 
 def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
+
+
+T = TypeVar("T")
+
+
+def instruction_condition_choose(
+    condition: InstructionCondition, true: T, false: T, undetermined: T
+) -> T:
+    return (
+        true
+        if condition == InstructionCondition.TRUE
+        else false
+        if condition == InstructionCondition.FALSE
+        else undetermined
+    )
 
 
 # Only use within the instruction.__repr__ to give a nice output
