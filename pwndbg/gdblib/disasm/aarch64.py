@@ -37,7 +37,7 @@ CONDITION_RESOLVERS: Dict[int, Callable[[int, int, int, int], bool]] = {
         lambda n, z, c, v: True
     ),  # Capstone uses this code for the 'B' instruction, the unconditional branch
     ARM64_CC_EQ: (lambda n, z, c, v: z == 1),
-    ARM64_CC_NE: (lambda n, z, c, v: z == 1),
+    ARM64_CC_NE: (lambda n, z, c, v: z == 0),
     ARM64_CC_HS: (lambda n, z, c, v: c == 1),
     ARM64_CC_LO: (lambda n, z, c, v: c == 0),
     ARM64_CC_MI: (lambda n, z, c, v: n == 1),
@@ -67,6 +67,7 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     c = (cpsr >> 29) & 1
     v = (cpsr >> 28) & 1
 
+    print(n,z,c,v)
     condition = CONDITION_RESOLVERS.get(condition, lambda *a: False)(n, z, c, v)
 
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
@@ -292,7 +293,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # for all conditional select instructions
             flags = self._read_register_name(instruction, "cpsr", emu)
 
-            print(repr(instruction))
             if flags is not None:
                 return resolve_condition(instruction.cs_insn.cc, flags)
 
