@@ -67,7 +67,6 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     c = (cpsr >> 29) & 1
     v = (cpsr >> 28) & 1
 
-    print(n,z,c,v)
     condition = CONDITION_RESOLVERS.get(condition, lambda *a: False)(n, z, c, v)
 
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
