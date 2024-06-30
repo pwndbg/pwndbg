@@ -305,7 +305,14 @@ def nearpc(
 
         result.append(line)
 
-        # If this instruction deserves a down tarrow to indicate a taken branch
+        # For call instructions, attempt to resolve the target and
+        # determine the number of arguments.
+        if show_args:
+            result.extend(
+                "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
+            )
+
+        # If this instruction deserves a down arrow to indicate a taken branch
         if instr.split == SplitType.BRANCH_TAKEN:
             result.append(c.branch_marker(f"{nearpc_branch_marker}"))
 
@@ -313,13 +320,6 @@ def nearpc(
         elif instr.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
-
-        # For call instructions, attempt to resolve the target and
-        # determine the number of arguments.
-        if show_args:
-            result.extend(
-                "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
-            )
 
     return result
 
