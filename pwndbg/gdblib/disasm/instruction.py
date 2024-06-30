@@ -288,7 +288,7 @@ class PwndbgInstruction:
             CS_GRP_CALL in self.groups_set
             or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
-    
+
     @property
     def jump_like(self) -> bool:
         """
@@ -298,18 +298,6 @@ class PwndbgInstruction:
         It may still be a conditional jump - this property does not indicate whether the jump is taken or not.
         """
         return bool(self.groups_set & ALL_JUMP_GROUPS)
-
-    @property
-    def can_change_program_counter(self) -> bool:
-        """
-        True if this is a instruction can change the program counter to something other than just the next instruction
-        in memory.
-
-        This is the case in jumps, and some instructions that don't change the instruction pointer (like `rep` in x86).
-
-        This property does not guarantee that the program counter indeed does change - just that it can.
-        """
-        return self.target not in (None, self.address + self.size)
 
     @property
     def has_jump_target(self) -> bool:

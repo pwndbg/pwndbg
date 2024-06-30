@@ -411,6 +411,7 @@ def near(
                 emu = None
 
         # Handle visual splits in the disasm view
+        # The second check here handles instructions like x86 `REP` that repeat the instruction
         if insn.jump_like or insn.next == insn.address:
             split_insn = insn
 
@@ -439,8 +440,11 @@ def near(
                 ):
                     target = insn.target
 
-
-            if not linear and (insn.is_unconditional_jump or insn.is_conditional_jump_taken or insn.next == insn.address):
+            if not linear and (
+                insn.is_unconditional_jump
+                or insn.is_conditional_jump_taken
+                or insn.next == insn.address
+            ):
                 split_insn.split = SplitType.BRANCH_TAKEN
             else:
                 split_insn.split = SplitType.BRANCH_NOT_TAKEN
