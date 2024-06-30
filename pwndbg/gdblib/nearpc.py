@@ -305,13 +305,11 @@ def nearpc(
 
         result.append(line)
 
-        # If there was a branch before this instruction which was not
-        # contiguous, put in some ellipses.
+        # If this instruction deserves a down tarrow to indicate a taken branch
         if instr.split == SplitType.BRANCH_TAKEN:
             result.append(c.branch_marker(f"{nearpc_branch_marker}"))
 
-        # Otherwise if it's a branch and it *is* contiguous, just put
-        # and empty line.
+        # Otherwise if it's a branch and it *is* contiguous, just put an empty line.
         elif instr.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
                 result.append("%s" % nearpc_branch_marker_contiguous)
