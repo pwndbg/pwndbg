@@ -410,7 +410,8 @@ def near(
             if not emu.last_step_succeeded or not emu.valid:
                 emu = None
 
-        if bool(insn.groups_set & ALL_JUMP_GROUPS):
+        # Handle visual splits in the disasm view
+        if insn.jump_like or insn.next == insn.address:
             split_insn = insn
 
             # If this instruction has a delay slot, disassemble the delay slot instruction
@@ -429,7 +430,7 @@ def near(
                 backward_cache[split_insn.address + split_insn.size] = split_insn.address
                 backward_cache[split_insn.address] = insn.address
 
-                # Because the emulator failed, we manually set the address of the next instruction
+                # Because the emulator failed, we manually set the address of the next instruction.
                 # This is the address that typing "nexti" in GDB will take us to
                 target = split_insn.address + split_insn.size
 
@@ -438,7 +439,8 @@ def near(
                 ):
                     target = insn.target
 
-            if not linear and insn.is_unconditional_jump or insn.is_conditional_jump_taken:
+
+            if not linear and (insn.is_unconditional_jump or insn.is_conditional_jump_taken or insn.next == insn.address):
                 split_insn.split = SplitType.BRANCH_TAKEN
             else:
                 split_insn.split = SplitType.BRANCH_NOT_TAKEN

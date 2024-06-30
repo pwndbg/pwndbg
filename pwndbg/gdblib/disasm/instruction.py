@@ -288,16 +288,40 @@ class PwndbgInstruction:
             CS_GRP_CALL in self.groups_set
             or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
+    
+    @property
+    def jump_like(self) -> bool:
+        """
+        True if this instruction is "jump-like", such as a JUMP, CALL, or RET.
+        Basically, the PC is set to some target by means of this instruction.
+
+        It may still be a conditional jump - this property does not indicate whether the jump is taken or not.
+        """
+        return bool(self.groups_set & ALL_JUMP_GROUPS)
 
     @property
-    def can_change_instruction_pointer(self) -> bool:
+    def can_change_program_counter(self) -> bool:
         """
-        True if we have determined that this instruction can explicitly change the program counter.
+        True if this is a instruction can change the program counter to something other than just the next instruction
+        in memory.
+
+        This is the case in jumps, and some instructions that don't change the instruction pointer (like `rep` in x86).
+
+        This property does not guarantee that the program counter indeed does change - just that it can.
+        """
+        return self.target not in (None, self.address + self.size)
+
+    @property
+    def has_jump_target(self) -> bool:
+        """
+        True if we have determined that this instruction can explicitly change the program counter, and
+        it's a JUMP-type instruction.
+
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
-        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the ALL_JUMP_GROUPS in the first part of this check.
+        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
         return self.target not in (None, self.address + self.size) and (
-            self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS)
+            self.target != self.address or self.jump_like
         )
 
     @property
@@ -305,7 +329,7 @@ class PwndbgInstruction:
         """
         True if this instruction can change the program counter conditionally.
 
-        This is used, in part, to determine if the instruction deserve a "checkmark" in the disasm view
+        This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view
         """
         return (
             bool(self.groups_set & GENERIC_JUMP_GROUPS)
@@ -379,7 +403,7 @@ class PwndbgInstruction:
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
-        Can change PC: {self.can_change_instruction_pointer}
+        Can change PC: {self.has_jump_target}
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
 
         # Hacky, but this is just for debugging
