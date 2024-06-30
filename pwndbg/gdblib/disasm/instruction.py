@@ -392,7 +392,10 @@ class PwndbgInstruction:
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
         Can change PC: {self.has_jump_target}
-        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}"""
+        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
+        Causes Delay slot: {self.causes_branch_delay}
+        Split: {SplitType(self.split).name}
+        Call-like: {self.call_like}"""
 
         # Hacky, but this is just for debugging
         if hasattr(self.cs_insn, "cc"):
