@@ -34,7 +34,7 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "prot", help='Prot string as in mprotect(2). Eg. "PROT_READ|PROT_EXEC"', type=str
+    "prot", help='Prot string as in mprotect(2). Eg. "PROT_READ|PROT_EXEC", "rx", or "5"', type=str
 )
 
 SYS_MPROTECT = 0x7D
@@ -47,21 +47,55 @@ prot_dict = {
 }
 
 
-def prot_str_to_val(protstr):
-    """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
-    prot_int = 0
+def prot_str_to_val(protstr: str) -> int:
+    """
+    Converts a protection string to an integer. Formats include:
+     - A positive integer, like 3
+     - A combination of r, w, and x, like rw
+     - A combination of PROT_READ, PROT_WRITE, and PROT_EXEC, like PROT_READ|PROT_WRITE
+    """
+    if "PROT" in protstr:
+        prot_int = 0
+        for k, v in prot_dict.items():
+            if k in protstr:
+                prot_int |= v
+        return prot_int
+    elif all(x in "rwx" for x in protstr):
+        prot_int = 0
+        for c in protstr:
+            if c == "r":
+                prot_int |= 1
+            elif c == "w":
+                prot_int |= 2
+            elif c == "x":
+                prot_int |= 4
+        return prot_int
+    else:
+        try:
+            return int(protstr, 0)
+        except ValueError:
+            raise ValueError("Invalid protection string passed into mprotect")
+
+
+def prot_val_to_str(protval: int) -> str:
+    if protval == 0:
+        return "PROT_NONE"
+    ret = []
     for k, v in prot_dict.items():
-        if k in protstr:
-            prot_int |= v
-    return prot_int
+        if protval & v:
+            ret.append(k)
+    return "|".join(ret)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def mprotect(addr, length, prot) -> None:
     prot_int = prot_str_to_val(prot)
+    aligned = pwndbg.lib.memory.page_align(int(addr))
 
-    ret = pwndbg.gdblib.shellcode.exec_syscall(
-        "SYS_mprotect", int(pwndbg.lib.memory.page_align(addr)), int(length), int(prot_int)
+    print(
+        f"calling mprotect on address {aligned:#x} with protection {prot_int} ({prot_val_to_str(prot_int)})"
     )
+
+    ret = pwndbg.gdblib.shellcode.exec_syscall("SYS_mprotect", aligned, int(length), int(prot_int))
     print(f"mprotect returned {ret}")
