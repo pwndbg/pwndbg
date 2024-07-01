@@ -97,6 +97,7 @@ install_apt() {
         gdb-multiarch \
         parallel \
         netcat-openbsd \
+        iproute2 \
         qemu-system-x86 \
         qemu-system-arm \
         qemu-user \
