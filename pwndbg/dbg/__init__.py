@@ -12,30 +12,6 @@ from typing import Tuple
 dbg: Debugger = None
 
 
-class Session:
-    """
-    Interactive debugger session. Handles things like commands and history.
-    """
-
-    def history(self, last: int = 10) -> List[Tuple[int, str]]:
-        """
-        The command history of this interactive session.
-
-        This function returns the last `last` items in the command history, as
-        an oldest-to-youngest-sorted list of tuples, where the first element in
-        each tuple is the index of the command in the history, and the second
-        element is a string giving the command itself.
-        """
-        raise NotImplementedError()
-
-    def lex_args(self, command_line: str) -> List[str]:
-        """
-        Lexes the given command line into a list of arguments, according to the
-        conventions of the debugger being used and of the interactive session.
-        """
-        raise NotImplementedError()
-
-
 class CommandHandle:
     """
     An opaque handle to an installed command.
@@ -70,10 +46,21 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def session(self) -> Session:
+    def history(self, last: int = 10) -> List[Tuple[int, str]]:
         """
-        Returns a reference to the interactive session associated with this
-        debugger.
+        The command history of the interactive session in this debugger.
+
+        This function returns the last `last` items in the command history, as
+        an oldest-to-youngest-sorted list of tuples, where the first element in
+        each tuple is the index of the command in the history, and the second
+        element is a string giving the command itself.
+        """
+        raise NotImplementedError()
+
+    def lex_args(self, command_line: str) -> List[str]:
+        """
+        Lexes the given command line into a list of arguments, according to the
+        conventions of the debugger being used and of the interactive session.
         """
         raise NotImplementedError()
 

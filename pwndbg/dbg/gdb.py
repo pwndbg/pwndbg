@@ -17,7 +17,99 @@ from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
 
-class GDBSession(pwndbg.dbg_mod.Session):
+class GDBCommand(gdb.Command):
+    def __init__(
+        self,
+        debugger: GDB,
+        name: str,
+        handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
+    ):
+        self.debugger = debugger
+        self.handler = handler
+        super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+
+    def invoke(self, args: str, from_tty: bool) -> None:
+        self.handler(self.debugger, args, from_tty)
+
+
+class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
+    def __init__(self, command: gdb.Command):
+        self.command = command
+
+    def remove(self) -> None:
+        # GDB doesn't support command removal.
+        pass
+
+
+class GDB(pwndbg.dbg_mod.Debugger):
+    @override
+    def setup(self):
+        load_gdblib()
+        load_commands()
+
+        # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
+        # side effect of setting a command up. Because command setup requires
+        # `pwndbg.dbg` to already be set, and this module is used as part of the
+        # process of setting it, we have to wait, and do the import as part of
+        # this method.
+        from pwndbg.gdblib import prompt
+
+        prompt.set_prompt()
+
+        pre_commands = f"""
+        set confirm off
+        set verbose off
+        set pagination off
+        set height 0
+        set history save on
+        set follow-fork-mode child
+        set backtrace past-main on
+        set step-mode on
+        set print pretty on
+        set width {pwndbg.ui.get_window_size()[1]}
+        handle SIGALRM nostop print nopass
+        handle SIGBUS  stop   print nopass
+        handle SIGPIPE nostop print nopass
+        handle SIGSEGV stop   print nopass
+        """.strip()
+
+        # See https://github.com/pwndbg/pwndbg/issues/808
+        if gdb_version[0] <= 9:
+            pre_commands += "\nset remote search-memory-packet off"
+
+        for line in pre_commands.strip().splitlines():
+            gdb.execute(line)
+
+        # This may throw an exception, see pwndbg/pwndbg#27
+        try:
+            gdb.execute("set disassembly-flavor intel")
+        except gdb.error:
+            pass
+
+        # handle resize event to align width and completion
+        signal.signal(
+            signal.SIGWINCH,
+            lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
+        )
+
+        # Reading Comment file
+        from pwndbg.commands import comments
+
+        comments.init()
+
+        from pwndbg.gdblib import config_mod
+
+        config_mod.init_params()
+
+        prompt.show_hint()
+
+    @override
+    def add_command(
+        self, name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
+    ) -> pwndbg.dbg_mod.CommandHandle:
+        command = GDBCommand(self, name, handler)
+        return GDBCommandHandle(command)
+
     @override
     def history(self, last: int = 10) -> List[Tuple[int, str]]:
         # GDB displays commands in groups of 10. We might want more than that,
@@ -122,105 +214,6 @@ class GDBSession(pwndbg.dbg_mod.Session):
     @override
     def lex_args(self, command_line: str) -> List[str]:
         return gdb.string_to_argv(command_line)
-
-
-class GDBCommand(gdb.Command):
-    def __init__(
-        self,
-        debugger: GDB,
-        name: str,
-        handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
-    ):
-        self.debugger = debugger
-        self.handler = handler
-        super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
-
-    def invoke(self, args: str, from_tty: bool) -> None:
-        self.handler(self.debugger, args, from_tty)
-
-
-class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
-    def __init__(self, command: gdb.Command):
-        self.command = command
-
-    def remove(self) -> None:
-        # GDB doesn't support command removal.
-        pass
-
-
-class GDB(pwndbg.dbg_mod.Debugger):
-    @override
-    def setup(self):
-        load_gdblib()
-        load_commands()
-
-        # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
-        # side effect of setting a command up. Because command setup requires
-        # `pwndbg.dbg` to already be set, and this module is used as part of the
-        # process of setting it, we have to wait, and do the import as part of
-        # this method.
-        from pwndbg.gdblib import prompt
-
-        prompt.set_prompt()
-
-        pre_commands = f"""
-        set confirm off
-        set verbose off
-        set pagination off
-        set height 0
-        set history save on
-        set follow-fork-mode child
-        set backtrace past-main on
-        set step-mode on
-        set print pretty on
-        set width {pwndbg.ui.get_window_size()[1]}
-        handle SIGALRM nostop print nopass
-        handle SIGBUS  stop   print nopass
-        handle SIGPIPE nostop print nopass
-        handle SIGSEGV stop   print nopass
-        """.strip()
-
-        # See https://github.com/pwndbg/pwndbg/issues/808
-        if gdb_version[0] <= 9:
-            pre_commands += "\nset remote search-memory-packet off"
-
-        for line in pre_commands.strip().splitlines():
-            gdb.execute(line)
-
-        # This may throw an exception, see pwndbg/pwndbg#27
-        try:
-            gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
-
-        # handle resize event to align width and completion
-        signal.signal(
-            signal.SIGWINCH,
-            lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
-        )
-
-        # Reading Comment file
-        from pwndbg.commands import comments
-
-        comments.init()
-
-        from pwndbg.gdblib import config_mod
-
-        config_mod.init_params()
-
-        prompt.show_hint()
-
-    @override
-    def add_command(
-        self, name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
-    ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler)
-        return GDBCommandHandle(command)
-
-    @override
-    def session(self) -> pwndbg.dbg_mod.Session | None:
-        # FIXME: Creating a new object every time is unnecessary.
-        return GDBSession()
 
     @override
     def addrsz(self, address: Any) -> str:

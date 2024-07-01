@@ -88,17 +88,6 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
-def fallback_lex_args(command_line: str) -> List[str]:
-    """
-    Lexes the given command line into a list of arguments, according to the
-    conventions of the debugger being used and of the interactive session.
-
-    This is the fallback version, for use when `pwndbg.dbg.session()` is not
-    available.
-    """
-    return command_line.split()
-
-
 class Command:
     """Generic command wrapper"""
 
@@ -153,11 +142,7 @@ class Command:
             A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
-        session = pwndbg.dbg.session()
-        if not session:
-            return fallback_lex_args(argument), {}
-        else:
-            return session.lex_args(argument), {}
+        return pwndbg.dbg.lex_args(argument), {}
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -186,11 +171,7 @@ class Command:
         if not from_tty:
             return False
 
-        session = pwndbg.dbg.session()
-        if not session:
-            # No interactive session we can draw a history from.
-            return False
-        last_line = session.history(1)
+        last_line = pwndbg.dbg.history(1)
 
         # No history
         if not last_line:
@@ -558,11 +539,7 @@ class _ArgparsedCommand(Command):
         )
 
     def split_args(self, argument: str):
-        session = pwndbg.dbg.session()
-        if not session:
-            argv = fallback_lex_args(argument)
-        else:
-            argv = session.lex_args(argument)
+        argv = pwndbg.dbg.lex_args(argument)
         return (), vars(self.parser.parse_args(argv))
 
 
