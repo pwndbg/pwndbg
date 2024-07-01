@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 
 import gdb
 
@@ -9,6 +10,8 @@ import pwndbg.gdblib.memory
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel import per_cpu
 from pwndbg.gdblib.kernel.macros import for_each_entry
+
+log = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description="Print Per-CPU page list")
 
@@ -49,6 +52,7 @@ def print_zone(zone, list_num=None) -> None:
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
 def pcplist(zone=None, list_num=None) -> None:
+    log.warning("This command is a work in progress and may not work as expected.")
     if zone:
         print_zone(zone, list_num)
     else:
