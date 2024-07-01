@@ -100,5 +100,7 @@ def mprotect(addr, length, prot) -> None:
         f"calling mprotect on address {aligned:#x} with protection {prot_int} ({prot_val_to_str(prot_int)})"
     )
 
-    ret = pwndbg.gdblib.shellcode.exec_syscall("SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int))
+    ret = pwndbg.gdblib.shellcode.exec_syscall(
+        "SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int)
+    )
     print(f"mprotect returned {ret}")
