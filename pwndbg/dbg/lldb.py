@@ -224,40 +224,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return LLDBValue(value)
 
 
-class LLDBSession(pwndbg.dbg_mod.Session):
-    @override
-    def history(self, last: int = 10) -> List[str]:
-        # Figure out a way to retrieve history later.
-        return []
-
-    @override
-    def commands(self) -> List[str]:
-        # Figure out a way to retrieve the command list later.
-        return []
-
-    @override
-    def lex_args(self, command_line: str) -> List[str]:
-        return command_line.split()
-
-    @override
-    def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
-        p = lldb.process
-        t = lldb.target
-
-        if p.IsValid() and t.IsValid():
-            return LLDBProcess(p, t)
-
-        return None
-
-    @override
-    def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
-        f = lldb.frame
-        if f.IsValid():
-            return LLDBFrame(f)
-
-        return None
-
-
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, handler_name: str, command_name: str):
         self.handler_name = handler_name
@@ -265,8 +231,12 @@ class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
 
 
 class LLDB(pwndbg.dbg_mod.Debugger):
+    exec_states: List[lldb.SBExecutionState]
+
     @override
     def setup(self, *args):
+        self.exec_states = []
+
         debugger = args[0]
         assert (
             debugger.__class__ is lldb.SBDebugger
@@ -321,7 +291,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 pass
 
             def __call__(self, _, command, exe_context, result):
+                debugger.exec_states.append(exe_context)
                 handler(debugger, command, True)
+                assert (
+                    debugger.exec_states.pop() == exe_context
+                ), "Execution state mismatch on command handler"
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
@@ -343,8 +317,43 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         return LLDBCommand(name, command_name)
 
     @override
-    def session(self) -> pwndbg.dbg_mod.Session | None:
-        return LLDBSession()
+    def history(self, last: int = 10) -> List[Tuple[int, str]]:
+        # Figure out a way to retrieve history later.
+        # Just need to parse the result of `self.inner.HandleCommand("history")`
+        return []
+
+    @override
+    def commands(self) -> List[str]:
+        # Figure out a way to retrieve the command list later.
+        return []
+
+    @override
+    def lex_args(self, command_line: str) -> List[str]:
+        return command_line.split()
+
+    @override
+    def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
+        if len(self.exec_states) == 0:
+            return None
+
+        p = self.exec_states[-1].process
+        t = self.exec_states[-1].target
+
+        if p.IsValid() and t.IsValid():
+            return LLDBProcess(p, t)
+
+        return None
+
+    @override
+    def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
+        if len(self.exec_states) == 0:
+            return None
+
+        f = self.exec_states[-1].frame
+        if f.IsValid():
+            return LLDBFrame(f)
+
+        return None
 
     @override
     def get_cmd_window_size(self) -> Tuple[int, int]:
