@@ -7,6 +7,7 @@ import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.file
 import pwndbg.gdblib.shellcode
+import pwndbg.lib.memory
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
@@ -54,20 +55,21 @@ def prot_str_to_val(protstr: str) -> int:
      - A combination of r, w, and x, like rw
      - A combination of PROT_READ, PROT_WRITE, and PROT_EXEC, like PROT_READ|PROT_WRITE
     """
+    protstr = protstr.upper()
     if "PROT" in protstr:
         prot_int = 0
         for k, v in prot_dict.items():
             if k in protstr:
                 prot_int |= v
         return prot_int
-    elif all(x in "rwx" for x in protstr):
+    elif all(x in "RWX" for x in protstr):
         prot_int = 0
         for c in protstr:
-            if c == "r":
+            if c == "R":
                 prot_int |= 1
-            elif c == "w":
+            elif c == "W":
                 prot_int |= 2
-            elif c == "x":
+            elif c == "X":
                 prot_int |= 4
         return prot_int
     else:
@@ -91,11 +93,12 @@ def prot_val_to_str(protval: int) -> str:
 @pwndbg.commands.OnlyWhenRunning
 def mprotect(addr, length, prot) -> None:
     prot_int = prot_str_to_val(prot)
-    aligned = pwndbg.lib.memory.page_align(int(addr))
+    orig_addr = int(addr)
+    aligned = pwndbg.lib.memory.page_align(orig_addr)
 
     print(
         f"calling mprotect on address {aligned:#x} with protection {prot_int} ({prot_val_to_str(prot_int)})"
     )
 
-    ret = pwndbg.gdblib.shellcode.exec_syscall("SYS_mprotect", aligned, int(length), int(prot_int))
+    ret = pwndbg.gdblib.shellcode.exec_syscall("SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int))
     print(f"mprotect returned {ret}")
