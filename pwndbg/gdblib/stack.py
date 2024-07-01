@@ -50,11 +50,11 @@ def get() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     stacks = _fetch_via_vmmap()
 
-    # This is slow :(
-    if not stacks:
-        _fetch_via_exploration()
+    if stacks:
+        return stacks
 
-    return stacks
+    # Note: exploration is slow
+    return _fetch_via_exploration()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -68,16 +68,14 @@ def current():
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.cache.cache_until("exit")
 def is_executable() -> bool:
-    nx = False
-
-    PT_GNU_STACK = 0x6474E551
     ehdr = pwndbg.gdblib.elf.exe()
 
     for phdr in pwndbg.gdblib.elf.iter_phdrs(ehdr):
-        if phdr.p_type == PT_GNU_STACK:
-            nx = True
+        # check if type is PT_GNU_STACK
+        if phdr.p_type == 0x6474E551:
+            return False
 
-    return not nx
+    return True
 
 
 def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
