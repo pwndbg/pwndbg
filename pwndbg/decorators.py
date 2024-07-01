@@ -12,6 +12,7 @@ first_prompt = False
 
 P = ParamSpec("P")
 T = TypeVar("T")
+K = TypeVar("K")
 
 
 def only_after_first_prompt(
@@ -37,17 +38,17 @@ def only_after_first_prompt(
 
 
 def suppress_errors(
-    fallback: T | None = None, should_warn: bool = True
-) -> Callable[[Callable[P, T]], Callable[P, T | None]]:
+    fallback: K = None, should_warn: bool = True
+) -> Callable[[Callable[P, T]], Callable[P, T | K]]:
     """
     Decorator to make a function return a fallback value when it would otherwise error.
     The 'fallback' parameter can be used to specify the fallback value.
     If the 'should_warn' parameter is set, a warning will be printed whenever an error is suppressed.
     """
 
-    def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T | K]:
         @functools.wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | K:
             try:
                 return func(*args, **kwargs)
             except Exception as e:

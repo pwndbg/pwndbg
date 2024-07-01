@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import ctypes
+import sys
 import threading
 from typing import Any
-from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
-import ctypes
+from xmlrpc.server import SimpleXMLRPCServer
 
 import binaryninja
 
@@ -102,8 +103,44 @@ class ServerHandler:
         return (func.symbol.full_name, func.start)
 
     @should_register
+    def get_data_info(self, addr: int) -> tuple[str, int] | None:
+        dv = self.bv.get_data_var_at(addr)
+        if dv is None:
+            return None
+        if dv.symbol is not None:
+            return (dv.symbol.full_name, dv.address)
+        return (dv.name or f"data_{dv.address:x}", dv.address)
+
+    @should_register
+    def get_comments(self, addr: int) -> list[str]:
+        ret = []
+        for f in sorted(self.bv.get_functions_containing(addr), key=lambda f: f.start):
+            ret += f.get_comment_at(addr).split("\n")
+        ret += self.bv.get_comment_at(addr).split("\n")
+        # remove empty lines and prepend double slash
+        return ["// " + x for x in ret if x]
+
+    @should_register
+    def decompile_func(self, addr: int) -> list[tuple[int, list[tuple[str, str]]]] | None:
+        func = get_widest_func(self.bv, addr)
+        if func is None:
+            return None
+        func = func.hlil_if_available
+        if func is None:
+            return None
+        ret = []
+        for line in func.root.lines:
+            ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
+        return ret
+
+
+    @should_register
     def get_base(self) -> int:
         return self.bv.start
+
+    @should_register
+    def get_py_version(self) -> str:
+        return sys.version
 
     @should_register
     def get_version(self) -> str:

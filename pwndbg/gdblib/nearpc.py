@@ -17,7 +17,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.functions
 import pwndbg.ui
@@ -40,7 +40,9 @@ c = ColorConfig(
         ColorParamSpec("prefix", "none", "color for nearpc command (prefix marker)"),
         ColorParamSpec("syscall-name", "red", "color for nearpc command (resolved syscall name)"),
         ColorParamSpec("argument", "bold", "color for nearpc command (target argument)"),
-        ColorParamSpec("ida-anterior", "bold", "color for nearpc command (IDA anterior)"),
+        ColorParamSpec(
+            "integration-comments", "bold", "color for nearpc command (integration comments)"
+        ),
         ColorParamSpec("branch-marker", "normal", "color for nearpc command (branch marker line)"),
     ],
 )
@@ -170,10 +172,6 @@ def nearpc(
         prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
         prefix = c.prefix(prefix)
 
-        pre = pwndbg.ida.Anterior(instr.address)
-        if pre:
-            result.append(c.ida_anterior(pre))
-
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
@@ -302,6 +300,12 @@ def nearpc(
             )
         except Exception:
             pass
+
+        # Pull comments from integration if possible
+        result += [
+            " " * (len(prefix) + 1) + c.integration_comments(x)
+            for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+        ]
 
         result.append(line)
 

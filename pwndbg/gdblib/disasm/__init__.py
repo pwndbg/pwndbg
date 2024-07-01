@@ -22,7 +22,6 @@ import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
-import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT

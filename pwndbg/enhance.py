@@ -20,6 +20,7 @@ import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
+import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
@@ -106,8 +107,8 @@ def enhance(
     if "[stack" in page.objfile or "[heap" in page.objfile:
         rwx = exe = False
 
-    # If IDA doesn't think it's in a function, don't display it as code.
-    if pwndbg.ida.available() and not pwndbg.ida.GetFunctionName(value):
+    # If integration doesn't think it's in a function, don't display it as code.
+    if not pwndbg.integration.provider.is_in_function(value):
         rwx = exe = False
 
     if exe:

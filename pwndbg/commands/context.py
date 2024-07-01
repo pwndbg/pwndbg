@@ -30,7 +30,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -754,21 +754,14 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
             + formatted_source
         )
 
-    # Try getting source from IDA Pro Hex-Rays Decompiler
-    if not pwndbg.ida.available():
-        return []
-
-    n = int(int(int(source_disasm_lines) / 2))  # int twice to make it a real int instead of inthook
     # May be None when decompilation failed or user loaded wrong binary in IDA
-    code = pwndbg.ida.decompile_context(pwndbg.gdblib.regs.pc, n)
+    code = pwndbg.integration.provider.decompile(pwndbg.gdblib.regs.pc, int(source_code_lines))
 
     if code:
         bannerline = (
-            [pwndbg.ui.banner("Hexrays pseudocode", target=target, width=width)]
-            if with_banner
-            else []
+            [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
         )
-        return bannerline + code.splitlines()
+        return bannerline + code
     else:
         return []
 

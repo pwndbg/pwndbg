@@ -17,6 +17,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import TypeVar
 
 import gdb
@@ -520,3 +521,35 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
             if exe_map and addr in exe_map:
                 return Name(addr) or GetFuncOffset(addr) or None
         return None
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_versions(self) -> Tuple[str, ...]:
+        ida_versions = ida.get_ida_versions()
+
+        if ida_versions is not None:
+            ida_version = f"IDA PRO:  {ida_versions['ida']}"
+            ida_py_ver = f"IDA Py:   {ida_versions['python']}"
+            ida_hr_ver = f"Hexrays:  {ida_versions['hexrays']}"
+            return (ida_version, ida_py_ver, ida_hr_ver)
+        return ()
+
+    @pwndbg.decorators.suppress_errors(fallback=False)
+    @withIDA
+    def is_in_function(self, addr: int) -> bool:
+        return available() and bool(GetFunctionName(addr))
+
+    @pwndbg.decorators.suppress_errors(fallback=[])
+    @withIDA
+    def get_comment_lines(self, addr: int) -> List[str]:
+        pre = Anterior(addr)
+        return pre.decode().split("\n") if pre else []
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def decompile(self, addr: int, lines: int) -> List[str] | None:
+        code = pwndbg.ida.decompile_context(addr, lines // 2)
+        if code:
+            return code.splitlines()
+        else:
+            return None

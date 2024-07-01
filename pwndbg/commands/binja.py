@@ -12,7 +12,7 @@ from pwndbg.commands import CommandCategory
     "Synchronize Binary Ninja's cursor with GDB.",
     category=CommandCategory.INTEGRATIONS,
     command_name="bn-sync",
-    aliases=["bns"]
+    aliases=["bns"],
 )
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.binja.with_bn
