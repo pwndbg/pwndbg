@@ -1,40 +1,63 @@
 from __future__ import annotations
 
-import sys
-import traceback
-
 import gdb
+from capstone.arm64_const import ARM64_INS_BL
 
-import pwndbg
+import pwndbg.gdblib.disasm
 
-try:
-    gdb.execute("break break_here")
-    assert pwndbg.gdblib.symbol.address("main") == 0x5500000A1C
-    gdb.execute("continue")
+AARCH64_GRACEFUL_EXIT = """
+mov x0, 0
+mov x8, 93
+svc 0
+"""
 
-    gdb.execute("argv", to_string=True)
-    assert gdb.execute("argc", to_string=True).strip() == "1"
-    gdb.execute("auxv", to_string=True)
-    assert (
-        gdb.execute("cpsr", to_string=True, from_tty=False).strip()
-        == "cpsr 0x60000000 [ n Z C v q pan il d a i f el:0 sp ]"
-    )
-    gdb.execute("context", to_string=True)
-    gdb.execute("hexdump", to_string=True)
-    gdb.execute("telescope", to_string=True)
+SIMPLE_FUNCTION = f"""
 
-    # TODO: Broken
-    gdb.execute("retaddr", to_string=True)
+bl my_function
+b end
 
-    # Broken
-    gdb.execute("procinfo", to_string=True)
+my_function:
+    ret
 
-    # Broken
-    gdb.execute("vmmap", to_string=True)
+end:
+{AARCH64_GRACEFUL_EXIT}
+"""
 
-    gdb.execute("piebase", to_string=True)
 
-    gdb.execute("nextret", to_string=True)
-except AssertionError:
-    traceback.print_exc(file=sys.stdout)
-    sys.exit(1)
+def test_compile_and_run(qemu_start):
+    qemu_start(SIMPLE_FUNCTION, "aarch64")
+
+    # TODO: cleaner API to get and enhance one instruction WITH emulation
+    instruction = pwndbg.gdblib.disasm.near(pwndbg.gdblib.regs.pc)[0][0]
+
+    # Some random tests
+    assert instruction.id == ARM64_INS_BL
+    assert instruction.call_like
+    assert instruction.is_unconditional_jump
+    assert instruction.target_string == "my_function"
+
+    gdb.execute("si")
+    gdb.execute("stepuntilasm svc")
+
+    instruction = pwndbg.gdblib.disasm.near(pwndbg.gdblib.regs.pc, show_prev_insns=False)[0][0]
+
+    print(instruction)
+
+    assert instruction.syscall == 93
+    assert instruction.syscall_name == "exit"
+
+
+def test2(qemu_start):
+    test_compile_and_run(qemu_start)
+
+
+def test3(qemu_start):
+    test_compile_and_run(qemu_start)
+
+
+def test4(qemu_start):
+    test_compile_and_run(qemu_start)
+
+
+def test5(qemu_start):
+    test_compile_and_run(qemu_start)

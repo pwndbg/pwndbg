@@ -36,7 +36,7 @@ test_arch() {
         -ex "file ./binaries/reference-binary.${arch}.out" \
         -ex 'py import coverage;coverage.process_startup()' \
         -ex "target remote :1234" \
-        -ex "source ./tests/user/test_${arch}.py"
+        -ex "source ./tests/user/old/test_${arch}.py"
     local result=$?
     pkill qemu-${arch}
     return $result

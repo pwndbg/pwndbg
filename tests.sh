@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 # Run integration tests
-(cd tests/gdb-tests && python3 tests.py $@)
+(cd tests && python3 tests.py $@)
 exit_code=$?
 
+# TODO: don't make pytest run on both user and qemu-user tests
 COV=0
 # Run unit tests
 for arg in "$@"; do

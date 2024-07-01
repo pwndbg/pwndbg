@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import os
+import random
 import re
 import subprocess
 import sys
@@ -29,11 +30,31 @@ def makeBinaries():
         exit(1)
 
 
-def run_gdb(gdb_binary: str, gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
+def open_ports(n: int) -> List[int]:
+    """
+    Returns a list of `n` open ports
+    """
+    try:
+        result = subprocess.run(
+            ["netstat", "-tuln"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if result.returncode != 0:
+            # If netstat not found, try ss
+            raise FileNotFoundError
+    except FileNotFoundError:
+        result = subprocess.run(["ss", "-tuln"], stdout=subprocess.PIPE)
+
+    used_ports = set(re.findall(r":(\d+)", result.stdout.decode()))
+    used_ports = set(map(int, used_ports))
+
+    available_ports = [port for port in range(1024, 65536) if port not in used_ports]
+    return random.sample(available_ports, n)
+
+
+def run_gdb(
+    gdb_binary: str, gdb_args: List[str], env=None, capture_output=True
+) -> CompletedProcess[str]:
     env = os.environ if env is None else env
-    # print(env)
-    # print(" ".join([gdb_binary, "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"]))
-    
     return subprocess.run(
         [gdb_binary, "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
         env=env,
@@ -42,15 +63,21 @@ def run_gdb(gdb_binary: str, gdb_args: List[str], env=None, capture_output=True)
     )
 
 
-def getTestsList(collect_only: bool, test_name_filter: str, gdb_binary: str, gdbinit_path: str, test_dir_path: str) -> List[str]:
+def getTestsList(
+    collect_only: bool,
+    test_name_filter: str,
+    gdb_binary: str,
+    gdbinit_path: str,
+    test_dir_path: str,
+) -> List[str]:
     # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
     # we decided to run each test in a separate GDB session
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_collect.py"]
 
     env = os.environ.copy()
-    env["TESTS_PATH"] = os.path.join(os.path.dirname(os.path.realpath(__file__)),test_dir_path)
+    env["TESTS_PATH"] = os.path.join(os.path.dirname(os.path.realpath(__file__)), test_dir_path)
 
-    result = run_gdb(gdb_binary,gdb_args,env=env)
+    result = run_gdb(gdb_binary, gdb_args, env=env)
     tests_collect_output = result.stdout
 
     if result.returncode == 1:
@@ -68,7 +95,7 @@ def getTestsList(collect_only: bool, test_name_filter: str, gdb_binary: str, gdb
 
 
 def run_test(
-    test_case: str, args: argparse.Namespace, gdb_binary: str, gdbinit_path: str
+    test_case: str, args: argparse.Namespace, gdb_binary: str, gdbinit_path: str, port: int = None
 ) -> Tuple[CompletedProcess[str], str]:
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_launcher.py"]
     if args.cov:
@@ -88,12 +115,20 @@ def run_test(
         env["USE_PDB"] = "1"
     env["PWNDBG_LAUNCH_TEST"] = test_case
     env["PWNDBG_DISABLE_COLORS"] = "1"
-    env["QEMU_PORT"] = "1234"
+    if port is not None:
+        env["QEMU_PORT"] = str(port)
     result = run_gdb(gdb_binary, gdb_args, env=env, capture_output=not args.serial)
     return (result, test_case)
 
 
-def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdb_binary: str, gdbinit_path: str, test_dir_path: str):
+def run_tests_and_print_stats(
+    tests_list: List[str],
+    args: argparse.Namespace,
+    gdb_binary: str,
+    gdbinit_path: str,
+    test_dir_path: str,
+    ports: List[int] = [],
+):
     start = time.time()
     test_results: List[Tuple[CompletedProcess[str], str]] = []
 
@@ -116,16 +151,21 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
             print("")
             print(content)
 
+    port_iterator = iter(ports)
+
     if args.serial:
-        test_results = [run_test(test, args, gdb_binary, gdbinit_path) for test in tests_list]
+        test_results = [
+            run_test(test, args, gdb_binary, gdbinit_path, next(port_iterator, None))
+            for test in tests_list
+        ]
     else:
         print("")
         print("Running tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(run_test, test, args, gdb_binary, gdbinit_path).add_done_callback(
-                    lambda future: handle_parallel_test_result(future.result())
-                )
+                executor.submit(
+                    run_test, test, args, gdb_binary, gdbinit_path, next(port_iterator, None)
+                ).add_done_callback(lambda future: handle_parallel_test_result(future.result()))
 
     end = time.time()
     seconds = int(end - start)
@@ -152,13 +192,7 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run tests.")
-    parser.add_argument(
-        "-t",
-        "--type",
-        dest="type",
-        choices=["gdb","qemu-user"],
-        default="gdb"
-    )
+    parser.add_argument("-t", "--type", dest="type", choices=["gdb", "qemu-user"], default="gdb")
 
     parser.add_argument(
         "-p",
@@ -192,10 +226,7 @@ def parse_args():
     return parser.parse_args()
 
 
-TEST_FOLDER_NAME = {
-    "gdb":"gdb-tests/tests",
-    "qemu-user":"qemu-tests/tests/user/annotations"
-}
+TEST_FOLDER_NAME = {"gdb": "gdb-tests/tests", "qemu-user": "qemu-tests/tests/user"}
 
 if __name__ == "__main__":
     args = parse_args()
@@ -223,5 +254,12 @@ if __name__ == "__main__":
 
     test_dir_path = TEST_FOLDER_NAME[args.type]
 
-    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path,test_dir_path)
-    run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path)
+    tests: List[str] = getTestsList(
+        args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path
+    )
+
+    ports = []
+    if args.type == "qemu-user":
+        ports = open_ports(len(tests))
+
+    run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path, ports)

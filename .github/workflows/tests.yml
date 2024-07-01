@@ -99,9 +99,9 @@ jobs:
         ./tests.sh --cov
 
     - name: Run qemu-user tests
-      working-directory: ./tests/qemu-tests
       run: |
-        ./test_qemu.sh
+        ./tests.sh -t qemu-user
+        cd tests/qemu-tests && ./test_qemu.sh
 
     - name: Process coverage data
       run: |

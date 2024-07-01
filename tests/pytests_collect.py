@@ -7,9 +7,10 @@ import pytest
 
 TESTS_PATH = os.environ.get("TESTS_PATH")
 
-if TESTS_PATH == None:
+if TESTS_PATH is None:
     print("'TESTS_PATH' environment variable not set. Failed to collect tests.")
     sys.exit(1)
+
 
 class CollectTestFunctionNames:
     """See https://github.com/pytest-dev/pytest/issues/2039#issuecomment-257753269"""

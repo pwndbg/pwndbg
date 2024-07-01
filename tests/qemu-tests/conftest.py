@@ -4,44 +4,52 @@ This file should consist of global test fixtures.
 
 from __future__ import annotations
 
-from pwn import *
+import os
+import subprocess
+import sys
+
 import gdb
 import pytest
-import random
+from pwn import context
+from pwn import make_elf_from_assembly
 
 _start_binary_called = False
 
+QEMU_PORT = os.environ.get("QEMU_PORT")
 
 
 @pytest.fixture
-def compile_and_run():
+def qemu_start():
     """
     Returns function that launches given binary with 'starti' command
-    
+
     The `path` is returned from `make_elf_from_assembly` (provided by pwntools)
     """
 
-
     qemu: subprocess.Popen = None
     binary_tmp_path: bytes = None
+
+    if QEMU_PORT is None:
+        print("'QEMU_PORT' environment variable not set")
+        sys.exit(1)
 
     def _start_binary(asm: str, arch: str, *args):
         nonlocal qemu
         nonlocal binary_tmp_path
 
-        port = os.environ.get("QEMU_PORT")
         context.arch = arch
         binary_tmp_path = make_elf_from_assembly(asm)
 
+        qemu = subprocess.Popen(
+            [
+                f"qemu-{arch}",
+                "-g",
+                f"{QEMU_PORT}",
+                f"{binary_tmp_path}",
+            ]
+        )
 
-        qemu = subprocess.Popen([
-            f"qemu-{arch}",
-            f"-g",
-            f"{port}",
-            f"{binary_tmp_path}",
-        ])
-
-        gdb.execute("target remote :1234")
+        gdb.execute(f"target remote :{QEMU_PORT}")
         gdb.execute("set exception-verbose on")
 
         global _start_binary_called
@@ -55,7 +63,5 @@ def compile_and_run():
     os.remove(binary_tmp_path)
 
     qemu.terminate()
-
-    
 
     # Ensure qemu is stopped
