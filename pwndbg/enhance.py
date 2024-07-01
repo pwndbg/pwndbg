@@ -24,12 +24,6 @@ import pwndbg.lib.cache
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
 
-bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
-
-
-def good_instr(i) -> bool:
-    return not any(bad in i for bad in bad_instrs)
-
 
 def format_small_int(value: int) -> str:
     if value < 10:
