@@ -26,7 +26,9 @@ import pwndbg.ida
 import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import SplitType
 from pwndbg.gdblib.disasm.instruction import make_simple_instruction
 
 try:
@@ -232,6 +234,7 @@ def one(
     enhance=True,
     from_cache=False,
     put_cache=False,
+    put_backward_cache=True,
 ) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.gdblib.regs.pc
@@ -241,7 +244,8 @@ def one(
 
     # A for loop in case this returns an empty list
     for insn in get(address, 1, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache):
-        backward_cache[insn.next] = insn.address
+        if put_backward_cache:
+            backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -372,13 +376,13 @@ def near(
 
     if show_prev_insns:
         cached = backward_cache[current.address]
-        insn = one(cached, from_cache=use_cache) if cached else None
+        insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={cached:#x}")
             insns.append(insn)
             cached = backward_cache[insn.address]
-            insn = one(cached, from_cache=use_cache) if cached else None
+            insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
         insns.reverse()
 
     index_of_current_instruction = len(insns)
@@ -399,14 +403,49 @@ def near(
     total_instructions = 1 + (2 * instructions)
 
     while insn and len(insns) < total_instructions:
+        target = insn.next if not linear else insn.address + insn.size
+
         # Emulation may have failed or been disabled in the last call to one()
         if emu:
             if not emu.last_step_succeeded or not emu.valid:
                 emu = None
 
-        # Address to disassemble & emulate
-        target = insn.next if not linear else insn.address + insn.size
+        # Handle visual splits in the disasm view
+        # The second check here handles instructions like x86 `REP` that repeat the instruction
+        if insn.jump_like or insn.next == insn.address:
+            split_insn = insn
 
+            # If this instruction has a delay slot, disassemble the delay slot instruction
+            # And append it to the list
+            if insn.causes_branch_delay:
+                # The Unicorn emulator forgets branch decisions when stopped inside of a
+                # delay slot. We disable emulation in this case
+                if emu:
+                    emu.valid = False
+
+                split_insn = one(insn.address + insn.size, None, put_cache=True)
+                insns.append(split_insn)
+
+                # Manually make the backtracing cache correct
+                backward_cache[insn.next] = split_insn.address
+                backward_cache[split_insn.address + split_insn.size] = split_insn.address
+                backward_cache[split_insn.address] = insn.address
+
+                # Because the emulator failed, we manually set the address of the next instruction.
+                # This is the address that typing "nexti" in GDB will take us to
+                target = split_insn.address + split_insn.size
+
+                if not insn.call_like and (
+                    insn.is_unconditional_jump or insn.is_conditional_jump_taken
+                ):
+                    target = insn.target
+
+            if not linear and insn.next != insn.address + insn.size:
+                split_insn.split = SplitType.BRANCH_TAKEN
+            else:
+                split_insn.split = SplitType.BRANCH_NOT_TAKEN
+
+        # Address to disassemble & emulate
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call

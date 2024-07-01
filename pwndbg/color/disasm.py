@@ -68,7 +68,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
     current_group: List[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
-        if ins.can_change_instruction_pointer:
+        if ins.has_jump_target:
             sym = ins.target_string
 
             asm = f"{ljust_colored(asm, 36)} <{sym}>"
@@ -99,7 +99,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
                 if (
                     i < len(instructions) - 1
-                    and not instructions[i + 1].can_change_instruction_pointer
+                    and not instructions[i + 1].has_jump_target
                     and cur_padding_len - raw_len > WHITESPACE_LIMIT
                 ):
                     cur_padding_len = raw_len + MIN_SPACING
