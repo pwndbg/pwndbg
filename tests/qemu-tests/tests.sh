@@ -164,7 +164,7 @@ run_test() {
         COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
         USE_PDB="${USE_PDB}" \
-        PWNDBG_LAUNCH_TEST="${test_case}" \
+        PWNDBG_LAUNCH_TEST="qemu-tests/${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \
@@ -180,7 +180,7 @@ process_output() {
     fi
 
     read -r testname result < <(
-        echo "$output" | grep -Po '(^tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)' \
+        echo "$output" | grep -Po '(^qemu-tests/tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)' \
             | tr '\n' ' ' \
             | cut -d ' ' -f 1,2
     )
