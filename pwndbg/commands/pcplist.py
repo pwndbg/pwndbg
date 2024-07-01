@@ -48,7 +48,7 @@ def print_zone(zone, list_num=None) -> None:
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcp(zone=None, list_num=None) -> None:
+def pcplist(zone=None, list_num=None) -> None:
     if zone:
         print_zone(zone, list_num)
     else:
