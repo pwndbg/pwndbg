@@ -124,7 +124,7 @@ run_gdb() {
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
 gdb_args=(--command ../pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/qemu-tests/tests/system" run_gdb "x86_64" "${gdb_args[@]}")
+TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/qemu-tests/tests/system" run_gdb "x86_64" "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
