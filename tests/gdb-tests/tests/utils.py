@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 
-gdb_init_path = os.environ.get("GDB_INIT_PATH", "../../gdbinit.py")
+gdb_init_path = os.environ.get("GDB_INIT_PATH", "../gdbinit.py")
 
 
 def run_gdb_with_script(

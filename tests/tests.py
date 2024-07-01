@@ -11,24 +11,46 @@ from subprocess import CompletedProcess
 from typing import List
 from typing import Tuple
 
-root_dir = os.path.realpath("../../")
+root_dir = os.path.realpath("../")
 
-def run_gdb(gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
+
+def ensureZigPath():
+    if "ZIGPATH" not in os.environ:
+        # If ZIGPATH is not set, set it to $pwd/.zig
+        # In Docker environment this should by default be set to /opt/zig
+        os.environ["ZIGPATH"] = os.path.join(root_dir, ".zig")
+    print(f'ZIGPATH set to {os.environ["ZIGPATH"]}')
+
+
+def makeBinaries():
+    try:
+        subprocess.check_call(["make", "all"], cwd="./gdb-tests/tests/binaries")
+    except subprocess.CalledProcessError:
+        exit(1)
+
+
+def run_gdb(gdb_binary: str, gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
     env = os.environ if env is None else env
+    # print(env)
+    # print(" ".join([gdb_binary, "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"]))
+    
     return subprocess.run(
-        ["gdb-multiarch", "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
+        [gdb_binary, "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
         env=env,
         capture_output=capture_output,
         text=True,
     )
 
 
-def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -> List[str]:
+def getTestsList(collect_only: bool, test_name_filter: str, gdb_binary: str, gdbinit_path: str, test_dir_path: str) -> List[str]:
     # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
     # we decided to run each test in a separate GDB session
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_collect.py"]
 
-    result = run_gdb(gdb_args)
+    env = os.environ.copy()
+    env["TESTS_PATH"] = os.path.join(os.path.dirname(os.path.realpath(__file__)),test_dir_path)
+
+    result = run_gdb(gdb_binary,gdb_args,env=env)
     tests_collect_output = result.stdout
 
     if result.returncode == 1:
@@ -39,14 +61,14 @@ def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -
         exit(0)
 
     # Extract the test names from the output using regex
-    pattern = re.compile(r"tests/.*::.*")
+    pattern = re.compile(rf"{test_dir_path}.*::.*")
     matches = pattern.findall(tests_collect_output)
     tests_list = [match for match in matches if re.search(test_name_filter, match)]
     return tests_list
 
 
 def run_test(
-    test_case: str, args: argparse.Namespace, gdbinit_path: str
+    test_case: str, args: argparse.Namespace, gdb_binary: str, gdbinit_path: str
 ) -> Tuple[CompletedProcess[str], str]:
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_launcher.py"]
     if args.cov:
@@ -67,11 +89,11 @@ def run_test(
     env["PWNDBG_LAUNCH_TEST"] = test_case
     env["PWNDBG_DISABLE_COLORS"] = "1"
     env["QEMU_PORT"] = "1234"
-    result = run_gdb(gdb_args, env=env, capture_output=not args.serial)
+    result = run_gdb(gdb_binary, gdb_args, env=env, capture_output=not args.serial)
     return (result, test_case)
 
 
-def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdbinit_path: str):
+def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdb_binary: str, gdbinit_path: str, test_dir_path: str):
     start = time.time()
     test_results: List[Tuple[CompletedProcess[str], str]] = []
 
@@ -81,7 +103,7 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
         content = process.stdout
 
         # Extract the test name and result using regex
-        testname = re.search(r"^(tests/[^ ]+)", content, re.MULTILINE)[0]
+        testname = re.search(rf"^({test_dir_path}/[^ ]+)", content, re.MULTILINE)[0]
         result = re.search(
             r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
         )[0]
@@ -95,13 +117,13 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
             print(content)
 
     if args.serial:
-        test_results = [run_test(test, args, gdbinit_path) for test in tests_list]
+        test_results = [run_test(test, args, gdb_binary, gdbinit_path) for test in tests_list]
     else:
         print("")
         print("Running tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(run_test, test, args, gdbinit_path).add_done_callback(
+                executor.submit(run_test, test, args, gdb_binary, gdbinit_path).add_done_callback(
                     lambda future: handle_parallel_test_result(future.result())
                 )
 
@@ -130,6 +152,14 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run tests.")
+    parser.add_argument(
+        "-t",
+        "--type",
+        dest="type",
+        choices=["gdb","qemu-user"],
+        default="gdb"
+    )
+
     parser.add_argument(
         "-p",
         "--pdb",
@@ -162,6 +192,11 @@ def parse_args():
     return parser.parse_args()
 
 
+TEST_FOLDER_NAME = {
+    "gdb":"gdb-tests/tests",
+    "qemu-user":"qemu-tests/tests/user/annotations"
+}
+
 if __name__ == "__main__":
     args = parse_args()
     if args.cov:
@@ -178,5 +213,15 @@ if __name__ == "__main__":
     else:
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
 
-    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdbinit_path)
-    run_tests_and_print_stats(tests, args, gdbinit_path)
+    gdb_binary = "gdb"
+
+    if args.type == "gdb":
+        ensureZigPath()
+        makeBinaries()
+    else:
+        gdb_binary = "gdb-multiarch"
+
+    test_dir_path = TEST_FOLDER_NAME[args.type]
+
+    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path,test_dir_path)
+    run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path)
