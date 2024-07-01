@@ -12,8 +12,11 @@ rb_node_type = None
 @new_objfile
 def init():
     global rb_root_type, rb_node_type
-    rb_root_type = gdb.lookup_type("struct rb_root")
-    rb_node_type = gdb.lookup_type("struct rb_node")
+    try:
+        rb_root_type = gdb.lookup_type("struct rb_root")
+        rb_node_type = gdb.lookup_type("struct rb_node")
+    except Exception:
+        pass
 
 
 def for_each_rb_entry(root, typename, fieldname):
