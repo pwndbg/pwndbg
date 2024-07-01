@@ -660,6 +660,7 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.attachp
     import pwndbg.commands.auxv
+    import pwndbg.commands.binder
     import pwndbg.commands.branch
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
