@@ -2,20 +2,16 @@ from __future__ import annotations
 
 from typing import List
 
-import capstone
-
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.gdblib.disasm.jump
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-
-capstone_branch_groups = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP}
 
 c = ColorConfig(
     "disasm",
@@ -34,7 +30,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
-    is_call_or_jump = ins.groups_set & capstone_branch_groups
+    is_call_or_jump = ins.groups_set & ALL_JUMP_GROUPS
 
     # Style the instruction mnemonic if it's a call/jump instruction.
     if is_call_or_jump:
@@ -72,7 +68,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
     current_group: List[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
-        if ins.can_change_instruction_pointer:
+        if ins.has_jump_target:
             sym = ins.target_string
 
             asm = f"{ljust_colored(asm, 36)} <{sym}>"
@@ -82,6 +78,9 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 groups.append(current_group)
                 current_group = []
         else:
+            if ins.syscall is not None:
+                asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
+
             # Padding the string for a nicer output
             # This path calculates the padding for each instruction - even if there we don't have annotations for it.
             # This allows groups to have uniform padding, even if some of the instructions don't have annotations
@@ -100,7 +99,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
                 if (
                     i < len(instructions) - 1
-                    and not instructions[i + 1].can_change_instruction_pointer
+                    and not instructions[i + 1].has_jump_target
                     and cur_padding_len - raw_len > WHITESPACE_LIMIT
                 ):
                     cur_padding_len = raw_len + MIN_SPACING

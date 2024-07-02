@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from collections import defaultdict
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -28,6 +29,7 @@ from capstone.arm64 import ARM64_INS_BLR
 from capstone.arm64 import ARM64_INS_BR
 from capstone.mips import MIPS_INS_B
 from capstone.mips import MIPS_INS_BAL
+from capstone.mips import MIPS_INS_BLTZAL
 from capstone.mips import MIPS_INS_J
 from capstone.mips import MIPS_INS_JAL
 from capstone.mips import MIPS_INS_JALR
@@ -64,12 +66,23 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
+BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
+    MIPS_INS_BAL,
+    MIPS_INS_BLTZAL,
+    MIPS_INS_JAL,
+    MIPS_INS_JALR,
+}
+
 # Everything that is a CALL or a RET is a unconditional jump
-GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET}
+GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET, CS_GRP_IRET}
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups
 ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
+
+# All non-ret jumps
+FORWARD_JUMP_GROUP = {CS_GRP_CALL} | GENERIC_JUMP_GROUPS
 
 
 class InstructionCondition(Enum):
@@ -79,6 +92,16 @@ class InstructionCondition(Enum):
     FALSE = 2
     # Unconditional instructions (most instructions), or we cannot reason about the instruction
     UNDETERMINED = 3
+
+
+def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
+    return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
+
+
+class SplitType(Enum):
+    NO_SPLIT = 1
+    BRANCH_TAKEN = 2
+    BRANCH_NOT_TAKEN = 3
 
 
 # Only use within the instruction.__repr__ to give a nice output
@@ -223,20 +246,70 @@ class PwndbgInstruction:
         We retain it so the output is consistent between prints
         """
 
+        self.syscall: int | None = None
+        """
+        The syscall number for this instruction, if it is a syscall. Otherwise None.
+        """
+
+        self.syscall_name: str | None = None
+        """
+        The syscall name as a string
+
+        Ex: "openat", "read"
+        """
+
+        self.causes_branch_delay: bool = False
+        """
+        Whether or not this instruction has a single branch delay slot
+        """
+
+        self.split: SplitType = SplitType.NO_SPLIT
+        """
+        The type of split in the disasm display this instruction causes:
+
+            NO_SPLIT            - no extra spacing between this and the next instruction
+            BRANCH_TAKEN        - a newline with an arrow pointing down
+            BRANCH_NOT_TAKEN    - an empty newline
+        """
+
         self.emulated: bool = False
         """
         If the enhancement successfully used emulation for this instruction
         """
 
     @property
-    def can_change_instruction_pointer(self) -> bool:
+    def call_like(self) -> bool:
         """
-        True if we have determined that this instruction can explicitly change the program counter.
+        True if this is a call-like instruction, meaning either it's a CALL or a branch and link.
+
+        Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
+        """
+        return (
+            CS_GRP_CALL in self.groups_set
+            or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
+        )
+
+    @property
+    def jump_like(self) -> bool:
+        """
+        True if this instruction is "jump-like", such as a JUMP, CALL, or RET.
+        Basically, the PC is set to some target by means of this instruction.
+
+        It may still be a conditional jump - this property does not indicate whether the jump is taken or not.
+        """
+        return bool(self.groups_set & ALL_JUMP_GROUPS)
+
+    @property
+    def has_jump_target(self) -> bool:
+        """
+        True if we have determined that this instruction can explicitly change the program counter, and
+        it's a JUMP-type instruction.
+
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
-        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the ALL_JUMP_GROUPS in the first part of this check.
+        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
         return self.target not in (None, self.address + self.size) and (
-            self.target != self.address or bool(self.groups_set & ALL_JUMP_GROUPS)
+            self.target != self.address or self.jump_like
         )
 
     @property
@@ -244,7 +317,7 @@ class PwndbgInstruction:
         """
         True if this instruction can change the program counter conditionally.
 
-        This is used, in part, to determine if the instruction deserve a "checkmark" in the disasm view
+        This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view
         """
         return (
             bool(self.groups_set & GENERIC_JUMP_GROUPS)
@@ -306,7 +379,7 @@ class PwndbgInstruction:
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
-        return f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         ID: {self.id}, {self.cs_insn.insn_name()}
         Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
@@ -318,7 +391,17 @@ class PwndbgInstruction:
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
-        Can change PC: {self.can_change_instruction_pointer}"""
+        Can change PC: {self.has_jump_target}
+        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
+        Causes Delay slot: {self.causes_branch_delay}
+        Split: {SplitType(self.split).name}
+        Call-like: {self.call_like}"""
+
+        # Hacky, but this is just for debugging
+        if hasattr(self.cs_insn, "cc"):
+            info += f"\n\tARM condition code: {self.cs_insn.cc}"
+
+        return info
 
 
 class EnhancedOperand:

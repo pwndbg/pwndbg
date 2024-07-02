@@ -164,7 +164,6 @@ def get_elf_info_rebased(filepath: str, vaddr: int) -> ELFInfo:
     for seg in raw_info.segments:
         s = dict(seg)
         for vaddr_attr in ["p_vaddr", "x_vaddr_mem_end", "x_vaddr_file_end"]:
-            assert isinstance(headers[vaddr_attr], int)
             s[vaddr_attr] += load  # type: ignore[operator]
         segments.append(s)
 
@@ -240,7 +239,7 @@ def dump_relocations_by_section_name(
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def exe() -> Ehdr | None:
     """
     Return a loaded ELF header object pointing to the Ehdr of the
@@ -253,7 +252,7 @@ def exe() -> Ehdr | None:
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def entry() -> int:
     """
     Return the address of the entry point for the main executable.
@@ -293,7 +292,7 @@ def load(pointer: int) -> Ehdr | None:
 ehdr_type_loaded = 0
 
 
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def reset_ehdr_type_loaded() -> None:
     global ehdr_type_loaded
     ehdr_type_loaded = 0

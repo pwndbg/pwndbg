@@ -48,11 +48,6 @@ def page_offset(address: int) -> int:
     return address & (PAGE_SIZE - 1)
 
 
-# TODO: Move to a test
-assert round_down(0xDEADBEEF, 0x1000) == 0xDEADB000
-assert round_up(0xDEADBEEF, 0x1000) == 0xDEADC000
-
-
 class Page:
     """
     Represents the address space and page permissions of at least
@@ -113,6 +108,10 @@ class Page:
     @property
     def rw(self) -> bool:
         return self.read and self.write
+
+    @property
+    def wx(self) -> bool:
+        return self.write and self.execute
 
     @property
     def rwx(self) -> bool:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
+from typing_extensions import override
 
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
@@ -52,6 +53,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
 
+    @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
@@ -72,6 +74,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.UNDETERMINED
 
+    @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.

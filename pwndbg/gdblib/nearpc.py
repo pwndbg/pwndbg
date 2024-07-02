@@ -24,6 +24,7 @@ import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
+from pwndbg.gdblib.disasm.instruction import SplitType
 
 
 def ljust_padding(lst):
@@ -156,8 +157,6 @@ def nearpc(
         addresses = ljust_padding(addresses)
 
     assembly_strings = D.instructions_and_padding(instructions)
-
-    prev = None
 
     # Print out each instruction
     for i, (address_str, symbol, instr, asm) in enumerate(
@@ -296,23 +295,6 @@ def nearpc(
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
-        # If there was a branch before this instruction which was not
-        # contiguous, put in some ellipses.
-        if prev and prev.address + prev.size != instr.address:
-            result.append(c.branch_marker(f"{nearpc_branch_marker}"))
-
-        # Otherwise if it's a branch and it *is* contiguous, just put
-        # and empty line.
-        elif prev and any(g in prev.groups for g in (CS_GRP_CALL, CS_GRP_JUMP, CS_GRP_RET)):
-            if nearpc_branch_marker_contiguous:
-                result.append("%s" % nearpc_branch_marker_contiguous)
-
-        # For syscall instructions, put the name on the side
-        if instr.address == pc:
-            syscall_name = pwndbg.arguments.get_syscall_name(instr)
-            if syscall_name:
-                line += " <%s>" % c.syscall_name("SYS_" + syscall_name)
-
         # For Comment Function
         try:
             line += " " * 10 + C.comment(
@@ -330,7 +312,14 @@ def nearpc(
                 "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
             )
 
-        prev = instr
+        # If this instruction deserves a down arrow to indicate a taken branch
+        if instr.split == SplitType.BRANCH_TAKEN:
+            result.append(c.branch_marker(f"{nearpc_branch_marker}"))
+
+        # Otherwise if it's a branch and it *is* contiguous, just put an empty line.
+        elif instr.split == SplitType.BRANCH_NOT_TAKEN:
+            if nearpc_branch_marker_contiguous:
+                result.append("%s" % nearpc_branch_marker_contiguous)
 
     return result
 

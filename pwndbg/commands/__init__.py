@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import functools
 import io
+import logging
 from enum import Enum
 from typing import Any
 from typing import Callable
@@ -22,11 +23,12 @@ import pwndbg.gdblib.kernel
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
-from pwndbg.color import message
 from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.gdblib.heap.ptmalloc import HeuristicHeap
 from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
+
+log = logging.getLogger(__name__)
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -88,7 +90,7 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
-class Command(gdb.Command):
+class Command:
     """Generic command wrapper"""
 
     builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
@@ -112,7 +114,10 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        def _handler(_debugger, arguments, is_interactive):
+            self.invoke(arguments, is_interactive)
+
+        self.handle = pwndbg.dbg.add_command(command_name, _handler)
         self.function = function
 
         if command_name in command_names:
@@ -139,7 +144,7 @@ class Command(gdb.Command):
             A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
-        return gdb.string_to_argv(argument), {}
+        return pwndbg.dbg.lex_args(argument), {}
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -168,23 +173,13 @@ class Command(gdb.Command):
         if not from_tty:
             return False
 
-        lines = gdb.execute("show commands", from_tty=False, to_string=True)
-        lines = lines.splitlines()
+        last_line = pwndbg.dbg.history(1)
 
         # No history
-        if not lines:
+        if not last_line:
             return False
 
-        last_line = lines[-1]
-        number_str, command = last_line.split(maxsplit=1)
-        try:
-            number = int(number_str)
-        except ValueError:
-            # In rare cases GDB will output a warning after executing `show commands`
-            # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
-            # symtab.)").
-            return False
-
+        number, command = last_line[-1]
         # A new command was entered by the user
         if number not in Command.history:
             Command.history[number] = command
@@ -266,9 +261,9 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             return function(*a, **kw)
         else:
             if pwndbg.gdblib.qemu.is_qemu():
-                print(message.error("Could not determine the target binary on QEMU."))
+                log.error("Could not determine the target binary on QEMU.")
             else:
-                print(message.error(f"{function.__name__}: There is no file loaded."))
+                log.error(f"{function.__name__}: There is no file loaded.")
             return None
 
     return _OnlyWithFile
@@ -280,7 +275,7 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
             )
             return None
@@ -294,7 +289,7 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if not pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
             )
             return None
@@ -317,9 +312,8 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P
                 return function(*a, **kw)
             else:
                 arches_str = ", ".join(arch_names)
-                print(
-                    f"%s: This command may only be run on the {arches_str} architecture(s)"
-                    % function.__name__
+                log.error(
+                    f"{function.__name__}: This command may only be run on the {arches_str} architecture(s)"
                 )
                 return None
 
@@ -334,7 +328,7 @@ def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]
         if pwndbg.gdblib.kernel.has_debug_syms():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
             return None
@@ -348,7 +342,7 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: This command may only be run when paging is enabled.")
+            log.error(f"{function.__name__}: This command may only be run when paging is enabled.")
             return None
 
     return _OnlyWhenPagingEnabled
@@ -360,7 +354,7 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: The program is not being run.")
+            log.error(f"{function.__name__}: The program is not being run.")
             return None
 
     return _OnlyWhenRunning
@@ -373,7 +367,7 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.gdblib.heap.current.has_tcache():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
             )
             return None
@@ -387,7 +381,7 @@ def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[
         if pwndbg.gdblib.heap.current is not None and pwndbg.gdblib.heap.current.is_initialized():
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: Heap is not initialized yet.")
+            log.error(f"{function.__name__}: Heap is not initialized yet.")
             return None
 
     return _OnlyWhenHeapIsInitialized
@@ -400,8 +394,8 @@ def _is_statically_linked() -> bool:
 
 
 def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
-    e = lambda s: print(message.error(s))
-    w = lambda s: print(message.warn(s))
+    e = log.error
+    w = log.warning
     # Note: We will still raise the error for developers when exception-* is set to "on"
     try:
         return function(*a, **kw)
@@ -438,8 +432,8 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
 def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
-        e = lambda s: print(message.error(s))
-        w = lambda s: print(message.warn(s))
+        e = log.error
+        w = log.warn
         if (
             isinstance(pwndbg.gdblib.heap.current, HeuristicHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
@@ -546,7 +540,7 @@ class _ArgparsedCommand(Command):
         )
 
     def split_args(self, argument: str):
-        argv = gdb.string_to_argv(argument)
+        argv = pwndbg.dbg.lex_args(argument)
         return (), vars(self.parser.parse_args(argv))
 
 
@@ -659,6 +653,7 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.attachp
     import pwndbg.commands.auxv
+    import pwndbg.commands.binder
     import pwndbg.commands.branch
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
@@ -700,6 +695,7 @@ def load_commands() -> None:
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
+    import pwndbg.commands.pcplist
     import pwndbg.commands.peda
     import pwndbg.commands.pie
     import pwndbg.commands.plist

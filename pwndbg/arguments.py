@@ -9,7 +9,6 @@ from typing import List
 from typing import Tuple
 
 import gdb
-from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain
@@ -58,33 +57,6 @@ ida_replacements = {
 }
 
 
-def get_syscall_name(instruction: PwndbgInstruction) -> str | None:
-    if CS_GRP_INT not in instruction.groups:
-        return None
-
-    syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
-    syscall_arch = pwndbg.gdblib.arch.name
-
-    # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
-    # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
-    # So here, we return no syscall name for other instructions and we also
-    # handle a case when 32-bit syscalls are executed on x64
-    if syscall_register in ("eax", "rax"):
-        mnemonic = instruction.mnemonic
-
-        is_32bit = mnemonic == "int" and instruction.operands[0].before_value == 0x80
-        if not (mnemonic == "syscall" or is_32bit):
-            return None
-
-        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
-        # On x86, the syscall_arch is already i386, so its all fine
-        if is_32bit:
-            syscall_arch = "i386"
-
-    syscall_number = getattr(pwndbg.gdblib.regs, syscall_register)
-    return pwndbg.constants.syscall(syscall_number, syscall_arch) or "<unk_%d>" % syscall_number
-
-
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
@@ -100,7 +72,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
-    if CS_GRP_CALL in instruction.groups:
+    if instruction.call_like:
         try:
             abi = pwndbg.lib.abi.ABI.default()
         except KeyError:
@@ -116,7 +88,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
             return []
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
-        name = get_syscall_name(instruction)
+        name = instruction.syscall_name
         abi = pwndbg.lib.abi.ABI.syscall()
         target = None
 
