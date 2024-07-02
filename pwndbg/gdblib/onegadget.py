@@ -52,8 +52,8 @@ CAST_MAPPING = {
     "(s64)": lambda x: ctypes.c_int64(x).value,
 }
 ONEGADGET_COLOR = {
-    "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
-    "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
+    "light_green": lambda x: colorize("\x1b[38;5;82m", x),
+    "light_purple": lambda x: colorize("\x1b[38;5;153m", x),
 }
 ONEGADGET_CACHEDIR = pwndbg.lib.tempfile.cachedir("onegadget")
 
