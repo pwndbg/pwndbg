@@ -164,7 +164,6 @@ def get_elf_info_rebased(filepath: str, vaddr: int) -> ELFInfo:
     for seg in raw_info.segments:
         s = dict(seg)
         for vaddr_attr in ["p_vaddr", "x_vaddr_mem_end", "x_vaddr_file_end"]:
-            assert isinstance(headers[vaddr_attr], int)
             s[vaddr_attr] += load  # type: ignore[operator]
         segments.append(s)
 
