@@ -90,7 +90,7 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
-class Command(gdb.Command):
+class Command:
     """Generic command wrapper"""
 
     builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
@@ -114,7 +114,10 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        def _handler(_debugger, arguments, is_interactive):
+            self.invoke(arguments, is_interactive)
+
+        self.handle = pwndbg.dbg.add_command(command_name, _handler)
         self.function = function
 
         if command_name in command_names:
@@ -141,7 +144,7 @@ class Command(gdb.Command):
             A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
-        return gdb.string_to_argv(argument), {}
+        return pwndbg.dbg.lex_args(argument), {}
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -170,23 +173,13 @@ class Command(gdb.Command):
         if not from_tty:
             return False
 
-        lines = gdb.execute("show commands", from_tty=False, to_string=True)
-        lines = lines.splitlines()
+        last_line = pwndbg.dbg.history(1)
 
         # No history
-        if not lines:
+        if not last_line:
             return False
 
-        last_line = lines[-1]
-        number_str, command = last_line.split(maxsplit=1)
-        try:
-            number = int(number_str)
-        except ValueError:
-            # In rare cases GDB will output a warning after executing `show commands`
-            # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
-            # symtab.)").
-            return False
-
+        number, command = last_line[-1]
         # A new command was entered by the user
         if number not in Command.history:
             Command.history[number] = command
@@ -547,7 +540,7 @@ class _ArgparsedCommand(Command):
         )
 
     def split_args(self, argument: str):
-        argv = gdb.string_to_argv(argument)
+        argv = pwndbg.dbg.lex_args(argument)
         return (), vars(self.parser.parse_args(argv))
 
 
