@@ -101,7 +101,6 @@ jobs:
     - name: Run qemu-user tests
       run: |
         ./tests.sh -t qemu-user
-        cd tests/qemu-tests && ./test_qemu.sh
 
     - name: Process coverage data
       run: |

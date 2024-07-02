@@ -24,8 +24,8 @@ end:
 """
 
 
-def test_compile_and_run(qemu_start):
-    qemu_start(SIMPLE_FUNCTION, "aarch64")
+def test_compile_and_run(qemu_assembly_run):
+    qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
 
     # TODO: cleaner API to get and enhance one instruction WITH emulation
     instruction = pwndbg.gdblib.disasm.near(pwndbg.gdblib.regs.pc)[0][0]
@@ -47,17 +47,17 @@ def test_compile_and_run(qemu_start):
     assert instruction.syscall_name == "exit"
 
 
-def test2(qemu_start):
-    test_compile_and_run(qemu_start)
+def test2(qemu_assembly_run):
+    test_compile_and_run(qemu_assembly_run)
 
 
-def test3(qemu_start):
-    test_compile_and_run(qemu_start)
+def test3(qemu_assembly_run):
+    test_compile_and_run(qemu_assembly_run)
 
 
-def test4(qemu_start):
-    test_compile_and_run(qemu_start)
+def test4(qemu_assembly_run):
+    test_compile_and_run(qemu_assembly_run)
 
 
-def test5(qemu_start):
-    test_compile_and_run(qemu_start)
+def test5(qemu_assembly_run):
+    test_compile_and_run(qemu_assembly_run)
