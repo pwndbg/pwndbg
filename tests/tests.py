@@ -29,11 +29,13 @@ def makeBinaries():
     except subprocess.CalledProcessError:
         exit(1)
 
+
 def makeCrossArchBinaries():
     try:
         subprocess.check_call(["make", "all"], cwd="./qemu-tests/tests/user/binaries")
     except subprocess.CalledProcessError:
         exit(1)
+
 
 def open_ports(n: int) -> List[int]:
     """

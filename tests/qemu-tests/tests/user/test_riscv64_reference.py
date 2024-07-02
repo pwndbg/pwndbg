@@ -12,7 +12,7 @@ REFERENCE_BINARY = user.binaries.get("reference-binary.riscv64.out")
 
 
 def test_riscv64_reference(qemu_start_binary):
-    qemu_start_binary(REFERENCE_BINARY,"riscv64")
+    qemu_start_binary(REFERENCE_BINARY, "riscv64")
     try:
         gdb.execute("break 4")
         assert pwndbg.gdblib.symbol.address("main") == 0x555555556668
