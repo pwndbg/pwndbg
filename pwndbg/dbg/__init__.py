@@ -151,7 +151,7 @@ class Value:
         """
         raise NotImplementedError()
 
-    # This is a GDB imeplementation detail.
+    # This is a GDB implementation detail.
     def fetch_lazy(self) -> None:
         """
         Fetches the value if it is lazy, does nothing otherwise.
