@@ -164,8 +164,8 @@ class Value:
         """
         raise NotImplementedError()
 
-    # Because casting is still sloppy (i.e. it acceps `gdb.Type` objects) in
-    # some places, we have to allow it here for lints to pass.
+    # Because casting is still sloppy (i.e. it accepts `gdb.Type` objects) in
+    # some places, we have to allow `Any` here for lints to pass.
     #
     # TODO: Remove Any type from this function.
     def cast(self, type: Type | Any) -> Value:
