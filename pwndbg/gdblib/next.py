@@ -182,10 +182,6 @@ def break_on_next_matching_instruction(mnemonic=None, op_str=None) -> bool:
         return False
 
     while pwndbg.gdblib.proc.alive:
-        # Break on signal as it may be a segfault
-        if pwndbg.gdblib.proc.stopped_with_signal:
-            return False
-
         ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
         if ins is not None:
             if ins.address != pwndbg.gdblib.regs.pc:
@@ -215,6 +211,10 @@ def break_on_next_matching_instruction(mnemonic=None, op_str=None) -> bool:
 
         if pwndbg.gdblib.proc.alive:
             gdb.execute("si")
+
+        # Break on signal as it may be a segfault
+        if pwndbg.gdblib.proc.stopped_with_signal:
+            return False
 
     return False
 
