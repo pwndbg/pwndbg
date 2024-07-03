@@ -22,6 +22,7 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
+from pwndbg.gdblib.arch import get_thumb_mode_string
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking
@@ -640,7 +641,11 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
-    info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.config.emulate)
+    thumb_mode_str = get_thumb_mode_string()
+    if thumb_mode_str is not None:
+        info = " / {} / {} mode / set emulate {}".format(pwndbg.gdblib.arch.current, thumb_mode_str, pwndbg.config.emulate)
+    else:
+        info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.config.emulate)
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
 
     # If we didn't disassemble backward, try to make sure
