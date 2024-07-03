@@ -41,10 +41,11 @@ pwnlib_archs_mapping = {
     "rv64": "riscv64",
 }
 
+
 def read_thumb_bit() -> int | None:
     """
     Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
-    
+
     Return None if the Thumb bit is not relevent to the current architecture
     """
     if pwndbg.gdblib.arch.current == "arm":
@@ -61,9 +62,11 @@ def read_thumb_bit() -> int | None:
     # AArch64 does not have a Thumb bit
     return None
 
-def get_thumb_mode_string() -> Literal["arm","thumb"] | None:
+
+def get_thumb_mode_string() -> Literal["arm", "thumb"] | None:
     thumb_bit = read_thumb_bit()
-    return None if thumb_bit == None else "thumb" if thumb_bit == 1 else "arm"
+    return None if thumb_bit is None else "thumb" if thumb_bit == 1 else "arm"
+
 
 arch = Arch("i386", typeinfo.ptrsize, "little")
 

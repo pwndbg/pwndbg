@@ -22,7 +22,6 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-from pwndbg.gdblib.arch import get_thumb_mode_string
 import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking
@@ -38,6 +37,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.gdblib.arch import get_thumb_mode_string
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 
@@ -643,7 +643,9 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     # and this call may disable it
     thumb_mode_str = get_thumb_mode_string()
     if thumb_mode_str is not None:
-        info = " / {} / {} mode / set emulate {}".format(pwndbg.gdblib.arch.current, thumb_mode_str, pwndbg.config.emulate)
+        info = " / {} / {} mode / set emulate {}".format(
+            pwndbg.gdblib.arch.current, thumb_mode_str, pwndbg.config.emulate
+        )
     else:
         info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.config.emulate)
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
