@@ -104,6 +104,6 @@ def qemu_start_binary():
 
     yield _start_binary
 
-    qemu.terminate()
+    qemu.kill()
 
     # Ensure qemu is stopped
