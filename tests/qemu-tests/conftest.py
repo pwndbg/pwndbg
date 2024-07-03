@@ -82,6 +82,8 @@ def qemu_start_binary():
 
         qemu = subprocess.Popen(
             [
+                "setarch",
+                "-R",
                 f"qemu-{arch}",
                 "-L",
                 f"/usr/{arch}-linux-gnu/",

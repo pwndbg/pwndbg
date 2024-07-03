@@ -15,7 +15,7 @@ def test_aarch64_reference(qemu_start_binary):
     qemu_start_binary(REFERENCE_BINARY, "aarch64")
     try:
         gdb.execute("break break_here")
-        assert pwndbg.gdblib.symbol.address("main") == 0x555555556668
+        assert pwndbg.gdblib.symbol.address("main") == 0x7FFFF7A14A1C
         gdb.execute("continue")
 
         gdb.execute("argv", to_string=True)

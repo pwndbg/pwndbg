@@ -332,6 +332,16 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
+def emulate_one() -> PwndbgInstruction | None:
+    """
+    Return a single emulated (if emulation is possible) and enhanced instruction at the current pc.
+    """
+    result = near(pwndbg.gdblib.regs.pc, emulate=True, show_prev_insns=False)
+    if result:
+        return result[0][0]
+    return None
+
+
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False, linear=False
