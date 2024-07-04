@@ -261,26 +261,6 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             print("Awoooo!")
 
     @override
-    def inferior(self) -> pwndbg.dbg_mod.Process | None:
-        target_count = self.debugger.GetNumTargets()
-        if target_count == 0:
-            # No targets are available.
-            return None
-        if target_count > 1:
-            # We don't support multiple targets.
-            raise RuntimeError("Multiple LLDB targets are not supported")
-
-        target = self.debugger.GetTargetAtIndex(0)
-        assert target.IsValid(), "Target must be valid at this point"
-
-        process = target.GetProcess()
-        if not process.IsValid():
-            # No process we can use.
-            return None
-
-        return LLDBProcess(process, target)
-
-    @override
     def add_command(
         self, command_name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
     ) -> pwndbg.dbg_mod.CommandHandle:
@@ -331,10 +311,36 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     def lex_args(self, command_line: str) -> List[str]:
         return command_line.split()
 
+    def first_inferior(self) -> LLDBProcess | None:
+        """
+        Pick the first inferior in the debugger, if any is present.
+        """
+        target_count = self.debugger.GetNumTargets()
+        if target_count == 0:
+            # No targets are available.
+            return None
+        if target_count > 1:
+            # We don't support multiple targets.
+            raise RuntimeError("Multiple LLDB targets are not supported")
+
+        target = self.debugger.GetTargetAtIndex(0)
+        assert target.IsValid(), "Target must be valid at this point"
+
+        process = target.GetProcess()
+        if not process.IsValid():
+            # No process we can use.
+            return None
+
+        return LLDBProcess(process, target)
+
     @override
     def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
         if len(self.exec_states) == 0:
-            return None
+            # The Debugger-agnostic API treats existence of an inferior the same
+            # as it being selected, as multiple inferiors are not supported, so
+            # we lie a little here, and treat the only inferior as always
+            # selected.
+            return self.first_inferior()
 
         p = self.exec_states[-1].process
         t = self.exec_states[-1].target
