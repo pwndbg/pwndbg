@@ -30,9 +30,9 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             restore = True
 
         try:
-            value = gdb.parse_and_eval(expression, global_context=False)
+            value = gdb.parse_and_eval(expression, False)
         except TypeError:
-            # Some earlier versions of GDB don't support the global_context keyword.
+            # Some earlier versions of GDB don't support the global_context argument.
             value = gdb.parse_and_eval(expression)
         finally:
             if restore:
@@ -66,9 +66,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         try:
-            return GDBValue(gdb.parse_and_eval(expression, global_context=True))
+            return GDBValue(gdb.parse_and_eval(expression, True))
         except TypeError:
-            # Some earlier versions of GDB don't support the global_context keyword.
+            # Some earlier versions of GDB don't support the global_context argument.
             return GDBValue(gdb.parse_and_eval(expression))
 
 

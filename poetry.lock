@@ -2059,13 +2059,13 @@ files = [
 
 [[package]]
 name = "types-gdb"
-version = "12.1.4.20240408"
+version = "12.1.4.20240704"
 description = "Typing stubs for gdb"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-gdb-12.1.4.20240408.tar.gz", hash = "sha256:f2136ccf15ab74b5b2702b88b3c38a41029a89c12d9c12851c6a0b9789047d83"},
-    {file = "types_gdb-12.1.4.20240408-py3-none-any.whl", hash = "sha256:b5fc44c1929cc5eb071792d5f66b5f74e880589683d065651bf9464d8f41ad75"},
+    {file = "types-gdb-12.1.4.20240704.tar.gz", hash = "sha256:0b537f6acf8339e82dc92388aad057a30c83d89105cd820cf5dc948d6debce10"},
+    {file = "types_gdb-12.1.4.20240704-py3-none-any.whl", hash = "sha256:da273ebf395ded84ea12745ef70d0c1560694c26b6d9c04575d500a74929fed1"},
 ]
 
 [[package]]
@@ -2354,4 +2354,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "06adbdf62440aaedba8a00255a1ba7db2206e6124a4f4beef8fadce656df8f10"
+content-hash = "c46fbb9c8a498c53bc1acb13d027819c5c3c88124a6c58b8408d30699f1a81f1"
