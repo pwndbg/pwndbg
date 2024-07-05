@@ -33,7 +33,9 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.integration
 import pwndbg.lib.cache
+import pwndbg.lib.funcparser
 from pwndbg.color import message
+from pwndbg.lib.functions import Function
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
@@ -511,6 +513,34 @@ def print_structs() -> None:
             offset = GetStrucNextOff(sid, offset)
 
 
+ida_replacements = {
+    "__int64": "signed long long int",
+    "__int32": "signed int",
+    "__int16": "signed short",
+    "__int8": "signed char",
+    "__uint64": "unsigned long long int",
+    "__uint32": "unsigned int",
+    "__uint16": "unsigned short",
+    "__uint8": "unsigned char",
+    "_BOOL_1": "unsigned char",
+    "_BOOL_2": "unsigned short",
+    "_BOOL_4": "unsigned int",
+    "_BYTE": "unsigned char",
+    "_WORD": "unsigned short",
+    "_DWORD": "unsigned int",
+    "_QWORD": "unsigned long long",
+    "__pure": "",
+    "__hidden": "",
+    "__return_ptr": "",
+    "__struct_ptr": "",
+    "__array_ptr": "",
+    "__fastcall": "",
+    "__cdecl": "",
+    "__thiscall": "",
+    "__userpurge": "",
+}
+
+
 class IdaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @withIDA
@@ -548,8 +578,26 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @withIDA
     def decompile(self, addr: int, lines: int) -> List[str] | None:
-        code = pwndbg.ida.decompile_context(addr, lines // 2)
+        code = decompile_context(addr, lines // 2)
         if code:
             return code.splitlines()
         else:
             return None
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_func_type(self, addr: int) -> Function | None:
+        typename: str = GetType(addr)
+
+        if typename:
+            typename += ";"
+
+            # GetType() does not include the name.
+            typename = typename.replace("(", " function_name(", 1)
+
+            for k, v in ida_replacements.items():
+                typename = typename.replace(k, v)
+
+            return pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
+
+        return None

@@ -49,6 +49,14 @@ def remove_tag_ref(bv: binaryninja.BinaryView, ref: binaryninja.core.BNTagRefere
     binaryninja.core.BNRemoveTagReference(bv.handle, ref)
 
 
+def count_pointers(ty: Any) -> tuple[str, int]:
+    derefcnt = 0
+    while isinstance(ty, binaryninja.types.PointerType):
+        ty = ty.target
+        derefcnt += 1
+    return (str(ty), derefcnt)
+
+
 to_register = []
 
 
@@ -133,6 +141,16 @@ class ServerHandler:
             ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
         return ret
 
+    @should_register
+    def get_func_type(
+        self, addr: int
+    ) -> tuple[tuple[str, int, str], list[tuple[str, int, str]]] | None:
+        f = self.bv.get_function_at(addr)
+        if f is None:
+            return None
+        ret_ty = (*count_pointers(f.return_type), f.name)
+        arg_tys = [(*count_pointers(arg.type), arg.name) for arg in f.parameter_vars]
+        return (ret_ty, arg_tys)
 
     @should_register
     def get_base(self) -> int:

@@ -30,20 +30,22 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.color.context as context_color
-from pwndbg.color import theme
 import pwndbg.decorators
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.symbol
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.nearpc
 import pwndbg.gdblib.regs
+import pwndbg.gdblib.symbol
 import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.color import theme
 from pwndbg.gdblib.nearpc import c as nearpc_color
 from pwndbg.gdblib.nearpc import ljust_padding
+from pwndbg.lib.functions import Argument
+from pwndbg.lib.functions import Function
 
 bn_rpc_host = pwndbg.config.add_param(
     "bn-rpc-host", "127.0.0.1", "binary ninja xmlrpc server address"
@@ -475,3 +477,12 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             line += pygments.format(toks, formatter)
             ret.append(line)
         return ret
+
+    @pwndbg.decorators.suppress_errors()
+    @with_bn()
+    def get_func_type(self, addr: int) -> Function | None:
+        ty: Tuple[Tuple[str, int, str], List[Tuple[str, int, str]]] = _bn.get_func_type(l2r(addr))
+        if ty is None:
+            return None
+        args = [Argument(type=x[0], derefcnt=x[1], name=x[2]) for x in ty[1]]
+        return Function(type=ty[0][0], derefcnt=ty[0][1], name=ty[0][2], args=args)

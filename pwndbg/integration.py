@@ -4,6 +4,7 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
+import pwndbg.lib.functions
 
 
 class IntegrationProvider:
@@ -23,6 +24,9 @@ class IntegrationProvider:
         return []
 
     def decompile(self, addr: int, lines: int) -> List[str] | None:
+        return None
+
+    def get_func_type(self, addr: int) -> pwndbg.lib.functions.Function | None:
         return None
 
 
