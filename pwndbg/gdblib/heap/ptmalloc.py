@@ -1259,8 +1259,14 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         Checks if the doubly linked list (of a {small, large, unsorted} bin)
         defined by chain_fd, chain_bk is corrupted.
 
-        Returns True if it's provably corrupted, otherwise False.
+        Even if the chains do not cover the whole bin, they still are expected
+        to be of the same length.
+
+        Returns True if corruption is provable, otherwise False.
         """
+
+        print(f"chain_fd({len(chain_fd)}): {chain_fd}")
+        print(f"chain_bk({len(chain_bk)}): {chain_bk}")
 
         if len(chain_fd) != len(chain_bk):
             # If the chain lengths aren't equal, the chain is corrupted
@@ -1282,36 +1288,34 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
                 if not(bin_chk.fd == bin_chk.bk == chain_fd[0]):
                     return True
 
-        elif chain_fd[-1] == chain_bk[-1] == 0:
-            # This branch will be hit when we were able to fully traverse the fd
-            # and bk chains (and they aren't empty). In this case we can check
-            # the integrity of the entire chain
-
-            # Get the fd chain list without the trailing zero
-            fd_chain = chain_fd[:-1]
-
-            # Get the bk chain list without the trailing zero and the last
-            # pointer (the `main_arena` pointer)
-            bk_chain = chain_bk[:-2]
-
-            # Reverse the bk chain
-            bk_chain_rev = bk_chain[::-1]
-
-            # Add back on the arena pointer
-            bk_chain_rev.append(chain_bk[-2])
-
-            # If these two chains aren't equal, the chain is corrupted
-            if fd_chain != bk_chain_rev:
-                return True
         else:
-            # We do not have the full doubly linked list, probably because we
-            # hit the `heap_corruption_check_limit` while traversing the fd and bk
-            # chain, so we can't check the integrity of the entire chain, but we can at
-            # least check if `chunk->bk->fd = chunk`
-            chunk = Chunk(chain_fd[0])
-            bk = Chunk(chunk.bk)
-            if bk.fd != chain_fd[0]:
-                return True
+            if chain_fd[-1] == 0:
+                chain_fd = chain_fd[:-1]
+            if chain_bk[-1] == 0:
+                chain_bk = chain_bk[:-1]
+
+            # Forward and backward chains may have some overlap, we don't need to recheck those chunks
+            checked = set()
+
+            # Check connections in all chunks from the forward chain
+            for chunk_addr in chain_fd:
+                chunk = Chunk(chunk_addr)
+                if chunk.fd is None or Chunk(chunk.fd).bk != chunk_addr:
+                    return True
+                if chunk.bk is None or Chunk(chunk.bk).fd != chunk_addr:
+                    return True
+                checked.add(chunk_addr)
+
+            # Check connections in all chunks from the backward chain
+            for chunk_addr in chain_bk:
+                if chunk_addr in checked:
+                    # We don't need to check any more chunks
+                    break
+                chunk = Chunk(chunk_addr)
+                if chunk.fd is None or Chunk(chunk.fd).bk != chunk_addr:
+                    return True
+                if chunk.bk is None or Chunk(chunk.bk).fd != chunk_addr:
+                    return True
 
         return False
 
@@ -1339,6 +1343,9 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             arena = self.thread_arena
 
         if arena is None:
+            return None
+
+        if index != 0:
             return None
 
         normal_bins = arena._gdbValue["bins"]  # Breaks encapsulation, find a better way.
