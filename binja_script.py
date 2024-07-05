@@ -4,6 +4,8 @@ import ctypes
 import sys
 import threading
 from typing import Any
+from typing import List
+from typing import Tuple
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 from xmlrpc.server import SimpleXMLRPCServer
 
@@ -36,7 +38,7 @@ def add_auto_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: str) ->
 
 
 # workaround for there to be no way to get all address tags in the python API
-def get_tag_refs(bv: binaryninja.BinaryView, ty: str) -> list[binaryninja.core.BNTagReference]:
+def get_tag_refs(bv: binaryninja.BinaryView, ty: str) -> List[binaryninja.core.BNTagReference]:
     tag_type = bv.get_tag_type(ty)
     count = binaryninja.core.BNGetAllTagReferencesOfTypeCount(bv.handle, tag_type.handle)
     ref_ptr = binaryninja.core.BNGetAllTagReferencesOfType(
@@ -49,7 +51,7 @@ def remove_tag_ref(bv: binaryninja.BinaryView, ref: binaryninja.core.BNTagRefere
     binaryninja.core.BNRemoveTagReference(bv.handle, ref)
 
 
-def count_pointers(ty: Any) -> tuple[str, int]:
+def count_pointers(ty: Any) -> Tuple[str, int]:
     derefcnt = 0
     while isinstance(ty, binaryninja.types.PointerType):
         ty = ty.target
@@ -93,7 +95,7 @@ class ServerHandler:
         add_auto_tag(self.bv, new_pc, "pwndbg-pc", "current pc")
 
     @should_register
-    def get_bp_tags(self) -> list[int]:
+    def get_bp_tags(self) -> List[int]:
         return [t.addr for t in get_tag_refs(self.bv, "pwndbg-bp")]
 
     @should_register
@@ -104,14 +106,14 @@ class ServerHandler:
         return sym.full_name
 
     @should_register
-    def get_func_info(self, addr: int) -> tuple[str, int] | None:
+    def get_func_info(self, addr: int) -> Tuple[str, int] | None:
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
         return (func.symbol.full_name, func.start)
 
     @should_register
-    def get_data_info(self, addr: int) -> tuple[str, int] | None:
+    def get_data_info(self, addr: int) -> Tuple[str, int] | None:
         dv = self.bv.get_data_var_at(addr)
         if dv is None:
             return None
@@ -120,7 +122,7 @@ class ServerHandler:
         return (dv.name or f"data_{dv.address:x}", dv.address)
 
     @should_register
-    def get_comments(self, addr: int) -> list[str]:
+    def get_comments(self, addr: int) -> List[str]:
         ret = []
         for f in sorted(self.bv.get_functions_containing(addr), key=lambda f: f.start):
             ret += f.get_comment_at(addr).split("\n")
@@ -129,7 +131,7 @@ class ServerHandler:
         return ["// " + x for x in ret if x]
 
     @should_register
-    def decompile_func(self, addr: int) -> list[tuple[int, list[tuple[str, str]]]] | None:
+    def decompile_func(self, addr: int) -> List[Tuple[int, List[Tuple[str, str]]]] | None:
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
@@ -144,7 +146,7 @@ class ServerHandler:
     @should_register
     def get_func_type(
         self, addr: int
-    ) -> tuple[tuple[str, int, str], list[tuple[str, int, str]]] | None:
+    ) -> Tuple[Tuple[str, int, str], List[Tuple[str, int, str]]] | None:
         f = self.bv.get_function_at(addr)
         if f is None:
             return None

@@ -18,7 +18,7 @@ class IntegrationProvider:
         return ()
 
     def is_in_function(self, addr: int) -> bool:
-        return False
+        return True
 
     def get_comment_lines(self, addr: int) -> List[str]:
         return []
@@ -42,7 +42,7 @@ provider: IntegrationProvider = IntegrationProvider()
 @pwndbg.config.trigger(provider_name)
 def switch_providers():
     global provider
-    if provider_name.value == "none":
+    if not provider_name.value or provider_name.value == "none":
         provider = IntegrationProvider()
     elif provider_name.value == "binja":
         # do not import at start of file to avoid circular import
@@ -54,4 +54,4 @@ def switch_providers():
 
         provider = pwndbg.ida.IdaProvider()
     else:
-        raise ValueError(f"Invalid provider {provider!r} specified.")
+        raise ValueError(f"Invalid provider {provider_name.value!r} specified.")

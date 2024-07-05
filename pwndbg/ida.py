@@ -564,7 +564,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
             return (ida_version, ida_py_ver, ida_hr_ver)
         return ()
 
-    @pwndbg.decorators.suppress_errors(fallback=False)
+    @pwndbg.decorators.suppress_errors(fallback=True)
     @withIDA
     def is_in_function(self, addr: int) -> bool:
         return available() and bool(GetFunctionName(addr))

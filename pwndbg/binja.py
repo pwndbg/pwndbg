@@ -383,8 +383,8 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             f"Binary Ninja Python: {_bn.get_py_version()}",
         )
 
-    @pwndbg.decorators.suppress_errors(fallback=False)
-    @with_bn(fallback=False)
+    @pwndbg.decorators.suppress_errors(fallback=True)
+    @with_bn(fallback=True)
     def is_in_function(self, addr: int) -> bool:
         return _bn.get_func_info(l2r(addr)) is not None
 
