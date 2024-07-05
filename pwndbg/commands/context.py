@@ -758,9 +758,7 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
     code = pwndbg.integration.provider.decompile(pwndbg.gdblib.regs.pc, int(source_code_lines))
 
     if code:
-        bannerline = (
-            [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
-        )
+        bannerline = [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
         return bannerline + code
     else:
         return []
