@@ -758,8 +758,7 @@ class Arena:
         fd_offset = pwndbg.gdblib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
         result = Bins(BinType.FAST)
-        num_fastbins = 7
-        for i in range(num_fastbins):
+        for i in range(NFASTBINS):
             size += pwndbg.gdblib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
                 int(self.fastbinsY[i]),
