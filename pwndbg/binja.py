@@ -25,7 +25,6 @@ import pygments
 import pygments.formatters
 import pygments.style
 import pygments.token
-from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 
 import pwndbg
@@ -158,22 +157,6 @@ def with_bn(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]
         return wrapper
 
     return decorator
-
-
-def takes_address(function: Callable[Concatenate[int, P], T]) -> Callable[Concatenate[int, P], T]:
-    @functools.wraps(function)
-    def wrapper(address: int, *args: P.args, **kwargs: P.kwargs) -> T:
-        return function(l2r(address), *args, **kwargs)
-
-    return wrapper
-
-
-def returns_address(function: Callable[P, int]) -> Callable[P, int]:
-    @functools.wraps(function)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> int:
-        return r2l(function(*args, **kwargs))
-
-    return wrapper
 
 
 @pwndbg.lib.cache.cache_until("stop")
