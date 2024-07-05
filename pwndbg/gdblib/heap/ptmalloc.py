@@ -1265,9 +1265,6 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         Returns True if corruption is provable, otherwise False.
         """
 
-        print(f"chain_fd({len(chain_fd)}): {chain_fd}")
-        print(f"chain_bk({len(chain_bk)}): {chain_bk}")
-
         if len(chain_fd) != len(chain_bk):
             # If the chain lengths aren't equal, the chain is corrupted
             # The vast majority of corruptions will be caught here
@@ -1318,7 +1315,6 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
                     return True
 
         return False
-
 
     def bin_at(
         self, index: int, arena_addr: int | None = None
@@ -1376,6 +1372,10 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         corrupt_chain_bk = full_chain_bk[:(corrupt_chain_size + 1)]
 
         is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
+
+        if not is_chain_corrupted and len(chain_fd) == len(chain_bk) == 2:
+            chain_fd = [0]
+            chain_bk = [0]
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
