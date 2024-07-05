@@ -169,15 +169,14 @@ server: SimpleXMLRPCServer | None = None
 handler: ServerHandler | None = None
 
 
-# TODO: enable switching with this
 def start_server(bv: binaryninja.BinaryView) -> None:
     global server
 
+    if server is not None:
+        stop_server(bv)
+
     handler = ServerHandler(bv)
     handler.init()
-
-    if server is not None:
-        return
 
     server = SimpleXMLRPCServer((host, port), requestHandler=CustomLogHandler, allow_none=True)
     server.register_introspection_functions()
@@ -185,7 +184,6 @@ def start_server(bv: binaryninja.BinaryView) -> None:
     for f in to_register:
         server.register_function(getattr(handler, f))
 
-    # TODO: change server logging so it doesn't get counted as errors
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     thread.start()
