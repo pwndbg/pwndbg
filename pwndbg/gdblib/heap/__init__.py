@@ -48,7 +48,9 @@ global_max_fast = add_heap_param("global-max-fast", "0", "the address of global_
 
 symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 
-heap_chain_limit = add_heap_param("heap-dereference-limit", 8, "number of bins to dereference")
+heap_chain_limit = add_heap_param(
+    "heap-dereference-limit", 8, "number of chunks to dereference in each bin"
+)
 
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
