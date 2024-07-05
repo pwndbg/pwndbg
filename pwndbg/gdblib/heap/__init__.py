@@ -52,6 +52,9 @@ heap_chain_limit = add_heap_param(
     "heap-dereference-limit", 8, "number of chunks to dereference in each bin"
 )
 
+heap_corruption_check_limit = add_heap_param("heap-corruption-check-limit", 64, "lenght limit for bins which are fully checked for corruption")
+heap_corruption_check_limit += 1 # Make sure bins that are of default length are checked
+
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
     "auto",
