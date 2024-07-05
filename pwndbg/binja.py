@@ -87,7 +87,7 @@ def init_bn_rpc_client() -> None:
 
     exception = None  # (type, value, traceback)
     try:
-        version = _bn.get_version()
+        version: str = _bn.get_version()
         print(
             message.success(
                 f"Pwndbg successfully connected to Binary Ninja ({version}) xmlrpc: {addr}"
@@ -207,7 +207,8 @@ _managed_bps: Dict[int, gdb.Breakpoint] = {}
 @pwndbg.gdblib.events.cont
 @with_bn()
 def auto_update_bp() -> None:
-    binja_bps = {r2l(addr) for addr in _bn.get_bp_tags()}
+    bps: List[int] = _bn.get_bp_tags()
+    binja_bps = {r2l(addr) for addr in bps}
     for k in _managed_bps.keys() - binja_bps:
         _managed_bps.pop(k).delete()
     for k in binja_bps - _managed_bps.keys():
@@ -364,13 +365,13 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @with_bn()
     def get_symbol(self, addr: int) -> str | None:
-        sym = _bn.get_symbol(l2r(addr))
+        sym: str | None = _bn.get_symbol(l2r(addr))
         if sym is not None:
             return sym
-        func = _bn.get_func_info(l2r(addr))
+        func: Tuple[str, int] | None = _bn.get_func_info(l2r(addr))
         if func is not None:
             return f"{func[0]}{addr - r2l(func[1]):+}"
-        dv = _bn.get_data_info(l2r(addr))
+        dv: Tuple[str, int] | None = _bn.get_data_info(l2r(addr))
         if dv is not None:
             return f"{dv[0]}{addr - r2l(dv[1]):+}"
         return None
@@ -378,9 +379,11 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors(fallback=())
     @with_bn(fallback=())
     def get_versions(self) -> Tuple[str, ...]:
+        bn_version: str = _bn.get_version()
+        py_version: str = _bn.get_py_version()
         return (
-            f"Binary Ninja:        {_bn.get_version()}",
-            f"Binary Ninja Python: {_bn.get_py_version()}",
+            f"Binary Ninja:        {bn_version}",
+            f"Binary Ninja Python: {py_version}",
         )
 
     @pwndbg.decorators.suppress_errors(fallback=True)
@@ -391,7 +394,8 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors(fallback=[])
     @with_bn(fallback=[])
     def get_comment_lines(self, addr: int) -> List[str]:
-        return _bn.get_comments(l2r(addr))
+        comments: List[str] = _bn.get_comments(l2r(addr))
+        return comments
 
     @pwndbg.decorators.suppress_errors()
     @with_bn()

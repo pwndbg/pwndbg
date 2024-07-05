@@ -555,7 +555,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @withIDA
     def get_versions(self) -> Tuple[str, ...]:
-        ida_versions = ida.get_ida_versions()
+        ida_versions = get_ida_versions()
 
         if ida_versions is not None:
             ida_version = f"IDA PRO:  {ida_versions['ida']}"

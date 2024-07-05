@@ -5,6 +5,7 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.lib.functions
+from pwndbg.color import message
 
 
 class IntegrationProvider:
@@ -54,4 +55,9 @@ def switch_providers():
 
         provider = pwndbg.ida.IdaProvider()
     else:
-        raise ValueError(f"Invalid provider {provider_name.value!r} specified.")
+        print(
+            message.warn(
+                f"Invalid provider {provider_name.value!r} specified. Disabling integration."
+            )
+        )
+        provider_name.revert_default()
