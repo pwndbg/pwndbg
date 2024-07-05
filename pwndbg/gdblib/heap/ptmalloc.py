@@ -758,7 +758,7 @@ class Arena:
         fd_offset = pwndbg.gdblib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
         result = Bins(BinType.FAST)
-        for i in range(7):
+        for i in range(NFASTBINS):
             size += pwndbg.gdblib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
                 int(self.fastbinsY[i]),
@@ -1211,7 +1211,7 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         else:
             return (size >> 3) - 2
 
-    def fastbins(self, arena_addr: int | None = None):
+    def fastbins(self, arena_addr: int | None = None) -> Bins | None:
         """Returns: chain or None"""
         if arena_addr:
             arena = Arena(arena_addr)
@@ -1219,26 +1219,9 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             arena = self.thread_arena
 
         if arena is None:
-            return
+            return None
 
-        fastbinsY = arena.fastbinsY
-        fd_offset = self.chunk_key_offset("fd")
-        num_fastbins = 7
-        size = pwndbg.gdblib.arch.ptrsize * 2
-        safe_lnk = pwndbg.glibc.check_safe_linking()
-
-        result = Bins(BinType.FAST)
-        for i in range(num_fastbins):
-            size += pwndbg.gdblib.arch.ptrsize * 2
-            chain = pwndbg.chain.get(
-                int(fastbinsY[i]),
-                offset=fd_offset,
-                limit=pwndbg.gdblib.heap.heap_chain_limit,
-                safe_linking=safe_lnk,
-            )
-
-            result.bins[size] = Bin(chain)
-        return result
+        return arena.fastbins()
 
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
