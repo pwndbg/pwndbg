@@ -58,7 +58,7 @@ def qemu_assembly_run():
 
     yield _start_binary
 
-    qemu.terminate()
+    qemu.kill()
 
     # Ensure qemu is stopped
 
