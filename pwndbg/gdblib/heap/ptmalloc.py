@@ -1282,7 +1282,7 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
                 return True
             else:
                 bin_chk = Chunk(chain_fd[0])
-                if not(bin_chk.fd == bin_chk.bk == chain_fd[0]):
+                if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
                     return True
 
         else:
@@ -1341,9 +1341,6 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         if arena is None:
             return None
 
-        if index != 0:
-            return None
-
         normal_bins = arena._gdbValue["bins"]  # Breaks encapsulation, find a better way.
 
         bins_base = int(normal_bins.address) - (pwndbg.gdblib.arch.ptrsize * 2)
@@ -1366,10 +1363,10 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
 
         full_chain_fd = get_chain(front, fd_offset)
         full_chain_bk = get_chain(back, bk_offset)
-        chain_fd = full_chain_fd[:(chain_size + 1)]
-        chain_bk = full_chain_bk[:(chain_size + 1)]
-        corrupt_chain_fd = full_chain_fd[:(corrupt_chain_size + 1)]
-        corrupt_chain_bk = full_chain_bk[:(corrupt_chain_size + 1)]
+        chain_fd = full_chain_fd[: (chain_size + 1)]
+        chain_bk = full_chain_bk[: (chain_size + 1)]
+        corrupt_chain_fd = full_chain_fd[: (corrupt_chain_size + 1)]
+        corrupt_chain_bk = full_chain_bk[: (corrupt_chain_size + 1)]
 
         is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
 
