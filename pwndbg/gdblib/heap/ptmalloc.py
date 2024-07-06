@@ -1354,8 +1354,8 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         fd_offset = self.chunk_key_offset("fd")
         bk_offset = self.chunk_key_offset("bk")
 
-        chain_size = pwndbg.gdblib.heap.heap_chain_limit
-        corrupt_chain_size = pwndbg.gdblib.heap.heap_corruption_check_limit
+        chain_size = int(pwndbg.gdblib.heap.heap_chain_limit)
+        corrupt_chain_size = int(pwndbg.gdblib.heap.heap_corruption_check_limit)
 
         get_chain = lambda bin, offset: pwndbg.chain.get(
             int(bin),
