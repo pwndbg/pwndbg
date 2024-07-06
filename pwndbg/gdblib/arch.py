@@ -50,7 +50,6 @@ def read_thumb_bit() -> int | None:
     """
     if pwndbg.gdblib.arch.current == "arm":
         # When program initially starts, cpsr may not be readable
-        cpsr = pwndbg.gdblib.regs.cpsr
         if (cpsr := pwndbg.gdblib.regs.cpsr) is not None:
             return (cpsr >> 5) & 1
     elif pwndbg.gdblib.arch.current == "armcm":
