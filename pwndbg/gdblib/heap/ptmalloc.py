@@ -1254,9 +1254,9 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             result.bins[size] = Bin(chain, count=count)
         return result
 
-    def check_chain_corrupted(self, chain_fd, chain_bk) -> bool:
+    def check_chain_corrupted(self, chain_fd: List[int], chain_bk: List[int]) -> bool:
         """
-        Checks if the doubly linked list (of a {small, large, unsorted} bin)
+        Checks if the doubly linked list (of a {unsorted, small, large} bin)
         defined by chain_fd, chain_bk is corrupted.
 
         Even if the chains do not cover the whole bin, they still are expected
@@ -1345,6 +1345,11 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         bins_base = int(normal_bins.address) - (pwndbg.gdblib.arch.ptrsize * 2)
         current_base = bins_base + (index * pwndbg.gdblib.arch.ptrsize * 2)
 
+        # check whether the bin is empty
+        bin_chunk = Chunk(current_base)
+        if bin_chunk.fd == bin_chunk.bk == current_base:
+            return ([0], [0], False)
+
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset = self.chunk_key_offset("fd")
         bk_offset = self.chunk_key_offset("bk")
@@ -1370,10 +1375,6 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         is_chain_corrupted = False
         if corrupt_chain_size > 0:
             is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
-
-        if not is_chain_corrupted and len(chain_fd) == len(chain_bk) == 2 and chain_fd[1] == 0:
-            chain_fd = [0]
-            chain_bk = [0]
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
