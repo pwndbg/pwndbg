@@ -528,6 +528,25 @@ class Emulator:
             pc = pwndbg.gdblib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
 
+    def read_thumb_bit(self) -> int | None:
+        """
+        Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
+
+        This reads from the emulator itself, meaning this can be read to determine a state
+        transitions between non-Thumb and Thumb mode
+
+        Return None if the Thumb bit is not relevent to the current architecture
+
+        Mimics the `read_thumb_bit` function defined in gdblib/arch.py
+        """
+        if pwndbg.gdblib.arch.current == "arm":
+            if (cpsr := self.cpsr) is not None:
+                return (cpsr >> 5) & 1
+        elif pwndbg.gdblib.arch.current == "armcm":
+            if (xpsr := self.xpsr) is not None:
+                return (xpsr >> 24) & 1
+        return None
+
     def get_uc_mode(self):
         """
         Retrieve the mode used by Unicorn for the current architecture.
@@ -667,8 +686,21 @@ class Emulator:
 
     def emulate_with_hook(self, hook, count=512) -> None:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
+
+        pc: int = self.pc
+        if (thumb_bit := self.read_thumb_bit()):
+            # Unicorn disregards the UC_MODE_THUMB mode passed into the constructor, and instead
+            # determines Thumb mode based on the PC that is passed to the `emu_start` function
+            # https://github.com/unicorn-engine/unicorn/issues/391
+            #
+            # Because we single-step the emulator, we always have to read the Thumb bit from the emulator
+            # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
+            # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
+            # which have Thumb mode transitions, Unicorn will internally handle them.
+            pc |= thumb_bit
+
         try:
-            self.emu_start(self.pc, 0, count=count)
+            self.emu_start(pc, 0, count=count)
         finally:
             self.hook_del(ident)
 
