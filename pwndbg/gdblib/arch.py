@@ -56,8 +56,7 @@ def read_thumb_bit() -> int | None:
     elif pwndbg.gdblib.arch.current == "armcm":
         # ARM Cortex-M procesors only suport Thumb mode. However, there is still a bit
         # that represents the Thumb mode (which is currently architecturally defined to be 1)
-        xpsr = pwndbg.gdblib.regs.xpsr
-        if xpsr is not None:
+        if (xpsr := pwndbg.gdblib.regs.xpsr) is not None:
             return (xpsr >> 24) & 1
     # AArch64 does not have a Thumb bit
     return None

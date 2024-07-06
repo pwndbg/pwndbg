@@ -64,7 +64,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC
             # and instead the CPU puts it into the Thumb mode register bit.
-            # This means we can clear the least significant bit of the target.
+            # This means we have to clear the least significant bit of the target.
             target = target & ~1
         return target
 
