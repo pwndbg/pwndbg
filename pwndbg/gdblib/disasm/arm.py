@@ -30,10 +30,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             else pwndbg.gdblib.regs.xpsr
         )
 
-        N = value & (1 << 31)
-        Z = value & (1 << 30)
-        C = value & (1 << 29)
-        V = value & (1 << 28)
+        N = (value >> 31) & 1
+        Z = (value >> 30) & 1
+        C = (value >> 29) & 1
+        V = (value >> 28) & 1
 
         cc = {
             ARM_CC_EQ: Z,
@@ -56,6 +56,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
+
+    @override
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+        target = super()._resolve_target(instruction, emu, call)
+        if target is not None:
+            # On interworking branches - branches that can enable Thumb mode - the target of a jump
+            # has the least significant bit set to 1. This is not actually written to the PC
+            # and instead the CPU puts it into the Thumb mode register bit.
+            # This means we have to clear the least significant bit of the target.
+            target = target & ~1
+        return target
 
     @override
     def _memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
