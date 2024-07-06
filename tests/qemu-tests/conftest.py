@@ -60,7 +60,6 @@ def qemu_assembly_run():
 
     qemu.kill()
 
-    # Ensure qemu is stopped
 
 
 @pytest.fixture
@@ -106,4 +105,3 @@ def qemu_start_binary():
 
     qemu.kill()
 
-    # Ensure qemu is stopped
