@@ -61,7 +61,6 @@ def qemu_assembly_run():
     qemu.kill()
 
 
-
 @pytest.fixture
 def qemu_start_binary():
     """
@@ -104,4 +103,3 @@ def qemu_start_binary():
     yield _start_binary
 
     qemu.kill()
-
