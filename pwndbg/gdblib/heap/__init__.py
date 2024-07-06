@@ -57,8 +57,6 @@ heap_corruption_check_limit = add_heap_param(
     64,
     "amount of chunks to traverse (forwards and backwards) for the bin corruption check",
 )
-# Make sure that bins that have the default amount of chunks (64) are fully traversed
-heap_corruption_check_limit += 1
 
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",

@@ -1262,7 +1262,7 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         Even if the chains do not cover the whole bin, they still are expected
         to be of the same length.
 
-        Returns True if corruption is provable, otherwise False.
+        Returns True if the bin is certainly corrupted, otherwise False.
         """
 
         if len(chain_fd) != len(chain_bk):
@@ -1274,7 +1274,7 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             # chain (an empty bin) would look something like `[main_arena+88, 0]`.
             return True
         elif len(chain_fd) == len(chain_bk) == 2:
-            # Check if bin[index] points to itself (is empty)
+            # Check if the bin points to itself (is empty)
 
             if chain_fd != chain_bk:
                 return True
@@ -1286,16 +1286,14 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
                     return True
 
         else:
-            if chain_fd[-1] == 0:
-                chain_fd = chain_fd[:-1]
-            if chain_bk[-1] == 0:
-                chain_bk = chain_bk[:-1]
+            chain_sz = len(chain_fd) - (1 if chain_fd[-1] == 0 else 0)
 
             # Forward and backward chains may have some overlap, we don't need to recheck those chunks
             checked = set()
 
             # Check connections in all chunks from the forward chain
-            for chunk_addr in chain_fd:
+            for i in range(chain_sz):
+                chunk_addr = chain_fd[i]
                 chunk = Chunk(chunk_addr)
                 if chunk.fd is None or Chunk(chunk.fd).bk != chunk_addr:
                     return True
@@ -1303,8 +1301,9 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
                     return True
                 checked.add(chunk_addr)
 
-            # Check connections in all chunks from the backward chain
-            for chunk_addr in chain_bk:
+            # Check connections in unchecked chunks from the backward chain
+            for i in range(chain_sz):
+                chunk_addr = chain_bk[i]
                 if chunk_addr in checked:
                     # We don't need to check any more chunks
                     break
@@ -1368,9 +1367,11 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         corrupt_chain_fd = full_chain_fd[: (corrupt_chain_size + 1)]
         corrupt_chain_bk = full_chain_bk[: (corrupt_chain_size + 1)]
 
-        is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
+        is_chain_corrupted = False
+        if corrupt_chain_size > 0:
+            is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
 
-        if not is_chain_corrupted and len(chain_fd) == len(chain_bk) == 2:
+        if not is_chain_corrupted and len(chain_fd) == len(chain_bk) == 2 and chain_fd[1] == 0:
             chain_fd = [0]
             chain_bk = [0]
 
