@@ -68,7 +68,7 @@ def qemu_start_binary():
     """
     Returns function that launches given binary with 'starti' command
 
-    The `path` is returned from `make_elf_from_assembly` (provided by pwntools)
+    Argument `path` is the path to the binary
     """
 
     qemu: subprocess.Popen = None
