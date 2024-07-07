@@ -122,7 +122,7 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
 
 # Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
 # Value is None if Thumb bit irrelevent or unknown.
-emulated_arm_mode_cache: DefaultDict[int,int] = collections.defaultdict(collections.defaultdict(lambda: None))
+emulated_arm_mode_cache: DefaultDict[int,int] = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -420,6 +420,9 @@ def near(
             if not emu.last_step_succeeded or not emu.valid:
                 emu = None
             else:
+                # Upon execution the previous instruction, the Thumb mode bit may have changed.
+                # This means we know whether the next instruction executed will be Thumb or not.
+                # This returns None in the case the Thumb bit is not relevent.
                 emulated_arm_mode_cache[emu.pc] = emu.read_thumb_bit()
 
         # Handle visual splits in the disasm view
