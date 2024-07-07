@@ -180,7 +180,7 @@ process_output() {
     fi
 
     read -r testname result < <(
-        echo "$output" | grep -Po '(^qemu-tests/tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)' \
+        echo "$output" | grep -Po '(^tests/[^ ]+)|(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)' \
             | tr '\n' ' ' \
             | cut -d ' ' -f 1,2
     )
