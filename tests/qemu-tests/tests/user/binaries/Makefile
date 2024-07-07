@@ -5,7 +5,6 @@ all: reference-binary.aarch64.out reference-binary.riscv64.out
 	@echo "[+] Building '$@'"
 	@aarch64-linux-gnu-gcc $(CFLAGS) $(EXTRA_FLAGS) -w -o $@ $< $(LDFLAGS)
 
-# apt install crossbuild-essential-riscv64
 %.riscv64.out : %.riscv64.c
 	@echo "[+] Building '$@'"
 	@riscv64-linux-gnu-gcc -march=rv64gc -mabi=lp64d -g $(CFLAGS) $(EXTRA_FLAGS) -w -o $@ $? $(LDFLAGS)
