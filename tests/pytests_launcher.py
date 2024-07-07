@@ -29,4 +29,5 @@ if return_code != 0:
     print("If you want to debug tests locally, run ./tests.sh with the --pdb flag")
     print("-" * 80)
 
+sys.stdout.flush()
 os._exit(return_code)
