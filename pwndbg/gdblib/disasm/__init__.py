@@ -122,7 +122,7 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
 
 # Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
 # Value is None if Thumb bit irrelevent or unknown.
-emulated_arm_mode_cache: DefaultDict[int,int] = collections.defaultdict(lambda: None)
+emulated_arm_mode_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -159,11 +159,7 @@ def get_disassembler(address):
         if thumb_mode is None:
             thumb_mode = bool(pwndbg.gdblib.regs.xpsr & (1 << 24))
         # novermin
-        extra = (
-            (CS_MODE_MCLASS | CS_MODE_THUMB)
-            if thumb_mode
-            else CS_MODE_MCLASS
-        )
+        extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if thumb_mode else CS_MODE_MCLASS
 
     elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
         thumb_mode = bool(emulated_arm_mode_cache[address])
