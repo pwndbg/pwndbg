@@ -689,7 +689,7 @@ class Emulator:
 
         pc: int = self.pc
         if thumb_bit := self.read_thumb_bit():
-            # Unicorn disregards the UC_MODE_THUMB mode passed into the constructor, and instead
+            # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
             # determines Thumb mode based on the PC that is passed to the `emu_start` function
             # https://github.com/unicorn-engine/unicorn/issues/391
             #
