@@ -199,7 +199,7 @@ def run_tests_and_print_stats(
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run tests.")
-    parser.add_argument("-t", "--type", dest="type", choices=["gdb", "qemu-user"], default="gdb")
+    parser.add_argument("-t", "--type", dest="type", choices=["gdb", "cross-arch"], default="gdb")
 
     parser.add_argument(
         "-p",
@@ -233,7 +233,7 @@ def parse_args():
     return parser.parse_args()
 
 
-TEST_FOLDER_NAME = {"gdb": "gdb-tests/tests", "qemu-user": "qemu-tests/tests/user"}
+TEST_FOLDER_NAME = {"gdb": "gdb-tests/tests", "cross-arch": "qemu-tests/tests/user"}
 
 if __name__ == "__main__":
     args = parse_args()
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     )
 
     ports = []
-    if args.type == "qemu-user":
+    if args.type == "cross-arch":
         ports = open_ports(len(tests))
 
     run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path, ports)

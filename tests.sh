@@ -4,7 +4,7 @@
 (cd tests && python3 tests.py $@)
 exit_code=$?
 
-# TODO: don't make pytest run on both user and qemu-user tests
+# TODO: don't make pytest run on both user and cross-arch tests
 COV=0
 # Run unit tests
 for arg in "$@"; do

@@ -80,9 +80,9 @@ jobs:
         ./setup-dev.sh
         mkdir .cov
   
-    - name: Run qemu-user tests
+    - name: Run cross-architecture tests
       run: |
-        ./tests.sh -t qemu-user
+        ./tests.sh -t cross-arch
 
     - name: Set up cache for QEMU images
       id: qemu-cache
