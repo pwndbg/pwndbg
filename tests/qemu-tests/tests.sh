@@ -224,7 +224,7 @@ test_system() {
     start=$(date +%s)
 
     for t in "${TESTS_LIST[@]}"; do
-        output=$(run_test "$t" "${kernel_type}" "${kernel_version}" "${arch}")
+        output=$(run_test "qemu-tests/$t" "${kernel_type}" "${kernel_version}" "${arch}")
         process_output "$output"
     done
 
