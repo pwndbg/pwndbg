@@ -109,6 +109,5 @@ def _get_arch(ptrsize: int):
 def update() -> None:
     arch_name, ptrsize, endian = _get_arch(typeinfo.ptrsize)
     arch.update(arch_name, ptrsize, endian)
-    arch.mode = get_thumb_mode_string()
     pwnlib.context.context.arch = pwnlib_archs_mapping[arch_name]
     pwnlib.context.context.bits = ptrsize * 8
