@@ -3,8 +3,6 @@ from __future__ import annotations
 import gdb
 import user
 
-import pwndbg
-
 REFERENCE_BINARY = user.binaries.get("reference-binary.riscv64.out")
 
 
