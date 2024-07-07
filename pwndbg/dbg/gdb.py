@@ -17,6 +17,17 @@ from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
 
+def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
+    """
+    Same as `gdb.parse_and_eval`, but only uses `global_context` if it is
+    supported by the current version of GDB.
+    """
+    try:
+        return gdb.parse_and_eval(expression, global_context)
+    except TypeError:
+        return gdb.parse_and_eval(expression)
+
+
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
@@ -29,14 +40,10 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             self.inner.select()
             restore = True
 
-        try:
-            value = gdb.parse_and_eval(expression, False)
-        except TypeError:
-            # Some earlier versions of GDB don't support the global_context argument.
-            value = gdb.parse_and_eval(expression)
-        finally:
-            if restore:
-                selected.select()
+        value = parse_and_eval(expression, global_context=False)
+
+        if restore:
+            selected.select()
 
         return GDBValue(value)
 
@@ -65,11 +72,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        try:
-            return GDBValue(gdb.parse_and_eval(expression, True))
-        except TypeError:
-            # Some earlier versions of GDB don't support the global_context argument.
-            return GDBValue(gdb.parse_and_eval(expression))
+        return GDBValue(parse_and_eval(expression, global_context=True))
 
 
 class GDBCommand(gdb.Command):
