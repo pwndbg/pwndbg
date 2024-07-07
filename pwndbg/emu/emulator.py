@@ -539,10 +539,10 @@ class Emulator:
 
         Mimics the `read_thumb_bit` function defined in gdblib/arch.py
         """
-        if pwndbg.gdblib.arch.current == "arm":
+        if self.arch == "arm":
             if (cpsr := self.cpsr) is not None:
                 return (cpsr >> 5) & 1
-        elif pwndbg.gdblib.arch.current == "armcm":
+        elif self.arch == "armcm":
             if (xpsr := self.xpsr) is not None:
                 return (xpsr >> 24) & 1
         return None

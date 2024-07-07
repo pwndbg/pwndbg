@@ -120,8 +120,9 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
     lambda: None
 )
 
-# Maps an address to integer 0/1, indicating the Thumb mode bit for the given address
-arm_mode_cache: DefaultDict[int,int] = collections.defaultdict(collections.defaultdict(lambda: None))
+# Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
+# Value is None if Thumb bit irrelevent or unknown.
+emulated_arm_mode_cache: DefaultDict[int,int] = collections.defaultdict(collections.defaultdict(lambda: None))
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -154,7 +155,9 @@ def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
 
 def get_disassembler(address):
     if pwndbg.gdblib.arch.current == "armcm":
-        thumb_mode = bool(arm_mode_cache[address] or pwndbg.gdblib.regs.xpsr & (1 << 24))
+        thumb_mode = bool(emulated_arm_mode_cache[address])
+        if thumb_mode is None:
+            thumb_mode = bool(pwndbg.gdblib.regs.xpsr & (1 << 24))
         # novermin
         extra = (
             (CS_MODE_MCLASS | CS_MODE_THUMB)
@@ -163,7 +166,9 @@ def get_disassembler(address):
         )
 
     elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
-        thumb_mode = bool(arm_mode_cache[address] or pwndbg.gdblib.regs.cpsr & (1 << 5))
+        thumb_mode = bool(emulated_arm_mode_cache[address])
+        if thumb_mode is None:
+            thumb_mode = bool(pwndbg.gdblib.regs.cpsr & (1 << 5))
         extra = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
 
     elif pwndbg.gdblib.arch.current == "sparc":
@@ -415,7 +420,7 @@ def near(
             if not emu.last_step_succeeded or not emu.valid:
                 emu = None
             else:
-                arm_mode_cache[emu.pc] = emu.read_thumb_bit()
+                emulated_arm_mode_cache[emu.pc] = emu.read_thumb_bit()
 
         # Handle visual splits in the disasm view
         # The second check here handles instructions like x86 `REP` that repeat the instruction
