@@ -79,6 +79,10 @@ jobs:
         ./setup.sh
         ./setup-dev.sh
         mkdir .cov
+  
+    - name: Run qemu-user tests
+      run: |
+        ./tests.sh -t qemu-user
 
     - name: Set up cache for QEMU images
       id: qemu-cache
@@ -97,10 +101,6 @@ jobs:
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
-
-    - name: Run qemu-user tests
-      run: |
-        ./tests.sh -t qemu-user
 
     - name: Process coverage data
       run: |
