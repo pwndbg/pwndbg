@@ -4,7 +4,6 @@
 (cd tests && python3 tests.py $@)
 exit_code=$?
 
-# TODO: don't make pytest run on both user and cross-arch tests
 COV=0
 RUN_PYTEST=1
 # Run unit tests
