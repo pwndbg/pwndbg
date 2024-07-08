@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import threading
 
 import tests
 
@@ -15,7 +14,6 @@ HELLO = [
 
 BINARY = tests.binaries.get("div_zero.out")
 CORE = "/tmp/pwndbg-tests-div-zero-core"
-CORE_LOCK = threading.Lock()
 
 
 def test_loads_pure_gdb_without_crashing():
@@ -32,16 +30,14 @@ def test_loads_binary_without_crashing():
     assert any("pwndbg: loaded" in line for line in output)
 
 
-def _helper_create_corefile():
-    with CORE_LOCK:
-        if not os.path.isfile(CORE):
-            create_coredump = ["run", f"generate-core-file {CORE}"]
-            run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-            assert os.path.isfile(CORE)
+def test_loads_core_without_crashing():
+    # Generate the corefile if it doesn't already exist
+    if not os.path.isfile(CORE):
+        create_coredump = ["run", f"generate-core-file {CORE}"]
+        run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
+        assert os.path.isfile(CORE)
 
-
-def test_loads_binary_with_core_without_crashing():
-    _helper_create_corefile()
+    # Attempt loading both a binary and a corefile
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
 
     assert any(f"Reading symbols from {BINARY}..." in line for line in output)
@@ -59,9 +55,7 @@ def test_loads_binary_with_core_without_crashing():
     crash_address_line = re.compile(r"^#0  0x[0-9a-fA-F]+ in main .*$")
     assert any(crash_address_line.match(line) for line in output)
 
-
-def test_loads_core_without_crashing():
-    _helper_create_corefile()
+    # Attempt loading with just a corefile
     output = run_gdb_with_script(core=CORE).splitlines()
 
     expected = [
