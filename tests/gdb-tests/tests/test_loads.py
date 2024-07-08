@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-
 import threading
 
 import tests
@@ -39,6 +38,7 @@ def _helper_create_corefile():
             create_coredump = ["run", f"generate-core-file {CORE}"]
             run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
             assert os.path.isfile(CORE)
+
 
 def test_loads_binary_with_core_without_crashing():
     _helper_create_corefile()
