@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import re
 
+import threading
+
 import tests
 
 from .utils import run_gdb_with_script
@@ -14,6 +16,7 @@ HELLO = [
 
 BINARY = tests.binaries.get("div_zero.out")
 CORE = "/tmp/pwndbg-tests-div-zero-core"
+CORE_LOCK = threading.Lock()
 
 
 def test_loads_pure_gdb_without_crashing():
@@ -30,11 +33,15 @@ def test_loads_binary_without_crashing():
     assert any("pwndbg: loaded" in line for line in output)
 
 
+def _helper_create_corefile():
+    with CORE_LOCK:
+        if not os.path.isfile(CORE):
+            create_coredump = ["run", f"generate-core-file {CORE}"]
+            run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
+            assert os.path.isfile(CORE)
+
 def test_loads_binary_with_core_without_crashing():
-    if not os.path.isfile(CORE):
-        create_coredump = ["run", f"generate-core-file {CORE}"]
-        run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-        assert os.path.isfile(CORE)
+    _helper_create_corefile()
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
 
     assert any(f"Reading symbols from {BINARY}..." in line for line in output)
@@ -54,10 +61,7 @@ def test_loads_binary_with_core_without_crashing():
 
 
 def test_loads_core_without_crashing():
-    if not os.path.isfile(CORE):
-        create_coredump = ["run", f"generate-core-file {CORE}"]
-        run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-        assert os.path.isfile(CORE)
+    _helper_create_corefile()
     output = run_gdb_with_script(core=CORE).splitlines()
 
     expected = [
