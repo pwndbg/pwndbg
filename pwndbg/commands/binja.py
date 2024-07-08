@@ -53,4 +53,5 @@ def bn_eval(expr: gdb.Value) -> int | None:
         if v is not None:
             magic_vars[r] = v
     magic_vars["piebase"] = pwndbg.gdblib.proc.binary_base_addr
-    return pwndbg.binja._bn.parse_expr(expr.string(), magic_vars)
+    ret: int | None = pwndbg.binja._bn.parse_expr(expr.string(), magic_vars)
+    return ret
