@@ -5,6 +5,7 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.lib.functions
+import pwndbg.lib.config
 from pwndbg.color import message
 
 
@@ -34,7 +35,9 @@ class IntegrationProvider:
 provider_name = pwndbg.config.add_param(
     "integration-provider",
     "none",
-    "Which provider to use for integration features. Valid values are: none, binja, ida",
+    "which provider to use for integration features",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["none", "binja", "ida"],
 )
 
 provider: IntegrationProvider = IntegrationProvider()

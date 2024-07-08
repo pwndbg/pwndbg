@@ -131,15 +131,27 @@ class ServerHandler:
         return ["// " + x for x in ret if x]
 
     @should_register
-    def decompile_func(self, addr: int) -> List[Tuple[int, List[Tuple[str, str]]]] | None:
+    def decompile_func(
+        self, addr: int, level: str
+    ) -> List[Tuple[int, List[Tuple[str, str]]]] | None:
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
-        func = func.hlil_if_available
+        if level == "disasm":
+            pass
+        elif level == "llil":
+            func = func.llil_if_available
+        elif level == "mlil":
+            func = func.mlil_if_available
+        elif level == "hlil":
+            func = func.hlil_if_available
+        else:
+            raise ValueError(f"Cannot decompile with level {level!r}")
         if func is None:
             return None
+        lines = func.root.lines if level == "hlil" else func.instructions
         ret = []
-        for line in func.root.lines:
+        for line in lines:
             ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
         return ret
 
@@ -155,9 +167,7 @@ class ServerHandler:
         return (ret_ty, arg_tys)
 
     @should_register
-    def get_symbol_addr(
-        self, sym: str
-    ) -> int | None:
+    def get_symbol_addr(self, sym: str) -> int | None:
         f = self.bv.get_symbols_by_name(sym)
         if f:
             return f[0].address

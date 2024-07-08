@@ -39,6 +39,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.integration
 import pwndbg.lib.cache
+import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.gdblib.nearpc import c as nearpc_color
@@ -47,13 +48,22 @@ from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
 bn_rpc_host = pwndbg.config.add_param(
-    "bn-rpc-host", "127.0.0.1", "binary ninja xmlrpc server address"
+    "bn-rpc-host", "127.0.0.1", "Binary Ninja XML-RPC server host"
 )
-bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 31337, "binary ninja xmlrpc server port")
+bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 31337, "Binary Ninja XML-RPC server port")
 bn_timeout = pwndbg.config.add_param(
-    "bn-timeout", 2, "time to wait for binary ninja xmlrpc in seconds"
+    "bn-timeout", 2, "time to wait for Binary Ninja XML-RPC, in seconds"
 )
-pwndbg.config.add_param("bn-autosync", False, "whether to automatically run bn-sync every step")
+bn_autosync = pwndbg.config.add_param(
+    "bn-autosync", False, "whether to automatically run bn-sync every step"
+)
+bn_il_level = pwndbg.config.add_param(
+    "bn-il-level",
+    "hlil",
+    "the IL level to use when displaying Binary Ninja decompilation",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["disasm", "llil", "mlil", "hlil"],
+)
 
 _bn: xmlrpc.client.ServerProxy | None = None
 
@@ -194,7 +204,7 @@ def base():
 @with_bn()
 def auto_update_pc() -> None:
     pc = l2r(pwndbg.gdblib.regs.pc)
-    if pwndbg.config.bn_autosync.value:
+    if bn_autosync.value:
         navigate_to(pc)
     _bn.update_pc_tag(pc)
 
@@ -400,7 +410,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @with_bn()
     def decompile(self, addr: int, lines: int) -> List[str] | None:
-        decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(l2r(addr))
+        decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(l2r(addr), bn_il_level.value)
         if not decomp:
             return None
         decomp = [
