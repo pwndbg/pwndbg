@@ -6,6 +6,7 @@ import pwndbg.binja
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
+import pwndbg.gdblib.regs
 from pwndbg.commands import CommandCategory
 
 
@@ -20,8 +21,7 @@ def bn_sync(*args) -> None:
     """
     Synchronize IDA's cursor with GDB
     """
-    pc = int(gdb.selected_frame().pc())
-    pwndbg.binja.navigate_to(pc)
+    pwndbg.binja.navigate_to(pwndbg.gdblib.regs.pc)
 
 
 @pwndbg.gdblib.functions.GdbFunction()

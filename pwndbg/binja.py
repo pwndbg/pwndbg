@@ -203,10 +203,10 @@ def base():
 @pwndbg.gdblib.events.stop
 @with_bn()
 def auto_update_pc() -> None:
-    pc = l2r(pwndbg.gdblib.regs.pc)
+    pc = pwndbg.gdblib.regs.pc
     if bn_autosync.value:
         navigate_to(pc)
-    _bn.update_pc_tag(pc)
+    _bn.update_pc_tag(l2r(pc))
 
 
 _managed_bps: Dict[int, gdb.Breakpoint] = {}
