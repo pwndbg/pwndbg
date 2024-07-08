@@ -23,6 +23,7 @@ def bn_sync(*args) -> None:
     pc = int(gdb.selected_frame().pc())
     pwndbg.binja.navigate_to(pc)
 
+
 @pwndbg.gdblib.functions.GdbFunction()
 @pwndbg.binja.with_bn()
 def bn_sym(name) -> int | None:

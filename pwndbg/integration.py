@@ -4,8 +4,8 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
-import pwndbg.lib.functions
 import pwndbg.lib.config
+import pwndbg.lib.functions
 from pwndbg.color import message
 
 

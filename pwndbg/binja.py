@@ -410,7 +410,9 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @with_bn()
     def decompile(self, addr: int, lines: int) -> List[str] | None:
-        decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(l2r(addr), bn_il_level.value)
+        decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(
+            l2r(addr), bn_il_level.value
+        )
         if not decomp:
             return None
         decomp = [
