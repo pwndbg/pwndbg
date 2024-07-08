@@ -82,7 +82,7 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
 @pwndbg.lib.cache.cache_until("objfile")
 def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
     """
-    Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
+    Retrieve the name for the symbol located at `address` - either from GDB or from integration provider
     Passing `gdb_only=True`
 
     Empty string if no symbol

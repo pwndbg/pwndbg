@@ -195,7 +195,7 @@ def r2l(addr: int) -> int:
     return result
 
 
-@pwndbg.lib.cache.cache_until("objfile")
+@pwndbg.lib.cache.cache_until("stop")
 def base():
     return _bn.get_base()
 

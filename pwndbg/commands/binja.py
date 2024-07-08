@@ -32,4 +32,4 @@ def bn_sym(name) -> int | None:
     """
     name = name.string()
     addr: int | None = pwndbg.binja._bn.get_symbol_addr(name)
-    return addr
+    return pwndbg.binja.r2l(addr)
