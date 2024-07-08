@@ -34,4 +34,5 @@ for nodeid in collector.collected:
     print("Test:", nodeid)
 
 # easy way to exit GDB session
-sys.exit(0)
+sys.stdout.flush()
+os._exit(0)

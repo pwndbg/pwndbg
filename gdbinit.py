@@ -209,4 +209,5 @@ try:
 
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
-    sys.exit(1)
+    sys.stdout.flush()
+    os._exit(1)
