@@ -32,7 +32,6 @@ def qemu_assembly_run():
         print("'QEMU_PORT' environment variable not set")
         sys.stdout.flush()
         os._exit(1)
-        
 
     def _start_binary(asm: str, arch: str, *args):
         nonlocal qemu
