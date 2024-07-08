@@ -4,12 +4,19 @@ import ctypes
 import sys
 import threading
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Tuple
+import xmlrpc.client
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 from xmlrpc.server import SimpleXMLRPCServer
 
 import binaryninja
+
+# Allow large integers to be transmitted
+xmlrpc.client.MAXINT = 10**100
+xmlrpc.client.MININT = -10**100
+
 
 host = "127.0.0.1"
 port = 31337
@@ -172,6 +179,16 @@ class ServerHandler:
         if f:
             return f[0].address
         return self.bv.get_symbol_by_raw_name(sym)
+
+    @should_register
+    def parse_expr(self, expr: str, magic_vals: Dict[str, int]) -> int | None:
+        try:
+            self.bv.add_expression_parser_magic_values(
+                list(magic_vals.keys()), list(magic_vals.values())
+            )
+            return self.bv.parse_expression(expr)
+        except ValueError:
+            return None
 
     @should_register
     def get_base(self) -> int:

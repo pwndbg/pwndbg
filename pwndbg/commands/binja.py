@@ -26,10 +26,29 @@ def bn_sync(*args) -> None:
 
 @pwndbg.gdblib.functions.GdbFunction()
 @pwndbg.binja.with_bn()
-def bn_sym(name) -> int | None:
+def bn_sym(name_val: gdb.Value) -> int | None:
     """
     Lookup a symbol's address by name from Binary Ninja.
     """
-    name = name.string()
+    name = name_val.string()
     addr: int | None = pwndbg.binja._bn.get_symbol_addr(name)
     return pwndbg.binja.r2l(addr)
+
+
+@pwndbg.gdblib.functions.GdbFunction()
+@pwndbg.binja.with_bn()
+def bn_eval(expr: gdb.Value) -> int | None:
+    """
+    Parse and evaluate a Binary Ninja expression.
+    Docs: https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
+
+    Adds all registers in the current register set as magic variables (e.g. $rip).
+    Also adds a $piebase magic variable with the computed executable base.
+    """
+    magic_vars = {}
+    for r in pwndbg.gdblib.regs.current:
+        v = pwndbg.gdblib.regs[r]
+        if v is not None:
+            magic_vars[r] = v
+    magic_vars["piebase"] = pwndbg.gdblib.proc.binary_base_addr
+    return pwndbg.binja._bn.parse_expr(expr.string(), magic_vars)
