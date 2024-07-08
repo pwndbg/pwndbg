@@ -23,6 +23,8 @@ can be decoded with the `errno <value>` command.
 
 Examples:
     mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
+    mprotect $rsp 4096 rwx
+    mprotect $rsp 4096 7
     mprotect some_symbol 0x1000 PROT_NONE
 """,
 )
