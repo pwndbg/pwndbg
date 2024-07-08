@@ -28,8 +28,7 @@ rv = pytest.main(["--collect-only", TESTS_PATH], plugins=[collector])
 
 if rv == pytest.ExitCode.INTERRUPTED:
     print("Failed to collect all tests, perhaps there is a syntax error in one of test files?")
-    sys.stdout.flush()
-    os._exit(1)
+    sys.exit(1)
 
 
 print("Listing collected tests:")
