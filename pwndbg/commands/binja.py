@@ -19,7 +19,7 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.OnlyWhenRunning
 def bn_sync(*args) -> None:
     """
-    Synchronize IDA's cursor with GDB
+    Synchronize Binary Ninja's cursor with GDB
     """
     pwndbg.binja.navigate_to(pwndbg.gdblib.regs.pc)
 
