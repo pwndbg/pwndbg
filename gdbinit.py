@@ -165,7 +165,8 @@ def main() -> None:
         venv_path = get_venv_path(src_root)
         if not venv_path.exists():
             print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
-            sys.exit(1)
+            sys.stdout.flush()
+            os._exit(1)
 
         update_deps(src_root, venv_path)
         fixup_paths(src_root, venv_path)
@@ -203,4 +204,5 @@ try:
 
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
-    sys.exit(1)
+    sys.stdout.flush()
+    os._exit(1)
