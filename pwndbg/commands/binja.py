@@ -5,6 +5,7 @@ import gdb
 import pwndbg.binja
 import pwndbg.commands
 import pwndbg.gdblib.events
+import pwndbg.gdblib.functions
 from pwndbg.commands import CommandCategory
 
 
@@ -15,13 +16,19 @@ from pwndbg.commands import CommandCategory
     aliases=["bns"],
 )
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.binja.with_bn
 def bn_sync(*args) -> None:
     """
     Synchronize IDA's cursor with GDB
     """
-    try:
-        pc = int(gdb.selected_frame().pc())
-        pwndbg.binja.navigate_to(pc)
-    except Exception:
-        pass
+    pc = int(gdb.selected_frame().pc())
+    pwndbg.binja.navigate_to(pc)
+
+@pwndbg.gdblib.functions.GdbFunction()
+@pwndbg.binja.with_bn()
+def bn_sym(name) -> int | None:
+    """
+    Lookup a symbol's address by name from Binary Ninja.
+    """
+    name = name.string()
+    addr: int | None = pwndbg.binja._bn.get_symbol_addr(name)
+    return addr

@@ -155,6 +155,15 @@ class ServerHandler:
         return (ret_ty, arg_tys)
 
     @should_register
+    def get_symbol_addr(
+        self, sym: str
+    ) -> int | None:
+        f = self.bv.get_symbols_by_name(sym)
+        if f:
+            return f[0].address
+        return self.bv.get_symbol_by_raw_name(sym)
+
+    @should_register
     def get_base(self) -> int:
         return self.bv.start
 

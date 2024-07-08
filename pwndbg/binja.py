@@ -401,14 +401,16 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @with_bn()
     def decompile(self, addr: int, lines: int) -> List[str] | None:
         decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(l2r(addr))
-        if decomp is None:
+        if not decomp:
             return None
         decomp = [
             (r2l(addr), toks) for (addr, toks) in decomp if not all(t[0].isspace() for t in toks)
         ]
-        ind = max([(i, x) for (i, x) in enumerate(decomp) if x[0] <= addr], key=lambda t: t[1][0])[
-            0
-        ]
+        ind = max(
+            [(i, x) for (i, x) in enumerate(decomp) if x[0] <= addr],
+            key=lambda t: t[1][0],
+            default=(0, None),
+        )[0]
         start = ind - (lines - 1) // 2
         end = ind + lines // 2 + 1
 
