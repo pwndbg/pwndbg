@@ -12,7 +12,6 @@ class Arch:
     def __init__(self, arch_name: str, ptrsize: int, endian: Literal["little", "big"]) -> None:
         self.update(arch_name, ptrsize, endian)
         self.native_endian = str(sys.byteorder)
-        self.mode: Literal["arm", "thumb"] | None = None
 
     def update(self, arch_name: str, ptrsize: int, endian: Literal["little", "big"]) -> None:
         self.name = arch_name
