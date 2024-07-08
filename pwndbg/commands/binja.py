@@ -32,6 +32,8 @@ def bn_sym(name_val: gdb.Value) -> int | None:
     """
     name = name_val.string()
     addr: int | None = pwndbg.binja._bn.get_symbol_addr(name)
+    if addr is None:
+        return None
     return pwndbg.binja.r2l(addr)
 
 

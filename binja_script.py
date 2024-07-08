@@ -3,11 +3,11 @@ from __future__ import annotations
 import ctypes
 import sys
 import threading
+import xmlrpc.client
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
-import xmlrpc.client
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 from xmlrpc.server import SimpleXMLRPCServer
 
@@ -15,7 +15,7 @@ import binaryninja
 
 # Allow large integers to be transmitted
 xmlrpc.client.MAXINT = 10**100
-xmlrpc.client.MININT = -10**100
+xmlrpc.client.MININT = -(10**100)
 
 
 host = "127.0.0.1"
