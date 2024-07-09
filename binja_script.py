@@ -38,10 +38,19 @@ def get_widest_func(bv: binaryninja.BinaryView, addr: int) -> binaryninja.Functi
 
 
 # workaround for BinaryView.add_tag not supporting auto tags
-def add_auto_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: str) -> None:
+def add_auto_data_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: str) -> None:
     tag = binaryninja.core.BNCreateTag(bv.get_tag_type(name).handle, desc)
     binaryninja.core.BNAddTag(bv.handle, tag, False)
     binaryninja.core.BNAddAutoDataTag(bv.handle, addr, tag)
+
+# try to add a function tag to the widest function containing the address
+# if there are none, resort to a data tag instead
+def add_auto_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: str) -> None:
+    f = get_widest_func(bv, addr)
+    if f is None:
+        add_auto_data_tag(bv, addr, name, desc)
+    else:
+        f.add_tag(name, desc, addr=addr, auto=True)
 
 
 # workaround for there to be no way to get all address tags in the python API
