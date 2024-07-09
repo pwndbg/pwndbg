@@ -157,6 +157,10 @@ class Command:
             pwndbg.exception.handle(self.function.__name__)
             return
 
+        if not pwndbg.dbg.selected_inferior():
+            log.error("Pwndbg commands require a target binary to be selected")
+            return
+
         try:
             self.repeat = self.check_repeated(argument, from_tty)
             self(*args, **kwargs)
@@ -220,15 +224,20 @@ def fix(
     if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
 
+    frame = pwndbg.dbg.selected_frame()
+    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+        frame if frame else pwndbg.dbg.selected_inferior()
+    )
+    assert target, "Reached command expression evaluation with no frame or inferior"
+
     try:
-        parsed = pwndbg.dbg.evaluate_expression(arg)
-        return parsed
+        return target.evaluate_expression(arg)
     except Exception:
         pass
 
     try:
         arg = pwndbg.gdblib.regs.fix(arg)
-        return pwndbg.dbg.evaluate_expression(arg)
+        return target.evaluate_expression(arg)
     except Exception as e:
         if not quiet:
             print(e)
@@ -609,8 +618,15 @@ def sloppy_gdb_parse(s: str) -> int | str:
     :param s: String.
     :return: Whatever gdb.parse_and_eval returns or string.
     """
+
+    frame = pwndbg.dbg.selected_frame()
+    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+        frame if frame else pwndbg.dbg.selected_inferior()
+    )
+    assert target, "Reached command expression evaluation with no frame or inferior"
+
     try:
-        val = pwndbg.dbg.evaluate_expression(s)
+        val = target.evaluate_expression(s)
         # We can't just return int(val) because GDB may return:
         # "Python Exception <class 'gdb.error'> Cannot convert value to long."
         # e.g. for:
