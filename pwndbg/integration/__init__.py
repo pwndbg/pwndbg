@@ -50,13 +50,13 @@ def switch_providers():
         provider = IntegrationProvider()
     elif provider_name.value == "binja":
         # do not import at start of file to avoid circular import
-        import pwndbg.binja
+        import pwndbg.integration.binja
 
-        provider = pwndbg.binja.BinjaProvider()
+        provider = pwndbg.integration.binja.BinjaProvider()
     elif provider_name.value == "ida":
-        import pwndbg.ida
+        import pwndbg.integration.ida
 
-        provider = pwndbg.ida.IdaProvider()
+        provider = pwndbg.integration.ida.IdaProvider()
     else:
         print(
             message.warn(

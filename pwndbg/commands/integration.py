@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.binja
+import pwndbg.integration.binja
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions

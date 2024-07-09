@@ -9,7 +9,7 @@ from .utils import run_gdb_with_script
 
 HELLO = [
     "pwndbg: loaded ### pwndbg commands and ### shell commands. Type pwndbg [--shell | --all] [filter] for a list.",
-    "pwndbg: created $rebase, $base, $bn_sym, $bn_eval, $ida GDB functions (can be used with print/break)",
+    "pwndbg: created xxx GDB functions (can be used with print/break)",
 ]
 
 BINARY = tests.binaries.get("div_zero.out")
