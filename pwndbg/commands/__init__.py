@@ -232,12 +232,12 @@ def fix(
 
     # Try to evaluate the expression in the local, or, failing that, global
     # context.
-    ex = None
     try:
         return target.evaluate_expression(arg)
     except Exception:
         pass
 
+    ex = None
     try:
         # This will fail if gdblib is not available. While the next check
         # alleviates the need for this call, it's not really equivalent, and
