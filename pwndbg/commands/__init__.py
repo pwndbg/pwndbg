@@ -14,24 +14,19 @@ from typing import Set
 from typing import Tuple
 from typing import TypeVar
 
+import gdb
 from typing_extensions import ParamSpec
 
 import pwndbg.exception
-
-# These aren't available under LLDB, and we can't get rid of them until all of
-# this functionality has been ported to the Debugger API.
-#
-# TODO: Replace these with uses of the Debugger API.
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.gdblib.heap
-    import pwndbg.gdblib.kernel
-    import pwndbg.gdblib.proc
-    import pwndbg.gdblib.qemu
-    import pwndbg.gdblib.regs
-    from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
-    from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
-    from pwndbg.gdblib.heap.ptmalloc import HeuristicHeap
-    from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
+import pwndbg.gdblib.heap
+import pwndbg.gdblib.kernel
+import pwndbg.gdblib.proc
+import pwndbg.gdblib.qemu
+import pwndbg.gdblib.regs
+from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
+from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
+from pwndbg.gdblib.heap.ptmalloc import HeuristicHeap
+from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
 
 log = logging.getLogger(__name__)
 
@@ -63,16 +58,36 @@ class CommandCategory(str, Enum):
     DEV = "Developer"
 
 
-GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
+def list_current_commands():
+    current_pagination = gdb.execute("show pagination", to_string=True)
+    current_pagination = current_pagination.split()[-1].rstrip(
+        "."
+    )  # Take last word and skip period
+
+    gdb.execute("set pagination off")
+    command_list = gdb.execute("help all", to_string=True).strip().split("\n")
+    existing_commands: Set[str] = set()
+    for line in command_list:
+        line = line.strip()
+        # Skip non-command entries
+        if (
+            not line
+            or line.startswith("Command class:")
+            or line.startswith("Unclassified commands")
+        ):
+            continue
+        command = line.split()[0]
+        existing_commands.add(command)
+    gdb.execute(f"set pagination {current_pagination}")  # Restore original setting
+    return existing_commands
+
+
+GDB_BUILTIN_COMMANDS = list_current_commands()
 
 # Set in `reload` command so that we can skip double checking for registration
 # of an already existing command when re-registering GDB CLI commands
 # (there is no way to unregister a command in GDB 12.x)
-pwndbg_is_reloading = False
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
+pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
 class Command:
@@ -586,20 +601,11 @@ class ArgparsedCommand:
         )
 
 
-# These values are only used by `sloppy_gdb_parse`, and it, in turn, only seems
-# to end up being used by `pwndbg.commands.windbg`, through `AddressExpr` and
-# `HexOrAddressExpr`. By gating both these values and the `windbg` command family
-# behind `is_gdblib_available`, we get around that.
-#
-# TODO: Remove this after the `windbg` command family has been ported to the Debugger API.
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    # We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
-    # as realistically its ok to pull off the biggest possible type here
-    # We cache its GDB value type which is 'unsigned long long'
-    _mask = 0xFFFFFFFFFFFFFFFF
-    _mask_val_type = gdb.Value(_mask).type
+# We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
+# as realistically its ok to pull off the biggest possible type here
+# We cache its GDB value type which is 'unsigned long long'
+_mask = 0xFFFFFFFFFFFFFFFF
+_mask_val_type = gdb.Value(_mask).type
 
 
 def sloppy_gdb_parse(s: str) -> int | str:

@@ -282,12 +282,6 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def commands(self) -> List[str]:
-        """
-        List the commands available in this session.
-        """
-        raise NotImplementedError()
-
     def add_command(
         self, name: str, handler: Callable[[Debugger, str, bool], None]
     ) -> CommandHandle:
@@ -303,14 +297,6 @@ class Debugger:
     # pwndbg under LLDB without breaking it under GDB. Expect most of them to be
     # removed or replaced as the porting work continues.
     #
-
-    # We'd like to be able to gate some imports off during porting. This aids in
-    # that.
-    def is_gdblib_available(self) -> bool:
-        """
-        Whether gdblib is available under this debugger.
-        """
-        raise NotImplementedError()
 
     def addrsz(self, address: Any) -> str:
         """
