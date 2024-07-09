@@ -418,10 +418,10 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         decomp = [
             (r2l(addr), toks) for (addr, toks) in decomp if not all(t[0].isspace() for t in toks)
         ]
-        ind = max(
-            [(i, x) for (i, x) in enumerate(decomp) if x[0] <= addr],
+        ind = min(
+            [(i, x) for (i, x) in enumerate(decomp) if x[0] >= addr],
             key=lambda t: t[1][0],
-            default=(0, None),
+            default=(len(decomp) - 1, None),
         )[0]
         start = ind - (lines - 1) // 2
         end = ind + lines // 2 + 1
