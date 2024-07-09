@@ -43,6 +43,7 @@ def add_auto_data_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: st
     binaryninja.core.BNAddTag(bv.handle, tag, False)
     binaryninja.core.BNAddAutoDataTag(bv.handle, addr, tag)
 
+
 # try to add a function tag to the widest function containing the address
 # if there are none, resort to a data tag instead
 def add_auto_tag(bv: binaryninja.BinaryView, addr: int, name: str, desc: str) -> None:
@@ -203,6 +204,19 @@ class ServerHandler:
             return self.bv.parse_expression(expr)
         except ValueError:
             return None
+
+    @should_register
+    def get_var_offset_from_sp(self, addr: int, var_name: str) -> Tuple[int, int] | None:
+        f = get_widest_func(self.bv, addr)
+        if f is None:
+            return None
+        v = f.get_variable_by_name(var_name)
+        if v is None:
+            return None
+        sp_val = f.get_reg_value_at(addr, f.arch.stack_pointer)
+        if sp_val.type.name != "StackFrameOffset":
+            return None
+        return (sp_val.confidence, v.storage - sp_val.value)
 
     @should_register
     def get_base(self) -> int:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Tuple
+
 import gdb
 
 import pwndbg.commands
@@ -7,6 +9,7 @@ import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
 import pwndbg.gdblib.regs
 import pwndbg.integration.binja
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -35,6 +38,24 @@ def bn_sym(name_val: gdb.Value) -> int | None:
     if addr is None:
         return None
     return pwndbg.integration.binja.r2l(addr)
+
+
+@pwndbg.gdblib.functions.GdbFunction()
+@pwndbg.integration.binja.with_bn()
+def bn_var(name_val: gdb.Value) -> int | None:
+    """
+    Lookup a stack variable's address by name from Binary Ninja.
+    """
+    name = name_val.string()
+    conf_and_offset: Tuple[int, int] | None = pwndbg.integration.binja._bn.get_var_offset_from_sp(
+        pwndbg.integration.binja.l2r(pwndbg.gdblib.regs.pc), name
+    )
+    if conf_and_offset is None:
+        return None
+    (conf, offset) = conf_and_offset
+    if conf < 64:
+        print(message.warn(f"Warning: Stack offset only has {conf / 255 * 100:.2f}% confidence"))
+    return pwndbg.gdblib.regs.sp + offset
 
 
 @pwndbg.gdblib.functions.GdbFunction()
