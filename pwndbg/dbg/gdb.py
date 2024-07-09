@@ -21,6 +21,8 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
     """
     Same as `gdb.parse_and_eval`, but only uses `global_context` if it is
     supported by the current version of GDB.
+
+    `global_context` was introduced in GDB 14.
     """
     try:
         return gdb.parse_and_eval(expression, global_context)
