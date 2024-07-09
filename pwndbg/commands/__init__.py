@@ -239,6 +239,13 @@ def fix(
         pass
 
     try:
+        # This will fail if gdblib is not available. While the next check
+        # alleviates the need for this call, it's not really equivalent, and
+        # we'll need a debugger-agnostic version of regs.fix() if we want to
+        # completely get rid of this call. We can't do that now because there's
+        # no debugger-agnostic architecture functions. Those will come later.
+        #
+        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
         arg = pwndbg.gdblib.regs.fix(arg)
         return target.evaluate_expression(arg)
     except Exception as e:
@@ -248,6 +255,7 @@ def fix(
     # see if that yields anything.
     if frame:
         regs = frame.regs()
+        arg = arg.strip()
         if arg.startswith("$"):
             arg = arg[1:]
         reg = regs.by_name(arg)
