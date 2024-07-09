@@ -514,7 +514,7 @@ def test_jemalloc_extent_info(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    EXPECTED_PTR_ADDRESS = 0x7FFFF7808000
+    EXPECTED_PTR_ADDRESS = 0x7FFFF7807000
     EXPECTED_EXTENT_ADDRESS = 0x7FFFF7A16580
 
     # run jemalloc extent_info command

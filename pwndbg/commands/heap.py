@@ -1486,22 +1486,6 @@ def heap_config(filter_pattern) -> None:
 
 # Jemalloc
 
-# NOTE: Only being used for testing rigt now, will be removed later
-parser = argparse.ArgumentParser(description="Parse all base info")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def jemalloc_base_info() -> None:
-    addr_arena = gdb.parse_and_eval("*je_arenas")["repr"]
-
-    # jemalloc
-    arena = jemalloc.Arena(int(addr_arena))
-
-    print(arena.bins)
-    print(arena.extents)
-
-
-# command get_extent with address
 parser = argparse.ArgumentParser(description="Get extent with address")
 parser.add_argument("addr", type=int, help="Address of the extent")
 
@@ -1563,6 +1547,7 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
 
     print(f"Allocated Address: {hex(extent.allocated_address)}")
     print(f"Extent Address: {hex(extent.extent_address)}")
+
     print(f"Size: {hex(extent.size)}")
     print(f"Small class: {extent.has_slab}")
 
@@ -1573,11 +1558,18 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
 
 parser = argparse.ArgumentParser(description="Test cache")
 
+parser.add_argument("addr", type=int, help="Address of the extent metadata")
+
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def jemalloc_test() -> None:
-    rtree = jemalloc.RTree.get_rtree()
-    print(rtree.parse_rtree_ctx())
+def jemalloc_test(addr) -> None:
+    # rtree = jemalloc.RTree.get_rtree()
+    # print(rtree.parse_rtree_ctx())
+
+    tcache = jemalloc.TCache()
+    # print(tcache.find())
+
+    print(tcache.check(addr))
 
 
 parser = argparse.ArgumentParser(description="Prints all extents information")

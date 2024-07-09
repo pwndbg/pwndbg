@@ -193,12 +193,36 @@ class RTree:
         return self.rtree["root"]
 
     # from include/jemalloc/internal/rtree.h
-    def __subkey(self, key, level):
+    # converted implementation of rtree_leafkey
+    def __rtree_leaf_maskbits(self, level):
         ptrbits = 1 << (LG_SIZEOF_PTR + 3)
+        # print("ptrbits: ", ptrbits, bin(ptrbits))
+        cumbits = (
+            rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
+            - rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
+        )
+        # print("cumbits: ", cumbits, bin(cumbits))
+        return ptrbits - cumbits
+
+    # Can be used to lookup key quickly in cache
+    def __rtree_leafkey(self, key, level):
+        mask = ~((1 << self.__rtree_leaf_maskbits(level)) - 1)
+        # print("mask: ", mask, bin(mask))
+        return key & mask
+
+    def __subkey(self, key, level):
+        # print()
+        # print("KEY: ", key, bin(key))
+        ptrbits = 1 << (LG_SIZEOF_PTR + 3)
+        # print("ptrbits: ", ptrbits, bin(ptrbits))
         cumbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
+        # print("cumbits: ", cumbits, bin(cumbits))
         shiftbits = ptrbits - cumbits
+        # print("shiftbits: ", shiftbits, bin(shiftbits))
         maskbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
+        # print("maskbits: ", maskbits, bin(maskbits))
         mask = (1 << maskbits) - 1
+        # print("mask: ", mask, bin(mask))
         return (key >> shiftbits) & mask
 
     def lookup_hard(self, key):
@@ -212,6 +236,12 @@ class RTree:
 
         # For subkey 0
         subkey = self.__subkey(key, 1)
+        # print("original: ", subkey)
+        # subkey = self.__rtree_leafkey(key, 1)
+        # print("new1: ", subkey)
+        # subkey = self.__rtree_leafkey(key, 2)
+        # print("new2: ", subkey)
+
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
         node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
         if node["child"]["repr"] == 0:
@@ -233,6 +263,9 @@ class RTree:
 
         return Extent(ptr)
 
+    def test_parse(self):
+        pass
+
     @property
     def extents(self):
         # NOTE: Generating whole extents list is slow as it requires parsing whole rtree
@@ -241,6 +274,7 @@ class RTree:
             self._extents = []
             try:
                 root = self.root
+                last_addr = None
 
                 rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
                 rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
@@ -254,6 +288,7 @@ class RTree:
                     if node["child"]["repr"] == 0:
                         continue
                     leaf0 = node["child"]["repr"]
+
                     # print("leaf0: ", leaf0)
 
                     # level 1
@@ -263,16 +298,19 @@ class RTree:
                         if leaf["le_bits"]["repr"] == 0:
                             continue
 
+                        # print(j, leaf)
                         val = int(leaf["le_bits"]["repr"])
-                        # print("val: ", hex(val))
+
+                        if val == 0:
+                            return None
 
                         ls = (val << RTREE_NHIB) & ((2**64) - 1)
                         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
 
-                        if ptr == 0:
+                        if ptr == 0 or ptr == last_addr:
                             continue
 
-                        # print("ptr: ", hex(ptr))
+                        last_addr = ptr
 
                         extent = Extent(ptr)
                         self._extents.append(extent)
@@ -287,6 +325,11 @@ class RTree:
 
 
 class Arena:
+    """
+    Some notes:
+    - Huge allocation should not come from arena 0
+    """
+
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
@@ -336,7 +379,8 @@ class Extent:
         """
         May be larger in case of large size class allocation when cache_oblivious is enabled.
         """
-        return self._gdbValue["e_size_esn"]
+        # return self._gdbValue["e_size_esn"]
+        return (int(self._gdbValue["e_size_esn"]) >> LG_PAGE) << LG_PAGE
 
     @property
     def extent_address(self):
@@ -412,5 +456,4 @@ class Extent:
         """
         if self.bitfields["pai"] == 0:
             return "PAC"  # Page for extent
-        return "HPA"  # Huge Page
         return "HPA"  # Huge Page
