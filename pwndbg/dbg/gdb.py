@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import signal
 from typing import Any
+from typing import ContextManager
+from typing import Generic
 from typing import List
 from typing import Tuple
+from typing import TypeVar
 
 import gdb
 from typing_extensions import Callable
@@ -29,29 +32,67 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
+T = TypeVar("T")
+
+
+class Selection(ContextManager[None], Generic[T]):
+    """
+    GDB has a lot of global state. Many of our queries require that we select a
+    given object globally before we make them. When doing that, we must always
+    be careful to return selection to its previous state before exiting. This
+    class automatically manages the selection of a single object type.
+    """
+
+    select: Callable[[T], None]
+    target: T
+    get_current: Callable[[], T]
+
+    current: T
+    restore: bool
+
+    def __init__(self, target: T, get_current: Callable[[], T], select: Callable[[T], None]):
+        """
+        Upon entrace to the `with` block, the element given by `target` will be
+        compared to the object returned by calling `get_current`. If they
+        compare different, the value previously returned by `get_current` is
+        saved, and the element given by `target` will be selected by passing it
+        as an argument to `select`, and, after execution leaves the `with`
+        block, the previously saved element will be selected in the same fashion
+        as the first element.
+
+        If the elements don't compare different, this is a no-op.
+        """
+
+        self.get_current = get_current
+        self.select = select
+        self.target = target
+        self.restore = False
+        self.current = None
+
+    @override
+    def __enter__(self) -> None:
+        self.current = self.get_current()
+        if self.current != self.target:
+            self.select(self.target)
+            self.restore = True
+
+    @override
+    def __exit__(self, _exc_type, _exc, _traceback, /) -> None:
+        if self.restore:
+            self.select(self.current)
+
+
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        selected = gdb.selected_frame()
-        restore = False
-        if selected != self.inner:
-            self.inner.select()
-            restore = True
-
-        ex = None
-        try:
-            value = parse_and_eval(expression, global_context=False)
-        except gdb.error as e:
-            ex = e
-
-        if restore:
-            selected.select()
-
-        if ex:
-            raise pwndbg.dbg_mod.Error(ex)
+        with Selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                value = parse_and_eval(expression, global_context=False)
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
 
         return GDBValue(value)
 
@@ -62,15 +103,8 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
     @override
     def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
-        selected = gdb.selected_thread()
-        restore = False
-        if selected != self.inner:
-            self.inner.switch()
-            restore = True
-
-        value = gdb.newest_frame()
-        if restore:
-            selected.switch()
+        with Selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
+            value = gdb.newest_frame()
         return GDBFrame(value)
 
 
