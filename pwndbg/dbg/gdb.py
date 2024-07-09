@@ -31,6 +31,7 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
             pass
         return None
 
+
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
     """
     Same as `gdb.parse_and_eval`, but only uses `global_context` if it is
