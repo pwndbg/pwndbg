@@ -231,8 +231,7 @@ def fix(
     assert target, "Reached command expression evaluation with no frame or inferior"
 
     try:
-        parsed = target.evaluate_expression(arg)
-        return parsed
+        return target.evaluate_expression(arg)
     except Exception:
         pass
 
