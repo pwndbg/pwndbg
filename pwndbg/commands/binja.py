@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.binja
+import pwndbg.integration.binja
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
@@ -21,24 +21,24 @@ def bn_sync(*args) -> None:
     """
     Synchronize Binary Ninja's cursor with GDB
     """
-    pwndbg.binja.navigate_to(pwndbg.gdblib.regs.pc)
+    pwndbg.integration.binja.navigate_to(pwndbg.gdblib.regs.pc)
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.binja.with_bn()
+@pwndbg.integration.binja.with_bn()
 def bn_sym(name_val: gdb.Value) -> int | None:
     """
     Lookup a symbol's address by name from Binary Ninja.
     """
     name = name_val.string()
-    addr: int | None = pwndbg.binja._bn.get_symbol_addr(name)
+    addr: int | None = pwndbg.integration.binja._bn.get_symbol_addr(name)
     if addr is None:
         return None
-    return pwndbg.binja.r2l(addr)
+    return pwndbg.integration.binja.r2l(addr)
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.binja.with_bn()
+@pwndbg.integration.binja.with_bn()
 def bn_eval(expr: gdb.Value) -> int | None:
     """
     Parse and evaluate a Binary Ninja expression.
@@ -53,5 +53,5 @@ def bn_eval(expr: gdb.Value) -> int | None:
         if v is not None:
             magic_vars[r] = v
     magic_vars["piebase"] = pwndbg.gdblib.proc.binary_base_addr
-    ret: int | None = pwndbg.binja._bn.parse_expr(expr.string(), magic_vars)
+    ret: int | None = pwndbg.integration.binja._bn.parse_expr(expr.string(), magic_vars)
     return ret
