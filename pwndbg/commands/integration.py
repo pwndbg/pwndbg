@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.integration.binja
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
 import pwndbg.gdblib.regs
 import pwndbg.integration
+import pwndbg.integration.binja
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
