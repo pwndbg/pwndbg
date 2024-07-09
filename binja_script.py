@@ -159,7 +159,12 @@ class ServerHandler:
         lines = func.root.lines if level == "hlil" else func.instructions
         ret = []
         for line in lines:
-            ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
+            if level == "disasm":
+                (toks, addr) = line
+            else:
+                toks = line.tokens
+                addr = line.address
+            ret.append((addr, [(tok.text, tok.type.name) for tok in toks]))
         return ret
 
     @should_register
