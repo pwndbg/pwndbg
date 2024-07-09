@@ -99,24 +99,39 @@ class ServerHandler:
 
     @should_register
     def clear_pc_tag(self) -> None:
+        """
+        Clear all instances of the 'current pc' tag.
+        """
         for t in get_tag_refs(self.bv, "pwndbg-pc"):
             remove_tag_ref(self.bv, t)
 
     @should_register
     def navigate_to(self, addr: int) -> None:
+        """
+        Navigate to a specified address.
+        """
         self.bv.navigate(self.bv.view, addr)
 
     @should_register
     def update_pc_tag(self, new_pc: int) -> None:
+        """
+        Sets the 'current pc' tag to the specified address, and clears the old ones.
+        """
         self.clear_pc_tag()
         add_auto_tag(self.bv, new_pc, "pwndbg-pc", "current pc")
 
     @should_register
     def get_bp_tags(self) -> List[int]:
+        """
+        Gets a list of all addresses with a breakpoint tag.
+        """
         return [t.addr for t in get_tag_refs(self.bv, "pwndbg-bp")]
 
     @should_register
     def get_symbol(self, addr: int) -> str | None:
+        """
+        Gets the symbol at exactly the specified address.
+        """
         sym = self.bv.get_symbol_at(addr)
         if sym is None:
             return None
@@ -124,6 +139,11 @@ class ServerHandler:
 
     @should_register
     def get_func_info(self, addr: int) -> Tuple[str, int] | None:
+        """
+        Gets the widest function containing the specified address.
+
+        Returns a (function name, offset from start) tuple.
+        """
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
@@ -131,6 +151,11 @@ class ServerHandler:
 
     @should_register
     def get_data_info(self, addr: int) -> Tuple[str, int] | None:
+        """
+        Gets the data variable containing the specified address.
+
+        Returns a (variable name, offset from start) tuple.
+        """
         dv = self.bv.get_data_var_at(addr)
         if dv is None:
             return None
@@ -140,6 +165,9 @@ class ServerHandler:
 
     @should_register
     def get_comments(self, addr: int) -> List[str]:
+        """
+        Gets a list of all comments at a specified address.
+        """
         ret = []
         for f in sorted(self.bv.get_functions_containing(addr), key=lambda f: f.start):
             ret += f.get_comment_at(addr).split("\n")
@@ -151,6 +179,11 @@ class ServerHandler:
     def decompile_func(
         self, addr: int, level: str
     ) -> List[Tuple[int, List[Tuple[str, str]]]] | None:
+        """
+        Gets the decompilation of a function at a specified IL level.
+
+        Returns a list of (address, token) tuples, where each token is a (text, type) tuple.
+        """
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
@@ -181,6 +214,13 @@ class ServerHandler:
     def get_func_type(
         self, addr: int
     ) -> Tuple[Tuple[str, int, str], List[Tuple[str, int, str]]] | None:
+        """
+        Gets the type signature of a function.
+
+        Returns a (return type, list of argument types) tuples,
+        where the return type is a (type, pointer count, function name) tuple,
+        and the argument types are (type, pointer count, argument name) tuples.
+        """
         f = self.bv.get_function_at(addr)
         if f is None:
             return None
@@ -190,6 +230,9 @@ class ServerHandler:
 
     @should_register
     def get_symbol_addr(self, sym: str) -> int | None:
+        """
+        Gets the address of a symbol.
+        """
         f = self.bv.get_symbols_by_name(sym)
         if f:
             return f[0].address
@@ -197,6 +240,11 @@ class ServerHandler:
 
     @should_register
     def parse_expr(self, expr: str, magic_vals: Dict[str, int]) -> int | None:
+        """
+        Parses and evaluates a Binary Ninja expression given a dictionary of magic values.
+
+        Check docs of BinaryView.parse_expression for more info.
+        """
         try:
             self.bv.add_expression_parser_magic_values(
                 list(magic_vals.keys()), list(magic_vals.values())
@@ -206,28 +254,61 @@ class ServerHandler:
             return None
 
     @should_register
-    def get_var_offset_from_sp(self, addr: int, var_name: str) -> Tuple[int, int] | None:
-        f = get_widest_func(self.bv, addr)
+    def get_var_offset_from_sp(self, pc: int, var_name: str) -> Tuple[int, int] | None:
+        """
+        Gets the offset of a stack variable from the stack pointer, given the current pc and variable name.
+
+        Returns a (confidence, offset) tuple.
+        """
+        f = get_widest_func(self.bv, pc)
         if f is None:
             return None
         v = f.get_variable_by_name(var_name)
-        if v is None:
+        if v is None or v.source_type.name != "StackVariableSourceType":
             return None
-        sp_val = f.get_reg_value_at(addr, f.arch.stack_pointer)
+        sp_val = f.get_reg_value_at(pc, f.arch.stack_pointer)
         if sp_val.type.name != "StackFrameOffset":
             return None
         return (sp_val.confidence, v.storage - sp_val.value)
 
     @should_register
+    def get_stack_var_name(self, pc: int, sp: int, addr: int) -> Tuple[int, str, str] | None:
+        """
+        Gets the name of a stack variable, given the current pc, current sp, and address of the stack variable.
+
+        Returns a (confidence, function name, variable name) tuple.
+        """
+        f = get_widest_func(self.bv, pc)
+        if f is None:
+            return None
+        sp_val = f.get_reg_value_at(pc, f.arch.stack_pointer)
+        if sp_val.type.name != "StackFrameOffset":
+            return None
+        frame_base = sp - sp_val.value
+        v = f.get_stack_var_at_frame_offset(addr - frame_base, pc)
+        if v is None:
+            return None
+        return (sp_val.confidence, f.name, v.name)
+
+    @should_register
     def get_base(self) -> int:
+        """
+        Gets the base address of the BinaryView.
+        """
         return self.bv.start
 
     @should_register
     def get_py_version(self) -> str:
+        """
+        Gets Binary Ninja's python version.
+        """
         return sys.version
 
     @should_register
     def get_version(self) -> str:
+        """
+        Gets Binary Ninja's version.
+        """
         return binaryninja.core_version()
 
 

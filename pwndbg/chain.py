@@ -11,6 +11,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
+import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -147,6 +148,12 @@ def format(
         symbol = pwndbg.gdblib.symbol.get(link) or None
         if symbol:
             symbol = f"{link:#x} ({symbol})"
+        else:
+            page = pwndbg.gdblib.vmmap.find(link)
+            if page is not None and "[stack" in page.objfile:
+                var = pwndbg.integration.provider.get_stack_var_name(link)
+                if var:
+                    symbol = f"{link:#x} {{{var}}}"
         rest.append(M.get(link, symbol))
 
     # If the dereference limit is zero, skip any enhancements.

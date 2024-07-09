@@ -487,3 +487,33 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             return None
         args = [Argument(type=x[0], derefcnt=x[1], name=x[2]) for x in ty[1]]
         return Function(type=ty[0][0], derefcnt=ty[0][1], name=ty[0][2], args=args)
+
+    @pwndbg.decorators.suppress_errors()
+    @with_bn()
+    def get_stack_var_name(self, addr: int) -> str | None:
+        cur = gdb.selected_frame()
+        sp = int(cur.read_register("sp"))
+        # there is no earlier frame so we give up
+        if addr < sp:
+            return None
+        newest = True
+        # try to find the oldest frame that's earlier than the address
+        while True:
+            upper = cur.older()
+            if upper is None:
+                break
+            upper_sp = int(upper.read_register("sp"))
+            if upper_sp > addr:
+                break
+            sp = upper_sp
+            cur = upper
+            newest = False
+        ret: Tuple[int, str, int] | None = _bn.get_stack_var_name(l2r(int(cur.pc())), sp, addr)
+        if ret is None:
+            return None
+        (conf, func, var) = ret
+        suffix = "" if conf > 200 else "?"
+        if newest:
+            return f"{var}{suffix}"
+        else:
+            return f"{func}:{var}{suffix}"

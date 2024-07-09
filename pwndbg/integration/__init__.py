@@ -31,6 +31,9 @@ class IntegrationProvider:
     def get_func_type(self, addr: int) -> pwndbg.lib.functions.Function | None:
         return None
 
+    def get_stack_var_name(self, addr: int) -> str | None:
+        return None
+
 
 provider_name = pwndbg.config.add_param(
     "integration-provider",
