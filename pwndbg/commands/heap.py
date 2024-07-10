@@ -1563,13 +1563,7 @@ parser.add_argument("addr", type=int, help="Address of the extent metadata")
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 def jemalloc_test(addr) -> None:
-    # rtree = jemalloc.RTree.get_rtree()
-    # print(rtree.parse_rtree_ctx())
-
-    tcache = jemalloc.TCache()
-    # print(tcache.find())
-
-    print(tcache.check(addr))
+    pass
 
 
 parser = argparse.ArgumentParser(description="Prints all extents information")

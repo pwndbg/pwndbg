@@ -285,6 +285,9 @@ class RTree:
                 for i in range(max_subkeys):
                     node = int(root.address) + i * rtree_node_elm_s.sizeof
                     node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
+
+                    node = pwndbg.gdblib.memory.pack_struct_into_dictionary(node, {}, {})
+
                     if node["child"]["repr"] == 0:
                         continue
                     leaf0 = node["child"]["repr"]
