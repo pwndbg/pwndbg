@@ -28,6 +28,7 @@ import pygments.token
 from typing_extensions import ParamSpec
 
 import pwndbg
+import pwndbg.color
 import pwndbg.color.context as context_color
 import pwndbg.decorators
 import pwndbg.gdblib.arch
@@ -380,10 +381,18 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             return sym
         func: Tuple[str, int] | None = _bn.get_func_info(l2r(addr))
         if func is not None:
-            return f"{func[0]}{addr - r2l(func[1]):+}"
+            diff = addr - r2l(func[1])
+            if diff:
+                return f"{func[0]}{diff:+}"
+            else:
+                return func[0]
         dv: Tuple[str, int] | None = _bn.get_data_info(l2r(addr))
         if dv is not None:
-            return f"{dv[0]}{addr - r2l(dv[1]):+}"
+            diff = addr - r2l(dv[1])
+            if diff:
+                return f"{dv[0]}{addr - r2l(dv[1]):+}"
+            else:
+                return dv[0]
         return None
 
     @pwndbg.decorators.suppress_errors(fallback=())
@@ -472,6 +481,12 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
                 prefix = " " * len(pwndbg.config.nearpc_prefix)
             prefix = nearpc_color.prefix(prefix)
             line = f" {prefix} {whole_addr} "
+            # add comments above the line
+            ret += [
+                " " * len(pwndbg.color.unstylize(line))
+                + pygments.format([(bn_to_pygment_tok("CommentToken"), x)], formatter)
+                for x in self.get_comment_lines(addr)
+            ]
             toks = []
             for text, ty in decomp_toks[min_indents:]:
                 toks.append((bn_to_pygment_tok(ty), text))

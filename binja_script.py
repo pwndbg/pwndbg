@@ -12,6 +12,8 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler
 from xmlrpc.server import SimpleXMLRPCServer
 
 import binaryninja
+from binaryninja.enums import RegisterValueType
+from binaryninja.enums import VariableSourceType
 
 # Allow large integers to be transmitted
 xmlrpc.client.MAXINT = 10**100
@@ -187,6 +189,7 @@ class ServerHandler:
         func = get_widest_func(self.bv, addr)
         if func is None:
             return None
+        orig_func = func
         if level == "disasm":
             pass
         elif level == "llil":
@@ -199,15 +202,28 @@ class ServerHandler:
             raise ValueError(f"Cannot decompile with level {level!r}")
         if func is None:
             return None
-        lines = func.root.lines if level == "hlil" else func.instructions
+        if level == "hlil":
+            lines = func.root.lines
+        else:
+            if level == "disasm":
+                lines = [
+                    binaryninja.function.DisassemblyTextLine(tok, addr)
+                    for (tok, addr) in func.instructions
+                ]
+            else:
+                lines = [
+                    binaryninja.function.DisassemblyTextLine(line.tokens, line.address, line)
+                    for line in func.instructions
+                ]
+            lines = binaryninja.function.DisassemblyTextRenderer(func).post_process_lines(
+                orig_func.lowest_address,
+                orig_func.highest_address - orig_func.lowest_address,
+                lines,
+            )
+
         ret = []
         for line in lines:
-            if level == "disasm":
-                (toks, addr) = line
-            else:
-                toks = line.tokens
-                addr = line.address
-            ret.append((addr, [(tok.text, tok.type.name) for tok in toks]))
+            ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
         return ret
 
     @should_register
@@ -233,10 +249,20 @@ class ServerHandler:
         """
         Gets the address of a symbol.
         """
-        f = self.bv.get_symbols_by_name(sym)
-        if f:
-            return f[0].address
-        return self.bv.get_symbol_by_raw_name(sym)
+        syms = self.bv.get_symbols_by_name(sym)
+        if syms:
+            return syms[0].address
+        raw = self.bv.get_symbol_by_raw_name(sym)
+        if raw:
+            return raw.address
+        try:
+            if sym.startswith("data_"):
+                return int(sym[5:], 16)
+            if sym.startswith("sub_"):
+                return int(sym[4:], 16)
+        except ValueError:
+            return None
+        return None
 
     @should_register
     def parse_expr(self, expr: str, magic_vals: Dict[str, int]) -> int | None:
@@ -264,10 +290,10 @@ class ServerHandler:
         if f is None:
             return None
         v = f.get_variable_by_name(var_name)
-        if v is None or v.source_type.name != "StackVariableSourceType":
+        if v is None or v.source_type != VariableSourceType.StackVariableSourceType:
             return None
         sp_val = f.get_reg_value_at(pc, f.arch.stack_pointer)
-        if sp_val.type.name != "StackFrameOffset":
+        if sp_val.type != RegisterValueType.StackFrameOffset:
             return None
         return (sp_val.confidence, v.storage - sp_val.value)
 
@@ -282,7 +308,7 @@ class ServerHandler:
         if f is None:
             return None
         sp_val = f.get_reg_value_at(pc, f.arch.stack_pointer)
-        if sp_val.type.name != "StackFrameOffset":
+        if sp_val.type != RegisterValueType.StackFrameOffset:
             return None
         frame_base = sp - sp_val.value
         v = f.get_stack_var_at_frame_offset(addr - frame_base, pc)
