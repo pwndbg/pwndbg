@@ -16,15 +16,13 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.heap
+import pwndbg.gdblib.heap.jemalloc as jemalloc
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
-
-# jemalloc
-import pwndbg.heap.jemalloc as jemalloc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message

@@ -166,9 +166,13 @@ class RTree:
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
-        # gdb value with struct emap_s
-        emap_s = pwndbg.gdblib.typeinfo.load("struct emap_s")
-        self._gdbValue = pwndbg.gdblib.memory.poi(emap_s, self._addr)
+        rtree_s = pwndbg.gdblib.typeinfo.load("struct rtree_s")
+        # self._Value = pwndbg.gdblib.memory.poi(emap_s, self._addr)
+
+        # self._Value = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+        #     "rtree_s", self._addr, include_only_fields={"root"}
+        # )
+        self._Value = gdb.Value(self._addr).cast(rtree_s.pointer()).dereference()
 
         self._extents = None
 
@@ -176,6 +180,7 @@ class RTree:
     def get_rtree() -> RTree:
         try:
             addr = pwndbg.gdblib.info.address("je_arena_emap_global")
+            print(addr)
             if addr is None:
                 return None
 
@@ -185,12 +190,9 @@ class RTree:
         return RTree(addr)
 
     @property
-    def rtree(self):
-        return self._gdbValue["rtree"]
-
-    @property
     def root(self):
-        return self.rtree["root"]
+        # return self.rtree["root"]
+        return self._Value["root"]
 
     # from include/jemalloc/internal/rtree.h
     # converted implementation of rtree_leafkey
@@ -243,14 +245,17 @@ class RTree:
         # print("new2: ", subkey)
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
+        # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
+        node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
+
         if node["child"]["repr"] == 0:
             return None
 
         # For subkey 1
         subkey = self.__subkey(key, 2)
         addr = int(node["child"]["repr"]) + subkey * rtree_leaf_elm_s.sizeof
-        leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, addr)
+        # leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, addr)
+        leaf = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
         if leaf["le_bits"]["repr"] == 0:
             return None
 
@@ -283,10 +288,12 @@ class RTree:
                 # print("max_subkeys: ", max_subkeys)
 
                 for i in range(max_subkeys):
-                    node = int(root.address) + i * rtree_node_elm_s.sizeof
-                    node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
-
-                    node = pwndbg.gdblib.memory.pack_struct_into_dictionary(node, {}, {})
+                    node_address = int(root.address) + i * rtree_node_elm_s.sizeof
+                    # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
+                    fetched_struct = pwndbg.gdblib.memory.get_typed_pointer_value(
+                        rtree_node_elm_s, node_address
+                    )
+                    node = pwndbg.gdblib.memory.pack_struct_into_dictionary(fetched_struct)
 
                     if node["child"]["repr"] == 0:
                         continue
@@ -296,8 +303,13 @@ class RTree:
 
                     # level 1
                     for j in range(max_subkeys):
-                        leaf = int(leaf0) + j * rtree_leaf_elm_s.sizeof
-                        leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, leaf)
+                        leaf_address = int(leaf0) + j * rtree_leaf_elm_s.sizeof
+                        # leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, leaf)
+                        fetched_struct = pwndbg.gdblib.memory.get_typed_pointer_value(
+                            rtree_leaf_elm_s, leaf_address
+                        )
+                        leaf = pwndbg.gdblib.memory.pack_struct_into_dictionary(fetched_struct)
+
                         if leaf["le_bits"]["repr"] == 0:
                             continue
 
@@ -336,16 +348,13 @@ class Arena:
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
-        # gdb value with arena_t structure
-        arena_s = pwndbg.gdblib.typeinfo.load("struct arena_s")
-        self._gdbValue = pwndbg.gdblib.memory.poi(arena_s, self._addr)
+        self._Value = pwndbg.gdblib.memory.fetch_struct_as_dictionary("arena_s", self._addr)
 
         self._nbins = None
-
-        self._bins = None
+        self._slabs = None
 
     @property
-    def bins(self):
+    def slabs(self):
         if self._bins is None:
             self._bins = []
             try:
@@ -354,26 +363,26 @@ class Arena:
                     gdb.lookup_type("unsigned int")
                 )
 
-                bins_addr = int(self._gdbValue["bins"].address)
+                bins_addr = int(self._Value["bins"].address)
                 bin_s = pwndbg.gdblib.typeinfo.load("struct bin_s")
                 for i in range(self._nbins):
                     current_bin_addr = int(bins_addr) + i * bin_s.sizeof
                     bin = pwndbg.gdblib.memory.poi(bin_s, current_bin_addr)
-                    self._bins.append(bin)
+                    self._slabs.append(bin)
 
             except gdb.MemoryError:
                 pass
 
-        return self._bins
+        return self._slabs
 
 
 class Extent:
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
-        # gdb value with edata_t structure
+        # fetch_struct_as_dictionary does not support union currently
         edata_s = pwndbg.gdblib.typeinfo.load("struct edata_s")
-        self._gdbValue = pwndbg.gdblib.memory.poi(edata_s, self._addr)
+        self._Value = gdb.Value(self._addr).cast(edata_s.pointer()).dereference()
 
         self._bitfields = None
 
@@ -382,8 +391,8 @@ class Extent:
         """
         May be larger in case of large size class allocation when cache_oblivious is enabled.
         """
-        # return self._gdbValue["e_size_esn"]
-        return (int(self._gdbValue["e_size_esn"]) >> LG_PAGE) << LG_PAGE
+        # return self._Value["e_size_esn"]
+        return (int(self._Value["e_size_esn"]) >> LG_PAGE) << LG_PAGE
 
     @property
     def extent_address(self):
@@ -395,15 +404,15 @@ class Extent:
     # Address of allocated memory address
     @property
     def allocated_address(self):
-        return self._gdbValue["e_addr"]
+        return self._Value["e_addr"]
 
     @property
     def bsize(self):
-        return self._gdbValue["e_bsize"]
+        return self._Value["e_bsize"]
 
     @property
     def bits(self):
-        return self._gdbValue["e_bits"]
+        return self._Value["e_bits"]
 
     @property
     def bitfields(self):
