@@ -3,6 +3,7 @@ from __future__ import annotations
 import os.path
 import re
 from typing import Any
+from typing import Dict
 
 import pygments
 import pygments.formatters
@@ -10,12 +11,12 @@ import pygments.lexers
 import pygments.util
 from pwnlib.lexer import PwntoolsLexer
 
-import pwndbg.gdblib.config
+import pwndbg
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
 
-pwndbg.gdblib.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
+pwndbg.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
 style = theme.add_param(
     "syntax-highlight-style",
     "monokai",
@@ -24,10 +25,10 @@ style = theme.add_param(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache: dict[str, Any] = {}
+lexer_cache: Dict[str, Any] = {}
 
 
-@pwndbg.gdblib.config.trigger(style)
+@pwndbg.config.trigger(style)
 def check_style() -> None:
     global formatter
     try:

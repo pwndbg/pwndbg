@@ -4,23 +4,23 @@ import argparse
 
 import gdb
 
+import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.hexdump
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-pwndbg.gdblib.config.add_param("hexdump-width", 16, "line width of hexdump command")
-pwndbg.gdblib.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param("hexdump-width", 16, "line width of hexdump command")
+pwndbg.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
+pwndbg.config.add_param(
     "hexdump-group-width",
     -1,
     "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)",
 )
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "hexdump-group-use-big-endian",
     False,
     "whether to use big-endian within each group of bytes in hexdump command",
@@ -56,13 +56,13 @@ parser.add_argument(
     help="Address or module name to dump",
 )
 parser.add_argument(
-    "count", nargs="?", default=pwndbg.gdblib.config.hexdump_bytes, help="Number of bytes to dump"
+    "count", nargs="?", default=pwndbg.config.hexdump_bytes, help="Number of bytes to dump"
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
+def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
     if hexdump.repeat:
         address = hexdump.last_address
         hexdump.offset += 1
@@ -80,14 +80,14 @@ def hexdump(address, count=pwndbg.gdblib.config.hexdump_bytes) -> None:
         address = new_address
 
     count = max(int(count), 0)
-    width = int(pwndbg.gdblib.config.hexdump_width)
+    width = int(pwndbg.config.hexdump_width)
 
-    group_width = int(pwndbg.gdblib.config.hexdump_group_width)
+    group_width = int(pwndbg.config.hexdump_group_width)
     group_width = pwndbg.gdblib.typeinfo.ptrsize if group_width == -1 else group_width
 
     # TODO: What if arch endian is big, and use_big_endian is false?
     flip_group_endianness = (
-        pwndbg.gdblib.config.hexdump_group_use_big_endian and pwndbg.gdblib.arch.endian == "little"
+        pwndbg.config.hexdump_group_use_big_endian and pwndbg.gdblib.arch.endian == "little"
     )
 
     # The user may have input the start and end range to dump instead of the

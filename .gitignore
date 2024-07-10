@@ -91,5 +91,9 @@ gdb.txt
 # venv
 .venv/
 
-# Nix build stuff
-result-*
+# Nix build and dev shell
+result*
+.direnv/
+
+# Vim
+*.swp

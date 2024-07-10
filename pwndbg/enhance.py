@@ -10,24 +10,19 @@ supplemental information sources (e.g. active IDA Pro connection).
 from __future__ import annotations
 
 import string
+from typing import Tuple
 
+import pwndbg
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
-import pwndbg.disasm
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
-
-bad_instrs = [".byte", ".long", "rex.R", "rex.XB", ".inst", "(bad)"]
-
-
-def good_instr(i) -> bool:
-    return not any(bad in i for bad in bad_instrs)
 
 
 def format_small_int(value: int) -> str:
@@ -37,7 +32,7 @@ def format_small_int(value: int) -> str:
         return hex(value & pwndbg.gdblib.arch.ptrmask)
 
 
-def format_small_int_pair(first: int, second: int) -> tuple[str, str]:
+def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
     if first < 10 and second < 10:
         return (str(first), str(second))
     else:
@@ -116,10 +111,10 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        pwndbg_instr = pwndbg.disasm.one(value, enhance=False)
+        pwndbg_instr = pwndbg.gdblib.disasm.one(value, enhance=False)
         if pwndbg_instr:
             instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
-            if pwndbg.gdblib.config.syntax_highlight:
+            if pwndbg.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
     szval = pwndbg.gdblib.strings.get(value, maxlen=enhance_string_len) or None
@@ -131,7 +126,7 @@ def enhance(
     if value + pwndbg.gdblib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.pvoid, value))
+    intval = int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval

@@ -10,8 +10,8 @@ import string
 import gdb
 import pwnlib.util.lists
 
+import pwndbg
 import pwndbg.color.hexdump as H
-import pwndbg.gdblib.config
 import pwndbg.gdblib.typeinfo
 from pwndbg.color import theme
 from pwndbg.commands.windbg import enhex
@@ -37,7 +37,7 @@ config_byte_separator = theme.add_param(
 )
 
 
-@pwndbg.gdblib.config.trigger(
+@pwndbg.config.trigger(
     H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii
 )
 def load_color_scheme() -> None:
@@ -54,16 +54,16 @@ def load_color_scheme() -> None:
     ):
         color_scheme[c] = H.printable("%02x" % c)
         printable[c] = (
-            H.printable(f"{chr(c)}") if pwndbg.gdblib.config.hexdump_colorize_ascii else f"{chr(c)}"
+            H.printable(f"{chr(c)}") if pwndbg.config.hexdump_colorize_ascii else f"{chr(c)}"
         )
 
     for c in bytearray(b"\x00"):
         color_scheme[c] = H.zero("%02x" % c)
-        printable[c] = H.zero(".") if pwndbg.gdblib.config.hexdump_colorize_ascii else "."
+        printable[c] = H.zero(".") if pwndbg.config.hexdump_colorize_ascii else "."
 
     for c in bytearray(b"\xff\x7f\x80"):
         color_scheme[c] = H.special("%02x" % c)
-        printable[c] = H.special(".") if pwndbg.gdblib.config.hexdump_colorize_ascii else "."
+        printable[c] = H.special(".") if pwndbg.config.hexdump_colorize_ascii else "."
 
     color_scheme[-1] = "  "
     printable[-1] = " "
@@ -166,7 +166,7 @@ def hexdump(
 
         for i in range(count):
             try:
-                gval = pwndbg.gdblib.memory.poi(size_type, address + i * size)
+                gval = pwndbg.gdblib.memory.get_typed_pointer_value(size_type, address + i * size)
                 values.append(int(gval))
             except gdb.MemoryError:
                 break

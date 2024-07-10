@@ -1,0 +1,14 @@
+name: Pending Author Response Label
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  issue_commented:
+    if: ${{ !github.event.issue.pull_request && contains(github.event.issue.labels.*.name, 'pending-response') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: siegerts/pending-author-response@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pending-response-label: pending-response

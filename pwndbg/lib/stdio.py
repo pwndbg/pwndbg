@@ -7,14 +7,17 @@ from __future__ import annotations
 
 import sys
 from types import TracebackType
+from typing import Any
+from typing import List
 from typing import TextIO
+from typing import Tuple
 from typing import Type
 
 
 class Stdio:
-    queue: list[tuple[TextIO, TextIO, TextIO]] = []
+    queue: List[Tuple[TextIO, TextIO, TextIO]] = []
 
-    def __enter__(self, *a, **kw) -> None:
+    def __enter__(self, *a: Any, **kw: Any) -> None:
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
 
         sys.stdin = sys.__stdin__

@@ -5,20 +5,20 @@ import concurrent.futures
 import os
 import re
 import subprocess
+import sys
 import time
 from subprocess import CompletedProcess
+from typing import List
 from typing import Tuple
 
-ROOT_DIR = os.path.realpath("../../")
-GDB_INIT_PATH = os.path.join(ROOT_DIR, "gdbinit.py")
-COVERAGERC_PATH = os.path.join(ROOT_DIR, "pyproject.toml")
+root_dir = os.path.realpath("../../")
 
 
 def ensureZigPath():
     if "ZIGPATH" not in os.environ:
         # If ZIGPATH is not set, set it to $pwd/.zig
         # In Docker environment this should by default be set to /opt/zig
-        os.environ["ZIGPATH"] = os.path.join(ROOT_DIR, ".zig")
+        os.environ["ZIGPATH"] = os.path.join(root_dir, ".zig")
     print(f'ZIGPATH set to {os.environ["ZIGPATH"]}')
 
 
@@ -29,7 +29,7 @@ def makeBinaries():
         exit(1)
 
 
-def run_gdb(gdb_args: list[str], env=None, capture_output=True) -> CompletedProcess[str]:
+def run_gdb(gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
     env = os.environ if env is None else env
     return subprocess.run(
         ["gdb", "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
@@ -39,29 +39,32 @@ def run_gdb(gdb_args: list[str], env=None, capture_output=True) -> CompletedProc
     )
 
 
-def getTestsList(collect_only: bool, test_name_filter: str) -> list[str]:
+def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -> List[str]:
     # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
     # we decided to run each test in a separate GDB session
-    gdb_args = ["--init-command", GDB_INIT_PATH, "--command", "pytests_collect.py"]
+    gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_collect.py"]
+
     result = run_gdb(gdb_args)
-    TESTS_COLLECT_OUTPUT = result.stdout
+    tests_collect_output = result.stdout
 
     if result.returncode == 1:
-        print(TESTS_COLLECT_OUTPUT)
+        print(tests_collect_output)
         exit(1)
     elif collect_only == 1:
-        print(TESTS_COLLECT_OUTPUT)
+        print(tests_collect_output)
         exit(0)
 
     # Extract the test names from the output using regex
     pattern = re.compile(r"tests/.*::.*")
-    matches = pattern.findall(TESTS_COLLECT_OUTPUT)
-    TESTS_LIST = [match for match in matches if re.search(test_name_filter, match)]
-    return TESTS_LIST
+    matches = pattern.findall(tests_collect_output)
+    tests_list = [match for match in matches if re.search(test_name_filter, match)]
+    return tests_list
 
 
-def run_test(test_case: str, args: argparse.Namespace) -> Tuple[CompletedProcess[str], str]:
-    gdb_args = ["--init-command", GDB_INIT_PATH, "--command", "pytests_launcher.py"]
+def run_test(
+    test_case: str, args: argparse.Namespace, gdbinit_path: str
+) -> Tuple[CompletedProcess[str], str]:
+    gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_launcher.py"]
     if args.cov:
         print("Running with coverage")
         gdb_args = [
@@ -72,9 +75,9 @@ def run_test(test_case: str, args: argparse.Namespace) -> Tuple[CompletedProcess
     env["LC_ALL"] = "C.UTF-8"
     env["LANG"] = "C.UTF-8"
     env["LC_CTYPE"] = "C.UTF-8"
-    env["SRC_DIR"] = ROOT_DIR
-    env["COVERAGE_FILE"] = os.path.join(ROOT_DIR, ".cov/coverage")
-    env["COVERAGE_PROCESS_START"] = COVERAGERC_PATH
+    env["SRC_DIR"] = root_dir
+    env["COVERAGE_FILE"] = os.path.join(root_dir, ".cov/coverage")
+    env["COVERAGE_PROCESS_START"] = os.path.join(root_dir, "pyproject.toml")
     if args.pdb:
         env["USE_PDB"] = "1"
     env["PWNDBG_LAUNCH_TEST"] = test_case
@@ -83,9 +86,9 @@ def run_test(test_case: str, args: argparse.Namespace) -> Tuple[CompletedProcess
     return (result, test_case)
 
 
-def run_tests_and_print_stats(tests_list: list[str], args: argparse.Namespace):
+def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdbinit_path: str):
     start = time.time()
-    test_results: list[Tuple[CompletedProcess[str], str]] = []
+    test_results: List[Tuple[CompletedProcess[str], str]] = []
 
     def handle_parallel_test_result(test_result: Tuple[CompletedProcess[str], str]):
         test_results.append(test_result)
@@ -107,13 +110,13 @@ def run_tests_and_print_stats(tests_list: list[str], args: argparse.Namespace):
             print(content)
 
     if args.serial:
-        test_results = [run_test(test, args) for test in tests_list]
+        test_results = [run_test(test, args, gdbinit_path) for test in tests_list]
     else:
         print("")
         print("Running tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(run_test, test, args).add_done_callback(
+                executor.submit(run_test, test, args, gdbinit_path).add_done_callback(
                     lambda future: handle_parallel_test_result(future.result())
                 )
 
@@ -159,6 +162,11 @@ def parse_args():
         "-s", "--serial", action="store_true", help="run tests one at a time instead of in parallel"
     )
     parser.add_argument(
+        "--nix",
+        action="store_true",
+        help="run tests using gdbinit.py built for nix environment",
+    )
+    parser.add_argument(
         "--collect-only",
         action="store_true",
         help="only show the output of test collection, don't run any tests",
@@ -176,7 +184,15 @@ if __name__ == "__main__":
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
+    if args.nix:
+        gdbinit_path = os.path.join(root_dir, "result/share/pwndbg/gdbinit.py")
+        if not os.path.exists(gdbinit_path):
+            print("ERROR: No nix-compatible gdbinit.py found. Run nix build .#pwndbg-dev")
+            sys.exit(1)
+        os.environ["GDB_INIT_PATH"] = gdbinit_path
+    else:
+        gdbinit_path = os.path.join(root_dir, "gdbinit.py")
     ensureZigPath()
     makeBinaries()
-    tests: list[str] = getTestsList(args.collect_only, args.test_name_filter)
-    run_tests_and_print_stats(tests, args)
+    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdbinit_path)
+    run_tests_and_print_stats(tests, args, gdbinit_path)

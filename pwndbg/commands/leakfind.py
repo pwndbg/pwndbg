@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import argparse
 import queue
+from typing import Dict
+from typing import List
 
 import gdb
 
+import pwndbg
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.config
 import pwndbg.gdblib.vmmap
 from pwndbg.chain import c as C
 from pwndbg.color import message
@@ -23,7 +25,7 @@ from pwndbg.commands import CommandCategory
 # visited_map is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr, visited_map):
     page = pwndbg.gdblib.vmmap.find(addr)
-    arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
+    arrow_right = C.arrow(" %s " % pwndbg.config.chain_arrow_right)
 
     if page is not None:
         if addr not in visited_map:
@@ -142,7 +144,7 @@ def leakfind(
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
     visited_set = {int(address)}
-    address_queue: queue.Queue[int] = queue.Queue()
+    address_queue: "queue.Queue[int]" = queue.Queue()
     address_queue.put(int(address))
     depth = 0
     time_to_depth_increase = 0
@@ -175,8 +177,8 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map: dict[int, list[str]] = {}
-    arrow_right = C.arrow(" %s " % pwndbg.gdblib.config.chain_arrow_right)
+    output_map: Dict[int, List[str]] = {}
+    arrow_right = C.arrow(" %s " % pwndbg.config.chain_arrow_right)
 
     for child in visited_map:
         child_page = pwndbg.gdblib.vmmap.find(child)

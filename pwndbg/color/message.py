@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pwndbg.lib.config
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 
 config_status_on_color = theme.add_color_param(
     "message-status-on-color", "green", "color of on status messages"
@@ -20,6 +21,8 @@ config_hint_color = theme.add_color_param(
 config_success_color = theme.add_color_param(
     "message-success-color", "green", "color of success messages"
 )
+config_debug_color = theme.add_color_param("message-debug-color", "blue", "color of debug messages")
+config_info_color = theme.add_color_param("message-info-color", "white", "color of info messages")
 config_warning_color = theme.add_color_param(
     "message-warning-color", "yellow", "color of warning messages"
 )
@@ -36,7 +39,9 @@ config_signal_color = theme.add_color_param(
     "message-signal-color", "bold,red", "color of signal messages"
 )
 
-config_prompt_color = theme.add_color_param("prompt-color", "bold,red", "prompt color")
+config_prompt_color: pwndbg.lib.config.Parameter = theme.add_color_param(
+    "prompt-color", "bold,red", "prompt color"
+)
 
 
 def on(msg: object) -> str:
@@ -57,6 +62,14 @@ def hint(msg: object) -> str:
 
 def success(msg: object) -> str:
     return generateColorFunction(config.message_success_color)(msg)
+
+
+def debug(msg: object) -> str:
+    return generateColorFunction(config.message_warning_color)(msg)
+
+
+def info(msg: object) -> str:
+    return generateColorFunction(config.message_warning_color)(msg)
 
 
 def warn(msg: object) -> str:

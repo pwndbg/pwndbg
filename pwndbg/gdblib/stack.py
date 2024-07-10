@@ -7,6 +7,7 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
+from typing import Dict
 from typing import List
 
 import gdb
@@ -42,18 +43,18 @@ def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get() -> dict[int, pwndbg.lib.memory.Page]:
+def get() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     For each running thread, return the known address range for its stack
     Returns a dict which should never be modified (since its cached)
     """
     stacks = _fetch_via_vmmap()
 
-    # This is slow :(
-    if not stacks:
-        _fetch_via_exploration()
+    if stacks:
+        return stacks
 
-    return stacks
+    # Note: exploration is slow
+    return _fetch_via_exploration()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -67,20 +68,18 @@ def current():
 @pwndbg.gdblib.events.stop
 @pwndbg.lib.cache.cache_until("exit")
 def is_executable() -> bool:
-    nx = False
-
-    PT_GNU_STACK = 0x6474E551
     ehdr = pwndbg.gdblib.elf.exe()
 
     for phdr in pwndbg.gdblib.elf.iter_phdrs(ehdr):
-        if phdr.p_type == PT_GNU_STACK:
-            nx = True
+        # check if type is PT_GNU_STACK
+        if phdr.p_type == 0x6474E551:
+            return False
 
-    return not nx
+    return True
 
 
-def _fetch_via_vmmap() -> dict[int, pwndbg.lib.memory.Page]:
-    stacks: dict[int, pwndbg.lib.memory.Page] = {}
+def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
+    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
     pages = pwndbg.gdblib.vmmap.get()
 
@@ -114,7 +113,7 @@ def _fetch_via_vmmap() -> dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
+def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     TODO/FIXME: This exploration is not great since it now hits on each stop
     (based on how this function is used). Ideally, explored stacks should be
@@ -128,7 +127,7 @@ def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
     An alternative to this is dumping this functionality completely and this
     will be decided hopefully after a next release.
     """
-    stacks: dict[int, pwndbg.lib.memory.Page] = {}
+    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
     curr_thread = gdb.selected_thread()
     for thread in gdb.selected_inferior().threads():

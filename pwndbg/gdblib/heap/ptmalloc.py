@@ -2,33 +2,60 @@ from __future__ import annotations
 
 import copy
 import importlib
+import sys
+import types
 from collections import OrderedDict
 
-try:
+if sys.version_info >= (3, 11):
     # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
     from enum import ReprEnum as Enum
-except ImportError:
+else:
     from enum import Enum
 
+import typing
 from typing import Any
 from typing import Callable
+from typing import Dict
+from typing import Generic
+from typing import List
+from typing import OrderedDict as OrderedDictType
+from typing import Set
+from typing import Tuple
+from typing import Type
+from typing import TypeVar
 
 import gdb
 
-import pwndbg.disasm
-import pwndbg.gdblib.config
+import pwndbg
+import pwndbg.chain
 import pwndbg.gdblib.events
+import pwndbg.gdblib.heap
+import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.glibc
+import pwndbg.lib.cache
+import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.color.memory import c as M
 from pwndbg.constants import ptmalloc
-from pwndbg.heap import heap_chain_limit
+
+# The `pwndbg.gdblib.heap.structs` module is only imported at runtime when
+# the heap heuristics are used in `HeuristicHeap.struct_module` and
+# uses runtime information to select the correct structs.
+# Only import it globally during static type checking.
+if typing.TYPE_CHECKING:
+    import pwndbg.gdblib.heap.structs
+
+    TheType = TypeVar("TheType", gdb.Type, typing.Type[pwndbg.gdblib.heap.structs.CStruct2GDB])
+    TheValue = TypeVar("TheValue", gdb.Value, pwndbg.gdblib.heap.structs.CStruct2GDB)
+else:
+    TheType = TypeVar("TheType")
+    TheValue = TypeVar("TheValue")
 
 # See https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=37183cfb6ab5d0735cc82759626670aff3832cd0;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l30
 # and https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f8e7250f70f6f26b0acb5901bcc4f6e39a8a52b2;hb=086ee48eaeaba871a2300daf85469671cc14c7e9#l869
@@ -51,28 +78,36 @@ class BinType(str, Enum):
     UNSORTED = "unsortedbin"
     NOT_IN_BIN = "not_in_bin"
 
-    def valid_fields(self):
+    def valid_fields(self) -> List[str]:
         if self in [BinType.FAST, BinType.TCACHE]:
             return ["fd"]
         elif self in [BinType.SMALL, BinType.UNSORTED]:
             return ["fd", "bk"]
         elif self == BinType.LARGE:
             return ["fd", "bk", "fd_nextsize", "bk_nextsize"]
+        else:  # BinType.NOT_IN_BIN
+            return []
 
 
 class Bin:
-    def __init__(self, fd_chain, bk_chain=None, count=None, is_corrupted=False) -> None:
+    def __init__(
+        self,
+        fd_chain: List[int],
+        bk_chain: List[int] | None = None,
+        count: int | None = None,
+        is_corrupted: bool = False,
+    ) -> None:
         self.fd_chain = fd_chain
         self.bk_chain = bk_chain
         self.count = count
         self.is_corrupted = is_corrupted
 
-    def contains_chunk(self, chunk) -> bool:
+    def contains_chunk(self, chunk: int) -> bool:
         return chunk in self.fd_chain
 
     @staticmethod
-    def size_to_display_name(size):
-        if size == "all":
+    def size_to_display_name(size: int | str) -> str:
+        if isinstance(size, str) and size == "all":
             return size
 
         assert isinstance(size, int)
@@ -81,16 +116,15 @@ class Bin:
 
 
 class Bins:
-    def __init__(self, bin_type) -> None:
-        # `typing.OrderedDict` requires Python 3.7
-        self.bins: OrderedDict[int | str, Bin] = OrderedDict()
+    def __init__(self, bin_type: BinType) -> None:
+        self.bins: OrderedDictType[int | str, Bin] = OrderedDict()
         self.bin_type = bin_type
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
     # subclass and put that logic in there
-    def contains_chunk(self, size, chunk):
+    def contains_chunk(self, size: int, chunk: int):
         # TODO: It will be the same thing, but it would be better if we used
-        # pwndbg.heap.current.size_sz. I think each bin should already have a
+        # pwndbg.gdblib.heap.current.size_sz. I think each bin should already have a
         # reference to the allocator and shouldn't need to access the `current`
         # variable
         ptr_size = pwndbg.gdblib.arch.ptrsize
@@ -99,7 +133,7 @@ class Bins:
             # The unsorted bin only has one bin called 'all'
 
             # TODO: We shouldn't be mixing int and str types like this
-            size = "all"
+            size = "all"  # type: ignore[assignment]
         elif self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin
@@ -108,7 +142,8 @@ class Bins:
 
             # TODO: Refactor this, the bin should know how to calculate
             # largebin_index without calling into the allocator
-            size = pwndbg.heap.current.largebin_index(size) - NSMALLBINS
+            assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+            size = pwndbg.gdblib.heap.current.largebin_index(size) - NSMALLBINS
 
         elif self.bin_type == BinType.TCACHE:
             # Unlike fastbins, tcache bins don't store the chunk address in the
@@ -124,12 +159,70 @@ class Bins:
         return False
 
 
-def heap_for_ptr(ptr):
+def heap_for_ptr(ptr: int) -> int:
     """Round a pointer to a chunk down to find its corresponding heap_info
     struct, the pointer must point inside a heap which does not belong to
     the main arena.
     """
     return ptr & ~(HEAP_MAX_SIZE - 1)
+
+
+class ChunkField(int, Enum):
+    PREV_SIZE = 1
+    SIZE = 2
+    FD = 3
+    BK = 4
+    FD_NEXTSIZE = 5
+    BK_NEXTSIZE = 6
+
+
+def fetch_chunk_metadata(address: int, include_only_fields: Set[ChunkField] | None = None):
+    prev_size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"prev_size", "mchunk_prev_size"}
+    )
+    size_field_name = pwndbg.gdblib.memory.resolve_renamed_struct_field(
+        "malloc_chunk", {"size", "mchunk_size"}
+    )
+
+    if include_only_fields is None:
+        fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary("malloc_chunk", address)
+    else:
+        requested_fields: Set[str] = set()
+
+        for field in include_only_fields:
+            if field is ChunkField.PREV_SIZE:
+                requested_fields.add(prev_size_field_name)
+            elif field is ChunkField.SIZE:
+                requested_fields.add(size_field_name)
+            elif field is ChunkField.FD:
+                requested_fields.add("fd")
+            elif field is ChunkField.BK:
+                requested_fields.add("bk")
+            elif field is ChunkField.FD_NEXTSIZE:
+                requested_fields.add("fd_nextsize")
+            elif field is ChunkField.BK_NEXTSIZE:
+                requested_fields.add("bk_nextsize")
+
+        fetched_struct = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+            "malloc_chunk", address, include_only_fields=requested_fields
+        )
+
+    normalized_struct = {}
+    for field in fetched_struct:
+        if field == prev_size_field_name:
+            normalized_struct[ChunkField.PREV_SIZE] = fetched_struct[prev_size_field_name]
+        elif field == size_field_name:
+            normalized_struct[ChunkField.SIZE] = fetched_struct[size_field_name]
+        elif field == "fd":
+            normalized_struct[ChunkField.FD] = fetched_struct["fd"]
+        elif field == "bk":
+            normalized_struct[ChunkField.BK] = fetched_struct["bk"]
+        elif field == "fd_nextsize":
+            normalized_struct[ChunkField.FD_NEXTSIZE] = fetched_struct["fd_nextsize"]
+        elif field == "bk_nextsize":
+            normalized_struct[ChunkField.BK_NEXTSIZE] = fetched_struct["bk_nextsize"]
+
+    return normalized_struct
 
 
 class Chunk:
@@ -152,29 +245,33 @@ class Chunk:
         "_is_top_chunk",
     )
 
-    def __init__(self, addr, heap=None, arena=None) -> None:
-        if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+    def __init__(self, addr: int, heap: Heap | None = None, arena: Arena | None = None) -> None:
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+        assert pwndbg.gdblib.heap.current.malloc_chunk is not None
+        if isinstance(pwndbg.gdblib.heap.current.malloc_chunk, gdb.Type):
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.gdblib.heap.current.malloc_chunk, addr
+            )
         else:
-            self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
+            self._gdbValue = pwndbg.gdblib.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
-        self._prev_size: int = None
-        self._size: int = None
-        self._real_size: int = None
-        self._flags: int = None
-        self._non_main_arena: bool = None
-        self._is_mmapped: bool = None
-        self._prev_inuse: bool = None
+        self._prev_size: int | None = None
+        self._size: int | None = None
+        self._real_size: int | None = None
+        self._flags: Dict[str, bool] | None = None
+        self._non_main_arena: bool | None = None
+        self._is_mmapped: bool | None = None
+        self._prev_inuse: bool | None = None
         self._fd = None
         self._bk = None
         self._fd_nextsize = None
         self._bk_nextsize = None
         self._heap = heap
         self._arena = arena
-        self._is_top_chunk: bool = None
+        self._is_top_chunk: bool | None = None
 
     # Some chunk fields were renamed in GLIBC 2.25 master branch.
-    def __match_renamed_field(self, field):
+    def __match_renamed_field(self, field: str):
         field_renames = {
             "size": ["size", "mchunk_size"],
             "prev_size": ["prev_size", "mchunk_prev_size"],
@@ -187,7 +284,7 @@ class Chunk:
         raise ValueError(f"Chunk field name did not match any of {field_renames[field]}.")
 
     @property
-    def prev_size(self):
+    def prev_size(self) -> int | None:
         if self._prev_size is None:
             try:
                 self._prev_size = int(self._gdbValue[self.__match_renamed_field("prev_size")])
@@ -197,7 +294,7 @@ class Chunk:
         return self._prev_size
 
     @property
-    def size(self):
+    def size(self) -> int | None:
         if self._size is None:
             try:
                 self._size = int(self._gdbValue[self.__match_renamed_field("size")])
@@ -207,7 +304,7 @@ class Chunk:
         return self._size
 
     @property
-    def real_size(self):
+    def real_size(self) -> int | None:
         if self._real_size is None:
             try:
                 self._real_size = int(
@@ -219,9 +316,14 @@ class Chunk:
         return self._real_size
 
     @property
-    def flags(self):
+    def flags(self) -> Dict[str, bool] | None:
         if self._flags is None:
-            if self.size is not None:
+            if (
+                self.size is not None
+                and self.non_main_arena is not None
+                and self.is_mmapped is not None
+                and self.prev_inuse is not None
+            ):
                 self._flags = {
                     "non_main_arena": self.non_main_arena,
                     "is_mmapped": self.is_mmapped,
@@ -231,7 +333,7 @@ class Chunk:
         return self._flags
 
     @property
-    def non_main_arena(self):
+    def non_main_arena(self) -> bool | None:
         if self._non_main_arena is None:
             sz = self.size
             if sz is not None:
@@ -240,7 +342,7 @@ class Chunk:
         return self._non_main_arena
 
     @property
-    def is_mmapped(self):
+    def is_mmapped(self) -> bool | None:
         if self._is_mmapped is None:
             sz = self.size
             if sz is not None:
@@ -249,7 +351,7 @@ class Chunk:
         return self._is_mmapped
 
     @property
-    def prev_inuse(self):
+    def prev_inuse(self) -> bool | None:
         if self._prev_inuse is None:
             sz = self.size
             if sz is not None:
@@ -298,14 +400,14 @@ class Chunk:
         return self._bk_nextsize
 
     @property
-    def heap(self):
+    def heap(self) -> Heap:
         if self._heap is None:
             self._heap = Heap(self.address)
 
         return self._heap
 
     @property
-    def arena(self):
+    def arena(self) -> Arena | None:
         if self._arena is None:
             self._arena = self.heap.arena
 
@@ -326,7 +428,7 @@ class Chunk:
         if self.is_top_chunk:
             return None
 
-        if self.real_size == 0:
+        if self.real_size is None or self.real_size == 0:
             return None
 
         next = Chunk(self.address + self.real_size, arena=self.arena)
@@ -364,7 +466,10 @@ class Heap:
         "first_chunk",
     )
 
-    def __init__(self, addr, arena=None) -> None:
+    start: int
+    end: int
+
+    def __init__(self, addr: int, arena: Arena | None = None) -> None:
         """Build a Heap object given an address on that heap.
         Heap regions are treated differently depending on their arena:
         1) main_arena - uses the sbrk heap
@@ -372,11 +477,12 @@ class Heap:
         3) non-contiguous main_arena - just a memory region
         4) no arena - for fake/mmapped chunks
         """
-        allocator = pwndbg.heap.current
+        allocator = pwndbg.gdblib.heap.current
+        assert isinstance(allocator, GlibcMemoryAllocator)
         main_arena = allocator.main_arena
 
         sbrk_region = allocator.get_sbrk_heap_region()
-        if addr in sbrk_region:
+        if sbrk_region is not None and addr in sbrk_region:
             # Case 1; main_arena.
             self.arena = main_arena if arena is None else arena
             self._memory_region = sbrk_region
@@ -468,14 +574,18 @@ class Arena:
         "_system_mem",
     )
 
-    def __init__(self, addr) -> None:
-        if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
+    def __init__(self, addr: int) -> None:
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+        assert pwndbg.gdblib.heap.current.malloc_state is not None
+        if isinstance(pwndbg.gdblib.heap.current.malloc_state, gdb.Type):
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.gdblib.heap.current.malloc_state, addr
+            )
         else:
-            self._gdbValue = pwndbg.heap.current.malloc_state(addr)
+            self._gdbValue = pwndbg.gdblib.heap.current.malloc_state(addr)
 
         self.address = int(self._gdbValue.address)
-        self._is_main_arena: bool = None
+        self._is_main_arena: bool | None = None
         self._top = None
         self._active_heap = None
         self._heaps = None
@@ -483,22 +593,26 @@ class Arena:
         self._flags = None
         self._non_contiguous = None
         self._have_fastchunks = None
-        self._fastbinsY = None
-        self._bins = None
-        self._binmap = None
-        self._next = None
-        self._next_free = None
+        self._fastbinsY: List[int] | None = None
+        self._bins: List[int] | None = None
+        self._binmap: List[int] | None = None
+        self._next: int | None = None
+        self._next_free: int | None = None
         self._system_mem = None
 
     @property
-    def is_main_arena(self):
+    def is_main_arena(self) -> bool:
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
         if self._is_main_arena is None:
-            self._is_main_arena = self.address == pwndbg.heap.current.main_arena.address
+            self._is_main_arena = (
+                pwndbg.gdblib.heap.current.main_arena is not None
+                and self.address == pwndbg.gdblib.heap.current.main_arena.address
+            )
 
         return self._is_main_arena
 
     @property
-    def mutex(self):
+    def mutex(self) -> int | None:
         if self._mutex is None:
             try:
                 self._mutex = int(self._gdbValue["mutex"])
@@ -508,7 +622,7 @@ class Arena:
         return self._mutex
 
     @property
-    def flags(self):
+    def flags(self) -> int | None:
         if self._flags is None:
             try:
                 self._flags = int(self._gdbValue["flags"])
@@ -518,7 +632,7 @@ class Arena:
         return self._flags
 
     @property
-    def non_contiguous(self):
+    def non_contiguous(self) -> bool | None:
         if self._non_contiguous is None:
             flags = self.flags
             if flags is not None:
@@ -527,7 +641,7 @@ class Arena:
         return self._non_contiguous
 
     @property
-    def have_fastchunks(self):
+    def have_fastchunks(self) -> int | None:
         if self._have_fastchunks is None:
             try:
                 self._have_fastchunks = int(self._gdbValue["have_fastchunks"])
@@ -537,7 +651,7 @@ class Arena:
         return self._have_fastchunks
 
     @property
-    def top(self):
+    def top(self) -> int | None:
         if self._top is None:
             try:
                 self._top = int(self._gdbValue["top"])
@@ -547,10 +661,10 @@ class Arena:
         return self._top
 
     @property
-    def fastbinsY(self):
+    def fastbinsY(self) -> List[int]:
         if self._fastbinsY is None:
+            self._fastbinsY = []
             try:
-                self._fastbinsY = []
                 for i in range(NFASTBINS):
                     self._fastbinsY.append(int(self._gdbValue["fastbinsY"][i]))
             except gdb.MemoryError:
@@ -559,10 +673,10 @@ class Arena:
         return self._fastbinsY
 
     @property
-    def bins(self):
+    def bins(self) -> List[int]:
         if self._bins is None:
+            self._bins = []
             try:
-                self._bins = []
                 for i in range(NBINS):
                     self._bins.append(int(self._gdbValue["bins"][i]))
             except gdb.MemoryError:
@@ -571,10 +685,10 @@ class Arena:
         return self._bins
 
     @property
-    def binmap(self):
+    def binmap(self) -> List[int]:
         if self._binmap is None:
+            self._binmap = []
             try:
-                self._binmap = []
                 for i in range(BINMAPSIZE):
                     self._binmap.append(int(self._gdbValue["binmap"][i]))
             except gdb.MemoryError:
@@ -583,7 +697,7 @@ class Arena:
         return self._binmap
 
     @property
-    def next(self):
+    def next(self) -> int | None:
         if self._next is None:
             try:
                 self._next = int(self._gdbValue["next"])
@@ -593,7 +707,7 @@ class Arena:
         return self._next
 
     @property
-    def next_free(self):
+    def next_free(self) -> int | None:
         if self._next_free is None:
             try:
                 self._next_free = int(self._gdbValue["next_free"])
@@ -603,7 +717,7 @@ class Arena:
         return self._next_free
 
     @property
-    def system_mem(self):
+    def system_mem(self) -> int | None:
         if self._system_mem is None:
             try:
                 self._system_mem = int(self._gdbValue["system_mem"])
@@ -613,7 +727,7 @@ class Arena:
         return self._system_mem
 
     @property
-    def active_heap(self):
+    def active_heap(self) -> Heap:
         if self._active_heap is None:
             self._active_heap = Heap(self.top, arena=self)
 
@@ -625,7 +739,8 @@ class Arena:
             heap = self.active_heap
             heap_list = [heap]
             if self.is_main_arena:
-                sbrk_region = pwndbg.heap.current.get_sbrk_heap_region()
+                assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+                sbrk_region = pwndbg.gdblib.heap.current.get_sbrk_heap_region()
                 if self.top not in sbrk_region:
                     heap_list.append(Heap(sbrk_region.start, arena=self))
             else:
@@ -638,21 +753,21 @@ class Arena:
 
         return self._heaps
 
-    def fastbins(self):
+    def fastbins(self) -> Bins:
         size = pwndbg.gdblib.arch.ptrsize * 2
         fd_offset = pwndbg.gdblib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
         result = Bins(BinType.FAST)
-        for i in range(7):
+        for i in range(NFASTBINS):
             size += pwndbg.gdblib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
                 int(self.fastbinsY[i]),
                 offset=fd_offset,
-                limit=heap_chain_limit,
+                limit=pwndbg.gdblib.heap.heap_chain_limit,
                 safe_linking=safe_lnk,
             )
 
-            result.bins[size] = chain
+            result.bins[size] = Bin(chain)
         return result
 
     def __str__(self) -> str:
@@ -665,7 +780,7 @@ class Arena:
         return "\n".join(res)
 
 
-class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
+class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheType, TheValue]):
     # Largebin reverse lookup tables.
     # These help determine the range of chunk sizes that each largebin can hold.
     # They were generated by running every chunk size between the minimum & maximum large chunk
@@ -871,18 +986,18 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     def __init__(self) -> None:
         # Global ptmalloc objects
-        self._global_max_fast_addr: int = None
-        self._global_max_fast: int = None
-        self._main_arena_addr: int = None
-        self._main_arena: Arena = None
-        self._mp_addr: int = None
+        self._global_max_fast_addr: int | None = None
+        self._global_max_fast: int | None = None
+        self._main_arena_addr: int | None = None
+        self._main_arena: Arena | None = None
+        self._mp_addr: int | None = None
         self._mp = None
         # List of arenas/heaps
         self._arenas = None
         # ptmalloc cache for current thread
-        self._thread_cache: gdb.Value = None
+        self._thread_cache: TheValue | None = None
 
-    def largebin_reverse_lookup(self, index):
+    def largebin_reverse_lookup(self, index: int) -> int:
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
         if pwndbg.gdblib.arch.ptrsize == 8:
             return self.largebin_reverse_lookup_64[index]
@@ -891,7 +1006,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             return self.largebin_reverse_lookup_32[index]
 
-    def largebin_size_range_from_index(self, index):
+    def largebin_size_range_from_index(self, index: int):
         largest_largebin = self.largebin_index(pwndbg.gdblib.arch.ptrmask) - 64
         start_size = self.largebin_reverse_lookup(index)
 
@@ -902,82 +1017,82 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return (start_size, end_size)
 
-    def can_be_resolved(self):
+    def can_be_resolved(self) -> bool:
         raise NotImplementedError()
 
     @property
-    def main_arena(self):
+    def main_arena(self) -> Arena | None:
         raise NotImplementedError()
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def arenas(self):
+    def arenas(self) -> Tuple[Arena, ...]:
         """Return a tuple of all current arenas."""
-        arenas = []
+        arenas: List[Arena] = []
         main_arena = self.main_arena
-        arenas.append(main_arena)
+        if main_arena:
+            arenas.append(main_arena)
 
-        arena = main_arena
-        addr = arena.next
-        while addr != main_arena.address:
-            arenas.append(Arena(addr))
-            arena = Arena(addr)
+            arena = main_arena
             addr = arena.next
+            while addr is not None and addr != main_arena.address:
+                arena = Arena(addr)
+                arenas.append(arena)
+                addr = arena.next
 
-        arenas = tuple(arenas)
-        self._arenas = arenas
-        return arenas
+        self._arenas = tuple(arenas)
+        return self._arenas
 
-    def has_tcache(self):
+    def has_tcache(self) -> bool:
         raise NotImplementedError()
 
     @property
-    def thread_arena(self):
+    def thread_arena(self) -> Arena | None:
         raise NotImplementedError()
 
     @property
-    def thread_cache(self):
+    def thread_cache(self) -> TheValue | None:
         raise NotImplementedError()
 
     @property
-    def mp(self):
+    def mp(self) -> TheValue | None:
         raise NotImplementedError()
 
     @property
-    def global_max_fast(self):
+    def global_max_fast(self) -> int | None:
         raise NotImplementedError()
 
     @property
-    def heap_info(self):
+    def heap_info(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def malloc_chunk(self):
+    def malloc_chunk(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def malloc_state(self):
+    def malloc_state(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def tcache_perthread_struct(self):
+    def tcache_perthread_struct(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def tcache_entry(self):
+    def tcache_entry(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def mallinfo(self):
+    def mallinfo(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
-    def malloc_par(self):
+    def malloc_par(self) -> TheType | None:
         raise NotImplementedError()
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_alignment(self):
+    def malloc_alignment(self) -> int:
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
         if pwndbg.gdblib.arch.current == "i386" and pwndbg.glibc.get_version() >= (2, 26):
             # i386 will override it to 16 when GLIBC version >= 2.26
@@ -991,51 +1106,51 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def size_sz(self):
+    def size_sz(self) -> int:
         """Corresponds to SIZE_SZ in glibc malloc.c"""
         return pwndbg.gdblib.arch.ptrsize
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_align_mask(self):
+    def malloc_align_mask(self) -> int:
         """Corresponds to MALLOC_ALIGN_MASK in glibc malloc.c"""
         return self.malloc_alignment - 1
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def minsize(self):
+    def minsize(self) -> int:
         """Corresponds to MINSIZE in glibc malloc.c"""
         return self.min_chunk_size
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def min_chunk_size(self):
+    def min_chunk_size(self) -> int:
         """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.gdblib.arch.ptrsize * 4
 
     @property
     @pwndbg.lib.cache.cache_until("objfile", "thread")
-    def multithreaded(self):
+    def multithreaded(self) -> bool:
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.gdblib.symbol.address("__libc_multiple_threads")
         if addr:
             return pwndbg.gdblib.memory.s32(addr) > 0
         return len(gdb.execute("info threads", to_string=True).split("\n")) > 3
 
-    def _request2size(self, req):
+    def _request2size(self, req: int) -> int:
         """Corresponds to request2size in glibc malloc.c"""
         if req + self.size_sz + self.malloc_align_mask < self.minsize:
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
-    def chunk_flags(self, size: int):
+    def chunk_flags(self, size: int) -> Tuple[int, int, int]:
         return (
             size & ptmalloc.PREV_INUSE,
             size & ptmalloc.IS_MMAPPED,
             size & ptmalloc.NON_MAIN_ARENA,
         )
 
-    def chunk_key_offset(self, key):
+    def chunk_key_offset(self, key: str) -> int | None:
         """Find the index of a field in the malloc_chunk struct.
 
         64bit example:
@@ -1050,6 +1165,8 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             "mchunk_prev_size": "prev_size",
         }
         val = self.malloc_chunk
+        if val is None:
+            return None
         chunk_keys = [renames[key] if key in renames else key for key in val.keys()]
         try:
             return chunk_keys.index(key) * pwndbg.gdblib.arch.ptrsize
@@ -1058,23 +1175,23 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_next_offset(self):
+    def tcache_next_offset(self) -> int:
         return self.tcache_entry.keys().index("next") * pwndbg.gdblib.arch.ptrsize
 
-    def get_heap(self, addr):
+    def get_heap(self, addr: int) -> TheValue | None:
         raise NotImplementedError()
 
-    def get_tcache(self, tcache_addr=None):
+    def get_tcache(self, tcache_addr: int | None = None) -> TheValue | None:
         raise NotImplementedError()
 
-    def get_sbrk_heap_region(self):
+    def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
         raise NotImplementedError()
 
-    def get_region(self, addr):
+    def get_region(self, addr: int | gdb.Value | None) -> pwndbg.lib.memory.Page | None:
         """Find the memory map containing 'addr'."""
         return copy.deepcopy(pwndbg.gdblib.vmmap.find(addr))
 
-    def get_bins(self, bin_type, addr=None):
+    def get_bins(self, bin_type: BinType, addr: int | None = None) -> Bins | None:
         if bin_type == BinType.TCACHE:
             return self.tcachebins(addr)
         elif bin_type == BinType.FAST:
@@ -1094,7 +1211,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             return (size >> 3) - 2
 
-    def fastbins(self, arena_addr=None):
+    def fastbins(self, arena_addr: int | None = None) -> Bins | None:
         """Returns: chain or None"""
         if arena_addr:
             arena = Arena(arena_addr)
@@ -1102,33 +1219,16 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             arena = self.thread_arena
 
         if arena is None:
-            return
+            return None
 
-        fastbinsY = arena.fastbinsY
-        fd_offset = self.chunk_key_offset("fd")
-        num_fastbins = 7
-        size = pwndbg.gdblib.arch.ptrsize * 2
-        safe_lnk = pwndbg.glibc.check_safe_linking()
+        return arena.fastbins()
 
-        result = Bins(BinType.FAST)
-        for i in range(num_fastbins):
-            size += pwndbg.gdblib.arch.ptrsize * 2
-            chain = pwndbg.chain.get(
-                int(fastbinsY[i]),
-                offset=fd_offset,
-                limit=heap_chain_limit,
-                safe_linking=safe_lnk,
-            )
-
-            result.bins[size] = Bin(chain)
-        return result
-
-    def tcachebins(self, tcache_addr=None):
+    def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
         tcache = self.get_tcache(tcache_addr)
 
         if tcache is None:
-            return
+            return None
 
         counts = tcache["counts"]
         entries = tcache["entries"]
@@ -1147,14 +1247,16 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             chain = pwndbg.chain.get(
                 int(entries[i]),
                 offset=self.tcache_next_offset,
-                limit=heap_chain_limit,
+                limit=pwndbg.gdblib.heap.heap_chain_limit,
                 safe_linking=safe_lnk,
             )
 
             result.bins[size] = Bin(chain, count=count)
         return result
 
-    def bin_at(self, index, arena_addr=None):
+    def bin_at(
+        self, index: int, arena_addr: int | None = None
+    ) -> Tuple[List[int], List[int], bool] | None:
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
         https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1394
@@ -1175,7 +1277,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             arena = self.thread_arena
 
         if arena is None:
-            return
+            return None
 
         normal_bins = arena._gdbValue["bins"]  # Breaks encapsulation, find a better way.
 
@@ -1191,7 +1293,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             int(bin),
             offset=offset,
             hard_stop=current_base,
-            limit=heap_chain_limit,
+            limit=pwndbg.gdblib.heap.heap_chain_limit,
             include_start=True,
         )
         chain_fd = get_chain(front, fd_offset)
@@ -1208,45 +1310,45 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 
-    def unsortedbin(self, arena_addr=None):
+    def unsortedbin(self, arena_addr: int | None = None) -> Bins | None:
         chain = self.bin_at(1, arena_addr=arena_addr)
         result = Bins(BinType.UNSORTED)
 
         if chain is None:
-            return
+            return None
 
         fd_chain, bk_chain, is_corrupted = chain
         result.bins["all"] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
         return result
 
-    def smallbins(self, arena_addr=None):
+    def smallbins(self, arena_addr: int | None = None) -> Bins | None:
         size = self.min_chunk_size
         result = Bins(BinType.SMALL)
         for index in range(2, 64):
             chain = self.bin_at(index, arena_addr=arena_addr)
 
             if chain is None:
-                return
+                return None
 
             fd_chain, bk_chain, is_corrupted = chain
             result.bins[size] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
             size += self.malloc_alignment
         return result
 
-    def largebins(self, arena_addr=None):
+    def largebins(self, arena_addr: int | None = None) -> Bins | None:
         result = Bins(BinType.LARGE)
         for index in range(64, 127):
             chain = self.bin_at(index, arena_addr=arena_addr)
 
             if chain is None:
-                return
+                return None
 
             fd_chain, bk_chain, is_corrupted = chain
             result.bins[index - NSMALLBINS] = Bin(fd_chain, bk_chain, is_corrupted=is_corrupted)
 
         return result
 
-    def largebin_index_32(self, sz):
+    def largebin_index_32(self, sz: int) -> int:
         """Modeled on the GLIBC malloc largebin_index_32 macro.
 
         https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1414
@@ -1271,7 +1373,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             )
         )
 
-    def largebin_index_32_big(self, sz):
+    def largebin_index_32_big(self, sz: int) -> int:
         """Modeled on the GLIBC malloc largebin_index_32_big macro.
 
         https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1422
@@ -1296,7 +1398,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             )
         )
 
-    def largebin_index_64(self, sz):
+    def largebin_index_64(self, sz: int) -> int:
         """Modeled on the GLIBC malloc largebin_index_64 macro.
 
         https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617#l1433
@@ -1321,7 +1423,7 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             )
         )
 
-    def largebin_index(self, sz):
+    def largebin_index(self, sz: int):
         """Pick the appropriate largebin_index_ function for this architecture."""
         if pwndbg.gdblib.arch.ptrsize == 8:
             return self.largebin_index_64(sz)
@@ -1348,11 +1450,11 @@ class GlibcMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         )
 
 
-class DebugSymsHeap(GlibcMemoryAllocator):
+class DebugSymsHeap(GlibcMemoryAllocator[gdb.Type, gdb.Value]):
     can_be_resolved = GlibcMemoryAllocator.libc_has_debug_syms
 
     @property
-    def main_arena(self):
+    def main_arena(self) -> Arena | None:
         self._main_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "main_arena"
         ) or pwndbg.gdblib.symbol.address("main_arena")
@@ -1361,11 +1463,11 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
         return self._main_arena
 
-    def has_tcache(self):
-        return self.mp and "tcache_bins" in self.mp.type.keys() and self.mp["tcache_bins"]
+    def has_tcache(self) -> bool:
+        return self.mp is not None and "tcache_bins" in self.mp.type.keys()
 
     @property
-    def thread_arena(self):
+    def thread_arena(self) -> Arena | None:
         if self.multithreaded:
             thread_arena_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
                 "thread_arena"
@@ -1380,7 +1482,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             return self.main_arena
 
     @property
-    def thread_cache(self):
+    def thread_cache(self) -> gdb.Value | None:
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
         """
@@ -1398,7 +1500,9 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                 tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
-                self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
+                self._thread_cache = pwndbg.gdblib.memory.get_typed_pointer_value(
+                    self.tcache_perthread_struct, tcache
+                )
                 self._thread_cache["entries"].fetch_lazy()
             except Exception:
                 print(
@@ -1415,17 +1519,17 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         return None
 
     @property
-    def mp(self):
+    def mp(self) -> gdb.Value | None:
         self._mp_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
-        if self._mp_addr is not None:
-            self._mp = pwndbg.gdblib.memory.poi(self.malloc_par, self._mp_addr)
+        if self._mp_addr is not None and self.malloc_par is not None:
+            self._mp = pwndbg.gdblib.memory.get_typed_pointer_value(self.malloc_par, self._mp_addr)
 
         return self._mp
 
     @property
-    def global_max_fast(self):
+    def global_max_fast(self) -> int | None:
         self._global_max_fast_addr = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "global_max_fast"
         ) or pwndbg.gdblib.symbol.address("global_max_fast")
@@ -1436,90 +1540,104 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def heap_info(self):
+    def heap_info(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("heap_info")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_chunk(self):
+    def malloc_chunk(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct malloc_chunk")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_state(self):
+    def malloc_state(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct malloc_state")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_perthread_struct(self):
+    def tcache_perthread_struct(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct tcache_perthread_struct")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_entry(self):
+    def tcache_entry(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct tcache_entry")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def mallinfo(self):
+    def mallinfo(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct mallinfo")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_par(self):
+    def malloc_par(self) -> gdb.Type | None:
         return pwndbg.gdblib.typeinfo.load("struct malloc_par")
 
-    def get_heap(self, addr):
+    def get_heap(self, addr: int) -> gdb.Value | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
+        if self.heap_info is None:
+            return None
+        return pwndbg.gdblib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
 
-    def get_tcache(self, tcache_addr=None):
+    def get_tcache(self, tcache_addr: int | gdb.Value | None = None) -> gdb.Value | None:
         if tcache_addr is None:
             return self.thread_cache
 
-        return pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache_addr)
+        return pwndbg.gdblib.memory.get_typed_pointer_value(
+            self.tcache_perthread_struct, tcache_addr
+        )
 
-    def get_sbrk_heap_region(self):
+    def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
         which compensates for the presence of GLIBC_TUNABLES.
         """
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+        assert self.mp is not None
         sbrk_base = pwndbg.lib.memory.align_up(
-            int(self.mp["sbrk_base"]), pwndbg.heap.current.size_sz * 2
+            int(self.mp["sbrk_base"]), pwndbg.gdblib.heap.current.size_sz * 2
         )
 
         sbrk_region = self.get_region(sbrk_base)
+        if sbrk_region is None:
+            return None
         sbrk_region.memsz = sbrk_region.end - sbrk_base
         sbrk_region.vaddr = sbrk_base
 
         return sbrk_region
 
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         addr = pwndbg.gdblib.symbol.address("__libc_malloc_initialized")
         if addr is None:
             addr = pwndbg.gdblib.symbol.address("__malloc_initialized")
+        assert addr is not None, "Could not find __libc_malloc_initialized or __malloc_initialized"
         return pwndbg.gdblib.memory.s32(addr) > 0
 
 
 class SymbolUnresolvableError(Exception):
-    def __init__(self, symbol) -> None:
+    def __init__(self, symbol: str) -> None:
         super().__init__(f"`{symbol}` can not be resolved via heuristic")
         self.symbol = symbol
 
 
-class HeuristicHeap(GlibcMemoryAllocator):
+class HeuristicHeap(
+    GlibcMemoryAllocator[
+        typing.Type["pwndbg.gdblib.heap.structs.CStruct2GDB"],
+        "pwndbg.gdblib.heap.structs.CStruct2GDB",
+    ]
+):
     def __init__(self) -> None:
         super().__init__()
-        self._structs_module = None
-        self._thread_arena_values: dict[int, int] = {}
-        self._thread_caches: dict[int, Any] = {}
+        self._structs_module: types.ModuleType | None = None
+        self._thread_arena_values: Dict[int, int] = {}
+        self._thread_caches: Dict[int, Any] = {}
 
     @property
-    def struct_module(self):
+    def struct_module(self) -> types.ModuleType | None:
         if not self._structs_module and pwndbg.glibc.get_version():
             try:
                 self._structs_module = importlib.reload(
-                    importlib.import_module("pwndbg.heap.structs")
+                    importlib.import_module("pwndbg.gdblib.heap.structs")
                 )
             except Exception:
                 pass
@@ -1529,8 +1647,8 @@ class HeuristicHeap(GlibcMemoryAllocator):
         return self.struct_module is not None
 
     @property
-    def main_arena(self):
-        main_arena_via_config = int(str(pwndbg.gdblib.config.main_arena), 0)
+    def main_arena(self) -> Arena | None:
+        main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
         main_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "main_arena"
         ) or pwndbg.gdblib.symbol.address("main_arena")
@@ -1637,7 +1755,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
         raise SymbolUnresolvableError("main_arena")
 
-    def has_tcache(self):
+    def has_tcache(self) -> bool:
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
 
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
@@ -1688,7 +1806,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_tls_reference_in_got_section(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> tuple[int, int] | None:
+    ) -> Tuple[int, int] | None:
         """Brute force the TLS-reference in the .got section to that can pass the validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
@@ -1720,7 +1838,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     def brute_force_thread_local_variable_near_tls_base(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> tuple[int, int] | None:
+    ) -> Tuple[int, int] | None:
         """Brute force the thread-local variable near the TLS base address that can pass the validator."""
         print(
             message.notice(
@@ -1744,14 +1862,14 @@ class HeuristicHeap(GlibcMemoryAllocator):
         return None
 
     @property
-    def thread_arena(self):
+    def thread_arena(self) -> Arena | None:
         thread_arena_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "thread_arena"
         ) or pwndbg.gdblib.symbol.address("thread_arena")
         if thread_arena_via_symbol:
             thread_arena_value = pwndbg.gdblib.memory.pvoid(thread_arena_via_symbol)
             return Arena(thread_arena_value) if thread_arena_value else None
-        thread_arena_via_config = int(str(pwndbg.gdblib.config.thread_arena), 0)
+        thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
         if thread_arena_via_config:
             return Arena(thread_arena_via_config)
 
@@ -1760,7 +1878,11 @@ class HeuristicHeap(GlibcMemoryAllocator):
         if thread_arena_value:
             return Arena(thread_arena_value)
 
-        if self.main_arena.address != pwndbg.heap.current.main_arena.next or self.multithreaded:
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+        if (
+            self.main_arena.address != pwndbg.gdblib.heap.current.main_arena.next
+            or self.multithreaded
+        ):
             if pwndbg.gdblib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
                 # TODO: Support other architectures
                 raise SymbolUnresolvableError("thread_arena")
@@ -1800,24 +1922,25 @@ class HeuristicHeap(GlibcMemoryAllocator):
             return self.main_arena
 
     @property
-    def thread_cache(self):
+    def thread_cache(self) -> "pwndbg.gdblib.heap.structs.TcachePerthreadStruct" | None:
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
         if not self.has_tcache():
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
-        thread_cache_via_config = int(str(pwndbg.gdblib.config.tcache), 0)
+        tps = self.tcache_perthread_struct
+        thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
         thread_cache_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "tcache"
         ) or pwndbg.gdblib.symbol.address("tcache")
         if thread_cache_via_config:
-            self._thread_cache = self.tcache_perthread_struct(thread_cache_via_config)
+            self._thread_cache = tps(thread_cache_via_config)
             return self._thread_cache
         elif thread_cache_via_symbol:
             thread_cache_struct_addr = pwndbg.gdblib.memory.pvoid(thread_cache_via_symbol)
             if thread_cache_struct_addr:
-                self._thread_cache = self.tcache_perthread_struct(int(thread_cache_struct_addr))
+                self._thread_cache = tps(int(thread_cache_struct_addr))
                 return self._thread_cache
 
         # return the value of tcache if we have it cached
@@ -1861,7 +1984,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
                                 f"Found possible tcache at {message.hint(hex(address))} with value: {message.hint(hex(value))}\n"
                             )
                         )
-                        self._thread_cache = self.tcache_perthread_struct(value)
+                        self._thread_cache = tps(value)
                         self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
                         return self._thread_cache
 
@@ -1873,16 +1996,14 @@ class HeuristicHeap(GlibcMemoryAllocator):
             )
 
         # TODO: The result might be wrong if the arena is being shared by multiple thread
-        self._thread_cache = self.tcache_perthread_struct(
-            arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
-        )
+        self._thread_cache = tps(arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2)
         self._thread_caches[gdb.selected_thread().global_num] = self._thread_cache
 
         return self._thread_cache
 
     @property
-    def mp(self):
-        mp_via_config = int(str(pwndbg.gdblib.config.mp), 0)
+    def mp(self) -> "pwndbg.gdblib.heap.structs.CStruct2GDB":
+        mp_via_config = int(str(pwndbg.config.mp), 0)
         mp_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
@@ -1905,14 +2026,15 @@ class HeuristicHeap(GlibcMemoryAllocator):
                     self._mp_addr = section_address + found
 
         if pwndbg.gdblib.memory.is_readable_address(self._mp_addr):
-            self._mp = self.malloc_par(self._mp_addr)
+            mps = self.malloc_par
+            self._mp = mps(self._mp_addr)
             return self._mp
 
         raise SymbolUnresolvableError("mp_")
 
     @property
-    def global_max_fast(self):
-        global_max_fast_via_config = int(str(pwndbg.gdblib.config.global_max_fast), 0)
+    def global_max_fast(self) -> int:
+        global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
         global_max_fast_via_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
             "global_max_fast"
         ) or pwndbg.gdblib.symbol.address("global_max_fast")
@@ -1940,51 +2062,69 @@ class HeuristicHeap(GlibcMemoryAllocator):
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def heap_info(self):
+    def heap_info(self) -> Type["pwndbg.gdblib.heap.structs.HeapInfo"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.HeapInfo
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_chunk(self):
+    def malloc_chunk(self) -> Type["pwndbg.gdblib.heap.structs.MallocChunk"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.MallocChunk
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_state(self):
+    def malloc_state(self) -> Type["pwndbg.gdblib.heap.structs.MallocState"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.MallocState
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_perthread_struct(self):
+    def tcache_perthread_struct(
+        self,
+    ) -> Type["pwndbg.gdblib.heap.structs.TcachePerthreadStruct"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.TcachePerthreadStruct
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_entry(self):
+    def tcache_entry(self) -> Type["pwndbg.gdblib.heap.structs.TcacheEntry"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.TcacheEntry
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def mallinfo(self):
+    def mallinfo(self) -> Type["pwndbg.gdblib.heap.structs.CStruct2GDB"] | None:
         # TODO/FIXME: Currently, we don't need to create a new class for `struct mallinfo` because we never use it.
         raise NotImplementedError("`struct mallinfo` is not implemented yet.")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_par(self):
+    def malloc_par(self) -> Type["pwndbg.gdblib.heap.structs.MallocPar"] | None:
+        if not self.struct_module:
+            return None
         return self.struct_module.MallocPar
 
-    def get_heap(self, addr):
+    def get_heap(self, addr: int) -> "pwndbg.gdblib.heap.structs.HeapInfo" | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        return self.heap_info(heap_for_ptr(addr))
+        hi = self.heap_info
+        return hi(heap_for_ptr(addr))
 
-    def get_tcache(self, tcache_addr=None):
+    def get_tcache(
+        self, tcache_addr: int | None = None
+    ) -> "pwndbg.gdblib.heap.structs.TcachePerthreadStruct" | None:
         if tcache_addr is None:
             return self.thread_cache
 
-        return self.tcache_perthread_struct(tcache_addr)
+        tps = self.tcache_perthread_struct
+        return tps(tcache_addr)
 
-    def get_sbrk_heap_region(self):
+    def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page:
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
         which compensates for the presence of GLIBC_TUNABLES.
@@ -2003,12 +2143,15 @@ class HeuristicHeap(GlibcMemoryAllocator):
             if self.get_region(self.mp.get_field_address("sbrk_base")) and self.get_region(
                 self.mp["sbrk_base"]
             ):
+                assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
                 sbrk_base = pwndbg.lib.memory.align_up(
-                    int(self.mp["sbrk_base"]), pwndbg.heap.current.size_sz * 2
+                    int(self.mp["sbrk_base"]), pwndbg.gdblib.heap.current.size_sz * 2
                 )
 
                 sbrk_region = self.get_region(sbrk_base)
-                sbrk_region.memsz = self.get_region(sbrk_base).end - sbrk_base
+                if sbrk_region is None:
+                    raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
+                sbrk_region.memsz = sbrk_region.end - sbrk_base
                 sbrk_region.vaddr = sbrk_base
 
                 return sbrk_region
@@ -2017,7 +2160,7 @@ class HeuristicHeap(GlibcMemoryAllocator):
         else:
             raise SymbolUnresolvableError("mp_")
 
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
         return any("[heap]" == x.objfile for x in pwndbg.gdblib.vmmap.get()) or (

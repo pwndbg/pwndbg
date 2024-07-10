@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 import gdb
 
 import pwndbg.color.memory as M
@@ -13,7 +15,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
 
-LIMIT = pwndbg.gdblib.config.add_param(
+LIMIT = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 
@@ -29,14 +31,14 @@ c = ColorConfig(
 
 
 def get(
-    address,
-    limit=LIMIT,
-    offset=0,
-    hard_stop=None,
-    hard_end=0,
-    include_start=True,
-    safe_linking=False,
-):
+    address: int | None,
+    limit: int = int(LIMIT),
+    offset: int = 0,
+    hard_stop: int | None = None,
+    hard_end: int = 0,
+    include_start: bool = True,
+    safe_linking: bool = False,
+) -> List[int] | None:
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -58,7 +60,7 @@ def get(
     limit = int(limit)
 
     result = [address] if include_start else []
-    for i in range(limit):
+    for _ in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
         if result.count(address) >= 2:
             break
@@ -75,7 +77,9 @@ def get(
             if not pwndbg.gdblib.abi.linux and not pwndbg.gdblib.vmmap.find(address):
                 break
 
-            next_address = int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, address))
+            next_address = int(
+                pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
+            )
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.gdblib.arch.ptrmask
             result.append(address)
@@ -97,15 +101,15 @@ config_contiguous = theme.add_param(
 
 
 def format(
-    value,
-    limit=LIMIT,
-    code=True,
-    offset=0,
-    hard_stop=None,
-    hard_end=0,
-    safe_linking=False,
-    enhance_string_len: int = None,
-):
+    value: int | List[int] | None,
+    limit: int = int(LIMIT),
+    code: bool = True,
+    offset: int = 0,
+    hard_stop: int | None = None,
+    hard_end: int = 0,
+    safe_linking: bool = False,
+    enhance_string_len: int | None = None,
+) -> str:
     """
     Recursively dereferences an address into string representation, or convert the list representation
     of address dereferences into string representation.
@@ -132,13 +136,13 @@ def format(
     if isinstance(value, list):
         chain = value
     else:
-        chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking)
+        chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking) or []
 
     arrow_left = c.arrow(f" {config_arrow_left} ")
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Colorize the chain
-    rest = []
+    rest: List[str] = []
     for link in chain:
         symbol = pwndbg.gdblib.symbol.get(link) or None
         if symbol:

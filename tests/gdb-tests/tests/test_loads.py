@@ -30,11 +30,14 @@ def test_loads_binary_without_crashing():
     assert any("pwndbg: loaded" in line for line in output)
 
 
-def test_loads_binary_with_core_without_crashing():
+def test_loads_core_without_crashing():
+    # Generate the corefile if it doesn't already exist
     if not os.path.isfile(CORE):
         create_coredump = ["run", f"generate-core-file {CORE}"]
         run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
         assert os.path.isfile(CORE)
+
+    # Attempt loading both a binary and a corefile
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
 
     assert any(f"Reading symbols from {BINARY}..." in line for line in output)
@@ -52,12 +55,7 @@ def test_loads_binary_with_core_without_crashing():
     crash_address_line = re.compile(r"^#0  0x[0-9a-fA-F]+ in main .*$")
     assert any(crash_address_line.match(line) for line in output)
 
-
-def test_loads_core_without_crashing():
-    if not os.path.isfile(CORE):
-        create_coredump = ["run", f"generate-core-file {CORE}"]
-        run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-        assert os.path.isfile(CORE)
+    # Attempt loading with just a corefile
     output = run_gdb_with_script(core=CORE).splitlines()
 
     expected = [

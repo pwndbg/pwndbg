@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o errexit
 
@@ -16,7 +16,7 @@ FIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f | --format)
+        -f | --fix)
             FIX=1
             shift
             ;;
@@ -31,7 +31,9 @@ if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 
-source "${PWNDBG_VENV_PATH}/bin/activate"
+if [[ "${PWNDBG_VENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then
+    source "${PWNDBG_VENV_PATH}/bin/activate"
+fi
 
 set -o xtrace
 
@@ -78,9 +80,9 @@ else
 fi
 
 # Checking minimum python version
-vermin -vvv --no-tips -t=3.8- --violations ./pwndbg/
+vermin -vvv --no-tips -t=3.8- --eval-annotations --violations ${LINT_FILES}
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    mypy pwndbg
+    mypy pwndbg gdbinit.py lldbinit.py
 fi

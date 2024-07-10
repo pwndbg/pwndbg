@@ -13,15 +13,34 @@
 from __future__ import annotations
 
 from typing import Callable
+from typing import Dict
+from typing import List
 
 from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
+from typing_extensions import override
 
-import pwndbg.disasm.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+
+BRANCH_LIKELY_INSTRUCTIONS = {
+    MIPS_INS_BC0TL,
+    MIPS_INS_BC1TL,
+    MIPS_INS_BC0FL,
+    MIPS_INS_BC1FL,
+    MIPS_INS_BEQL,
+    MIPS_INS_BGEZALL,
+    MIPS_INS_BGEZL,
+    MIPS_INS_BGTZL,
+    MIPS_INS_BLEZL,
+    MIPS_INS_BLTZALL,
+    MIPS_INS_BLTZL,
+    MIPS_INS_BNEL,
+}
 
 
 def to_signed(unsigned: int):
@@ -31,7 +50,7 @@ def to_signed(unsigned: int):
         return unsigned - ((unsigned & 0x80000000) << 1)
 
 
-CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
+CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
@@ -45,20 +64,20 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
 }
 
 
-class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
-    # Override
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    @override
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
-        resolved_operands: list[int] = []
+        resolved_operands: List[int] = []
         for op in instruction.operands:
             resolved_operands.append(
-                super().resolve_used_value(op.before_value, instruction, op, emu)
+                super()._resolve_used_value(op.before_value, instruction, op, emu)
             )
 
         # If any of the relevent operands are None (we can't reason about them), quit.
@@ -73,6 +92,15 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
+
+    @override
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+        if bool(instruction.groups_set & FORWARD_JUMP_GROUP) and not bool(
+            instruction.groups_set & BRANCH_LIKELY_INSTRUCTIONS
+        ):
+            instruction.causes_branch_delay = True
+
+        return super()._resolve_target(instruction, emu, call)
 
 
 assistant = DisassemblyAssistant("mips")

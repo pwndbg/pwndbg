@@ -10,32 +10,34 @@ import argparse
 import collections
 import math
 from typing import DefaultDict
+from typing import Dict
+from typing import List
 
+import pwndbg
 import pwndbg.chain
 import pwndbg.color.telescope as T
 import pwndbg.commands
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.config
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.typeinfo
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 
-telescope_lines = pwndbg.gdblib.config.add_param(
+telescope_lines = pwndbg.config.add_param(
     "telescope-lines", 8, "number of lines to printed by the telescope command"
 )
-skip_repeating_values = pwndbg.gdblib.config.add_param(
+skip_repeating_values = pwndbg.config.add_param(
     "telescope-skip-repeating-val",
     True,
     "whether to skip repeating values of the telescope command",
 )
-skip_repeating_values_minimum = pwndbg.gdblib.config.add_param(
+skip_repeating_values_minimum = pwndbg.config.add_param(
     "telescope-skip-repeating-val-minimum",
     3,
     "minimum amount of repeated values before skipping lines",
 )
-print_framepointer_offset = pwndbg.gdblib.config.add_param(
+print_framepointer_offset = pwndbg.config.add_param(
     "telescope-framepointer-offset",
     True,
     "print offset to framepointer for each address, if sufficiently small",
@@ -154,7 +156,7 @@ def telescope(
         count = max(math.ceil(count / ptrsize), 1)
 
     # Map of address to register string
-    reg_values: DefaultDict[int, list[str]] = collections.defaultdict(list)
+    reg_values: DefaultDict[int, List[str]] = collections.defaultdict(list)
     for reg in pwndbg.gdblib.regs.common:
         reg_values[pwndbg.gdblib.regs[reg]].append(reg)
 
@@ -168,7 +170,7 @@ def telescope(
         step = -1 * ptrsize
 
     # Find all registers which show up in the trace, map address to regs
-    regs: dict[int, str] = {}
+    regs: Dict[int, str] = {}
     for i in range(start, stop, step):
         values = list(reg_values[i])
 
@@ -187,7 +189,7 @@ def telescope(
     # Print everything out
     result = []
     last = None
-    collapse_buffer: list[str] = []
+    collapse_buffer: List[str] = []
     skipped_padding = (
         2
         + len(offset_delimiter)
@@ -265,7 +267,7 @@ def telescope(
     return result
 
 
-def regs_or_frame_offset(addr: int, bp: int | None, regs: dict[int, str], longest_regs: int) -> str:
+def regs_or_frame_offset(addr: int, bp: int | None, regs: Dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
     # len(regs[addr]) == 1 if no registers pointer to address
     if bp is None or len(regs[addr]) > 1 or not -0xFFF <= addr - bp <= 0xFFF:

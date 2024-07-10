@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import functools
 import io
+import logging
 from enum import Enum
 from typing import Any
 from typing import Callable
@@ -14,18 +15,23 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+from typing_extensions import ParamSpec
 
 import pwndbg.exception
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.kernel
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.regs
-import pwndbg.heap
-from pwndbg.color import message
-from pwndbg.heap.ptmalloc import DebugSymsHeap
-from pwndbg.heap.ptmalloc import HeuristicHeap
-from pwndbg.heap.ptmalloc import SymbolUnresolvableError
+from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
+from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
+from pwndbg.gdblib.heap.ptmalloc import HeuristicHeap
+from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
+
+log = logging.getLogger(__name__)
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 commands: List[Command] = []
 command_names: Set[str] = set()
@@ -84,7 +90,7 @@ GDB_BUILTIN_COMMANDS = list_current_commands()
 pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
-class Command(gdb.Command):
+class Command:
     """Generic command wrapper"""
 
     builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
@@ -108,7 +114,10 @@ class Command(gdb.Command):
         if command_name is None:
             command_name = function.__name__
 
-        super().__init__(command_name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=prefix)
+        def _handler(_debugger, arguments, is_interactive):
+            self.invoke(arguments, is_interactive)
+
+        self.handle = pwndbg.dbg.add_command(command_name, _handler)
         self.function = function
 
         if command_name in command_names:
@@ -135,7 +144,7 @@ class Command(gdb.Command):
             A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
             The contents of the tuple/dict are undefined.
         """
-        return gdb.string_to_argv(argument), {}
+        return pwndbg.dbg.lex_args(argument), {}
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -146,6 +155,10 @@ class Command(gdb.Command):
             return
         except (TypeError, gdb.error):
             pwndbg.exception.handle(self.function.__name__)
+            return
+
+        if not pwndbg.dbg.selected_inferior():
+            log.error("Pwndbg commands require a target binary to be selected")
             return
 
         try:
@@ -164,23 +177,13 @@ class Command(gdb.Command):
         if not from_tty:
             return False
 
-        lines = gdb.execute("show commands", from_tty=False, to_string=True)
-        lines = lines.splitlines()
+        last_line = pwndbg.dbg.history(1)
 
         # No history
-        if not lines:
+        if not last_line:
             return False
 
-        last_line = lines[-1]
-        number_str, command = last_line.split(maxsplit=1)
-        try:
-            number = int(number_str)
-        except ValueError:
-            # In rare cases GDB will output a warning after executing `show commands`
-            # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
-            # symtab.)").
-            return False
-
+        number, command = last_line[-1]
         # A new command was entered by the user
         if number not in Command.history:
             Command.history[number] = command
@@ -204,9 +207,9 @@ class Command(gdb.Command):
 
 
 def fix(
-    arg: gdb.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
-) -> str | gdb.Value | None:
-    """Fix a single command-line argument coming from the GDB CLI.
+    arg: pwndbg.dbg_mod.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+) -> str | pwndbg.dbg_mod.Value | None:
+    """Fix a single command-line argument coming from the CLI.
 
     Arguments:
         arg(str): Original string representation (e.g. '0', '$rax', '$rax+44')
@@ -215,21 +218,26 @@ def fix(
         reraise(bool): If an error occurs, raise the exception. (default: False)
 
     Returns:
-        Ideally ``gdb.Value`` object.  May return a ``str`` if ``sloppy==True``.
+        Ideally a ``Value`` object.  May return a ``str`` if ``sloppy==True``.
         May return ``None`` if ``sloppy == False and reraise == False``.
     """
-    if isinstance(arg, gdb.Value):
+    if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
 
+    frame = pwndbg.dbg.selected_frame()
+    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+        frame if frame else pwndbg.dbg.selected_inferior()
+    )
+    assert target, "Reached command expression evaluation with no frame or inferior"
+
     try:
-        parsed = gdb.parse_and_eval(arg)
-        return parsed
+        return target.evaluate_expression(arg)
     except Exception:
         pass
 
     try:
         arg = pwndbg.gdblib.regs.fix(arg)
-        return gdb.parse_and_eval(arg)
+        return target.evaluate_expression(arg)
     except Exception as e:
         if not quiet:
             print(e)
@@ -242,7 +250,7 @@ def fix(
     return None
 
 
-def fix_reraise(*a, **kw) -> str | gdb.Value | None:
+def fix_reraise(*a, **kw) -> str | pwndbg.dbg_mod.Value | None:
     # Type error likely due to https://github.com/python/mypy/issues/6799
     return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
@@ -255,28 +263,28 @@ def fix_int_reraise(*a, **kw) -> int:
     return fix_int(*a, reraise=True, **kw)
 
 
-def OnlyWithFile(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithFile(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.proc.exe:
             return function(*a, **kw)
         else:
             if pwndbg.gdblib.qemu.is_qemu():
-                print(message.error("Could not determine the target binary on QEMU."))
+                log.error("Could not determine the target binary on QEMU.")
             else:
-                print(message.error(f"{function.__name__}: There is no file loaded."))
+                log.error(f"{function.__name__}: There is no file loaded.")
             return None
 
     return _OnlyWithFile
 
 
-def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenQemuKernel(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
             )
             return None
@@ -284,13 +292,13 @@ def OnlyWhenQemuKernel(function: Callable[..., T]) -> Callable[..., Optional[T]]
     return _OnlyWhenQemuKernel
 
 
-def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenUserspace(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if not pwndbg.gdblib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
             )
             return None
@@ -298,7 +306,7 @@ def OnlyWhenUserspace(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.gdblib.arch_mod.ARCHS:
@@ -306,16 +314,15 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a: Any, **kw: Any) -> Optional[T]:
+        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
             if pwndbg.gdblib.arch.name in arch_names:
                 return function(*a, **kw)
             else:
                 arches_str = ", ".join(arch_names)
-                print(
-                    f"%s: This command may only be run on the {arches_str} architecture(s)"
-                    % function.__name__
+                log.error(
+                    f"{function.__name__}: This command may only be run on the {arches_str} architecture(s)"
                 )
                 return None
 
@@ -324,13 +331,13 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[..., T]], Callable
     return decorator
 
 
-def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWithKernelDebugSyms(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.kernel.has_debug_syms():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
             return None
@@ -338,37 +345,38 @@ def OnlyWithKernelDebugSyms(function: Callable[..., T]) -> Callable[..., Optiona
     return _OnlyWithKernelDebugSyms
 
 
-def OnlyWhenPagingEnabled(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenPagingEnabled(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: This command may only be run when paging is enabled.")
+            log.error(f"{function.__name__}: This command may only be run when paging is enabled.")
             return None
 
     return _OnlyWhenPagingEnabled
 
 
-def OnlyWhenRunning(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenRunning(*a: Any, **kw: Any) -> Optional[T]:
+    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.gdblib.proc.alive:
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: The program is not being run.")
+            log.error(f"{function.__name__}: The program is not being run.")
             return None
 
     return _OnlyWhenRunning
 
 
-def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithTcache(*a: Any, **kw: Any) -> Optional[T]:
-        if pwndbg.heap.current.has_tcache():
+    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+        if pwndbg.gdblib.heap.current.has_tcache():
             return function(*a, **kw)
         else:
-            print(
+            log.error(
                 f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
             )
             return None
@@ -376,13 +384,13 @@ def OnlyWithTcache(function: Callable[..., T]) -> Callable[..., Optional[T]]:
     return _OnlyWithTcache
 
 
-def OnlyWhenHeapIsInitialized(function: Callable[..., T]) -> Callable[..., Optional[T]]:
+def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a: Any, **kw: Any) -> Optional[T]:
-        if pwndbg.heap.current.is_initialized():
+    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.gdblib.heap.current is not None and pwndbg.gdblib.heap.current.is_initialized():
             return function(*a, **kw)
         else:
-            print(f"{function.__name__}: Heap is not initialized yet.")
+            log.error(f"{function.__name__}: Heap is not initialized yet.")
             return None
 
     return _OnlyWhenHeapIsInitialized
@@ -394,9 +402,9 @@ def _is_statically_linked() -> bool:
     return "No shared libraries loaded at this time." in out
 
 
-def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) -> str | None:
-    e = lambda s: print(message.error(s))
-    w = lambda s: print(message.warn(s))
+def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
+    e = log.error
+    w = log.warning
     # Note: We will still raise the error for developers when exception-* is set to "on"
     try:
         return function(*a, **kw)
@@ -411,53 +419,57 @@ def _try2run_heap_command(function: Callable[..., str | None], a: Any, kw: Any) 
             w(
                 f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
             )
-        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
 
         pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
         e(f"{function.__name__}: An unknown error occurred when running this command.")
-        if isinstance(pwndbg.heap.current, HeuristicHeap):
+        if isinstance(pwndbg.gdblib.heap.current, HeuristicHeap):
             w(
                 "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
             )
         else:
             w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
-        if pwndbg.gdblib.config.exception_verbose or pwndbg.gdblib.config.exception_debugger:
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
 
         pwndbg.exception.inform_verbose_and_debug()
     return None
 
 
-def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
+def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a: Any, **kw: Any):
-        e = lambda s: print(message.error(s))
-        w = lambda s: print(message.warn(s))
+    def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
+        e = log.error
+        w = log.warn
         if (
-            isinstance(pwndbg.heap.current, HeuristicHeap)
-            and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+            isinstance(pwndbg.gdblib.heap.current, HeuristicHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
             and DebugSymsHeap().can_be_resolved()
         ):
             # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.heap.current = DebugSymsHeap()
-        if pwndbg.heap.current.can_be_resolved():
-            return _try2run_heap_command(function, a, kw)  # type: ignore[arg-type]
+            pwndbg.gdblib.heap.current = DebugSymsHeap()
+        if (
+            pwndbg.gdblib.heap.current is not None
+            and isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
+            and pwndbg.gdblib.heap.current.can_be_resolved()
+        ):
+            return _try2run_heap_command(function, *a, **kw)
         else:
             if (
-                isinstance(pwndbg.heap.current, DebugSymsHeap)
-                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "auto"
+                isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
+                and pwndbg.config.resolve_heap_via_heuristic == "auto"
             ):
                 # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
                 heuristic_heap = HeuristicHeap()
                 if heuristic_heap.can_be_resolved():
-                    pwndbg.heap.current = heuristic_heap
+                    pwndbg.gdblib.heap.current = heuristic_heap
                     w(
                         "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
                         "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
                     )
-                    return _try2run_heap_command(function, a, kw)
+                    return _try2run_heap_command(function, *a, **kw)
                 elif _is_statically_linked():
                     e(
                         "Can't find GLIBC version required for this command to work since this is a statically linked binary"
@@ -474,8 +486,8 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
                         "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
                     )
             elif (
-                isinstance(pwndbg.heap.current, DebugSymsHeap)
-                and pwndbg.gdblib.config.resolve_heap_via_heuristic == "force"
+                isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
+                and pwndbg.config.resolve_heap_via_heuristic == "force"
             ):
                 e(
                     "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
@@ -501,6 +513,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[..., T]) -> Callable[..., T]:
                 pwndbg.exception.inform_report_issue(
                     "An unknown error occurred when resolved the heap"
                 )
+        return None
 
     return _OnlyWithResolvedHeapSyms
 
@@ -536,7 +549,7 @@ class _ArgparsedCommand(Command):
         )
 
     def split_args(self, argument: str):
-        argv = gdb.string_to_argv(argument)
+        argv = pwndbg.dbg.lex_args(argument)
         return (), vars(self.parser.parse_args(argv))
 
 
@@ -605,8 +618,15 @@ def sloppy_gdb_parse(s: str) -> int | str:
     :param s: String.
     :return: Whatever gdb.parse_and_eval returns or string.
     """
+
+    frame = pwndbg.dbg.selected_frame()
+    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+        frame if frame else pwndbg.dbg.selected_inferior()
+    )
+    assert target, "Reached command expression evaluation with no frame or inferior"
+
     try:
-        val = gdb.parse_and_eval(s)
+        val = target.evaluate_expression(s)
         # We can't just return int(val) because GDB may return:
         # "Python Exception <class 'gdb.error'> Cannot convert value to long."
         # e.g. for:
@@ -649,6 +669,7 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.attachp
     import pwndbg.commands.auxv
+    import pwndbg.commands.binder
     import pwndbg.commands.branch
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
@@ -690,6 +711,7 @@ def load_commands() -> None:
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
+    import pwndbg.commands.pcplist
     import pwndbg.commands.peda
     import pwndbg.commands.pie
     import pwndbg.commands.plist

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from typing import List
+
+from pwndbg import config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
-from pwndbg.gdblib import config
 from pwndbg.lib.regs import BitFlags
 
 config_prefix_color = theme.add_color_param(
@@ -88,7 +90,7 @@ def comment(x: object) -> str:
     return generateColorFunction(config.comment_color)(x)
 
 
-def format_flags(value, flags: BitFlags, last=None):
+def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
     if value is None:
         return "<unavailable>"
 
@@ -96,7 +98,7 @@ def format_flags(value, flags: BitFlags, last=None):
     if not flags:
         return desc
 
-    names = []
+    names: List[str] = []
     for name, bit in flags.items():
         # If the size is not specified, assume it's 1
         if isinstance(bit, int):

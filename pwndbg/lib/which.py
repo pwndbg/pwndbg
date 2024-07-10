@@ -32,9 +32,10 @@ from __future__ import annotations
 
 import os
 import stat
+from typing import Set
 
 
-def which(name: str, all: bool = False) -> set[str] | str | None:
+def which(name: str, all: bool = False) -> Set[str] | str | None:
     """which(name, flags = os.X_OK, all = False) -> str or str set
 
     Works as the system command ``which``; searches $PATH for ``name`` and
@@ -60,7 +61,7 @@ def which(name: str, all: bool = False) -> set[str] | str | None:
         return name
 
     isroot = os.getuid() == 0
-    out: set[str] = set()
+    out: Set[str] = set()
     try:
         path = os.environ["PATH"]
     except KeyError:

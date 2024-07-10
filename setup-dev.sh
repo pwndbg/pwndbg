@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -e
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
@@ -8,7 +9,7 @@ echo "# --------------------------------------"
 hook_script_path=".git/hooks/pre-push"
 hook_script=$(
     cat << 'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 diff_command="git diff --no-ext-diff --ignore-submodules"
 
@@ -248,11 +249,11 @@ if linux; then
     fi
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
-    # Install poetry if not already installed
-    if ! hash poetry 2> /dev/null; then
-        curl -sSL https://install.python-poetry.org | python3 -
-    fi
-
     source "${PWNDBG_VENV_PATH}/bin/activate"
     ~/.local/bin/poetry install --with dev
+
+    # Create a developer marker file
+    DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
+    touch "${DEV_MARKER_PATH}"
+    echo "Developer marker created at ${DEV_MARKER_PATH}"
 fi

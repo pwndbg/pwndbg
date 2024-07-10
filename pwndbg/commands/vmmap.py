@@ -5,6 +5,7 @@ Command to print the virtual memory map a la /proc/self/maps.
 from __future__ import annotations
 
 import argparse
+from typing import Tuple
 
 import gdb
 from elftools.elf.constants import SH_FLAGS
@@ -14,8 +15,12 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.color import cyan
+from pwndbg.color import green
+from pwndbg.color import red
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib import gdb_version
+from pwndbg.lib.memory import Page
 
 integer_types = (int, gdb.Value)
 
@@ -42,6 +47,102 @@ def print_vmmap_table_header() -> None:
     print(
         f"{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'Perm'} {'Size':>8} {'Offset':>6} {'File'}"
     )
+
+
+def print_vmmap_gaps_table_header() -> None:
+    """
+    Prints the table header for the vmmap --gaps command.
+    """
+    header = (
+        f"{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} "
+        f"{'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} "
+        f"{'Perm':>4} "
+        f"{'Size':>8} "
+        f"{'Note':>9} "
+        f"{'Accumulated Size':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+    )
+    print(header)
+
+
+def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
+    total = 0
+    for page in pages:
+        total += page.memsz
+    if total > 1024 * 1024:
+        print(f"Total memory mapped: {total:#x} ({total//1024//1024} MB)")
+    else:
+        print(f"Total memory mapped: {total:#x} ({total//1024} KB)")
+
+
+def gap_text(page: Page) -> str:
+    # Strip out offset and objfile from stringified page
+    display_text = " ".join(str(page).split(" ")[:-2])
+    return display_text.rstrip()
+
+
+def print_map(page: Page) -> None:
+    print(green(gap_text(page)))
+
+
+def print_adjacent_map(map_start: Page, map_end: Page) -> None:
+    print(
+        green(
+            f"{gap_text(map_end)} {'ADJACENT':>9} {hex(map_end.end - map_start.start):>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+        )
+    )
+
+
+def print_guard(page: Page) -> None:
+    print(cyan(f"{gap_text(page)} {'GUARD':>9} "))
+
+
+def print_gap(current: Page, last_map: Page):
+    print(
+        red(
+            " - " * int(51 / 3)
+            + f" {'GAP':>9} {hex(current.start - last_map.end):>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+        )
+    )
+
+
+def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
+    """
+    Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
+    """
+    print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}")
+    print_vmmap_gaps_table_header()
+
+    last_map = None  # The last mapped region we looked at
+    last_start = None  # The last starting region of a series of mapped regions
+
+    for page in pages:
+        if last_map:
+            # If there was a gap print it, and also print the last adjacent map set length
+            if last_map.end != page.start:
+                if last_start and last_start != last_map:
+                    print_adjacent_map(last_start, last_map)
+                print_gap(page, last_map)
+
+            # If this is a guard page, print the last map and the guard page
+            elif page.is_guard:
+                if last_start and last_start != last_map:
+                    print_adjacent_map(last_start, last_map)
+                print_guard(page)
+                last_start = None
+                last_map = page
+                continue
+
+            # If we are tracking an adjacent set, don't print the current one yet
+            elif last_start:
+                if last_start != last_map:
+                    print_map(last_map)
+                last_map = page
+                continue
+
+        print_map(page)
+        last_start = page
+        last_map = page
+    calculate_total_memory(pages)
 
 
 parser = argparse.ArgumentParser(
@@ -78,6 +179,11 @@ parser.add_argument(
 parser.add_argument(
     "-B", "--lines-before", type=int, help="Number of pages to display before result", default=1
 )
+parser.add_argument(
+    "--gaps",
+    action="store_true",
+    help="Display unmapped memory gap information in the memory map.",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -85,7 +191,7 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(
-    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1
+    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1, gaps=False
 ) -> None:
     lookaround_lines_limit = 64
 
@@ -96,7 +202,7 @@ def vmmap(
     # All displayed pages, including lines after and lines before
     total_pages = pwndbg.gdblib.vmmap.get()
 
-    # Filtered memory pages, indicated by an backtrace arrow in results
+    # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
 
     # Only filter when -A and -B arguments are valid
@@ -133,6 +239,10 @@ def vmmap(
         print("There are no mappings for specified address or module.")
         return
 
+    if gaps:
+        print_vmmap_gaps(total_pages)
+        return
+
     print(M.legend())
     print_vmmap_table_header()
 
@@ -145,7 +255,7 @@ def vmmap(
 
         if page in filtered_pages:
             # If page was one of the original results, add an arrow for clarity
-            backtrace_prefix = str(pwndbg.gdblib.config.backtrace_prefix)
+            backtrace_prefix = str(pwndbg.config.backtrace_prefix)
 
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):

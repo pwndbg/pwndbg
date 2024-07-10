@@ -5,12 +5,15 @@ from typing import Sequence
 
 import gdb
 
-import pwndbg.gdblib.config
+import pwndbg
+import pwndbg.gdblib.events
+import pwndbg.gdblib.heap.heap
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
-import pwndbg.heap.heap
+import pwndbg.lib.config
 from pwndbg.color import message
 
-current = None
+current: pwndbg.gdblib.heap.heap.MemoryAllocator | None = None
 
 
 def add_heap_param(
@@ -22,7 +25,7 @@ def add_heap_param(
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
 ):
-    return pwndbg.gdblib.config.add_param(
+    return pwndbg.config.add_param(
         name,
         default,
         set_show_doc,
@@ -45,7 +48,9 @@ global_max_fast = add_heap_param("global-max-fast", "0", "the address of global_
 
 symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 
-heap_chain_limit = add_heap_param("heap-dereference-limit", 8, "number of bins to dereference")
+heap_chain_limit = add_heap_param(
+    "heap-dereference-limit", 8, "number of chunks to dereference in each bin"
+)
 
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
@@ -73,7 +78,7 @@ sudo apt-get install libc-dbg:i386
 
 If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
 """,
-    param_class=gdb.PARAM_ENUM,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["auto", "force", "never"],
 )
 
@@ -93,13 +98,13 @@ def reset() -> None:
         symbol.value = "0"
 
 
-@pwndbg.gdblib.config.trigger(resolve_heap_via_heuristic)
+@pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
-    import pwndbg.heap.ptmalloc
+    import pwndbg.gdblib.heap.ptmalloc
 
     global current
     if resolve_heap_via_heuristic == "force":
-        current = pwndbg.heap.ptmalloc.HeuristicHeap()
+        current = pwndbg.gdblib.heap.ptmalloc.HeuristicHeap()
         if not is_first_run and pwndbg.gdblib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
@@ -108,4 +113,4 @@ def resolve_heap(is_first_run: bool = False) -> None:
                 )
             )
     else:
-        current = pwndbg.heap.ptmalloc.DebugSymsHeap()
+        current = pwndbg.gdblib.heap.ptmalloc.DebugSymsHeap()

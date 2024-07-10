@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
+from typing_extensions import override
 
-import pwndbg.disasm.arch
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
-from pwndbg.disasm.instruction import InstructionCondition
-from pwndbg.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
-class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
@@ -20,10 +21,10 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
         self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> InstructionCondition:
         # B-type instructions have two source registers that are compared
-        src1_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
+        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
-            src2_unsigned = self.parse_register(instruction, instruction.op_find(CS_OP_REG, 2), emu)
+            src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
         else:
             src2_unsigned = 0
 
@@ -52,7 +53,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
 
-    def condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    @override
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         """Checks if the current instruction is a jump that is taken.
         Returns None if the instruction is executed unconditionally,
         True if the instruction is executed for sure, False otherwise.
@@ -72,7 +74,8 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.UNDETERMINED
 
-    def resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    @override
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
@@ -95,14 +98,14 @@ class DisassemblyAssistant(pwndbg.disasm.arch.DisassemblyAssistant):
 
         # Determine the target address of the indirect jump
         if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
-            target = (
-                self.parse_register(instruction, instruction.op_find(CS_OP_REG, 1), emu)
-                + instruction.op_find(CS_OP_IMM, 1).imm
-            ) & ptrmask
+            target = instruction.op_find(CS_OP_REG, 1).before_value
+            if instruction.id == RISCV_INS_JALR:
+                target += instruction.op_find(CS_OP_IMM, 1).imm
+            target &= ptrmask
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
-        return super().resolve_target(instruction, emu, call)
+        return super()._resolve_target(instruction, emu, call)
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")

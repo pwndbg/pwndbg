@@ -7,11 +7,13 @@ import sys
 from collections import defaultdict
 from typing import Any
 from typing import DefaultDict
+from typing import Dict
 from typing import List
 from typing import Tuple
 
 import gdb
 
+import pwndbg
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -20,8 +22,7 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.disasm
-import pwndbg.gdblib.config
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.heap_tracking
 import pwndbg.gdblib.nearpc
@@ -36,6 +37,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.gdblib.arch import get_thumb_mode_string
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 
@@ -74,29 +76,29 @@ def clear_screen(out=sys.stdout) -> None:
     out.write("\x1b[H\x1b[2J")
 
 
-config_clear_screen = pwndbg.gdblib.config.add_param(
+config_clear_screen = pwndbg.config.add_param(
     "context-clear-screen", False, "whether to clear the screen before printing the context"
 )
-config_output = pwndbg.gdblib.config.add_param(
+config_output = pwndbg.config.add_param(
     "context-output", "stdout", 'where pwndbg should output ("stdout" or file/tty).'
 )
-config_context_sections = pwndbg.gdblib.config.add_param(
+config_context_sections = pwndbg.config.add_param(
     "context-sections",
     "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
     "which context sections are displayed (controls order)",
 )
-config_max_threads_display = pwndbg.gdblib.config.add_param(
+config_max_threads_display = pwndbg.config.add_param(
     "context-max-threads",
     4,
     "maximum number of threads displayed by the context command",
 )
 
 # Storing output configuration per section
-outputs: dict[str, str] = {}
+outputs: Dict[str, str] = {}
 output_settings = {}
 
 
-@pwndbg.gdblib.config.trigger(config_context_sections)
+@pwndbg.config.trigger(config_context_sections)
 def validate_context_sections() -> None:
     valid_values = [
         context.__name__.replace("context_", "") for context in context_sections.values()
@@ -329,7 +331,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
     return banner + output if with_banner else output
 
 
-config_context_ghidra = pwndbg.gdblib.config.add_param(
+config_context_ghidra = pwndbg.config.add_param(
     "context-ghidra",
     "never",
     "when to try to decompile the current function with ghidra (slow and requires radare2/r2pipe or rizin/rzpipe) (valid values: always, never, if-no-source)",
@@ -394,7 +396,7 @@ def context(subcontext=None) -> None:
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
-    result_settings: DefaultDict[str, dict[Any, Any]] = defaultdict(dict)
+    result_settings: DefaultDict[str, Dict[Any, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -426,16 +428,14 @@ def context(subcontext=None) -> None:
             out.flush()
 
 
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "show-compact-regs", False, "whether to show a compact register view with columns"
 )
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "show-compact-regs-columns", 2, "the number of columns (0 for dynamic number of columns)"
 )
-pwndbg.gdblib.config.add_param(
-    "show-compact-regs-min-width", 20, "the minimum width of each column"
-)
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param("show-compact-regs-min-width", 20, "the minimum width of each column")
+pwndbg.config.add_param(
     "show-compact-regs-separation", 4, "the number of spaces separating columns"
 )
 
@@ -448,9 +448,9 @@ def calculate_padding_to_align(length, align):
 
 
 def compact_regs(regs, width=None, target=sys.stdout):
-    columns = max(0, int(pwndbg.gdblib.config.show_compact_regs_columns))
-    min_width = max(1, int(pwndbg.gdblib.config.show_compact_regs_min_width))
-    separation = max(1, int(pwndbg.gdblib.config.show_compact_regs_separation))
+    columns = max(0, int(pwndbg.config.show_compact_regs_columns))
+    min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
+    separation = max(1, int(pwndbg.config.show_compact_regs_separation))
 
     if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
         _height, width = pwndbg.ui.get_window_size(
@@ -512,12 +512,12 @@ def compact_regs(regs, width=None, target=sys.stdout):
 
 def context_regs(target=sys.stdout, with_banner=True, width=None):
     regs = get_regs()
-    if pwndbg.gdblib.config.show_compact_regs:
+    if pwndbg.config.show_compact_regs:
         regs = compact_regs(regs, target=target, width=width)
 
     info = " / show-flags {} / show-compact-regs {}".format(
-        "on" if pwndbg.gdblib.config.show_flags else "off",
-        "on" if pwndbg.gdblib.config.show_compact_regs else "off",
+        "on" if pwndbg.config.show_flags else "off",
+        "on" if pwndbg.config.show_compact_regs else "off",
     )
     banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
@@ -549,8 +549,8 @@ def regs(regs=[]) -> None:
     print("\n".join(get_regs(regs)))
 
 
-pwndbg.gdblib.config.add_param("show-flags", False, "whether to show flags registers")
-pwndbg.gdblib.config.add_param("show-retaddr-reg", False, "whether to show return address register")
+pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
+pwndbg.config.add_param("show-retaddr-reg", False, "whether to show return address register")
 
 
 def get_regs(regs: List[str] = None):
@@ -565,12 +565,12 @@ def get_regs(regs: List[str] = None):
         regs.append(pwndbg.gdblib.regs.frame)
         regs.append(pwndbg.gdblib.regs.stack)
 
-        if pwndbg.gdblib.config.show_retaddr_reg:
+        if pwndbg.config.show_retaddr_reg:
             regs += pwndbg.gdblib.regs.retaddr
 
         regs.append(pwndbg.gdblib.regs.current.pc)
 
-        if pwndbg.gdblib.config.show_flags:
+        if pwndbg.config.show_flags:
             regs += pwndbg.gdblib.regs.flags.keys()
 
     changed = pwndbg.gdblib.regs.changed
@@ -609,7 +609,7 @@ def get_regs(regs: List[str] = None):
     return result
 
 
-code_lines = pwndbg.gdblib.config.add_param(
+code_lines = pwndbg.config.add_param(
     "context-code-lines", 10, "number of additional lines to print in the code context"
 )
 
@@ -623,10 +623,10 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         else:
             raise
 
-    syntax = pwndbg.disasm.CapstoneSyntax[flavor]
+    syntax = pwndbg.gdblib.disasm.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.disasm.get_disassembler_cached.cache.values()), None)
+    cs = next(iter(pwndbg.gdblib.disasm.get_disassembler_cached.cache.values()), None)
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
@@ -634,14 +634,20 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     result = pwndbg.gdblib.nearpc.nearpc(
         lines=code_lines // 2,
-        emulate=bool(not pwndbg.gdblib.config.emulate == "off"),
+        emulate=bool(not pwndbg.config.emulate == "off"),
         use_cache=True,
     )
 
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
     # and this call may disable it
-    info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.gdblib.config.emulate)
+    thumb_mode_str = get_thumb_mode_string()
+    if thumb_mode_str is not None:
+        info = " / {} / {} mode / set emulate {}".format(
+            pwndbg.gdblib.arch.current, thumb_mode_str, pwndbg.config.emulate
+        )
+    else:
+        info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.config.emulate)
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
 
     # If we didn't disassemble backward, try to make sure
@@ -653,10 +659,10 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
 
 theme.add_param("highlight-source", True, "whether to highlight the closest source line")
-source_code_lines = pwndbg.gdblib.config.add_param(
+source_code_lines = pwndbg.config.add_param(
     "context-source-code-lines", 10, "number of source code lines to print by the context command"
 )
-pwndbg.gdblib.config.add_param(
+pwndbg.config.add_param(
     "context-source-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
 )
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
@@ -668,7 +674,7 @@ def get_highlight_source(filename: str) -> Tuple[str, ...]:
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()
 
-    if pwndbg.gdblib.config.syntax_highlight:
+    if pwndbg.config.syntax_highlight:
         source = H.syntax_highlight(source, filename)
 
     source_lines = source.split("\n")
@@ -710,16 +716,16 @@ def get_filename_and_formatted_source():
     source = source[start:end]
 
     # Compute the prefix_sign length
-    prefix_sign = C.prefix(str(pwndbg.gdblib.config.code_prefix))
+    prefix_sign = C.prefix(str(pwndbg.config.code_prefix))
     prefix_width = len(prefix_sign)
 
     # Format the output
     formatted_source = []
     for line_number, code in enumerate(source, start=start + 1):
-        if pwndbg.gdblib.config.context_source_code_tabstop > 0:
-            code = code.replace("\t", " " * pwndbg.gdblib.config.context_source_code_tabstop)
+        if pwndbg.config.context_source_code_tabstop > 0:
+            code = code.replace("\t", " " * pwndbg.config.context_source_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
-        if pwndbg.gdblib.config.highlight_source and line_number == closest_line:
+        if pwndbg.config.highlight_source and line_number == closest_line:
             fmt = C.highlight(fmt)
 
         line = fmt.format(
@@ -767,7 +773,7 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         return []
 
 
-stack_lines = pwndbg.gdblib.config.add_param(
+stack_lines = pwndbg.config.add_param(
     "context-stack-lines", 8, "number of lines to print in the stack context"
 )
 
@@ -782,7 +788,7 @@ def context_stack(target=sys.stdout, with_banner=True, width=None):
     return result
 
 
-backtrace_lines = pwndbg.gdblib.config.add_param(
+backtrace_lines = pwndbg.config.add_param(
     "context-backtrace-lines", 8, "number of lines to print in the backtrace context"
 )
 backtrace_frame_label = theme.add_param(
@@ -819,7 +825,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
     frame = newest_frame
     i = 0
-    bt_prefix = "%s" % pwndbg.gdblib.config.backtrace_prefix
+    bt_prefix = "%s" % pwndbg.config.backtrace_prefix
     while True:
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
@@ -840,7 +846,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
 
 def context_args(with_banner=True, target=sys.stdout, width=None):
-    args = pwndbg.arguments.format_args(pwndbg.disasm.one())
+    args = pwndbg.arguments.format_args(pwndbg.gdblib.disasm.one())
 
     # early exit to skip section if no arg found
     if not args:
@@ -852,7 +858,7 @@ def context_args(with_banner=True, target=sys.stdout, width=None):
     return args
 
 
-last_signal: list[str] = []
+last_signal: List[str] = []
 
 thread_status_messages = {
     "running": pwndbg.color.light_green("running"),

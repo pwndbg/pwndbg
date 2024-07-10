@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import logging
 
 import pwndbg.color.message as MessageColor
 import pwndbg.commands
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.nearpc
 from pwndbg.commands import CommandCategory
 
@@ -43,7 +44,7 @@ parser.add_argument(
 def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) -> None:
     if address is not None:
         address = int(address)
-        cached_instruction = pwndbg.disasm.computed_instruction_cache.get(address, None)
+        cached_instruction = pwndbg.gdblib.disasm.computed_instruction_cache.get(address, None)
         if cached_instruction:
             print(repr(cached_instruction))
         else:
@@ -53,15 +54,30 @@ def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) ->
         # None if not overridden
         override_setting = True if force_emulate else (False if no_emulate else None)
         use_emulation = (
-            bool(pwndbg.gdblib.config.emulate == "on")
-            if override_setting is None
-            else override_setting
+            bool(pwndbg.config.emulate == "on") if override_setting is None else override_setting
         )
 
-        instructions, index_of_pc = pwndbg.disasm.near(
+        instructions, index_of_pc = pwndbg.gdblib.disasm.near(
             pwndbg.gdblib.regs.pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
         )
 
         if instructions:
             insn = instructions[0]
             print(repr(insn))
+
+
+parser = argparse.ArgumentParser(description="Set the log level.")
+parser.add_argument(
+    "level",
+    type=str,
+    nargs="?",
+    choices=["debug", "info", "warning", "error", "critical"],
+    default="warning",
+    help="The log level to set.",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DEV)
+def log_level(level: str) -> None:
+    logging.getLogger().setLevel(getattr(logging, level.upper()))
+    print(f"Log level set to {level}")

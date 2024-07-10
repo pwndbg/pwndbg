@@ -11,13 +11,12 @@ from itertools import chain
 import capstone
 import gdb
 
-import pwndbg.disasm
+import pwndbg.gdblib.disasm
 import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
-
-jumps = {capstone.CS_GRP_CALL, capstone.CS_GRP_JUMP, capstone.CS_GRP_RET, capstone.CS_GRP_IRET}
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 
 interrupts = {capstone.CS_GRP_INT}
 
@@ -38,35 +37,34 @@ def next_int(address=None):
     Otherwise, return None.
     """
     if address is None:
-        ins = pwndbg.disasm.one(pwndbg.gdblib.regs.pc)
+        ins = pwndbg.gdblib.disasm.one(pwndbg.gdblib.regs.pc)
         if not ins:
             return None
         address = ins.next
 
-    ins = pwndbg.disasm.one(address)
+    ins = pwndbg.gdblib.disasm.one(address)
     while ins:
-        ins_groups = set(ins.groups)
-        if ins_groups & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             return None
-        elif ins_groups & interrupts:
+        elif ins.groups_set & interrupts:
             return ins
-        ins = pwndbg.disasm.one(ins.next)
+        ins = pwndbg.gdblib.disasm.one(ins.next)
 
     return None
 
 
 def next_branch(address=None):
     if address is None:
-        ins = pwndbg.disasm.one(pwndbg.gdblib.regs.pc)
+        ins = pwndbg.gdblib.disasm.one(pwndbg.gdblib.regs.pc)
         if not ins:
             return None
         address = ins.next
 
-    ins = pwndbg.disasm.one(address)
+    ins = pwndbg.gdblib.disasm.one(address)
     while ins:
-        if set(ins.groups) & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             return ins
-        ins = pwndbg.disasm.one(ins.next)
+        ins = pwndbg.gdblib.disasm.one(ins.next)
 
     return None
 
@@ -79,7 +77,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
     if address is None:
         address = pwndbg.gdblib.regs.pc
 
-    ins = pwndbg.disasm.one(address)
+    ins = pwndbg.gdblib.disasm.one(address)
     while ins:
         # Check whether or not the mnemonic matches if it was specified
         mnemonic_match = ins.mnemonic.casefold() == mnemonic.casefold() if mnemonic else True
@@ -104,12 +102,12 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
         if mnemonic_match and op_str_match:
             return ins
 
-        if set(ins.groups) & jumps:
+        if ins.groups_set & ALL_JUMP_GROUPS:
             # No matching instruction until the next branch, and we're
             # not trying to match the branch instruction itself.
             return None
 
-        ins = pwndbg.disasm.one(ins.next)
+        ins = pwndbg.gdblib.disasm.one(ins.next)
     return None
 
 
@@ -145,7 +143,7 @@ def break_next_call(symbol_regex=None):
             break
 
         # continue if not a call
-        if capstone.CS_GRP_CALL not in ins.groups:
+        if not ins.call_like:
             continue
 
         # return call if we:
@@ -184,10 +182,6 @@ def break_on_next_matching_instruction(mnemonic=None, op_str=None) -> bool:
         return False
 
     while pwndbg.gdblib.proc.alive:
-        # Break on signal as it may be a segfault
-        if pwndbg.gdblib.proc.stopped_with_signal:
-            return False
-
         ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
         if ins is not None:
             if ins.address != pwndbg.gdblib.regs.pc:
@@ -217,6 +211,10 @@ def break_on_next_matching_instruction(mnemonic=None, op_str=None) -> bool:
 
         if pwndbg.gdblib.proc.alive:
             gdb.execute("si")
+
+        # Break on signal as it may be a segfault
+        if pwndbg.gdblib.proc.stopped_with_signal:
+            return False
 
     return False
 
@@ -257,7 +255,7 @@ def break_on_program_code() -> bool:
 
 def break_on_next(address=None) -> None:
     address = address or pwndbg.gdblib.regs.pc
-    ins = pwndbg.disasm.one(address)
+    ins = pwndbg.gdblib.disasm.one(address)
 
     gdb.Breakpoint("*%#x" % (ins.address + ins.size), temporary=True)
     gdb.execute("continue", from_tty=False, to_string=True)

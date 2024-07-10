@@ -5,15 +5,20 @@ may be passed in a combination of registers and stack values.
 
 from __future__ import annotations
 
+from typing import List
+from typing import Tuple
+
 import gdb
-from capstone import CS_GRP_CALL
 from capstone import CS_GRP_INT
 
 import pwndbg.chain
 import pwndbg.constants
-import pwndbg.disasm
 import pwndbg.gdblib.arch
+import pwndbg.gdblib.disasm
+import pwndbg.gdblib.disasm.arch
+import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
@@ -21,7 +26,7 @@ import pwndbg.ida
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-from pwndbg.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.nearpc import c as N
 
 ida_replacements = {
@@ -52,37 +57,10 @@ ida_replacements = {
 }
 
 
-def get_syscall_name(instruction: PwndbgInstruction):
-    if CS_GRP_INT not in instruction.groups:
-        return None
-
-    syscall_register = pwndbg.lib.abi.ABI.syscall().syscall_register
-    syscall_arch = pwndbg.gdblib.arch.current
-
-    # On x86/x64 `syscall` and `int <value>` instructions are in CS_GRP_INT
-    # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
-    # So here, we return no syscall name for other instructions and we also
-    # handle a case when 32-bit syscalls are executed on x64
-    if syscall_register in ("eax", "rax"):
-        mnemonic = instruction.mnemonic
-
-        is_32bit = mnemonic == "int" and instruction.op_str == "0x80"
-        if not (mnemonic == "syscall" or is_32bit):
-            return None
-
-        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
-        # On x86, the syscall_arch is already i386, so its all fine
-        if is_32bit:
-            syscall_arch = "i386"
-
-    syscall_number = getattr(pwndbg.gdblib.regs, syscall_register)
-    return pwndbg.constants.syscall(syscall_number, syscall_arch) or "<unk_%d>" % syscall_number
-
-
-def get(instruction: PwndbgInstruction):
+def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
-    if $pc is a 'call' or 'bl' type instruction.
+    if $pc is a 'call', 'bl', or 'jalr' type instruction.
 
     Otherwise, returns None.
     """
@@ -94,31 +72,23 @@ def get(instruction: PwndbgInstruction):
     if instruction.address != pwndbg.gdblib.regs.pc:
         return []
 
-    if CS_GRP_CALL in instruction.groups:
+    if instruction.call_like:
         try:
             abi = pwndbg.lib.abi.ABI.default()
         except KeyError:
             return []
 
-        # Not sure of any OS which allows multiple operands on
-        # a call instruction.
-        assert len(instruction.operands) == 1
-
-        target = instruction.operands[0].before_value
+        target = instruction.target
 
         if not target:
             return []
-
-        if pwndbg.gdblib.arch.current in ["rv32", "rv64"]:
-            target += instruction.address
-            target &= pwndbg.gdblib.arch.ptrmask
 
         name = pwndbg.gdblib.symbol.get(target)
         if not name:
             return []
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
-        name = get_syscall_name(instruction)
+        name = instruction.syscall_name
         abi = pwndbg.lib.abi.ABI.syscall()
         target = None
 
@@ -180,7 +150,7 @@ def get(instruction: PwndbgInstruction):
     return result
 
 
-def argname(n, abi=None):
+def argname(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> str:
     abi = abi or pwndbg.lib.abi.ABI.default()
     regs = abi.register_arguments
 
@@ -190,7 +160,7 @@ def argname(n, abi=None):
     return "arg[%i]" % n
 
 
-def argument(n, abi=None):
+def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     """
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
@@ -206,10 +176,10 @@ def argument(n, abi=None):
 
     sp = pwndbg.gdblib.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
 
-    return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
+    return int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, sp))
 
 
-def arguments(abi=None):
+def arguments(abi: pwndbg.lib.abi.ABI | None = None):
     """
     Yields (arg_name, arg_value) tuples for arguments from a given ABI.
     Works only for ABIs that use registers for arguments.
@@ -221,7 +191,7 @@ def arguments(abi=None):
         yield argname(i, abi), argument(i, abi)
 
 
-def format_args(instruction: PwndbgInstruction):
+def format_args(instruction: PwndbgInstruction) -> List[str]:
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"
