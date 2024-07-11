@@ -150,7 +150,7 @@ def format(
             symbol = f"{link:#x} ({symbol})"
         else:
             page = pwndbg.gdblib.vmmap.find(link)
-            if page is not None and "[stack" in page.objfile:
+            if page and "[stack" in page.objfile:
                 var = pwndbg.integration.provider.get_stack_var_name(link)
                 if var:
                     symbol = f"{link:#x} {{{var}}}"

@@ -428,7 +428,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             (r2l(addr), toks) for (addr, toks) in decomp if not all(t[0].isspace() for t in toks)
         ]
         ind = min(
-            [(i, x) for (i, x) in enumerate(decomp) if x[0] >= addr],
+            ((i, x) for (i, x) in enumerate(decomp) if x[0] >= addr),
             key=lambda t: t[1][0],
             default=(len(decomp) - 1, None),
         )[0]
@@ -503,6 +503,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         args = [Argument(type=x[0], derefcnt=x[1], name=x[2]) for x in ty[1]]
         return Function(type=ty[0][0], derefcnt=ty[0][1], name=ty[0][2], args=args)
 
+    # TODO: cache this
     @pwndbg.decorators.suppress_errors()
     @with_bn()
     def get_stack_var_name(self, addr: int) -> str | None:

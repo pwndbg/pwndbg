@@ -762,7 +762,7 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         )
 
     if should_decompile:
-        # May be None when decompilation failed or user loaded wrong binary in IDA
+        # Will be None if decompilation fails
         code = pwndbg.integration.provider.decompile(pwndbg.gdblib.regs.pc, int(source_code_lines))
 
         if code:

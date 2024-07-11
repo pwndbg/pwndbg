@@ -63,7 +63,7 @@ def get_tag_refs(bv: binaryninja.BinaryView, ty: str) -> List[binaryninja.core.B
     ref_ptr = binaryninja.core.BNGetAllTagReferencesOfType(
         bv.handle, tag_type.handle, ctypes.c_ulong(count)
     )
-    return [ref_ptr[i] for i in range(count)]
+    return ref_ptr[:count]
 
 
 def remove_tag_ref(bv: binaryninja.BinaryView, ref: binaryninja.core.BNTagReference):
@@ -171,7 +171,8 @@ class ServerHandler:
         Gets a list of all comments at a specified address.
         """
         ret = []
-        for f in sorted(self.bv.get_functions_containing(addr), key=lambda f: f.start):
+        func_list = sorted(self.bv.get_functions_containing(addr), key=lambda f: f.start)
+        for f in func_list:
             ret += f.get_comment_at(addr).split("\n")
         ret += self.bv.get_comment_at(addr).split("\n")
         # remove empty lines and prepend double slash
@@ -199,7 +200,7 @@ class ServerHandler:
         elif level == "hlil":
             func = func.hlil_if_available
         else:
-            raise ValueError(f"Cannot decompile with level {level!r}")
+            raise ValueError(f"{level!r} is not a recognized IL level. Supported values are: disasm, llil, mlil, hlil.")
         if func is None:
             return None
         if level == "hlil":
@@ -221,10 +222,9 @@ class ServerHandler:
                 lines,
             )
 
-        ret = []
-        for line in lines:
-            ret.append((line.address, [(tok.text, tok.type.name) for tok in line.tokens]))
-        return ret
+        return [
+            (line.address, [(tok.text, tok.type.name) for tok in line.tokens]) for line in lines
+        ]
 
     @should_register
     def get_func_type(
