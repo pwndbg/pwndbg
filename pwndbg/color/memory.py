@@ -35,6 +35,12 @@ def get_address_and_symbol(address: int) -> str:
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         symbol = f"{address:#x} ({symbol})"
+    else:
+        page = pwndbg.gdblib.vmmap.find(address)
+        if page and "[stack" in page.objfile:
+            var = pwndbg.integration.provider.get_stack_var_name(address)
+            if var:
+                symbol = f"{address:#x} {{{var}}}"
     return get(address, symbol)
 
 

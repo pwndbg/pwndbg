@@ -143,18 +143,7 @@ def format(
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Colorize the chain
-    rest: List[str] = []
-    for link in chain:
-        symbol = pwndbg.gdblib.symbol.get(link) or None
-        if symbol:
-            symbol = f"{link:#x} ({symbol})"
-        else:
-            page = pwndbg.gdblib.vmmap.find(link)
-            if page and "[stack" in page.objfile:
-                var = pwndbg.integration.provider.get_stack_var_name(link)
-                if var:
-                    symbol = f"{link:#x} {{{var}}}"
-        rest.append(M.get(link, symbol))
+    rest = [M.get_address_and_symbol(link) for link in chain]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:
