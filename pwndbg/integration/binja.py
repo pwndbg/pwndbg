@@ -375,6 +375,7 @@ style = theme.add_param(
 class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @with_bn()
+    @pwndbg.lib.cache.cache_until("stop")
     def get_symbol(self, addr: int) -> str | None:
         sym: str | None = _bn.get_symbol(l2r(addr))
         if sym is not None:
@@ -407,6 +408,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
 
     @pwndbg.decorators.suppress_errors(fallback=True)
     @with_bn(fallback=True)
+    @pwndbg.lib.cache.cache_until("stop")
     def is_in_function(self, addr: int) -> bool:
         return _bn.get_func_info(l2r(addr)) is not None
 
@@ -503,9 +505,9 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         args = [Argument(type=x[0], derefcnt=x[1], name=x[2]) for x in ty[1]]
         return Function(type=ty[0][0], derefcnt=ty[0][1], name=ty[0][2], args=args)
 
-    # TODO: cache this
     @pwndbg.decorators.suppress_errors()
     @with_bn()
+    @pwndbg.lib.cache.cache_until("stop")
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = gdb.selected_frame()
         sp = int(cur.read_register("sp"))
