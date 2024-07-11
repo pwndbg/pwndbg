@@ -200,7 +200,9 @@ class ServerHandler:
         elif level == "hlil":
             func = func.hlil_if_available
         else:
-            raise ValueError(f"{level!r} is not a recognized IL level. Supported values are: disasm, llil, mlil, hlil.")
+            raise ValueError(
+                f"{level!r} is not a recognized IL level. Supported values are: disasm, llil, mlil, hlil."
+            )
         if func is None:
             return None
         if level == "hlil":
