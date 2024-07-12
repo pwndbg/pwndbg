@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Callable
+from typing import Dict
+
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 from typing_extensions import override
@@ -15,6 +18,25 @@ from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+    def __init__(self, architecture: str) -> None:
+        super().__init__(architecture)
+
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # CMP
+            ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
+            # CMN
+            ARM_INS_CMN: self._common_cmp_annotator_builder("cpsr", "+"),
+            # TST (bitwise "and")
+            ARM_INS_TST: self._common_cmp_annotator_builder("cpsr", "&"),
+            # TEQ (bitwise exclusive "or")
+            ARM_INS_TEQ: self._common_cmp_annotator_builder("cpsr", "^"),
+        }
+
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        # Dispatch to the correct handler
+        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
