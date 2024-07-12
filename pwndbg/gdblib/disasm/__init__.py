@@ -155,16 +155,16 @@ def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
 
 def get_disassembler(address):
     if pwndbg.gdblib.arch.current == "armcm":
-        thumb_mode = bool(emulated_arm_mode_cache[address])
+        thumb_mode = emulated_arm_mode_cache[address]
         if thumb_mode is None:
-            thumb_mode = bool(pwndbg.gdblib.regs.xpsr & (1 << 24))
+            thumb_mode = pwndbg.gdblib.regs.xpsr & (1 << 24)
         # novermin
         extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if thumb_mode else CS_MODE_MCLASS
 
     elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
-        thumb_mode = bool(emulated_arm_mode_cache[address])
+        thumb_mode = emulated_arm_mode_cache[address]
         if thumb_mode is None:
-            thumb_mode = bool(pwndbg.gdblib.regs.cpsr & (1 << 5))
+            thumb_mode = pwndbg.gdblib.regs.cpsr & (1 << 5)
         extra = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
 
     elif pwndbg.gdblib.arch.current == "sparc":

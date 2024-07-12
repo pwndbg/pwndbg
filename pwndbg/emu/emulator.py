@@ -528,7 +528,7 @@ class Emulator:
             pc = pwndbg.gdblib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
 
-    def read_thumb_bit(self) -> int | None:
+    def read_thumb_bit(self) -> int:
         """
         Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
 
@@ -545,7 +545,7 @@ class Emulator:
         elif self.arch == "armcm":
             if (xpsr := self.xpsr) is not None:
                 return (xpsr >> 24) & 1
-        return None
+        return 0
 
     def get_uc_mode(self):
         """
@@ -688,16 +688,16 @@ class Emulator:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
 
         pc: int = self.pc
-        if thumb_bit := self.read_thumb_bit():
-            # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
-            # determines Thumb mode based on the PC that is passed to the `emu_start` function
-            # https://github.com/unicorn-engine/unicorn/issues/391
-            #
-            # Because we single-step the emulator, we always have to read the Thumb bit from the emulator
-            # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
-            # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
-            # which have Thumb mode transitions, Unicorn will internally handle them.
-            pc |= thumb_bit
+        # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
+        # determines Thumb mode based on the PC that is passed to the `emu_start` function
+        # https://github.com/unicorn-engine/unicorn/issues/391
+        #
+        # Because we single-step the emulator, we always have to read the Thumb bit from the emulator
+        # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
+        # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
+        # which have Thumb mode transitions, Unicorn will internally handle them.
+        thumb_bit = self.read_thumb_bit()
+        pc |= thumb_bit
 
         try:
             self.emu_start(pc, 0, count=count)
