@@ -29,10 +29,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             src2_unsigned = 0
 
-        if self.architecture not in {"rv32", "rv64"}:
-            # TODO: figure out what this check is for. Are there other riscv arch types in GDB?
-            raise NotImplementedError(f"architecture '{self.architecture}' not implemented")
-
         src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
         src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
 

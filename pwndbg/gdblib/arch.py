@@ -73,6 +73,7 @@ def _get_arch(ptrsize: int):
             elif match.startswith("riscv:"):
                 match = match[6:]
             elif match == "riscv":
+                # If GDB doesn't detect the width, it will just say `riscv`.
                 match = "rv64"
             return match, ptrsize, endian
 

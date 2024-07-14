@@ -1,19 +1,5 @@
 from __future__ import annotations
 
-import sys
-from unittest.mock import MagicMock
-
-# Replace `pwndbg.commands` module with a mock to prevent import errors, as well
-# as the `load_commands` function
-module_name = "pwndbg.commands"
-module = MagicMock(__name__=module_name, load_commands=lambda: None)
-sys.modules[module_name] = module
-
-
-# Load the mocks for the `gdb` and `gdblib` modules
-import mocks.gdb
-import mocks.gdblib  # noqa: F401
-
 import pwndbg.lib.disasm.helpers as bit_math
 
 # We must import the function under test after all the mocks are imported
@@ -34,12 +20,14 @@ def test_lsl():
     assert bit_math.logical_shift_left(0b1000_0000, 1, 8) == 0
     assert bit_math.logical_shift_left(0b0100_0000, 1, 8) == 0b1000_0000
     assert bit_math.logical_shift_left(0b1111_1111, 1, 8) == 0b1111_1110
+    assert bit_math.logical_shift_left(0b1111_1111, 5, 8) == 0b1110_0000
 
 
 def test_lsr():
     assert bit_math.logical_shift_right(0b1000_0000, 1, 8) == 0b0100_0000
     assert bit_math.logical_shift_right(0b0100_0000, 1, 8) == 0b0010_0000
     assert bit_math.logical_shift_right(0b1111_1111, 1, 8) == 0b0111_1111
+    assert bit_math.logical_shift_right(0b1111_1111, 5, 8) == 0b0000_0111
     # Should truncate to bit_width before operation
     assert bit_math.logical_shift_right(0b1_0000_0000, 1, 8) == 0
 
