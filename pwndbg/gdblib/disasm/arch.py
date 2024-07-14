@@ -10,10 +10,19 @@ from capstone import *  # noqa: F403
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
+import pwndbg.color.message as MessageColor
 import pwndbg.color.syntax_highlight as H
 import pwndbg.enhance
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.remote
+
+
+
+
+
+
+
+
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
@@ -798,6 +807,57 @@ class DisassemblyAssistant:
                     instruction.annotation = display_result
                 else:
                     instruction.annotation += " " * 5 + display_result
+
+        return handler
+
+    def _generate_load_annotator(self, read_size: int, addr_getter: Callable[[PwndbgInstruction, Emulator],Tuple[int, EnhancedOperand, EnhancedOperand]]):
+        """
+        Create a function that annotates a load instruction.
+        
+        These instructions read `read_size` bytes from memory into a register.
+        """
+
+        TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
+
+        def handler(instruction: PwndbgInstruction, emu: Emulator) -> None:
+            callback_info = addr_getter(instruction, emu)
+
+            if None in callback_info:
+                return
+            
+            address, source_operand, destination_operand = callback_info
+
+            telescope_addresses = self._telescope(
+                address,
+                TELESCOPE_DEPTH,
+                instruction,
+                source_operand,
+                emu,
+                read_size=read_size,
+            )
+
+            # If the address is not mapped, we segfaulted
+            if not pwndbg.gdblib.memory.peek(address):
+                telescope_print = MessageColor.error(
+                    f"<Cannot dereference [{MemoryColor.get(address)}]>"
+                )
+            elif len(telescope_addresses) == 1:
+                # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
+                # Simply display the address
+
+                # As an example, this path is taken for the following case:
+                # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
+                # and we are not emulating. This means we cannot savely dereference (if PC is not at the current instruction address)
+                telescope_print = None
+            else:
+                # Start showing at dereferenced address, hence the [1:]
+                telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+
+            instruction.annotation = f"{destination_operand.str}, {source_operand.str}"
+
+            if telescope_print is not None:
+                instruction.annotation += f" => {telescope_print}"
+
 
         return handler
 
