@@ -12,11 +12,11 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.remote
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.lib.config
-import pwndbg.gdblib.remote
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
