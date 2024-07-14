@@ -671,7 +671,7 @@ class DisassemblyAssistant:
                         page = pwndbg.gdblib.vmmap.find(resolved_addr)
                         # When debugging a remote QEMU target, the page permissions are not accurate.
                         # In this case, if the candidate address is mapped at all, just go with it.
-                        if page and (pwndbg.gdblib.remote.is_remote() or page.execute):
+                        if page and (page.execute or pwndbg.gdblib.remote.is_remote()):
                             addr = resolved_addr
 
                 if addr is not None:
