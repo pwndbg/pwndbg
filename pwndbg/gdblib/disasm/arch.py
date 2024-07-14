@@ -16,6 +16,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.lib.config
+import pwndbg.gdblib.remote
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
@@ -668,7 +669,9 @@ class DisassemblyAssistant:
                         addr = resolved_addr
                     else:
                         page = pwndbg.gdblib.vmmap.find(resolved_addr)
-                        if page and page.execute:
+                        # When debugging a remote QEMU target, the page permissions are not accurate.
+                        # In this case, if the candidate address is mapped at all, just go with it.
+                        if page and (pwndbg.gdblib.remote.is_remote() or page.execute):
                             addr = resolved_addr
 
                 if addr is not None:
