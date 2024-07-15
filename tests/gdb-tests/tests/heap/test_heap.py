@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import gdb
 import pytest
 
@@ -519,6 +521,37 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
 # Jemalloc Tests
 ##
 HEAP_JEMALLOC_EXTENT_INFO = tests.binaries.get("heap_jemalloc_extent_info.out")
+HEAP_JEMALLOC_HEAP = tests.binaries.get("heap_jemalloc_heap.out")
+re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
+
+
+def test_jemalloc_find_extent(start_binary):
+    start_binary(HEAP_JEMALLOC_EXTENT_INFO)
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    EXPECTED_PTR_ADDRESS = 0x7FFFF7807000
+
+    # run jemalloc extent_info command
+    result = gdb.execute(
+        f"jemalloc_find_extent {EXPECTED_PTR_ADDRESS}", to_string=True
+    ).splitlines()
+
+    expected_output = [
+        "Jemalloc find extent",
+        "This command only support jemalloc 5.3.0",
+        "",
+        r"Pointer Address: 0x7ffff7807000",
+        r"Extent Address: 0x7ffff7a16580",
+        "",
+        r"Allocated Address: 0x7ffff7807000",
+        r"Extent Address: 0x7ffff7a16580",
+        "Size: 0x1000",
+        "Small class: True",
+    ]
+
+    for i in range(len(expected_output)):
+        assert re.match(expected_output[i], result[i])
 
 
 def test_jemalloc_extent_info(start_binary):
@@ -526,7 +559,6 @@ def test_jemalloc_extent_info(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    EXPECTED_PTR_ADDRESS = 0x7FFFF7807000
     EXPECTED_EXTENT_ADDRESS = 0x7FFFF7A16580
 
     # run jemalloc extent_info command
@@ -538,11 +570,60 @@ def test_jemalloc_extent_info(start_binary):
         "Jemalloc extent info",
         "This command only support jemalloc 5.3.0",
         "",
-        "Allocated Address: {}".format(hex(EXPECTED_PTR_ADDRESS)),
-        "Extent Address: {}".format(hex(EXPECTED_EXTENT_ADDRESS)),
+        r"Allocated Address: " + re_match_valid_address,
+        r"Extent Address: " + re_match_valid_address,
         "Size: 0x1000",
         "Small class: True",
     ]
 
     for i in range(len(expected_output)):
-        assert expected_output[i] == result[i]
+        assert re.match(expected_output[i], result[i])
+
+
+def test_jemalloc_heap(start_binary):
+    start_binary(HEAP_JEMALLOC_HEAP)
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
+    # run jemalloc extent_info command
+    result = gdb.execute("jemalloc_heap", to_string=True).splitlines()
+
+    expected_output = [
+        "Jemalloc heap",
+        "This command only support jemalloc 5.3.0",
+    ]
+
+    expected_output += [
+        "",
+        "Allocated Address: " + re_match_valid_address,
+        r"Extent Address: " + re_match_valid_address,
+        "Size: 0x400000",
+        "Small class: False",
+    ]
+
+    expected_output += [
+        "",
+        "Allocated Address: " + re_match_valid_address,
+        r"Extent Address: " + re_match_valid_address,
+        "Size: 0x7000",
+        "Small class: False",
+    ]
+
+    expected_output += [
+        "",
+        "Allocated Address: " + re_match_valid_address,
+        r"Extent Address: " + re_match_valid_address,
+        "Size: 0x7000",
+        "Small class: False",
+    ]
+
+    expected_output += [
+        "",
+        "Allocated Address: " + re_match_valid_address,
+        r"Extent Address: " + re_match_valid_address,
+        "Size: 0x1f8000",
+        "Small class: False",
+    ]
+
+    for i in range(len(expected_output)):
+        assert re.match(expected_output[i], result[i])

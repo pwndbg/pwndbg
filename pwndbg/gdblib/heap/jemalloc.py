@@ -180,7 +180,6 @@ class RTree:
     def get_rtree() -> RTree:
         try:
             addr = pwndbg.gdblib.info.address("je_arena_emap_global")
-            print(addr)
             if addr is None:
                 return None
 
@@ -227,6 +226,9 @@ class RTree:
         # print("mask: ", mask, bin(mask))
         return (key >> shiftbits) & mask
 
+    def __alignment_addr2base(addr, alignment=64):
+        return addr - (addr - (addr & (~(alignment - 1))))
+
     def lookup_hard(self, key):
         """
         Lookup the key in the rtree and return the value.
@@ -248,7 +250,7 @@ class RTree:
         # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
         node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
 
-        if node["child"]["repr"] == 0:
+        if int(node["child"]["repr"]) == 0:
             return None
 
         # For subkey 1
@@ -267,9 +269,6 @@ class RTree:
             return None
 
         return Extent(ptr)
-
-    def test_parse(self):
-        pass
 
     @property
     def extents(self):
@@ -297,7 +296,9 @@ class RTree:
 
                     if node["child"]["repr"] == 0:
                         continue
+
                     leaf0 = node["child"]["repr"]
+                    # print(hex(leaf0))
 
                     # print("leaf0: ", leaf0)
 
@@ -313,11 +314,14 @@ class RTree:
                         if leaf["le_bits"]["repr"] == 0:
                             continue
 
+                        # print("leaf: ", hex(leaf_address))
+
                         # print(j, leaf)
                         val = int(leaf["le_bits"]["repr"])
 
                         if val == 0:
-                            return None
+                            # return None
+                            continue
 
                         ls = (val << RTREE_NHIB) & ((2**64) - 1)
                         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
@@ -328,10 +332,17 @@ class RTree:
                         last_addr = ptr
 
                         extent = Extent(ptr)
-                        self._extents.append(extent)
-                        # print("extent addr: ", hex(extent.extent_address))
-                        # print("allocated addr: ", hex(extent.allocated_address))
-                        # print()
+
+                        # during initializations, addresses may get some alignment
+                        # lets check if size makes sense, otherwise do page alignment and check if again
+                        # TODO: better way to do this
+                        if extent.size == 0:
+                            ptr = RTree.__alignment_addr2base(int(ptr))
+                            extent_tmp = Extent(ptr)
+                            if extent_tmp.size == 0:
+                                self._extents.append(extent)
+
+                        self._extents.append(extent_tmp)
 
             except gdb.MemoryError:
                 pass

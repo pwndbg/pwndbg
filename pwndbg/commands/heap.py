@@ -1551,24 +1551,6 @@ def heap_config(filter_pattern: str) -> None:
 
 # Jemalloc
 
-parser = argparse.ArgumentParser(description="Get extent with address")
-parser.add_argument("addr", type=int, help="Address of the extent")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def get_extent(addr) -> None:
-    addr = int(addr)
-
-    rtree = jemalloc.RTree.get_rtree()
-    extent = rtree.lookup_hard(addr)
-    print(extent)
-
-    print(extent.address)
-    print(extent.has_slab)
-
-
-## Actual Commands
-
 parser = argparse.ArgumentParser(
     description="Returns extent information for pointer address allocated by jemalloc"
 )
@@ -1591,7 +1573,7 @@ def jemalloc_find_extent(addr) -> None:
     print(f"Extent Address: {hex(extent.extent_address)}")
     print()
 
-    jemalloc_extent_info(extent.extent_address)
+    jemalloc_extent_info(extent.extent_address, header=False)
 
 
 parser = argparse.ArgumentParser(description="Prints extent information for the given address")
@@ -1619,16 +1601,6 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
     if verbose:
         for bit, val in extent.bitfields.items():
             print(bit, val)
-
-
-parser = argparse.ArgumentParser(description="Test cache")
-
-parser.add_argument("addr", type=int, help="Address of the extent metadata")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
-def jemalloc_test(addr) -> None:
-    pass
 
 
 parser = argparse.ArgumentParser(description="Prints all extents information")
