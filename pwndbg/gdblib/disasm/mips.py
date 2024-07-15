@@ -152,5 +152,18 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return super()._resolve_target(instruction, emu, call)
 
+    @override
+    def _parse_memory(self, instruction: PwndbgInstruction, op: pwndbg.gdblib.disasm.arch.EnhancedOperand, emu: Emulator) -> int | None:
+
+        target = op.mem.disp
+
+        if op.mem.base != 0:
+            base = self._read_register(instruction, op.mem.base, emu)
+            if base is None:
+                return None
+            target += base
+
+        return target
+
 
 assistant = DisassemblyAssistant("mips")

@@ -55,8 +55,6 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STREXB:1,
     ARM_INS_STREXH:2,
     ARM_INS_STREX:4,
-
-
 }
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):

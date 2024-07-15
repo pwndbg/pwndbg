@@ -162,7 +162,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
             # Handle all load instructions
             # TODO: fill this in for AARCH64
+            # Rebase after the ARM instructions are done
             # self._common_generic_register_destination(instruction, emu)
+            pass
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
