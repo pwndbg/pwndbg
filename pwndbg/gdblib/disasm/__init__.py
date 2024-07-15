@@ -17,13 +17,14 @@ import capstone
 import gdb
 from capstone import *  # noqa: F403
 
+import pwndbg
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.dbg import EventType
 from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -87,7 +88,7 @@ next_addresses_cache: Set[int] = set()
 
 
 # Register GDB event listeners for all stop events
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
     pwndbg.gdblib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
@@ -97,8 +98,8 @@ def enhance_cache_listener() -> None:
         computed_instruction_cache.clear()
 
 
-@pwndbg.gdblib.events.mem_changed
-@pwndbg.gdblib.events.reg_changed
+@pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
+@pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
 def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate

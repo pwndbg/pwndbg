@@ -28,7 +28,6 @@ import gdb
 
 import pwndbg
 import pwndbg.chain
-import pwndbg.gdblib.events
 import pwndbg.gdblib.heap
 import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.memory

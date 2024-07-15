@@ -19,13 +19,14 @@ from typing import cast
 
 import gdb
 
+import pwndbg
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
+from pwndbg.dbg import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
@@ -278,8 +279,8 @@ tether = sys.modules[__name__]
 sys.modules[__name__] = module(__name__, "")
 
 
-@pwndbg.gdblib.events.cont
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.CONTINUE)
+@pwndbg.dbg.event_handler(EventType.STOP)
 def update_last() -> None:
     M: module = cast(module, sys.modules[__name__])
     M.previous = M.last

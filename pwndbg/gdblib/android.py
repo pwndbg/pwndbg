@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.gdblib.events
+import pwndbg
 import pwndbg.gdblib.file
 import pwndbg.gdblib.qemu
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.dbg import EventType
 
 
 @pwndbg.lib.cache.cache_until("start", "exit")
@@ -23,7 +24,7 @@ def is_android() -> bool:
     return False
 
 
-@pwndbg.gdblib.events.start
+@pwndbg.dbg.event_handler(EventType.START)
 def sysroot() -> None:
     cmd = "set sysroot remote:/"
     if is_android():

@@ -24,11 +24,11 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
+import pwndbg
 import pwndbg.auxv
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.ctypes
-import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
@@ -40,6 +40,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
 from pwndbg.color import message
+from pwndbg.dbg import EventType
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -71,8 +72,8 @@ Ehdr = Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
 Phdr = Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
 
 
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.new_objfile
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def update() -> None:
     global Ehdr, Phdr
     try:

@@ -41,7 +41,6 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.disasm.x86
     import pwndbg.gdblib.dynamic
     import pwndbg.gdblib.elf
-    import pwndbg.gdblib.events
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.got
     import pwndbg.gdblib.hooks

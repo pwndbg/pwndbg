@@ -11,16 +11,17 @@ from shlex import quote
 
 import gdb
 
+import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.elf
-import pwndbg.gdblib.events
 import pwndbg.gdblib.symbol
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg import EventType
 
 break_on_first_instruction = False
 
 
-@pwndbg.gdblib.events.start
+@pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
     global break_on_first_instruction
     if break_on_first_instruction:

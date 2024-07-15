@@ -5,7 +5,7 @@ from typing import Literal
 import gdb
 import pwnlib
 
-import pwndbg.gdblib.proc
+import pwndbg.gdblib
 from pwndbg.gdblib import typeinfo
 from pwndbg.lib.arch import Arch
 
@@ -81,6 +81,10 @@ def _get_arch(ptrsize: int):
         endian = "little"
     else:
         endian = "big"
+
+    # Importing requires that `pwndbg.dbg` already be set up, so we have to do
+    # it here, rather then on the top level.
+    import pwndbg.gdblib.proc
 
     if pwndbg.gdblib.proc.alive:
         arch = gdb.newest_frame().architecture().name()
