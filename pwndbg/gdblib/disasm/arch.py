@@ -810,22 +810,35 @@ class DisassemblyAssistant:
 
         return handler
 
-    def _generate_load_annotator(self, read_size: int, addr_getter: Callable[[PwndbgInstruction, Emulator],Tuple[int, EnhancedOperand, EnhancedOperand]]):
+    def _common_load_annotator(self, instruction: PwndbgInstruction, emu: Emulator, address: int, read_size: int, dest_str: str, source_str: str) -> None:
         """
         Create a function that annotates a load instruction.
         
         These instructions read `read_size` bytes from memory into a register.
         """
 
-        TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
+        if address is None:
+            return
+        
+        # There are many cases we need to consider when we are dereferencing a memory location.
+        # Were we able to reason about the memory address, and dereference it?
+        # Does the resolved memory address actual point into memory?
 
-        def handler(instruction: PwndbgInstruction, emu: Emulator) -> None:
-            callback_info = addr_getter(instruction, emu)
+        # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
+        # it indicates that the dereference likely segfaults
 
-            if None in callback_info:
-                return
-            
-            address, source_operand, destination_operand = callback_info
+        # If the address is not mapped, we segfaulted
+        if not pwndbg.gdblib.memory.peek(address):
+            telescope_print = MessageColor.error(
+                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            )
+        else:
+            # In this branch, it is assumed that the address IS in a mapped page
+                
+            TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
+
+            # TODO: remove this
+            source_operand = instruction.operands[1]
 
             telescope_addresses = self._telescope(
                 address,
@@ -836,30 +849,24 @@ class DisassemblyAssistant:
                 read_size=read_size,
             )
 
-            # If the address is not mapped, we segfaulted
-            if not pwndbg.gdblib.memory.peek(address):
-                telescope_print = MessageColor.error(
-                    f"<Cannot dereference [{MemoryColor.get(address)}]>"
-                )
-            elif len(telescope_addresses) == 1:
-                # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
-                # Simply display the address
+            if len(telescope_addresses) == 1:
+                # If telescope returned only 1 address (and we already know the address is in a mapped page)
+                # it means we couldn't reason about the dereferenced memory.
+                # In this case, simply display the address
 
                 # As an example, this path is taken for the following case:
                 # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
-                # and we are not emulating. This means we cannot savely dereference (if PC is not at the current instruction address)
+                # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
+                # because the the memory address could have been written to by the time the instruction executes
                 telescope_print = None
             else:
                 # Start showing at dereferenced address, hence the [1:]
                 telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
 
-            instruction.annotation = f"{destination_operand.str}, {source_operand.str}"
+            instruction.annotation = f"{dest_str}, {source_str}"
 
             if telescope_print is not None:
                 instruction.annotation += f" => {telescope_print}"
-
-
-        return handler
 
 
 generic_assistant = DisassemblyAssistant(None)

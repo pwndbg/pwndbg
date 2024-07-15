@@ -25,6 +25,9 @@ ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM_SFT_ROR: bit_math.rotate_right,
 }
 
+ARM_SINGLE_LOAD_INSTRUCTIONS = {
+
+}
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
