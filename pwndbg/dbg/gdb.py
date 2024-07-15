@@ -14,8 +14,23 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.gdblib
+import pwndbg.gdblib.events
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
+
+T = TypeVar("T")
+
+
+# We pass the responsibility of event handling to gdblib.
+GDBLIB_EVENT_MAPPING = {
+    pwndbg.dbg_mod.EventType.EXIT: pwndbg.gdblib.events.exit,
+    pwndbg.dbg_mod.EventType.CONTINUE: pwndbg.gdblib.events.cont,
+    pwndbg.dbg_mod.EventType.START: pwndbg.gdblib.events.start,
+    pwndbg.dbg_mod.EventType.STOP: pwndbg.gdblib.events.stop,
+    pwndbg.dbg_mod.EventType.NEW_MODULE: pwndbg.gdblib.events.new_objfile,
+    pwndbg.dbg_mod.EventType.MEMORY_CHANGED: pwndbg.gdblib.events.mem_changed,
+    pwndbg.dbg_mod.EventType.REGISTER_CHANGED: pwndbg.gdblib.events.reg_changed,
+}
 
 
 class GDBRegisters(pwndbg.dbg_mod.Registers):
@@ -483,6 +498,18 @@ class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def is_gdblib_available(self):
         return True
+
+    @override
+    def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
+        # Currently GDB supports all event types.
+        return True
+
+    @override
+    def event_handler(
+        self, ty: pwndbg.dbg_mod.EventType
+    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
+        # Just call into the gdblib handler.
+        return GDBLIB_EVENT_MAPPING[ty]
 
     @override
     def addrsz(self, address: Any) -> str:
