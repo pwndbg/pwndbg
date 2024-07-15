@@ -20,6 +20,65 @@ from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
 
+# None indicates the read size depends on the target register
+AARCH64_SINGLE_LOAD_INSTRUCTIONS = {
+    ARM64_INS_LDRB:1,
+    ARM64_INS_LDURB:1,
+    ARM64_INS_LDRSB:1,
+    ARM64_INS_LDURSB:1,
+
+    ARM64_INS_LDRH:2,
+    ARM64_INS_LDURH:2,
+    ARM64_INS_LDRSH:2,
+    ARM64_INS_LDURSH:2,
+
+    ARM64_INS_LDURSW:4,
+    ARM64_INS_LDRSW:4,
+
+    ARM64_INS_LDUR:None,
+    ARM64_INS_LDR:None,
+
+    ARM64_INS_LDTRB:1,
+    ARM64_INS_LDTRSB:1,
+    ARM64_INS_LDTRH:2,
+    ARM64_INS_LDTRSH:2,
+    ARM64_INS_LDTRSW:4,
+    ARM64_INS_LDTR:None,
+
+    ARM64_INS_LDXRB:1,
+    ARM64_INS_LDXRH:2,
+    ARM64_INS_LDXR:None,
+
+    ARM64_INS_LDARB:1,
+    ARM64_INS_LDARH:2,
+    ARM64_INS_LDAR:None,
+}
+
+AARCH64_SINGLE_STORE_INSTRUCTIONS = {
+    ARM64_INS_STRB:1,
+    ARM64_INS_STURB:1,
+    ARM64_INS_STRH:2,
+    ARM64_INS_STURH:2,
+    ARM64_INS_STUR:None,
+    ARM64_INS_STR:None,
+    # Store Register (unprivileged)
+    ARM64_INS_STTRB:1,
+    ARM64_INS_STTRH:2,
+    ARM64_INS_STTR:None,
+    # Store Exclusive
+    ARM64_INS_STXRB:1,
+    ARM64_INS_STXRH:2,
+    ARM64_INS_STXR:None,
+    # Store-Release
+    ARM64_INS_STLRB:1,
+    ARM64_INS_STLRH:2,
+    ARM64_INS_STLR:None,
+    # Store-Release Exclusive
+    ARM64_INS_STLXRB:1,
+    ARM64_INS_STLXRH:2,
+    ARM64_INS_STLXR:None,
+}
+
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -90,11 +149,52 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             ARM64_INS_ADR: self._common_generic_register_destination,
             # ADRP
             ARM64_INS_ADRP: self._common_generic_register_destination,
-            # LDR
-            ARM64_INS_LDR: self._common_generic_register_destination,
             # ADD
             ARM64_INS_ADD: self._common_generic_register_destination,
             # SUB
+            ARM64_INS_SUB: self.generic_register_destination,
+        }
+    
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        # Dispatch to the correct handler
+        # Dispatch to the correct handler
+        if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
+            # Handle all load instructions
+            # TODO: fill this in for AARCH64
+            # self._common_generic_register_destination(instruction, emu)
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+    def generic_register_destination(self, instruction, emu: Emulator) -> None:
+        """
+        This function can be used to annotate instructions that have a register destination,
+        which in AArch64 is always the first register. Works only while we are using emulation.
+
+        In an ideal world, we have more specific code on a case-by-case basis to allow us to
+        annotate results even when not emulating (as is done in many x86 handlers)
+        """
+
+        left = instruction.operands[0]
+
+        # Emulating determined the value that was set in the destination register
+        if left.after_value is not None:
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+            # Telescope the address
+            telescope_addresses = super()._telescope(
+                left.after_value,
+                TELESCOPE_DEPTH + 1,
+                instruction,
+                left,
+                emu,
+                read_size=pwndbg.gdblib.arch.ptrsize,
+            )
+
+            if not telescope_addresses:
+                return
+
+            instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
             ARM64_INS_SUB: self._common_generic_register_destination,
             # CMP
             ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
@@ -163,10 +263,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return super()._resolve_target(instruction, emu, call)
 
-    @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Dispatch to the correct handler
-        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
