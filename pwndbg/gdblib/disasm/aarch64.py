@@ -79,14 +79,34 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS = {
     ARM64_INS_STLXR:None,
 }
 
-# TODO: make these point at functions
+# TODO: make these point at the real functions
 AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int,int,int],int]] = {
     ARM64_SFT_LSL: lambda *x: 0,
     ARM64_SFT_MSL: lambda *x: 0,
     ARM64_SFT_LSR: lambda *x: 0,
     ARM64_SFT_ASR: lambda *x: 0,
-    ARM64_SFT_ROR: lambda *x: 0
+    ARM64_SFT_ROR: lambda *x: 0,
 }
+
+# These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
+# They take in a number, extract a byte, halfword, or word,
+# and perform a zero- or sign-extend operation.
+# For unsigned values, we don't need to care about zero-extension in Python
+def unsigned_to_signed(x,y):
+    return 1
+    # TODO: replace this with the real function
+
+AARCH64_EXTEND_MAP: Dict[int, Callable[[int],int]] = {
+    ARM64_EXT_UXTB: lambda x: x & ((1<<8) - 1),
+    ARM64_EXT_UXTH: lambda x: x & ((1<<16) - 1),
+    ARM64_EXT_UXTW: lambda x: x & ((1<<32) - 1),
+    ARM64_EXT_UXTX: lambda x: x, # UXTX just uses the whole register
+    ARM64_EXT_SXTB: lambda x: unsigned_to_signed(x,8),
+    ARM64_EXT_SXTH: lambda x: unsigned_to_signed(x,16),
+    ARM64_EXT_SXTW: lambda x: unsigned_to_signed(x,32),
+    ARM64_EXT_SXTX: lambda x: unsigned_to_signed(x,64),
+}
+
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -286,7 +306,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         """
         Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
         
-        Two main types of AArch64 memory operands:
+        Three main types of AArch64 memory operands:
         1. Register base with optional immediate offset
         Examples:
               ldrb   w3, [x2]
@@ -296,6 +316,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         Examples:
               ldrb   w1, [x9, x2]
               str x1, [x2, x0, lsl #3]
+        3. Register + 32-bit register extended and shifted.
+        The shift in this case is implicitly a LSL
+        Examples:
+              ldr x1, [x2, w22, UXTW #3]
+
+        TODO: https://github.com/capstone-engine/capstone/issues/2230
+        Bugs in Capstone - how do we fix this on our end?
+        Just use the emulated value? Don't try to resolve the address?
         """
 
         target = 0
@@ -315,16 +343,21 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if index is None:
                 return None
             
+            # Optionally apply an extend
+            if op.cs_op.ext != 0:
+                index = AARCH64_EXTEND_MAP[op.cs_op.ext](index)
+
             # Optionally apply shift to the index register
+            # This handles shifts in the extend operation as well:
+            # As in the case of `ldr x1, [x2, w22, UXTW #3]`,
+            # Capstone will automatically make the shift a LSL and set the value to 3
             if op.cs_op.shift.type != 0:
-                # TODO: get PTRSIZE from register name
-                REG_SIZE=8
-                print(op.cs_op.shift)
-                print(instruction)
-                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index,REG_SIZE,op.cs_op.shift.value)
+                # The form of instructions with a shift always apply the shift to a 64-bit value
+                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index,64,op.cs_op.shift.value)
 
             target += index
-            
+        
+        
         return target
 
 
