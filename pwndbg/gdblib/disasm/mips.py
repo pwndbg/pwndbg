@@ -153,7 +153,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return super()._resolve_target(instruction, emu, call)
 
     @override
-    def _parse_memory(self, instruction: PwndbgInstruction, op: pwndbg.gdblib.disasm.arch.EnhancedOperand, emu: Emulator) -> int | None:
+    def _parse_memory(
+        self,
+        instruction: PwndbgInstruction,
+        op: pwndbg.gdblib.disasm.arch.EnhancedOperand,
+        emu: Emulator,
+    ) -> int | None:
         """
         Parse the `MipsOpMem` Capstone object to determine the concrete memory address used.
         """

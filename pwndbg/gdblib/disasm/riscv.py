@@ -10,7 +10,8 @@ import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import EnhancedOperand, InstructionCondition
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 RISCV_LOAD_INSTRUCTIONS = {
@@ -19,7 +20,6 @@ RISCV_LOAD_INSTRUCTIONS = {
     RISCV_INS_LH: 2,
     RISCV_INS_LW: 4,
     RISCV_INS_LD: 8,
-
     # Zero-extend loads
     RISCV_INS_LBU: 1,
     RISCV_INS_LHU: 2,
@@ -30,25 +30,21 @@ RISCV_LOAD_INSTRUCTIONS = {
 # So we temporarily separate them to handle them differently
 # This will be fixed in Capstone 6 - https://github.com/capstone-engine/capstone/pull/2393
 # TODO: remove this when updating to Capstone 6
-RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {
-    RISCV_INS_C_LW:4,
-    RISCV_INS_C_LD:8,
-    RISCV_INS_C_LDSP:8
-}
+RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {RISCV_INS_C_LW: 4, RISCV_INS_C_LD: 8, RISCV_INS_C_LDSP: 8}
 
 RISCV_STORE_INSTRUCTIONS = {
-    RISCV_INS_SB:1,
-    RISCV_INS_SH:2,
-    RISCV_INS_SW:4,
-    RISCV_INS_SD:8,
+    RISCV_INS_SB: 1,
+    RISCV_INS_SH: 2,
+    RISCV_INS_SW: 4,
+    RISCV_INS_SD: 8,
 }
 
 # TODO: remove this when updating to Capstone 6
 RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
-    RISCV_INS_C_SW:4,
-    RISCV_INS_C_SD:8,
-
+    RISCV_INS_C_SW: 4,
+    RISCV_INS_C_SD: 8,
 }
+
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
@@ -57,7 +53,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        
         if instruction.id in RISCV_LOAD_INSTRUCTIONS:
             self._common_load_annotator(
                 instruction,
@@ -65,11 +60,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[1].before_value,
                 RISCV_LOAD_INSTRUCTIONS[instruction.id],
                 instruction.operands[0].str,
-                instruction.operands[1].str
+                instruction.operands[1].str,
             )
 
         if instruction.id in RISCV_COMPRESSED_LOAD_INSTRUCTIONS:
-
             address = self._resolve_compressed_target_addr(instruction, emu)
             if address is not None:
                 dest_str = f"[{MemoryColor.get_address_or_symbol(address)}]"
@@ -80,29 +74,26 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     address,
                     RISCV_COMPRESSED_LOAD_INSTRUCTIONS[instruction.id],
                     instruction.operands[0].str,
-                    dest_str
+                    dest_str,
                 )
-            
 
         return super()._set_annotation_string(instruction, emu)
-    
-    def _resolve_compressed_target_addr(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
+
+    def _resolve_compressed_target_addr(
+        self, instruction: PwndbgInstruction, emu: Emulator
+    ) -> int | None:
         """
         Calculate the address used in a compressed load/store instruction.
         None if address cannot be resolved.
 
         TODO: remove this when updating to Capstone 6
         """
-        target = 0
-
-        _, disp,reg = instruction.operands
+        _, disp, reg = instruction.operands
 
         if disp.before_value is None or reg.before_value is None:
             return None
-        
+
         return disp.before_value + reg.before_value
-
-
 
     def _is_condition_taken(
         self, instruction: PwndbgInstruction, emu: Emulator | None
@@ -187,9 +178,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return target ^ (target & 1)
 
         return super()._resolve_target(instruction, emu, call)
-    
+
     @override
-    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
+    def _parse_memory(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         """
         Parse the `RISCVOpMem` Capstone object to determine the concrete memory address used.
         """
@@ -202,9 +195,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             target += base
 
         return target
-
-
-        
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")

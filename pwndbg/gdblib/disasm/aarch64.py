@@ -16,71 +16,67 @@ import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
+from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
 
 # None indicates the read size depends on the target register
 AARCH64_SINGLE_LOAD_INSTRUCTIONS = {
-    ARM64_INS_LDRB:1,
-    ARM64_INS_LDURB:1,
-    ARM64_INS_LDRSB:1,
-    ARM64_INS_LDURSB:1,
-
-    ARM64_INS_LDRH:2,
-    ARM64_INS_LDURH:2,
-    ARM64_INS_LDRSH:2,
-    ARM64_INS_LDURSH:2,
-
-    ARM64_INS_LDURSW:4,
-    ARM64_INS_LDRSW:4,
-
-    ARM64_INS_LDUR:None,
-    ARM64_INS_LDR:None,
-
-    ARM64_INS_LDTRB:1,
-    ARM64_INS_LDTRSB:1,
-    ARM64_INS_LDTRH:2,
-    ARM64_INS_LDTRSH:2,
-    ARM64_INS_LDTRSW:4,
-    ARM64_INS_LDTR:None,
-
-    ARM64_INS_LDXRB:1,
-    ARM64_INS_LDXRH:2,
-    ARM64_INS_LDXR:None,
-
-    ARM64_INS_LDARB:1,
-    ARM64_INS_LDARH:2,
-    ARM64_INS_LDAR:None,
+    ARM64_INS_LDRB: 1,
+    ARM64_INS_LDURB: 1,
+    ARM64_INS_LDRSB: 1,
+    ARM64_INS_LDURSB: 1,
+    ARM64_INS_LDRH: 2,
+    ARM64_INS_LDURH: 2,
+    ARM64_INS_LDRSH: 2,
+    ARM64_INS_LDURSH: 2,
+    ARM64_INS_LDURSW: 4,
+    ARM64_INS_LDRSW: 4,
+    ARM64_INS_LDUR: None,
+    ARM64_INS_LDR: None,
+    ARM64_INS_LDTRB: 1,
+    ARM64_INS_LDTRSB: 1,
+    ARM64_INS_LDTRH: 2,
+    ARM64_INS_LDTRSH: 2,
+    ARM64_INS_LDTRSW: 4,
+    ARM64_INS_LDTR: None,
+    ARM64_INS_LDXRB: 1,
+    ARM64_INS_LDXRH: 2,
+    ARM64_INS_LDXR: None,
+    ARM64_INS_LDARB: 1,
+    ARM64_INS_LDARH: 2,
+    ARM64_INS_LDAR: None,
 }
 
 AARCH64_SINGLE_STORE_INSTRUCTIONS = {
-    ARM64_INS_STRB:1,
-    ARM64_INS_STURB:1,
-    ARM64_INS_STRH:2,
-    ARM64_INS_STURH:2,
-    ARM64_INS_STUR:None,
-    ARM64_INS_STR:None,
+    ARM64_INS_STRB: 1,
+    ARM64_INS_STURB: 1,
+    ARM64_INS_STRH: 2,
+    ARM64_INS_STURH: 2,
+    ARM64_INS_STUR: None,
+    ARM64_INS_STR: None,
     # Store Register (unprivileged)
-    ARM64_INS_STTRB:1,
-    ARM64_INS_STTRH:2,
-    ARM64_INS_STTR:None,
+    ARM64_INS_STTRB: 1,
+    ARM64_INS_STTRH: 2,
+    ARM64_INS_STTR: None,
     # Store Exclusive
-    ARM64_INS_STXRB:1,
-    ARM64_INS_STXRH:2,
-    ARM64_INS_STXR:None,
+    ARM64_INS_STXRB: 1,
+    ARM64_INS_STXRH: 2,
+    ARM64_INS_STXR: None,
     # Store-Release
-    ARM64_INS_STLRB:1,
-    ARM64_INS_STLRH:2,
-    ARM64_INS_STLR:None,
+    ARM64_INS_STLRB: 1,
+    ARM64_INS_STLRH: 2,
+    ARM64_INS_STLR: None,
     # Store-Release Exclusive
-    ARM64_INS_STLXRB:1,
-    ARM64_INS_STLXRH:2,
-    ARM64_INS_STLXR:None,
+    ARM64_INS_STLXRB: 1,
+    ARM64_INS_STLXRH: 2,
+    ARM64_INS_STLXR: None,
 }
 
 # TODO: make these point at the real functions
-AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int,int,int],int]] = {
+AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM64_SFT_LSL: lambda *x: 0,
     ARM64_SFT_MSL: lambda *x: 0,
     ARM64_SFT_LSR: lambda *x: 0,
@@ -88,23 +84,25 @@ AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int,int,int],int]] = {
     ARM64_SFT_ROR: lambda *x: 0,
 }
 
+
 # These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
 # They take in a number, extract a byte, halfword, or word,
 # and perform a zero- or sign-extend operation.
 # For unsigned values, we don't need to care about zero-extension in Python
-def unsigned_to_signed(x,y):
+def unsigned_to_signed(x, y):
     return 1
     # TODO: replace this with the real function
 
-AARCH64_EXTEND_MAP: Dict[int, Callable[[int],int]] = {
-    ARM64_EXT_UXTB: lambda x: x & ((1<<8) - 1),
-    ARM64_EXT_UXTH: lambda x: x & ((1<<16) - 1),
-    ARM64_EXT_UXTW: lambda x: x & ((1<<32) - 1),
-    ARM64_EXT_UXTX: lambda x: x, # UXTX just uses the whole register
-    ARM64_EXT_SXTB: lambda x: unsigned_to_signed(x,8),
-    ARM64_EXT_SXTH: lambda x: unsigned_to_signed(x,16),
-    ARM64_EXT_SXTW: lambda x: unsigned_to_signed(x,32),
-    ARM64_EXT_SXTX: lambda x: unsigned_to_signed(x,64),
+
+AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
+    ARM64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
+    ARM64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
+    ARM64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
+    ARM64_EXT_UXTX: lambda x: x,  # UXTX just uses the whole register
+    ARM64_EXT_SXTB: lambda x: unsigned_to_signed(x, 8),
+    ARM64_EXT_SXTH: lambda x: unsigned_to_signed(x, 16),
+    ARM64_EXT_SXTW: lambda x: unsigned_to_signed(x, 32),
+    ARM64_EXT_SXTX: lambda x: unsigned_to_signed(x, 64),
 }
 
 
@@ -182,7 +180,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # SUB
             ARM64_INS_SUB: self.generic_register_destination,
         }
-    
+
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
@@ -202,8 +200,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-
-    
     def generic_register_destination(self, instruction, emu: Emulator) -> None:
         """
         This function can be used to annotate instructions that have a register destination,
@@ -302,10 +298,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return super()._resolve_target(instruction, emu, call)
 
     @override
-    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
+    def _parse_memory(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         """
         Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
-        
+
         Three main types of AArch64 memory operands:
         1. Register base with optional immediate offset
         Examples:
@@ -342,7 +340,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
-            
+
             # Optionally apply an extend
             if op.cs_op.ext != 0:
                 index = AARCH64_EXTEND_MAP[op.cs_op.ext](index)
@@ -353,7 +351,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # Capstone will automatically make the shift a LSL and set the value to 3
             if op.cs_op.shift.type != 0:
                 # The form of instructions with a shift always apply the shift to a 64-bit value
-                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index,64,op.cs_op.shift.value)
+                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index, 64, op.cs_op.shift.value)
 
             target += index
         
@@ -417,7 +415,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             ) & ((1 << target_bit_width) - 1)
 
         return target
-
 
 
 assistant = DisassemblyAssistant("aarch64")

@@ -15,14 +15,6 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.enhance
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.remote
-
-
-
-
-
-
-
-
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
@@ -810,16 +802,24 @@ class DisassemblyAssistant:
 
         return handler
 
-    def _common_load_annotator(self, instruction: PwndbgInstruction, emu: Emulator, address: int, read_size: int, dest_str: str, source_str: str) -> None:
+    def _common_load_annotator(
+        self,
+        instruction: PwndbgInstruction,
+        emu: Emulator,
+        address: int,
+        read_size: int,
+        dest_str: str,
+        source_str: str,
+    ) -> None:
         """
         Create a function that annotates a load instruction.
-        
+
         These instructions read `read_size` bytes from memory into a register.
         """
 
         if address is None:
             return
-        
+
         # There are many cases we need to consider when we are dereferencing a memory location.
         # Were we able to reason about the memory address, and dereference it?
         # Does the resolved memory address actual point into memory?
@@ -834,7 +834,7 @@ class DisassemblyAssistant:
             )
         else:
             # In this branch, it is assumed that the address IS in a mapped page
-                
+
             TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
 
             # TODO: remove this
@@ -861,7 +861,9 @@ class DisassemblyAssistant:
                 telescope_print = None
             else:
                 # Start showing at dereferenced address, hence the [1:]
-                telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                telescope_print = (
+                    f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 

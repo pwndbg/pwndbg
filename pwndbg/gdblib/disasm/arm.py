@@ -26,40 +26,36 @@ ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
 }
 
 ARM_SINGLE_LOAD_INSTRUCTIONS = {
-    ARM_INS_LDRB:1,
-    ARM_INS_LDRSB:1,
-    ARM_INS_LDRH:2,
-    ARM_INS_LDRSH:2,
-    ARM_INS_LDR:4,
-
-    ARM_INS_LDRBT:1,
-    ARM_INS_LDRSBT:1,
-    ARM_INS_LDRHT:2,
-    ARM_INS_LDRSHT:2,
-    ARM_INS_LDRT:4,
-
-    ARM_INS_LDREXB:1,
-    ARM_INS_LDREXH:2,
-    ARM_INS_LDREX:4,
+    ARM_INS_LDRB: 1,
+    ARM_INS_LDRSB: 1,
+    ARM_INS_LDRH: 2,
+    ARM_INS_LDRSH: 2,
+    ARM_INS_LDR: 4,
+    ARM_INS_LDRBT: 1,
+    ARM_INS_LDRSBT: 1,
+    ARM_INS_LDRHT: 2,
+    ARM_INS_LDRSHT: 2,
+    ARM_INS_LDRT: 4,
+    ARM_INS_LDREXB: 1,
+    ARM_INS_LDREXH: 2,
+    ARM_INS_LDREX: 4,
 }
 
 ARM_SINGLE_STORE_INSTRUCTIONS = {
-    ARM_INS_STRB:1,
-    ARM_INS_STRH:2,
-    ARM_INS_STR:4,
-
-    ARM_INS_STRBT:1,
-    ARM_INS_STRHT:2,
-    ARM_INS_STRT:4,
-
-    ARM_INS_STREXB:1,
-    ARM_INS_STREXH:2,
-    ARM_INS_STREX:4,
+    ARM_INS_STRB: 1,
+    ARM_INS_STRH: 2,
+    ARM_INS_STR: 4,
+    ARM_INS_STRBT: 1,
+    ARM_INS_STRHT: 2,
+    ARM_INS_STRT: 4,
+    ARM_INS_STREXB: 1,
+    ARM_INS_STREXH: 2,
+    ARM_INS_STREX: 4,
 }
 
 # TODO: populate these with the real values
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to memory operations
-ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int,int,int],int]] = {
+ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM_SFT_ASR: lambda *x: 0,
     ARM_SFT_LSL: lambda *x: 0,
     ARM_SFT_LSR: lambda *x: 0,
@@ -85,9 +81,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-
         if instruction.id in ARM_SINGLE_LOAD_INSTRUCTIONS:
-
             self._common_load_annotator(
                 instruction,
                 emu,
@@ -142,7 +136,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
-
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
         target = super()._resolve_target(instruction, emu, call)
@@ -176,20 +169,23 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return "#" + super()._immediate_string(instruction, operand)
 
     @override
-    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator) -> int | None:
-        
+    def _read_register(
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+    ) -> int | None:
         # When `pc` is referenced in an operand, the value it takes on
         # is `pc_at_instruction+8 `
         if operand_id == ARM_REG_PC:
             return instruction.address + 8
-        
+
         return super()._read_register(instruction, operand_id, emu)
-    
+
     @override
-    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
+    def _parse_memory(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         """
         Parse the `ArmOpMem` Capstone object to determine the concrete memory address used.
-        
+
         Types of memory operands:
             [Rn]
             [Rn, #imm]
@@ -197,7 +193,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             [Rn, Rm, <shift> #imm]
 
         Capstone represents the object a bit differently then AArch64 to align with the underlying architecute of Arm.
-        
+
         This representation will change in Capstone 6:
             https://github.com/capstone-engine/capstone/issues/2281
             https://github.com/capstone-engine/capstone/pull/1949
@@ -213,16 +209,16 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         # Add displacement (zero by default)
         target += op.mem.disp
-        
+
         # If there is an index register
         if op.mem.index != 0:
             index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
-            
+
             # Optionally apply shift to the index register
             if op.cs_op.shift.type != 0:
-                index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index,32,op.cs_op.shift.value)
+                index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, 32, op.cs_op.shift.value)
 
             target += index * (-1 if op.cs_op.subtracted else 1)
         
