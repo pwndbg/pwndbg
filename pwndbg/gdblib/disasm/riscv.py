@@ -190,7 +190,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
-
+        """
+        Parse the `RISCVOpMem` Capstone object to determine the concrete memory address used.
+        """
         target = op.mem.disp
 
         if op.mem.base != 0:

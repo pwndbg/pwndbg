@@ -79,6 +79,14 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS = {
     ARM64_INS_STLXR:None,
 }
 
+# TODO: make these point at functions
+AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int,int,int],int]] = {
+    ARM64_SFT_LSL: lambda *x: 0,
+    ARM64_SFT_MSL: lambda *x: 0,
+    ARM64_SFT_LSR: lambda *x: 0,
+    ARM64_SFT_ASR: lambda *x: 0,
+    ARM64_SFT_ROR: lambda *x: 0
+}
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -163,11 +171,19 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # Handle all load instructions
             # TODO: fill this in for AARCH64
             # Rebase after the ARM instructions are done
-            # self._common_generic_register_destination(instruction, emu)
-            pass
+            self._common_load_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id],
+                instruction.operands[0].str,
+                instruction.operands[1].str,
+            )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
+
+    
     def generic_register_destination(self, instruction, emu: Emulator) -> None:
         """
         This function can be used to annotate instructions that have a register destination,
@@ -265,6 +281,52 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return super()._resolve_target(instruction, emu, call)
 
+    @override
+    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
+        """
+        Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
+        
+        Two main types of AArch64 memory operands:
+        1. Register base with optional immediate offset
+        Examples:
+              ldrb   w3, [x2]
+              str    x1, [x2, #0xb58]
+              ldr x4,[x3], 4
+        2. Register + another register with an optional shift
+        Examples:
+              ldrb   w1, [x9, x2]
+              str x1, [x2, x0, lsl #3]
+        """
+
+        target = 0
+
+        # All memory operands have `base` defined
+        base = self._read_register(instruction, op.mem.base, emu)
+        if base is None:
+            return None
+        target += base
+
+        # Add displacement (zero by default)
+        target += op.mem.disp
+
+        # If there is an index register
+        if op.mem.index != 0:
+            index = self._read_register(instruction, op.mem.index, emu)
+            if index is None:
+                return None
+            
+            # Optionally apply shift to the index register
+            if op.cs_op.shift.type != 0:
+                # TODO: get PTRSIZE from register name
+                REG_SIZE=8
+                print(op.cs_op.shift)
+                print(instruction)
+                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index,REG_SIZE,op.cs_op.shift.value)
+
+            target += index
+            
+        return target
+
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
@@ -322,6 +384,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             ) & ((1 << target_bit_width) - 1)
 
         return target
+
 
 
 assistant = DisassemblyAssistant("aarch64")
