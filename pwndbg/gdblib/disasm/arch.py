@@ -12,6 +12,7 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.syntax_highlight as H
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.remote
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
@@ -668,7 +669,9 @@ class DisassemblyAssistant:
                         addr = resolved_addr
                     else:
                         page = pwndbg.gdblib.vmmap.find(resolved_addr)
-                        if page and page.execute:
+                        # When debugging a remote QEMU target, the page permissions are not accurate.
+                        # In this case, if the candidate address is mapped at all, just go with it.
+                        if page and (page.execute or pwndbg.gdblib.remote.is_remote()):
                             addr = resolved_addr
 
                 if addr is not None:
