@@ -85,8 +85,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Dispatch to the correct handler
-        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+        if instruction.id in ARM_SINGLE_LOAD_INSTRUCTIONS:
+
+            self._common_load_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                ARM_SINGLE_LOAD_INSTRUCTIONS[instruction.id],
+                instruction.operands[0].str,
+                instruction.operands[1].str,
+            )
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
@@ -142,8 +154,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             target = target & ~1
         return target
 
-    @override
-    def _memory_string(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
+    # Currently not used
+    def _memory_string_old(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
         parts = []
 
         if op.mem.base != 0:
@@ -163,6 +175,60 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _immediate_string(self, instruction, operand):
         return "#" + super()._immediate_string(instruction, operand)
 
+    @override
+    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator) -> int | None:
+        
+        # When `pc` is referenced in an operand, the value it takes on
+        # is `pc_at_instruction+8 `
+        if operand_id == ARM_REG_PC:
+            return instruction.address + 8
+        
+        return super()._read_register(instruction, operand_id, emu)
+    
+    @override
+    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator) -> int | None:
+        """
+        Parse the `ArmOpMem` Capstone object to determine the concrete memory address used.
+        
+        Types of memory operands:
+            [Rn]
+            [Rn, #imm]
+            [Rn, Rm]
+            [Rn, Rm, <shift> #imm]
+
+        Capstone represents the object a bit differently then AArch64 to align with the underlying architecute of Arm.
+        
+        This representation will change in Capstone 6:
+            https://github.com/capstone-engine/capstone/issues/2281
+            https://github.com/capstone-engine/capstone/pull/1949
+        """
+
+        target = 0
+
+        # All memory operands have `base` defined
+        base = self._read_register(instruction, op.mem.base, emu)
+        if base is None:
+            return None
+        target += base
+
+        # Add displacement (zero by default)
+        target += op.mem.disp
+        
+        # If there is an index register
+        if op.mem.index != 0:
+            index = self._read_register(instruction, op.mem.index, emu)
+            if index is None:
+                return None
+            
+            # Optionally apply shift to the index register
+            if op.cs_op.shift.type != 0:
+                index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index,32,op.cs_op.shift.value)
+
+            target += index * (-1 if op.cs_op.subtracted else 1)
+        
+        
+        return target
+    
     @override
     def _parse_register(
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator

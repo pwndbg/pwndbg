@@ -829,7 +829,7 @@ class DisassemblyAssistant:
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.gdblib.memory.peek(address):
-            telescope_print = MessageColor.error(
+            instruction.annotation = MessageColor.error(
                 f"<Cannot dereference [{MemoryColor.get(address)}]>"
             )
         else:
