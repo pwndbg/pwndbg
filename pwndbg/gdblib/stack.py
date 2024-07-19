@@ -58,7 +58,7 @@ def get() -> Dict[int, pwndbg.lib.memory.Page]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def current():
+def current() -> pwndbg.lib.memory.Page | None:
     """
     Returns the bounds for the stack for the current thread.
     """
