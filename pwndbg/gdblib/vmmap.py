@@ -248,7 +248,8 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     if not flags:
         return None
 
-    flags |= 2 if pwndbg.gdblib.memory.poke(address_maybe) else 0
+    if pwndbg.gdblib.memory.poke(address_maybe):
+        flags |= 2
     # It's really hard to check for executability, so we just make some guesses:
     # If it's in the same page as the stack pointer, try to check the NX bit
     # If it's in the same page as the instruction pointer, assume it's executable
@@ -260,7 +261,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
         address_maybe == pwndbg.lib.memory.page_align(pwndbg.gdblib.regs.sp)
         and pwndbg.gdblib.stack.is_executable()
     ):
-        flags |= 1 if pwndbg.gdblib.stack.is_executable() else 0
+        flags |= 1
 
     page = find_boundaries(address_maybe)
     page.objfile = "<explored>"
