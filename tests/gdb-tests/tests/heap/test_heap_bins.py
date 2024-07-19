@@ -487,6 +487,7 @@ def test_smallbins_sizes_32bit_big(start_binary):
     for bin_index, bin_size in enumerate(command_output):
         assert bin_size.split(":")[0] == expected[bin_index]
 
+
 def test_heap_corruption_low_dereference(start_binary):
     """
     Tests that the bins corruption check doesn't report
@@ -508,4 +509,4 @@ def test_heap_corruption_low_dereference(start_binary):
     gdb.execute("set heap-dereference-limit 1")
 
     bins_output = gdb.execute("bins", to_string=True)
-    assert("corrupted" not in bins_output)
+    assert "corrupted" not in bins_output
