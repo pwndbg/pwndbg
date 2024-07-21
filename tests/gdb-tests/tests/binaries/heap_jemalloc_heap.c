@@ -12,7 +12,7 @@ int main(void)
     ptr[1] = 'B';
 
     // Allocate a large memory
-    char *ptr2 = (char *)malloc(4 * 1024 * 1024);
+    char *ptr2 = (char *)malloc(3.7 * 1024 * 1024);
     ptr2[0] = 'A';
     ptr2[1] = 'B';
     
