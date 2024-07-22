@@ -724,5 +724,36 @@ class DisassemblyAssistant:
         else:
             return None
 
+    def _common_generic_register_destination(
+        self, instruction: PwndbgInstruction, emu: Emulator
+    ) -> None:
+        """
+        This function can be used to annotate instructions that have a register destination.
+        In the vast majority of instructions in most architectures, the destination register is the first operand.
+
+        Using emulation, it will determine the value placed into the register, and create an annotation string based on the result.
+        """
+
+        left = instruction.operands[0]
+
+        # Emulating determined the value that was set in the destination register
+        if left.after_value is not None:
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+            # Telescope the address
+            telescope_addresses = self._telescope(
+                left.after_value,
+                TELESCOPE_DEPTH + 1,
+                instruction,
+                left,
+                emu,
+                read_size=pwndbg.gdblib.arch.ptrsize,
+            )
+
+            if not telescope_addresses:
+                return
+
+            instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
 
 generic_assistant = DisassemblyAssistant(None)
