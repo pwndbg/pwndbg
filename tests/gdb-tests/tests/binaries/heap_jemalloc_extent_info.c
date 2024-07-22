@@ -3,10 +3,12 @@
 
 void break_here(void) {}
 
+char *ptr = NULL;
+
 int main(void)
 {
 
-    char *ptr = (char *)malloc(2 * sizeof(char));
+    ptr = (char *)malloc(2 * sizeof(char));
     ptr[0] = 'A';
     ptr[1] = 'B';
     
