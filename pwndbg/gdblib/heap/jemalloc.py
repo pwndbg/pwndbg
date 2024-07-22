@@ -278,7 +278,7 @@ class RTree:
             self._extents = []
             try:
                 root = self.root
-                last_addr = None
+                ptr_addresses = []
 
                 rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
                 rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
@@ -326,10 +326,10 @@ class RTree:
                         ls = (val << RTREE_NHIB) & ((2**64) - 1)
                         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
 
-                        if ptr == 0 or ptr == last_addr:
+                        if ptr == 0 or ptr in ptr_addresses:
                             continue
 
-                        last_addr = ptr
+                        ptr_addresses.append(ptr)
 
                         extent = Extent(ptr)
 

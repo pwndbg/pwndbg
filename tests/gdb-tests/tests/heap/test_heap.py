@@ -601,7 +601,7 @@ def test_jemalloc_heap(start_binary):
         "",
         "Allocated Address: " + re_match_valid_address,
         r"Extent Address: " + re_match_valid_address,
-        "Size: 0x7000",
+        "Size: 0x8000",
         "Small class: False",
     ]
 
@@ -609,7 +609,7 @@ def test_jemalloc_heap(start_binary):
         "",
         "Allocated Address: " + re_match_valid_address,
         r"Extent Address: " + re_match_valid_address,
-        "Size: 0x7000",
+        "Size: 0x8000",
         "Small class: False",
     ]
 
@@ -617,7 +617,7 @@ def test_jemalloc_heap(start_binary):
         "",
         "Allocated Address: " + re_match_valid_address,
         r"Extent Address: " + re_match_valid_address,
-        "Size: 0x1f8000",
+        "Size: 0x1f7000",
         "Small class: False",
     ]
 
