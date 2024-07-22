@@ -530,12 +530,8 @@ def test_jemalloc_find_extent(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    EXPECTED_PTR_ADDRESS = 0x7FFFF7807000
-
     # run jemalloc extent_info command
-    result = gdb.execute(
-        f"jemalloc_find_extent {EXPECTED_PTR_ADDRESS}", to_string=True
-    ).splitlines()
+    result = gdb.execute("jemalloc_find_extent ptr", to_string=True).splitlines()
 
     expected_output = [
         "Jemalloc find extent",
