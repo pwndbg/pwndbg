@@ -366,3 +366,23 @@ def vmmap_load(filename) -> None:
     for page in pages:
         pwndbg.gdblib.vmmap.add_custom_page(page)
         print("%r added" % page)
+
+
+parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
+parser.add_argument(
+    "address", type=pwndbg.commands.sloppy_gdb_parse, help="Address of the page to explore"
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.OnlyWhenRunning
+def vmmap_explore(address: int) -> None:
+    if not isinstance(address, int):
+        print("Address is not a valid integer.")
+        return
+    page = pwndbg.gdblib.vmmap.explore(address)
+    if page is None:
+        print("Exploration failed. Maybe the address isn't readable?")
+        return
+    print_vmmap_table_header()
+    print(page)
