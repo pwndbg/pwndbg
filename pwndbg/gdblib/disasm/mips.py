@@ -22,6 +22,7 @@ from typing_extensions import override
 
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
+import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
@@ -43,24 +44,17 @@ BRANCH_LIKELY_INSTRUCTIONS = {
 }
 
 
-def to_signed(unsigned: int):
-    if pwndbg.gdblib.arch.ptrsize == 8:
-        return unsigned - ((unsigned & 0x80000000_00000000) << 1)
-    else:
-        return unsigned - ((unsigned & 0x80000000) << 1)
-
-
 CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: to_signed(ops[0]) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: to_signed(ops[0]) >= 0,
-    MIPS_INS_BGTZ: lambda ops: to_signed(ops[0]) > 0,
-    MIPS_INS_BLEZ: lambda ops: to_signed(ops[0]) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: to_signed(ops[0]) < 0,
-    MIPS_INS_BLTZ: lambda ops: to_signed(ops[0]) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
 }
 
 
