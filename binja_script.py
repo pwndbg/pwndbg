@@ -300,7 +300,9 @@ class ServerHandler:
         return (sp_val.confidence, v.storage - sp_val.value)
 
     @should_register
-    def get_stack_var_name(self, pc: int, regs: List[Tuple[str, int]], addr: int) -> Tuple[int, str, str] | None:
+    def get_stack_var_name(
+        self, pc: int, regs: List[Tuple[str, int]], addr: int
+    ) -> Tuple[int, str, str] | None:
         """
         Gets the name of a stack variable, given the current pc,
         list of (name, value) register pairs, and address of the stack variable.
@@ -315,7 +317,7 @@ class ServerHandler:
         if f is None:
             return None
         valid_regs = []
-        for (name, val) in regs:
+        for name, val in regs:
             static_val = f.get_reg_value_at(pc, name)
             if static_val.type != RegisterValueType.StackFrameOffset:
                 continue

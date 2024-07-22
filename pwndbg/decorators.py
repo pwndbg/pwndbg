@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import functools
+import traceback
 from typing import Callable
 from typing import TypeVar
-import traceback
 
 from typing_extensions import ParamSpec
 
-from pwndbg.color import message
 import pwndbg
+from pwndbg.color import message
+
 first_prompt = False
 
 P = ParamSpec("P")
