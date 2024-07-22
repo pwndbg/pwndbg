@@ -376,7 +376,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def vmmap_explore(address: int | str) -> None:
+def vmmap_explore(address: int) -> None:
     if not isinstance(address, int):
         print("Address is not a valid integer.")
         return
