@@ -322,6 +322,9 @@ class ServerHandler:
             if static_val.type != RegisterValueType.StackFrameOffset:
                 continue
             valid_regs.append((val - static_val.value, static_val.confidence))
+            # break early if we're at max confidence
+            if static_val.confidence == 255:
+                break
         if not valid_regs:
             return None
         (frame_base, conf) = max(valid_regs, key=lambda x: x[1])

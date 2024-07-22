@@ -523,7 +523,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             newest = False
         regs = [
             (name, val)
-            for name in pwndbg.gdblib.regs.current
+            for name in pwndbg.gdblib.regs.common
             if (val := pwndbg.gdblib.regs.read_reg(name, cur)) is not None
         ]
         # put stack pointer and frame pointer at the front
