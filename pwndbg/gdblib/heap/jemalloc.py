@@ -278,7 +278,8 @@ class RTree:
             self._extents = []
             try:
                 root = self.root
-                ptr_addresses = []
+                last_addr = None
+                extent_addresses = []
 
                 rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
                 rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
@@ -326,12 +327,17 @@ class RTree:
                         ls = (val << RTREE_NHIB) & ((2**64) - 1)
                         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
 
-                        if ptr == 0 or ptr in ptr_addresses:
+                        if ptr == 0 or ptr == last_addr:
                             continue
 
-                        ptr_addresses.append(ptr)
+                        last_addr = ptr
 
                         extent = Extent(ptr)
+
+                        if extent.extent_address in extent_addresses:
+                            continue
+
+                        extent_addresses.append(extent.extent_address)
 
                         # during initializations, addresses may get some alignment
                         # lets check if size makes sense, otherwise do page alignment and check if again
