@@ -138,7 +138,13 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]
                 # Check if the value is in the cache; if we have a cache miss,
                 # we return a special singleton object `_NOT_FOUND_IN_CACHE`. This way
                 # we can also cache a result of 'None' from a function
-                cached_value: Any = cache.get(key, _NOT_FOUND_IN_CACHE)
+                no_cache = False
+                try:
+                    cached_value: Any = cache.get(key, _NOT_FOUND_IN_CACHE)
+                except TypeError:
+                    # skip caching unhashable arguments
+                    no_cache = True
+                    cached_value = _NOT_FOUND_IN_CACHE
                 if cached_value is not _NOT_FOUND_IN_CACHE:
                     return cached_value
 
@@ -149,7 +155,8 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]
                 if isinstance(value, list):
                     print(f"Should not cache mutable types! {func.__name__}")
 
-                cache[key] = value
+                if not no_cache:
+                    cache[key] = value
 
                 return value
 

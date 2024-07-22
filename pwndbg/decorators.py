@@ -3,11 +3,12 @@ from __future__ import annotations
 import functools
 from typing import Callable
 from typing import TypeVar
+import traceback
 
 from typing_extensions import ParamSpec
 
 from pwndbg.color import message
-
+import pwndbg
 first_prompt = False
 
 P = ParamSpec("P")
@@ -54,6 +55,8 @@ def suppress_errors(
             except Exception as e:
                 if should_warn:
                     print(message.warn(f"Warning: Received an error in {func.__name__}: {e}"))
+                    if pwndbg.config.exception_verbose:
+                        traceback.print_exc()
                 return fallback
 
         return wrapper

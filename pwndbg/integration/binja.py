@@ -120,10 +120,7 @@ def init_bn_rpc_client() -> None:
             not isinstance(_bn_last_exception, exception[0])
             or _bn_last_exception.args != exception[1].args
         ):
-            if (
-                hasattr(pwndbg.gdblib.config, "exception_verbose")
-                and pwndbg.gdblib.config.exception_verbose
-            ):
+            if pwndbg.config.exception_verbose:
                 print(message.error("[!] Binary Ninja xmlrpc error"))
                 traceback.print_exception(*exception)
             else:
@@ -510,9 +507,8 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.lib.cache.cache_until("stop")
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = gdb.selected_frame()
-        sp = int(cur.read_register("sp"))
         # there is no earlier frame so we give up
-        if addr < sp:
+        if addr < pwndbg.gdblib.regs.read_reg("sp", cur):
             return None
         newest = True
         # try to find the oldest frame that's earlier than the address
@@ -520,13 +516,21 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             upper = cur.older()
             if upper is None:
                 break
-            upper_sp = int(upper.read_register("sp"))
+            upper_sp = pwndbg.gdblib.regs.read_reg("sp", upper)
             if upper_sp > addr:
                 break
-            sp = upper_sp
             cur = upper
             newest = False
-        ret: Tuple[int, str, int] | None = _bn.get_stack_var_name(l2r(int(cur.pc())), sp, addr)
+        regs = [
+            (name, val)
+            for name in pwndbg.gdblib.regs.current
+            if (val := pwndbg.gdblib.regs.read_reg(name, cur)) is not None
+        ]
+        # put stack pointer and frame pointer at the front
+        regs.sort(
+            key=lambda x: {pwndbg.gdblib.regs.stack: 0, pwndbg.gdblib.regs.frame: 1}.get(x[0], 2)
+        )
+        ret: Tuple[int, str, int] | None = _bn.get_stack_var_name(l2r(int(cur.pc())), regs, addr)
         if ret is None:
             return None
         (conf, func, var) = ret

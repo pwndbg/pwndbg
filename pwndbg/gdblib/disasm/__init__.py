@@ -90,7 +90,7 @@ next_addresses_cache: Set[int] = set()
 @pwndbg.gdblib.events.stop
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.gdblib.regs.__getattr__.cache.clear()  # type: ignore[attr-defined]
+    pwndbg.gdblib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
 
     if pwndbg.gdblib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values

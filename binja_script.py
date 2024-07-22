@@ -300,23 +300,33 @@ class ServerHandler:
         return (sp_val.confidence, v.storage - sp_val.value)
 
     @should_register
-    def get_stack_var_name(self, pc: int, sp: int, addr: int) -> Tuple[int, str, str] | None:
+    def get_stack_var_name(self, pc: int, regs: List[Tuple[str, int]], addr: int) -> Tuple[int, str, str] | None:
         """
-        Gets the name of a stack variable, given the current pc, current sp, and address of the stack variable.
+        Gets the name of a stack variable, given the current pc,
+        list of (name, value) register pairs, and address of the stack variable.
+
+        The frame base is computed from the first register in the list that Binary Ninja
+        determines to be a fixed offset from the frame base. Registers that should probably
+        be included are the stack pointer and frame pointer.
 
         Returns a (confidence, function name, variable name) tuple.
         """
         f = get_widest_func(self.bv, pc)
         if f is None:
             return None
-        sp_val = f.get_reg_value_at(pc, f.arch.stack_pointer)
-        if sp_val.type != RegisterValueType.StackFrameOffset:
+        valid_regs = []
+        for (name, val) in regs:
+            static_val = f.get_reg_value_at(pc, name)
+            if static_val.type != RegisterValueType.StackFrameOffset:
+                continue
+            valid_regs.append((val - static_val.value, static_val.confidence))
+        if not valid_regs:
             return None
-        frame_base = sp - sp_val.value
+        (frame_base, conf) = max(valid_regs, key=lambda x: x[1])
         v = f.get_stack_var_at_frame_offset(addr - frame_base, pc)
         if v is None:
             return None
-        return (sp_val.confidence, f.name, v.name)
+        return (conf, f.name, v.name)
 
     @should_register
     def get_base(self) -> int:
