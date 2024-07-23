@@ -23,7 +23,8 @@ def test_config_filtering():
     assert re.match(r"Name\s+Value\s+\(Default\)\s+Documentation", out[0])
     assert re.match(r"-+", out[1])
     assert re.match(
-        r"context-disasm-lines\s+10\s+number of additional lines to print in the code context", out[2]
+        r"context-disasm-lines\s+10\s+number of additional lines to print in the code context",
+        out[2],
     )
     assert out[3] == "You can set config variable with `set <config-var> <value>`"
     assert (

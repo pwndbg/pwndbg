@@ -722,8 +722,8 @@ def get_filename_and_formatted_source():
     # Format the output
     formatted_source = []
     for line_number, code in enumerate(source, start=start + 1):
-        if pwndbg.config.context_source_code_tabstop > 0:
-            code = code.replace("\t", " " * pwndbg.config.context_source_code_tabstop)
+        if pwndbg.config.context_code_tabstop > 0:
+            code = code.replace("\t", " " * pwndbg.config.context_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
         if pwndbg.config.highlight_source and line_number == closest_line:
             fmt = C.highlight(fmt)
