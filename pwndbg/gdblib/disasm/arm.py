@@ -16,7 +16,6 @@ from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-import pwndbg.lib.disasm.helpers as bit_math
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
@@ -61,7 +60,7 @@ ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM_SFT_LSL: bit_math.logical_shift_left,
     ARM_SFT_LSR: bit_math.logical_shift_right,
     ARM_SFT_ROR: bit_math.rotate_right,
-    ARM_SFT_RRX: lambda *x: 0, # TODO: this is rotate right with CPSR bit
+    ARM_SFT_RRX: lambda *x: 0,  # TODO: this is rotate right with CPSR bit
 }
 
 

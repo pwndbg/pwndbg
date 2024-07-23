@@ -96,23 +96,18 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
 MIPS_LOAD_INSTRUCTIONS = {
     MIPS_INS_LB: 1,
     MIPS_INS_LBU: 1,
-
-    MIPS_INS_LH:2,
-    MIPS_INS_LHU:2,
-
-    MIPS_INS_LW:4,
-    MIPS_INS_LWU:4,
-    MIPS_INS_LWPC:4,
-    MIPS_INS_LWUPC:4,
-
-    MIPS_INS_LWL:None,
-    MIPS_INS_LWR:None,
-
-    MIPS_INS_LD:8,
-    MIPS_INS_LDPC:8,
-
-    MIPS_INS_LDL:None, # unaligned read, is really 8
-    MIPS_INS_LDR:None, # unaligned read, is really 8
+    MIPS_INS_LH: 2,
+    MIPS_INS_LHU: 2,
+    MIPS_INS_LW: 4,
+    MIPS_INS_LWU: 4,
+    MIPS_INS_LWPC: 4,
+    MIPS_INS_LWUPC: 4,
+    MIPS_INS_LWL: None,
+    MIPS_INS_LWR: None,
+    MIPS_INS_LD: 8,
+    MIPS_INS_LDPC: 8,
+    MIPS_INS_LDL: None,  # unaligned read, is really 8
+    MIPS_INS_LDR: None,  # unaligned read, is really 8
 }
 
 

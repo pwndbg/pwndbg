@@ -21,7 +21,6 @@ from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
-import pwndbg.lib.disasm.helpers as bit_math
 
 # None indicates the read size depends on the target register
 AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
