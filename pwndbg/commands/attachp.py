@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import stat
+import time
 from subprocess import CalledProcessError
 from subprocess import check_output
 from typing import Union
@@ -50,149 +51,170 @@ Original GDB attach command help:
 )
 
 parser.add_argument("--no-truncate", action="store_true", help="dont truncate command args")
+parser.add_argument("--retry", action="store_true", help="retry attaching until process is found")
+parser.add_argument("--retry-interval", type=float, default=1.0, help="interval between retries in seconds")
+parser.add_argument("--retry-timeout", type=float, default=None, help="maximum time to retry in seconds")
 parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(no_truncate, target) -> None:
-    try:
-        resolved_target = int(target)
-    except ValueError:
-        # GDB supposedly supports device files, so let's try it here...:
-        #    <disconnect3d> hey, does anyone know what does `attach <device-file>` do?
-        #    <disconnect3d> is this an alias for `target extended /dev/ttyACM0` or similar?
-        #    <disconnect3d> I mean, `help attach` suggests that the `attach` command supports a device file target...
-        #    <simark> I had no idea
-        #    <simark> what you pass to attach is passed directly to target_ops::attach
-        #    <simark> so it must be very target-specific
-        #    <disconnect3d> how can it be target specific if it should  attach you to a target?
-        #    <disconnect3d> or do you mean osabi/arch etc?
-        #    <simark> in "attach foo", foo is interpreted by the target you are connected to
-        #    <simark> But all targets I can find interpret foo as a PID
-        #    <simark> So it might be that old targets had some other working mode
-        if _is_device(target):
-            resolved_target = target
+def attachp(no_truncate, retry, retry_interval, retry_timeout, target) -> None:
+    start_time = time.time()
+    
+    while True:
+        try:
+            resolved_target = int(target)
+        except ValueError:
+            # GDB supposedly supports device files, so let's try it here...:
+            #    <disconnect3d> hey, does anyone know what does `attach <device-file>` do?
+            #    <disconnect3d> is this an alias for `target extended /dev/ttyACM0` or similar?
+            #    <disconnect3d> I mean, `help attach` suggests that the `attach` command supports a device file target...
+            #    <simark> I had no idea
+            #    <simark> what you pass to attach is passed directly to target_ops::attach
+            #    <simark> so it must be very target-specific
+            #    <disconnect3d> how can it be target specific if it should  attach you to a target?
+            #    <disconnect3d> or do you mean osabi/arch etc?
+            #    <simark> in "attach foo", foo is interpreted by the target you are connected to
+            #    <simark> But all targets I can find interpret foo as a PID
+            #    <simark> So it might be that old targets had some other working mode
+            if _is_device(target):
+                resolved_target = target
 
-        else:
-            try:
-                pids = check_output(["pidof", target]).decode().rstrip("\n").split(" ")
-            except FileNotFoundError:
-                print(message.error("Error: did not find `pidof` command"))
-                return
-            except CalledProcessError:
-                pids = []
-
-            if not pids:
-                print(message.error(f"Process {target} not found"))
-                return
-
-            if len(pids) > 1:
-                method = pwndbg.config.attachp_resolution_method
-
-                if method not in _OPTIONS:
-                    print(
-                        message.warn(
-                            f'Invalid value for `attachp-resolution-method` config. Fallback to default value("{_ASK}").'
-                        )
-                    )
-                    method = _ASK
-
+            else:
                 try:
-                    ps_output = check_output(
-                        [
-                            "ps",
-                            "--no-headers",
-                            "-ww",
-                            "-p",
-                            ",".join(pids),
-                            "-o",
-                            "pid,ruser,etime,args",
-                            "--sort",
-                            "+lstart",
-                        ]
-                    ).decode()
+                    pids = check_output(["pidof", target]).decode().rstrip("\n").split(" ")
                 except FileNotFoundError:
-                    print(message.error("Error: did not find `ps` command"))
-                    print(
-                        message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
-                    )
+                    print(message.error("Error: did not find `pidof` command"))
                     return
                 except CalledProcessError:
-                    print(message.error("Error: failed to get process details"))
-                    print(
-                        message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
-                    )
-                    return
+                    pids = []
 
-                print(
-                    message.warn(
-                        f'Multiple processes found. Current resolution method is "{method}". Run the command `config attachp-resolution-method` to see more informations.'
-                    )
-                )
-
-                # Here, we can safely use split to capture each field
-                # since none of the columns except args can contain spaces
-                proc_infos = [row.split(maxsplit=3) for row in ps_output.splitlines()]
-                if method == _OLDEST:
-                    resolved_target = int(proc_infos[0][0])
-                elif method == _NEWEST:
-                    resolved_target = int(proc_infos[-1][0])
-                else:
-                    headers = ["pid", "user", "elapsed", "command"]
-                    showindex: Union[bool, range] = (
-                        False if method == _NONE else range(1, len(proc_infos) + 1)
-                    )
-
-                    # calculate max_col_widths to fit window width
-                    test_table = tabulate(proc_infos, headers=headers, showindex=showindex)
-                    table_orig_width = len(test_table.splitlines()[1])
-                    max_command_width = max(len(command) for _, _, _, command in proc_infos)
-                    max_col_widths = max(
-                        max_command_width - (table_orig_width - get_window_size()[1]), 10
-                    )
-
-                    # truncation
-                    if not no_truncate:
-                        for info in proc_infos:
-                            info[-1] = _truncate_string(info[-1], max_col_widths)
-
-                    msg = tabulate(
-                        proc_infos,
-                        headers=headers,
-                        showindex=showindex,
-                        maxcolwidths=max_col_widths,
-                    )
-                    print(message.notice(msg))
-
-                    if method == _NONE:
-                        print(message.warn("use `attach <pid>` to attach"))
-                        return
-                    elif method == _ASK:
-                        while True:
-                            msg = message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
-                            try:
-                                inp = input(msg).strip()
-                            except EOFError:
-                                return
-                            try:
-                                choice = int(inp)
-                                if not (1 <= choice <= len(proc_infos)):
-                                    continue
-                            except ValueError:
-                                continue
-                            break
-                        resolved_target = int(proc_infos[choice - 1][0])
+                if not pids:
+                    if retry:
+                        if retry_timeout and (time.time() - start_time) > retry_timeout:
+                            print(message.error(f"Retry timeout reached after {retry_timeout} seconds"))
+                            return
+                        print(message.notice(f"Process {target} not found. Retrying in {retry_interval} seconds..."))
+                        time.sleep(retry_interval)
+                        continue
                     else:
-                        raise Exception("unreachable")
-            else:
-                resolved_target = int(pids[0])
+                        print(message.error(f"Process {target} not found"))
+                        return
 
-    print(message.on(f"Attaching to {resolved_target}"))
-    try:
-        gdb.execute(f"attach {resolved_target}")
-    except gdb.error as e:
-        print(message.error(f"Error: {e}"))
-        return
+                if len(pids) > 1:
+                    method = pwndbg.config.attachp_resolution_method
+
+                    if method not in _OPTIONS:
+                        print(
+                            message.warn(
+                                f'Invalid value for `attachp-resolution-method` config. Fallback to default value("{_ASK}").'
+                            )
+                        )
+                        method = _ASK
+
+                    try:
+                        ps_output = check_output(
+                            [
+                                "ps",
+                                "--no-headers",
+                                "-ww",
+                                "-p",
+                                ",".join(pids),
+                                "-o",
+                                "pid,ruser,etime,args",
+                                "--sort",
+                                "+lstart",
+                            ]
+                        ).decode()
+                    except FileNotFoundError:
+                        print(message.error("Error: did not find `ps` command"))
+                        print(
+                            message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
+                        )
+                        return
+                    except CalledProcessError:
+                        print(message.error("Error: failed to get process details"))
+                        print(
+                            message.warn(f"Use `attach <pid>` instead (found pids: {', '.join(pids)})")
+                        )
+                        return
+
+                    print(
+                        message.warn(
+                            f'Multiple processes found. Current resolution method is "{method}". Run the command `config attachp-resolution-method` to see more informations.'
+                        )
+                    )
+
+                    # Here, we can safely use split to capture each field
+                    # since none of the columns except args can contain spaces
+                    proc_infos = [row.split(maxsplit=3) for row in ps_output.splitlines()]
+                    if method == _OLDEST:
+                        resolved_target = int(proc_infos[0][0])
+                    elif method == _NEWEST:
+                        resolved_target = int(proc_infos[-1][0])
+                    else:
+                        headers = ["pid", "user", "elapsed", "command"]
+                        showindex: Union[bool, range] = (
+                            False if method == _NONE else range(1, len(proc_infos) + 1)
+                        )
+
+                        # calculate max_col_widths to fit window width
+                        test_table = tabulate(proc_infos, headers=headers, showindex=showindex)
+                        table_orig_width = len(test_table.splitlines()[1])
+                        max_command_width = max(len(command) for _, _, _, command in proc_infos)
+                        max_col_widths = max(
+                            max_command_width - (table_orig_width - get_window_size()[1]), 10
+                        )
+
+                        # truncation
+                        if not no_truncate:
+                            for info in proc_infos:
+                                info[-1] = _truncate_string(info[-1], max_col_widths)
+
+                        msg = tabulate(
+                            proc_infos,
+                            headers=headers,
+                            showindex=showindex,
+                            maxcolwidths=max_col_widths,
+                        )
+                        print(message.notice(msg))
+
+                        if method == _NONE:
+                            print(message.warn("use `attach <pid>` to attach"))
+                            return
+                        elif method == _ASK:
+                            while True:
+                                msg = message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
+                                try:
+                                    inp = input(msg).strip()
+                                except EOFError:
+                                    return
+                                try:
+                                    choice = int(inp)
+                                    if not (1 <= choice <= len(proc_infos)):
+                                        continue
+                                except ValueError:
+                                    continue
+                                break
+                            resolved_target = int(proc_infos[choice - 1][0])
+                        else:
+                            raise Exception("unreachable")
+                else:
+                    resolved_target = int(pids[0])
+
+        print(message.on(f"Attaching to {resolved_target}"))
+        try:
+            gdb.execute(f"attach {resolved_target}")
+            return  # Successful attach, exit the function
+        except gdb.error as e:
+            print(message.error(f"Error: {e}"))
+            if not retry:
+                return
+            if retry_timeout and (time.time() - start_time) > retry_timeout:
+                print(message.error(f"Retry timeout reached after {retry_timeout} seconds"))
+                return
+            print(message.notice(f"Failed to attach. Retrying in {retry_interval} seconds..."))
+            time.sleep(retry_interval)
 
 
 def _is_device(path) -> bool:

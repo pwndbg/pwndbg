@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 
 import pytest
+import time
+from unittest.mock import patch, MagicMock
 
 from .utils import run_gdb_with_script
 
@@ -225,3 +227,100 @@ def test_attachp_command_no_pids():
         return
 
     assert "Error: ptrace: No such process." in result
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_retry_successful():
+    # Mock the process creation to simulate a process starting after a delay
+    with patch('subprocess.Popen') as mock_popen:
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+        mock_popen.side_effect = [
+            subprocess.CalledProcessError(1, 'pidof'),  # First attempt fails
+            MagicMock(return_value=mock_process)  # Second attempt succeeds
+        ]
+
+        result = run_gdb_with_script(
+            pyafter="attachp --retry --retry-interval 0.1 test_process"
+        )
+
+        assert "Process test_process not found. Retrying in 0.1 seconds..." in result
+        assert "Attaching to 12345" in result
+        assert mock_popen.call_count == 2
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_retry_timeout():
+    # Mock the process creation to simulate a process that never starts
+    with patch('subprocess.Popen') as mock_popen:
+        mock_popen.side_effect = subprocess.CalledProcessError(1, 'pidof')
+
+        result = run_gdb_with_script(
+            pyafter="attachp --retry --retry-interval 0.1 --retry-timeout 0.5 test_process"
+        )
+
+        assert "Process test_process not found. Retrying in 0.1 seconds..." in result
+        assert "Retry timeout reached after 0.5 seconds" in result
+        assert mock_popen.call_count > 1
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_retry_multiple_processes():
+    # Mock the process creation to simulate multiple processes starting after a delay
+    with patch('subprocess.Popen') as mock_popen, \
+         patch('subprocess.check_output') as mock_check_output:
+        mock_process1 = MagicMock()
+        mock_process1.pid = 12345
+        mock_process2 = MagicMock()
+        mock_process2.pid = 12346
+        
+        mock_popen.side_effect = [
+            subprocess.CalledProcessError(1, 'pidof'),  # First attempt fails
+            MagicMock(return_value=[mock_process1, mock_process2])  # Second attempt succeeds with multiple processes
+        ]
+        mock_check_output.return_value = b"12345 12346"
+
+        result = run_gdb_with_script(
+            pyafter="attachp --retry --retry-interval 0.1 test_process",
+            stdin_input=b"1\n"  # Select the first process
+        )
+
+        assert "Process test_process not found. Retrying in 0.1 seconds..." in result
+        assert "Multiple processes found" in result
+        assert "Attaching to 12345" in result
+        assert mock_popen.call_count == 2
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_retry_with_existing_process():
+    # Mock the process creation to simulate an already existing process
+    with patch('subprocess.Popen') as mock_popen:
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+        mock_popen.return_value = mock_process
+
+        result = run_gdb_with_script(
+            pyafter="attachp --retry --retry-interval 0.1 test_process"
+        )
+
+        assert "Attaching to 12345" in result
+        assert mock_popen.call_count == 1
+        assert "Retrying" not in result
+
+@pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
+def test_attachp_retry_with_gdb_error():
+    # Mock the process creation and gdb.execute to simulate a GDB error
+    with patch('subprocess.Popen') as mock_popen, \
+         patch('gdb.execute') as mock_gdb_execute:
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+        mock_popen.return_value = mock_process
+        mock_gdb_execute.side_effect = [
+            gdb.error("Test GDB error"),  # First attempt fails
+            None  # Second attempt succeeds
+        ]
+
+        result = run_gdb_with_script(
+            pyafter="attachp --retry --retry-interval 0.1 test_process"
+        )
+
+        assert "Attaching to 12345" in result
+        assert "Error: Test GDB error" in result
+        assert "Failed to attach. Retrying in 0.1 seconds..." in result
+        assert mock_gdb_execute.call_count == 2
