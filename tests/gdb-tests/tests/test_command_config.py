@@ -6,7 +6,7 @@ import gdb
 
 
 def test_config():
-    gdb.execute("set context-code-lines 8")
+    gdb.execute("set context-disasm-lines 8")
     assert "8 (10)" in gdb.execute("config", to_string=True)
 
     gdb.execute("set banner-separator #")
@@ -18,12 +18,12 @@ def test_config():
 
 
 def test_config_filtering():
-    out = gdb.execute("config context-code-lines", to_string=True).splitlines()
+    out = gdb.execute("config context-disasm-lines", to_string=True).splitlines()
 
     assert re.match(r"Name\s+Value\s+\(Default\)\s+Documentation", out[0])
     assert re.match(r"-+", out[1])
     assert re.match(
-        r"context-code-lines\s+10\s+number of additional lines to print in the code context", out[2]
+        r"context-disasm-lines\s+10\s+number of additional lines to print in the code context", out[2]
     )
     assert out[3] == "You can set config variable with `set <config-var> <value>`"
     assert (
