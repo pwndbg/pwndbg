@@ -812,7 +812,7 @@ class DisassemblyAssistant:
         source_str: str,
     ) -> None:
         """
-        Create a function that annotates a load instruction.
+        This function annotates load instructions - moving data from memory into a register.
 
         These instructions read `read_size` bytes from memory into a register.
         """
@@ -823,9 +823,6 @@ class DisassemblyAssistant:
         # There are many cases we need to consider when we are dereferencing a memory location.
         # Were we able to reason about the memory address, and dereference it?
         # Does the resolved memory address actual point into memory?
-
-        # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
-        # it indicates that the dereference likely segfaults
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.gdblib.memory.peek(address):
