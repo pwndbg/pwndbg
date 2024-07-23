@@ -16,6 +16,7 @@ from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+import pwndbg.lib.disasm.helpers as bit_math
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
@@ -56,11 +57,11 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
 # TODO: populate these with the real values
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to memory operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
-    ARM_SFT_ASR: lambda *x: 0,
-    ARM_SFT_LSL: lambda *x: 0,
-    ARM_SFT_LSR: lambda *x: 0,
-    ARM_SFT_ROR: lambda *x: 0,
-    ARM_SFT_RRX: lambda *x: 0,
+    ARM_SFT_ASR: bit_math.arithmetic_shift_right,
+    ARM_SFT_LSL: bit_math.logical_shift_left,
+    ARM_SFT_LSR: bit_math.logical_shift_right,
+    ARM_SFT_ROR: bit_math.rotate_right,
+    ARM_SFT_RRX: lambda *x: 0, # TODO: this is rotate right with CPSR bit
 }
 
 
@@ -192,7 +193,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             [Rn, Rm]
             [Rn, Rm, <shift> #imm]
 
-        Capstone represents the object a bit differently then AArch64 to align with the underlying architecute of Arm.
+        Capstone represents the object a bit differently then AArch64 to align with the underlying architecture of Arm.
 
         This representation will change in Capstone 6:
             https://github.com/capstone-engine/capstone/issues/2281
@@ -218,7 +219,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
             # Optionally apply shift to the index register
             if op.cs_op.shift.type != 0:
-                index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, 32, op.cs_op.shift.value)
+                index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 32)
 
             target += index * (-1 if op.cs_op.subtracted else 1)
         

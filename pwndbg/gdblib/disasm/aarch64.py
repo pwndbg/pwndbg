@@ -21,9 +21,10 @@ from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
+import pwndbg.lib.disasm.helpers as bit_math
 
 # None indicates the read size depends on the target register
-AARCH64_SINGLE_LOAD_INSTRUCTIONS = {
+AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_LDRB: 1,
     ARM64_INS_LDURB: 1,
     ARM64_INS_LDRSB: 1,
@@ -50,7 +51,7 @@ AARCH64_SINGLE_LOAD_INSTRUCTIONS = {
     ARM64_INS_LDAR: None,
 }
 
-AARCH64_SINGLE_STORE_INSTRUCTIONS = {
+AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_STRB: 1,
     ARM64_INS_STURB: 1,
     ARM64_INS_STRH: 2,
@@ -75,34 +76,26 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS = {
     ARM64_INS_STLXR: None,
 }
 
-# TODO: make these point at the real functions
 AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
-    ARM64_SFT_LSL: lambda *x: 0,
-    ARM64_SFT_MSL: lambda *x: 0,
-    ARM64_SFT_LSR: lambda *x: 0,
-    ARM64_SFT_ASR: lambda *x: 0,
-    ARM64_SFT_ROR: lambda *x: 0,
+    ARM64_SFT_LSL: bit_math.logical_shift_left,
+    ARM64_SFT_LSR: bit_math.logical_shift_right,
+    ARM64_SFT_ASR: bit_math.arithmetic_shift_right,
+    ARM64_SFT_ROR: bit_math.rotate_right,
 }
 
 
 # These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
 # They take in a number, extract a byte, halfword, or word,
 # and perform a zero- or sign-extend operation.
-# For unsigned values, we don't need to care about zero-extension in Python
-def unsigned_to_signed(x, y):
-    return 1
-    # TODO: replace this with the real function
-
-
 AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
     ARM64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
     ARM64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
     ARM64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    ARM64_EXT_UXTX: lambda x: x,  # UXTX just uses the whole register
-    ARM64_EXT_SXTB: lambda x: unsigned_to_signed(x, 8),
-    ARM64_EXT_SXTH: lambda x: unsigned_to_signed(x, 16),
-    ARM64_EXT_SXTW: lambda x: unsigned_to_signed(x, 32),
-    ARM64_EXT_SXTX: lambda x: unsigned_to_signed(x, 64),
+    ARM64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    ARM64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
+    ARM64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
+    ARM64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
+    ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
 }
 
 
@@ -349,7 +342,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # Capstone will automatically make the shift a LSL and set the value to 3
             if op.cs_op.shift.type != 0:
                 # The form of instructions with a shift always apply the shift to a 64-bit value
-                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index, 64, op.cs_op.shift.value)
+                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 64)
 
             target += index
         
