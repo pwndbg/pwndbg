@@ -178,7 +178,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # ADD
             ARM64_INS_ADD: self._common_generic_register_destination,
             # SUB
-            ARM64_INS_SUB: self.generic_register_destination,
+            ARM64_INS_SUB: self._common_generic_register_destination,
+            # CMP
+            ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
+            # CMN
+            ARM64_INS_CMN: self._common_cmp_annotator_builder("cpsr", "+"),
+            # TST (bitwise "and")
+            ARM64_INS_TST: self._common_cmp_annotator_builder("cpsr", "&"),
+            # CCMP (conditional compare)
+            ARM64_INS_CCMP: self._common_cmp_annotator_builder("cpsr", ""),
+            # CCMN
+            ARM64_INS_CCMN: self._common_cmp_annotator_builder("cpsr", ""),
         }
 
     @override
@@ -229,18 +239,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 return
 
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
-            ARM64_INS_SUB: self._common_generic_register_destination,
-            # CMP
-            ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
-            # CMN
-            ARM64_INS_CMN: self._common_cmp_annotator_builder("cpsr", "+"),
-            # TST (bitwise "and")
-            ARM64_INS_TST: self._common_cmp_annotator_builder("cpsr", "&"),
-            # CCMP (conditional compare)
-            ARM64_INS_CCMP: self._common_cmp_annotator_builder("cpsr", ""),
-            # CCMN
-            ARM64_INS_CCMN: self._common_cmp_annotator_builder("cpsr", ""),
-        }
 
     @override
     def _condition(
@@ -304,7 +302,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         """
         Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
 
-        Three main types of AArch64 memory operands:
+        Three types of AArch64 memory operands:
         1. Register base with optional immediate offset
         Examples:
               ldrb   w3, [x2]
@@ -341,7 +339,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if index is None:
                 return None
 
-            # Optionally apply an extend
+            # Optionally apply an extend to the index register
             if op.cs_op.ext != 0:
                 index = AARCH64_EXTEND_MAP[op.cs_op.ext](index)
 
