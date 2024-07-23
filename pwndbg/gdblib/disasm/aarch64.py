@@ -184,7 +184,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
-        # Dispatch to the correct handler
+        # TODO: indexing AARCH64_SINGLE_LOAD may return NONE
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
             # Handle all load instructions
             # TODO: fill this in for AARCH64
