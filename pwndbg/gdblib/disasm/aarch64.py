@@ -225,7 +225,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 target, op.cs_op.shift.value, target_bit_width
             ) & ((1 << target_bit_width) - 1)
 
-        return target 
+        return target
 
     @override
     def _parse_register(
