@@ -329,10 +329,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
-                if (target := pwndbg.gdblib.regs.fsbase) is None:
+                if (base := pwndbg.gdblib.regs.fsbase) is None:
                     return None
             elif op.mem.segment == X86_REG_GS:
-                if (target := pwndbg.gdblib.regs.gsbase) is None:
+                if (base := pwndbg.gdblib.regs.gsbase) is None:
                     return None
             else:
                 return None
@@ -342,21 +342,19 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
                 return None
-            target = base
         else:
-            target = 0
-
-        if op.mem.disp != 0:
-            target += op.mem.disp
+            base = 0
 
         if op.mem.index != 0:
             index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
 
-            target += op.mem.scale * index
+            scale = op.mem.scale * index
+        else:
+            scale = 0
 
-        return target
+        return base + op.mem.disp + scale
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
