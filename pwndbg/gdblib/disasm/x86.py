@@ -330,12 +330,18 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         target = 0
 
-        # There doesn't appear to be a good way to read from segmented
-        # addresses within GDB.
         if op.mem.segment != 0:
-            return None
-
-        if op.mem.base != 0:
+            if op.mem.segment == X86_REG_FS:
+                if (target := pwndbg.gdblib.regs.fsbase) is None:
+                    return None
+            elif op.mem.segment == X86_REG_GS:
+                if (target := pwndbg.gdblib.regs.gsbase) is None:
+                    return None
+            else:
+                return None
+        # Both a segment and base cannot be in use
+        # A Capstone bug sometimes sets base to RIP if segment is set
+        elif op.mem.base != 0:
             base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
                 return None
