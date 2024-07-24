@@ -767,7 +767,6 @@ class DisassemblyAssistant:
 
         To reduce code duplication, subclasses can use this function to create an annotator for CMP-like instructions.
         """
-        SPACES = 5
         FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
 
         def handler(instruction: PwndbgInstruction, emu: Emulator):
@@ -798,7 +797,7 @@ class DisassemblyAssistant:
                     # has more than two operands, then we don't have a way of showing them, so this avoids the "+="" below
                     instruction.annotation = display_result
                 else:
-                    instruction.annotation += " " * SPACES + display_result
+                    instruction.annotation += " " * 5 + display_result
 
         return handler
 
