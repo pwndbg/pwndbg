@@ -184,16 +184,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if target is None:
             return None
 
-        target_bit_width = (
-            self._register_width(instruction, instruction.operands[0])
-            if instruction.operands[0].type == CS_OP_REG
-            else 64
-        )
-
         if op.cs_op.shift.type != 0:
-            target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
-                target, op.cs_op.shift.value, target_bit_width
-            ) & ((1 << target_bit_width) - 1)
+            target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](target, op.cs_op.shift.value, 64)
 
         return target
 
