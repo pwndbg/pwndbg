@@ -777,11 +777,11 @@ class DisassemblyAssistant:
                 left, right = instruction.operands
 
                 if (
-                    left.before_value_resolved is not None
-                    and right.before_value_resolved is not None
+                    (l_value := left.before_value_resolved) is not None
+                    and (r_value := right.before_value_resolved) is not None
                 ):
                     print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                        left.before_value_resolved, right.before_value_resolved
+                        l_value, r_value
                     )
                     # Ex: "0x7f - 0x12" or "0xdffffdea + 0x8"
                     instruction.annotation = (
