@@ -103,7 +103,7 @@ def test_source_code_tabstop(start_binary):
     gdb.execute("break tabstop.c:6")
     gdb.execute("continue")
 
-    # Default context-source-code-tabstop = 8
+    # Default context-code-tabstop = 8
     src = gdb.execute("context code", to_string=True)
     assert """ 1 #include <stdio.h>\n""" in src
     assert """ 2 \n""" in src
@@ -116,8 +116,8 @@ def test_source_code_tabstop(start_binary):
     assert """ 9 }\n""" in src
     assert """10 \n""" in src
 
-    # Test context-source-code-tabstop = 2
-    gdb.execute("set context-source-code-tabstop 2")
+    # Test context-code-tabstop = 2
+    gdb.execute("set context-code-tabstop 2")
     src = gdb.execute("context code", to_string=True)
     assert """ 1 #include <stdio.h>\n""" in src
     assert """ 2 \n""" in src
@@ -130,8 +130,8 @@ def test_source_code_tabstop(start_binary):
     assert """ 9 }\n""" in src
     assert """10 \n""" in src
 
-    # Disable context-source-code-tabstop
-    gdb.execute("set context-source-code-tabstop 0")
+    # Disable context-code-tabstop
+    gdb.execute("set context-code-tabstop 0")
     src = gdb.execute("context code", to_string=True)
     assert """ 1 #include <stdio.h>\n""" in src
     assert """ 2 \n""" in src

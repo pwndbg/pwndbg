@@ -211,7 +211,7 @@ We also read the program counter from the emulator to determine jumps and so we 
 
 ## Enhancing
 
-Everytime the inferior process stops (and when the `disasm` context section is displayed), we display the next handful of assembly instructions in the dashboard so the user can understand where the process is headed. The exact amount is determined by the `context-code-lines` setting.
+Everytime the inferior process stops (and when the `disasm` context section is displayed), we display the next handful of assembly instructions in the dashboard so the user can understand where the process is headed. The exact amount is determined by the `context-disasm-lines` setting.
 
 We will be enhancing the instruction at the current program counter, as well as all the future instructions that are displayed. The end result of enhancement is that we get a list of `PwndbgInstruction` objects, each encapsulating relevent information regarding the instructions execution.
 
