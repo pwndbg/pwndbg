@@ -223,9 +223,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if op.cs_op.shift.type != 0:
             target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
                 target, op.cs_op.shift.value, target_bit_width
-            )
+            ) & ((1 << target_bit_width) - 1)
 
-        return target & ((1 << target_bit_width) - 1)
+        return target 
 
     @override
     def _parse_register(
@@ -254,14 +254,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         )
 
         if op.cs_op.ext != 0:
-            target = AARCH64_EXTEND_MAP[op.cs_op.ext](target)
+            target = AARCH64_EXTEND_MAP[op.cs_op.ext](target) & ((1 << target_bit_width) - 1)
 
         if op.cs_op.shift.type != 0:
             target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
                 target, op.cs_op.shift.value, target_bit_width
-            )
+            ) & ((1 << target_bit_width) - 1)
 
-        return target & ((1 << target_bit_width) - 1)
+        return target
 
 
 assistant = DisassemblyAssistant("aarch64")
