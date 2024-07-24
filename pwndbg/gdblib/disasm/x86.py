@@ -336,8 +336,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     return None
             else:
                 return None
+
         # Both a segment and base cannot be in use
-        # A Capstone bug sometimes sets base to RIP if segment is set
         elif op.mem.base != 0:
             base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
