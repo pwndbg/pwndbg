@@ -448,7 +448,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # but only `syscall` and `int 0x80` actually execute syscalls on Linux.
         # So here, we return no syscall name for other instructions and we also
         # handle a case when 32-bit syscalls are executed on x64
-        if (mnemonic := instruction.mnemonic) == "syscall":
+        mnemonic = instruction.mnemonic
+        if mnemonic == "syscall":
             return ("x86-64", "rax")
 
         # On x86, the syscall_arch is already i386, so its all fine
