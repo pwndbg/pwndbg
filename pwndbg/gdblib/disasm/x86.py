@@ -332,9 +332,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
-                target = pwndbg.gdblib.regs.fsbase
+                if (target := pwndbg.gdblib.regs.fsbase) is None:
+                    return None
             elif op.mem.segment == X86_REG_GS:
-                target = pwndbg.gdblib.regs.gsbase
+                if (target := pwndbg.gdblib.regs.gsbase) is None:
+                    return None
             else:
                 return None
         # Both a segment and base cannot be in use
