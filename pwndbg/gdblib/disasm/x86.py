@@ -258,8 +258,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 emu_eflags = emu.read_register("eflags")
                 eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
 
-                SPACES = 5
-                instruction.annotation += " " * SPACES + f"EFLAGS => {eflags_formatted}"
+                instruction.annotation += " " * 5 + f"EFLAGS => {eflags_formatted}"
 
     def handle_cmp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_cmp_test_handler(instruction, emu, "-")
@@ -328,37 +327,34 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
-        target = 0
-
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
-                if (target := pwndbg.gdblib.regs.fsbase) is None:
+                if (base := pwndbg.gdblib.regs.fsbase) is None:
                     return None
             elif op.mem.segment == X86_REG_GS:
-                if (target := pwndbg.gdblib.regs.gsbase) is None:
+                if (base := pwndbg.gdblib.regs.gsbase) is None:
                     return None
             else:
                 return None
+
         # Both a segment and base cannot be in use
-        # A Capstone bug sometimes sets base to RIP if segment is set
         elif op.mem.base != 0:
             base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
                 return None
-            target += base
-
-        if op.mem.disp != 0:
-            target += op.mem.disp
+        else:
+            base = 0
 
         if op.mem.index != 0:
-            scale = op.mem.scale
             index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
 
-            target += scale * index
+            scale = op.mem.scale * index
+        else:
+            scale = 0
 
-        return target
+        return base + op.mem.disp + scale
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
@@ -371,9 +367,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return super()._resolve_target(instruction, emu, call=call)
 
         # Otherwise, resolve the return on the stack
-        pop = 0
-        if instruction.operands:
-            pop = instruction.operands[0].before_value
+        pop = instruction.operands[0].before_value if instruction.operands else 0
 
         address = (pwndbg.gdblib.regs.sp) + (pwndbg.gdblib.arch.ptrsize * pop)
 
@@ -453,30 +447,26 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # So here, we return no syscall name for other instructions and we also
         # handle a case when 32-bit syscalls are executed on x64
         mnemonic = instruction.mnemonic
-
-        # We read .imm directly, because at this point we haven't enhanced the operands with values
-        is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
-        if not (mnemonic == "syscall" or is_32bit):
-            return (None, None)
-
-        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
-        # On x86, the syscall_arch is already i386, so its all fine
-        if is_32bit:
-            return ("i386", "eax")
-        else:
+        if mnemonic == "syscall":
             return ("x86-64", "rax")
+
+        # On x86, the syscall_arch is already i386, so its all fine
+        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
+        # We read .imm directly, because at this point we haven't enhanced the operands with values
+        if mnemonic == "int" and instruction.operands[0].imm == 0x80:
+            return ("i386", "eax")
+
+        return (None, None)
 
     # Currently not used
     def memory_string_with_components_resolved(
         self, instruction: PwndbgInstruction, op: EnhancedOperand
     ):
         # Example: [RSP + RCX*4 - 100] would return "[0x7ffd00acf230 + 8+4 - 100]"
-        arith = False
         segment = op.mem.segment
         disp = op.mem.disp
         base = op.mem.base
         index = op.mem.index
-        scale = op.mem.scale
         sz = ""
 
         if segment != 0:
@@ -485,21 +475,24 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if base != 0:
             sz += instruction.cs_insn.reg_name(base)
             arith = True
+        else:
+            arith = False
 
         if index != 0:
             if arith:
                 sz += " + "
 
             index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(index)]
-            sz += f"{index}*{scale:#x}"
+            sz += f"{index}*{op.mem.scale:#x}"
             arith = True
 
         if disp != 0:
-            if arith and disp < 0:
-                sz += " - "
-            elif arith and disp >= 0:
-                sz += " + "
-            sz += "%#x" % abs(disp)
+            if arith:
+                if disp < 0:
+                    sz += " - "
+                else:
+                    sz += " + "
+            sz += f"{abs(disp):#x}"
 
         return f"[{sz}]"
 
