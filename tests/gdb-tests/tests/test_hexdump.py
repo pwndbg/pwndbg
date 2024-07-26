@@ -26,7 +26,7 @@ def run_tests(stack, use_big_endian, expected):
     # TODO: Repetition is not working in tests
     results.append(gdb.execute(f"hexdump {stack} 64", to_string=True))
     results.append(gdb.execute(f"hexdump {stack} 3", to_string=True))
-    
+
     assert len(results) == len(expected)
     for i, result in enumerate(results):
         expected_result = expected[i]
@@ -83,20 +83,21 @@ def test_hexdump_collapse_lines(start_binary):
     hexdump_lines(4)
     hexdump_lines(10)
 
+
 def test_hexdump_saved_address_and_offset(start_binary):
     # TODO There is no way to verify repetition: the last_address and offset are reset
     # before each command
     start_binary(BINARY)
     sp = pwndbg.gdblib.regs.rsp
-    
+
     SIZE = 21
-    
+
     pwndbg.gdblib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
     out1 = gdb.execute(f"hexdump $rsp {SIZE}", to_string=True)
     out2 = (
-        '+0000 0x7fffffffdb40  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n'
-        '+0010 0x7fffffffdb50  61 62 63 64 65                                    │abcde   │        │\n'
+        "+0000 0x7fffffffdb40  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+        "+0010 0x7fffffffdb50  61 62 63 64 65                                    │abcde   │        │\n"
     )
 
     assert out1 == out2

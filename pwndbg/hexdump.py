@@ -71,16 +71,16 @@ def load_color_scheme() -> None:
 
 def hexdump(
     data: bytes,
-    address: int=0,
-    width: int=16,
-    group_width: int=4,
-    flip_group_endianness: bool=False,
-    skip: bool=True,
-    offset: int=0,
-    size: int=0,
-    count: int=0,
-    repeat: bool=False,
-    dX_call: bool=False,
+    address: int = 0,
+    width: int = 16,
+    group_width: int = 4,
+    flip_group_endianness: bool = False,
+    skip: bool = True,
+    offset: int = 0,
+    size: int = 0,
+    count: int = 0,
+    repeat: bool = False,
+    dX_call: bool = False,
 ):
     if not dX_call:
         if not color_scheme or not printable:

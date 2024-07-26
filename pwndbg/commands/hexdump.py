@@ -86,7 +86,7 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
 
     # TODO: What if arch endian is big, and use_big_endian is false?
     flip_group_endianness = (
-        bool(pwndbg.config.hexdump_group_use_big_endian) and pwndbg.gdblib.arch.endian == "little"
+        pwndbg.config.hexdump_group_use_big_endian and pwndbg.gdblib.arch.endian == "little"
     )
 
     # The user may have input the start and end range to dump instead of the
