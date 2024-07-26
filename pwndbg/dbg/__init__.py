@@ -13,6 +13,10 @@ from typing import Tuple
 dbg: Debugger = None
 
 
+class Error(Exception):
+    pass
+
+
 class Frame:
     def evaluate_expression(self, expression: str) -> Value:
         """
