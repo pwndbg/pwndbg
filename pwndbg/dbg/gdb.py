@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+import contextlib
 import signal
 from typing import Any
 from typing import List
 from typing import Tuple
+from typing import TypeVar
 
 import gdb
 from typing_extensions import Callable
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.commands
 import pwndbg.gdblib
-from pwndbg.commands import load_commands
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
@@ -45,22 +45,52 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
+T = TypeVar("T")
+
+
+@contextlib.contextmanager
+def selection(target: T, get_current: Callable[[], T], select: Callable[[T], None]):
+    """
+    GDB has a lot of global state. Many of our queries require that we select a
+    given object globally before we make them. When doing that, we must always
+    be careful to return selection to its previous state before exiting. This
+    class automatically manages the selection of a single object type.
+
+    Upon entrace to the `with` block, the element given by `target` will be
+    compared to the object returned by calling `get_current`. If they
+    compare different, the value previously returned by `get_current` is
+    saved, and the element given by `target` will be selected by passing it
+    as an argument to `select`, and, after execution leaves the `with`
+    block, the previously saved element will be selected in the same fashion
+    as the first element.
+
+    If the elements don't compare different, this is a no-op.
+    """
+
+    current = get_current()
+    restore = False
+    if current != target:
+        select(target)
+        restore = True
+
+    try:
+        yield
+    finally:
+        if restore:
+            select(current)
+
+
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        selected = gdb.selected_frame()
-        restore = False
-        if selected != self.inner:
-            self.inner.select()
-            restore = True
-
-        value = parse_and_eval(expression, global_context=False)
-
-        if restore:
-            selected.select()
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                value = parse_and_eval(expression, global_context=False)
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
 
         return GDBValue(value)
 
@@ -75,15 +105,8 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
     @override
     def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
-        selected = gdb.selected_thread()
-        restore = False
-        if selected != self.inner:
-            self.inner.switch()
-            restore = True
-
-        value = gdb.newest_frame()
-        if restore:
-            selected.switch()
+        with selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
+            value = gdb.newest_frame()
         return GDBFrame(value)
 
 
@@ -93,7 +116,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        return GDBValue(parse_and_eval(expression, global_context=True))
+        try:
+            return GDBValue(parse_and_eval(expression, global_context=True))
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
 
 
 class GDBCommand(gdb.Command):
@@ -211,7 +237,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
-        return int(self.inner)
+        try:
+            return int(self.inner)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -233,6 +262,8 @@ class GDBValue(pwndbg.dbg_mod.Value):
 class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self):
+        from pwndbg.commands import load_commands
+
         load_gdblib()
         load_commands()
 

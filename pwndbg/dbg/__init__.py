@@ -13,6 +13,10 @@ from typing import Tuple
 dbg: Debugger = None
 
 
+class Error(Exception):
+    pass
+
+
 class Registers:
     """
     A handle to the register values in a frame.

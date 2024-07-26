@@ -7,6 +7,7 @@ from typing_extensions import override
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
+import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -28,14 +29,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             src2_unsigned = 0
 
-        if self.architecture == "rv32":
-            src1_signed = src1_unsigned - ((src1_unsigned & 0x80000000) << 1)
-            src2_signed = src2_unsigned - ((src2_unsigned & 0x80000000) << 1)
-        elif self.architecture == "rv64":
-            src1_signed = src1_unsigned - ((src1_unsigned & 0x80000000_00000000) << 1)
-            src2_signed = src2_unsigned - ((src2_unsigned & 0x80000000_00000000) << 1)
-        else:
-            raise NotImplementedError(f"architecture '{self.architecture}' not implemented")
+        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
+        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
 
         condition = {
             RISCV_INS_BEQ: src1_signed == src2_signed,

@@ -307,17 +307,17 @@ def get_ehdr(pointer: int) -> Tuple[int | None, Ehdr | None]:
 
     base = None
 
-    if pwndbg.gdblib.qemu.is_qemu():
+    vmmap = pwndbg.gdblib.vmmap.find(pointer, should_explore=False)
+    mappings_known = pwndbg.gdblib.vmmap.get_known_maps() is not None
+    if not vmmap and not mappings_known:
         # Only check if the beginning of the page contains the ELF magic,
-        # since we cannot get the memory map in qemu-user.
+        # since we don't have any information about the memory map.
         page_start = pwndbg.lib.memory.page_align(pointer)
         if pwndbg.gdblib.memory.read(page_start, 4, partial=True) == b"\x7fELF":
             base = page_start
         else:
             return None, None
     else:
-        vmmap = pwndbg.gdblib.vmmap.find(pointer)
-
         # If there is no vmmap for the requested address, we can't do much
         # (e.g. it could have been unmapped for whatever reason)
         if vmmap is None:

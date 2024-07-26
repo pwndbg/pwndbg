@@ -486,3 +486,27 @@ def test_smallbins_sizes_32bit_big(start_binary):
 
     for bin_index, bin_size in enumerate(command_output):
         assert bin_size.split(":")[0] == expected[bin_index]
+
+
+def test_heap_corruption_low_dereference(start_binary):
+    """
+    Tests that the bins corruption check doesn't report
+    corrupted bins when heap-dereference-limit is less
+    than the number of chunks in a bin.
+    """
+
+    start_binary(BINARY)
+    gdb.execute("set context-output /dev/null")
+    gdb.execute("b breakpoint", to_string=True)
+
+    gdb.execute("continue")
+    gdb.execute("continue")
+    gdb.execute("continue")
+    gdb.execute("continue")
+
+    # unsorted bin now has 3 chunks
+
+    gdb.execute("set heap-dereference-limit 1")
+
+    bins_output = gdb.execute("bins", to_string=True)
+    assert "corrupted" not in bins_output

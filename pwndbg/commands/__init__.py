@@ -153,7 +153,7 @@ class Command:
         except SystemExit:
             # Raised when the usage is printed by an ArgparsedCommand
             return
-        except (TypeError, gdb.error):
+        except (TypeError, pwndbg.dbg_mod.Error):
             pwndbg.exception.handle(self.function.__name__)
             return
 
@@ -660,7 +660,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
         #
         # Here, the _mask_val.type should be `unsigned long long`
         return int(val.cast(_mask_val_type))
-    except (TypeError, gdb.error):
+    except (TypeError, pwndbg.dbg_mod.Error):
         return s
 
 

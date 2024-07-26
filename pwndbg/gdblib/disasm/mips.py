@@ -22,6 +22,7 @@ from typing_extensions import override
 
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
+import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
@@ -43,30 +44,79 @@ BRANCH_LIKELY_INSTRUCTIONS = {
 }
 
 
-def to_signed(unsigned: int):
-    if pwndbg.gdblib.arch.ptrsize == 8:
-        return unsigned - ((unsigned & 0x80000000_00000000) << 1)
-    else:
-        return unsigned - ((unsigned & 0x80000000) << 1)
-
-
 CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: to_signed(ops[0]) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: to_signed(ops[0]) >= 0,
-    MIPS_INS_BGTZ: lambda ops: to_signed(ops[0]) > 0,
-    MIPS_INS_BLEZ: lambda ops: to_signed(ops[0]) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: to_signed(ops[0]) < 0,
-    MIPS_INS_BLTZ: lambda ops: to_signed(ops[0]) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
+}
+
+# These are instructions that have the first operand as the destination register.
+# They all do some computation and set the register to the result.
+# These were derived from "MIPS Architecture for Programmers Volume II: The MIPS64 Instruction Set Reference Manual"
+MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
+    MIPS_INS_ADD,
+    MIPS_INS_ADDI,
+    MIPS_INS_ADDIU,
+    MIPS_INS_ADDU,
+    MIPS_INS_CLO,
+    MIPS_INS_CLZ,
+    MIPS_INS_DADD,
+    MIPS_INS_DADDI,
+    MIPS_INS_DADDIU,
+    MIPS_INS_DADDU,
+    MIPS_INS_DCLO,
+    MIPS_INS_DCLZ,
+    MIPS_INS_DSUB,
+    MIPS_INS_DSUBU,
+    MIPS_INS_LB,
+    MIPS_INS_LBU,
+    MIPS_INS_LD,
+    MIPS_INS_LDL,
+    MIPS_INS_LDPC,
+    MIPS_INS_LDR,
+    MIPS_INS_LH,
+    MIPS_INS_LHU,
+    MIPS_INS_LSA,
+    MIPS_INS_DLSA,
+    MIPS_INS_LUI,
+    MIPS_INS_LW,
+    MIPS_INS_LWL,
+    MIPS_INS_LWPC,
+    MIPS_INS_LWR,
+    MIPS_INS_LWU,
+    MIPS_INS_LWUPC,
+    MIPS_INS_MFHI,
+    MIPS_INS_MFLO,
+    MIPS_INS_SEB,
+    MIPS_INS_SEH,
+    MIPS_INS_SUB,
+    MIPS_INS_SUBU,
+    MIPS_INS_WSBH,
+    MIPS_INS_MOVE,
+    MIPS_INS_LI,
+    MIPS_INS_SLT,
+    MIPS_INS_SLTI,
+    MIPS_INS_SLTIU,
+    MIPS_INS_SLTU,
 }
 
 
+# This class enhances 32-bit, 64-bit, and micro MIPS
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
+
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        if instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
+            self._common_generic_register_destination(instruction, emu)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
