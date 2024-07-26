@@ -82,3 +82,24 @@ def test_hexdump_collapse_lines(start_binary):
     hexdump_lines(3)
     hexdump_lines(4)
     hexdump_lines(10)
+
+
+def test_hexdump_saved_address_and_offset(start_binary):
+    # TODO There is no way to verify repetition: the last_address and offset are reset
+    # before each command
+    start_binary(BINARY)
+    sp = pwndbg.gdblib.regs.rsp
+
+    SIZE = 21
+
+    pwndbg.gdblib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
+
+    out1 = gdb.execute(f"hexdump $rsp {SIZE}", to_string=True)
+    out2 = (
+        f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+        f"+0010 0x{sp+0x10:x}  61 62 63 64 65                                    │abcde   │        │\n"
+    )
+
+    assert out1 == out2
+    assert pwndbg.commands.hexdump.hexdump.last_address == sp + SIZE
+    assert pwndbg.commands.hexdump.hexdump.offset == SIZE
