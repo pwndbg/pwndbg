@@ -88,7 +88,7 @@ def hexdump(
 
         # If there's nothing to print, just print the offset and address and return
         if not data:
-            yield H.offset("+%04x " % len(data)) + H.address("%#08x  " % (address + len(data)))
+            yield H.offset(f"+{offset:04x} ") + H.address(f"{address:#08x}  ")
 
             # Don't allow iterating over this generator again
             return
@@ -129,8 +129,8 @@ def hexdump(
                     # Fallthrough (do not continue) so we yield the current line too
 
             hexline = [
-                H.offset("+%04x " % ((i + offset) * width)),
-                H.address("%#08x  " % (address + (i * width))),
+                H.offset(f"+{(i + offset) * width:04x} "),
+                H.address(f"{address + (i * width):#08x}  "),
             ]
 
             for group in groupby(group_width, line):
