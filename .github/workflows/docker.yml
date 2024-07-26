@@ -24,7 +24,6 @@ jobs:
       # Ignore the failure of a step and avoid terminating the job.
       continue-on-error: true
       with:
-        path: ~/.cache/images
         key: ${{ matrix.images }}-cache-images-{hash}
 
     - name: Docker Build ${{ matrix.images }}
