@@ -65,7 +65,6 @@ parser.add_argument(
 def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
     if hexdump.repeat:
         address = hexdump.last_address
-        hexdump.offset += 1
     else:
         hexdump.offset = 0
 
@@ -87,7 +86,7 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
 
     # TODO: What if arch endian is big, and use_big_endian is false?
     flip_group_endianness = (
-        pwndbg.config.hexdump_group_use_big_endian and pwndbg.gdblib.arch.endian == "little"
+        bool(pwndbg.config.hexdump_group_use_big_endian) and pwndbg.gdblib.arch.endian == "little"
     )
 
     # The user may have input the start and end range to dump instead of the
@@ -112,12 +111,11 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
         flip_group_endianness=flip_group_endianness,
         offset=hexdump.offset,
     )
-    for i, line in enumerate(result):
+
+    for line in result:
         print(line)
 
-    # If this command is entered again with no arguments, remember where we left off printing
-    # TODO: This is broken if the user inputs a count less than the width
-    hexdump.offset += i
+    hexdump.offset += count
 
 
 hexdump.last_address = 0

@@ -128,9 +128,10 @@ def hexdump(
                     yield out
                     # Fallthrough (do not continue) so we yield the current line too
 
+            increment = i * width
             hexline = [
-                H.offset(f"+{(i + offset) * width:04x} "),
-                H.address(f"{address + (i * width):#08x}  "),
+                H.offset(f"+{offset + increment:04x} "),
+                H.address(f"{address + increment:#08x}  "),
             ]
 
             for group in groupby(group_width, line):
