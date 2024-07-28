@@ -169,8 +169,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
-        # TODO: find a better way to do this. Cache this on the operand object?
-        return 32 if instruction.cs_insn.reg_name(op.reg).upper().startswith("W") else 64
+        return 32 if instruction.cs_insn.reg_name(op.reg)[0] == 'w' else 64
 
     @override
     def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
@@ -200,7 +199,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             cmp x5, x3, LSL #12         (x3 << 12)
             cmp x5, w3, SXTB 4          (Signed extend byte, then left shift 4)
 
-        The extend operation is always applied first (if present), and the shifts take effect.
+        The extend operation is always applied first (if present), and then shifts take effect.
         """
         target = super()._parse_register(instruction, op, emu)
         if target is None:
@@ -219,6 +218,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             target = AARCH64_EXTEND_MAP[op.cs_op.ext](target) & ((1 << target_bit_width) - 1)
 
         if op.cs_op.shift.type != 0:
+            print(target,op.cs_op.shift.type,op.cs_op.shift.value)
             target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
                 target, op.cs_op.shift.value, target_bit_width
             ) & ((1 << target_bit_width) - 1)

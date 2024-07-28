@@ -771,7 +771,7 @@ class DisassemblyAssistant:
 
         def handler(instruction: PwndbgInstruction, emu: Emulator):
             # If there are just two operands, we can assume we are comparing them directly, and can display the values.
-            # Some architectures have variants with more operands that modify the values before comparison.
+            # Some architectures have variants with more operands.
             if len(instruction.operands) == 2:
                 left, right = instruction.operands
 
