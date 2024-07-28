@@ -169,7 +169,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
-        return 32 if instruction.cs_insn.reg_name(op.reg)[0] == 'w' else 64
+        return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
 
     @override
     def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
@@ -218,7 +218,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             target = AARCH64_EXTEND_MAP[op.cs_op.ext](target) & ((1 << target_bit_width) - 1)
 
         if op.cs_op.shift.type != 0:
-            print(target,op.cs_op.shift.type,op.cs_op.shift.value)
+            print(target, op.cs_op.shift.type, op.cs_op.shift.value)
             target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
                 target, op.cs_op.shift.value, target_bit_width
             ) & ((1 << target_bit_width) - 1)
