@@ -16,6 +16,7 @@ from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.gdblib.arch import read_thumb_bit as process_read_thumb_bit
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
@@ -167,6 +168,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
+    def read_thumb_bit(self, emu: Emulator):
+        if emu:
+            return emu.get
+        elif self.can_reason_about_process_state(instruction):
+            return process_read_thumb_bit()
+
     @override
     def _immediate_string(self, instruction, operand):
         return "#" + super()._immediate_string(instruction, operand)
@@ -175,10 +182,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        # When `pc` is referenced in an operand, the value it takes on
-        # is `pc_at_instruction+8 `
+        # When `pc` is referenced in an operand (typically in a memory operand), the value it takes on
+        # is `pc_at_instruction + 8`
+        # In Thumb mode, you add 4 to the instruction address.
         if operand_id == ARM_REG_PC:
-            return instruction.address + 8
+            return instruction.address + (4 if  else 8)
 
         return super()._read_register(instruction, operand_id, emu)
 
