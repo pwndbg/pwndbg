@@ -13,10 +13,10 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
+from pwndbg.gdblib.arch import read_thumb_bit as process_read_thumb_bit
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.gdblib.arch import read_thumb_bit as process_read_thumb_bit
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
