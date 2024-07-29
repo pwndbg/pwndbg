@@ -36,6 +36,8 @@ PWD=$(shell pwd)
 #GLIBC=/glibc_versions/2.29/tcache_x64
 GLIBC_2_33=$(PWD)/glibcs/2.33
 
+MUSL_1_2_4=$(PWD)/musls/1.2.4
+
 .PHONY : all clean
 
 CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out
@@ -96,6 +98,7 @@ heap_malloc_chunk.out: heap_malloc_chunk.c
 multiple_threads.out: multiple_threads.c
 	@echo "[+] Building multiple_threads.out"
 	${CC} -g -O0 -o multiple_threads.out multiple_threads.c -pthread -lpthread
+
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building tls.x86-64.c"
 	${ZIGCC} \
@@ -166,3 +169,16 @@ reference_bin_nopie.i386.out: reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
+
+# musl tests
+# Building dynamic musl executables is a bit messy, so we can't use -target x86_64-linux-musl
+# https://github.com/ziglang/zig/issues/1190
+musl_mallocng_initialized.out: musl_mallocng_initialized.c
+	@echo "[+] Building musl_mallocng_initialized.out"
+	${ZIGCC} -v \
+		-L${MUSL_1_2_4}/usr/lib/ \
+		-L${MUSL_1_2_4}/lib/ \
+		-lc -dynamic \
+		-Wl,-rpath=${MUSL_1_2_4}/usr/lib/ \
+		-Wl,--dynamic-linker=${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1 \
+		-o musl_mallocng_initialized.out musl_mallocng_initialized.c

@@ -41,7 +41,8 @@ class CommandCategory(str, Enum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
-    HEAP = "Heap"
+    HEAP = "GLibc ptmalloc2 Heap"
+    MUSLHEAP = "Musl mallocng Heap"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
     STACK = "Stack"
@@ -706,6 +707,7 @@ def load_commands() -> None:
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
+    import pwndbg.commands.muslheap
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
     import pwndbg.commands.onegadget
