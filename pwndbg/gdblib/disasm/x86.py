@@ -88,7 +88,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
-                right,
                 emu,
                 read_size=right.cs_op.size,
             )
@@ -172,7 +171,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         if right.before_value is not None:
             telescope_addresses = super()._telescope(
-                right.before_value, TELESCOPE_DEPTH, instruction, right, emu
+                right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
@@ -281,7 +280,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return None
 
         if operand.type == CS_OP_MEM:
-            return self._read_memory(value, operand.cs_op.size, instruction, operand, emu)
+            return self._read_memory(value, operand.cs_op.size, instruction, emu)
         else:
             return super()._resolve_used_value(value, instruction, operand, emu)
 

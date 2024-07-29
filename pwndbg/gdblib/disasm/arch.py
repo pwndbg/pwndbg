@@ -24,6 +24,7 @@ from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+import pwndbg.lib.disasm.helpers as bit_math
 
 pwndbg.config.add_param(
     "emulate",
@@ -395,10 +396,9 @@ class DisassemblyAssistant:
         address: int,
         size: int,
         instruction: PwndbgInstruction,
-        operand: EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
-        address_list = self._telescope(address, 1, instruction, operand, emu, read_size=size)
+        address_list = self._telescope(address, 1, instruction, emu, read_size=size)
 
         if len(address_list) >= 2:
             return address_list[1]
@@ -427,7 +427,7 @@ class DisassemblyAssistant:
         elif operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
-            self._read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, operand, emu)
+            self._read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, emu)
 
         return None
 
@@ -436,7 +436,6 @@ class DisassemblyAssistant:
         address: int,
         limit: int,
         instruction: PwndbgInstruction,
-        operand: EnhancedOperand,
         emu: Emulator,
         read_size: int = None,
     ) -> List[int]:
@@ -471,7 +470,7 @@ class DisassemblyAssistant:
 
             else:
                 return pwndbg.chain.get(address, limit=limit)
-        elif not can_read_process_state or operand.type == CS_OP_IMM:
+        else:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
 
@@ -747,7 +746,6 @@ class DisassemblyAssistant:
                 left.after_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
-                left,
                 emu,
                 read_size=pwndbg.gdblib.arch.ptrsize,
             )
@@ -808,6 +806,8 @@ class DisassemblyAssistant:
         emu: Emulator,
         address: int,
         read_size: int,
+        signed: bool,
+        target_size: int,
         dest_str: str,
         source_str: str,
     ) -> None:
@@ -815,6 +815,10 @@ class DisassemblyAssistant:
         This function annotates load instructions - moving data from memory into a register.
 
         These instructions read `read_size` bytes from memory into a register.
+        
+        `read_size`: the number of bytes that are read from memory
+        `signed`: whether or not we are loading a signed value from memory
+        `target_size`: the size of the register that will contain the read value.
         """
 
         if address is None:
@@ -823,6 +827,8 @@ class DisassemblyAssistant:
         # There are many cases we need to consider when we are dereferencing a memory location.
         # Were we able to reason about the memory address, and dereference it?
         # Does the resolved memory address actual point into memory?
+        # If the target register size is larger than the read size,
+        # then we need to know if it's a signed load that requires sign extension.
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.gdblib.memory.peek(address):
@@ -831,17 +837,12 @@ class DisassemblyAssistant:
             )
         else:
             # In this branch, it is assumed that the address IS in a mapped page
-
             TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
-
-            # TODO: remove this
-            source_operand = instruction.operands[1]
 
             telescope_addresses = self._telescope(
                 address,
                 TELESCOPE_DEPTH,
                 instruction,
-                source_operand,
                 emu,
                 read_size=read_size,
             )
