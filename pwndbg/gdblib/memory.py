@@ -162,9 +162,13 @@ def poke(address: int) -> bool:
     if c is None:
         return False
     try:
+        pwndbg.gdblib.events.pause(gdb.events.memory_changed)
         write(address, c)
     except Exception:
         return False
+    finally:
+        pwndbg.gdblib.events.unpause(gdb.events.memory_changed)
+
     return True
 
 

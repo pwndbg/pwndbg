@@ -7,6 +7,7 @@ by using a decorator.
 from __future__ import annotations
 
 import sys
+from collections import defaultdict
 from enum import Enum
 from enum import auto
 from functools import partial
@@ -108,6 +109,17 @@ connected = {}
 # this session, and only emit objfile events for each *new* file.
 objfile_cache: Dict[str, Set[str]] = {}
 
+# Keys are gdb.events.*
+paused = defaultdict(bool)
+
+
+def pause(event_registry) -> None:
+    paused[event_registry] = True
+
+
+def unpause(event_registry) -> None:
+    paused[event_registry] = False
+
 
 def connect(
     func: Callable[P, T],
@@ -120,6 +132,9 @@ def connect(
 
     @wraps(func)
     def caller(*a: P.args, **kw: P.kwargs) -> None:
+        if paused[event_handler]:
+            return None
+
         if debug:
             sys.stdout.write(f"{name!r} {func.__module__}.{func.__name__} {a!r}\n")
 
