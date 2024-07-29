@@ -804,7 +804,7 @@ class DisassemblyAssistant:
         self,
         instruction: PwndbgInstruction,
         emu: Emulator,
-        address: int,
+        address: int | None,
         read_size: int,
         signed: bool,
         target_size: int,
@@ -816,9 +816,10 @@ class DisassemblyAssistant:
 
         These instructions read `read_size` bytes from memory into a register.
         
-        `read_size`: the number of bytes that are read from memory
         `signed`: whether or not we are loading a signed value from memory
-        `target_size`: the size of the register that will contain the read value.
+        `target_size`: the size of the register in bytes - relevent for sign-extension
+        `dest_str`: a string representing the destination register ('rax')
+        `source_str`: a string representing the source address ('[0x7fffffffe138]')
         """
 
         if address is None:
@@ -858,10 +859,16 @@ class DisassemblyAssistant:
                 # because the the memory address could have been written to by the time the instruction executes
                 telescope_print = None
             else:
-                # Start showing at dereferenced address, hence the [1:]
-                telescope_print = (
-                    f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
-                )
+                if signed and read_size != target_size and len(telescope_addresses) == 2:
+                    # We sign extend the value, then convert it back to the unsigned bit representation
+                    final_value = bit_math.to_signed(telescope_addresses[1],read_size * 8) & ((1 << (target_size * 8)) - 1)
+                    # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
+                    telescope_print = hex(final_value)
+                else:  
+                    # Start showing at dereferenced address, hence the [1:]
+                    telescope_print = (
+                        f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                    )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 

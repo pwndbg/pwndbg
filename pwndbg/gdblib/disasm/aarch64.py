@@ -22,25 +22,26 @@ from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
 
+# Negative size indicates signed read
 # None indicates the read size depends on the target register
 AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_LDRB: 1,
     ARM64_INS_LDURB: 1,
-    ARM64_INS_LDRSB: 1,
-    ARM64_INS_LDURSB: 1,
+    ARM64_INS_LDRSB: -1,
+    ARM64_INS_LDURSB: -1,
     ARM64_INS_LDRH: 2,
     ARM64_INS_LDURH: 2,
-    ARM64_INS_LDRSH: 2,
-    ARM64_INS_LDURSH: 2,
-    ARM64_INS_LDURSW: 4,
-    ARM64_INS_LDRSW: 4,
+    ARM64_INS_LDRSH: -2,
+    ARM64_INS_LDURSH: -2,
+    ARM64_INS_LDURSW: -4,
+    ARM64_INS_LDRSW: -4,
     ARM64_INS_LDUR: None,
     ARM64_INS_LDR: None,
     ARM64_INS_LDTRB: 1,
-    ARM64_INS_LDTRSB: 1,
+    ARM64_INS_LDTRSB: -1,
     ARM64_INS_LDTRH: 2,
-    ARM64_INS_LDTRSH: 2,
-    ARM64_INS_LDTRSW: 4,
+    ARM64_INS_LDTRSH: -2,
+    ARM64_INS_LDTRSW: -4,
     ARM64_INS_LDTR: None,
     ARM64_INS_LDXRB: 1,
     ARM64_INS_LDXRH: 2,
@@ -188,14 +189,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Dispatch to the correct handler
         # TODO: indexing AARCH64_SINGLE_LOAD may return NONE
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
-            # Handle all load instructions
-            # TODO: fill this in for AARCH64
-            # Rebase after the ARM instructions are done
+            # TODO: replace the 64 with actual read size from other PR
+            target_reg_size = 64
+            read_size = AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id] or target_reg_size
+
             self._common_load_annotator(
                 instruction,
                 emu,
                 instruction.operands[1].before_value,
-                AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id],
+                abs(read_size),
+                read_size < 0,
+                target_reg_size,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )

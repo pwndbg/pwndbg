@@ -27,14 +27,14 @@ ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
 
 ARM_SINGLE_LOAD_INSTRUCTIONS = {
     ARM_INS_LDRB: 1,
-    ARM_INS_LDRSB: 1,
+    ARM_INS_LDRSB: -1,
     ARM_INS_LDRH: 2,
-    ARM_INS_LDRSH: 2,
+    ARM_INS_LDRSH: -2,
     ARM_INS_LDR: 4,
     ARM_INS_LDRBT: 1,
-    ARM_INS_LDRSBT: 1,
+    ARM_INS_LDRSBT: -1,
     ARM_INS_LDRHT: 2,
-    ARM_INS_LDRSHT: 2,
+    ARM_INS_LDRSHT: -2,
     ARM_INS_LDRT: 4,
     ARM_INS_LDREXB: 1,
     ARM_INS_LDREXH: 2,
@@ -82,11 +82,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if instruction.id in ARM_SINGLE_LOAD_INSTRUCTIONS:
+            read_size = ARM_SINGLE_LOAD_INSTRUCTIONS[instruction.id]
             self._common_load_annotator(
                 instruction,
                 emu,
                 instruction.operands[1].before_value,
-                ARM_SINGLE_LOAD_INSTRUCTIONS[instruction.id],
+                abs(read_size),
+                read_size < 0,
+                4,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )

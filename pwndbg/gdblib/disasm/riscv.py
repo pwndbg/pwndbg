@@ -16,21 +16,25 @@ from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 RISCV_LOAD_INSTRUCTIONS = {
     # Sign-extend loads
-    RISCV_INS_LB: 1,
-    RISCV_INS_LH: 2,
-    RISCV_INS_LW: 4,
-    RISCV_INS_LD: 8,
+    RISCV_INS_LB: -1,
+    RISCV_INS_LH: -2,
+    RISCV_INS_LW: -4,
     # Zero-extend loads
     RISCV_INS_LBU: 1,
     RISCV_INS_LHU: 2,
     RISCV_INS_LWU: 4,
+    RISCV_INS_LD: 8,
 }
 
 # Due to a bug in Capstone, these instructions have incorrect operands to represent a memory address.
 # So we temporarily separate them to handle them differently
 # This will be fixed in Capstone 6 - https://github.com/capstone-engine/capstone/pull/2393
 # TODO: remove this when updating to Capstone 6
-RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {RISCV_INS_C_LW: 4, RISCV_INS_C_LD: 8, RISCV_INS_C_LDSP: 8}
+RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {
+    RISCV_INS_C_LW: -4,
+    RISCV_INS_C_LD: 8,
+    RISCV_INS_C_LDSP: 8
+}
 
 RISCV_STORE_INSTRUCTIONS = {
     RISCV_INS_SB: 1,
@@ -54,25 +58,35 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if instruction.id in RISCV_LOAD_INSTRUCTIONS:
+            read_size = RISCV_LOAD_INSTRUCTIONS[instruction.id]
             self._common_load_annotator(
                 instruction,
                 emu,
                 instruction.operands[1].before_value,
-                RISCV_LOAD_INSTRUCTIONS[instruction.id],
+                abs(read_size),
+                read_size < 0,
+                pwndbg.gdblib.arch.ptrsize,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
 
+        # TODO: remove this when updating to Capstone 6
         if instruction.id in RISCV_COMPRESSED_LOAD_INSTRUCTIONS:
+            # We need to manually resolve this now since Capstone doesn't properly represent
+            # memory operands for compressed instructions.
             address = self._resolve_compressed_target_addr(instruction, emu)
             if address is not None:
+                read_size = RISCV_COMPRESSED_LOAD_INSTRUCTIONS[instruction.id]
+
                 dest_str = f"[{MemoryColor.get_address_or_symbol(address)}]"
 
                 self._common_load_annotator(
                     instruction,
                     emu,
                     address,
-                    RISCV_COMPRESSED_LOAD_INSTRUCTIONS[instruction.id],
+                    abs(read_size),
+                    read_size < 0,
+                    pwndbg.gdblib.arch.ptrsize,
                     instruction.operands[0].str,
                     dest_str,
                 )
