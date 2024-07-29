@@ -89,7 +89,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 False,
                 right.cs_op.size,
                 left.str,
-                right.str
+                right.str,
             )
         # Handle other cases of MOV
         elif right.before_value is not None:

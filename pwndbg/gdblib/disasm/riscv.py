@@ -30,11 +30,7 @@ RISCV_LOAD_INSTRUCTIONS = {
 # So we temporarily separate them to handle them differently
 # This will be fixed in Capstone 6 - https://github.com/capstone-engine/capstone/pull/2393
 # TODO: remove this when updating to Capstone 6
-RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {
-    RISCV_INS_C_LW: -4,
-    RISCV_INS_C_LD: 8,
-    RISCV_INS_C_LDSP: 8
-}
+RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {RISCV_INS_C_LW: -4, RISCV_INS_C_LD: 8, RISCV_INS_C_LDSP: 8}
 
 RISCV_STORE_INSTRUCTIONS = {
     RISCV_INS_SB: 1,
