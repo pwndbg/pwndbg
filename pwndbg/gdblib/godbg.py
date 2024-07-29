@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import string
 import struct
 from abc import ABC
@@ -120,13 +121,15 @@ def _try_format(val: Any, fmt: str):
         return format(val)
 
 
-_warned_moduledata = False
+# only warn with a given message once per execution
+@pwndbg.lib.cache.cache_until("start")
+def emit_warning(msg: str):
+    print(message.warn(msg))
 
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_moduledata_types(addr: int | None = None) -> int | None:
-    global _warned_moduledata
-
+    first_start = None
     # try to get type start by traversing moduledata symbol
     # will only work if debug symbols are enabled
     try:
@@ -135,23 +138,34 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
             md = sym.value()
             while True:
                 start = int(md["types"])
+                if first_start is None:
+                    first_start = start
                 end = int(md["etypes"])
                 if addr is None or start <= addr < end:
                     return start
                 if md["next"]:
                     md = md["next"].dereference()
                 else:
+                    emit_warning(
+                        f"Warning: Type at {addr:#x} is out of bounds of all module data, so a bad heuristic is used instead"
+                    )
                     break
-    except gdb.error:
-        pass
-    if not _warned_moduledata:
-        _warned_moduledata = True
-        print(
-            message.warn(
+        else:
+            emit_warning(
                 "Warning: Could not find `runtime.firstmoduledata` symbol (or types for it don't exist), so a bad heuristic is used instead"
             )
+    except gdb.error as e:
+        emit_warning(
+            f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a bad heuristic is used instead"
         )
-    # just assume that types are at the start of .rodata if there aren't any debug symbols
+    # if we found at least one moduledata, use the start of the first one
+    if first_start is not None:
+        return first_start
+    # the type:* symbol can also indicate type start
+    type_start = pwndbg.gdblib.symbol.address("type:*")
+    if type_start is not None:
+        return type_start
+    # otherwise, just assume that types are at the start of .rodata if there aren't any debug symbols
     # not a great workaround, but parsing moduledata manually is very version-dependent
     elf = pwndbg.gdblib.elf.get_elf_info_rebased(
         pwndbg.gdblib.file.get_proc_exe_file(), pwndbg.gdblib.proc.binary_base_addr
@@ -226,6 +240,10 @@ class GoTypeKind(IntEnum):
 @dataclass
 class GoTypeMeta:
     name: str
+    kind: GoTypeKind
+    _: dataclasses.KW_ONLY
+    size: int = 0
+    align: int = 1
     direct_iface: bool = False
 
 
@@ -278,20 +296,27 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
             name = repr(name)
     kind_raw = load(offsets["Kind_"], 1)
     # KindMask is set to (1 << 5) - 1
-    kind = GoTypeKind(kind_raw & ((1 << 5) - 1))
-    if kind == 0:
-        return (GoTypeMeta(f"invalid type {name} at {addr:#x}", False), None)
+    try:
+        kind = GoTypeKind(kind_raw & ((1 << 5) - 1))
+    except ValueError:
+        kind = GoTypeKind.INVALID
+    if kind == GoTypeKind.INVALID:
+        return (GoTypeMeta(f"invalid type `{name}` at {addr:#x}", kind), None)
     # Go puts * in front of a lot of types for some reason, so get rid of them for non-pointers
     if name.startswith("*") and kind != GoTypeKind.POINTER:
         name = name.lstrip("*")
-    meta = GoTypeMeta(name, (kind_raw & (1 << 5)) != 0)
+    size = load(offsets["Size_"], word)
+    align = load(offsets["Align_"], 1)
+    meta = GoTypeMeta(name, kind, size=size, align=align, direct_iface=(kind_raw & (1 << 5)) != 0)
     simple_name = kind.get_simple_name()
     if simple_name is not None:
         return (meta, BasicType(simple_name))
     if kind == GoTypeKind.ARRAY:
         elem_ty_ptr = load(offsets["$size"], word)
         arr_len = load(offsets["$size"] + word * 2, word)
-        _, elem_ty = decode_runtime_type(elem_ty_ptr)
+        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
+        # reserialize name to fix inconsistencies
+        meta.name = f"[{arr_len}]{elem_meta.name}"
         return (meta, elem_ty and ArrayType(elem_ty, arr_len))
     elif kind == GoTypeKind.INTERFACE:
         methods_count = load(offsets["$size"] + word * 2, word)
@@ -302,21 +327,27 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
     elif kind == GoTypeKind.MAP:
         key_ty_ptr = load(offsets["$size"], word)
         val_ty_ptr = load(offsets["$size"] + word, word)
-        _, key_ty = decode_runtime_type(key_ty_ptr)
+        key_meta, key_ty = decode_runtime_type(key_ty_ptr)
         if key_ty is None:
             return (meta, None)
-        _, val_ty = decode_runtime_type(val_ty_ptr)
+        val_meta, val_ty = decode_runtime_type(val_ty_ptr)
         if val_ty is None:
             return (meta, None)
+        # reserialize name to fix inconsistencies
+        meta.name = f"map[{key_meta.name}]{val_meta.name}"
         # Go maps are actually pointers, but the map here is not
         return (meta, PointerType(MapType(key_ty, val_ty)))
     elif kind == GoTypeKind.POINTER:
         elem_ty_ptr = load(offsets["$size"], word)
-        _, elem_ty = decode_runtime_type(elem_ty_ptr)
+        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
+        # reserialize name to fix inconsistencies
+        meta.name = f"*{elem_meta.name}"
         return (meta, elem_ty and PointerType(elem_ty))
     elif kind == GoTypeKind.SLICE:
         elem_ty_ptr = load(offsets["$size"], word)
-        _, elem_ty = decode_runtime_type(elem_ty_ptr)
+        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
+        # reserialize name to fix inconsistencies
+        meta.name = f"[]{elem_meta.name}"
         return (meta, elem_ty and SliceType(elem_ty))
     elif kind == GoTypeKind.STRUCT:
         fields_ptr = load(offsets["$size"] + word, word)
@@ -366,13 +397,19 @@ class BasicType(Type):
             word = word_size()
             if ty == "interface":
                 iface_ptr = load_uint(val[:word])
+                if iface_ptr == 0:
+                    return "nil"
                 ty_ptr = load_uint(pwndbg.gdblib.memory.read(iface_ptr + word, word))
             else:
                 ty_ptr = load_uint(val[:word])
+            if ty_ptr == 0:
+                return "nil"
             meta, parsed_inner = decode_runtime_type(ty_ptr)
             data_ptr = addr + word
             if not meta.direct_iface:
                 data_ptr = load_uint(pwndbg.gdblib.memory.read(data_ptr, word))
+            if data_ptr == 0:
+                return f"({meta.name}) nil"
             if parsed_inner is not None:
                 dump = parsed_inner.dump(data_ptr)
                 return f"({meta.name}) {dump}"
@@ -381,10 +418,10 @@ class BasicType(Type):
             return "true" if val != b"\x00" else "false"
         if ty.startswith("int"):
             n = load_int(val)
-            return ("0x" if "x" in fmt else "") + _try_format(n, fmt)
+            return _try_format(n, fmt)
         if ty.startswith("uint"):
             n = load_uint(val)
-            return ("0x" if "x" in fmt else "") + _try_format(n, fmt)
+            return _try_format(n, fmt)
         if ty.startswith("float"):
             return _try_format(load_float(val), fmt)
         if ty.startswith("complex"):
@@ -582,6 +619,7 @@ class MapType(Type):
             ]
         )
         ret = []
+        # TODO: deal with evacuated buckets
         for i in range(num_buckets):
             bucket_ptr = bucket_base + bucket_size * i
             while bucket_ptr:
@@ -602,6 +640,7 @@ class MapType(Type):
         return f"map[{self.key}]{self.val}"
 
 
+# TODO: add parsing for struct types
 @dataclass
 class StructType(Type):
     fields: List[Tuple[str, Type | str, int]]
@@ -625,8 +664,6 @@ class StructType(Type):
 
     def __str__(self) -> str:
         body = "; ".join(f"{name}: {ty}" for (name, ty, _) in self.fields)
-        if self.name:
-            return f"struct {self.name} {{{body}}}"
         return f"struct {{{body}}}"
 
 
