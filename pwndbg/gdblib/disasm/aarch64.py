@@ -187,10 +187,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
-        # TODO: indexing AARCH64_SINGLE_LOAD may return NONE
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
-            # TODO: replace the 64 with actual read size from other PR
-            target_reg_size = 64
+            # TODO: replace the 8 with actual read size from other PR
+            target_reg_size = 8
             read_size = AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id] or target_reg_size
 
             self._common_load_annotator(
@@ -313,9 +312,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         Examples:
               ldr x1, [x2, w22, UXTW #3]
 
-        TODO: https://github.com/capstone-engine/capstone/issues/2230
-        Bugs in Capstone - how do we fix this on our end?
-        Just use the emulated value? Don't try to resolve the address?
         """
 
         target = 0
