@@ -168,9 +168,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
-    def read_thumb_bit(self, emu: Emulator):
+    def read_thumb_bit(self, emu: Emulator) -> int | None:
         if emu:
-            return emu.get
+            # TODO: rebase to get this function
+            return emu.read_thumb_bit()
         elif self.can_reason_about_process_state(instruction):
             return process_read_thumb_bit()
 
@@ -186,7 +187,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # is `pc_at_instruction + 8`
         # In Thumb mode, you add 4 to the instruction address.
         if operand_id == ARM_REG_PC:
-            return instruction.address + (4 if  else 8)
+            return instruction.address + (4 if self.read_thumb_bit(emu) else 8)
 
         return super()._read_register(instruction, operand_id, emu)
 
