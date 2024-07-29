@@ -825,11 +825,10 @@ class DisassemblyAssistant:
         if address is None:
             return
 
-        # There are many cases we need to consider when we are dereferencing a memory location.
+        # There are many cases we need to consider when we are loading a value from memory
         # Were we able to reason about the memory address, and dereference it?
         # Does the resolved memory address actual point into memory?
-        # If the target register size is larger than the read size,
-        # then we need to know if it's a signed load that requires sign extension.
+        # If the target register size is larger than the read size, then do we need sign-extension?
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.gdblib.memory.peek(address):
