@@ -258,7 +258,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         @pwndbg.commands.ArgparsedCommand(parser)
         def test2():
-            print("Awoooo!")
+            print("Test 2!")
 
     @override
     def add_command(
