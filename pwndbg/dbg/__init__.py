@@ -172,7 +172,7 @@ class Value:
         """
         raise NotImplementedError()
 
-    # is_optimized_out is a very janky piece of API and I hate it. It makes it
+    # is_optimized_out is kind of a janky piece of API, honestly. It makes it
     # so that one's ability to call all other methods in this class is often
     # conditional on it being false, and it effectively splits the type into
     # two.
