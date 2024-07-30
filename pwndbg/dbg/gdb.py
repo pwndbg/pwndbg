@@ -3,8 +3,6 @@ from __future__ import annotations
 import contextlib
 import signal
 from typing import Any
-from typing import ContextManager
-from typing import Generic
 from typing import List
 from typing import Tuple
 from typing import TypeVar
