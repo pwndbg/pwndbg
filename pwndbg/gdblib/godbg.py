@@ -287,11 +287,11 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
         name = "unknown name"
     else:
         name_ptr = type_start + load(offsets["Str"], 4)
-        name = read_varint_str(name_ptr + 1)
+        bname = read_varint_str(name_ptr + 1)
         try:
-            name = name.decode()
+            name = bname.decode()
         except UnicodeDecodeError:
-            name = repr(name)
+            name = repr(bname)
     kind_raw = load(offsets["Kind_"], 1)
     # KindMask is set to (1 << 5) - 1
     try:
@@ -353,11 +353,11 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
         fields: List[Tuple[str, Type | str, int]] = []
         for i in range(fields_count):
             base = fields_ptr + i * word * 3
-            field_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
+            bfield_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
             try:
-                field_name = field_name.decode()
+                field_name = bfield_name.decode()
             except UnicodeDecodeError:
-                field_name = repr(field_name)
+                field_name = repr(bfield_name)
             field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
             field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word))
             (field_meta, field_ty) = decode_runtime_type(field_ty_ptr)
@@ -579,7 +579,7 @@ class MapType(Type):
     val: Type
 
     @staticmethod
-    def field_offsets() -> dict[str, int]:
+    def field_offsets() -> Dict[str, int]:
         word = word_size()
         offsets = compute_named_offsets(
             [
@@ -669,7 +669,7 @@ _ident_first = set(string.ascii_letters + "_")
 _ident_rest = _ident_first | set(string.digits)
 
 
-def _parse_posint(ty: str) -> tuple[int, str] | None:
+def _parse_posint(ty: str) -> Tuple[int, str] | None:
     if not ty or not ty[0].isdigit():
         return None
     for i in range(1, len(ty)):
@@ -683,7 +683,7 @@ def _parse_posint(ty: str) -> tuple[int, str] | None:
         return None
 
 
-def _parse_basic_ty(ty: str) -> tuple[BasicType, str] | None:
+def _parse_basic_ty(ty: str) -> Tuple[BasicType, str] | None:
     if not ty or ty[0] not in _ident_first:
         return None
     for i in range(1, len(ty)):
@@ -701,7 +701,7 @@ def _parse_basic_ty(ty: str) -> tuple[BasicType, str] | None:
         raise
 
 
-def _parse_slice_ty(ty: str) -> tuple[SliceType, str] | None:
+def _parse_slice_ty(ty: str) -> Tuple[SliceType, str] | None:
     if not ty.startswith("[]"):
         return None
     if (inner := _parse_type(ty[2:])) is None:
@@ -709,7 +709,7 @@ def _parse_slice_ty(ty: str) -> tuple[SliceType, str] | None:
     return (SliceType(inner[0]), inner[1])
 
 
-def _parse_pointer_ty(ty: str) -> tuple[PointerType, str] | None:
+def _parse_pointer_ty(ty: str) -> Tuple[PointerType, str] | None:
     if not ty.startswith("*"):
         return None
     if (inner := _parse_type(ty[1:])) is None:
@@ -717,7 +717,7 @@ def _parse_pointer_ty(ty: str) -> tuple[PointerType, str] | None:
     return (PointerType(inner[0]), inner[1])
 
 
-def _parse_array_ty(ty: str) -> tuple[ArrayType, str] | None:
+def _parse_array_ty(ty: str) -> Tuple[ArrayType, str] | None:
     if not ty.startswith("["):
         return None
     if (count := _parse_posint(ty[1:])) is None:
@@ -729,7 +729,7 @@ def _parse_array_ty(ty: str) -> tuple[ArrayType, str] | None:
     return (ArrayType(inner[0], count[0]), inner[1])
 
 
-def _parse_map_ty(ty: str) -> tuple[MapType, str] | None:
+def _parse_map_ty(ty: str) -> Tuple[MapType, str] | None:
     if not ty.startswith("map["):
         return None
     if (key := _parse_type(ty[4:])) is None:
@@ -740,8 +740,11 @@ def _parse_map_ty(ty: str) -> tuple[MapType, str] | None:
         return None
     return (MapType(key[0], val[0]), val[1])
 
+def _parse_struct_ty(ty: str) -> Tuple[StructType, str] | None:
+    pass
 
-def _parse_type(ty: str) -> tuple[Type, str] | None:
+
+def _parse_type(ty: str) -> Tuple[Type, str] | None:
     for f in [
         _parse_map_ty,
         _parse_array_ty,
