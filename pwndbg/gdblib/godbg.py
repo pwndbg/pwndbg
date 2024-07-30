@@ -87,7 +87,7 @@ class Type(ABC):
         """
         Returns the size of a type in bytes.
 
-        Used for computing array layouts.
+        Used for computing array and struct layouts.
         """
         pass
 
@@ -638,9 +638,14 @@ class MapType(Type):
         return f"map[{self.key}]{self.val}"
 
 
-# TODO: add parsing for struct types
 @dataclass
 class StructType(Type):
+    """
+    A struct type in Go, notated as struct(SIZE){FIELDS},
+    where SIZE is the size of the struct in bytes,
+    and FIELDS is a semicolon-separated list of OFFSET:NAME:TYPE fields.
+    """
+
     fields: List[Tuple[str, Type | str, int]]
     sz: int
     name: str | None = None
@@ -652,7 +657,7 @@ class StructType(Type):
             if isinstance(ty, str):
                 vals.append((name, f"({ty}) at {base:#x}"))
             else:
-                vals.append((name, ty.dump(addr, fmt)))
+                vals.append((name, ty.dump(base, fmt)))
         body = ", ".join(f"{name}: {val}" for (name, val) in vals)
         name = self.name or "struct"
         return f"{name} {{{body}}}"
@@ -661,8 +666,10 @@ class StructType(Type):
         return self.sz
 
     def __str__(self) -> str:
-        body = ";".join(f"{name}:{ty}" for (name, ty, _) in self.fields)
-        return f"struct{{{body}}}"
+        body = ";".join(
+            f"{off}:{name}:{ty}" for (name, ty, off) in self.fields if not isinstance(ty, str)
+        )
+        return f"struct({self.sz}){{{body}}}"
 
 
 _ident_first = set(string.ascii_letters + "_")
@@ -683,7 +690,7 @@ def _parse_posint(ty: str) -> Tuple[int, str] | None:
         return None
 
 
-def _parse_basic_ty(ty: str) -> Tuple[BasicType, str] | None:
+def _parse_ident(ty: str) -> Tuple[str, str] | None:
     if not ty or ty[0] not in _ident_first:
         return None
     for i in range(1, len(ty)):
@@ -691,10 +698,18 @@ def _parse_basic_ty(ty: str) -> Tuple[BasicType, str] | None:
             break
     else:
         i = len(ty)
+    return (ty[:i], ty[i:])
+
+
+def _parse_basic_ty(ty: str) -> Tuple[BasicType, str] | None:
+    parse = _parse_ident(ty)
+    if not parse:
+        return None
+    (ident, rest) = parse
     try:
-        return (BasicType(ty[:i]), ty[i:])
+        return (BasicType(ident), rest)
     except ValueError:
-        if i < len(ty):
+        if rest:
             return None
         # only raise an exception if it's a full string parse
         # otherwise the exception message could be inaccurate
@@ -740,12 +755,50 @@ def _parse_map_ty(ty: str) -> Tuple[MapType, str] | None:
         return None
     return (MapType(key[0], val[0]), val[1])
 
+
 def _parse_struct_ty(ty: str) -> Tuple[StructType, str] | None:
-    pass
+    if not ty.startswith("struct("):
+        return None
+    size_parse = _parse_posint(ty[7:])
+    if size_parse is None:
+        return None
+    (size, cur) = size_parse
+    if not cur.startswith("){"):
+        return None
+    cur = cur[2:]
+    fields = []
+    is_first = True
+    while cur:
+        if cur.startswith("}"):
+            return (StructType(fields, size), cur[1:])
+        if is_first:
+            is_first = False
+        elif not cur.startswith(";"):
+            return None
+        cur = cur.lstrip(";")
+        offset_parse = _parse_posint(cur)
+        if offset_parse is None:
+            return None
+        (field_offset, cur) = offset_parse
+        if not cur.startswith(":"):
+            return None
+        name_parse = _parse_ident(cur[1:])
+        if name_parse is None:
+            return None
+        (field_name, cur) = name_parse
+        if not cur.startswith(":"):
+            return None
+        type_parse = _parse_type(cur[1:])
+        if type_parse is None:
+            return None
+        (field_type, cur) = type_parse
+        fields.append((field_name, field_type, field_offset))
+    return None
 
 
 def _parse_type(ty: str) -> Tuple[Type, str] | None:
     for f in [
+        _parse_struct_ty,
         _parse_map_ty,
         _parse_array_ty,
         _parse_pointer_ty,
