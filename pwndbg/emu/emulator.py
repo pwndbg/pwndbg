@@ -102,7 +102,10 @@ arch_to_UC_consts = {
 # Architecture specific maps: Map<reg_name, Unicorn constant>
 arch_to_reg_const_map = {
     "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
-    "x86-64": create_reg_to_const_map(arch_to_UC_consts["x86-64"]),
+    "x86-64": create_reg_to_const_map(
+        arch_to_UC_consts["x86-64"],
+        {"FSBASE": U.x86_const.UC_X86_REG_FS_BASE, "GSBASE": U.x86_const.UC_X86_REG_GS_BASE},
+    ),
     "mips": create_reg_to_const_map(arch_to_UC_consts["mips"]),
     "sparc": create_reg_to_const_map(arch_to_UC_consts["sparc"]),
     "arm": create_reg_to_const_map(arch_to_UC_consts["arm"]),
@@ -168,7 +171,7 @@ arch_to_SYSCALL = {
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550
-blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss", "fsbase", "gsbase"]
+blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss"]
 
 """
 e = pwndbg.emu.emulator.Emulator()

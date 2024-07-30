@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import signal
 from typing import Any
 from typing import ContextManager
@@ -19,6 +20,21 @@ from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 
 
+class GDBRegisters(pwndbg.dbg_mod.Registers):
+    def __init__(self, frame: GDBFrame):
+        self.frame = frame
+
+    @override
+    def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
+        try:
+            return GDBValue(self.frame.inner.read_register(name))
+        except gdb.error:
+            # GDB throws an exception if the name is unknown, we just return
+            # None when that is the case.
+            pass
+        return None
+
+
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
     """
     Same as `gdb.parse_and_eval`, but only uses `global_context` if it is
@@ -35,51 +51,36 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
 T = TypeVar("T")
 
 
-class Selection(ContextManager[None], Generic[T]):
+@contextlib.contextmanager
+def selection(target: T, get_current: Callable[[], T], select: Callable[[T], None]):
     """
     GDB has a lot of global state. Many of our queries require that we select a
     given object globally before we make them. When doing that, we must always
     be careful to return selection to its previous state before exiting. This
     class automatically manages the selection of a single object type.
+
+    Upon entrace to the `with` block, the element given by `target` will be
+    compared to the object returned by calling `get_current`. If they
+    compare different, the value previously returned by `get_current` is
+    saved, and the element given by `target` will be selected by passing it
+    as an argument to `select`, and, after execution leaves the `with`
+    block, the previously saved element will be selected in the same fashion
+    as the first element.
+
+    If the elements don't compare different, this is a no-op.
     """
 
-    select: Callable[[T], None]
-    target: T
-    get_current: Callable[[], T]
+    current = get_current()
+    restore = False
+    if current != target:
+        select(target)
+        restore = True
 
-    current: T
-    restore: bool
-
-    def __init__(self, target: T, get_current: Callable[[], T], select: Callable[[T], None]):
-        """
-        Upon entrace to the `with` block, the element given by `target` will be
-        compared to the object returned by calling `get_current`. If they
-        compare different, the value previously returned by `get_current` is
-        saved, and the element given by `target` will be selected by passing it
-        as an argument to `select`, and, after execution leaves the `with`
-        block, the previously saved element will be selected in the same fashion
-        as the first element.
-
-        If the elements don't compare different, this is a no-op.
-        """
-
-        self.get_current = get_current
-        self.select = select
-        self.target = target
-        self.restore = False
-        self.current = None
-
-    @override
-    def __enter__(self) -> None:
-        self.current = self.get_current()
-        if self.current != self.target:
-            self.select(self.target)
-            self.restore = True
-
-    @override
-    def __exit__(self, _exc_type, _exc, _traceback, /) -> None:
-        if self.restore:
-            self.select(self.current)
+    try:
+        yield
+    finally:
+        if restore:
+            select(current)
 
 
 class GDBFrame(pwndbg.dbg_mod.Frame):
@@ -88,13 +89,17 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        with Selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
             try:
                 value = parse_and_eval(expression, global_context=False)
             except gdb.error as e:
                 raise pwndbg.dbg_mod.Error(e)
 
         return GDBValue(value)
+
+    @override
+    def regs(self) -> pwndbg.dbg_mod.Registers:
+        return GDBRegisters(self)
 
 
 class GDBThread(pwndbg.dbg_mod.Thread):
@@ -103,7 +108,7 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
     @override
     def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
-        with Selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
+        with selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
             value = gdb.newest_frame()
         return GDBFrame(value)
 

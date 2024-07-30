@@ -66,6 +66,14 @@ Note that the page-tables method will require the QEMU kernel process to be on t
     enum_sequence=["page-tables", "monitor", "none"],
 )
 
+auto_explore = pwndbg.config.add_param(
+    "auto-explore-pages",
+    "yes",
+    "whether to try to infer page permissions when memory maps missing (can cause errors)",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["yes", "warn", "no"],
+)
+
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def is_corefile() -> bool:
@@ -87,10 +95,11 @@ inside_no_proc_maps_search = False
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     """
-    Returns a tuple of `Page` objects representing the memory mappings of the
-    target, sorted by virtual address ascending.
+    Similar to `vmmap.get()`, except only returns maps in cases where
+    the mappings are known, like if it's a coredump, or if process
+    mappings are available.
     """
     # Note: debugging a coredump does still show proc.alive == True
     if not pwndbg.gdblib.proc.alive:
@@ -106,6 +115,19 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     if not proc_maps:
         proc_maps = proc_tid_maps()
+
+    return proc_maps
+
+
+@pwndbg.lib.cache.cache_until("start", "stop")
+def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    """
+    Returns a tuple of `Page` objects representing the memory mappings of the
+    target, sorted by virtual address ascending.
+    """
+    proc_maps = get_known_maps()
+    if proc_maps is not None:
+        return proc_maps
 
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
     #   None    - when /proc/$tid/maps does not exist/is not available
@@ -164,8 +186,18 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(pages)
 
 
+_warn_cache: Set[int] = set()
+
+
+@pwndbg.gdblib.events.new_objfile
+def clear_warn_cache():
+    _warn_cache.clear()
+
+
 @pwndbg.lib.cache.cache_until("stop")
-def find(address: int | gdb.Value | None) -> pwndbg.lib.memory.Page | None:
+def find(
+    address: int | gdb.Value | None, *, should_explore: bool | None = None
+) -> pwndbg.lib.memory.Page | None:
     if address is None:
         return None
 
@@ -175,7 +207,22 @@ def find(address: int | gdb.Value | None) -> pwndbg.lib.memory.Page | None:
         if address in page:
             return page
 
-    return explore(address)
+    if should_explore is None:
+        if auto_explore.value == "warn":
+            page_start = pwndbg.lib.memory.page_align(address)
+            if page_start not in _warn_cache:
+                _warn_cache.add(page_start)
+                print(
+                    M.warn(
+                        f"Warning: Avoided exploring possible address {address:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                    )
+                )
+        elif auto_explore.value == "yes":
+            return explore(address)
+    elif should_explore and not proc_tid_maps():
+        return explore(address)
+
+    return None
 
 
 @pwndbg.gdblib.abi.LinuxOnly()
@@ -193,8 +240,6 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
         Also assumes the entire contiguous section has the same permission.
     """
-    if proc_tid_maps():
-        return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
 
@@ -203,8 +248,20 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     if not flags:
         return None
 
-    flags |= 2 if pwndbg.gdblib.memory.poke(address_maybe) else 0
-    flags |= 1 if not pwndbg.gdblib.stack.is_executable() else 0
+    if pwndbg.gdblib.memory.poke(address_maybe):
+        flags |= 2
+    # It's really hard to check for executability, so we just make some guesses:
+    # If it's in the same page as the stack pointer, try to check the NX bit
+    # If it's in the same page as the instruction pointer, assume it's executable
+    # Otherwise, just say it's not executable
+    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.gdblib.regs.pc):
+        flags |= 1
+    # TODO: could maybe make this check look at the stacks in pwndbg.gdblib.stack.get() but that might have issues
+    elif (
+        address_maybe == pwndbg.lib.memory.page_align(pwndbg.gdblib.regs.sp)
+        and pwndbg.gdblib.stack.is_executable()
+    ):
+        flags |= 1
 
     page = find_boundaries(address_maybe)
     page.objfile = "<explored>"
