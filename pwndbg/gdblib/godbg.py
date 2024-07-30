@@ -603,6 +603,8 @@ class MapType(Type):
         val = pwndbg.gdblib.memory.read(addr, offsets["$size"])
         load = lambda off, sz: load_uint(val[off : off + sz])
         num_buckets = 1 << load(offsets["B"], 1)
+        num_oldbuckets = num_buckets >> 1
+        oldbucket_base = load(offsets["oldbuckets"], word)
         bucket_base = load(offsets["buckets"], word)
         keysize = self.key.size()
         valsize = self.val.size()
@@ -617,19 +619,27 @@ class MapType(Type):
             ]
         )
         ret = []
-        # TODO: deal with evacuated buckets
         for i in range(num_buckets):
             bucket_ptr = bucket_base + bucket_size * i
+            if oldbucket_base and i < num_oldbuckets:
+                oldbucket_ptr = oldbucket_base + bucket_size * i
+                oldbucket = pwndbg.gdblib.memory.read(oldbucket_ptr, bucket_size)
+                if not (1 < oldbucket[tophash_start] < 5):  # !evacuated(bucket)
+                    bucket_ptr = oldbucket_ptr
             while bucket_ptr:
                 bucket = pwndbg.gdblib.memory.read(bucket_ptr, bucket_size)
                 for j in range(bucket_count):
                     if bucket[tophash_start + j] > 1:  # !isEmpty(bucket.tophash[j])
                         k = self.key.dump(bucket_ptr + keys_start + j * keysize, fmt)
                         v = self.val.dump(bucket_ptr + vals_start + j * valsize, fmt)
-                        ret.append(f"{k}: {v}")
+                        ret.append((k, v))
                 bucket_ptr = load_uint(bucket[overflow_start : overflow_start + word])
-
-        return f"{{{', '.join(ret)}}}"
+        try:
+            ret.sort(key=lambda t: int(t[0], 0))
+        except ValueError:
+            ret.sort(key=lambda t: t[0])
+        entries = ", ".join(f"{k}: {v}" for (k, v) in ret)
+        return f"{{{entries}}}"
 
     def size(self) -> int:
         return self.field_offsets()["$size"]
