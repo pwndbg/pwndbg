@@ -766,7 +766,7 @@ def _parse_struct_ty(ty: str) -> Tuple[StructType, str] | None:
     if not cur.startswith("){"):
         return None
     cur = cur[2:]
-    fields = []
+    fields: List[Tuple[str, Type | str, int]] = []
     is_first = True
     while cur:
         if cur.startswith("}"):
