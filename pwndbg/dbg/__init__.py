@@ -17,11 +17,29 @@ class Error(Exception):
     pass
 
 
+class Registers:
+    """
+    A handle to the register values in a frame.
+    """
+
+    def by_name(self, name: str) -> Value | None:
+        """
+        Gets the value of a register if it exists, None otherwise.
+        """
+        raise NotImplementedError()
+
+
 class Frame:
     def evaluate_expression(self, expression: str) -> Value:
         """
         Evaluate the given expression in the context of this frame, and
         return a `Value`.
+        """
+        raise NotImplementedError()
+
+    def regs(self) -> Registers:
+        """
+        Access the values of the registers in this frame.
         """
         raise NotImplementedError()
 
