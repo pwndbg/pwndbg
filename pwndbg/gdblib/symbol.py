@@ -8,9 +8,12 @@ information available.
 
 from __future__ import annotations
 
+import os
 import re
+from typing import Dict
 
 import gdb
+from elftools.elf.elffile import ELFFile
 
 import pwndbg.gdblib.android
 import pwndbg.gdblib.arch
@@ -43,6 +46,44 @@ skipped_exceptions = (
     # This reproduced on GDB 12.1 and caused #1878
     "Symbol requires a frame to compute its value",
 )
+
+
+def create_symboled_elf(symbols: Dict[str, int], base_addr: int = 0, filename: str = None) -> str:
+    if not os.path.exists(filename + ".debug"):
+        filename = filename + ".c"
+        with open(filename, "w") as f:
+            f.write("int main(){}")
+
+        os.system(f"gcc {filename} -o {filename[0:-2]}.debug")
+        os.unlink(f"{filename}")
+
+        filename = filename[0:-2]
+
+        os.system(f"objcopy --only-keep-debug {filename}.debug")
+        os.system(f"objcopy --strip-all {filename}.debug")
+
+        elf = ELFFile(open(f"{filename}.debug", "rb"))
+
+        required_sections = [".text", ".interp", ".rela.dyn", ".dynamic", ".bss"]
+
+        removable_sections = ""
+
+        for s in elf.iter_sections():
+            if s.name in required_sections:
+                continue
+
+            removable_sections += f"--remove-section={s.name} "
+
+        os.system(f"objcopy {removable_sections} {filename}.debug 2>/dev/null")
+        os.system(f"objcopy --change-section-address .text={base_addr:#x} {filename}.debug")
+
+    # TODO: add more symbols in one call
+    for symbol in symbols.items():
+        os.system(
+            f"objcopy --add-symbol {symbol[0]}=.text:{symbol[1]:#x},global,function {filename}.debug"
+        )
+
+    return f"{filename}.debug"
 
 
 def _get_debug_file_directory() -> str:
