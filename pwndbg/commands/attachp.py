@@ -83,6 +83,24 @@ def attachp(no_truncate, target) -> None:
                 pids = []
 
             if not pids:
+                try:
+                    command = "ps aux | awk '{print $2, $11}'"
+                    ps_output = check_output(command, shell=True, universal_newlines=True)
+                except FileNotFoundError:
+                    print(message.error("Error: did not find `ps` command"))
+                    return
+                except CalledProcessError:
+                    pids = []
+
+                target_list = target.split()
+                for line in ps_output.strip().split("\n")[1:]:
+                    process_info = line.split()
+                    pid = process_info[0]
+                    command = " ".join(process_info[1:])
+                    if any(part in command for part in target_list) and len(pid) > 1:
+                        pids.append(pid)
+
+            if not pids:
                 print(message.error(f"Process {target} not found"))
                 return
 
