@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import string
 import struct
 from abc import ABC
@@ -147,16 +146,16 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
                     md = md["next"].dereference()
                 else:
                     emit_warning(
-                        f"Warning: Type at {addr:#x} is out of bounds of all module data, so a bad heuristic is used instead"
+                        f"Warning: Type at {addr:#x} is out of bounds of all module data, so a heuristic is used instead"
                     )
                     break
         else:
             emit_warning(
-                "Warning: Could not find `runtime.firstmoduledata` symbol (or types for it don't exist), so a bad heuristic is used instead"
+                "Warning: Could not find `runtime.firstmoduledata` symbol, so a heuristic is used instead"
             )
     except gdb.error as e:
         emit_warning(
-            f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a bad heuristic is used instead"
+            f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a heuristic is used instead"
         )
     # if we found at least one moduledata, use the start of the first one
     if first_start is not None:
@@ -241,7 +240,6 @@ class GoTypeKind(IntEnum):
 class GoTypeMeta:
     name: str
     kind: GoTypeKind
-    _: dataclasses.KW_ONLY
     size: int = 0
     align: int = 1
     direct_iface: bool = False
@@ -663,8 +661,8 @@ class StructType(Type):
         return self.sz
 
     def __str__(self) -> str:
-        body = "; ".join(f"{name}: {ty}" for (name, ty, _) in self.fields)
-        return f"struct {{{body}}}"
+        body = ";".join(f"{name}:{ty}" for (name, ty, _) in self.fields)
+        return f"struct{{{body}}}"
 
 
 _ident_first = set(string.ascii_letters + "_")
