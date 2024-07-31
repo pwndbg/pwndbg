@@ -54,9 +54,11 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def go_type(address: int | str) -> None:
     address = int(address)
-    meta, ty = pwndbg.gdblib.godbg.decode_runtime_type(address)
+    meta, ty = pwndbg.gdblib.godbg.decode_runtime_type(address, True)
     print(f" Name: {meta.name}")
     print(f" Kind: {meta.kind.name}")
     print(f" Size: {meta.size} ({meta.size:#x})")
     print(f"Align: {meta.align}")
     print(f"Parse: {ty}")
+    if ty:
+        print("\n".join(ty.additional_metadata()))

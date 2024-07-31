@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import dataclasses
 import string
 import struct
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
-from dataclasses import field
 from enum import IntEnum
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Set
 from typing import Tuple
 from typing import cast
 
@@ -76,7 +77,10 @@ def compute_named_offsets(fields: List[Tuple[str, int, int]]) -> Dict[str, int]:
     return ret
 
 
+@dataclass(order=True)
 class Type(ABC):
+    meta: GoTypeMeta | None
+
     @abstractmethod
     def dump(self, addr: int, fmt: str = "") -> str:
         """Dump a type from memory given an address and format."""
@@ -90,6 +94,44 @@ class Type(ABC):
         Used for computing array and struct layouts.
         """
         pass
+
+    @abstractmethod
+    def get_typename(self) -> str:
+        """
+        Returns the typename of a type. Should be reparsable via _parse_ty.
+
+        Also used to get the string representation.
+        """
+        pass
+
+    def is_cyclic(self) -> bool:
+        """
+        Checks if a type is cyclic (contains references to itself), e.g. type a []a
+        """
+
+        return _cyclic_helper(self, set())
+
+    def additional_metadata(self) -> List[str]:
+        """
+        Returns a list of lines of additional metadata to dump from the `go-type` command.
+        """
+        return []
+
+    def __str__(self) -> str:
+        return self.get_typename()
+
+
+def _cyclic_helper(val: Any, seen: Set[int]) -> bool:
+    if isinstance(val, Type):
+        k = id(val)
+        if k in seen:
+            return True
+        seen.add(k)
+        return any(_cyclic_helper(v, seen) for v in val.__dict__.values())
+    elif isinstance(val, (list, tuple)):
+        return any(_cyclic_helper(v, seen) for v in val)
+    else:
+        return False
 
 
 def load_uint(data: bytes) -> int:
@@ -240,12 +282,38 @@ class GoTypeKind(IntEnum):
 class GoTypeMeta:
     name: str
     kind: GoTypeKind
+    addr: int
     size: int = 0
     align: int = 1
     direct_iface: bool = False
 
 
-def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
+@dataclass
+class BackrefType(Type):
+    """
+    A temporary placeholder type used when dumping recursive types, e.g. type a []a
+
+    Should be resolved before returning anywhere.
+    """
+
+    key: int
+
+    def dump(self, addr: int, fmt: str = ""):
+        raise NotImplementedError(f"Cannot dump placeholder type {type(self).__name__}.")
+
+    def size(self) -> int:
+        raise NotImplementedError(
+            f"Cannot get size of placeholder type {type(self).__name__}. Perhaps the type is ill-formed? (e.g. struct that contains itself without indirection)"
+        )
+
+    def get_typename(self) -> str:
+        if self.meta:
+            return f"runtime({self.meta.size}){self.meta.addr:#x}"
+        else:
+            return "..."
+
+
+def decode_runtime_type(addr: int, keep_backrefs: bool = False) -> Tuple[GoTypeMeta, Type | None]:
     """
     Decodes a runtime reflection type from memory, returning a (meta, type) tuplee.
 
@@ -265,6 +333,44 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
         PtrToThis   TypeOff
     }
     """
+
+    cache: Dict[int, Tuple[GoTypeMeta, Type | None]] = {}
+    (meta, rec_ty) = _inner_decode_runtime_type(addr, cache)
+
+    if not keep_backrefs:
+        rec_ty = _remove_backrefs(rec_ty, cache)
+    return (meta, rec_ty)
+
+
+def _remove_backrefs(ty: Any, cache: Dict[int, Tuple[GoTypeMeta, Type | None]]) -> Any:
+    """
+    Helper function to replace all _BackrefType instances after the cache is fully resolved.
+
+    May mutate the argument.
+    """
+    if isinstance(ty, BackrefType):
+        return cache[ty.key][1]
+    elif isinstance(ty, Type):
+        d = ty.__dict__
+        for k, v in d.items():
+            d[k] = _remove_backrefs(v, cache)
+        return ty
+    elif isinstance(ty, (list, tuple)):
+        constructor = type(ty)
+        return constructor(_remove_backrefs(x, cache) for x in ty)
+    else:
+        return ty
+
+
+def _inner_decode_runtime_type(
+    addr: int, cache: Dict[int, Tuple[GoTypeMeta, Type | None]]
+) -> Tuple[GoTypeMeta, Type | None]:
+    """
+    Internal function for decode_runtime_type with a cache to avoid recursive types.
+    """
+
+    if addr in cache:
+        return cache[addr]
     word = word_size()
     offsets = compute_named_offsets(
         [
@@ -299,77 +405,90 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
     except ValueError:
         kind = GoTypeKind.INVALID
     if kind == GoTypeKind.INVALID:
-        return (GoTypeMeta(f"invalid type `{name}` at {addr:#x}", kind), None)
+        return (GoTypeMeta(f"invalid type `{name}` at {addr:#x}", kind, addr), None)
     # Go puts * in front of a lot of types for some reason, so get rid of them for non-pointers
     if name.startswith("*") and kind != GoTypeKind.POINTER:
         name = name.lstrip("*")
     size = load(offsets["Size_"], word)
     align = load(offsets["Align_"], 1)
-    meta = GoTypeMeta(name, kind, size=size, align=align, direct_iface=(kind_raw & (1 << 5)) != 0)
+    meta = GoTypeMeta(
+        name, kind, addr, size=size, align=align, direct_iface=(kind_raw & (1 << 5)) != 0
+    )
+    cache[addr] = (meta, BackrefType(meta, addr))
     simple_name = kind.get_simple_name()
-    if simple_name is not None:
-        return (meta, BasicType(simple_name))
-    if kind == GoTypeKind.ARRAY:
-        elem_ty_ptr = load(offsets["$size"], word)
-        arr_len = load(offsets["$size"] + word * 2, word)
-        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
-        # reserialize name to fix inconsistencies
-        meta.name = f"[{arr_len}]{elem_meta.name}"
-        return (meta, elem_ty and ArrayType(elem_ty, arr_len))
-    elif kind == GoTypeKind.INTERFACE:
-        methods_count = load(offsets["$size"] + word * 2, word)
-        if methods_count == 0:
-            return (meta, BasicType("any"))
+
+    def compute() -> Tuple[GoTypeMeta, Type | None]:
+        if simple_name is not None:
+            return (meta, BasicType(meta, simple_name))
+        elif kind == GoTypeKind.ARRAY:
+            elem_ty_ptr = load(offsets["$size"], word)
+            arr_len = load(offsets["$size"] + word * 2, word)
+            elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
+            # reserialize name to fix inconsistencies
+            meta.name = f"[{arr_len}]{elem_meta.name}"
+            return (meta, elem_ty and ArrayType(meta, elem_ty, arr_len))
+        elif kind == GoTypeKind.INTERFACE:
+            methods_count = load(offsets["$size"] + word * 2, word)
+            if methods_count == 0:
+                return (meta, BasicType(meta, "any"))
+            else:
+                return (meta, BasicType(meta, "interface"))
+        elif kind == GoTypeKind.MAP:
+            key_ty_ptr = load(offsets["$size"], word)
+            val_ty_ptr = load(offsets["$size"] + word, word)
+            key_meta, key_ty = _inner_decode_runtime_type(key_ty_ptr, cache)
+            if key_ty is None:
+                return (meta, None)
+            val_meta, val_ty = _inner_decode_runtime_type(val_ty_ptr, cache)
+            if val_ty is None:
+                return (meta, None)
+            # reserialize name to fix inconsistencies
+            meta.name = f"map[{key_meta.name}]{val_meta.name}"
+            # Go maps are actually pointers, but the map here is not
+            return (meta, PointerType(meta, MapType(meta, key_ty, val_ty)))
+        elif kind == GoTypeKind.POINTER:
+            elem_ty_ptr = load(offsets["$size"], word)
+            elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
+            # reserialize name to fix inconsistencies
+            meta.name = f"*{elem_meta.name}"
+            return (meta, elem_ty and PointerType(meta, elem_ty))
+        elif kind == GoTypeKind.SLICE:
+            elem_ty_ptr = load(offsets["$size"], word)
+            elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
+            # reserialize name to fix inconsistencies
+            meta.name = f"[]{elem_meta.name}"
+            return (meta, elem_ty and SliceType(meta, elem_ty))
+        elif kind == GoTypeKind.STRUCT:
+            fields_ptr = load(offsets["$size"] + word, word)
+            fields_count = load(offsets["$size"] + word * 2, word)
+            fields: List[Tuple[str, Type | str, int]] = []
+            for i in range(fields_count):
+                base = fields_ptr + i * word * 3
+                bfield_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
+                try:
+                    field_name = bfield_name.decode()
+                except UnicodeDecodeError:
+                    field_name = repr(bytes(bfield_name))
+                field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
+                field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word))
+                (field_meta, field_ty) = _inner_decode_runtime_type(field_ty_ptr, cache)
+                if field_ty is None:
+                    field_ty = field_meta.name
+                fields.append((field_name, field_ty, field_off))
+            fields.sort(key=lambda f: f[2])
+            sz = load(offsets["Size_"], word)
+            return (
+                meta,
+                StructType(meta, fields, sz, None if name.startswith("struct ") else name),
+            )
         else:
-            return (meta, BasicType("interface"))
-    elif kind == GoTypeKind.MAP:
-        key_ty_ptr = load(offsets["$size"], word)
-        val_ty_ptr = load(offsets["$size"] + word, word)
-        key_meta, key_ty = decode_runtime_type(key_ty_ptr)
-        if key_ty is None:
+            # currently channels and functions are unsupported
             return (meta, None)
-        val_meta, val_ty = decode_runtime_type(val_ty_ptr)
-        if val_ty is None:
-            return (meta, None)
-        # reserialize name to fix inconsistencies
-        meta.name = f"map[{key_meta.name}]{val_meta.name}"
-        # Go maps are actually pointers, but the map here is not
-        return (meta, PointerType(MapType(key_ty, val_ty)))
-    elif kind == GoTypeKind.POINTER:
-        elem_ty_ptr = load(offsets["$size"], word)
-        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
-        # reserialize name to fix inconsistencies
-        meta.name = f"*{elem_meta.name}"
-        return (meta, elem_ty and PointerType(elem_ty))
-    elif kind == GoTypeKind.SLICE:
-        elem_ty_ptr = load(offsets["$size"], word)
-        elem_meta, elem_ty = decode_runtime_type(elem_ty_ptr)
-        # reserialize name to fix inconsistencies
-        meta.name = f"[]{elem_meta.name}"
-        return (meta, elem_ty and SliceType(elem_ty))
-    elif kind == GoTypeKind.STRUCT:
-        fields_ptr = load(offsets["$size"] + word, word)
-        fields_count = load(offsets["$size"] + word * 2, word)
-        fields: List[Tuple[str, Type | str, int]] = []
-        for i in range(fields_count):
-            base = fields_ptr + i * word * 3
-            bfield_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
-            try:
-                field_name = bfield_name.decode()
-            except UnicodeDecodeError:
-                field_name = repr(bytes(bfield_name))
-            field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
-            field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word))
-            (field_meta, field_ty) = decode_runtime_type(field_ty_ptr)
-            if field_ty is None:
-                field_ty = field_meta.name
-            fields.append((field_name, field_ty, field_off))
-        fields.sort(key=lambda f: f[2])
-        sz = load(offsets["Size_"], word)
-        return (meta, StructType(fields, sz, None if name.startswith("struct ") else name))
-    else:
-        # currently channels and functions are unsupported
-        return (meta, None)
+
+    ret = compute()
+    if not isinstance(ret[1], BackrefType):
+        cache[addr] = ret
+    return ret
 
 
 @dataclass
@@ -382,7 +501,7 @@ class BasicType(Type):
     """
 
     name: str
-    sz: int = field(init=False)
+    sz: int = dataclasses.field(init=False)
 
     def dump(self, addr: int, fmt: str = "") -> str:
         val = pwndbg.gdblib.memory.read(addr, self.size())
@@ -445,7 +564,7 @@ class BasicType(Type):
     def size(self) -> int:
         return self.sz
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         return self.name
 
     def __post_init__(self) -> None:
@@ -497,8 +616,16 @@ class SliceType(Type):
     def size(self) -> int:
         return word_size() * 3
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         return f"[]{self.inner}"
+
+    def additional_metadata(self) -> List[str]:
+        if self.inner.meta:
+            return [
+                f"Elem type name: {self.inner.meta.name}",
+                f"Elem type addr: {self.inner.meta.addr:#x}",
+            ]
+        return []
 
 
 @dataclass
@@ -520,8 +647,16 @@ class PointerType(Type):
     def size(self) -> int:
         return word_size()
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         return f"*{self.inner}"
+
+    def additional_metadata(self) -> List[str]:
+        if self.inner.meta:
+            return [
+                f"Pointee type name: {self.inner.meta.name}",
+                f"Pointee type addr: {self.inner.meta.addr:#x}",
+            ]
+        return []
 
 
 @dataclass
@@ -545,8 +680,17 @@ class ArrayType(Type):
     def size(self) -> int:
         return self.inner.size() * self.count
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         return f"[{self.count}]{self.inner}"
+
+    def additional_metadata(self) -> List[str]:
+        if self.inner.meta:
+            return [
+                f"        Length: {self.count}",
+                f"Elem type name: {self.inner.meta.name}",
+                f"Elem type addr: {self.inner.meta.addr:#x}",
+            ]
+        return []
 
 
 @dataclass
@@ -644,8 +788,22 @@ class MapType(Type):
     def size(self) -> int:
         return self.field_offsets()["$size"]
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         return f"map[{self.key}]{self.val}"
+
+    def additional_metadata(self) -> List[str]:
+        ret = []
+        if self.key.meta:
+            ret += [
+                f"Key type name: {self.key.meta.name}",
+                f"Key type addr: {self.key.meta.addr:#x}",
+            ]
+        if self.val.meta:
+            ret += [
+                f"Val type name: {self.val.meta.name}",
+                f"Val type addr: {self.val.meta.addr:#x}",
+            ]
+        return ret
 
 
 @dataclass
@@ -675,27 +833,71 @@ class StructType(Type):
     def size(self) -> int:
         return self.sz
 
-    def __str__(self) -> str:
+    def get_typename(self) -> str:
         body = ";".join(
             f"{off}:{name}:{ty}" for (name, ty, off) in self.fields if not isinstance(ty, str)
         )
         return f"struct({self.sz}){{{body}}}"
 
+    def additional_metadata(self) -> List[str]:
+        ret = []
+        for name, ty, off in self.fields:
+            if isinstance(ty, str) or not ty.meta:
+                ret += [f"Field {name}:", f"    Offset: {off} ({off:#x})", f"    Type: {ty}"]
+            else:
+                ret += [
+                    f"Field {name}:",
+                    f"    Offset: {off} ({off:#x})",
+                    f"    Type name: {ty.meta.name}",
+                    f"    Type addr: {ty.meta.addr:#x}",
+                ]
+        return ret
+
+
+@dataclass
+class RuntimeType(Type):
+    """
+    A value of a runtime reflection type in Go, notated as runtime(SIZE)ADDRESS,
+    where SIZE is the size of the type's value in bytes,
+    and ADDRESS is the address of the type.
+
+    This type is useful for serializing cyclic types.
+    """
+
+    sz: int
+    addr: int
+
+    def dump(self, addr: int, fmt: str = "") -> str:
+        (meta, ty) = decode_runtime_type(self.addr)
+        if ty is not None:
+            return f"({meta.name}) {ty.dump(addr, fmt)}"
+        else:
+            return f"[error resolving type `{meta.name}` at {addr:#x}]"
+
+    def size(self) -> int:
+        return self.sz
+
+    def get_typename(self) -> str:
+        return f"runtime({self.sz}){self.addr:#x}"
+
 
 _ident_first = set(string.ascii_letters + "_")
 _ident_rest = _ident_first | set(string.digits)
 
+# x is included for parsing purposes
+hex_digits = set("0123456789abcdefABCDEFxX")
+
 
 def _parse_posint(ty: str) -> Tuple[int, str] | None:
-    if not ty or not ty[0].isdigit():
+    if not ty or ty[0] not in hex_digits:
         return None
     for i in range(1, len(ty)):
-        if not ty[i].isdigit():
+        if ty[i] not in hex_digits:
             break
     else:
         i = len(ty)
     try:
-        return (int(ty[:i]), ty[i:])
+        return (int(ty[:i], 0), ty[i:])
     except ValueError:
         return None
 
@@ -717,7 +919,7 @@ def _parse_basic_ty(ty: str) -> Tuple[BasicType, str] | None:
         return None
     (ident, rest) = parse
     try:
-        return (BasicType(ident), rest)
+        return (BasicType(None, ident), rest)
     except ValueError:
         if rest:
             return None
@@ -731,7 +933,7 @@ def _parse_slice_ty(ty: str) -> Tuple[SliceType, str] | None:
         return None
     if (inner := _parse_type(ty[2:])) is None:
         return None
-    return (SliceType(inner[0]), inner[1])
+    return (SliceType(None, inner[0]), inner[1])
 
 
 def _parse_pointer_ty(ty: str) -> Tuple[PointerType, str] | None:
@@ -739,7 +941,7 @@ def _parse_pointer_ty(ty: str) -> Tuple[PointerType, str] | None:
         return None
     if (inner := _parse_type(ty[1:])) is None:
         return None
-    return (PointerType(inner[0]), inner[1])
+    return (PointerType(None, inner[0]), inner[1])
 
 
 def _parse_array_ty(ty: str) -> Tuple[ArrayType, str] | None:
@@ -751,7 +953,7 @@ def _parse_array_ty(ty: str) -> Tuple[ArrayType, str] | None:
         return None
     if (inner := _parse_type(count[1][1:])) is None:
         return None
-    return (ArrayType(inner[0], count[0]), inner[1])
+    return (ArrayType(None, inner[0], count[0]), inner[1])
 
 
 def _parse_map_ty(ty: str) -> Tuple[MapType, str] | None:
@@ -763,14 +965,13 @@ def _parse_map_ty(ty: str) -> Tuple[MapType, str] | None:
         return None
     if (val := _parse_type(key[1][1:])) is None:
         return None
-    return (MapType(key[0], val[0]), val[1])
+    return (MapType(None, key[0], val[0]), val[1])
 
 
 def _parse_struct_ty(ty: str) -> Tuple[StructType, str] | None:
     if not ty.startswith("struct("):
         return None
-    size_parse = _parse_posint(ty[7:])
-    if size_parse is None:
+    if (size_parse := _parse_posint(ty[7:])) is None:
         return None
     (size, cur) = size_parse
     if not cur.startswith("){"):
@@ -780,34 +981,46 @@ def _parse_struct_ty(ty: str) -> Tuple[StructType, str] | None:
     is_first = True
     while cur:
         if cur.startswith("}"):
-            return (StructType(fields, size), cur[1:])
+            return (StructType(None, fields, size), cur[1:])
         if is_first:
             is_first = False
         elif not cur.startswith(";"):
             return None
         cur = cur.lstrip(";")
-        offset_parse = _parse_posint(cur)
-        if offset_parse is None:
+        if (offset_parse := _parse_posint(cur)) is None:
             return None
         (field_offset, cur) = offset_parse
         if not cur.startswith(":"):
             return None
-        name_parse = _parse_ident(cur[1:])
-        if name_parse is None:
+        if (name_parse := _parse_ident(cur[1:])) is None:
             return None
         (field_name, cur) = name_parse
         if not cur.startswith(":"):
             return None
-        type_parse = _parse_type(cur[1:])
-        if type_parse is None:
+        if (type_parse := _parse_type(cur[1:])) is None:
             return None
         (field_type, cur) = type_parse
         fields.append((field_name, field_type, field_offset))
     return None
 
 
+def _parse_runtime_ty(ty: str) -> Tuple[RuntimeType, str] | None:
+    if not ty.startswith("runtime("):
+        return None
+    if (size_parse := _parse_posint(ty[8:])) is None:
+        return None
+    (size, rest) = size_parse
+    if not rest.startswith(")"):
+        return None
+    if (addr_parse := _parse_posint(rest[1:])) is None:
+        return None
+    (addr, rest) = addr_parse
+    return (RuntimeType(None, size, addr), rest)
+
+
 def _parse_type(ty: str) -> Tuple[Type, str] | None:
     for f in [
+        _parse_runtime_ty,
         _parse_struct_ty,
         _parse_map_ty,
         _parse_array_ty,
