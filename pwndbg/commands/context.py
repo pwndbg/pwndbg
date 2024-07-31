@@ -763,7 +763,7 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
 
     if should_decompile:
         # Will be None if decompilation fails
-        code = pwndbg.integration.provider.decompile(pwndbg.gdblib.regs.pc, int(source_code_lines))
+        code = pwndbg.integration.provider.decompile(pwndbg.gdblib.regs.pc, int(source_disasm_lines))
 
         if code:
             bannerline = (
