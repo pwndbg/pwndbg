@@ -20,7 +20,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "address",
-    type=pwndbg.commands.sloppy_gdb_parse,
+    type=pwndbg.commands.AddressExpr,
     help="Address to dump",
 )
 parser.add_argument(
@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "address",
-    type=pwndbg.commands.sloppy_gdb_parse,
+    type=pwndbg.commands.AddressExpr,
     help="Address to dump",
 )
 
