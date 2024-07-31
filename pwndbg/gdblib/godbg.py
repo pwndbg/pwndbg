@@ -291,7 +291,7 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
         try:
             name = bname.decode()
         except UnicodeDecodeError:
-            name = repr(bname)
+            name = repr(bytes(bname))
     kind_raw = load(offsets["Kind_"], 1)
     # KindMask is set to (1 << 5) - 1
     try:
@@ -357,7 +357,7 @@ def decode_runtime_type(addr: int) -> Tuple[GoTypeMeta, Type | None]:
             try:
                 field_name = bfield_name.decode()
             except UnicodeDecodeError:
-                field_name = repr(bfield_name)
+                field_name = repr(bytes(bfield_name))
             field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
             field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word))
             (field_meta, field_ty) = decode_runtime_type(field_ty_ptr)
