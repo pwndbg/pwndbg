@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Callable
+from typing import Dict
+
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
 from typing_extensions import override
@@ -8,13 +11,41 @@ import pwndbg.gdblib.arch
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
+# Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
+ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
+    ARM_SFT_ASR: bit_math.arithmetic_shift_right,
+    ARM_SFT_LSL: bit_math.logical_shift_left,
+    ARM_SFT_LSR: bit_math.logical_shift_right,
+    ARM_SFT_ROR: bit_math.rotate_right,
+}
+
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+    def __init__(self, architecture: str) -> None:
+        super().__init__(architecture)
+
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # CMP
+            ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
+            # CMN
+            ARM_INS_CMN: self._common_cmp_annotator_builder("cpsr", "+"),
+            # TST (bitwise "and")
+            ARM_INS_TST: self._common_cmp_annotator_builder("cpsr", "&"),
+            # TEQ (bitwise exclusive "or")
+            ARM_INS_TEQ: self._common_cmp_annotator_builder("cpsr", "^"),
+        }
+
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        # Dispatch to the correct handler
+        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
@@ -88,6 +119,25 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _immediate_string(self, instruction, operand):
         return "#" + super()._immediate_string(instruction, operand)
+
+    @override
+    def _parse_register(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        """
+        Register operands can have optional shifts in Arm
+        """
+        target = super()._parse_register(instruction, op, emu)
+        if target is None:
+            return None
+
+        # Optionally apply shift to the index register
+        if op.cs_op.shift.type != 0:
+            target = ARM_BIT_SHIFT_MAP.get(op.cs_op.shift.type, lambda *a: None)(
+                target, op.cs_op.shift.value, 32
+            )
+
+        return target
 
 
 assistant = DisassemblyAssistant("arm")
