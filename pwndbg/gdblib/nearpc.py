@@ -17,7 +17,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.functions
 import pwndbg.ui
@@ -40,7 +40,9 @@ c = ColorConfig(
         ColorParamSpec("prefix", "none", "color for nearpc command (prefix marker)"),
         ColorParamSpec("syscall-name", "red", "color for nearpc command (resolved syscall name)"),
         ColorParamSpec("argument", "bold", "color for nearpc command (target argument)"),
-        ColorParamSpec("ida-anterior", "bold", "color for nearpc command (IDA anterior)"),
+        ColorParamSpec(
+            "integration-comments", "bold", "color for nearpc command (integration comments)"
+        ),
         ColorParamSpec("branch-marker", "normal", "color for nearpc command (branch marker line)"),
     ],
 )
@@ -59,6 +61,9 @@ nearpc_lines = pwndbg.config.add_param(
 )
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
+)
+show_comments = pwndbg.config.add_param(
+    "nearpc-integration-comments", True, "whether to show comments from integration provider"
 )
 show_opcode_bytes = pwndbg.config.add_param(
     "nearpc-num-opcode-bytes",
@@ -169,10 +174,6 @@ def nearpc(
         show_prefix = instr.address == pc and not repeat and i == index_of_pc
         prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
         prefix = c.prefix(prefix)
-
-        pre = pwndbg.ida.Anterior(instr.address)
-        if pre:
-            result.append(c.ida_anterior(pre))
 
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
@@ -294,6 +295,15 @@ def nearpc(
 
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
+
+        if show_comments:
+            # Pull comments from integration if possible
+            result += [
+                " "
+                * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
+                + c.integration_comments(x)
+                for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+            ]
 
         # For Comment Function
         try:

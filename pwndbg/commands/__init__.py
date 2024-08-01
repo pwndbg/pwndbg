@@ -693,6 +693,7 @@ def load_commands() -> None:
         import pwndbg.commands.attachp
         import pwndbg.commands.auxv
         import pwndbg.commands.binder
+        import pwndbg.commands.binja
         import pwndbg.commands.branch
         import pwndbg.commands.canary
         import pwndbg.commands.checksec
@@ -716,6 +717,7 @@ def load_commands() -> None:
         import pwndbg.commands.hexdump
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
+        import pwndbg.commands.integration
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.kbase
         import pwndbg.commands.kchecksec

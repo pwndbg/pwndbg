@@ -22,39 +22,12 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.nearpc import c as N
-
-ida_replacements = {
-    "__int64": "signed long long int",
-    "__int32": "signed int",
-    "__int16": "signed short",
-    "__int8": "signed char",
-    "__uint64": "unsigned long long int",
-    "__uint32": "unsigned int",
-    "__uint16": "unsigned short",
-    "__uint8": "unsigned char",
-    "_BOOL_1": "unsigned char",
-    "_BOOL_2": "unsigned short",
-    "_BOOL_4": "unsigned int",
-    "_BYTE": "unsigned char",
-    "_WORD": "unsigned short",
-    "_DWORD": "unsigned int",
-    "_QWORD": "unsigned long long",
-    "__pure": "",
-    "__hidden": "",
-    "__return_ptr": "",
-    "__struct_ptr": "",
-    "__array_ptr": "",
-    "__fastcall": "",
-    "__cdecl": "",
-    "__thiscall": "",
-    "__userpurge": "",
-}
 
 
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
@@ -124,18 +97,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     # Try to grab the data out of IDA
     if not func and target:
-        typename = pwndbg.ida.GetType(target)
-
-        if typename:
-            typename += ";"
-
-            # GetType() does not include the name.
-            typename = typename.replace("(", " function_name(", 1)
-
-            for k, v in ida_replacements.items():
-                typename = typename.replace(k, v)
-
-            func = pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
+        func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args

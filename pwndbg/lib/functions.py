@@ -4,17 +4,17 @@ from typing import List
 from typing import NamedTuple
 
 
-class Argument(NamedTuple):
-    type: str
-    derefcnt: int
-    name: str
-
-
 class Function(NamedTuple):
     type: str
     derefcnt: int
     name: str
     args: List[Argument]
+
+
+class Argument(NamedTuple):
+    type: str
+    derefcnt: int
+    name: str
 
 
 functions = {
