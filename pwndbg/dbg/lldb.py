@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import sys
 from typing import Any
 from typing import Callable
@@ -33,7 +32,6 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
     Determines the type code of a given LLDB SBType.
     """
     c = type.GetTypeCode()
-    f = type.GetTypeFlags()
 
     assert c != lldb.eTypeClassInvalid, "passed eTypeClassInvalid to map_type_code"
 
@@ -47,6 +45,8 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
         return pwndbg.dbg_mod.TypeCode.POINTER
     if c == lldb.eTypeClassArray:
         return pwndbg.dbg_mod.TypeCode.ARRAY
+
+    f = type.GetTypeFlags()
 
     if f & lldb.eTypeIsInteger != 0:
         return pwndbg.dbg_mod.TypeCode.INT
@@ -158,7 +158,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
     def type(self) -> pwndbg.dbg_mod.Type:
         assert not self.is_optimized_out, "tried to get type of optimized-out value"
 
-        return LLDBType(self.type)
+        return LLDBType(self.inner.type)
 
     @override
     def dereference(self) -> pwndbg.dbg_mod.Value:
@@ -177,7 +177,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         # Read strings up to 4GB.
         last_str = None
         buf = 256
-        for i in range(8, 33):
+        for i in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
             s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
                 raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")
@@ -203,9 +203,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         assert isinstance(type, LLDBType)
         t: LLDBType = type
 
-        return LLDBValue(self.inner.cast(t.inner))
-
-        return LLDBValue(self.inner.Cast(type.inner))
+        return LLDBValue(self.inner.Cast(t.inner))
 
 
 class LLDBProcess(pwndbg.dbg_mod.Process):
@@ -266,6 +264,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
 
+        # LLDB commands are classes. So we create a new class for every command
+        # that we want to register, which calls the handler we've been given.
         class CommandHandler:
             def __init__(self, debugger, _):
                 pass
@@ -281,10 +281,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
         # we've just created as a global value in its dictionary.
-        rand = round(random.random() * 0xFFFFFFFF) // 1
-        rand = f"{rand:08x}"
-
-        name = f"__{rand}_LLDB_COMMAND_{command_name}"
+        name = f"__LLDB_COMMAND_{command_name}"
         print(f"adding command {command_name}, under the path {self.module}.{name}")
 
         sys.modules[self.module].__dict__[name] = CommandHandler
