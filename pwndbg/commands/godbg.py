@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "ty",
     type=str,
-    help="Go type of value to dump, e.g. map[int]string",
+    help="Go type of value to dump, e.g. map[int]string, or the address of a type to resolve at runtime, e.g. 0x408860",
 )
 parser.add_argument(
     "address",
@@ -32,9 +32,15 @@ parser.add_argument(
     parser, category=CommandCategory.MEMORY, command_name="go-dump", aliases=["god"]
 )
 @pwndbg.commands.OnlyWhenRunning
-def go_dump(ty: str, address: int | str, fmt: str = "") -> None:
-    address = int(address)
-    parsed_ty = pwndbg.gdblib.godbg.parse_type(ty)
+def go_dump(ty: str, address: int, fmt: str = "") -> None:
+    try:
+        ty_addr = int(ty, 0)
+        (_, parsed_ty) = pwndbg.gdblib.godbg.decode_runtime_type(ty_addr)
+        if parsed_ty is None:
+            print("Failed to decode runtime type.")
+            return
+    except ValueError:
+        parsed_ty = pwndbg.gdblib.godbg.parse_type(ty)
     print(parsed_ty.dump(address, fmt))
 
 
@@ -52,8 +58,7 @@ parser.add_argument(
     parser, category=CommandCategory.MEMORY, command_name="go-type", aliases=["goty"]
 )
 @pwndbg.commands.OnlyWhenRunning
-def go_type(address: int | str) -> None:
-    address = int(address)
+def go_type(address: int) -> None:
     meta, ty = pwndbg.gdblib.godbg.decode_runtime_type(address, True)
     print(f" Name: {meta.name}")
     print(f" Kind: {meta.kind.name}")
