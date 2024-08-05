@@ -23,8 +23,27 @@ parser.add_argument(
     type=pwndbg.commands.AddressExpr,
     help="Address to dump",
 )
+parser.add_argument("-x", "--hex", action="store_true", help="Display non-pointer integers as hex")
 parser.add_argument(
-    "fmt", type=str, nargs="?", default="", help="Python format to format values with, e.g. <04x"
+    "-f",
+    "--decimals",
+    nargs="?",
+    type=int,
+    help="Configures the number of decimal places to display for floating points",
+)
+
+parser.add_argument(
+    "-d",
+    "--debug",
+    action="store_true",
+    help="Shows debug info, like addresses for slice/map elements, slice capacity, etc.",
+)
+
+parser.add_argument(
+    "-p",
+    "--pretty",
+    action="store_true",
+    help="Enables pretty printing",
 )
 
 
@@ -32,7 +51,9 @@ parser.add_argument(
     parser, category=CommandCategory.MEMORY, command_name="go-dump", aliases=["god"]
 )
 @pwndbg.commands.OnlyWhenRunning
-def go_dump(ty: str, address: int, fmt: str = "") -> None:
+def go_dump(
+    ty: str, address: int, hex: bool, decimals: int | None, debug: bool, pretty: bool
+) -> None:
     try:
         ty_addr = int(ty, 0)
         (_, parsed_ty) = pwndbg.gdblib.godbg.decode_runtime_type(ty_addr)
@@ -41,6 +62,9 @@ def go_dump(ty: str, address: int, fmt: str = "") -> None:
             return
     except ValueError:
         parsed_ty = pwndbg.gdblib.godbg.parse_type(ty)
+    fmt = pwndbg.gdblib.godbg.FormatOpts(
+        int_hex=hex, float_decimals=decimals, debug=debug, pretty=pretty
+    )
     print(parsed_ty.dump(address, fmt))
 
 

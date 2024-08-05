@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import string
 import struct
+import textwrap
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Set
 from typing import Tuple
@@ -16,6 +19,7 @@ from typing import cast
 
 import gdb
 
+import pwndbg
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
@@ -24,7 +28,24 @@ import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.hexdump
 import pwndbg.lib.cache
+from pwndbg.color import generateColorFunction
 from pwndbg.color import message
+from pwndbg.color import theme
+
+line_width = pwndbg.config.add_param(
+    "go-dump-line-width", 80, "the soft line width for go-dump pretty printing"
+)
+indent_amount = pwndbg.config.add_param(
+    "go-dump-indent-amount", 4, "the indent amount for go-dump pretty printing"
+)
+
+debug_color = theme.add_color_param(
+    "go-dump-debug", "blue", "color for 'go-dump' command's debug info when --debug is specified"
+)
+
+
+def style_debug(x: object) -> str:
+    return generateColorFunction(debug_color)(x)
 
 
 @pwndbg.lib.cache.cache_until("start", "stop", "objfile")
@@ -44,7 +65,7 @@ def _align(offset: int, n: int) -> int:
     return ret - ret % n
 
 
-def compute_offsets(fields: List[Tuple[int, int]]) -> List[int]:
+def compute_offsets(fields: Iterable[Tuple[int, int]]) -> List[int]:
     """
     Given a list of (size, alignment) for struct field types,
     returns a list of field offsets for the struct.
@@ -65,7 +86,7 @@ def compute_offsets(fields: List[Tuple[int, int]]) -> List[int]:
     return ret
 
 
-def compute_named_offsets(fields: List[Tuple[str, int, int]]) -> Dict[str, int]:
+def compute_named_offsets(fields: Iterable[Tuple[str, int, int]]) -> Dict[str, int]:
     """
     Like compute_offsets, but takes in field names and returns a dictionary
     mapping field name to offset instead.
@@ -77,12 +98,41 @@ def compute_named_offsets(fields: List[Tuple[str, int, int]]) -> Dict[str, int]:
     return ret
 
 
-@dataclass(order=True)
+@dataclass(frozen=True)
+class FormatOpts:
+    int_hex: bool = False
+    debug: bool = False
+    pretty: bool = False
+    float_decimals: int | None = None
+
+    def fmt_int(self, val: int) -> str:
+        if self.int_hex:
+            return hex(val)
+        else:
+            return str(val)
+
+    def fmt_float(self, val: float) -> str:
+        if self.float_decimals is not None:
+            return format(val, f".{self.float_decimals}f")
+        else:
+            return str(val)
+
+    def fmt_str(self, val: str) -> str:
+        return json.dumps(val)
+
+    def fmt_bytes(self, val: bytes) -> str:
+        try:
+            return self.fmt_str(val.decode("utf8"))
+        except UnicodeDecodeError:
+            return repr(bytes(val))
+
+
+@dataclass
 class Type(ABC):
     meta: GoTypeMeta | None
 
     @abstractmethod
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         """Dump a type from memory given an address and format."""
         pass
 
@@ -153,13 +203,6 @@ def load_float(data: bytes) -> float:
     if len(data) == 8:
         return struct.unpack(endian + "d", data)[0]
     raise ValueError("Invalid float length")
-
-
-def _try_format(val: Any, fmt: str):
-    try:
-        return format(val, fmt)
-    except ValueError:
-        return format(val)
 
 
 # only warn with a given message once per execution
@@ -292,13 +335,11 @@ class GoTypeMeta:
 class BackrefType(Type):
     """
     A temporary placeholder type used when dumping recursive types, e.g. type a []a
-
-    Should be resolved before returning anywhere.
     """
 
     key: int
 
-    def dump(self, addr: int, fmt: str = ""):
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()):
         raise NotImplementedError(f"Cannot dump placeholder type {type(self).__name__}.")
 
     def size(self) -> int:
@@ -491,6 +532,18 @@ def _inner_decode_runtime_type(
     return ret
 
 
+def _indent(s: str) -> str:
+    return textwrap.indent(s, " " * int(indent_amount))
+
+
+def _comma_join(elems: Iterable[str], pretty: bool) -> str:
+    joined = ", ".join(elems)
+    if not pretty or len(joined) <= int(line_width):
+        return joined
+    joined = ",\n".join(elems)
+    return f"\n{_indent(joined)}\n"
+
+
 @dataclass
 class BasicType(Type):
     """
@@ -503,7 +556,7 @@ class BasicType(Type):
     name: str
     sz: int = dataclasses.field(init=False)
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         val = pwndbg.gdblib.memory.read(addr, self.size())
         ty = self.name
         if ty == "byte":
@@ -525,27 +578,37 @@ class BasicType(Type):
             data_ptr = addr + word
             if not meta.direct_iface:
                 data_ptr = load_uint(pwndbg.gdblib.memory.read(data_ptr, word))
+            prefix = ""
+            if fmt.debug:
+                prefix = style_debug(f"(ty @ {ty_ptr:#x}, data @ {data_ptr:#x}) ")
             if data_ptr == 0:
-                return f"({meta.name}) nil"
+                return f"{prefix}({meta.name}) nil"
             if parsed_inner is not None:
-                dump = parsed_inner.dump(data_ptr)
-                return f"({meta.name}) {dump}"
-            return f"({meta.name}) at {data_ptr:#x}"
+                dump = parsed_inner.dump(data_ptr, fmt)
+                return f"{prefix}({meta.name}) {dump}"
+            return f"{prefix}({meta.name}) at {data_ptr:#x}"
         if ty == "bool":
             return "true" if val != b"\x00" else "false"
-        if ty.startswith("int"):
-            n = load_int(val)
-            return _try_format(n, fmt)
-        if ty.startswith("uint"):
-            n = load_uint(val)
-            return _try_format(n, fmt)
+        if ty.startswith("int") or ty.startswith("uint"):
+            if ty.startswith("int"):
+                n = load_int(val)
+            else:
+                n = load_uint(val)
+            if ty.endswith("ptr"):
+                fmt = dataclasses.replace(fmt, int_hex=True)
+            return fmt.fmt_int(n)
         if ty.startswith("float"):
-            return _try_format(load_float(val), fmt)
+            return fmt.fmt_float(load_float(val))
         if ty.startswith("complex"):
             word = len(val) // 2
-            real = _try_format(load_float(val[:word]), fmt)
-            im = _try_format(load_float(val[word:]), fmt)
-            return f"({real} + {im}i)"
+            real = fmt.fmt_float(load_float(val[:word]))
+            im_val = load_float(val[word:])
+            sign = "+"
+            if im_val < 0:
+                sign = "-"
+                im_val = -im_val
+            im = fmt.fmt_float(im_val)
+            return f"({real} {sign} {im}i)"
         if ty == "string":
             word = word_size()
             ptr = load_uint(val[:word])
@@ -555,10 +618,10 @@ class BasicType(Type):
                 data = b""
             else:
                 data = pwndbg.gdblib.memory.read(ptr, strlen)
-            try:
-                return repr(data.decode("utf8"))
-            except UnicodeDecodeError:
-                return repr(bytes(data))
+            prefix = ""
+            if fmt.debug:
+                prefix = style_debug(f"(str @ {ptr:#x}, len = {strlen}) ")
+            return prefix + fmt.fmt_bytes(data)
         raise ValueError(f"Could not dump type {ty}.")
 
     def size(self) -> int:
@@ -601,17 +664,23 @@ class SliceType(Type):
 
     inner: Type
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         word = word_size()
         val = pwndbg.gdblib.memory.read(addr, word * 3)
         ptr = load_uint(val[:word])
         slice_len = load_uint(val[word : word * 2])
-        cap = load_uint(val[word * 2 :])
         ret = []
         for _ in range(slice_len):
-            ret.append(self.inner.dump(ptr, fmt))
+            prefix = ""
+            if fmt.debug:
+                prefix = style_debug(f"(elem @ {ptr:#x}) ")
+            ret.append(prefix + self.inner.dump(ptr, fmt))
             ptr += self.inner.size()
-        return f"(cap={cap}) [{', '.join(ret)}]"
+        prefix = ""
+        if fmt.debug:
+            cap = load_uint(val[word * 2 :])
+            prefix = style_debug(f"(cap = {cap}) ")
+        return f"{prefix}[{_comma_join(ret, fmt.pretty)}]"
 
     def size(self) -> int:
         return word_size() * 3
@@ -636,13 +705,16 @@ class PointerType(Type):
 
     inner: Type
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         word = word_size()
         ptr = load_uint(pwndbg.gdblib.memory.read(addr, word))
         if ptr == 0:
             return "nil"
         inner = self.inner.dump(ptr, fmt)
-        return f"&{inner}"
+        prefix = ""
+        if fmt.debug:
+            prefix = style_debug(f"(val @ {ptr:#x}) ")
+        return f"{prefix}&{inner}"
 
     def size(self) -> int:
         return word_size()
@@ -651,6 +723,10 @@ class PointerType(Type):
         return f"*{self.inner}"
 
     def additional_metadata(self) -> List[str]:
+        if isinstance(self.inner, MapType):
+            info = self.inner.additional_metadata()
+            if info:
+                return info
         if self.inner.meta:
             return [
                 f"Pointee type name: {self.inner.meta.name}",
@@ -670,12 +746,15 @@ class ArrayType(Type):
     inner: Type
     count: int
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         ret = []
         for _ in range(self.count):
-            ret.append(self.inner.dump(addr, fmt))
+            prefix = ""
+            if fmt.debug:
+                prefix = style_debug(f"(elem @ {addr:#x}) ")
+            ret.append(prefix + self.inner.dump(addr, fmt))
             addr += self.inner.size()
-        return f"[{', '.join(ret)}]"
+        return f"[{_comma_join(ret, fmt.pretty)}]"
 
     def size(self) -> int:
         return self.inner.size() * self.count
@@ -740,7 +819,7 @@ class MapType(Type):
         )
         return offsets
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         bucket_count = 8  # taken from src/internal/abi/map.go commit 1b4f1dc
         word = word_size()
         offsets = self.field_offsets()
@@ -774,16 +853,24 @@ class MapType(Type):
                 bucket = pwndbg.gdblib.memory.read(bucket_ptr, bucket_size)
                 for j in range(bucket_count):
                     if bucket[tophash_start + j] > 1:  # !isEmpty(bucket.tophash[j])
-                        k = self.key.dump(bucket_ptr + keys_start + j * keysize, fmt)
-                        v = self.val.dump(bucket_ptr + vals_start + j * valsize, fmt)
-                        ret.append((k, v))
+                        key_ptr = bucket_ptr + keys_start + j * keysize
+                        val_ptr = bucket_ptr + vals_start + j * valsize
+                        k = self.key.dump(key_ptr, fmt)
+                        v = self.val.dump(val_ptr, fmt)
+                        ret.append((key_ptr, val_ptr, k, v))
                 bucket_ptr = load_uint(bucket[overflow_start : overflow_start + word])
+        # sort map by key, using integer comparison if possible
         try:
-            ret.sort(key=lambda t: int(t[0], 0))
+            ret.sort(key=lambda t: int(t[2], 0))
         except ValueError:
-            ret.sort(key=lambda t: t[0])
-        entries = ", ".join(f"{k}: {v}" for (k, v) in ret)
-        return f"{{{entries}}}"
+            ret.sort(key=lambda t: t[2])
+        formatted = []
+        for kp, vp, k, v in ret:
+            prefix = ""
+            if fmt.debug:
+                prefix = style_debug(f"(key @ {kp:#x}, val @ {vp:#x}) ")
+            formatted.append(f"{prefix}{k}: {v}")
+        return f"{{{_comma_join(formatted, fmt.pretty)}}}"
 
     def size(self) -> int:
         return self.field_offsets()["$size"]
@@ -818,15 +905,18 @@ class StructType(Type):
     sz: int
     name: str | None = None
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         vals = []
         for name, ty, off in self.fields:
             base = addr + off
             if isinstance(ty, str):
-                vals.append((name, f"({ty}) at {base:#x}"))
+                vals.append((name, f"({ty}) @ {base:#x}"))
             else:
-                vals.append((name, ty.dump(base, fmt)))
-        body = ", ".join(f"{name}: {val}" for (name, val) in vals)
+                prefix = ""
+                if fmt.debug:
+                    prefix = style_debug(f"(field @ {base:#x}) ")
+                vals.append((prefix + name, ty.dump(base, fmt)))
+        body = _comma_join((f"{name}: {val}" for (name, val) in vals), fmt.pretty)
         name = self.name or "struct"
         return f"{name} {{{body}}}"
 
@@ -867,7 +957,7 @@ class RuntimeType(Type):
     sz: int
     addr: int
 
-    def dump(self, addr: int, fmt: str = "") -> str:
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         (meta, ty) = decode_runtime_type(self.addr)
         if ty is not None:
             return f"({meta.name}) {ty.dump(addr, fmt)}"
