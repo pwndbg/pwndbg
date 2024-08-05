@@ -9,7 +9,6 @@ from capstone.x86 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.chain
-import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.enhance
@@ -65,9 +64,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # SUB
             X86_INS_SUB: self.handle_sub,
             # CMP
-            X86_INS_CMP: self.handle_cmp,
+            X86_INS_CMP: self._common_cmp_annotator_builder("eflags", "-"),
             # TEST
-            X86_INS_TEST: self.handle_test,
+            X86_INS_TEST: self._common_cmp_annotator_builder("eflags", "&"),
             # XOR
             X86_INS_XOR: self.handle_xor,
             # AND
@@ -238,33 +237,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def handle_sub(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Same output as addition, showing the result
         self.handle_add_sub_handler(instruction, emu, "-")
-
-    # Only difference is one character. - for cmp, & for test
-    def handle_cmp_test_handler(
-        self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str
-    ) -> None:
-        # cmp with memory, register, and intermediate operands can be used in many combinations
-        # This function handles all combinations
-        left, right = instruction.operands
-
-        if left.before_value_resolved is not None and right.before_value_resolved is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                left.before_value_resolved, right.before_value_resolved
-            )
-            instruction.annotation = f"{print_left} {char_to_separate_operands} {print_right}"
-
-            if emu:
-                eflags_bits = pwndbg.gdblib.regs.flags["eflags"]
-                emu_eflags = emu.read_register("eflags")
-                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
-
-                instruction.annotation += " " * 5 + f"EFLAGS => {eflags_formatted}"
-
-    def handle_cmp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        self.handle_cmp_test_handler(instruction, emu, "-")
-
-    def handle_test(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        self.handle_cmp_test_handler(instruction, emu, "&")
 
     def handle_xor(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands

@@ -11,6 +11,7 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.syntax_highlight as H
+import pwndbg.enhance
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.symbol
@@ -754,6 +755,51 @@ class DisassemblyAssistant:
                 return
 
             instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
+    def _common_cmp_annotator_builder(
+        self, flags_register_name: str, char_to_separate_operands: str = "-"
+    ) -> Callable[[PwndbgInstruction, Emulator], None]:
+        """
+        Many architectures implement near-identical `CMP`-like instructions.
+
+        It takes two values, either subtracts, adds, or does some bit operation
+        with them to set values in the flag register.
+
+        To reduce code duplication, subclasses can use this function to create an annotator for CMP-like instructions.
+        """
+        FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
+
+        def handler(instruction: PwndbgInstruction, emu: Emulator):
+            # If there are just two operands, we can assume we are comparing them directly, and can display the values.
+            # Some architectures have variants with more operands.
+            if len(instruction.operands) == 2:
+                left, right = instruction.operands
+
+                if (l_value := left.before_value_resolved) is not None and (
+                    r_value := right.before_value_resolved
+                ) is not None:
+                    print_left, print_right = pwndbg.enhance.format_small_int_pair(l_value, r_value)
+                    # Ex: "0x7f - 0x12" or "0xdffffdea + 0x8"
+                    instruction.annotation = (
+                        f"{print_left} {char_to_separate_operands} {print_right}"
+                    )
+
+            # Using emulation, we can determine the resulting value put into the flag register
+            if emu:
+                eflags_bits = pwndbg.gdblib.regs.flags[flags_register_name]
+                emu_eflags = emu.read_register(flags_register_name)
+                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
+
+                display_result = f"{FLAG_REG_NAME_DISPLAY} => {eflags_formatted}"
+
+                if instruction.annotation is None:
+                    # First part of this function usually sets .annotation to a string. But if the instruction
+                    # has more than two operands, then we don't have a way of showing them, so this avoids the "+="" below
+                    instruction.annotation = display_result
+                else:
+                    instruction.annotation += " " * 5 + display_result
+
+        return handler
 
 
 generic_assistant = DisassemblyAssistant(None)

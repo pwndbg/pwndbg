@@ -129,6 +129,16 @@ def colorize(x: str, color: str) -> str:
     return color + terminateWith(str(x), color) + NORMAL
 
 
+# Taken from https://stackoverflow.com/a/14693789
+ansi_escape_8bit = re.compile(
+    r"(?:\x1B[@-Z\\-_]|[\x80-\x9A\x9C-\x9F]|(?:\x1B\[|\x9B)[0-?]*[ -/]*[@-~])"
+)
+
+
+def unstylize(x: str) -> str:
+    return ansi_escape_8bit.sub("", x)
+
+
 disable_colors = theme.add_param(
     "disable-colors",
     bool(os.environ.get("PWNDBG_DISABLE_COLORS")),

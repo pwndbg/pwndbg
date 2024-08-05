@@ -47,6 +47,7 @@ def initial_hook(*a: Any) -> None:
 
 
 context_shown = False
+last_alive_state = False
 
 
 def show_hint() -> None:
@@ -69,7 +70,7 @@ def show_hint() -> None:
 
 
 def prompt_hook(*a: Any) -> None:
-    global cur, context_shown
+    global cur, context_shown, last_alive_state
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
@@ -80,6 +81,11 @@ def prompt_hook(*a: Any) -> None:
     if pwndbg.gdblib.proc.alive and pwndbg.gdblib.proc.thread_is_stopped and not context_shown:
         pwndbg.commands.context.context()
         context_shown = True
+
+    # set prompt again when alive state changes
+    if last_alive_state != pwndbg.gdblib.proc.alive:
+        last_alive_state = pwndbg.gdblib.proc.alive
+        set_prompt()
 
 
 @pwndbg.gdblib.events.cont
@@ -94,7 +100,10 @@ def set_prompt() -> None:
 
     if not disable_colors:
         prompt = "\x02" + prompt + "\x01"  # STX + prompt + SOH
-        prompt = message.prompt(prompt)
+        if pwndbg.gdblib.proc.alive:
+            prompt = message.alive_prompt(prompt)
+        else:
+            prompt = message.prompt(prompt)
         prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
 
     gdb.execute(f"set prompt {prompt}")

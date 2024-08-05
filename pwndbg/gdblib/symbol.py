@@ -22,7 +22,7 @@ import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
 import pwndbg.gdblib.stack
 import pwndbg.gdblib.vmmap
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.lib.cache
 
 # Symbol lookup only throws exceptions on errors, not if it failed to
@@ -82,7 +82,7 @@ if "/usr/lib/debug" not in _get_debug_file_directory():
 @pwndbg.lib.cache.cache_until("objfile")
 def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
     """
-    Retrieve the name for the symbol located at `address` - either from GDB or from IDA sync
+    Retrieve the name for the symbol located at `address` - either from GDB or from integration provider
     Passing `gdb_only=True`
 
     Empty string if no symbol
@@ -104,12 +104,7 @@ def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
 
     if not gdb_only and result.startswith("No symbol"):
         address = int(address)
-        exe = pwndbg.gdblib.elf.exe()
-        if exe:
-            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
-            if exe_map and address in exe_map:
-                res = pwndbg.ida.Name(address) or pwndbg.ida.GetFuncOffset(address)
-                return res or ""
+        return pwndbg.integration.provider.get_symbol(address) or ""
 
     # If there are newlines, which means that there are multiple symbols for the address
     # then use the first one (see also #1610)

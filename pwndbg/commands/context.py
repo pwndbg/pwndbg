@@ -30,7 +30,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -740,6 +740,13 @@ def get_filename_and_formatted_source():
     return filename, formatted_source
 
 
+should_decompile = pwndbg.config.add_param(
+    "context-integration-decompile",
+    True,
+    "whether context should fall back to decompilation with no source code",
+)
+
+
 def context_code(target=sys.stdout, with_banner=True, width=None):
     filename, formatted_source = get_filename_and_formatted_source()
 
@@ -754,23 +761,19 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
             + formatted_source
         )
 
-    # Try getting source from IDA Pro Hex-Rays Decompiler
-    if not pwndbg.ida.available():
-        return []
-
-    n = int(int(int(source_disasm_lines) / 2))  # int twice to make it a real int instead of inthook
-    # May be None when decompilation failed or user loaded wrong binary in IDA
-    code = pwndbg.ida.decompile_context(pwndbg.gdblib.regs.pc, n)
-
-    if code:
-        bannerline = (
-            [pwndbg.ui.banner("Hexrays pseudocode", target=target, width=width)]
-            if with_banner
-            else []
+    if should_decompile:
+        # Will be None if decompilation fails
+        code = pwndbg.integration.provider.decompile(
+            pwndbg.gdblib.regs.pc, int(source_disasm_lines)
         )
-        return bannerline + code.splitlines()
-    else:
-        return []
+
+        if code:
+            bannerline = (
+                [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
+            )
+            return bannerline + code
+        else:
+            return []
 
 
 stack_lines = pwndbg.config.add_param(

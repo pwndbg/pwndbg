@@ -17,6 +17,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import TypeVar
 
 import gdb
@@ -30,12 +31,14 @@ import pwndbg.gdblib.elf
 import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+import pwndbg.integration
 import pwndbg.lib.cache
+import pwndbg.lib.funcparser
 from pwndbg.color import message
+from pwndbg.lib.functions import Function
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
-ida_enabled = pwndbg.config.add_param("ida-enabled", False, "whether to enable ida integration")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
@@ -54,11 +57,11 @@ T = TypeVar("T")
 
 
 @pwndbg.decorators.only_after_first_prompt()
-@pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, ida_enabled, ida_timeout)
+@pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, pwndbg.integration.provider_name, ida_timeout)
 def init_ida_rpc_client() -> None:
     global _ida, _ida_last_exception, _ida_last_connection_check
 
-    if not ida_enabled:
+    if pwndbg.integration.provider_name.value != "ida":
         return
 
     now = time.time()
@@ -163,7 +166,7 @@ def returns_address(function: Callable[P, int]) -> Callable[P, int]:
 
 @pwndbg.lib.cache.cache_until("stop")
 def available() -> bool:
-    if not ida_enabled:
+    if pwndbg.integration.provider_name.value != "ida":
         return False
     return can_connect()
 
@@ -508,3 +511,93 @@ def print_structs() -> None:
         while offset < size:
             print_member(sid, offset)
             offset = GetStrucNextOff(sid, offset)
+
+
+ida_replacements = {
+    "__int64": "signed long long int",
+    "__int32": "signed int",
+    "__int16": "signed short",
+    "__int8": "signed char",
+    "__uint64": "unsigned long long int",
+    "__uint32": "unsigned int",
+    "__uint16": "unsigned short",
+    "__uint8": "unsigned char",
+    "_BOOL_1": "unsigned char",
+    "_BOOL_2": "unsigned short",
+    "_BOOL_4": "unsigned int",
+    "_BYTE": "unsigned char",
+    "_WORD": "unsigned short",
+    "_DWORD": "unsigned int",
+    "_QWORD": "unsigned long long",
+    "__pure": "",
+    "__hidden": "",
+    "__return_ptr": "",
+    "__struct_ptr": "",
+    "__array_ptr": "",
+    "__fastcall": "",
+    "__cdecl": "",
+    "__thiscall": "",
+    "__userpurge": "",
+}
+
+
+class IdaProvider(pwndbg.integration.IntegrationProvider):
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_symbol(self, addr: int) -> str | None:
+        exe = pwndbg.gdblib.elf.exe()
+        if exe:
+            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
+            if exe_map and addr in exe_map:
+                return Name(addr) or GetFuncOffset(addr) or None
+        return None
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_versions(self) -> Tuple[str, ...]:
+        ida_versions = get_ida_versions()
+
+        if ida_versions is not None:
+            ida_version = f"IDA PRO:  {ida_versions['ida']}"
+            ida_py_ver = f"IDA Py:   {ida_versions['python']}"
+            ida_hr_ver = f"Hexrays:  {ida_versions['hexrays']}"
+            return (ida_version, ida_py_ver, ida_hr_ver)
+        return ()
+
+    @pwndbg.decorators.suppress_errors(fallback=True)
+    @withIDA
+    def is_in_function(self, addr: int) -> bool:
+        return available() and bool(GetFunctionName(addr))
+
+    @pwndbg.decorators.suppress_errors(fallback=[])
+    @withIDA
+    def get_comment_lines(self, addr: int) -> List[str]:
+        pre = Anterior(addr)
+        return pre.decode().split("\n") if pre else []
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def decompile(self, addr: int, lines: int) -> List[str] | None:
+        code = decompile_context(addr, lines // 2)
+        if code:
+            return code.splitlines()
+        else:
+            return None
+
+    @pwndbg.decorators.suppress_errors()
+    @withIDA
+    def get_func_type(self, addr: int) -> Function | None:
+        typename: str = GetType(addr)
+
+        if typename:
+            typename += ";"
+
+            # GetType() does not include the name.
+            typename = typename.replace("(", " function_name(", 1)
+
+            for k, v in ida_replacements.items():
+                typename = typename.replace(k, v)
+
+            return pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
+
+        return None

@@ -6,6 +6,7 @@ import gdb
 
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
+import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -34,6 +35,12 @@ def get_address_and_symbol(address: int) -> str:
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         symbol = f"{address:#x} ({symbol})"
+    else:
+        page = pwndbg.gdblib.vmmap.find(address)
+        if page and "[stack" in page.objfile:
+            var = pwndbg.integration.provider.get_stack_var_name(address)
+            if var:
+                symbol = f"{address:#x} {{{var}}}"
     return get(address, symbol)
 
 
@@ -51,6 +58,12 @@ def attempt_colorized_symbol(address: int) -> str | None:
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         return get(address, symbol)
+    else:
+        page = pwndbg.gdblib.vmmap.find(address)
+        if page and "[stack" in page.objfile:
+            var = pwndbg.integration.provider.get_stack_var_name(address)
+            if var:
+                return get(address, f"{{{var}}}")
     return None
 
 

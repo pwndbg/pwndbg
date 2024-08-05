@@ -3,13 +3,15 @@ from __future__ import annotations
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 from pycparser import CParser  # type: ignore # noqa: PGH003
 from pycparser import c_ast
+
+from pwndbg.lib.functions import Argument
+from pwndbg.lib.functions import Function
 
 CAstNode = Union[
     c_ast.EllipsisParam,
@@ -49,19 +51,6 @@ def extractTypeAndName(
 
     name = t.declname or defaultName or ""
     return typename.lstrip("_"), d, name.lstrip("_")
-
-
-class Function(NamedTuple):
-    type: str
-    derefcnt: int
-    name: str
-    args: List[Argument]
-
-
-class Argument(NamedTuple):
-    type: str
-    derefcnt: int
-    name: str
 
 
 def Stringify(X: Function | Argument) -> str:

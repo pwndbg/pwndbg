@@ -9,6 +9,7 @@ from typing import TypeVar
 
 import gdb
 from typing_extensions import Callable
+from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
@@ -452,9 +453,36 @@ class GDB(pwndbg.dbg_mod.Debugger):
             pass
         return None
 
+    def commands(self):
+        current_pagination = gdb.execute("show pagination", to_string=True)
+        current_pagination = current_pagination.split()[-1].rstrip(
+            "."
+        )  # Take last word and skip period
+
+        gdb.execute("set pagination off")
+        command_list = gdb.execute("help all", to_string=True).strip().split("\n")
+        existing_commands: Set[str] = set()
+        for line in command_list:
+            line = line.strip()
+            # Skip non-command entries
+            if (
+                not line
+                or line.startswith("Command class:")
+                or line.startswith("Unclassified commands")
+            ):
+                continue
+            command = line.split()[0]
+            existing_commands.add(command)
+        gdb.execute(f"set pagination {current_pagination}")  # Restore original setting
+        return existing_commands
+
     @override
     def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
         return GDBProcess(gdb.selected_inferior())
+
+    @override
+    def is_gdblib_available(self):
+        return True
 
     @override
     def addrsz(self, address: Any) -> str:
