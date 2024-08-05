@@ -54,17 +54,6 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STREX: 4,
 }
 
-# TODO: populate these with the real values
-# Note: this map does not contain all the Arm32 shift types, just the ones relevent to memory operations
-ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
-    ARM_SFT_ASR: bit_math.arithmetic_shift_right,
-    ARM_SFT_LSL: bit_math.logical_shift_left,
-    ARM_SFT_LSR: bit_math.logical_shift_right,
-    ARM_SFT_ROR: bit_math.rotate_right,
-    ARM_SFT_RRX: lambda *x: 0,  # TODO: this is rotate right with CPSR bit
-}
-
-
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)

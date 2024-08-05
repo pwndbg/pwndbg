@@ -133,30 +133,6 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
 
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
-
-# Parameters to each function: (value, shift_amt, bit_width)
-AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
-    ARM64_SFT_LSL: bit_math.logical_shift_left,
-    ARM64_SFT_LSR: bit_math.logical_shift_right,
-    ARM64_SFT_ASR: bit_math.arithmetic_shift_right,
-    ARM64_SFT_ROR: bit_math.rotate_right,
-}
-
-# These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
-# They take in a number, extract a byte, halfword, or word,
-# and perform a zero- or sign-extend operation.
-AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
-    ARM64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
-    ARM64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
-    ARM64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    ARM64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
-    ARM64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
-    ARM64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
-    ARM64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
-    ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
-}
-
-
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
