@@ -210,6 +210,7 @@ def load_float(data: bytes) -> float:
 def emit_warning(msg: str):
     print(message.warn(msg))
 
+
 @pwndbg.lib.cache.cache_until("objfile")
 def get_elf() -> pwndbg.gdblib.elf.ELFInfo | None:
     try:
@@ -218,6 +219,7 @@ def get_elf() -> pwndbg.gdblib.elf.ELFInfo | None:
         )
     except OSError:
         return None
+
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_go_version() -> Tuple[int, ...] | None:
@@ -231,7 +233,9 @@ def get_go_version() -> Tuple[int, ...] | None:
     # could do a linear search through executable pages for "\xff Go buildinf:" as a fallback
     if elf is None:
         return None
-    buildinfo = next((cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None)
+    buildinfo = next(
+        (cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None
+    )
     # again, could do linear search
     if buildinfo is None:
         return None
@@ -294,7 +298,9 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
     # not a great workaround, but parsing moduledata manually is very version-dependent
     elf = get_elf()
     if elf is not None:
-        addr = next((cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"), None)
+        addr = next(
+            (cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"), None
+        )
         return addr
     return None
 
@@ -557,7 +563,9 @@ def _inner_decode_runtime_type(
                 except UnicodeDecodeError:
                     field_name = repr(bytes(bfield_name))
                 field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
-                field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word)) >> offset_shift
+                field_off = (
+                    load_uint(pwndbg.gdblib.memory.read(base + word * 2, word)) >> offset_shift
+                )
                 (field_meta, field_ty) = _inner_decode_runtime_type(field_ty_ptr, cache)
                 if field_ty is None:
                     field_ty = field_meta.name
