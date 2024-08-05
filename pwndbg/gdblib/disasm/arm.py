@@ -54,6 +54,7 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STREX: 4,
 }
 
+
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -85,7 +86,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
-
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
@@ -157,12 +157,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         return f"[{(', '.join(parts))}]"
 
-    def read_thumb_bit(self, emu: Emulator) -> int | None:
+    def read_thumb_bit(self, emu: Emulator) -> int:
         if emu:
-            # TODO: rebase to get this function
             return emu.read_thumb_bit()
         elif self.can_reason_about_process_state(instruction):
             return process_read_thumb_bit()
+        else:
+            return 0
 
     @override
     def _immediate_string(self, instruction, operand):
@@ -222,10 +223,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 32)
 
             target += index * (-1 if op.cs_op.subtracted else 1)
-        
-        
+
         return target
-    
+
     @override
     def _parse_register(
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator

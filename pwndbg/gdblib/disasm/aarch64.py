@@ -16,8 +16,6 @@ import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
-from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
@@ -133,6 +131,7 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
 
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
+
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -201,7 +200,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 left.after_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
-                left,
                 emu,
                 read_size=pwndbg.gdblib.arch.ptrsize,
             )
@@ -320,10 +318,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 64)
 
             target += index
-        
-        
-        return target
 
+        return target
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
