@@ -19,7 +19,7 @@ EXTRA_FLAGS_ASM =
 
 GO              =	   go
 SOURCES_GO      =	   $(wildcard *.go)
-COMPILED_GO     =	   $(SOURCES_GO:.go=)
+COMPILED_GO     =	   $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
 
 ifeq ($(TARGET), x86)
 CFLAGS		  +=	  -m32
@@ -54,14 +54,14 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 	@echo "[+] Linking '$@'"
 	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $?
 
-%.x86 : %.x86.go
+%.x86 : %.go
 	@echo "[+] Building '$@'"
-	@GOARCH=386 $(GO) build $?
+	@GOARCH=386 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-%.x64 : %.x64.go
+%.x64 : %.go
 	@echo "[+] Building '$@'"
-	@GOARCH=amd64 $(GO) build $?
+	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
 heap_bugs.out: heap_bugs.c

@@ -537,8 +537,12 @@ def _indent(s: str) -> str:
 
 
 def _comma_join(elems: Iterable[str], pretty: bool) -> str:
+    if not pretty:
+        return ", ".join(elems)
+    # store elems in a list to not consume the iterable
+    elems = list(elems)
     joined = ", ".join(elems)
-    if not pretty or len(joined) <= int(line_width):
+    if len(joined) <= int(line_width):
         return joined
     joined = ",\n".join(elems)
     return f"\n{_indent(joined)}\n"
