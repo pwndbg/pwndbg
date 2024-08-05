@@ -83,6 +83,25 @@ def attachp(no_truncate, target) -> None:
                 pids = []
 
             if not pids:
+                try:
+                    ps_output = check_output(["ps", "-eo", "pid,args"], universal_newlines=True)
+                except FileNotFoundError:
+                    print(message.error("Error: did not find `ps` command"))
+                    return
+                except CalledProcessError:
+                    pids = []
+
+                target_list = [part for part in target.split() if len(part) >= 2]
+                for line in ps_output.strip().split("\n")[1:]:
+                    process_info = line.split()
+                    if len(process_info) <= 1:
+                        continue
+                    pid = process_info[0]
+                    command = process_info[1]
+                    if any(part in command for part in target_list):
+                        pids.append(pid)
+
+            if not pids:
                 print(message.error(f"Process {target} not found"))
                 return
 
