@@ -29,7 +29,6 @@ parser.add_argument(
     "--decimals",
     nargs="?",
     type=int,
-    default=6,
     help="Configures the number of decimal places to display for floating points",
 )
 

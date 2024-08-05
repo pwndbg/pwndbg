@@ -210,9 +210,50 @@ def load_float(data: bytes) -> float:
 def emit_warning(msg: str):
     print(message.warn(msg))
 
+@pwndbg.lib.cache.cache_until("objfile")
+def get_elf() -> pwndbg.gdblib.elf.ELFInfo | None:
+    try:
+        return pwndbg.gdblib.elf.get_elf_info_rebased(
+            pwndbg.gdblib.file.get_proc_exe_file(), pwndbg.gdblib.proc.binary_base_addr
+        )
+    except OSError:
+        return None
+
+@pwndbg.lib.cache.cache_until("objfile")
+def get_go_version() -> Tuple[int, ...] | None:
+    """
+    Try to determine the Go version used to compile the binary.
+
+    None can be returned if the version couldn't be inferred,
+    at which point it's probably best to assume latest version.
+    """
+    elf = get_elf()
+    # could do a linear search through executable pages for "\xff Go buildinf:" as a fallback
+    if elf is None:
+        return None
+    buildinfo = next((cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None)
+    # again, could do linear search
+    if buildinfo is None:
+        return None
+    # check for flags & flagsVersionInl
+    if (pwndbg.gdblib.memory.read(buildinfo + 15, 1)[0] & 2) != 2:
+        # only compilers before 1.18 won't have this flag set
+        # could try to actually parse version, but nothing in this module actually has a cutoff at or before 1.17
+        # so just return 1.17 as the version (maybe can add an actual parse in the future)
+        return (1, 17)
+    version_string = read_varint_str(buildinfo + 32).decode()
+    if not version_string.startswith("go"):
+        raise ValueError(f"Version string {version_string!r} somehow doesn't start with 'go'")
+    return tuple(int(x) for x in version_string[2:].split("."))
+
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_moduledata_types(addr: int | None = None) -> int | None:
+    """
+    Given the address to a type, try to find the moduledata types section containing it.
+
+    Necessary to determine the base address that the type name is offset by.
+    """
     first_start = None
     # try to get type start by traversing moduledata symbol
     # will only work if debug symbols are enabled
@@ -251,11 +292,11 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
         return type_start
     # otherwise, just assume that types are at the start of .rodata if there aren't any debug symbols
     # not a great workaround, but parsing moduledata manually is very version-dependent
-    elf = pwndbg.gdblib.elf.get_elf_info_rebased(
-        pwndbg.gdblib.file.get_proc_exe_file(), pwndbg.gdblib.proc.binary_base_addr
-    )
-    addr = next((cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"), None)
-    return addr
+    elf = get_elf()
+    if elf is not None:
+        addr = next((cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"), None)
+        return addr
+    return None
 
 
 def read_varint_str(addr: int) -> bytes:
@@ -503,6 +544,11 @@ def _inner_decode_runtime_type(
             fields_ptr = load(offsets["$size"] + word, word)
             fields_count = load(offsets["$size"] + word * 2, word)
             fields: List[Tuple[str, Type | str, int]] = []
+            vers = get_go_version()
+            if vers is not None and vers < (1, 19):
+                offset_shift = 1
+            else:
+                offset_shift = 0
             for i in range(fields_count):
                 base = fields_ptr + i * word * 3
                 bfield_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
@@ -511,7 +557,7 @@ def _inner_decode_runtime_type(
                 except UnicodeDecodeError:
                     field_name = repr(bytes(bfield_name))
                 field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
-                field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word))
+                field_off = load_uint(pwndbg.gdblib.memory.read(base + word * 2, word)) >> offset_shift
                 (field_meta, field_ty) = _inner_decode_runtime_type(field_ty_ptr, cache)
                 if field_ty is None:
                     field_ty = field_meta.name
