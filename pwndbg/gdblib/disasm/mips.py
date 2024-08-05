@@ -91,8 +91,15 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
     MIPS_INS_SLTU,
+    # Rare - unaligned read - have complex loading logic
+    MIPS_INS_LDL,
+    MIPS_INS_LDR,
+    # Rare - partial load on portions of address
+    MIPS_INS_LWL,
+    MIPS_INS_LWR,
 }
 
+# All MIPS load instructions
 MIPS_LOAD_INSTRUCTIONS = {
     MIPS_INS_LB: 1,
     MIPS_INS_LBU: 1,
@@ -102,12 +109,8 @@ MIPS_LOAD_INSTRUCTIONS = {
     MIPS_INS_LWU: 4,
     MIPS_INS_LWPC: 4,
     MIPS_INS_LWUPC: 4,
-    MIPS_INS_LWL: None,
-    MIPS_INS_LWR: None,
     MIPS_INS_LD: 8,
     MIPS_INS_LDPC: 8,
-    MIPS_INS_LDL: None,  # unaligned read, is really 8
-    MIPS_INS_LDR: None,  # unaligned read, is really 8
 }
 
 
@@ -118,7 +121,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        if instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
+        if instruction.id in MIPS_LOAD_INSTRUCTIONS:
+            read_size = MIPS_LOAD_INSTRUCTIONS[instruction.id]
+
+            self._common_load_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                abs(read_size),
+                read_size < 0,
+                pwndbg.gdblib.arch.ptrsize,
+                instruction.operands[0].str,
+                instruction.operands[1].str,
+            )
+        elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)
 
     @override

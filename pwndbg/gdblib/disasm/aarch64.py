@@ -74,6 +74,7 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_STLXR: None,
 }
 
+# Parameters to each function: (value, shift_amt, bit_width)
 AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM64_SFT_LSL: bit_math.logical_shift_left,
     ARM64_SFT_LSR: bit_math.logical_shift_right,
