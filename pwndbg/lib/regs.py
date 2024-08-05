@@ -75,10 +75,12 @@ class RegisterSet:
         self.retval = retval
 
         # In 'common', we don't want to lose the ordering of:
-        self.common = []
+        self.common_no_flag = []
         for reg in gpr + (frame, stack, pc) + tuple(flags):
-            if reg and reg not in self.common:
-                self.common.append(reg)
+            if reg and reg not in self.common_no_flag:
+                self.common_no_flag.append(reg)
+
+        self.common = self.common_no_flag + list(flags)
 
         self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
