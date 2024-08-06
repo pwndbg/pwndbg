@@ -19,7 +19,7 @@ usage: nearpc [-h] [-e] [pc] [lines]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`pc`|Address to disassemble near.|
+|`pc`|Address to disassemble near. If this is the only argument and the value provided is small enough, it is interpreted as lines instead.|
 |`lines`|Number of lines to show on either side of the address.|
 
 ## Optional Arguments
