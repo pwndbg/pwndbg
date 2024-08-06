@@ -61,20 +61,10 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
 # They all do some computation and set the register to the result.
 # These were derived from "MIPS Architecture for Programmers Volume II: The MIPS64 Instruction Set Reference Manual"
 MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
-    MIPS_INS_ADD,
-    MIPS_INS_ADDI,
-    MIPS_INS_ADDIU,
-    MIPS_INS_ADDU,
     MIPS_INS_CLO,
     MIPS_INS_CLZ,
-    MIPS_INS_DADD,
-    MIPS_INS_DADDI,
-    MIPS_INS_DADDIU,
-    MIPS_INS_DADDU,
     MIPS_INS_DCLO,
     MIPS_INS_DCLZ,
-    MIPS_INS_DSUB,
-    MIPS_INS_DSUBU,
     MIPS_INS_LSA,
     MIPS_INS_DLSA,
     MIPS_INS_LUI,
@@ -82,8 +72,6 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_MFLO,
     MIPS_INS_SEB,
     MIPS_INS_SEH,
-    MIPS_INS_SUB,
-    MIPS_INS_SUBU,
     MIPS_INS_WSBH,
     MIPS_INS_MOVE,
     MIPS_INS_LI,
@@ -91,7 +79,7 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
     MIPS_INS_SLTU,
-    # Rare - unaligned read - have complex loading logic
+        # Rare - unaligned read - have complex loading logic
     MIPS_INS_LDL,
     MIPS_INS_LDR,
     # Rare - partial load on portions of address
@@ -120,6 +108,20 @@ MIPS_STORE_INSTRUCTIONS = {
     MIPS_INS_SD: 8,
 }
 
+MIPS_BINARY_OPERATIONS = {
+    MIPS_INS_ADD:"+",
+    MIPS_INS_ADDI:"+",
+    MIPS_INS_ADDIU:"+",
+    MIPS_INS_ADDU:"+",
+    MIPS_INS_DADD:"+",
+    MIPS_INS_DADDI:"+",
+    MIPS_INS_DADDIU:"+",
+    MIPS_INS_DADDU:"+",
+    MIPS_INS_SUB:"-",
+    MIPS_INS_SUBU:"-",
+    MIPS_INS_DSUB:"-",
+    MIPS_INS_DSUBU:"-",
+}
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -149,6 +151,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value,
                 MIPS_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
+            )
+        elif instruction.id in MIPS_BINARY_OPERATIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[1].before_value,
+                instruction.operands[2].before_value,
+                MIPS_BINARY_OPERATIONS[instruction.id]
             )
         elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)

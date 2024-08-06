@@ -951,5 +951,38 @@ class DisassemblyAssistant:
 
             instruction.annotation = f"{address_str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
+    def _common_binary_op_annotator(
+        self,
+        instruction: PwndbgInstruction,
+        emu: Emulator,
+        target_operand: EnhancedOperand,
+        op_one: int | None,
+        op_two: int | None,
+        char_to_separate_operands: str,
+    ) -> None:
+        
+        math_string = None
+
+        if op_one is not None and op_two is not None:
+            print_left, print_right = pwndbg.enhance.format_small_int_pair(
+                op_one, op_two
+            )
+
+            math_string = f"{print_left} {char_to_separate_operands} {print_right}"
+
+
+        # Using emulation, we can determine the resulting value
+        if target_operand.after_value_resolved is not None:
+            instruction.annotation = f"{target_operand.str} => {MemoryColor.get_address_and_symbol(target_operand.after_value_resolved)}"
+
+        if math_string:
+            if instruction.annotation is not None:
+                instruction.annotation += f" ({math_string})"
+            else:
+                instruction.annotation = math_string
+            
+
+
+
 
 generic_assistant = DisassemblyAssistant(None)
