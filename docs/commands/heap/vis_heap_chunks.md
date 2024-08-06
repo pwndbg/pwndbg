@@ -21,7 +21,7 @@ usage: vis_heap_chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks] [count
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`count`|Number of chunks to visualize. (default: %(default)s)|
+|`count`|Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead. (default: %(default)s)|
 |`addr`|Address of the first chunk.|
 
 ## Optional Arguments
