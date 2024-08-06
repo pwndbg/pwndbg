@@ -489,6 +489,9 @@ class Heap:
             self._gdbValue = None
         else:
             heap_region = allocator.get_region(addr)
+            if heap_region is None:
+                raise ValueError(f"Cannot build heap object on an unmapped address ({hex(addr)})")
+
             heap_info = allocator.get_heap(addr)
             try:
                 ar_ptr = int(heap_info["ar_ptr"])
