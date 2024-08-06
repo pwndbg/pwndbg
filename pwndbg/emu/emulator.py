@@ -222,9 +222,10 @@ class Emulator:
 
         # Initialize the register state
         for reg in (
-            list(self.regs.retaddr)
+            list(self.regs.flags)
+            + list(self.regs.retaddr)
             + list(self.regs.misc)
-            + list(self.regs.common)  # this includes the flags register
+            + list(self.regs.common_no_flag)  # this includes the flags register
         ):
             enum = self.get_reg_enum(reg)
 
