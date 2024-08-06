@@ -30,7 +30,9 @@ def test_typeinfo_go_x86():
     assert "Python Exception" not in start
 
 
-def helper_test_dump():
+def helper_test_dump(start_binary, filename):
+    gdb.execute("set environment GOMAXPROCS=1")
+    start_binary(filename)
     gdb.execute("break gosample.go:6", to_string=True)
     gdb.execute("continue")
     first = gdb.execute("go-dump any &x", to_string=True)
@@ -47,10 +49,8 @@ def helper_test_dump():
 
 
 def test_go_dumping_x64(start_binary):
-    start_binary(GOSAMPLE_X64)
-    helper_test_dump()
+    helper_test_dump(start_binary, GOSAMPLE_X64)
 
 
 def test_go_dumping_x86(start_binary):
-    start_binary(GOSAMPLE_X86)
-    helper_test_dump()
+    helper_test_dump(start_binary, GOSAMPLE_X86)
