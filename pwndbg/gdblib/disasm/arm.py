@@ -5,6 +5,7 @@ from typing import Dict
 
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
+from pwnlib.util.misc import align_down
 from typing_extensions import override
 
 import pwndbg.gdblib.arch
@@ -207,6 +208,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         base = self._read_register(instruction, op.mem.base, emu)
         if base is None:
             return None
+
+        if op.mem.base == ARM_REG_PC:
+            # The PC as the base register is a special case - it will align the address to a word (32-bit) boundary
+            # Explanation: https://stackoverflow.com/a/29588678
+            # See "Operation" at the bottom of https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
+            base = align_down(4, base)
+
         target += base
 
         # Add displacement (zero by default)
