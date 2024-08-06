@@ -944,7 +944,7 @@ group.add_argument(
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
     default=pwndbg.config.default_visualize_chunk_number,
-    help="Number of chunks to visualize.",
+    help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
@@ -984,6 +984,11 @@ def vis_heap_chunks(
     """Visualize chunks on a heap, default to the current arena's active heap."""
     allocator = pwndbg.gdblib.heap.current
     assert isinstance(allocator, GlibcMemoryAllocator)
+
+    # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
+    if addr is None and count is not None and count > 0x1000:
+        addr = count
+        count = pwndbg.config.default_visualize_chunk_number
 
     if addr is not None:
         cursor = int(addr)
