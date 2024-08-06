@@ -342,6 +342,7 @@ def read_varint_str(addr: int) -> bytes:
         return b""
     return pwndbg.gdblib.memory.read(addr, strlen)
 
+
 def read_type_name(addr: int) -> bytes:
     """
     Reads a Go type name given the address to the name.
@@ -358,6 +359,7 @@ def read_type_name(addr: int) -> bytes:
             return b""
         return pwndbg.gdblib.memory.read(addr + 3, strlen)
     return read_varint_str(addr + 1)
+
 
 class GoTypeKind(IntEnum):
     INVALID = 0
