@@ -13,6 +13,7 @@ from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Literal
 from typing import Set
 from typing import Tuple
 from typing import cast
@@ -184,8 +185,8 @@ def _cyclic_helper(val: Any, seen: Set[int]) -> bool:
         return False
 
 
-def load_uint(data: bytes) -> int:
-    return int.from_bytes(data, pwndbg.gdblib.arch.endian)
+def load_uint(data: bytes, endian: Literal["little", "big"] | None = None) -> int:
+    return int.from_bytes(data, endian or pwndbg.gdblib.arch.endian)
 
 
 def load_int(data: bytes) -> int:
@@ -221,6 +222,16 @@ def get_elf() -> pwndbg.gdblib.elf.ELFInfo | None:
         return None
 
 
+def read_buildversion(addr: int) -> str:
+    """
+    Reads a Go runtime.buildVersion string to extract the version.
+    """
+    word = word_size()
+    version_ptr = load_uint(pwndbg.gdblib.memory.read(addr, word))
+    version_len = load_uint(pwndbg.gdblib.memory.read(addr + word, word))
+    return "" if version_len == 0 else pwndbg.gdblib.memory.read(version_ptr, version_len).decode()
+
+
 @pwndbg.lib.cache.cache_until("objfile")
 def get_go_version() -> Tuple[int, ...] | None:
     """
@@ -229,23 +240,27 @@ def get_go_version() -> Tuple[int, ...] | None:
     None can be returned if the version couldn't be inferred,
     at which point it's probably best to assume latest version.
     """
-    elf = get_elf()
-    # could do a linear search through executable pages for "\xff Go buildinf:" as a fallback
-    if elf is None:
-        return None
-    buildinfo = next(
-        (cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None
-    )
-    # again, could do linear search
-    if buildinfo is None:
-        return None
-    # check for flags & flagsVersionInl
-    if (pwndbg.gdblib.memory.read(buildinfo + 15, 1)[0] & 2) != 2:
-        # only compilers before 1.18 won't have this flag set
-        # could try to actually parse version, but nothing in this module actually has a cutoff at or before 1.17
-        # so just return 1.17 as the version (maybe can add an actual parse in the future)
-        return (1, 17)
-    version_string = read_varint_str(buildinfo + 32).decode()
+    # if a runtime.buildVersion symbol exists, prefer that
+    buildversion_addr = pwndbg.gdblib.symbol.address("runtime.buildVersion")
+    if buildversion_addr is not None:
+        version_string = read_buildversion(buildversion_addr)
+    else:
+        elf = get_elf()
+        # could do a linear search through executable pages for "\xff Go buildinf:" as a fallback
+        if elf is None:
+            return None
+        buildinfo = next(
+            (cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None
+        )
+        # again, could do linear search
+        if buildinfo is None:
+            return None
+        # check for flags & flagsVersionInl
+        if (pwndbg.gdblib.memory.read(buildinfo + 15, 1)[0] & 2) != 2:
+            buildversion_addr = load_uint(pwndbg.gdblib.memory.read(buildinfo + 16, word_size()))
+            version_string = read_buildversion(buildversion_addr)
+        else:
+            version_string = read_varint_str(buildinfo + 32).decode()
     if not version_string.startswith("go"):
         raise ValueError(f"Version string {version_string!r} somehow doesn't start with 'go'")
     return tuple(int(x) for x in version_string[2:].split("."))
@@ -327,6 +342,22 @@ def read_varint_str(addr: int) -> bytes:
         return b""
     return pwndbg.gdblib.memory.read(addr, strlen)
 
+def read_type_name(addr: int) -> bytes:
+    """
+    Reads a Go type name given the address to the name.
+
+    Go type names are stored as a 1 byte bitfield followed by a varint length prefixed string after 1.17.
+
+    Prior to 1.17, they were stored as a 1 byte bitfield followed by a 2 byte length prefixed string.
+    """
+    vers = get_go_version()
+    if vers is not None and vers < (1, 17):
+        # reverse the bytestring because Go uses big endian
+        strlen = load_uint(pwndbg.gdblib.memory.read(addr + 1, 2), "big")
+        if strlen == 0:
+            return b""
+        return pwndbg.gdblib.memory.read(addr + 3, strlen)
+    return read_varint_str(addr + 1)
 
 class GoTypeKind(IntEnum):
     INVALID = 0
@@ -481,7 +512,7 @@ def _inner_decode_runtime_type(
         name = "unknown name"
     else:
         name_ptr = type_start + load(offsets["Str"], 4)
-        bname = read_varint_str(name_ptr + 1)
+        bname = read_type_name(name_ptr)
         try:
             name = bname.decode()
         except UnicodeDecodeError:
@@ -557,7 +588,7 @@ def _inner_decode_runtime_type(
                 offset_shift = 0
             for i in range(fields_count):
                 base = fields_ptr + i * word * 3
-                bfield_name = read_varint_str(load_uint(pwndbg.gdblib.memory.read(base, word)) + 1)
+                bfield_name = read_type_name(load_uint(pwndbg.gdblib.memory.read(base, word)))
                 try:
                     field_name = bfield_name.decode()
                 except UnicodeDecodeError:

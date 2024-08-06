@@ -2,8 +2,9 @@ package main
 
 import "fmt"
 
-func testFunc(x interface{}) {
+func testFunc(x interface{}) *interface{} {
 	fmt.Println(x)
+	return &x // leak x to force it to be allocated somewhere
 }
 
 func main() {
