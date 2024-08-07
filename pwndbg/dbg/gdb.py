@@ -61,9 +61,6 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
-T = TypeVar("T")
-
-
 @contextlib.contextmanager
 def selection(target: T, get_current: Callable[[], T], select: Callable[[T], None]):
     """
