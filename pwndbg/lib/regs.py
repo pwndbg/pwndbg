@@ -86,16 +86,10 @@ class RegisterSet:
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: list[str] = []
-        
-        for reg in ([pc]
-            + list(flags)
-            + [stack, frame]
-            + list(retaddr)
-            + list(misc)
-            + list(gpr)):
+
+        for reg in [pc] + list(flags) + [stack, frame] + list(retaddr) + list(misc) + list(gpr):
             if reg and reg not in self.emulated_regs_order:
                 self.emulated_regs_order.append(reg)
-
 
         self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}

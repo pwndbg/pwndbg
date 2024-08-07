@@ -220,7 +220,6 @@ class Emulator:
         # (address_successfully_executed, size_of_instruction)
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
-
         # Initialize the register state
         for reg in self.regs.emulated_regs_order:
             enum = self.get_reg_enum(reg)
