@@ -220,28 +220,9 @@ class Emulator:
         # (address_successfully_executed, size_of_instruction)
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
-        # The specific order of this list is very important:
-        # Due to the behavior of Arm in the Unicorn engine,
-        # we must write the flags register after PC, and the stack pointer after the flags register.
-        # Otherwise, the values will be clobbered
-        # https://github.com/pwndbg/pwndbg/pull/2337
-        raw_list = (
-            [self.regs.pc]
-            + list(self.regs.flags)
-            + [self.regs.stack, self.regs.frame]
-            + list(self.regs.retaddr)
-            + list(self.regs.misc)
-            + list(self.regs.gpr)
-        )
-
-        # Get rid of duplicates and "None" values - some registers, like .frame are sometimes non-existent
-        reg_list = []
-        for x in raw_list:
-            if x and x not in reg_list:
-                reg_list.append(x)
 
         # Initialize the register state
-        for reg in reg_list:
+        for reg in self.regs.emulated_regs_order:
             enum = self.get_reg_enum(reg)
 
             if not reg:
