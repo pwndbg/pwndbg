@@ -224,6 +224,7 @@ class Emulator:
         # Due to the behavior of Arm in the Unicorn engine,
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
+        # https://github.com/pwndbg/pwndbg/pull/2337
         raw_list = (
             [self.regs.pc]
             + list(self.regs.flags)
