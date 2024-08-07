@@ -134,7 +134,8 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
 
     # Final pass to apply final paddings to make alignment of blocks of instructions cleaner
     for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
-        if ins.annotation:
+        # Padding being a valid number implies an annotation at this line
+        if padding is not None:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"
 
         final_result.append(asm)
