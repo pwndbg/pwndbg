@@ -164,7 +164,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
-            target_reg_size = self._register_width(instruction,instruction.operands[0]) // 8
+            target_reg_size = self._register_width(instruction, instruction.operands[0]) // 8
             read_size = AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id] or target_reg_size
 
             self._common_load_annotator(
@@ -265,10 +265,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         base = self._read_register(instruction, op.mem.base, emu)
         if base is None:
             return None
-        target += base
-
-        # Add displacement (zero by default)
-        target += op.mem.disp
+        target = base + op.mem.disp
 
         # If there is an index register
         if op.mem.index != 0:

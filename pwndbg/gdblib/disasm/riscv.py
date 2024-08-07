@@ -196,15 +196,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         """
         Parse the `RISCVOpMem` Capstone object to determine the concrete memory address used.
         """
-        target = op.mem.disp
-
-        if op.mem.base != 0:
-            base = self._read_register(instruction, op.mem.base, emu)
-            if base is None:
-                return None
-            target += base
-
-        return target
+        base = self._read_register(instruction, op.mem.base, emu)
+        if base is None:
+            return None
+        return base + op.mem.disp
 
 
 assistant_rv32 = DisassemblyAssistant("rv32")

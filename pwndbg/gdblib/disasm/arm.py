@@ -215,10 +215,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # See "Operation" at the bottom of https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
             base = align_down(4, base)
 
-        target += base
-
-        # Add displacement (zero by default)
-        target += op.mem.disp
+        target = base + op.mem.disp
 
         # If there is an index register
         if op.mem.index != 0:
