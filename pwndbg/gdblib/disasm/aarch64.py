@@ -164,8 +164,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
-            # TODO: replace the 8 with actual read size from other PR
-            target_reg_size = 8
+            target_reg_size = self._register_width(instruction,instruction.operands[0]) // 8
             read_size = AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id] or target_reg_size
 
             self._common_load_annotator(
