@@ -6,7 +6,13 @@ import pwndbg.gdblib.nearpc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Disassemble near a specified address.")
-parser.add_argument("pc", type=int, nargs="?", default=None, help="Address to disassemble near.")
+parser.add_argument(
+    "pc",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Address to disassemble near. If this is the only argument and the value provided is small enough, it is interpreted as lines instead.",
+)
 parser.add_argument(
     "lines",
     type=int,
