@@ -240,7 +240,6 @@ class Emulator:
             if x and x not in reg_list:
                 reg_list.append(x)
 
-        print(reg_list)
         # Initialize the register state
         for reg in reg_list:
             enum = self.get_reg_enum(reg)
