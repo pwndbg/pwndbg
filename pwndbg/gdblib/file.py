@@ -57,9 +57,11 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     Returns:
         The local path to the file
     """
-    assert path.startswith(("/", "./", "../")) or path.startswith(
-        "target:"
-    ), "get_file called with incorrect path"
+    # Seems like we don't need this check and this check might casue issues, see #2338
+    # Just keep the code commented for now, so we can revert if needed.
+    # assert path.startswith(("/", "./", "../")) or path.startswith(
+    #     "target:"
+    # ), "get_file called with incorrect path"
 
     has_target_prefix = path.startswith("target:")
     if has_target_prefix:
