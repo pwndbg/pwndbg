@@ -156,7 +156,7 @@ def main(debugger: lldb.SBDebugger) -> None:
     import pwndbg.dbg.lldb
 
     pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
-    pwndbg.dbg.setup(debugger)
+    pwndbg.dbg.setup(debugger, __name__)
 
     import pwndbg.lldblib
 
