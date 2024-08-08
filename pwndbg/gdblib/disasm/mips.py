@@ -75,23 +75,9 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_DCLZ,
     MIPS_INS_DSUB,
     MIPS_INS_DSUBU,
-    MIPS_INS_LB,
-    MIPS_INS_LBU,
-    MIPS_INS_LD,
-    MIPS_INS_LDL,
-    MIPS_INS_LDPC,
-    MIPS_INS_LDR,
-    MIPS_INS_LH,
-    MIPS_INS_LHU,
     MIPS_INS_LSA,
     MIPS_INS_DLSA,
     MIPS_INS_LUI,
-    MIPS_INS_LW,
-    MIPS_INS_LWL,
-    MIPS_INS_LWPC,
-    MIPS_INS_LWR,
-    MIPS_INS_LWU,
-    MIPS_INS_LWUPC,
     MIPS_INS_MFHI,
     MIPS_INS_MFLO,
     MIPS_INS_SEB,
@@ -105,6 +91,26 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
     MIPS_INS_SLTU,
+    # Rare - unaligned read - have complex loading logic
+    MIPS_INS_LDL,
+    MIPS_INS_LDR,
+    # Rare - partial load on portions of address
+    MIPS_INS_LWL,
+    MIPS_INS_LWR,
+}
+
+# All MIPS load instructions
+MIPS_LOAD_INSTRUCTIONS = {
+    MIPS_INS_LB: 1,
+    MIPS_INS_LBU: 1,
+    MIPS_INS_LH: 2,
+    MIPS_INS_LHU: 2,
+    MIPS_INS_LW: 4,
+    MIPS_INS_LWU: 4,
+    MIPS_INS_LWPC: 4,
+    MIPS_INS_LWUPC: 4,
+    MIPS_INS_LD: 8,
+    MIPS_INS_LDPC: 8,
 }
 
 
@@ -115,7 +121,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        if instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
+        if instruction.id in MIPS_LOAD_INSTRUCTIONS:
+            read_size = MIPS_LOAD_INSTRUCTIONS[instruction.id]
+
+            self._common_load_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                abs(read_size),
+                read_size < 0,
+                pwndbg.gdblib.arch.ptrsize,
+                instruction.operands[0].str,
+                instruction.operands[1].str,
+            )
+        elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)
 
     @override
@@ -151,6 +170,21 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             instruction.causes_branch_delay = True
 
         return super()._resolve_target(instruction, emu, call)
+
+    @override
+    def _parse_memory(
+        self,
+        instruction: PwndbgInstruction,
+        op: pwndbg.gdblib.disasm.arch.EnhancedOperand,
+        emu: Emulator,
+    ) -> int | None:
+        """
+        Parse the `MipsOpMem` Capstone object to determine the concrete memory address used.
+        """
+        base = self._read_register(instruction, op.mem.base, emu)
+        if base is None:
+            return None
+        return base + op.mem.disp
 
 
 assistant = DisassemblyAssistant("mips")

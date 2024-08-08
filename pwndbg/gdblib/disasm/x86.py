@@ -79,8 +79,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        # Read from right operand
-        if right.before_value is not None:
+        # If this is a LOAD operation - MOV REG, [MEM]
+        if left.type == CS_OP_REG and right.type == CS_OP_MEM:
+            self._common_load_annotator(
+                instruction,
+                emu,
+                right.before_value,
+                right.cs_op.size,
+                False,
+                right.cs_op.size,
+                left.str,
+                right.str,
+            )
+        # Handle other cases of MOV
+        elif right.before_value is not None:
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
@@ -88,7 +100,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
-                right,
                 emu,
                 read_size=right.cs_op.size,
             )
@@ -110,36 +121,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
                 instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
-
-            # MOV REG, [MEM]
-            elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
-                # There are many cases we need to consider if there is a mov from a dereference memory location into a register
-                # Were we able to reason about the memory address, and dereference it?
-                # Does the resolved memory address actual point into memory?
-
-                # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
-                # it indicates that the dereference likely segfaults
-
-                if not pwndbg.gdblib.memory.peek(right.before_value):
-                    telescope_print = MessageColor.error(
-                        f"<Cannot dereference [{MemoryColor.get(right.before_value)}]>"
-                    )
-                elif len(telescope_addresses) == 1:
-                    # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
-                    # Simply display the address
-
-                    # As an example, this path is taken for the following case:
-                    # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
-                    # and we are not emulating. This means we cannot savely dereference (if PC is not at the current instruction address)
-                    telescope_print = None
-                else:
-                    # Start showing at dereferenced by, hence the [1:]
-                    telescope_print = f"{super()._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
-
-                if telescope_print is not None:
-                    instruction.annotation = f"{left.str}, {right.str} => {telescope_print}"
-                else:
-                    instruction.annotation = f"{left.str}, {right.str}"
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:
@@ -172,7 +153,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         if right.before_value is not None:
             telescope_addresses = super()._telescope(
-                right.before_value, TELESCOPE_DEPTH, instruction, right, emu
+                right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
@@ -281,7 +262,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return None
 
         if operand.type == CS_OP_MEM:
-            return self._read_memory(value, operand.cs_op.size, instruction, operand, emu)
+            return self._read_memory(value, operand.cs_op.size, instruction, emu)
         else:
             return super()._resolve_used_value(value, instruction, operand, emu)
 

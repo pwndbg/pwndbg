@@ -20,6 +20,83 @@ from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 from pwndbg.gdblib.disasm.instruction import boolean_to_instruction_condition
 
+# Negative size indicates signed read
+# None indicates the read size depends on the target register
+AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
+    ARM64_INS_LDRB: 1,
+    ARM64_INS_LDURB: 1,
+    ARM64_INS_LDRSB: -1,
+    ARM64_INS_LDURSB: -1,
+    ARM64_INS_LDRH: 2,
+    ARM64_INS_LDURH: 2,
+    ARM64_INS_LDRSH: -2,
+    ARM64_INS_LDURSH: -2,
+    ARM64_INS_LDURSW: -4,
+    ARM64_INS_LDRSW: -4,
+    ARM64_INS_LDUR: None,
+    ARM64_INS_LDR: None,
+    ARM64_INS_LDTRB: 1,
+    ARM64_INS_LDTRSB: -1,
+    ARM64_INS_LDTRH: 2,
+    ARM64_INS_LDTRSH: -2,
+    ARM64_INS_LDTRSW: -4,
+    ARM64_INS_LDTR: None,
+    ARM64_INS_LDXRB: 1,
+    ARM64_INS_LDXRH: 2,
+    ARM64_INS_LDXR: None,
+    ARM64_INS_LDARB: 1,
+    ARM64_INS_LDARH: 2,
+    ARM64_INS_LDAR: None,
+}
+
+AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
+    ARM64_INS_STRB: 1,
+    ARM64_INS_STURB: 1,
+    ARM64_INS_STRH: 2,
+    ARM64_INS_STURH: 2,
+    ARM64_INS_STUR: None,
+    ARM64_INS_STR: None,
+    # Store Register (unprivileged)
+    ARM64_INS_STTRB: 1,
+    ARM64_INS_STTRH: 2,
+    ARM64_INS_STTR: None,
+    # Store Exclusive
+    ARM64_INS_STXRB: 1,
+    ARM64_INS_STXRH: 2,
+    ARM64_INS_STXR: None,
+    # Store-Release
+    ARM64_INS_STLRB: 1,
+    ARM64_INS_STLRH: 2,
+    ARM64_INS_STLR: None,
+    # Store-Release Exclusive
+    ARM64_INS_STLXRB: 1,
+    ARM64_INS_STLXRH: 2,
+    ARM64_INS_STLXR: None,
+}
+
+# Parameters to each function: (value, shift_amt, bit_width)
+AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
+    ARM64_SFT_LSL: bit_math.logical_shift_left,
+    ARM64_SFT_LSR: bit_math.logical_shift_right,
+    ARM64_SFT_ASR: bit_math.arithmetic_shift_right,
+    ARM64_SFT_ROR: bit_math.rotate_right,
+}
+
+
+# These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
+# They take in a number, extract a byte, halfword, or word,
+# and perform a zero- or sign-extend operation.
+AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
+    ARM64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
+    ARM64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
+    ARM64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
+    ARM64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    ARM64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
+    ARM64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
+    ARM64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
+    ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
+}
+
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -56,29 +133,6 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
 
-# Parameters to each function: (value, shift_amt, bit_width)
-AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
-    ARM64_SFT_LSL: bit_math.logical_shift_left,
-    ARM64_SFT_LSR: bit_math.logical_shift_right,
-    ARM64_SFT_ASR: bit_math.arithmetic_shift_right,
-    ARM64_SFT_ROR: bit_math.rotate_right,
-}
-
-# These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
-# They take in a number, extract a byte, halfword, or word,
-# and perform a zero- or sign-extend operation.
-AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
-    ARM64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
-    ARM64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
-    ARM64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    ARM64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
-    ARM64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
-    ARM64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
-    ARM64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
-    ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
-}
-
-
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -90,8 +144,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             ARM64_INS_ADR: self._common_generic_register_destination,
             # ADRP
             ARM64_INS_ADRP: self._common_generic_register_destination,
-            # LDR
-            ARM64_INS_LDR: self._common_generic_register_destination,
             # ADD
             ARM64_INS_ADD: self._common_generic_register_destination,
             # SUB
@@ -107,6 +159,26 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # CCMN
             ARM64_INS_CCMN: self._common_cmp_annotator_builder("cpsr", ""),
         }
+
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        # Dispatch to the correct handler
+        if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
+            target_reg_size = self._register_width(instruction, instruction.operands[0]) // 8
+            read_size = AARCH64_SINGLE_LOAD_INSTRUCTIONS[instruction.id] or target_reg_size
+
+            self._common_load_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                abs(read_size),
+                read_size < 0,
+                target_reg_size,
+                instruction.operands[0].str,
+                instruction.operands[1].str,
+            )
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
     def _condition(
@@ -164,9 +236,58 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return super()._resolve_target(instruction, emu, call)
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Dispatch to the correct handler
-        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+    def _parse_memory(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        """
+        Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
+
+        Three types of AArch64 memory operands:
+        1. Register base with optional immediate offset
+        Examples:
+              ldrb   w3, [x2]
+              str    x1, [x2, #0xb58]
+              ldr x4,[x3], 4
+        2. Register + another register with an optional shift
+        Examples:
+              ldrb   w1, [x9, x2]
+              str x1, [x2, x0, lsl #3]
+        3. Register + 32-bit register extended and shifted.
+        The shift in this case is implicitly a LSL
+        Examples:
+              ldr x1, [x2, w22, UXTW #3]
+
+        """
+
+        target = 0
+
+        # All memory operands have `base` defined
+        base = self._read_register(instruction, op.mem.base, emu)
+        if base is None:
+            return None
+        target = base + op.mem.disp
+
+        # If there is an index register
+        if op.mem.index != 0:
+            index = self._read_register(instruction, op.mem.index, emu)
+            if index is None:
+                return None
+
+            # Optionally apply an extend to the index register
+            if op.cs_op.ext != 0:
+                index = AARCH64_EXTEND_MAP[op.cs_op.ext](index)
+
+            # Optionally apply shift to the index register
+            # This handles shifts in the extend operation as well:
+            # As in the case of `ldr x1, [x2, w22, UXTW #3]`,
+            # Capstone will automatically make the shift a LSL and set the value to 3
+            if op.cs_op.shift.type != 0:
+                # The form of instructions with a shift always apply the shift to a 64-bit value
+                index = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 64)
+
+            target += index
+
+        return target
 
     def _register_width(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> int:
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
