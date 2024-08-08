@@ -85,7 +85,7 @@ class RegisterSet:
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
-        self.emulated_regs_order: list[str] = []
+        self.emulated_regs_order: List[str] = []
 
         for reg in [pc] + list(flags) + [stack, frame] + list(retaddr) + list(misc) + list(gpr):
             if reg and reg not in self.emulated_regs_order:
