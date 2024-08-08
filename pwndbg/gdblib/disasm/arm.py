@@ -55,6 +55,11 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STREX: 4,
 }
 
+ARM_MATH_INSTRUCTIONS = {
+    ARM_INS_ADD:"+",
+    ARM_INS_ADDW:"+",
+    ARM_INS_SUB:"-",
+}
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
@@ -93,6 +98,16 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value,
                 ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
+            )
+        elif instruction.id in ARM_MATH_INSTRUCTIONS:
+
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[-2].before_value,
+                instruction.operands[-1].before_value,
+                ARM_MATH_INSTRUCTIONS[instruction.id]
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)

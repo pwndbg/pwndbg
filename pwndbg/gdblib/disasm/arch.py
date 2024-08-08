@@ -980,7 +980,6 @@ class DisassemblyAssistant:
                 instruction.annotation += f" ({math_string})"
             else:
                 instruction.annotation = math_string
-            
 
 
 
