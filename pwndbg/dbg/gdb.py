@@ -21,18 +21,6 @@ from pwndbg.gdblib import load_gdblib
 T = TypeVar("T")
 
 
-# We pass the responsibility of event handling to gdblib.
-GDBLIB_EVENT_MAPPING = {
-    pwndbg.dbg_mod.EventType.EXIT: pwndbg.gdblib.events.exit,
-    pwndbg.dbg_mod.EventType.CONTINUE: pwndbg.gdblib.events.cont,
-    pwndbg.dbg_mod.EventType.START: pwndbg.gdblib.events.start,
-    pwndbg.dbg_mod.EventType.STOP: pwndbg.gdblib.events.stop,
-    pwndbg.dbg_mod.EventType.NEW_MODULE: pwndbg.gdblib.events.new_objfile,
-    pwndbg.dbg_mod.EventType.MEMORY_CHANGED: pwndbg.gdblib.events.mem_changed,
-    pwndbg.dbg_mod.EventType.REGISTER_CHANGED: pwndbg.gdblib.events.reg_changed,
-}
-
-
 class GDBRegisters(pwndbg.dbg_mod.Registers):
     def __init__(self, frame: GDBFrame):
         self.frame = frame
@@ -505,8 +493,21 @@ class GDB(pwndbg.dbg_mod.Debugger):
     def event_handler(
         self, ty: pwndbg.dbg_mod.EventType
     ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        # Just call into the gdblib handler.
-        return GDBLIB_EVENT_MAPPING[ty]
+        # Make use of the existing gdblib event handlers.
+        if ty == pwndbg.dbg_mod.EventType.EXIT:
+            return pwndbg.gdblib.events.exit
+        elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
+            return pwndbg.gdblib.events.cont
+        elif ty == pwndbg.dbg_mod.EventType.START:
+            return pwndbg.gdblib.events.start
+        elif ty == pwndbg.dbg_mod.EventType.STOP:
+            return pwndbg.gdblib.events.stop
+        elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
+            return pwndbg.gdblib.events.new_objfile
+        elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
+            return pwndbg.gdblib.events.mem_changed
+        elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
+            return pwndbg.gdblib.events.reg_changed
 
     @override
     def addrsz(self, address: Any) -> str:
