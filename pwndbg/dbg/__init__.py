@@ -274,8 +274,8 @@ class EventType(Enum):
           process execution to continue after it had been previously suspended.
         - `NEW_MODULE`: This event is fired when a new application module has
           been encountered by the debugger. This usually happens when a new
-          application module is into the memory space of the process being
-          debugged.
+          application module is loaded into the memory space of the process being
+          debugged. In GDB terminology, these are called `objfile`s.
     """
 
     START = 0
