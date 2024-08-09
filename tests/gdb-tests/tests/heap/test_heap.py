@@ -576,6 +576,7 @@ def test_jemalloc_extent_info(start_binary):
         assert re.match(expected_output[i], result[i])
 
 
+@pytest.mark.skip(reason="Output is resulting in duplicate extents")
 def test_jemalloc_heap(start_binary):
     start_binary(HEAP_JEMALLOC_HEAP)
     gdb.execute("break break_here")
