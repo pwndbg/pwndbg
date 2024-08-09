@@ -32,8 +32,10 @@ parser = argparse.ArgumentParser(
     description="""Attaches to a given pid, process name or device file.
 
 This command wraps the original GDB `attach` command to add the ability
-to debug a process with given name. In such case the process identifier is
-fetched via the `pidof <name>` command.
+to debug a process with a given name or partial name match. In such cases,
+the process identifier is fetched via the `pidof <name>` command first. If no
+matches are found, then it uses the `ps -eo pid,args` command to search for
+partial name matches.
 
 Original GDB attach command help:
     Attach to a process or file outside of GDB.
@@ -81,6 +83,25 @@ def attachp(no_truncate, target) -> None:
                 return
             except CalledProcessError:
                 pids = []
+
+            if not pids:
+                try:
+                    ps_output = check_output(["ps", "-eo", "pid,args"], universal_newlines=True)
+                except FileNotFoundError:
+                    print(message.error("Error: did not find `ps` command"))
+                    return
+                except CalledProcessError:
+                    pids = []
+
+                target_list = [part for part in target.split() if len(part) >= 2]
+                for line in ps_output.strip().split("\n")[1:]:
+                    process_info = line.split()
+                    if len(process_info) <= 1:
+                        continue
+                    pid = process_info[0]
+                    command = process_info[1]
+                    if any(part in command for part in target_list):
+                        pids.append(pid)
 
             if not pids:
                 print(message.error(f"Process {target} not found"))

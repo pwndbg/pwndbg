@@ -18,7 +18,7 @@ import gdb
 
 import pwndbg
 import pwndbg.commands
-import pwndbg.ida
+import pwndbg.integration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -59,13 +59,7 @@ def all_versions():
 
     all_versions = (gdb_str, py_str, pwndbg_str, capstone_str, unicorn_str)
 
-    ida_versions = pwndbg.ida.get_ida_versions()
-
-    if ida_versions is not None:
-        ida_version = f"IDA PRO:  {ida_versions['ida']}"
-        ida_py_ver = f"IDA Py:   {ida_versions['python']}"
-        ida_hr_ver = f"Hexrays:  {ida_versions['hexrays']}"
-        all_versions += (ida_version, ida_py_ver, ida_hr_ver)
+    all_versions += pwndbg.integration.provider.get_versions()
     return all_versions
 
 

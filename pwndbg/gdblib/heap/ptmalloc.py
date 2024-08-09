@@ -1254,6 +1254,67 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
             result.bins[size] = Bin(chain, count=count)
         return result
 
+    def check_chain_corrupted(self, chain_fd: List[int], chain_bk: List[int]) -> bool:
+        """
+        Checks if the doubly linked list (of a {unsorted, small, large} bin)
+        defined by chain_fd, chain_bk is corrupted.
+
+        Even if the chains do not cover the whole bin, they still are expected
+        to be of the same length.
+
+        Returns True if the bin is certainly corrupted, otherwise False.
+        """
+
+        if len(chain_fd) != len(chain_bk):
+            # If the chain lengths aren't equal, the chain is corrupted
+            # The vast majority of corruptions will be caught here
+            return True
+        elif len(chain_fd) < 2 or len(chain_bk) < 2:
+            # Chains containing less than two entries are corrupted, as the smallest
+            # chain (an empty bin) would look something like `[main_arena+88, 0]`.
+            return True
+        elif len(chain_fd) == len(chain_bk) == 2:
+            # Check if the bin points to itself (is empty)
+
+            if chain_fd != chain_bk:
+                return True
+            elif chain_fd[-1] != 0:
+                return True
+            else:
+                bin_chk = Chunk(chain_fd[0])
+                if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
+                    return True
+
+        else:
+            chain_sz = len(chain_fd) - (1 if chain_fd[-1] == 0 else 0)
+
+            # Forward and backward chains may have some overlap, we don't need to recheck those chunks
+            checked = set()
+
+            # Check connections in all chunks from the forward chain
+            for i in range(chain_sz):
+                chunk_addr = chain_fd[i]
+                chunk = Chunk(chunk_addr)
+                if chunk.fd is None or Chunk(chunk.fd).bk != chunk_addr:
+                    return True
+                if chunk.bk is None or Chunk(chunk.bk).fd != chunk_addr:
+                    return True
+                checked.add(chunk_addr)
+
+            # Check connections in unchecked chunks from the backward chain
+            for i in range(chain_sz):
+                chunk_addr = chain_bk[i]
+                if chunk_addr in checked:
+                    # We don't need to check any more chunks
+                    break
+                chunk = Chunk(chunk_addr)
+                if chunk.fd is None or Chunk(chunk.fd).bk != chunk_addr:
+                    return True
+                if chunk.bk is None or Chunk(chunk.bk).fd != chunk_addr:
+                    return True
+
+        return False
+
     def bin_at(
         self, index: int, arena_addr: int | None = None
     ) -> Tuple[List[int], List[int], bool] | None:
@@ -1284,29 +1345,36 @@ class GlibcMemoryAllocator(pwndbg.gdblib.heap.heap.MemoryAllocator, Generic[TheT
         bins_base = int(normal_bins.address) - (pwndbg.gdblib.arch.ptrsize * 2)
         current_base = bins_base + (index * pwndbg.gdblib.arch.ptrsize * 2)
 
+        # check whether the bin is empty
+        bin_chunk = Chunk(current_base)
+        if bin_chunk.fd == bin_chunk.bk == current_base:
+            return ([0], [0], False)
+
         front, back = normal_bins[index * 2], normal_bins[index * 2 + 1]
         fd_offset = self.chunk_key_offset("fd")
         bk_offset = self.chunk_key_offset("bk")
-        is_chain_corrupted = False
+
+        chain_size = int(pwndbg.gdblib.heap.heap_chain_limit)
+        corrupt_chain_size = int(pwndbg.gdblib.heap.heap_corruption_check_limit)
 
         get_chain = lambda bin, offset: pwndbg.chain.get(
             int(bin),
             offset=offset,
             hard_stop=current_base,
-            limit=pwndbg.gdblib.heap.heap_chain_limit,
+            limit=max(chain_size, corrupt_chain_size),
             include_start=True,
         )
-        chain_fd = get_chain(front, fd_offset)
-        chain_bk = get_chain(back, bk_offset)
 
-        # check if bin[index] points to itself (is empty)
-        if len(chain_fd) == len(chain_bk) == 2 and chain_fd[0] == chain_bk[0]:
-            chain_fd = [0]
-            chain_bk = [0]
+        full_chain_fd = get_chain(front, fd_offset)
+        full_chain_bk = get_chain(back, bk_offset)
+        chain_fd = full_chain_fd[: (chain_size + 1)]
+        chain_bk = full_chain_bk[: (chain_size + 1)]
+        corrupt_chain_fd = full_chain_fd[: (corrupt_chain_size + 1)]
+        corrupt_chain_bk = full_chain_bk[: (corrupt_chain_size + 1)]
 
-        # check if corrupted
-        elif chain_fd[:-1] != chain_bk[:-2][::-1] + [chain_bk[-2]]:
-            is_chain_corrupted = True
+        is_chain_corrupted = False
+        if corrupt_chain_size > 0:
+            is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
 
         return (chain_fd, chain_bk, is_chain_corrupted)
 

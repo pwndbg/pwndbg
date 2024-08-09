@@ -32,8 +32,9 @@ from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def gdb_get_register(name: str) -> gdb.Value:
-    frame = gdb.selected_frame()
+def gdb_get_register(name: str, frame: gdb.Frame | None = None) -> gdb.Value | None:
+    if frame is None:
+        frame = gdb.selected_frame()
     try:
         return frame.read_register(name)
     except ValueError:
@@ -42,7 +43,7 @@ def gdb_get_register(name: str) -> gdb.Value:
 
 @pwndbg.gdblib.proc.OnlyWhenQemuKernel
 @pwndbg.gdblib.proc.OnlyWhenRunning
-def get_qemu_register(name: str) -> int:
+def get_qemu_register(name: str) -> int | None:
     out = gdb.execute("monitor info registers", to_string=True)
     match = re.search(rf'{name.split("_")[0]}=\s+([\da-fA-F]+)\s+([\da-fA-F]+)', out)
 
@@ -88,25 +89,28 @@ class module(ModuleType):
     last: Dict[str, int] = {}
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getattr__(self, attr: str) -> int | None:
-        attr = attr.lstrip("$")
+    def read_reg(self, reg: str, frame: gdb.Frame | None = None) -> int | None:
+        reg = reg.lstrip("$")
         try:
-            value = gdb_get_register(attr)
-            if value is None and attr.lower() == "xpsr":
-                value = gdb_get_register("xPSR")
+            value = gdb_get_register(reg, frame)
+            if value is None and reg.lower() == "xpsr":
+                value = gdb_get_register("xPSR", frame)
             if value is None:
                 return None
             size = pwndbg.gdblib.typeinfo.unsigned.get(
                 value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
             )
             value = value.cast(size)
-            if attr == "pc" and pwndbg.gdblib.arch.name == "i8086":
+            if reg == "pc" and pwndbg.gdblib.arch.name == "i8086":
                 if self.cs is None:
                     return None
                 value += self.cs * 16
             return int(value) & pwndbg.gdblib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
+
+    def __getattr__(self, attr: str) -> int | None:
+        return self.read_reg(attr)
 
     def __setattr__(self, attr: str, val: Any) -> None:
         if attr in ("last", "previous"):
@@ -122,14 +126,7 @@ class module(ModuleType):
             print("Unknown register type: %r" % (item))
             return None
 
-        # e.g. if we're looking for register "$rax", turn it into "rax"
-        item = item.lstrip("$")
-        item = getattr(self, item.lower(), None)
-
-        if item is not None:
-            item &= pwndbg.gdblib.arch.ptrmask
-
-        return item
+        return self.read_reg(item)
 
     def __contains__(self, reg: str) -> bool:
         regs = set(reg_sets[pwndbg.gdblib.arch.name]) | {"pc", "sp"}

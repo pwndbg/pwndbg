@@ -28,6 +28,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
+import pwndbg.integration
 import pwndbg.lib.regs
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
@@ -102,7 +103,10 @@ arch_to_UC_consts = {
 # Architecture specific maps: Map<reg_name, Unicorn constant>
 arch_to_reg_const_map = {
     "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
-    "x86-64": create_reg_to_const_map(arch_to_UC_consts["x86-64"]),
+    "x86-64": create_reg_to_const_map(
+        arch_to_UC_consts["x86-64"],
+        {"FSBASE": U.x86_const.UC_X86_REG_FS_BASE, "GSBASE": U.x86_const.UC_X86_REG_GS_BASE},
+    ),
     "mips": create_reg_to_const_map(arch_to_UC_consts["mips"]),
     "sparc": create_reg_to_const_map(arch_to_UC_consts["sparc"]),
     "arm": create_reg_to_const_map(arch_to_UC_consts["arm"]),
@@ -168,7 +172,7 @@ arch_to_SYSCALL = {
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550
-blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss", "fsbase", "gsbase"]
+blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss"]
 
 """
 e = pwndbg.emu.emulator.Emulator()
@@ -405,8 +409,8 @@ class Emulator:
         if "[stack" in page.objfile or "[heap" in page.objfile:
             rwx = exe = False
 
-        # If IDA doesn't think it's in a function, don't display it as code.
-        if pwndbg.ida.available() and not pwndbg.ida.GetFunctionName(value):
+        # If integration doesn't think it's in a function, don't display it as code.
+        if not pwndbg.integration.provider.is_in_function(value):
             rwx = exe = False
 
         if exe:
@@ -527,6 +531,25 @@ class Emulator:
         if pc is None:
             pc = pwndbg.gdblib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
+
+    def read_thumb_bit(self) -> int:
+        """
+        Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
+
+        This reads from the emulator itself, meaning this can be read to determine a state
+        transitions between non-Thumb and Thumb mode
+
+        Return None if the Thumb bit is not relevent to the current architecture
+
+        Mimics the `read_thumb_bit` function defined in gdblib/arch.py
+        """
+        if self.arch == "arm":
+            if (cpsr := self.cpsr) is not None:
+                return (cpsr >> 5) & 1
+        elif self.arch == "armcm":
+            if (xpsr := self.xpsr) is not None:
+                return (xpsr >> 24) & 1
+        return 0
 
     def get_uc_mode(self):
         """
@@ -667,8 +690,21 @@ class Emulator:
 
     def emulate_with_hook(self, hook, count=512) -> None:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
+
+        pc: int = self.pc
+        # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
+        # determines Thumb mode based on the PC that is passed to the `emu_start` function
+        # https://github.com/unicorn-engine/unicorn/issues/391
+        #
+        # Because we single-step the emulator, we always have to read the Thumb bit from the emulator
+        # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
+        # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
+        # which have Thumb mode transitions, Unicorn will internally handle them.
+        thumb_bit = self.read_thumb_bit()
+        pc |= thumb_bit
+
         try:
-            self.emu_start(self.pc, 0, count=count)
+            self.emu_start(pc, 0, count=count)
         finally:
             self.hook_del(ident)
 

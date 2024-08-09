@@ -24,11 +24,10 @@ jobs:
       # Ignore the failure of a step and avoid terminating the job.
       continue-on-error: true
       with:
-        path: ~/.cache/images
         key: ${{ matrix.images }}-cache-images-{hash}
 
     - name: Docker Build ${{ matrix.images }}
-      run: docker-compose build ${{ matrix.images }}
+      run: docker compose build ${{ matrix.images }}
 
     - name: Test on ${{ matrix.images }}
-      run: docker-compose run ${{ matrix.images }} ./tests.sh
+      run: docker compose run ${{ matrix.images }} ./tests.sh

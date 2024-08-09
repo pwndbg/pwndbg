@@ -9,7 +9,6 @@ from capstone.x86 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.chain
-import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.enhance
@@ -65,9 +64,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # SUB
             X86_INS_SUB: self.handle_sub,
             # CMP
-            X86_INS_CMP: self.handle_cmp,
+            X86_INS_CMP: self._common_cmp_annotator_builder("eflags", "-"),
             # TEST
-            X86_INS_TEST: self.handle_test,
+            X86_INS_TEST: self._common_cmp_annotator_builder("eflags", "&"),
             # XOR
             X86_INS_XOR: self.handle_xor,
             # AND
@@ -80,8 +79,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        # Read from right operand
-        if right.before_value is not None:
+        # If this is a LOAD operation - MOV REG, [MEM]
+        if left.type == CS_OP_REG and right.type == CS_OP_MEM:
+            self._common_load_annotator(
+                instruction,
+                emu,
+                right.before_value,
+                right.cs_op.size,
+                False,
+                right.cs_op.size,
+                left.str,
+                right.str,
+            )
+        # Handle other cases of MOV
+        elif right.before_value is not None:
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             # +1 to ensure we telescope enough to read at least one address for the last "elif" below
@@ -89,7 +100,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
                 instruction,
-                right,
                 emu,
                 read_size=right.cs_op.size,
             )
@@ -111,36 +121,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # MOV REG, REG or IMM
             elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
                 instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
-
-            # MOV REG, [MEM]
-            elif left.type == CS_OP_REG and right.type == CS_OP_MEM:
-                # There are many cases we need to consider if there is a mov from a dereference memory location into a register
-                # Were we able to reason about the memory address, and dereference it?
-                # Does the resolved memory address actual point into memory?
-
-                # right.before_value should be a pointer in this context. If we telescoped and still returned just the value itself,
-                # it indicates that the dereference likely segfaults
-
-                if not pwndbg.gdblib.memory.peek(right.before_value):
-                    telescope_print = MessageColor.error(
-                        f"<Cannot dereference [{MemoryColor.get(right.before_value)}]>"
-                    )
-                elif len(telescope_addresses) == 1:
-                    # If only one address, and we didn't telescope, it means we couldn't reason about the dereferenced memory
-                    # Simply display the address
-
-                    # As an example, this path is taken for the following case:
-                    # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
-                    # and we are not emulating. This means we cannot savely dereference (if PC is not at the current instruction address)
-                    telescope_print = None
-                else:
-                    # Start showing at dereferenced by, hence the [1:]
-                    telescope_print = f"{super()._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
-
-                if telescope_print is not None:
-                    instruction.annotation = f"{left.str}, {right.str} => {telescope_print}"
-                else:
-                    instruction.annotation = f"{left.str}, {right.str}"
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:
@@ -173,7 +153,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         if right.before_value is not None:
             telescope_addresses = super()._telescope(
-                right.before_value, TELESCOPE_DEPTH, instruction, right, emu
+                right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
             instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
@@ -239,34 +219,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Same output as addition, showing the result
         self.handle_add_sub_handler(instruction, emu, "-")
 
-    # Only difference is one character. - for cmp, & for test
-    def handle_cmp_test_handler(
-        self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str
-    ) -> None:
-        # cmp with memory, register, and intermediate operands can be used in many combinations
-        # This function handles all combinations
-        left, right = instruction.operands
-
-        if left.before_value_resolved is not None and right.before_value_resolved is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                left.before_value_resolved, right.before_value_resolved
-            )
-            instruction.annotation = f"{print_left} {char_to_separate_operands} {print_right}"
-
-            if emu:
-                eflags_bits = pwndbg.gdblib.regs.flags["eflags"]
-                emu_eflags = emu.read_register("eflags")
-                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
-
-                SPACES = 5
-                instruction.annotation += " " * SPACES + f"EFLAGS => {eflags_formatted}"
-
-    def handle_cmp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        self.handle_cmp_test_handler(instruction, emu, "-")
-
-    def handle_test(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        self.handle_cmp_test_handler(instruction, emu, "&")
-
     def handle_xor(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
@@ -310,7 +262,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return None
 
         if operand.type == CS_OP_MEM:
-            return self._read_memory(value, operand.cs_op.size, instruction, operand, emu)
+            return self._read_memory(value, operand.cs_op.size, instruction, emu)
         else:
             return super()._resolve_used_value(value, instruction, operand, emu)
 
@@ -328,31 +280,34 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
-        target = 0
-
-        # There doesn't appear to be a good way to read from segmented
-        # addresses within GDB.
         if op.mem.segment != 0:
-            return None
+            if op.mem.segment == X86_REG_FS:
+                if (base := pwndbg.gdblib.regs.fsbase) is None:
+                    return None
+            elif op.mem.segment == X86_REG_GS:
+                if (base := pwndbg.gdblib.regs.gsbase) is None:
+                    return None
+            else:
+                return None
 
-        if op.mem.base != 0:
+        # Both a segment and base cannot be in use
+        elif op.mem.base != 0:
             base = self._read_register(instruction, op.mem.base, emu)
             if base is None:
                 return None
-            target += base
-
-        if op.mem.disp != 0:
-            target += op.mem.disp
+        else:
+            base = 0
 
         if op.mem.index != 0:
-            scale = op.mem.scale
             index = self._read_register(instruction, op.mem.index, emu)
             if index is None:
                 return None
 
-            target += scale * index
+            scale = op.mem.scale * index
+        else:
+            scale = 0
 
-        return target
+        return base + op.mem.disp + scale
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
@@ -365,9 +320,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return super()._resolve_target(instruction, emu, call=call)
 
         # Otherwise, resolve the return on the stack
-        pop = 0
-        if instruction.operands:
-            pop = instruction.operands[0].before_value
+        pop = instruction.operands[0].before_value if instruction.operands else 0
 
         address = (pwndbg.gdblib.regs.sp) + (pwndbg.gdblib.arch.ptrsize * pop)
 
@@ -447,30 +400,26 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # So here, we return no syscall name for other instructions and we also
         # handle a case when 32-bit syscalls are executed on x64
         mnemonic = instruction.mnemonic
-
-        # We read .imm directly, because at this point we haven't enhanced the operands with values
-        is_32bit = mnemonic == "int" and instruction.operands[0].imm == 0x80
-        if not (mnemonic == "syscall" or is_32bit):
-            return (None, None)
-
-        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
-        # On x86, the syscall_arch is already i386, so its all fine
-        if is_32bit:
-            return ("i386", "eax")
-        else:
+        if mnemonic == "syscall":
             return ("x86-64", "rax")
+
+        # On x86, the syscall_arch is already i386, so its all fine
+        # On x64 the int 0x80 instruction executes 32-bit syscalls from i386
+        # We read .imm directly, because at this point we haven't enhanced the operands with values
+        if mnemonic == "int" and instruction.operands[0].imm == 0x80:
+            return ("i386", "eax")
+
+        return (None, None)
 
     # Currently not used
     def memory_string_with_components_resolved(
         self, instruction: PwndbgInstruction, op: EnhancedOperand
     ):
         # Example: [RSP + RCX*4 - 100] would return "[0x7ffd00acf230 + 8+4 - 100]"
-        arith = False
         segment = op.mem.segment
         disp = op.mem.disp
         base = op.mem.base
         index = op.mem.index
-        scale = op.mem.scale
         sz = ""
 
         if segment != 0:
@@ -479,21 +428,24 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if base != 0:
             sz += instruction.cs_insn.reg_name(base)
             arith = True
+        else:
+            arith = False
 
         if index != 0:
             if arith:
                 sz += " + "
 
             index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(index)]
-            sz += f"{index}*{scale:#x}"
+            sz += f"{index}*{op.mem.scale:#x}"
             arith = True
 
         if disp != 0:
-            if arith and disp < 0:
-                sz += " - "
-            elif arith and disp >= 0:
-                sz += " + "
-            sz += "%#x" % abs(disp)
+            if arith:
+                if disp < 0:
+                    sz += " - "
+                else:
+                    sz += " + "
+            sz += f"{abs(disp):#x}"
 
         return f"[{sz}]"
 

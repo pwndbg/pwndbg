@@ -42,6 +42,9 @@ config_signal_color = theme.add_color_param(
 config_prompt_color: pwndbg.lib.config.Parameter = theme.add_color_param(
     "prompt-color", "bold,red", "prompt color"
 )
+config_prompt_alive_color: pwndbg.lib.config.Parameter = theme.add_color_param(
+    "prompt-alive-color", "bold,green", "prompt alive color"
+)
 
 
 def on(msg: object) -> str:
@@ -98,3 +101,7 @@ def signal(msg: object) -> str:
 
 def prompt(msg: object) -> str:
     return generateColorFunction(config.prompt_color)(msg)
+
+
+def alive_prompt(msg: object) -> str:
+    return generateColorFunction(config.prompt_alive_color)(msg)

@@ -13,11 +13,33 @@ from typing import Tuple
 dbg: Debugger = None
 
 
+class Error(Exception):
+    pass
+
+
+class Registers:
+    """
+    A handle to the register values in a frame.
+    """
+
+    def by_name(self, name: str) -> Value | None:
+        """
+        Gets the value of a register if it exists, None otherwise.
+        """
+        raise NotImplementedError()
+
+
 class Frame:
     def evaluate_expression(self, expression: str) -> Value:
         """
         Evaluate the given expression in the context of this frame, and
         return a `Value`.
+        """
+        raise NotImplementedError()
+
+    def regs(self) -> Registers:
+        """
+        Access the values of the registers in this frame.
         """
         raise NotImplementedError()
 
@@ -150,6 +172,15 @@ class Value:
         """
         raise NotImplementedError()
 
+    # is_optimized_out is kind of a janky piece of API, honestly. It makes it
+    # so that one's ability to call all other methods in this class is often
+    # conditional on it being false, and it effectively splits the type into
+    # two.
+    #
+    # There's only _one_ part of Pwndbg that uses it, and I really feel like we
+    # should handle variables that have been optimized out some other way.
+    #
+    # TODO: Remove uses of is_optimized_out from plist and get rid of this.
     @property
     def is_optimized_out(self) -> bool:
         """
@@ -278,6 +309,12 @@ class Debugger:
         """
         raise NotImplementedError()
 
+    def commands(self) -> List[str]:
+        """
+        List the commands available in this session.
+        """
+        raise NotImplementedError()
+
     def add_command(
         self, name: str, handler: Callable[[Debugger, str, bool], None]
     ) -> CommandHandle:
@@ -293,6 +330,14 @@ class Debugger:
     # pwndbg under LLDB without breaking it under GDB. Expect most of them to be
     # removed or replaced as the porting work continues.
     #
+
+    # We'd like to be able to gate some imports off during porting. This aids in
+    # that.
+    def is_gdblib_available(self) -> bool:
+        """
+        Whether gdblib is available under this debugger.
+        """
+        raise NotImplementedError()
 
     def addrsz(self, address: Any) -> str:
         """

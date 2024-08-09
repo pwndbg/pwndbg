@@ -11,6 +11,7 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
+import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -142,12 +143,7 @@ def format(
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Colorize the chain
-    rest: List[str] = []
-    for link in chain:
-        symbol = pwndbg.gdblib.symbol.get(link) or None
-        if symbol:
-            symbol = f"{link:#x} ({symbol})"
-        rest.append(M.get(link, symbol))
+    rest = [M.get_address_and_symbol(link) for link in chain]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:

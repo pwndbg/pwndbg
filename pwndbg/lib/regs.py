@@ -248,7 +248,6 @@ aarch64 = RegisterSet(
         "x27",
         "x28",
         "x29",
-        "x30",
     ),
     misc=(
         "w0",
@@ -576,7 +575,6 @@ riscv = RegisterSet(
     stack="sp",
     retaddr=("ra",),
     gpr=(
-        "ra",
         "gp",
         "tp",
         "t0",

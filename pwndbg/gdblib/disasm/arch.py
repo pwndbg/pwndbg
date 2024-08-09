@@ -10,12 +10,16 @@ from capstone import *  # noqa: F403
 import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
+import pwndbg.color.message as MessageColor
 import pwndbg.color.syntax_highlight as H
+import pwndbg.enhance
 import pwndbg.gdblib.memory
+import pwndbg.gdblib.remote
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
 import pwndbg.lib.config
+import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
 from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
@@ -392,10 +396,9 @@ class DisassemblyAssistant:
         address: int,
         size: int,
         instruction: PwndbgInstruction,
-        operand: EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
-        address_list = self._telescope(address, 1, instruction, operand, emu, read_size=size)
+        address_list = self._telescope(address, 1, instruction, emu, read_size=size)
 
         if len(address_list) >= 2:
             return address_list[1]
@@ -424,7 +427,7 @@ class DisassemblyAssistant:
         elif operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
-            self._read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, operand, emu)
+            self._read_memory(value, pwndbg.gdblib.arch.ptrsize, instruction, emu)
 
         return None
 
@@ -433,7 +436,6 @@ class DisassemblyAssistant:
         address: int,
         limit: int,
         instruction: PwndbgInstruction,
-        operand: EnhancedOperand,
         emu: Emulator,
         read_size: int = None,
     ) -> List[int]:
@@ -468,7 +470,7 @@ class DisassemblyAssistant:
 
             else:
                 return pwndbg.chain.get(address, limit=limit)
-        elif not can_read_process_state or operand.type == CS_OP_IMM:
+        else:
             # If the target address is in a non-writeable map, we can pretty safely telescope
             # This is best-effort to give a better experience
 
@@ -668,7 +670,9 @@ class DisassemblyAssistant:
                         addr = resolved_addr
                     else:
                         page = pwndbg.gdblib.vmmap.find(resolved_addr)
-                        if page and page.execute:
+                        # When debugging a remote QEMU target, the page permissions are not accurate.
+                        # In this case, if the candidate address is mapped at all, just go with it.
+                        if page and (page.execute or pwndbg.gdblib.remote.is_remote()):
                             addr = resolved_addr
 
                 if addr is not None:
@@ -720,6 +724,155 @@ class DisassemblyAssistant:
             return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
         else:
             return None
+
+    def _common_generic_register_destination(
+        self, instruction: PwndbgInstruction, emu: Emulator
+    ) -> None:
+        """
+        This function can be used to annotate instructions that have a register destination.
+        In the vast majority of instructions in most architectures, the destination register is the first operand.
+
+        Using emulation, it will determine the value placed into the register, and create an annotation string based on the result.
+        """
+
+        left = instruction.operands[0]
+
+        # Emulating determined the value that was set in the destination register
+        if left.after_value is not None:
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+            # Telescope the address
+            telescope_addresses = self._telescope(
+                left.after_value,
+                TELESCOPE_DEPTH + 1,
+                instruction,
+                emu,
+                read_size=pwndbg.gdblib.arch.ptrsize,
+            )
+
+            if not telescope_addresses:
+                return
+
+            instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
+    def _common_cmp_annotator_builder(
+        self, flags_register_name: str, char_to_separate_operands: str = "-"
+    ) -> Callable[[PwndbgInstruction, Emulator], None]:
+        """
+        Many architectures implement near-identical `CMP`-like instructions.
+
+        It takes two values, either subtracts, adds, or does some bit operation
+        with them to set values in the flag register.
+
+        To reduce code duplication, subclasses can use this function to create an annotator for CMP-like instructions.
+        """
+        FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
+
+        def handler(instruction: PwndbgInstruction, emu: Emulator):
+            # If there are just two operands, we can assume we are comparing them directly, and can display the values.
+            # Some architectures have variants with more operands.
+            if len(instruction.operands) == 2:
+                left, right = instruction.operands
+
+                if (l_value := left.before_value_resolved) is not None and (
+                    r_value := right.before_value_resolved
+                ) is not None:
+                    print_left, print_right = pwndbg.enhance.format_small_int_pair(l_value, r_value)
+                    # Ex: "0x7f - 0x12" or "0xdffffdea + 0x8"
+                    instruction.annotation = (
+                        f"{print_left} {char_to_separate_operands} {print_right}"
+                    )
+
+            # Using emulation, we can determine the resulting value put into the flag register
+            if emu:
+                eflags_bits = pwndbg.gdblib.regs.flags[flags_register_name]
+                emu_eflags = emu.read_register(flags_register_name)
+                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
+
+                display_result = f"{FLAG_REG_NAME_DISPLAY} => {eflags_formatted}"
+
+                if instruction.annotation is None:
+                    # First part of this function usually sets .annotation to a string. But if the instruction
+                    # has more than two operands, then we don't have a way of showing them, so this avoids the "+="" below
+                    instruction.annotation = display_result
+                else:
+                    instruction.annotation += " " * 5 + display_result
+
+        return handler
+
+    def _common_load_annotator(
+        self,
+        instruction: PwndbgInstruction,
+        emu: Emulator,
+        address: int | None,
+        read_size: int,
+        signed: bool,
+        target_size: int,
+        dest_str: str,
+        source_str: str,
+    ) -> None:
+        """
+        This function annotates load instructions - moving data from memory into a register.
+
+        These instructions read `read_size` bytes from memory into a register.
+
+        `signed`: whether or not we are loading a signed value from memory
+        `target_size`: the size of the register in bytes - relevent for sign-extension
+        `dest_str`: a string representing the destination register ('rax')
+        `source_str`: a string representing the source address ('[0x7fffffffe138]')
+        """
+
+        if address is None:
+            return
+
+        # There are many cases we need to consider when we are loading a value from memory
+        # Were we able to reason about the memory address, and dereference it?
+        # Does the resolved memory address actual point into memory?
+        # If the target register size is larger than the read size, then do we need sign-extension?
+
+        # If the address is not mapped, we segfaulted
+        if not pwndbg.gdblib.memory.peek(address):
+            instruction.annotation = MessageColor.error(
+                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            )
+        else:
+            # In this branch, it is assumed that the address IS in a mapped page
+            TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
+
+            telescope_addresses = self._telescope(
+                address,
+                TELESCOPE_DEPTH,
+                instruction,
+                emu,
+                read_size=read_size,
+            )
+
+            if len(telescope_addresses) == 1:
+                # If telescope returned only 1 address (and we already know the address is in a mapped page)
+                # it means we couldn't reason about the dereferenced memory.
+                # In this case, simply display the address
+
+                # As an example, this path is taken for the following case:
+                # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
+                # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
+                # because the the memory address could have been written to by the time the instruction executes
+                telescope_print = None
+            else:
+                if signed and read_size != target_size and len(telescope_addresses) == 2:
+                    # We sign extend the value, then convert it back to the unsigned bit representation
+                    final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
+                        (1 << (target_size * 8)) - 1
+                    )
+                    # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
+                    telescope_print = hex(final_value)
+                else:
+                    # Start showing at dereferenced address, hence the [1:]
+                    telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+
+            instruction.annotation = f"{dest_str}, {source_str}"
+
+            if telescope_print is not None:
+                instruction.annotation += f" => {telescope_print}"
 
 
 generic_assistant = DisassemblyAssistant(None)

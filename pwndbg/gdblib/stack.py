@@ -58,7 +58,7 @@ def get() -> Dict[int, pwndbg.lib.memory.Page]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def current():
+def current() -> pwndbg.lib.memory.Page | None:
     """
     Returns the bounds for the stack for the current thread.
     """
@@ -89,7 +89,7 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
 
         # Need to clear regs values cache after switching thread
         # So we get proper value of the SP register
-        pwndbg.gdblib.regs.__getattr__.cache.clear()
+        pwndbg.gdblib.regs.read_reg.cache.clear()
 
         sp = pwndbg.gdblib.regs.sp
 
@@ -132,7 +132,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     curr_thread = gdb.selected_thread()
     for thread in gdb.selected_inferior().threads():
         thread.switch()
-        pwndbg.gdblib.regs.__getattr__.cache.clear()
+        pwndbg.gdblib.regs.read_reg.cache.clear()
         sp = pwndbg.gdblib.regs.sp
 
         # Skip if sp is None or 0

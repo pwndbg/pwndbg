@@ -30,7 +30,7 @@ import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.ghidra
-import pwndbg.ida
+import pwndbg.integration
 import pwndbg.ui
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -550,7 +550,7 @@ def regs(regs=[]) -> None:
 
 
 pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
-pwndbg.config.add_param("show-retaddr-reg", False, "whether to show return address register")
+pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
 def get_regs(regs: List[str] = None):
@@ -609,8 +609,8 @@ def get_regs(regs: List[str] = None):
     return result
 
 
-code_lines = pwndbg.config.add_param(
-    "context-code-lines", 10, "number of additional lines to print in the code context"
+disasm_lines = pwndbg.config.add_param(
+    "context-disasm-lines", 10, "number of additional lines to print in the disasm context"
 )
 
 
@@ -633,7 +633,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
         pwndbg.lib.cache.clear_caches()
 
     result = pwndbg.gdblib.nearpc.nearpc(
-        lines=code_lines // 2,
+        lines=disasm_lines // 2,
         emulate=bool(not pwndbg.config.emulate == "off"),
         use_cache=True,
     )
@@ -652,18 +652,18 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     # If we didn't disassemble backward, try to make sure
     # that the amount of screen space taken is roughly constant.
-    while len(result) < code_lines + 1:
+    while len(result) < disasm_lines + 1:
         result.append("")
 
     return banner + result if with_banner else result
 
 
 theme.add_param("highlight-source", True, "whether to highlight the closest source line")
-source_code_lines = pwndbg.config.add_param(
-    "context-source-code-lines", 10, "number of source code lines to print by the context command"
+source_disasm_lines = pwndbg.config.add_param(
+    "context-code-lines", 10, "number of source code lines to print by the context command"
 )
 pwndbg.config.add_param(
-    "context-source-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
+    "context-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
 )
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
 
@@ -705,7 +705,7 @@ def get_filename_and_formatted_source():
     if not source:
         return "", []
 
-    n = int(source_code_lines)
+    n = int(source_disasm_lines)
 
     # Compute the line range
     start = max(closest_line - 1 - n // 2, 0)
@@ -722,8 +722,8 @@ def get_filename_and_formatted_source():
     # Format the output
     formatted_source = []
     for line_number, code in enumerate(source, start=start + 1):
-        if pwndbg.config.context_source_code_tabstop > 0:
-            code = code.replace("\t", " " * pwndbg.config.context_source_code_tabstop)
+        if pwndbg.config.context_code_tabstop > 0:
+            code = code.replace("\t", " " * pwndbg.config.context_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
         if pwndbg.config.highlight_source and line_number == closest_line:
             fmt = C.highlight(fmt)
@@ -740,6 +740,13 @@ def get_filename_and_formatted_source():
     return filename, formatted_source
 
 
+should_decompile = pwndbg.config.add_param(
+    "context-integration-decompile",
+    True,
+    "whether context should fall back to decompilation with no source code",
+)
+
+
 def context_code(target=sys.stdout, with_banner=True, width=None):
     filename, formatted_source = get_filename_and_formatted_source()
 
@@ -754,23 +761,19 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
             + formatted_source
         )
 
-    # Try getting source from IDA Pro Hex-Rays Decompiler
-    if not pwndbg.ida.available():
-        return []
-
-    n = int(int(int(source_code_lines) / 2))  # int twice to make it a real int instead of inthook
-    # May be None when decompilation failed or user loaded wrong binary in IDA
-    code = pwndbg.ida.decompile_context(pwndbg.gdblib.regs.pc, n)
-
-    if code:
-        bannerline = (
-            [pwndbg.ui.banner("Hexrays pseudocode", target=target, width=width)]
-            if with_banner
-            else []
+    if should_decompile:
+        # Will be None if decompilation fails
+        code = pwndbg.integration.provider.decompile(
+            pwndbg.gdblib.regs.pc, int(source_disasm_lines)
         )
-        return bannerline + code.splitlines()
-    else:
-        return []
+
+        if code:
+            bannerline = (
+                [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
+            )
+            return bannerline + code
+        else:
+            return []
 
 
 stack_lines = pwndbg.config.add_param(
