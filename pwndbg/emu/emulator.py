@@ -221,11 +221,7 @@ class Emulator:
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
-        for reg in (
-            list(self.regs.retaddr)
-            + list(self.regs.misc)
-            + list(self.regs.common)  # this includes the flags register
-        ):
+        for reg in self.regs.emulated_regs_order:
             enum = self.get_reg_enum(reg)
 
             if not reg:
