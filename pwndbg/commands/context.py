@@ -362,8 +362,6 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
         return banner + [message.error(e)]
 
 
-# @pwndbg.dbg.event_handler(EventType.STOP)
-
 parser = argparse.ArgumentParser(
     description="Print out the current register, instruction, and stack context."
 )
