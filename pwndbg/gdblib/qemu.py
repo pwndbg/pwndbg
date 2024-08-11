@@ -9,11 +9,10 @@ import os
 import gdb
 import psutil
 
+import pwndbg
 import pwndbg.gdblib.remote
 import pwndbg.lib.cache
-
-# TODO: `import pwndbg.gdblib.events` leads to a circular import
-from pwndbg.gdblib.events import start
+from pwndbg.dbg import EventType
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -68,7 +67,7 @@ def exec_file_supported() -> bool:
     return "exec-file" in response
 
 
-@start
+@pwndbg.dbg.event_handler(EventType.START)
 @pwndbg.lib.cache.cache_until("stop")
 def root() -> str | None:
     if not is_qemu_usermode():

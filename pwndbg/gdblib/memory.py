@@ -12,7 +12,6 @@ from typing import Union
 import gdb
 
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.events
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pwndbg.gdblib.events
+import pwndbg
 import tests
+from pwndbg.dbg import EventType
 from pwndbg.lib import cache
 
 BINARY = tests.binaries.get("reference-binary.out")
@@ -74,7 +75,7 @@ def test_cache_args_kwargs_properly(start_binary):
 def test_cache_clear_has_priority(start_binary):
     actions = []
 
-    @pwndbg.gdblib.events.stop
+    @pwndbg.dbg.event_handler(EventType.STOP)
     def on_stop():
         actions.append("on_stop")
         # test to make sure event handlers don't have a stale cache

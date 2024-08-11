@@ -7,11 +7,13 @@ import os
 
 import gdb
 
+import pwndbg
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.gdblib.regs
 import pwndbg.integration.ida
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg import EventType
 from pwndbg.gdblib.functions import GdbFunction
 
 
@@ -19,7 +21,7 @@ from pwndbg.gdblib.functions import GdbFunction
     "Synchronize IDA's cursor with GDB.", category=CommandCategory.INTEGRATIONS
 )
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.STOP)
 @pwndbg.integration.ida.withIDA
 def j(*args) -> None:
     """

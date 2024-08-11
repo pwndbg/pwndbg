@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
+from pwndbg.dbg import EventType
 
 #: Total number of arguments
 argc = None
@@ -21,7 +22,7 @@ envp = None
 envc = None
 
 
-@pwndbg.gdblib.events.start
+@pwndbg.dbg.event_handler(EventType.START)
 @pwndbg.gdblib.abi.LinuxOnly()
 def update() -> None:
     global argc

@@ -16,11 +16,11 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg
 import pwndbg.auxv
 import pwndbg.color.message as M
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
-import pwndbg.gdblib.events
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.kernel
@@ -273,13 +273,13 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
 
 # Automatically ensure that all registers are explored on each stop
-# @pwndbg.gdblib.events.stop
+# @pwndbg.dbg.event_handler(EventType.STOP)
 def explore_registers() -> None:
     for regname in pwndbg.gdblib.regs.common:
         find(pwndbg.gdblib.regs[regname])
 
 
-# @pwndbg.gdblib.events.exit
+# @pwndbg.dbg.event_handler(EventType.EXIT)
 def clear_explored_pages() -> None:
     while explored_pages:
         explored_pages.pop()

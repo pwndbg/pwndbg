@@ -14,8 +14,11 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.gdblib
+import pwndbg.gdblib.events
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
+
+T = TypeVar("T")
 
 
 class GDBRegisters(pwndbg.dbg_mod.Registers):
@@ -44,9 +47,6 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression, global_context)
     except TypeError:
         return gdb.parse_and_eval(expression)
-
-
-T = TypeVar("T")
 
 
 @contextlib.contextmanager
@@ -483,6 +483,31 @@ class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def is_gdblib_available(self):
         return True
+
+    @override
+    def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
+        # Currently GDB supports all event types.
+        return True
+
+    @override
+    def event_handler(
+        self, ty: pwndbg.dbg_mod.EventType
+    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
+        # Make use of the existing gdblib event handlers.
+        if ty == pwndbg.dbg_mod.EventType.EXIT:
+            return pwndbg.gdblib.events.exit
+        elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
+            return pwndbg.gdblib.events.cont
+        elif ty == pwndbg.dbg_mod.EventType.START:
+            return pwndbg.gdblib.events.start
+        elif ty == pwndbg.dbg_mod.EventType.STOP:
+            return pwndbg.gdblib.events.stop
+        elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
+            return pwndbg.gdblib.events.new_objfile
+        elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
+            return pwndbg.gdblib.events.mem_changed
+        elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
+            return pwndbg.gdblib.events.reg_changed
 
     @override
     def addrsz(self, address: Any) -> str:

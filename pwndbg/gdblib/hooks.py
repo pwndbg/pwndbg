@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pwndbg
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 import pwndbg.gdblib.file
@@ -7,43 +8,44 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.next
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
+from pwndbg.dbg import EventType
 from pwndbg.gdblib import arch_mod
 
 # TODO: Combine these `update_*` hook callbacks into one method
 
 
-@pwndbg.gdblib.events.new_objfile
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.STOP)
 def update_typeinfo() -> None:
     pwndbg.gdblib.typeinfo.update()
 
 
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.stop
-@pwndbg.gdblib.events.new_objfile
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.STOP)
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def update_arch() -> None:
     arch_mod.update()
 
 
-@pwndbg.gdblib.events.new_objfile
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def reset_config() -> None:
     pwndbg.gdblib.kernel._kconfig = None
 
 
-@pwndbg.gdblib.events.start
+@pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
     pwndbg.gdblib.abi.update()
     pwndbg.gdblib.memory.update_min_addr()
 
 
-@pwndbg.gdblib.events.exit
+@pwndbg.dbg.event_handler(EventType.EXIT)
 def on_exit() -> None:
     pwndbg.gdblib.file.reset_remote_files()
     pwndbg.gdblib.next.clear_temp_breaks()
 
 
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
     pwndbg.gdblib.strings.update_length()
 

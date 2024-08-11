@@ -6,12 +6,12 @@ from typing import Sequence
 import gdb
 
 import pwndbg
-import pwndbg.gdblib.events
 import pwndbg.gdblib.heap.heap
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.lib.config
 from pwndbg.color import message
+from pwndbg.dbg import EventType
 
 current: pwndbg.gdblib.heap.heap.MemoryAllocator | None = None
 
@@ -89,12 +89,12 @@ If you used setup.sh on Arch based distro you'll need to do a power cycle or set
 )
 
 
-@pwndbg.gdblib.events.start
+@pwndbg.dbg.event_handler(EventType.START)
 def update() -> None:
     resolve_heap(is_first_run=True)
 
 
-@pwndbg.gdblib.events.exit
+@pwndbg.dbg.event_handler(EventType.EXIT)
 def reset() -> None:
     global current
     # Re-initialize the heap

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import gdb
 
-from pwndbg.gdblib.events import new_objfile
+import pwndbg
+from pwndbg.dbg import EventType
 from pwndbg.gdblib.kernel.macros import container_of
 
 rb_root_type = None
 rb_node_type = None
 
 
-@new_objfile
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def init():
     global rb_root_type, rb_node_type
     try:

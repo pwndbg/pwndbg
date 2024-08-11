@@ -12,11 +12,12 @@ from typing import List
 
 import gdb
 
+import pwndbg
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.elf
-import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.lib.cache
+from pwndbg.dbg import EventType
 
 
 def find(address: int):
@@ -65,7 +66,7 @@ def current() -> pwndbg.lib.memory.Page | None:
     return find(pwndbg.gdblib.regs.sp)
 
 
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.STOP)
 @pwndbg.lib.cache.cache_until("exit")
 def is_executable() -> bool:
     ehdr = pwndbg.gdblib.elf.exe()

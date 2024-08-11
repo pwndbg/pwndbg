@@ -9,8 +9,11 @@ from typing import Any
 from typing import Callable
 from typing import List
 from typing import Tuple
+from typing import TypeVar
 
 dbg: Debugger = None
+
+T = TypeVar("T")
 
 
 class Error(Exception):
@@ -251,6 +254,39 @@ class CommandHandle:
         raise NotImplementedError()
 
 
+class EventType(Enum):
+    """
+    Events that can be listened for and reacted to in a debugger.
+
+    The events types listed here are defined as follows:
+        - `START`: This event is fired some time between the creation of or
+          attachment to the process to be debugged, and the start of its
+          execution.
+        - `STOP`: This event is fired after execution of the process has been
+          suspended, but before control is returned to the user for interactive
+          debugging.
+        - `EXIT`: This event is fired after the process being debugged has been
+          detached from or has finished executing.
+        - `MEMORY_CHANGED`: This event is fired when the user interactively makes
+          changes to the memory of the process being debugged.
+        - `REGISTER_CHANGED`: Like `MEMORY_CHANGED`, but for registers.
+        - `CONTINUE`: This event is fired after the user has requested for
+          process execution to continue after it had been previously suspended.
+        - `NEW_MODULE`: This event is fired when a new application module has
+          been encountered by the debugger. This usually happens when a new
+          application module is loaded into the memory space of the process being
+          debugged. In GDB terminology, these are called `objfile`s.
+    """
+
+    START = 0
+    STOP = 1
+    EXIT = 2
+    MEMORY_CHANGED = 3
+    REGISTER_CHANGED = 4
+    CONTINUE = 5
+    NEW_MODULE = 6
+
+
 class Debugger:
     """
     The base class representing a debugger.
@@ -321,6 +357,21 @@ class Debugger:
         """
         Adds a command with the given name to the debugger, that invokes the
         given function every time it is called.
+        """
+        raise NotImplementedError()
+
+    def has_event_type(self, ty: EventType) -> bool:
+        """
+        Whether the given event type is supported by this debugger. Indicates
+        that a user either can or cannot register an event handler of this type.
+        """
+        raise NotImplementedError()
+
+    def event_handler(self, ty: EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
+        """
+        Sets up the given function to be called when an event of the given type
+        gets fired. Returns a callable that corresponds to the wrapped function.
+        This function my be used as a decorator.
         """
         raise NotImplementedError()
 

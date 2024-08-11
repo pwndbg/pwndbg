@@ -33,7 +33,6 @@ import pwndbg.color.context as context_color
 import pwndbg.decorators
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
-import pwndbg.gdblib.events
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.nearpc
 import pwndbg.gdblib.regs
@@ -43,6 +42,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.color import theme
+from pwndbg.dbg import EventType
 from pwndbg.gdblib.nearpc import c as nearpc_color
 from pwndbg.gdblib.nearpc import ljust_padding
 from pwndbg.lib.functions import Argument
@@ -198,7 +198,7 @@ def base():
     return _bn.get_base()
 
 
-@pwndbg.gdblib.events.stop
+@pwndbg.dbg.event_handler(EventType.STOP)
 @with_bn()
 def auto_update_pc() -> None:
     pc = pwndbg.gdblib.regs.pc
@@ -210,9 +210,9 @@ def auto_update_pc() -> None:
 _managed_bps: Dict[int, gdb.Breakpoint] = {}
 
 
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.stop
-@pwndbg.gdblib.events.cont
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.STOP)
+@pwndbg.dbg.event_handler(EventType.CONTINUE)
 @with_bn()
 def auto_update_bp() -> None:
     bps: List[int] = _bn.get_bp_tags()
@@ -224,8 +224,8 @@ def auto_update_bp() -> None:
         _managed_bps[k] = bp
 
 
-@pwndbg.gdblib.events.cont
-@pwndbg.gdblib.events.exit
+@pwndbg.dbg.event_handler(EventType.CONTINUE)
+@pwndbg.dbg.event_handler(EventType.EXIT)
 @with_bn()
 def auto_clear_pc() -> None:
     _bn.clear_pc_tag()

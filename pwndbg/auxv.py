@@ -10,7 +10,6 @@ import gdb
 
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.events
 import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.qemu

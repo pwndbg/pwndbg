@@ -12,7 +12,6 @@ import capstone
 import gdb
 
 import pwndbg.gdblib.disasm
-import pwndbg.gdblib.events
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
 from pwndbg.color import message
