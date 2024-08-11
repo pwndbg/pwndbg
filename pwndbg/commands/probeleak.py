@@ -21,9 +21,7 @@ def find_module(addr, max_distance):
 
     if not pages:
         if max_distance != 0:
-            mod_filter = (
-                lambda page: page.start - max_distance <= addr < page.end + max_distance
-            )
+            mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
             pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
         if not pages:
@@ -57,7 +55,7 @@ Examples:
     probeleak $rsp 0x64 --point-to libc --max-ptrs 1 --flags rwx - leaks 0x64 bytes starting at stack pointer and \
 search for one valid pointer which points to a libc rwx page
     probeleak $rsp 0x1200 --page-name libc --permissions r - search for pointers by page name and with permissions \
-that would include read "r" 
+that would include read "r"
 """,
 )
 parser.add_argument("address", nargs="?", default="$sp", help="Leak memory address")
@@ -158,10 +156,7 @@ def probeleak(
             if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
 
-            if (
-                permissions is not None
-                and permissions.lower() not in page.permstr.lower()
-            ):
+            if permissions is not None and permissions.lower() not in page.permstr.lower():
                 continue
 
             if page_name is not None and page_name.lower() not in page.objfile.lower():
@@ -191,9 +186,7 @@ def probeleak(
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = (
-                f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
-            )
+            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
 
             symbol = pwndbg.gdblib.symbol.get(p)
             if symbol:
