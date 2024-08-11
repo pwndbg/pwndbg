@@ -990,6 +990,10 @@ def vis_heap_chunks(
         addr = count
         count = pwndbg.config.default_visualize_chunk_number
 
+    if addr is not None and not pwndbg.gdblib.memory.is_readable_address(int(addr)):
+        print(message.error("The provided address is not readable."))
+        return
+
     if addr is not None:
         cursor = int(addr)
         heap_region = Heap(cursor)
@@ -1011,6 +1015,7 @@ def vis_heap_chunks(
     chunk = Chunk(cursor)
 
     chunk_id = 0
+    reached_mapping_end = False
     while True:
         if not all_chunks and chunk_id == count + 1:
             break
@@ -1018,6 +1023,7 @@ def vis_heap_chunks(
         # Don't read beyond the heap mapping if --beyond_top or corrupted heap.
         if cursor not in heap_region:
             chunk_delims.append(heap_region.end)
+            reached_mapping_end = True
             break
 
         # Don't repeatedly operate on the same address (e.g. chunk size of 0).
@@ -1029,8 +1035,13 @@ def vis_heap_chunks(
         else:
             chunk_delims.append(cursor)
 
-        if (chunk.is_top_chunk and not beyond_top) or (cursor == heap_region.end - ptr_size * 2):
+        if chunk.is_top_chunk and not beyond_top:
             chunk_delims.append(cursor + ptr_size * 2)
+            break
+
+        if cursor == heap_region.end - ptr_size * 2:
+            chunk_delims.append(cursor + ptr_size * 2)
+            reached_mapping_end = True
             break
 
         cursor += chunk.real_size
@@ -1047,12 +1058,15 @@ def vis_heap_chunks(
         generateColorFunction("blue"),
     ]
 
-    bin_collections = [
-        allocator.fastbins(arena.address),
-        allocator.unsortedbin(arena.address),
-        allocator.smallbins(arena.address),
-        allocator.largebins(arena.address),
-    ]
+    bin_collections = []
+    if arena is not None:
+        # Heap() Case 4; fake/mmapped chunk
+        bin_collections = [
+            allocator.fastbins(arena.address),
+            allocator.unsortedbin(arena.address),
+            allocator.smallbins(arena.address),
+            allocator.largebins(arena.address),
+        ]
     if allocator.has_tcache():
         # Only check for tcache entries belonging to the current thread,
         # it's difficult (impossible?) to find all the thread caches for a
@@ -1109,7 +1123,7 @@ def vis_heap_chunks(
             printed += 1
 
             labels.extend(bin_labels_map.get(cursor, []))
-            if cursor == arena.top:
+            if arena is not None and cursor == arena.top:
                 labels.append("Top chunk")
 
             asc += bin_ascii(data)
@@ -1121,6 +1135,9 @@ def vis_heap_chunks(
             cursor += ptr_size
 
     print(out)
+
+    if reached_mapping_end:
+        print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
 
     if has_huge_chunk and pwndbg.config.max_visualize_chunk_size == 0:
         print(
