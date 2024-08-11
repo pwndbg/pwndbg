@@ -21,7 +21,9 @@ def find_module(addr, max_distance):
 
     if not pages:
         if max_distance != 0:
-            mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
+            mod_filter = (
+                lambda page: page.start - max_distance <= addr < page.end + max_distance
+            )
             pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
 
         if not pages:
@@ -71,7 +73,10 @@ parser.add_argument(
     help="Mapping name of the page that you want the pointers point to",
 )
 parser.add_argument(
-    "--max-ptrs", type=int, default=0, help="Stop search after find n pointers, default 0"
+    "--max-ptrs",
+    type=int,
+    default=0,
+    help="Stop search after find n pointers, default 0",
 )
 parser.add_argument(
     "--flags",
@@ -79,22 +84,43 @@ parser.add_argument(
     default=None,
     help="flags of the page that you want the pointers point to. [e.g. rwx]",
 )
+parser.add_argument(
+    "--permissions",
+    type=str,
+    default=None,
+    help="Search for pointers to pages with specific permissions [e.g., rwx]",
+)
+
+parser.add_argument(
+    "--page-name",
+    type=str,
+    default=None,
+    help="Search for pointers to pages with a specific name",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
-    address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
+    address=None,
+    count=0x40,
+    max_distance=0x0,
+    point_to=None,
+    max_ptrs=0,
+    flags=None,
+    permissions=None,
+    page_name=None,
 ) -> None:
     address = int(address)
     address &= pwndbg.gdblib.arch.ptrmask
     ptrsize = pwndbg.gdblib.arch.ptrsize
     count = max(int(count), ptrsize)
     off_zeros = int(math.ceil(math.log(count, 2) / 4))
+
     if flags is not None:
         require_flags = flags_str2int(flags)
 
-    if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
+    if count > address > 0x10000:
         print(
             message.warn(
                 "Warning: you gave an end address, not a count. Subtracting 0x%x from the count."
@@ -122,18 +148,28 @@ def probeleak(
     for i in range(0, len(data) - ptrsize + 1):
         p = pwndbg.gdblib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
+
         if page:
             if point_to is not None and point_to not in page.objfile:
                 continue
+
             if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
+
+            if (
+                permissions is not None
+                and permissions.lower() not in page.permstr.lower()
+            ):
+                continue
+
+            if page_name is not None and page_name.lower() not in page.objfile.lower():
+                continue
+
             if not found:
                 print(M.legend())
                 found = True
 
-            mod_name = page.objfile
-            if not mod_name:
-                mod_name = "[anon]"
+            mod_name = page.objfile if page.objfile else "[anon]"
 
             if p >= page.end:
                 right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
@@ -153,11 +189,14 @@ def probeleak(
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
+            text = (
+                f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
+            )
 
             symbol = pwndbg.gdblib.symbol.get(p)
             if symbol:
                 text += f" ({symbol})"
+
             print(text)
 
             find_cnt += 1
