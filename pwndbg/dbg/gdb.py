@@ -129,9 +129,11 @@ class GDBCommand(gdb.Command):
         debugger: GDB,
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
+        doc: str | None,
     ):
         self.debugger = debugger
         self.handler = handler
+        self.__doc__ = doc
         super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
 
     def invoke(self, args: str, from_tty: bool) -> None:
@@ -326,9 +328,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def add_command(
-        self, name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
+        self,
+        name: str,
+        handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
+        doc: str | None,
     ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler)
+        command = GDBCommand(self, name, handler, doc)
         return GDBCommandHandle(command)
 
     @override
