@@ -261,8 +261,11 @@ def get_go_version() -> Tuple[int, ...] | None:
             version_string = read_buildversion(buildversion_addr)
         else:
             version_string = read_varint_str(buildinfo + 32).decode()
+    if version_string == "unknown":
+        return None
     if not version_string.startswith("go"):
-        raise ValueError(f"Version string {version_string!r} somehow doesn't start with 'go'")
+        emit_warning(f"Go version string {version_string!r} doesn't start with 'go'")
+        return None
     return tuple(int(x) for x in version_string[2:].split("."))
 
 
