@@ -90,11 +90,13 @@ class Command:
         is_alias: bool = False,
         aliases: List[str] = [],
         category: CommandCategory = CommandCategory.MISC,
+        doc: str | None = None,
     ) -> None:
         self.is_alias = is_alias
         self.aliases = aliases
         self.category = category
         self.shell = shell
+        self.doc = doc
 
         if command_name is None:
             command_name = function.__name__
@@ -102,7 +104,7 @@ class Command:
         def _handler(_debugger, arguments, is_interactive):
             self.invoke(arguments, is_interactive)
 
-        self.handle = pwndbg.dbg.add_command(command_name, _handler)
+        self.handle = pwndbg.dbg.add_command(command_name, _handler, doc)
         self.function = function
 
         if command_name in command_names:
@@ -547,7 +549,7 @@ class _ArgparsedCommand(Command):
         file = io.StringIO()
         self.parser.print_help(file)
         file.seek(0)
-        self.__doc__ = file.read()
+        doc = file.read()
         # Note: function.__doc__ is used in the `pwndbg [filter]` command display
         function.__doc__ = self.parser.description.strip()
 
@@ -555,6 +557,7 @@ class _ArgparsedCommand(Command):
         super().__init__(  # type: ignore[misc]
             function,
             command_name=command_name,
+            doc=doc,
             *a,
             **kw,
         )

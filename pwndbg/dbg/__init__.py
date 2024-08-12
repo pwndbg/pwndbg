@@ -352,7 +352,7 @@ class Debugger:
         raise NotImplementedError()
 
     def add_command(
-        self, name: str, handler: Callable[[Debugger, str, bool], None]
+        self, name: str, handler: Callable[[Debugger, str, bool], None], doc: str | None
     ) -> CommandHandle:
         """
         Adds a command with the given name to the debugger, that invokes the

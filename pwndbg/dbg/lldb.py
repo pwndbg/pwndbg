@@ -260,7 +260,10 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def add_command(
-        self, command_name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]
+        self,
+        command_name: str,
+        handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
+        doc: str | None,
     ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
 
