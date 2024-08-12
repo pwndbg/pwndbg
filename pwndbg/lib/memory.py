@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import os
 
-import pwndbg.gdblib.arch
-
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
 
@@ -134,6 +132,11 @@ class Page:
         )
 
     def __str__(self) -> str:
+        # This module requires GDB, so it causes import failures in unit tests.
+        # This will stop being a problem as soon as this module gets ported to
+        # aglib.arch, but, for now we have to add this as a quick stopgap.
+        import pwndbg.gdblib.arch
+
         return f"{self.vaddr:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.vaddr + self.memsz:#{2 + 2 * pwndbg.gdblib.arch.ptrsize}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {self.objfile or ''}"
 
     def __repr__(self) -> str:
