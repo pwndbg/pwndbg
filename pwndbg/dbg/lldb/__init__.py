@@ -250,13 +250,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         pwndbg.commands.load_commands()
 
-        import argparse
-
-        parser = argparse.ArgumentParser(description="Prints a test message.")
-
-        @pwndbg.commands.ArgparsedCommand(parser)
-        def test2():
-            print("Test 2!")
+        import pwndbg.dbg.lldb.pset
 
     @override
     def add_command(
