@@ -58,13 +58,13 @@ let
       sys.path.insert(0, '$out/share/pwndbg/')\n\
       os.environ['PATH'] += ':${binPath}'\n" -i $out/share/pwndbg/gdbinit.py
 
-      ln -s ${pyEnv} $out/share/pwndbg/.venv
-
+      touch $out/share/pwndbg/.skip-venv
       makeWrapper ${gdb}/bin/gdb $out/bin/pwndbg \
         --add-flags "--quiet --early-init-eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py"
     '';
 
     meta = {
+      pwndbgVenv = pyEnv;
       python3 = python3;
       gdb = gdb;
     };
