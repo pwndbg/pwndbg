@@ -5,9 +5,10 @@
 let
   gdb = pwndbg.meta.gdb;
   python3 = pwndbg.meta.python3;
+  pwndbgVenv = pwndbg.meta.pwndbgVenv;
 
   gdbBundledLib = pkgs.callPackage ./bundle { } "${gdb}/bin/gdb";
-  pyEnvBundledLib = pkgs.callPackage ./bundle { } "${pwndbg}/share/pwndbg/.venv/lib/";
+  pyEnvBundledLib = pkgs.callPackage ./bundle { } "${pwndbgVenv}/lib/";
 
   ldName = pkgs.lib.readFile (
     pkgs.runCommand "bundle" { nativeBuildInputs = [ pkgs.patchelf ]; } ''
@@ -20,8 +21,7 @@ let
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
     export PYTHONHOME="$dir"
     export PYTHONPYCACHEPREFIX="$dir/cache/"
-    export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
-    exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --early-init-eval-command="set charset UTF-8" --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
+    exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
   '';
   # for cache: pwndbg --eval-command="py import compileall; compileall.compile_dir('/usr/lib/pwndbg/'); exit()"
 
@@ -41,12 +41,13 @@ let
         mkdir -p $out/pwndbg/exe/
         mkdir -p $out/pwndbg/share/gdb/
         mkdir -p $out/pwndbg/cache/
+        touch $out/pwndbg/exe/.skip-venv
 
         cp -rf ${gdbBundledLib}/exe/* $out/pwndbg/exe/
         cp -rf ${gdbBundledLib}/lib/* $out/pwndbg/lib/
         cp -rf ${pyEnvBundledLib}/lib/* $out/pwndbg/lib/
 
-        cp -rf ${pwndbg}/share/pwndbg/.venv/share/gdb/* $out/pwndbg/share/gdb/
+        cp -rf ${pwndbgVenv}/share/gdb/* $out/pwndbg/share/gdb/
         cp -rf ${gdb}/share/gdb/* $out/pwndbg/share/gdb/
         chmod -R +w $out
 
