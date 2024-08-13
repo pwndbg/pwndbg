@@ -236,7 +236,7 @@ class LLDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
 
     @override
     def is_qemu(self) -> bool:
-        # Figure a way to detect QEMU later.
+        # TODO/FIXME: Figure a way to detect QEMU later.
         return False
 
     @override
