@@ -172,7 +172,12 @@ def main() -> None:
         fixup_paths(src_root, venv_path)
 
     # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
-    gdb.execute("set charset UTF-8", to_string=True)
+    try:
+        gdb.execute("set target-wide-charset UTF-8", to_string=True)
+        gdb.execute("set charset UTF-8", to_string=True)
+    except gdb.error as e:
+        print(f"Warning: Cannot set gdb charset: '{e}'")
+
     os.environ["PWNLIB_NOTERM"] = "1"
 
     import pwndbg  # noqa: F811
