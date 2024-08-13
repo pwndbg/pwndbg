@@ -1582,13 +1582,13 @@ tests = ["pytest"]
 
 [[package]]
 name = "pwntools"
-version = "4.13.0"
+version = "4.14.0b0"
 description = "Pwntools CTF framework and exploit development library."
 optional = false
 python-versions = ">=2.7"
 files = [
-    {file = "pwntools-4.13.0-py2.py3-none-any.whl", hash = "sha256:34805dd433bd20a0f46a15b51ee8668793b61e85d783c0e0838d687653cbf34e"},
-    {file = "pwntools-4.13.0.tar.gz", hash = "sha256:1d5ca25383ec10fb64e28d142c1d868f91ea1c53a93d3531d3015d830828d3c3"},
+    {file = "pwntools-4.14.0b0-py2.py3-none-any.whl", hash = "sha256:98c6e409e3e160e42226a33fd1858adb637787203c95105684d0455d2347c277"},
+    {file = "pwntools-4.14.0b0.tar.gz", hash = "sha256:2a01e6b1fcb1228ba64d017ebfb6a323161dcd4e5af1c823bd87942318ca8ae0"},
 ]
 
 [package.dependencies]
@@ -2571,4 +2571,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "57f1a51e8048665ccd50a3939780c84314a6fe96afef7d0d862e1c24d8af4af3"
+content-hash = "224f699c72638f7be118480f7833a9be4f46193fcd816cb9abd506767fb90cd3"
