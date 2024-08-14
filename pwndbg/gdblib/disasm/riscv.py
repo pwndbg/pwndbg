@@ -95,11 +95,11 @@ RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_SRAIW: ">>s",
     RISCV_INS_SRAW: ">>s",
     # RV64M unique instructions
-    RISCV_INS_MULW:"*",
-    RISCV_INS_DIVW:"/",
-    RISCV_INS_DIVUW:"/",
-    RISCV_INS_REMW:"%",
-    RISCV_INS_REMUW:"%",
+    RISCV_INS_MULW: "*",
+    RISCV_INS_DIVW: "/",
+    RISCV_INS_DIVUW: "/",
+    RISCV_INS_REMW: "%",
+    RISCV_INS_REMUW: "%",
     # RV64C unique instructions
     RISCV_INS_C_ADDIW: "+",
     RISCV_INS_C_SUBW: "-",
@@ -120,7 +120,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # C.LI
             RISCV_INS_C_LI: self._common_move_annotator,
             # LUI
-            RISCV_INS_LUI: self._lui_annotator
+            RISCV_INS_LUI: self._lui_annotator,
         }
 
     @override
