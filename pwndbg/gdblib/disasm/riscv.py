@@ -47,7 +47,6 @@ RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
     RISCV_INS_C_SDSP: 8,
 }
 
-# TODO: RV64I, RV64M, and RV64C instructions that operate on 32-bit
 
 RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_ADDI: "+",
@@ -85,6 +84,26 @@ RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_REMU: "%",
     RISCV_INS_C_ADDI4SPN: "+",
     RISCV_INS_C_ADDI16SP: "+",
+    # RV64I unique instructions
+    RISCV_INS_ADDIW: "+",
+    RISCV_INS_ADDW: "+",
+    RISCV_INS_SUBW: "-",
+    RISCV_INS_SLLIW: "<<",
+    RISCV_INS_SLLW: "<<",
+    RISCV_INS_SRLIW: ">>",
+    RISCV_INS_SRLW: ">>",
+    RISCV_INS_SRAIW: ">>s",
+    RISCV_INS_SRAW: ">>s",
+    # RV64M unique instructions
+    RISCV_INS_MULW:"*",
+    RISCV_INS_DIVW:"/",
+    RISCV_INS_DIVUW:"/",
+    RISCV_INS_REMW:"%",
+    RISCV_INS_REMUW:"%",
+    # RV64C unique instructions
+    RISCV_INS_C_ADDIW: "+",
+    RISCV_INS_C_SUBW: "-",
+    RISCV_INS_C_ADDW: "-",
 }
 
 
@@ -100,6 +119,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_MV: self._common_move_annotator,
             # C.LI
             RISCV_INS_C_LI: self._common_move_annotator,
+            # LUI
+            RISCV_INS_LUI: self._lui_annotator
         }
 
     @override
@@ -178,6 +199,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if (address := result_operand.after_value) is None:
                 # Resolve it manually without emulation
                 address = instruction.address + (right.before_value << 12)
+
+            instruction.annotation = (
+                f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
+            )
+
+    def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        result_operand, right = instruction.operands
+        if result_operand.str and right.before_value is not None:
+            if (address := result_operand.after_value) is None:
+                # Resolve it manually without emulation
+                address = right.before_value << 12
 
             instruction.annotation = (
                 f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
