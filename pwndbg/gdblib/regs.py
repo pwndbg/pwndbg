@@ -195,7 +195,7 @@ class module(ModuleType):
             elif isinstance(regset, dict):  # regs.flags
                 retval.extend(regset.keys())
             else:
-                retval.append(regset)  # type: ignore[arg-type]
+                retval.append(regset)
         return retval
 
     def fix(self, expression: str) -> str:
