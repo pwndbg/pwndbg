@@ -10,13 +10,13 @@ from pwndbg.commands import CommandCategory
 class segment(gdb.Function):
     """Get the flat address of memory based off of the named segment register."""
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self.name = name
 
-    def invoke(self, arg=0):
+    def invoke(self, arg: gdb.Value = gdb.Value(0), *args: gdb.Value) -> int:
         result = getattr(pwndbg.gdblib.regs, self.name)
-        return result + arg
+        return result + int(arg)
 
 
 # TODO/FIXME: This should be defined only for x86 and x86_64
