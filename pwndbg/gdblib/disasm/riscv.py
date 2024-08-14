@@ -47,11 +47,72 @@ RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
     RISCV_INS_C_SDSP: 8,
 }
 
+# TODO: RV64I and RV64M instructions that operate on 32-bit
+# And RV64C
+
+
+RISCV_MATH_INSTRUCTIONS = {
+    RISCV_INS_ADDI:"+",
+    RISCV_INS_ADD:"+",
+
+    RISCV_INS_C_ADDI:"+",
+    RISCV_INS_C_ADD:"+",
+
+    RISCV_INS_SUB:"-",
+    RISCV_INS_C_SUB:"-",
+    RISCV_INS_XORI:"^",
+    RISCV_INS_XOR:"^",
+    RISCV_INS_C_XOR:"^",
+
+    RISCV_INS_ORI:"|",
+    RISCV_INS_OR:"|",
+    RISCV_INS_C_OR:"|",
+
+    RISCV_INS_ANDI:"&",
+    RISCV_INS_C_ANDI:"&",
+    RISCV_INS_AND:"&",
+    RISCV_INS_C_AND:"&",
+    RISCV_INS_SLLI:"<<",
+    RISCV_INS_C_SLLI:"<<",
+    RISCV_INS_SLL:"<<",
+    RISCV_INS_SRLI:">>",
+    RISCV_INS_C_SRLI:">>",
+
+    RISCV_INS_SRL:">>",
+    # TODO: use s here for arithmetic? https://msyksphinz-self.github.io/riscv-isadoc/html/rvi.html#srai does
+    RISCV_INS_SRAI:">>s",
+    RISCV_INS_C_SRAI:">>s",
+    RISCV_INS_SRA:">>s",
+
+    # Signed multiplication: TODO
+    RISCV_INS_MUL:"*",
+    RISCV_INS_MULH:"*",
+    RISCV_INS_MULHSU:"*",
+    RISCV_INS_MULHU:"*",
+    # TODO: signed
+    RISCV_INS_DIV:"/",
+    RISCV_INS_DIVU:"/",
+    RISCV_INS_REM:"%",
+    RISCV_INS_REMU:"%",
+
+    RISCV_INS_C_ADDI4SPN:"+",
+    RISCV_INS_C_ADDI16SP:"+",
+
+}
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
+
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # AUIPC
+            RISCV_INS_AUIPC: self._auipc_annotator,
+            # C.MV
+            RISCV_INS_C_MV: self._common_move_annotator,
+            # C.LI
+            RISCV_INS_C_LI: self._common_move_annotator,
+        }
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -67,9 +128,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
-
         # TODO: remove this when updating to Capstone 6
-        if instruction.id in RISCV_COMPRESSED_LOAD_INSTRUCTIONS:
+        elif instruction.id in RISCV_COMPRESSED_LOAD_INSTRUCTIONS:
             # We need to manually resolve this now since Capstone doesn't properly represent
             # memory operands for compressed instructions.
             address = self._resolve_compressed_target_addr(instruction, emu)
@@ -88,8 +148,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     instruction.operands[0].str,
                     dest_str,
                 )
-
-        if instruction.id in RISCV_STORE_INSTRUCTIONS:
+        elif instruction.id in RISCV_STORE_INSTRUCTIONS:
             self._common_store_annotator(
                 instruction,
                 emu,
@@ -113,8 +172,32 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     RISCV_COMPRESSED_STORE_INSTRUCTIONS[instruction.id],
                     dest_str,
                 )
+        elif instruction.id in RISCV_MATH_INSTRUCTIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[-2].before_value,
+                instruction.operands[-1].before_value,
+                RISCV_MATH_INSTRUCTIONS[instruction.id]
+            )
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
-        return super()._set_annotation_string(instruction, emu)
+    def _auipc_annotator(
+        self, instruction: PwndbgInstruction, emu: Emulator
+    ) -> None:
+
+        result_operand, right = instruction.operands
+        if result_operand.str and right.before_value is not None:
+
+            if (address := result_operand.after_value) is None:
+                # Resolve it manually without emulation
+                address = instruction.address + (right.before_value << 12)
+
+            instruction.annotation = f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
+
+
 
     def _resolve_compressed_target_addr(
         self, instruction: PwndbgInstruction, emu: Emulator

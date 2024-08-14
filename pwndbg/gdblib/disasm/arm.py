@@ -59,6 +59,12 @@ ARM_MATH_INSTRUCTIONS = {
     ARM_INS_ADD:"+",
     ARM_INS_ADDW:"+",
     ARM_INS_SUB:"-",
+    ARM_INS_ORR:"|",
+    ARM_INS_AND:"&",
+    ARM_INS_EOR:"^",
+    ARM_INS_ASR:">>s",
+    ARM_INS_LSR:">>",
+    ARM_INS_LSL:"<<",
 }
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -66,6 +72,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         super().__init__(architecture)
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # MOV
+            ARM_INS_MOV: self._common_move_annotator,
+            ARM_INS_MOVW: self._common_move_annotator,
+
             # CMP
             ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN

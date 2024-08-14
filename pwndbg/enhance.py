@@ -30,7 +30,7 @@ def format_small_int(value: int) -> str:
     if value < 10:
         return str(value)
     else:
-        return hex(value & pwndbg.gdblib.arch.ptrmask)
+        return hex(value)
 
 
 def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
@@ -38,8 +38,8 @@ def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
         return (str(first), str(second))
     else:
         return (
-            hex(first & pwndbg.gdblib.arch.ptrmask),
-            hex(second & pwndbg.gdblib.arch.ptrmask),
+            hex(first),
+            hex(second),
         )
 
 

@@ -121,6 +121,14 @@ MIPS_BINARY_OPERATIONS = {
     MIPS_INS_SUBU:"-",
     MIPS_INS_DSUB:"-",
     MIPS_INS_DSUBU:"-",
+    MIPS_INS_ANDI:"&",
+    MIPS_INS_AND:"&",
+    MIPS_INS_ORI:"|",
+    MIPS_INS_OR:"|",
+    MIPS_INS_XOR:"^",
+    MIPS_INS_XORI:"^",
+    MIPS_INS_SLL:"<<",
+    MIPS_INS_SLLV:"<<"
 }
 
 # This class enhances 32-bit, 64-bit, and micro MIPS

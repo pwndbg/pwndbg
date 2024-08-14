@@ -100,7 +100,16 @@ AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
 
 AARCH64_MATH_INSTRUCTIONS = {
     ARM64_INS_ADD: "+",
-    ARM64_INS_SUB: "-"
+    ARM64_INS_SUB: "-",
+    ARM64_INS_AND: "&",
+    ARM64_INS_ORR: "&",
+    ARM64_INS_ASR: ">>s",
+    ARM64_INS_ASRV: ">>s",
+    ARM64_INS_EOR: "^",
+    ARM64_INS_LSL: "<<",
+    ARM64_INS_LSLV: "<<",
+    ARM64_INS_LSR: ">>",
+    ARM64_INS_LSRV: ">>",
 }
 
 
@@ -145,15 +154,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
-            ARM64_INS_MOV: self._common_generic_register_destination,
+            ARM64_INS_MOV: self._common_move_annotator,
+            # MOV WITH KEEP
+            ARM64_INS_MOVK: self._common_generic_register_destination,
             # ADR
             ARM64_INS_ADR: self._common_generic_register_destination,
             # ADRP
             ARM64_INS_ADRP: self._common_generic_register_destination,
-            # ADD
-            ARM64_INS_ADD: self._common_generic_register_destination,
-            # SUB
-            ARM64_INS_SUB: self._common_generic_register_destination,
             # CMP
             ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
