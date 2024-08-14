@@ -113,6 +113,12 @@ MIPS_LOAD_INSTRUCTIONS = {
     MIPS_INS_LDPC: 8,
 }
 
+MIPS_STORE_INSTRUCTIONS = {
+    MIPS_INS_SB:1,
+    MIPS_INS_SH:2,
+    MIPS_INS_SW:4,
+    MIPS_INS_SD:8,
+}
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -133,6 +139,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 pwndbg.gdblib.arch.ptrsize,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
+            )
+        elif instruction.id in MIPS_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                instruction.operands[0].before_value,
+                MIPS_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[1].str
             )
         elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)

@@ -91,11 +91,20 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 left.str,
                 right.str,
             )
-        # Handle other cases of MOV
-        elif right.before_value is not None:
+        elif left.type == CS_OP_MEM:
+            # Store operation, MOV [MEM], REG|IMM
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[0].before_value,
+                instruction.operands[1].before_value,
+                right.cs_op.size,
+                instruction.operands[1].str
+            )
+        elif left.type == CS_OP_REG and right.before_value is not None:
+            # MOV REG, REG|IMM
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
-            # +1 to ensure we telescope enough to read at least one address for the last "elif" below
             telescope_addresses = super()._telescope(
                 right.before_value,
                 TELESCOPE_DEPTH + 1,
@@ -106,21 +115,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if not telescope_addresses:
                 return
 
-            # MOV [MEM], REG or IMM
-            if (
-                left.type == CS_OP_MEM and left.before_value is not None
-            ):  # right.type must then be either CS_OP_REG or CS_OP_IMM. Cannot MOV mem to mem
-                # If the memory isn't mapped, we will segfault
-                if not pwndbg.gdblib.memory.peek(left.before_value):
-                    instruction.annotation = MessageColor.error(
-                        f"<Cannot dereference [{MemoryColor.get(left.before_value)}]>"
-                    )
-                else:
-                    instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
-
-            # MOV REG, REG or IMM
-            elif left.type == CS_OP_REG and right.type in (CS_OP_REG, CS_OP_IMM):
-                instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:

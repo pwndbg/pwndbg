@@ -49,6 +49,7 @@ AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_LDAR: None,
 }
 
+# None indicates that the write size depends on the source register
 AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_STRB: 1,
     ARM64_INS_STURB: 1,
@@ -176,6 +177,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 target_reg_size,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
+            )
+        elif instruction.id in AARCH64_SINGLE_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                instruction.operands[0].before_value,
+                AARCH64_SINGLE_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[1].str
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)

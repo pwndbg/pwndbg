@@ -42,7 +42,9 @@ RISCV_STORE_INSTRUCTIONS = {
 # TODO: remove this when updating to Capstone 6
 RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
     RISCV_INS_C_SW: 4,
+    RISCV_INS_C_SWSP: 4,
     RISCV_INS_C_SD: 8,
+    RISCV_INS_C_SDSP: 8,
 }
 
 
@@ -87,6 +89,32 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     dest_str,
                 )
 
+        if instruction.id in RISCV_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                instruction.operands[0].before_value,
+                RISCV_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[1].str
+            )
+        elif instruction.id in RISCV_COMPRESSED_STORE_INSTRUCTIONS:
+            # TODO: remove this branch when updating to Capstone 6
+            address = self._resolve_compressed_target_addr(instruction, emu)
+
+            if address is not None:
+
+                dest_str = f"[{MemoryColor.get_address_or_symbol(address)}]"
+
+                self._common_store_annotator(
+                    instruction,
+                    emu,
+                    address,
+                    instruction.operands[0].before_value,
+                    RISCV_COMPRESSED_STORE_INSTRUCTIONS[instruction.id],
+                    dest_str
+                )
+        
         return super()._set_annotation_string(instruction, emu)
 
     def _resolve_compressed_target_addr(

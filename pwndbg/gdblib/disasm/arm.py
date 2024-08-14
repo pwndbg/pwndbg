@@ -85,6 +85,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
+        elif instruction.id in ARM_SINGLE_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                instruction.operands[0].before_value,
+                ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[1].str
+            )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
