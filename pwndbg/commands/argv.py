@@ -71,11 +71,11 @@ class argv_function(gdb.Function):
     def __init__(self) -> None:
         super().__init__("argv")
 
-    def invoke(self, number=0):
-        number = int(number)
+    def invoke(self, number_value: gdb.Value = gdb.Value(0), *args: gdb.Value) -> gdb.Value:
+        number = int(number_value)
 
         if number > pwndbg.gdblib.argv.argc:
-            return 0
+            return gdb.Value(0)
 
         ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
         value = gdb.Value(pwndbg.gdblib.argv.argv)
@@ -94,11 +94,11 @@ class envp_function(gdb.Function):
     def __init__(self) -> None:
         super().__init__("envp")
 
-    def invoke(self, number=0):
-        number = int(number)
+    def invoke(self, number_value: gdb.Value = gdb.Value(0), *args: gdb.Value) -> gdb.Value:
+        number = int(number_value)
 
         if number > pwndbg.gdblib.argv.envc:
-            return pwndbg.gdblib.typeinfo.void
+            return pwndbg.gdblib.typeinfo.void.optimized_out()
 
         ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
         value = gdb.Value(pwndbg.gdblib.argv.envp)
@@ -117,7 +117,7 @@ class argc_function(gdb.Function):
     def __init__(self) -> None:
         super().__init__("argc")
 
-    def invoke(self, number=0):
+    def invoke(self, *args: gdb.Value) -> int:
         return pwndbg.gdblib.argv.argc
 
 
@@ -132,8 +132,11 @@ class environ_function(gdb.Function):
     def __init__(self) -> None:
         super().__init__("environ")
 
-    def invoke(self, name):
-        name = name.string() + "="
+    def invoke(self, name_value: gdb.Value = gdb.Value(""), *args: gdb.Value) -> gdb.Value:
+        name = name_value.string()
+        if not name:
+            raise gdb.GdbError("No environment variable name provided")
+        name += "="
         ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
         value = gdb.Value(pwndbg.gdblib.argv.envp)
         envp = value.cast(ppchar)
@@ -144,7 +147,7 @@ class environ_function(gdb.Function):
             if sz.startswith(name):
                 return ptr
 
-        return pwndbg.gdblib.typeinfo.void
+        return pwndbg.gdblib.typeinfo.void.optimized_out()
 
 
 environ_function()

@@ -36,6 +36,9 @@ def update() -> None:
     ptrsize = pwndbg.gdblib.arch.ptrsize
     ptrbits = 8 * ptrsize
 
+    if sp is None:
+        return
+
     try:
         argc = pwndbg.gdblib.memory.u(sp, ptrbits)
     except Exception:
