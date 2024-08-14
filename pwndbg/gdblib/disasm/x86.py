@@ -28,10 +28,10 @@ regs = {v: k for k, v in globals().items() if k.startswith("X86_REG_")}
 access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
 X86_MATH_INSTRUCTIONS = {
-    X86_INS_ADD:"+",
-    X86_INS_SUB:"-",
-    X86_INS_AND:"&",
-    X86_INS_OR:"|",
+    X86_INS_ADD: "+",
+    X86_INS_SUB: "-",
+    X86_INS_AND: "&",
+    X86_INS_OR: "|",
 }
 
 # Capstone operand type for x86 is capstone.x86.X86Op
@@ -85,7 +85,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0],
                 instruction.operands[0].before_value_resolved,
                 instruction.operands[1].before_value_resolved,
-                X86_MATH_INSTRUCTIONS[instruction.id]
+                X86_MATH_INSTRUCTIONS[instruction.id],
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
@@ -210,7 +210,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0],
                 instruction.operands[0].before_value_resolved,
                 instruction.operands[1].before_value_resolved,
-                "^"
+                "^",
             )
 
     def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:

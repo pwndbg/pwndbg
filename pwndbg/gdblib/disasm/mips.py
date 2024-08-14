@@ -79,7 +79,7 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
     MIPS_INS_SLTU,
-        # Rare - unaligned read - have complex loading logic
+    # Rare - unaligned read - have complex loading logic
     MIPS_INS_LDL,
     MIPS_INS_LDR,
     # Rare - partial load on portions of address
@@ -109,27 +109,28 @@ MIPS_STORE_INSTRUCTIONS = {
 }
 
 MIPS_BINARY_OPERATIONS = {
-    MIPS_INS_ADD:"+",
-    MIPS_INS_ADDI:"+",
-    MIPS_INS_ADDIU:"+",
-    MIPS_INS_ADDU:"+",
-    MIPS_INS_DADD:"+",
-    MIPS_INS_DADDI:"+",
-    MIPS_INS_DADDIU:"+",
-    MIPS_INS_DADDU:"+",
-    MIPS_INS_SUB:"-",
-    MIPS_INS_SUBU:"-",
-    MIPS_INS_DSUB:"-",
-    MIPS_INS_DSUBU:"-",
-    MIPS_INS_ANDI:"&",
-    MIPS_INS_AND:"&",
-    MIPS_INS_ORI:"|",
-    MIPS_INS_OR:"|",
-    MIPS_INS_XOR:"^",
-    MIPS_INS_XORI:"^",
-    MIPS_INS_SLL:"<<",
-    MIPS_INS_SLLV:"<<"
+    MIPS_INS_ADD: "+",
+    MIPS_INS_ADDI: "+",
+    MIPS_INS_ADDIU: "+",
+    MIPS_INS_ADDU: "+",
+    MIPS_INS_DADD: "+",
+    MIPS_INS_DADDI: "+",
+    MIPS_INS_DADDIU: "+",
+    MIPS_INS_DADDU: "+",
+    MIPS_INS_SUB: "-",
+    MIPS_INS_SUBU: "-",
+    MIPS_INS_DSUB: "-",
+    MIPS_INS_DSUBU: "-",
+    MIPS_INS_ANDI: "&",
+    MIPS_INS_AND: "&",
+    MIPS_INS_ORI: "|",
+    MIPS_INS_OR: "|",
+    MIPS_INS_XOR: "^",
+    MIPS_INS_XORI: "^",
+    MIPS_INS_SLL: "<<",
+    MIPS_INS_SLLV: "<<",
 }
+
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
@@ -167,8 +168,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0],
                 instruction.operands[1].before_value,
                 instruction.operands[2].before_value,
-                MIPS_BINARY_OPERATIONS[instruction.id]
+                MIPS_BINARY_OPERATIONS[instruction.id],
             )
+
         elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)
 

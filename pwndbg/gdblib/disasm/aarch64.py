@@ -206,7 +206,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0],
                 instruction.operands[-2].before_value,
                 instruction.operands[-1].before_value,
-                AARCH64_MATH_INSTRUCTIONS[instruction.id]
+                AARCH64_MATH_INSTRUCTIONS[instruction.id],
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)

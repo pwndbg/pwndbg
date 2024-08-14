@@ -14,7 +14,6 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.arch import read_thumb_bit as process_read_thumb_bit
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -56,16 +55,17 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
 }
 
 ARM_MATH_INSTRUCTIONS = {
-    ARM_INS_ADD:"+",
-    ARM_INS_ADDW:"+",
-    ARM_INS_SUB:"-",
-    ARM_INS_ORR:"|",
-    ARM_INS_AND:"&",
-    ARM_INS_EOR:"^",
-    ARM_INS_ASR:">>s",
-    ARM_INS_LSR:">>",
-    ARM_INS_LSL:"<<",
+    ARM_INS_ADD: "+",
+    ARM_INS_ADDW: "+",
+    ARM_INS_SUB: "-",
+    ARM_INS_ORR: "|",
+    ARM_INS_AND: "&",
+    ARM_INS_EOR: "^",
+    ARM_INS_ASR: ">>s",
+    ARM_INS_LSR: ">>",
+    ARM_INS_LSL: "<<",
 }
+
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
@@ -75,7 +75,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # MOV
             ARM_INS_MOV: self._common_move_annotator,
             ARM_INS_MOVW: self._common_move_annotator,
-
             # CMP
             ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
@@ -119,7 +118,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0],
                 instruction.operands[-2].before_value,
                 instruction.operands[-1].before_value,
-                ARM_MATH_INSTRUCTIONS[instruction.id]
+                ARM_MATH_INSTRUCTIONS[instruction.id],
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)

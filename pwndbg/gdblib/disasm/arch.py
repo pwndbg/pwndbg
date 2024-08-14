@@ -953,11 +953,7 @@ class DisassemblyAssistant:
 
             instruction.annotation = f"{address_str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
-    def _common_move_annotator(
-            self,
-            instruction: PwndbgInstruction,
-            emu: Emulator
-    ):
+    def _common_move_annotator(self, instruction: PwndbgInstruction, emu: Emulator):
         """
         This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
         """
@@ -967,7 +963,7 @@ class DisassemblyAssistant:
             result = left.after_value or right.before_value
             if result is not None:
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
-                
+
                 telescope_addresses = self._telescope(
                     result,
                     TELESCOPE_DEPTH + 1,
@@ -976,9 +972,8 @@ class DisassemblyAssistant:
                 )
                 if not telescope_addresses:
                     return
-                
-                instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
+                instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
 
     def _common_binary_op_annotator(
         self,
@@ -989,17 +984,13 @@ class DisassemblyAssistant:
         op_two: int | None,
         char_to_separate_operands: str,
     ) -> None:
-        
         # Ex: "0x198723 + 0x2b8"
         math_string = None
 
         if op_one is not None and op_two is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                op_one, op_two
-            )
+            print_left, print_right = pwndbg.enhance.format_small_int_pair(op_one, op_two)
 
             math_string = f"{print_left} {char_to_separate_operands} {print_right}"
-
 
         # Using emulation, we can determine the resulting value
         if target_operand.after_value_resolved is not None:
@@ -1008,8 +999,6 @@ class DisassemblyAssistant:
                 instruction.annotation += f" ({math_string})"
         elif math_string:
             instruction.annotation = f"{target_operand.str} => {math_string}"
-
-
 
 
 generic_assistant = DisassemblyAssistant(None)
