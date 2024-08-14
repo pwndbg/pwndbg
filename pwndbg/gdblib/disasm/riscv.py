@@ -102,8 +102,8 @@ RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_REMUW: "%",
     # RV64C unique instructions
     RISCV_INS_C_ADDIW: "+",
+    RISCV_INS_C_ADDW: "+",
     RISCV_INS_C_SUBW: "-",
-    RISCV_INS_C_ADDW: "-",
 }
 
 
