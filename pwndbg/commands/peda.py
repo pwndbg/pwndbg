@@ -19,15 +19,21 @@ def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))
 
 
-parser = argparse.ArgumentParser(description="Continue execution until an address or function.")
-parser.add_argument("target", type=str, help="Address or function to stop execution at")
+parser = argparse.ArgumentParser(
+    description="Continue execution until an address or function."
+)
+parser.add_argument("target", type=int, help="Address or function to stop execution at")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
 def xuntil(target) -> None:
+    running = pwndbg.gdblib.proc.alive
+    if not running:
+        print(message.notice("Process is not running. Starting process..."))
+        gdb.execute("starti", from_tty=False, to_string=True)
+        target = pwndbg.gdblib.functions.rebase(target)
     try:
-        addr = int(target, 0)
-
+        addr = target
         if not pwndbg.gdblib.memory.peek(addr):
             print(message.error("Invalid address %#x" % addr))
             return
@@ -41,12 +47,8 @@ def xuntil(target) -> None:
             print(message.error(f"Unable to resolve {target}"))
             return
         spec = target
-
     gdb.Breakpoint(spec, temporary=True)
-    if pwndbg.gdblib.proc.alive:
-        gdb.execute("continue", from_tty=False)
-    else:
-        gdb.execute("run", from_tty=False)
+    gdb.execute("continue", from_tty=False)
 
 
 xinfo = pwndbg.commands.context.context
