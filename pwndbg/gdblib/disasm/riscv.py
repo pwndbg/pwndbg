@@ -47,9 +47,7 @@ RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
     RISCV_INS_C_SDSP: 8,
 }
 
-# TODO: RV64I and RV64M instructions that operate on 32-bit
-# And RV64C
-
+# TODO: RV64I, RV64M, and RV64C instructions that operate on 32-bit
 
 RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_ADDI: "+",
@@ -74,16 +72,13 @@ RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_SRLI: ">>",
     RISCV_INS_C_SRLI: ">>",
     RISCV_INS_SRL: ">>",
-    # TODO: use s here for arithmetic? https://msyksphinz-self.github.io/riscv-isadoc/html/rvi.html#srai does
     RISCV_INS_SRAI: ">>s",
     RISCV_INS_C_SRAI: ">>s",
     RISCV_INS_SRA: ">>s",
-    # Signed multiplication: TODO
     RISCV_INS_MUL: "*",
     RISCV_INS_MULH: "*",
     RISCV_INS_MULHSU: "*",
     RISCV_INS_MULHU: "*",
-    # TODO: signed
     RISCV_INS_DIV: "/",
     RISCV_INS_DIVU: "/",
     RISCV_INS_REM: "%",

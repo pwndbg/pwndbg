@@ -64,6 +64,8 @@ ARM_MATH_INSTRUCTIONS = {
     ARM_INS_ASR: ">>s",
     ARM_INS_LSR: ">>",
     ARM_INS_LSL: "<<",
+    ARM_INS_UDIV: "/",
+    ARM_INS_SDIV: "/",
 }
 
 

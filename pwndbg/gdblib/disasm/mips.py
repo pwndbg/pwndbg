@@ -129,6 +129,14 @@ MIPS_BINARY_OPERATIONS = {
     MIPS_INS_XORI: "^",
     MIPS_INS_SLL: "<<",
     MIPS_INS_SLLV: "<<",
+    MIPS_INS_DIV: "/",
+    MIPS_INS_DIVU: "/",
+    MIPS_INS_DDIV: "/",
+    MIPS_INS_DDIVU: "/",
+    MIPS_INS_MOD: "%",
+    MIPS_INS_MODU: "%",
+    MIPS_INS_DMOD: "%",
+    MIPS_INS_DMODU: "%",
 }
 
 
