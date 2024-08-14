@@ -908,6 +908,7 @@ class DisassemblyAssistant:
 
             if telescope_print is not None:
                 instruction.annotation += f" => {telescope_print}"
+
     def _common_store_annotator(
         self,
         instruction: PwndbgInstruction,
@@ -919,9 +920,9 @@ class DisassemblyAssistant:
     ) -> None:
         """
         This function annotates store functions - moving data from a register to memory.
-        
+
         The `value` is truncated to match the `write_size`, if `write_size` is not None.
-        
+
         The annotation will indicate if the instruction will segfault.
 
         `write_size`: number of bytes of `value` that will be written
@@ -929,7 +930,7 @@ class DisassemblyAssistant:
 
         if address is None:
             return
-        
+
         if not pwndbg.gdblib.memory.peek(address):
             instruction.annotation = MessageColor.error(
                 f"<Cannot dereference [{MemoryColor.get(address)}]>"
@@ -940,8 +941,8 @@ class DisassemblyAssistant:
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
             if write_size is not None:
-                value &= ((1 << (write_size * 8)) - 1)
-                
+                value &= (1 << (write_size * 8)) - 1
+
             telescope_addresses = self._telescope(
                 value,
                 TELESCOPE_DEPTH,
@@ -950,8 +951,6 @@ class DisassemblyAssistant:
             )
 
             instruction.annotation = f"{address_str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
-
-
 
 
 generic_assistant = DisassemblyAssistant(None)

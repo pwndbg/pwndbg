@@ -99,7 +99,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value,
                 instruction.operands[1].before_value,
                 right.cs_op.size,
-                instruction.operands[0].str
+                instruction.operands[0].str,
             )
         elif left.type == CS_OP_REG and right.before_value is not None:
             # MOV REG, REG|IMM
