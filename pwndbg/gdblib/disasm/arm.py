@@ -100,7 +100,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[1].str,
             )
         elif instruction.id in ARM_MATH_INSTRUCTIONS:
-
+            # In Arm assembly, if there are two operands, than the first source operand is also the destination
+            # Example: add    sl, r3
+            # Or, it can be a seperate register. We use -1 and -2 indexes here to access the source operands either way
             self._common_binary_op_annotator(
                 instruction,
                 emu,
@@ -185,13 +187,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return f"[{(', '.join(parts))}]"
 
     def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
-        if emu:
-            return emu.read_thumb_bit()
-        elif self.can_reason_about_process_state(instruction):
-            # Read the Thumb bit directly from the process flag register if we can
-            return process_read_thumb_bit()
-        else:
-            return 0
+        return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 
     @override
     def _immediate_string(self, instruction, operand):

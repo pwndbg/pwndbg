@@ -961,6 +961,7 @@ class DisassemblyAssistant:
         char_to_separate_operands: str,
     ) -> None:
         
+        # Ex: "0x198723 + 0x2b8"
         math_string = None
 
         if op_one is not None and op_two is not None:
@@ -974,12 +975,10 @@ class DisassemblyAssistant:
         # Using emulation, we can determine the resulting value
         if target_operand.after_value_resolved is not None:
             instruction.annotation = f"{target_operand.str} => {MemoryColor.get_address_and_symbol(target_operand.after_value_resolved)}"
-
-        if math_string:
-            if instruction.annotation is not None:
+            if math_string:
                 instruction.annotation += f" ({math_string})"
-            else:
-                instruction.annotation = math_string
+        elif math_string:
+            instruction.annotation = f"{target_operand.str} => {math_string}"
 
 
 

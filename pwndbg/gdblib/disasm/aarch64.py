@@ -98,6 +98,11 @@ AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
     ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
 }
 
+AARCH64_MATH_INSTRUCTIONS = {
+    ARM64_INS_ADD: "+",
+    ARM64_INS_SUB: "-"
+}
+
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -186,6 +191,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value,
                 AARCH64_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
+            )
+        elif instruction.id in AARCH64_MATH_INSTRUCTIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[-2].before_value,
+                instruction.operands[-1].before_value,
+                AARCH64_MATH_INSTRUCTIONS[instruction.id]
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
