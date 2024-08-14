@@ -167,7 +167,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # ADR
             ARM64_INS_ADR: self._common_generic_register_destination,
             # ADRP
-            ARM64_INS_ADRP: self._common_generic_register_destination,
+            ARM64_INS_ADRP: self._handle_adrp,
             # CMP
             ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
@@ -217,6 +217,19 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+    def _handle_adrp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        result_operand, right = instruction.operands
+        if result_operand.str and right.before_value is not None:
+            address = right.before_value
+
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+            addresses = self._telescope(address, TELESCOPE_DEPTH, instruction, emu)
+
+            telescope = self._telescope_format_list(addresses, TELESCOPE_DEPTH, emu)
+
+            instruction.annotation = f"{result_operand.str} => {telescope}"
 
     @override
     def _condition(
