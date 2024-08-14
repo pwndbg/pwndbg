@@ -274,6 +274,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 i, region
             ), "invalid region despite being in bounds"
 
+            objfile = region.GetName()
+            if objfile is None:
+                # LLDB will sometimes give us overlapping ranges with no name.
+                # For now, we ignore them, since GDB does not show them.
+                continue
+
             perms = 0
             if region.IsReadable():
                 perms |= os.R_OK
@@ -284,13 +290,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
             # LLDB doesn't actually tell us the offset of the mapped file, just
             # whether it is mapped or not.
-            offset = 0 if not region.IsMapped() else 1
-
-            objfile = region.GetName()
-            if objfile is None:
-                # LLDB will sometimes give us overlapping ranges with no name.
-                # For now, we ignore them, since GDB does not show them.
-                continue
+            offset = 0
 
             pages.append(
                 pwndbg.lib.memory.Page(
@@ -309,10 +309,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         addr = lldb.SBAddress(address, self.target)
         ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextSymbol)
 
-        if not ctx.IsValid():
-            return None
-
-        if not ctx.symbol.IsValid():
+        if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
 
         return ctx.symbol.name
@@ -322,6 +319,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         endian0 = self.process.GetByteOrder()
         endian1 = self.target.GetByteOrder()
 
+        # Sometimes - particularly when using `gdb-remote` - the process might not have had
+        # its architecture, and thus its byte order, properly resolved. This happens often
+        # around architectures like MIPS. In those cases, we might have some luck falling
+        # back to the architecture information in the target, that might've been manually
+        # set by the user, or properly detected during target creation.
         if endian0 == lldb.eByteOrderInvalid:
             endian0 = endian1
 
@@ -337,7 +339,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         endian: Literal["little", "big"] = "little" if endian0 == lldb.eByteOrderLittle else "big"
 
         ptrsize0 = self.process.GetAddressByteSize()
-        ptrsize1 = self.process.GetAddressByteSize()
+        ptrsize1 = self.target.GetAddressByteSize()
         if ptrsize0 != ptrsize1:
             raise RuntimeError(
                 "SBTarget::GetAddressByteSize() != SBProcess::GetAddressByteSize(). We don't know how to handle that"
