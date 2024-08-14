@@ -112,6 +112,11 @@ AARCH64_MATH_INSTRUCTIONS = {
     ARM64_INS_LSRV: ">>",
     ARM64_INS_UDIV: "/",
     ARM64_INS_SDIV: "/",
+    ARM64_INS_SMULH: "*",
+    ARM64_INS_SMULL: "*",
+    ARM64_INS_UMULH: "*",
+    ARM64_INS_UMULL: "*",
+    ARM64_INS_MUL: "*",
 }
 
 
