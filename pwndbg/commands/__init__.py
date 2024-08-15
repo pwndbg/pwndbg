@@ -713,6 +713,7 @@ def load_commands() -> None:
         import pwndbg.commands.elf
         import pwndbg.commands.flags
         import pwndbg.commands.ghidra
+        import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
         import pwndbg.commands.heap
