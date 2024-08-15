@@ -15,11 +15,6 @@ from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
 from capstone import *  # noqa: F403
-from capstone.arm import ARM_INS_B
-from capstone.arm import ARM_INS_BL
-from capstone.arm import ARM_INS_BLX
-from capstone.arm import ARM_INS_BX
-from capstone.arm import ARM_INS_BXJ
 from capstone.arm import ARM_INS_TBB
 from capstone.arm import ARM_INS_TBH
 
@@ -318,7 +313,6 @@ class PwndbgInstruction:
         """
         True if we have determined that this instruction can explicitly change the program counter, and
         it's a JUMP-type instruction.
-
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
@@ -406,6 +400,7 @@ class PwndbgInstruction:
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
+        Declare unconditional: {self.declare_conditional}
         Can change PC: {self.has_jump_target}
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}
