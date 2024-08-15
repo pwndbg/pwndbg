@@ -170,7 +170,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[2].before_value,
                 MIPS_BINARY_OPERATIONS[instruction.id],
             )
-
         elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)
 
