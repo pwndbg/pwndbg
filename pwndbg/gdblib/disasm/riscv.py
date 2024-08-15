@@ -116,6 +116,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         else:
             src2_unsigned = 0
 
+        if src1_unsigned is None or src2_unsigned is None:
+            return InstructionCondition.UNDETERMINED
+
         src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
         src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
 
@@ -137,17 +140,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        """Checks if the current instruction is a jump that is taken.
-        Returns None if the instruction is executed unconditionally,
-        True if the instruction is executed for sure, False otherwise.
+        """
+        Checks if the current instruction is a jump that is taken.
         """
         # JAL / JALR is unconditional
         if RISCV_GRP_CALL in instruction.groups:
-            return InstructionCondition.UNDETERMINED
-
-        # We can't reason about anything except the current instruction
-        # as the comparison result is dependent on the register state.
-        if instruction.address != pwndbg.gdblib.regs.pc:
             return InstructionCondition.UNDETERMINED
 
         # Determine if the conditional jump is taken
@@ -163,24 +160,19 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         """
         ptrmask = pwndbg.gdblib.arch.ptrmask
         # JAL is unconditional and independent of current register status
-        if instruction.id in [RISCV_INS_JAL, RISCV_INS_C_JAL]:
+        if instruction.id in (RISCV_INS_JAL, RISCV_INS_C_JAL, RISCV_INS_C_J):
             # But that doesn't apply to ARM anyways :)
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
-        # We can't reason about anything except the current instruction
-        # as the comparison result is dependent on the register state.
-        if instruction.address != pwndbg.gdblib.regs.pc:
-            return None
-
-        # Determine if the conditional jump is taken
-        if RISCV_GRP_BRANCH_RELATIVE in instruction.groups and self._is_condition_taken(
-            instruction, emu
-        ):
+        # Determine target of branch - all of them are offset to address
+        if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # Determine the target address of the indirect jump
-        if instruction.id in [RISCV_INS_JALR, RISCV_INS_C_JALR]:
-            target = instruction.op_find(CS_OP_REG, 1).before_value
+        if instruction.id in (RISCV_INS_JALR, RISCV_INS_C_JALR):
+            if (target := instruction.op_find(CS_OP_REG, 1).before_value) is None:
+                return None
+            
             if instruction.id == RISCV_INS_JALR:
                 target += instruction.op_find(CS_OP_IMM, 1).imm
             target &= ptrmask

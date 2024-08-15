@@ -40,6 +40,10 @@ from capstone.ppc import PPC_INS_BL
 from capstone.ppc import PPC_INS_BLA
 from capstone.riscv import RISCV_INS_JAL
 from capstone.riscv import RISCV_INS_JALR
+from capstone.riscv import RISCV_INS_C_JAL
+from capstone.riscv import RISCV_INS_C_JALR
+from capstone.riscv import RISCV_INS_C_J
+from capstone.riscv import RISCV_INS_C_JR
 from capstone.sparc import SPARC_INS_JMP
 from capstone.sparc import SPARC_INS_JMPL
 from capstone.x86 import X86_INS_JMP
@@ -62,7 +66,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         ARM_INS_TBH,
     },
     CS_ARCH_ARM64: {ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
-    CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR},
+    CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR, RISCV_INS_C_JAL, RISCV_INS_C_JALR, RISCV_INS_C_J, RISCV_INS_C_JR},
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
