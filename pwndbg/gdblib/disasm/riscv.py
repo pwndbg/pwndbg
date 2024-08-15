@@ -182,14 +182,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     dest_str,
                 )
         elif instruction.id in RISCV_MATH_INSTRUCTIONS:
-            self._common_binary_op_annotator(
-                instruction,
-                emu,
-                instruction.operands[0],
-                instruction.operands[-2].before_value,
-                instruction.operands[-1].before_value,
-                RISCV_MATH_INSTRUCTIONS[instruction.id],
-            )
+            # We need this check, because some of these instructions can encoded as aliases
+            # Example: NOP is an alias of ADDI where target is x0. In Capstone, the ID will still be that of ADDI but with no operands
+            if len(instruction.operands) >= 2:
+                self._common_binary_op_annotator(
+                    instruction,
+                    emu,
+                    instruction.operands[0],
+                    instruction.operands[-2].before_value,
+                    instruction.operands[-1].before_value,
+                    RISCV_MATH_INSTRUCTIONS[instruction.id],
+                )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
