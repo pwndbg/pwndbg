@@ -91,7 +91,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
-            if instruction.id in (ARM_INS_B,ARM_INS_BL,ARM_INS_BLX,ARM_INS_BX,ARM_INS_BXJ):
+            if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED
 

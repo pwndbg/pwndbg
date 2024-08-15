@@ -33,12 +33,12 @@ from capstone.ppc import PPC_INS_B
 from capstone.ppc import PPC_INS_BA
 from capstone.ppc import PPC_INS_BL
 from capstone.ppc import PPC_INS_BLA
-from capstone.riscv import RISCV_INS_JAL
-from capstone.riscv import RISCV_INS_JALR
+from capstone.riscv import RISCV_INS_C_J
 from capstone.riscv import RISCV_INS_C_JAL
 from capstone.riscv import RISCV_INS_C_JALR
-from capstone.riscv import RISCV_INS_C_J
 from capstone.riscv import RISCV_INS_C_JR
+from capstone.riscv import RISCV_INS_JAL
+from capstone.riscv import RISCV_INS_JALR
 from capstone.sparc import SPARC_INS_JMP
 from capstone.sparc import SPARC_INS_JMPL
 from capstone.x86 import X86_INS_JMP
@@ -56,7 +56,14 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         ARM_INS_TBH,
     },
     CS_ARCH_ARM64: {ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
-    CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR, RISCV_INS_C_JAL, RISCV_INS_C_JALR, RISCV_INS_C_J, RISCV_INS_C_JR},
+    CS_ARCH_RISCV: {
+        RISCV_INS_JAL,
+        RISCV_INS_JALR,
+        RISCV_INS_C_JAL,
+        RISCV_INS_C_JALR,
+        RISCV_INS_C_J,
+        RISCV_INS_C_JR,
+    },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
@@ -235,7 +242,7 @@ class PwndbgInstruction:
             Arm, `bls` instruction. This is encoded as a `b` (Capstone ID 11) under the code, with an additional condition code field.
             In this case, sometimes a `b` instruction (ID 11) is unconditional (always branches), in other cases it is conditional.
             We use this field to disambiguate these cases.
-            
+
         True if we manually determine this instruction is a conditional instruction
         False if it's not a conditional instruction
         None if we don't have a determination (most cases)

@@ -633,7 +633,9 @@ class DisassemblyAssistant:
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
         # due to the way we single-step the emulator. We want our own manual checks to override the emulator
 
-        if not instruction.call_like and (instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump):
+        if not instruction.call_like and (
+            instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump
+        ):
             # Don't allow call instructions - we want the actual "nexti" address
             # If condition is true, then this might be a conditional jump
             # There are some other instructions that run conditionally though - resolve_target returns None in those cases

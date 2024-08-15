@@ -174,8 +174,8 @@ arch_to_SYSCALL = {
 # We stop emulation when hitting these instructions, since they depend on co-processors or other information
 # unavailable to the emulator
 BANNED_INSTRUCTIONS = {
-    "mips": { C.mips.MIPS_INS_RDHWR },
-    "arm": { C.arm.ARM_INS_MRC,C.arm.ARM_INS_MRRC, C.arm.ARM_INS_MRC2, C.arm.ARM_INS_MRRC2  },
+    "mips": {C.mips.MIPS_INS_RDHWR},
+    "arm": {C.arm.ARM_INS_MRC, C.arm.ARM_INS_MRRC, C.arm.ARM_INS_MRC2, C.arm.ARM_INS_MRRC2},
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550
@@ -822,7 +822,7 @@ class Emulator:
             debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
             return self.last_single_step_result
 
-        if insn.id in BANNED_INSTRUCTIONS.get(self.arch,{}):
+        if insn.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
             debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
             return self.last_single_step_result
 
@@ -837,7 +837,7 @@ class Emulator:
             self.emulate_with_hook(self.single_step_hook_code, count=1)
             if not self.valid:
                 return InstructionExecutedResult(None, None)
-            
+
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
             debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc)

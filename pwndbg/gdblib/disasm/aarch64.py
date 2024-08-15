@@ -188,7 +188,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == ARM64_INS_B:
             # The B instruction can be made conditional by the condition codes
-            if instruction.cs_insn.cc in (ARM64_CC_INVALID,ARM64_CC_AL):
+            if instruction.cs_insn.cc in (ARM64_CC_INVALID, ARM64_CC_AL):
                 instruction.declare_conditional = False
             else:
                 flags = super()._read_register_name(instruction, "cpsr", emu)

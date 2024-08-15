@@ -172,7 +172,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if instruction.id in (RISCV_INS_JALR, RISCV_INS_C_JALR):
             if (target := instruction.op_find(CS_OP_REG, 1).before_value) is None:
                 return None
-            
+
             if instruction.id == RISCV_INS_JALR:
                 target += instruction.op_find(CS_OP_IMM, 1).imm
             target &= ptrmask
