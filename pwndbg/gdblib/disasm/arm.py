@@ -91,6 +91,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.cs_insn.cc == ARM_CC_AL:
+            if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
+                instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED
 
         # We can't reason about anything except the current instruction
@@ -131,8 +133,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
-        target = super()._resolve_target(instruction, emu, call)
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+        target = super()._resolve_target(instruction, emu)
         if target is not None:
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC

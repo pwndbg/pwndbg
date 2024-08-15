@@ -163,13 +163,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         if bool(instruction.groups_set & FORWARD_JUMP_GROUP) and not bool(
             instruction.groups_set & BRANCH_LIKELY_INSTRUCTIONS
         ):
             instruction.causes_branch_delay = True
 
-        return super()._resolve_target(instruction, emu, call)
+        return super()._resolve_target(instruction, emu)
 
     @override
     def _parse_memory(

@@ -171,6 +171,13 @@ arch_to_SYSCALL = {
     U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
 
+# We stop emulation when hitting these instructions, since they depend on co-processors or other information
+# unavailable to the emulator
+BANNED_INSTRUCTIONS = {
+    "mips": {C.mips.MIPS_INS_RDHWR},
+    "arm": {C.arm.ARM_INS_MRC, C.arm.ARM_INS_MRRC, C.arm.ARM_INS_MRC2, C.arm.ARM_INS_MRRC2},
+}
+
 # https://github.com/unicorn-engine/unicorn/issues/550
 blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss"]
 
@@ -626,7 +633,8 @@ class Emulator:
         """
         We never want to emulate through an interrupt.  Just stop.
         """
-        debug(DEBUG_INTERRUPT, "Got an interrupt")
+        debug(DEBUG_INTERRUPT, "Got an interrupt - %d", intno)
+        self.valid = False
         self.uc.emu_stop()
 
     def get_reg_enum(self, reg: str) -> int | None:
@@ -696,8 +704,7 @@ class Emulator:
         # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
         # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
         # which have Thumb mode transitions, Unicorn will internally handle them.
-        thumb_bit = self.read_thumb_bit()
-        pc |= thumb_bit
+        pc |= self.read_thumb_bit()
 
         try:
             self.emu_start(pc, 0, count=count)
@@ -790,14 +797,11 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, check_instruction_valid=True) -> Tuple[int, int]:
+    def single_step(self, pc=None) -> Tuple[int, int]:
         """Steps one instruction.
 
         Yields:
-            Each iteration, yields a tuple of (address_just_executed, instruction_size).=
-
-            A StopIteration is raised if a fault or syscall or call instruction
-            is encountered.
+            Each iteration, yields a tuple of (address_just_executed, instruction_size).
 
             Returns (None, None) upon failure to execute the instruction
         """
@@ -810,25 +814,28 @@ class Emulator:
 
         pc = pc or self.pc
 
-        if check_instruction_valid:
-            insn = pwndbg.gdblib.disasm.one_raw(pc)
+        insn = pwndbg.gdblib.disasm.one_raw(pc)
 
-            # If we don't know how to disassemble, bail.
-            if insn is None:
-                debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
-                return self.last_single_step_result
+        # If we don't know how to disassemble, bail.
+        if insn is None:
+            debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
+            return self.last_single_step_result
 
-            debug(
-                DEBUG_EXECUTING,
-                "# Emulator attempting to single-step at %#x: %s %s",
-                (pc, insn.mnemonic, insn.op_str),
-            )
-        else:
-            debug(DEBUG_EXECUTING, "# Emulator attempting to single-step at %#x", (pc,))
+        if insn.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
+            debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
+            return self.last_single_step_result
+
+        debug(
+            DEBUG_EXECUTING,
+            "# Emulator attempting to single-step at %#x: %s %s",
+            (pc, insn.mnemonic, insn.op_str),
+        )
 
         try:
             self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
+            if not self.valid:
+                return InstructionExecutedResult(None, None)
 
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc

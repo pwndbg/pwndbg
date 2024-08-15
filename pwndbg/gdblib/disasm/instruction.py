@@ -15,11 +15,6 @@ from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
 from capstone import *  # noqa: F403
-from capstone.arm import ARM_INS_B
-from capstone.arm import ARM_INS_BL
-from capstone.arm import ARM_INS_BLX
-from capstone.arm import ARM_INS_BX
-from capstone.arm import ARM_INS_BXJ
 from capstone.arm import ARM_INS_TBB
 from capstone.arm import ARM_INS_TBH
 
@@ -38,6 +33,10 @@ from capstone.ppc import PPC_INS_B
 from capstone.ppc import PPC_INS_BA
 from capstone.ppc import PPC_INS_BL
 from capstone.ppc import PPC_INS_BLA
+from capstone.riscv import RISCV_INS_C_J
+from capstone.riscv import RISCV_INS_C_JAL
+from capstone.riscv import RISCV_INS_C_JALR
+from capstone.riscv import RISCV_INS_C_JR
 from capstone.riscv import RISCV_INS_JAL
 from capstone.riscv import RISCV_INS_JALR
 from capstone.sparc import SPARC_INS_JMP
@@ -53,16 +52,18 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
     CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
     CS_ARCH_ARM: {
-        ARM_INS_B,
-        ARM_INS_BL,
-        ARM_INS_BLX,
-        ARM_INS_BX,
-        ARM_INS_BXJ,
         ARM_INS_TBB,
         ARM_INS_TBH,
     },
     CS_ARCH_ARM64: {ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
-    CS_ARCH_RISCV: {RISCV_INS_JAL, RISCV_INS_JALR},
+    CS_ARCH_RISCV: {
+        RISCV_INS_JAL,
+        RISCV_INS_JALR,
+        RISCV_INS_C_JAL,
+        RISCV_INS_C_JALR,
+        RISCV_INS_C_J,
+        RISCV_INS_C_JR,
+    },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
@@ -232,6 +233,21 @@ class PwndbgInstruction:
         FALSE if the instruction has a conditional action, and we know it is not taken.
         """
 
+        self.declare_conditional: bool | None = None
+        """
+        This field is used to declare if the instruction is a conditional instruction.
+        In most cases, we can determine this purely based on the instruction ID, and this field is irrelevent.
+        However, in some arches, like Arm, the same instruction can be made conditional by certain instruction attributes.
+        Ex:
+            Arm, `bls` instruction. This is encoded as a `b` (Capstone ID 11) under the code, with an additional condition code field.
+            In this case, sometimes a `b` instruction (ID 11) is unconditional (always branches), in other cases it is conditional.
+            We use this field to disambiguate these cases.
+
+        True if we manually determine this instruction is a conditional instruction
+        False if it's not a conditional instruction
+        None if we don't have a determination (most cases)
+        """
+
         self.annotation: str | None = None
         """
         The string is set in the "DisassemblyAssistant.enhance" function.
@@ -304,7 +320,6 @@ class PwndbgInstruction:
         """
         True if we have determined that this instruction can explicitly change the program counter, and
         it's a JUMP-type instruction.
-
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
@@ -320,7 +335,8 @@ class PwndbgInstruction:
         This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view
         """
         return (
-            bool(self.groups_set & GENERIC_JUMP_GROUPS)
+            self.declare_conditional is not False
+            and bool(self.groups_set & GENERIC_JUMP_GROUPS)
             and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
 
@@ -391,6 +407,7 @@ class PwndbgInstruction:
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
+        Declare unconditional: {self.declare_conditional}
         Can change PC: {self.has_jump_target}
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}

@@ -386,6 +386,8 @@ def near(
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={cached:#x}")
+            if insn.jump_like and insn.split == SplitType.NO_SPLIT:
+                insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
             cached = backward_cache[insn.address]
             insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
@@ -423,7 +425,7 @@ def near(
 
         # Handle visual splits in the disasm view
         # The second check here handles instructions like x86 `REP` that repeat the instruction
-        if insn.jump_like or insn.next == insn.address:
+        if insn.has_jump_target or insn.next == insn.address:
             split_insn = insn
 
             # If this instruction has a delay slot, disassemble the delay slot instruction
