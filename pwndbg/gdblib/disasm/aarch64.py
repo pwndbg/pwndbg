@@ -98,6 +98,27 @@ AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
     ARM64_EXT_SXTX: lambda x: bit_math.to_signed(x, 64),
 }
 
+AARCH64_MATH_INSTRUCTIONS = {
+    ARM64_INS_ADD: "+",
+    ARM64_INS_SUB: "-",
+    ARM64_INS_AND: "&",
+    ARM64_INS_ORR: "&",
+    ARM64_INS_ASR: ">>s",
+    ARM64_INS_ASRV: ">>s",
+    ARM64_INS_EOR: "^",
+    ARM64_INS_LSL: "<<",
+    ARM64_INS_LSLV: "<<",
+    ARM64_INS_LSR: ">>",
+    ARM64_INS_LSRV: ">>",
+    ARM64_INS_UDIV: "/",
+    ARM64_INS_SDIV: "/",
+    ARM64_INS_SMULH: "*",
+    ARM64_INS_SMULL: "*",
+    ARM64_INS_UMULH: "*",
+    ARM64_INS_UMULL: "*",
+    ARM64_INS_MUL: "*",
+}
+
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
@@ -140,15 +161,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
-            ARM64_INS_MOV: self._common_generic_register_destination,
+            ARM64_INS_MOV: self._common_move_annotator,
+            # MOV WITH KEEP
+            ARM64_INS_MOVK: self._common_generic_register_destination,
             # ADR
             ARM64_INS_ADR: self._common_generic_register_destination,
             # ADRP
-            ARM64_INS_ADRP: self._common_generic_register_destination,
-            # ADD
-            ARM64_INS_ADD: self._common_generic_register_destination,
-            # SUB
-            ARM64_INS_SUB: self._common_generic_register_destination,
+            ARM64_INS_ADRP: self._handle_adrp,
             # CMP
             ARM64_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
@@ -187,8 +206,30 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 AARCH64_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
             )
+        elif instruction.id in AARCH64_MATH_INSTRUCTIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[-2].before_value,
+                instruction.operands[-1].before_value,
+                AARCH64_MATH_INSTRUCTIONS[instruction.id],
+            )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+    def _handle_adrp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        result_operand, right = instruction.operands
+        if result_operand.str and right.before_value is not None:
+            address = right.before_value
+
+            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+            addresses = self._telescope(address, TELESCOPE_DEPTH, instruction, emu)
+
+            telescope = self._telescope_format_list(addresses, TELESCOPE_DEPTH, emu)
+
+            instruction.annotation = f"{result_operand.str} => {telescope}"
 
     @override
     def _condition(

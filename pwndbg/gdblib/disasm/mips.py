@@ -20,6 +20,7 @@ from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
 from typing_extensions import override
 
+import pwndbg.color.memory as MemoryColor
 import pwndbg.gdblib.disasm.arch
 import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
@@ -61,32 +62,17 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
 # They all do some computation and set the register to the result.
 # These were derived from "MIPS Architecture for Programmers Volume II: The MIPS64 Instruction Set Reference Manual"
 MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
-    MIPS_INS_ADD,
-    MIPS_INS_ADDI,
-    MIPS_INS_ADDIU,
-    MIPS_INS_ADDU,
     MIPS_INS_CLO,
     MIPS_INS_CLZ,
-    MIPS_INS_DADD,
-    MIPS_INS_DADDI,
-    MIPS_INS_DADDIU,
-    MIPS_INS_DADDU,
     MIPS_INS_DCLO,
     MIPS_INS_DCLZ,
-    MIPS_INS_DSUB,
-    MIPS_INS_DSUBU,
     MIPS_INS_LSA,
     MIPS_INS_DLSA,
-    MIPS_INS_LUI,
     MIPS_INS_MFHI,
     MIPS_INS_MFLO,
     MIPS_INS_SEB,
     MIPS_INS_SEH,
-    MIPS_INS_SUB,
-    MIPS_INS_SUBU,
     MIPS_INS_WSBH,
-    MIPS_INS_MOVE,
-    MIPS_INS_LI,
     MIPS_INS_SLT,
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
@@ -120,11 +106,45 @@ MIPS_STORE_INSTRUCTIONS = {
     MIPS_INS_SD: 8,
 }
 
+MIPS_BINARY_OPERATIONS = {
+    MIPS_INS_ADD: "+",
+    MIPS_INS_ADDI: "+",
+    MIPS_INS_ADDIU: "+",
+    MIPS_INS_ADDU: "+",
+    MIPS_INS_DADD: "+",
+    MIPS_INS_DADDI: "+",
+    MIPS_INS_DADDIU: "+",
+    MIPS_INS_DADDU: "+",
+    MIPS_INS_SUB: "-",
+    MIPS_INS_SUBU: "-",
+    MIPS_INS_DSUB: "-",
+    MIPS_INS_DSUBU: "-",
+    MIPS_INS_ANDI: "&",
+    MIPS_INS_AND: "&",
+    MIPS_INS_ORI: "|",
+    MIPS_INS_OR: "|",
+    MIPS_INS_XOR: "^",
+    MIPS_INS_XORI: "^",
+    MIPS_INS_SLL: "<<",
+    MIPS_INS_SLLV: "<<",
+    MIPS_INS_DSLL: "<<",
+    MIPS_INS_DSLLV: "<<",
+}
+
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
+
+        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # MOVE
+            MIPS_INS_MOVE: self._common_move_annotator,
+            # LI
+            MIPS_INS_LI: self._common_move_annotator,
+            # LUI
+            MIPS_INS_LUI: self._lui_annotator,
+        }
 
     @override
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -150,8 +170,30 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 MIPS_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
             )
+        elif instruction.id in MIPS_BINARY_OPERATIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[1].before_value,
+                instruction.operands[2].before_value,
+                MIPS_BINARY_OPERATIONS[instruction.id],
+            )
         elif instruction.id in MIPS_SIMPLE_DESTINATION_INSTRUCTIONS:
             self._common_generic_register_destination(instruction, emu)
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+    def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        result_operand, right = instruction.operands
+        if result_operand.str and right.before_value is not None:
+            if (address := result_operand.after_value) is None:
+                # Resolve it manually without emulation
+                address = right.before_value << 16
+
+            instruction.annotation = (
+                f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
+            )
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:

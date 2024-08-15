@@ -27,6 +27,12 @@ ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
 regs = {v: k for k, v in globals().items() if k.startswith("X86_REG_")}
 access = {v: k for k, v in globals().items() if k.startswith("CS_AC_")}
 
+X86_MATH_INSTRUCTIONS = {
+    X86_INS_ADD: "+",
+    X86_INS_SUB: "-",
+    X86_INS_AND: "&",
+    X86_INS_OR: "|",
+}
 
 # Capstone operand type for x86 is capstone.x86.X86Op
 # This type has a .size field, which indicates the operand read/write size in bytes
@@ -59,22 +65,30 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             X86_INS_XCHG: self.handle_xchg,
             # POP
             X86_INS_POP: self.handle_pop,
-            # ADD
-            X86_INS_ADD: self.handle_add,
-            # SUB
-            X86_INS_SUB: self.handle_sub,
             # CMP
             X86_INS_CMP: self._common_cmp_annotator_builder("eflags", "-"),
             # TEST
             X86_INS_TEST: self._common_cmp_annotator_builder("eflags", "&"),
             # XOR
             X86_INS_XOR: self.handle_xor,
-            # AND
-            X86_INS_AND: self.handle_and,
             # INC and DEC
             X86_INS_INC: self.handle_inc,
             X86_INS_DEC: self.handle_dec,
         }
+
+    @override
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        if instruction.id in X86_MATH_INSTRUCTIONS:
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[0].before_value_resolved,
+                instruction.operands[1].before_value_resolved,
+                X86_MATH_INSTRUCTIONS[instruction.id],
+            )
+        else:
+            self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
@@ -183,37 +197,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 except Exception:
                     pass
 
-    def handle_add_sub_handler(
-        self, instruction: PwndbgInstruction, emu: Emulator, char_to_separate_operands: str
-    ) -> None:
-        # char_to_separate_operands = "+" or "-"
-        left, right = instruction.operands
-
-        # "a + b" or "a - b"
-        plus_string = ""
-
-        # This path set plus_string to "op1_value + op2_value" (or with a minus sign)
-        if left.before_value_resolved is not None and right.before_value_resolved is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(
-                left.before_value_resolved, right.before_value_resolved
-            )
-
-            plus_string = f"{print_left} {char_to_separate_operands} {print_right}"
-
-        if left.after_value_resolved is not None:
-            instruction.annotation = f"{left.str} => {MemoryColor.get_address_and_symbol(left.after_value_resolved)} ({plus_string})"
-        elif plus_string:
-            # We didn't use emulation to determine the result - still display the operands
-            instruction.annotation = f"{left.str} => {plus_string}"
-
-    def handle_add(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Same output as addition, showing the result
-        self.handle_add_sub_handler(instruction, emu, "+")
-
-    def handle_sub(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Same output as addition, showing the result
-        self.handle_add_sub_handler(instruction, emu, "-")
-
     def handle_xor(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
@@ -221,14 +204,14 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
             instruction.annotation = f"{left.str} => 0"
         else:
-            if left.after_value_resolved is not None:
-                instruction.annotation = f"{left.str} => {left.after_value_resolved}"
-
-    def handle_and(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        left, right = instruction.operands
-
-        if left.after_value_resolved is not None:
-            instruction.annotation = f"{left.str} => {MemoryColor.get(left.after_value_resolved)}"
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[0].before_value_resolved,
+                instruction.operands[1].before_value_resolved,
+                "^",
+            )
 
     def handle_inc(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # INC operand can be REG or [MEMORY]
@@ -239,11 +222,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)
-
-    @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Dispatch to the correct handler
-        self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
     def _resolve_used_value(

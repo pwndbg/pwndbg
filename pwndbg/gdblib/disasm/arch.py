@@ -288,7 +288,9 @@ class DisassemblyAssistant:
             # Retrieve the value, either an immediate, from a register, or from memory
             op.before_value = self.op_handlers.get(op.type, lambda *a: None)(instruction, op, emu)
             if op.before_value is not None:
-                op.before_value &= pwndbg.gdblib.arch.ptrmask
+                # Don't mask immediates - some computations depend on their signed values
+                if op.type is not CS_OP_IMM:
+                    op.before_value &= pwndbg.gdblib.arch.ptrmask
                 op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
 
                 op.before_value_resolved = self._resolve_used_value(
@@ -950,6 +952,53 @@ class DisassemblyAssistant:
             )
 
             instruction.annotation = f"{address_str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
+    def _common_move_annotator(self, instruction: PwndbgInstruction, emu: Emulator):
+        """
+        This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
+        """
+        if len(instruction.operands) == 2:
+            left, right = instruction.operands
+            # If we already used emulation, use the result, otherwise take the source operand before_value
+            result = left.after_value or right.before_value
+            if result is not None:
+                TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
+
+                telescope_addresses = self._telescope(
+                    result,
+                    TELESCOPE_DEPTH + 1,
+                    instruction,
+                    emu,
+                )
+                if not telescope_addresses:
+                    return
+
+                instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+
+    def _common_binary_op_annotator(
+        self,
+        instruction: PwndbgInstruction,
+        emu: Emulator,
+        target_operand: EnhancedOperand,
+        op_one: int | None,
+        op_two: int | None,
+        char_to_separate_operands: str,
+    ) -> None:
+        # Ex: "0x198723 + 0x2b8"
+        math_string = None
+
+        if op_one is not None and op_two is not None:
+            print_left, print_right = pwndbg.enhance.format_small_int_pair(op_one, op_two)
+
+            math_string = f"{print_left} {char_to_separate_operands} {print_right}"
+
+        # Using emulation, we can determine the resulting value
+        if target_operand.after_value_resolved is not None:
+            instruction.annotation = f"{target_operand.str} => {MemoryColor.get_address_and_symbol(target_operand.after_value_resolved)}"
+            if math_string:
+                instruction.annotation += f" ({math_string})"
+        elif math_string:
+            instruction.annotation = f"{target_operand.str} => {math_string}"
 
 
 generic_assistant = DisassemblyAssistant(None)

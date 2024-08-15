@@ -14,7 +14,6 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.arch import read_thumb_bit as process_read_thumb_bit
 from pwndbg.gdblib.disasm.instruction import EnhancedOperand
 from pwndbg.gdblib.disasm.instruction import InstructionCondition
 from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
@@ -55,12 +54,36 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STREX: 4,
 }
 
+ARM_MATH_INSTRUCTIONS = {
+    ARM_INS_ADD: "+",
+    ARM_INS_ADDW: "+",
+    ARM_INS_SUB: "-",
+    ARM_INS_ORR: "|",
+    ARM_INS_AND: "&",
+    ARM_INS_EOR: "^",
+    ARM_INS_ASR: ">>s",
+    ARM_INS_LSR: ">>",
+    ARM_INS_LSL: "<<",
+    ARM_INS_UDIV: "/",
+    ARM_INS_SDIV: "/",
+    ARM_INS_MUL: "*",
+    ARM_INS_UMULL: "*",
+    ARM_INS_SMULL: "*",
+}
+
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+            # MOV
+            ARM_INS_MOV: self._common_move_annotator,
+            ARM_INS_MOVW: self._common_move_annotator,
+            # MOVT
+            ARM_INS_MOVT: self._common_generic_register_destination,
+            # MOVN
+            ARM_INS_MVN: self._common_generic_register_destination,
             # CMP
             ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
@@ -93,6 +116,18 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value,
                 ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
+            )
+        elif instruction.id in ARM_MATH_INSTRUCTIONS:
+            # In Arm assembly, if there are two operands, than the first source operand is also the destination
+            # Example: add    sl, r3
+            # Or, it can be a seperate register. We use -1 and -2 indexes here to access the source operands either way
+            self._common_binary_op_annotator(
+                instruction,
+                emu,
+                instruction.operands[0],
+                instruction.operands[-2].before_value,
+                instruction.operands[-1].before_value,
+                ARM_MATH_INSTRUCTIONS[instruction.id],
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
@@ -170,13 +205,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return f"[{(', '.join(parts))}]"
 
     def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
-        if emu:
-            return emu.read_thumb_bit()
-        elif self.can_reason_about_process_state(instruction):
-            # Read the Thumb bit directly from the process flag register if we can
-            return process_read_thumb_bit()
-        else:
-            return 0
+        return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 
     @override
     def _immediate_string(self, instruction, operand):
