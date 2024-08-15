@@ -4,6 +4,8 @@ import contextlib
 import signal
 from typing import Any
 from typing import List
+from typing import Literal
+from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
 
@@ -21,19 +23,27 @@ from pwndbg.gdblib import load_gdblib
 T = TypeVar("T")
 
 
-class GDBRegisters(pwndbg.dbg_mod.Registers):
-    def __init__(self, frame: GDBFrame):
-        self.frame = frame
+class GDBLibArch(pwndbg.dbg_mod.Arch):
+    @override
+    @property
+    def endian(self) -> Literal["little", "big"]:
+        import pwndbg.gdblib.arch
+
+        return pwndbg.gdblib.arch.endian
 
     @override
-    def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
-        try:
-            return GDBValue(self.frame.inner.read_register(name))
-        except (gdb.error, ValueError):
-            # GDB throws an exception if the name is unknown, we just return
-            # None when that is the case.
-            pass
-        return None
+    @property
+    def name(self) -> str:
+        import pwndbg.gdblib.arch
+
+        return pwndbg.gdblib.arch.name
+
+    @override
+    @property
+    def ptrsize(self) -> int:
+        import pwndbg.gdblib.arch
+
+        return pwndbg.gdblib.arch.ptrsize
 
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
@@ -81,6 +91,21 @@ def selection(target: T, get_current: Callable[[], T], select: Callable[[T], Non
             select(current)
 
 
+class GDBRegisters(pwndbg.dbg_mod.Registers):
+    def __init__(self, frame: GDBFrame):
+        self.frame = frame
+
+    @override
+    def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
+        try:
+            return GDBValue(self.frame.inner.read_register(name))
+        except (gdb.error, ValueError):
+            # GDB throws an exception if the name is unknown, we just return
+            # None when that is the case.
+            pass
+        return None
+
+
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
@@ -111,6 +136,25 @@ class GDBThread(pwndbg.dbg_mod.Thread):
         return GDBFrame(value)
 
 
+class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
+    def __init__(self, reliable_perms: bool, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
+        self.reliable_perms = reliable_perms
+        self.qemu = qemu
+        self.pages = pages
+
+    @override
+    def is_qemu(self) -> bool:
+        return self.qemu
+
+    @override
+    def has_reliable_perms(self) -> bool:
+        return self.reliable_perms
+
+    @override
+    def ranges(self) -> Sequence[pwndbg.lib.memory.Page]:
+        return self.pages
+
+
 class GDBProcess(pwndbg.dbg_mod.Process):
     def __init__(self, inner: gdb.Inferior):
         self.inner = inner
@@ -121,6 +165,31 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return GDBValue(parse_and_eval(expression, global_context=True))
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
+
+    @override
+    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        import pwndbg.gdblib.vmmap
+        from pwndbg.gdblib import gdb_version
+
+        pages = pwndbg.gdblib.vmmap.get()
+        qemu = pwndbg.gdblib.qemu.is_qemu() and not pwndbg.gdblib.qemu.exec_file_supported()
+
+        # Only GDB versions >=12 report permission info in info proc mappings.
+        # On older versions, we fallback on "rwx".
+        # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
+        reliable_perms = not (pwndbg.gdblib.qemu.is_qemu_usermode() and gdb_version[0] < 12)
+
+        return GDBMemoryMap(reliable_perms, qemu, pages)
+
+    @override
+    def symbol_name_at_address(self, address: int) -> str | None:
+        import pwndbg.gdblib.symbol
+
+        return pwndbg.gdblib.symbol.get(address) or None
+
+    @override
+    def arch(self) -> pwndbg.dbg_mod.Arch:
+        return GDBLibArch()
 
 
 class GDBCommand(gdb.Command):
