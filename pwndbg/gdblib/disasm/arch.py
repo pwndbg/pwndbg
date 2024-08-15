@@ -302,7 +302,7 @@ class DisassemblyAssistant:
                     )
 
         # Execute the instruction
-        if jump_emu and None in jump_emu.single_step(check_instruction_valid=False):
+        if jump_emu and None in jump_emu.single_step():
             # This branch is taken if stepping the emulator failed
             jump_emu = None
             emu = None
@@ -627,7 +627,7 @@ class DisassemblyAssistant:
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
         # due to the way we single-step the emulator. We want our own manual checks to override the emulator
 
-        if instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
+        if not instruction.call_like and instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
             # If condition is true, then this might be a conditional jump
             # There are some other instructions that run conditionally though - resolve_target returns None in those cases
             # Or, if this is a unconditional jump, we will try to resolve target
@@ -671,7 +671,8 @@ class DisassemblyAssistant:
         """
         Architecture-specific hook point for _enhance_next.
 
-        Returns the value of the instruction pointer assuming this instruction executes (and any conditional jumps are taken)
+        Returns the program counter target of this instruction.
+        Even in the case of conditional jumps, the potential target should be resolved.
 
         "call" specifies if we allow this to resolve call instruction targets
         """
