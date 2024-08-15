@@ -157,7 +157,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.UNDETERMINED
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
@@ -187,7 +187,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)
 
-        return super()._resolve_target(instruction, emu, call)
+        return super()._resolve_target(instruction, emu)
 
     @override
     def _parse_memory(

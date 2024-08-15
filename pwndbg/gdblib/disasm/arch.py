@@ -627,7 +627,8 @@ class DisassemblyAssistant:
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
         # due to the way we single-step the emulator. We want our own manual checks to override the emulator
 
-        if not instruction.call_like and instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump:
+        if not instruction.call_like and (instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump):
+            # Don't allow call instructions - we want the actual "nexti" address
             # If condition is true, then this might be a conditional jump
             # There are some other instructions that run conditionally though - resolve_target returns None in those cases
             # Or, if this is a unconditional jump, we will try to resolve target
@@ -645,9 +646,9 @@ class DisassemblyAssistant:
         if next_addr is None:
             next_addr = instruction.address + instruction.size
 
-        # Determine the target of this address. This is the address that the instruction could change the program counter to.
-        # allowing call instructions
-        instruction.target = self._resolve_target(instruction, emu, call=True)
+        # Determine the target of this address.
+        # This is the address that the instruction could potentially change the program counter to, meaning that `stepi` would go to the target
+        instruction.target = self._resolve_target(instruction, emu)
 
         instruction.next = next_addr & pwndbg.gdblib.arch.ptrmask
 
@@ -667,20 +668,15 @@ class DisassemblyAssistant:
 
     # This is the default implementation.
     # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         """
         Architecture-specific hook point for _enhance_next.
 
         Returns the program counter target of this instruction.
         Even in the case of conditional jumps, the potential target should be resolved.
-
-        "call" specifies if we allow this to resolve call instruction targets
         """
 
-        if instruction.call_like:
-            if not call:
-                return None
-        elif not bool(instruction.groups_set & FORWARD_JUMP_GROUP):
+        if not bool(instruction.groups_set & FORWARD_JUMP_GROUP):
             return None
 
         addr = None

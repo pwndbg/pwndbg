@@ -222,7 +222,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return super()._condition(instruction, emu)
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None, call=False):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         if not bool(instruction.groups_set & ALL_JUMP_GROUPS):
             return None
 
@@ -233,7 +233,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # If this is a ret WITHOUT an operand, it means we should read from the LR/x30 register
             return super()._read_register_name(instruction, "lr", emu)
 
-        return super()._resolve_target(instruction, emu, call)
+        return super()._resolve_target(instruction, emu)
 
     @override
     def _parse_memory(
