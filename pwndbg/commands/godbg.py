@@ -90,4 +90,6 @@ def go_type(address: int) -> None:
     print(f"Align: {meta.align}")
     print(f"Parse: {ty}")
     if ty:
-        print("\n".join(ty.additional_metadata()))
+        data = ty.additional_metadata()
+        if data:
+            print("\n".join(data))

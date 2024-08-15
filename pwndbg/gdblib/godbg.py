@@ -21,6 +21,7 @@ from typing import cast
 import gdb
 
 import pwndbg
+import pwndbg.color.memory
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
@@ -43,10 +44,6 @@ indent_amount = pwndbg.config.add_param(
 debug_color = theme.add_color_param(
     "go-dump-debug", "blue", "color for 'go-dump' command's debug info when --debug is specified"
 )
-
-
-def style_debug(x: object) -> str:
-    return generateColorFunction(debug_color)(x)
 
 
 @pwndbg.lib.cache.cache_until("start", "stop", "objfile")
@@ -99,6 +96,10 @@ def compute_named_offsets(fields: Iterable[Tuple[str, int, int]]) -> Dict[str, i
     return ret
 
 
+def _indent(s: str) -> str:
+    return textwrap.indent(s, " " * int(indent_amount))
+
+
 @dataclass(frozen=True)
 class FormatOpts:
     int_hex: bool = False
@@ -126,6 +127,26 @@ class FormatOpts:
             return self.fmt_str(val.decode("utf8"))
         except UnicodeDecodeError:
             return repr(bytes(val))
+
+    def fmt_debug(self, val: str, default: str = "") -> str:
+        if self.debug:
+            return generateColorFunction(debug_color)(val)
+        else:
+            return default
+
+    def fmt_elems(self, elems: Iterable[str]) -> str:
+        if not self.pretty:
+            return ", ".join(elems)
+        # store elems in a list to not consume the iterable
+        elems = list(elems)
+        joined = ", ".join(elems)
+        if len(joined) <= int(line_width):
+            return joined
+        joined = ",\n".join(elems)
+        return f"\n{_indent(joined)}\n"
+
+    def fmt_ptr(self, val: int) -> str:
+        return pwndbg.color.memory.get_address_and_symbol(val)
 
 
 @dataclass
@@ -270,33 +291,20 @@ def get_go_version() -> Tuple[int, ...] | None:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_moduledata_types(addr: int | None = None) -> int | None:
-    """
-    Given the address to a type, try to find the moduledata types section containing it.
-
-    Necessary to determine the base address that the type name is offset by.
-    """
-    first_start = None
-    # try to get type start by traversing moduledata symbol
-    # will only work if debug symbols are enabled
+def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
+    ret = []
     try:
         sym = gdb.lookup_symbol("runtime.firstmoduledata")[0]
         if sym is not None:
             md = sym.value()
             while True:
                 start = int(md["types"])
-                if first_start is None:
-                    first_start = start
                 end = int(md["etypes"])
-                if addr is None or start <= addr < end:
-                    return start
+                ret.append((start, end))
                 if md["next"]:
                     md = md["next"].dereference()
                 else:
-                    emit_warning(
-                        f"Warning: Type at {addr:#x} is out of bounds of all module data, so a heuristic is used instead"
-                    )
-                    break
+                    return tuple(ret)
         else:
             emit_warning(
                 "Warning: Could not find `runtime.firstmoduledata` symbol, so a heuristic is used instead"
@@ -305,10 +313,12 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
         emit_warning(
             f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a heuristic is used instead"
         )
-    # if we found at least one moduledata, use the start of the first one
-    if first_start is not None:
-        return first_start
-    # the type:* symbol can also indicate type start
+    return None
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def _guess_moduledata_types() -> int | None:
+    # the type:* symbol can indicate type start
     type_start = pwndbg.gdblib.symbol.address("type:*")
     if type_start is not None:
         return type_start
@@ -321,6 +331,28 @@ def get_moduledata_types(addr: int | None = None) -> int | None:
         )
         return addr
     return None
+
+
+def get_type_start(addr: int | None = None) -> int | None:
+    """
+    Given the address to a type, try to find the moduledata types section containing it.
+
+    Necessary to determine the base address that the type name is offset by.
+    """
+    # try to get type start by traversing moduledata symbol
+    # will only work if debug symbols are enabled
+    md_types = _get_moduledata_types()
+    if md_types is not None:
+        for start, end in md_types:
+            if addr is None or start <= addr < end:
+                return start
+        emit_warning(
+            f"Warning: Type at {addr:#x} is out of bounds of all module data, so a heuristic is used instead"
+        )
+        # if we found at least one moduledata, use the start of the first one
+        if md_types:
+            return md_types[0][0]
+    return _guess_moduledata_types()
 
 
 def read_varint_str(addr: int) -> bytes:
@@ -512,7 +544,8 @@ def _inner_decode_runtime_type(
         ]
     )
     load = lambda off, sz: load_uint(pwndbg.gdblib.memory.read(addr + off, sz))
-    type_start = get_moduledata_types(addr)
+    type_start = get_type_start(addr)
+    tflag = load(offsets["TFlag"], 1)
     if type_start is None:
         name = "unknown name"
     else:
@@ -530,9 +563,9 @@ def _inner_decode_runtime_type(
         kind = GoTypeKind.INVALID
     if kind == GoTypeKind.INVALID:
         return (GoTypeMeta(f"invalid type `{name}` at {addr:#x}", kind, addr), None)
-    # Go puts * in front of a lot of types for some reason, so get rid of them for non-pointers
-    if name.startswith("*") and kind != GoTypeKind.POINTER:
-        name = name.lstrip("*")
+    # if TFlagExtraStar is set, remove the leading * from type name
+    if (tflag & 2) and name.startswith("*"):
+        name = name[1:]
     size = load(offsets["Size_"], word)
     align = load(offsets["Align_"], 1)
     meta = GoTypeMeta(
@@ -544,6 +577,36 @@ def _inner_decode_runtime_type(
     def compute() -> Tuple[GoTypeMeta, Type | None]:
         if simple_name is not None:
             return (meta, BasicType(meta, simple_name))
+        elif kind == GoTypeKind.FUNC:
+            in_count = load(offsets["$size"], 2)
+            out_count = load(offsets["$size"] + 2, 2)
+            vararg_bit = 1 << 15
+            is_vararg = bool(out_count & vararg_bit)
+            out_count &= ~vararg_bit
+            # functions store stuff after the uncommon type
+            if tflag & 1:
+                uncommon_type_size = 16  # nameoff, uint16, uint16, uint32, uint32
+            else:
+                uncommon_type_size = 0
+            func_type_size = offsets["$size"] + 4
+            # account for alignment when word size > 4
+            if func_type_size % word != 0:
+                func_type_size += word - func_type_size % word
+            func_type_size += uncommon_type_size
+            info = []
+            for i in range(in_count + out_count):
+                ty_ptr = load(func_type_size + i * word, word)
+                (ty_meta, _) = _inner_decode_runtime_type(ty_ptr, cache)
+                if i < in_count:
+                    if is_vararg and i == in_count - 1:
+                        suffix = "..."
+                    else:
+                        suffix = ""
+                    info.append(f"Argument {i}{suffix}:")
+                else:
+                    info.append(f"Return value {i - in_count}:")
+                info += [f"    Type name: {ty_meta.name}", f"    Type addr: {ty_ptr:#x}"]
+            return (meta, BasicType(meta, "funcptr", info))
         elif kind == GoTypeKind.ARRAY:
             elem_ty_ptr = load(offsets["$size"], word)
             arr_len = load(offsets["$size"] + word * 2, word)
@@ -555,8 +618,28 @@ def _inner_decode_runtime_type(
             methods_count = load(offsets["$size"] + word * 2, word)
             if methods_count == 0:
                 return (meta, BasicType(meta, "any"))
+            elif type_start is None:
+                return (meta, BasicType(meta, "interface", [f"Method count: {methods_count}"]))
             else:
-                return (meta, BasicType(meta, "interface"))
+                info = []
+                methods_ptr = load(offsets["$size"] + word, word)
+                for i in range(methods_count):
+                    base = methods_ptr + i * 8
+                    meth_name_off = load_uint(pwndbg.gdblib.memory.read(base, 4))
+                    inner_off = load_uint(pwndbg.gdblib.memory.read(base + 4, 4))
+                    bmeth_name = read_type_name(type_start + meth_name_off)
+                    inner_ty_ptr = type_start + inner_off
+                    (inner_meta, _) = _inner_decode_runtime_type(inner_ty_ptr, cache)
+                    try:
+                        meth_name = bmeth_name.decode()
+                    except UnicodeDecodeError:
+                        meth_name = repr(bytes(bmeth_name))
+                    info += [
+                        f"Method {meth_name}:",
+                        f"    Type name: {inner_meta.name}",
+                        f"    Type addr: {inner_ty_ptr:#x}",
+                    ]
+                return (meta, BasicType(meta, "interface", info))
         elif kind == GoTypeKind.MAP:
             key_ty_ptr = load(offsets["$size"], word)
             val_ty_ptr = load(offsets["$size"] + word, word)
@@ -622,22 +705,6 @@ def _inner_decode_runtime_type(
     return ret
 
 
-def _indent(s: str) -> str:
-    return textwrap.indent(s, " " * int(indent_amount))
-
-
-def _comma_join(elems: Iterable[str], pretty: bool) -> str:
-    if not pretty:
-        return ", ".join(elems)
-    # store elems in a list to not consume the iterable
-    elems = list(elems)
-    joined = ", ".join(elems)
-    if len(joined) <= int(line_width):
-        return joined
-    joined = ",\n".join(elems)
-    return f"\n{_indent(joined)}\n"
-
-
 @dataclass
 class BasicType(Type):
     """
@@ -645,10 +712,16 @@ class BasicType(Type):
 
     Complex numbers are laid out as a real and imaginary part (both floats).
     Strings are laid out as a pointer and a length.
+
+    Methodless interfaces (the interface{} type) are denoted as any,
+    and interfaces with methods are denoted as interface.
+
+    Function pointers are denoted as funcptr.
     """
 
     name: str
     sz: int = dataclasses.field(init=False)
+    extra_meta: List[str] = dataclasses.field(default_factory=list)
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         val = pwndbg.gdblib.memory.read(addr, self.size())
@@ -672,24 +745,27 @@ class BasicType(Type):
             data_ptr = addr + word
             if not meta.direct_iface:
                 data_ptr = load_uint(pwndbg.gdblib.memory.read(data_ptr, word))
-            prefix = ""
-            if fmt.debug:
-                prefix = style_debug(f"(ty @ {ty_ptr:#x}, data @ {data_ptr:#x}) ")
+            prefix = fmt.fmt_debug(f"(ty @ {ty_ptr:#x}, data @ {data_ptr:#x}) ")
             if data_ptr == 0:
                 return f"{prefix}({meta.name}) nil"
             if parsed_inner is not None:
                 dump = parsed_inner.dump(data_ptr, fmt)
                 return f"{prefix}({meta.name}) {dump}"
-            return f"{prefix}({meta.name}) at {data_ptr:#x}"
+            return f"{prefix}({meta.name}) @ {data_ptr:#x}"
         if ty == "bool":
             return "true" if val != b"\x00" else "false"
+        if ty == "funcptr":
+            word = word_size()
+            closure_addr = load_uint(val)
+            f = load_uint(pwndbg.gdblib.memory.read(closure_addr, word))
+            return fmt.fmt_debug(f"(closure @ {closure_addr}) ") + fmt.fmt_ptr(f)
         if ty.startswith("int") or ty.startswith("uint"):
             if ty.startswith("int"):
                 n = load_int(val)
             else:
                 n = load_uint(val)
             if ty.endswith("ptr"):
-                fmt = dataclasses.replace(fmt, int_hex=True)
+                return fmt.fmt_ptr(n)
             return fmt.fmt_int(n)
         if ty.startswith("float"):
             return fmt.fmt_float(load_float(val))
@@ -712,10 +788,7 @@ class BasicType(Type):
                 data = b""
             else:
                 data = pwndbg.gdblib.memory.read(ptr, strlen)
-            prefix = ""
-            if fmt.debug:
-                prefix = style_debug(f"(str @ {ptr:#x}, len = {strlen}) ")
-            return prefix + fmt.fmt_bytes(data)
+            return fmt.fmt_debug(f"(str @ {ptr:#x}, len = {strlen}) ") + fmt.fmt_bytes(data)
         raise ValueError(f"Could not dump type {ty}.")
 
     def size(self) -> int:
@@ -723,6 +796,9 @@ class BasicType(Type):
 
     def get_typename(self) -> str:
         return self.name
+
+    def additional_metadata(self) -> List[str]:
+        return self.extra_meta
 
     def __post_init__(self) -> None:
         ty = self.name
@@ -736,7 +812,7 @@ class BasicType(Type):
             self.sz = 8
         elif ty == "complex128":
             self.sz = 16
-        elif ty in ("int", "uint", "uintptr"):
+        elif ty in ("int", "uint", "uintptr", "funcptr"):
             self.sz = word_size()
         elif ty == "string":
             self.sz = word_size() * 2
@@ -765,16 +841,13 @@ class SliceType(Type):
         slice_len = load_uint(val[word : word * 2])
         ret = []
         for _ in range(slice_len):
-            prefix = ""
-            if fmt.debug:
-                prefix = style_debug(f"(elem @ {ptr:#x}) ")
-            ret.append(prefix + self.inner.dump(ptr, fmt))
+            ret.append(fmt.fmt_debug(f"(elem @ {ptr:#x}) ") + self.inner.dump(ptr, fmt))
             ptr += self.inner.size()
         prefix = ""
         if fmt.debug:
             cap = load_uint(val[word * 2 :])
-            prefix = style_debug(f"(cap = {cap}) ")
-        return f"{prefix}[{_comma_join(ret, fmt.pretty)}]"
+            prefix = fmt.fmt_debug(f"(cap = {cap}) ")
+        return f"{prefix}[{fmt.fmt_elems(ret)}]"
 
     def size(self) -> int:
         return word_size() * 3
@@ -805,9 +878,7 @@ class PointerType(Type):
         if ptr == 0:
             return "nil"
         inner = self.inner.dump(ptr, fmt)
-        prefix = ""
-        if fmt.debug:
-            prefix = style_debug(f"(val @ {ptr:#x}) ")
+        prefix = fmt.fmt_debug(f"(val @ {ptr:#x}) ")
         return f"{prefix}&{inner}"
 
     def size(self) -> int:
@@ -817,6 +888,8 @@ class PointerType(Type):
         return f"*{self.inner}"
 
     def additional_metadata(self) -> List[str]:
+        # maps are returned as pointers to map in a parser
+        # so show map metadata through the pointer metadata
         if isinstance(self.inner, MapType):
             info = self.inner.additional_metadata()
             if info:
@@ -843,12 +916,9 @@ class ArrayType(Type):
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         ret = []
         for _ in range(self.count):
-            prefix = ""
-            if fmt.debug:
-                prefix = style_debug(f"(elem @ {addr:#x}) ")
-            ret.append(prefix + self.inner.dump(addr, fmt))
+            ret.append(fmt.fmt_debug(f"(elem @ {addr:#x}) ") + self.inner.dump(addr, fmt))
             addr += self.inner.size()
-        return f"[{_comma_join(ret, fmt.pretty)}]"
+        return f"[{fmt.fmt_elems(ret)}]"
 
     def size(self) -> int:
         return self.inner.size() * self.count
@@ -960,11 +1030,9 @@ class MapType(Type):
             ret.sort(key=lambda t: t[2])
         formatted = []
         for kp, vp, k, v in ret:
-            prefix = ""
-            if fmt.debug:
-                prefix = style_debug(f"(key @ {kp:#x}, val @ {vp:#x}) ")
+            prefix = fmt.fmt_debug(f"(key @ {kp:#x}, val @ {vp:#x}) ")
             formatted.append(f"{prefix}{k}: {v}")
-        return f"{{{_comma_join(formatted, fmt.pretty)}}}"
+        return f"{{{fmt.fmt_elems(formatted)}}}"
 
     def size(self) -> int:
         return self.field_offsets()["$size"]
@@ -1006,11 +1074,8 @@ class StructType(Type):
             if isinstance(ty, str):
                 vals.append((name, f"({ty}) @ {base:#x}"))
             else:
-                prefix = ""
-                if fmt.debug:
-                    prefix = style_debug(f"(field @ {base:#x}) ")
-                vals.append((prefix + name, ty.dump(base, fmt)))
-        body = _comma_join((f"{name}: {val}" for (name, val) in vals), fmt.pretty)
+                vals.append((fmt.fmt_debug(f"(field @ {base:#x}) ") + name, ty.dump(base, fmt)))
+        body = fmt.fmt_elems(f"{name}: {val}" for (name, val) in vals)
         name = self.name or "struct"
         return f"{name} {{{body}}}"
 
