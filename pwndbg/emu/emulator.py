@@ -704,8 +704,7 @@ class Emulator:
         # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
         # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
         # which have Thumb mode transitions, Unicorn will internally handle them.
-        thumb_bit = self.read_thumb_bit()
-        pc |= thumb_bit
+        pc |= self.read_thumb_bit()
 
         try:
             self.emu_start(pc, 0, count=count)
