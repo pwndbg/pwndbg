@@ -57,11 +57,6 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
     CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
     CS_ARCH_ARM: {
-        ARM_INS_B,
-        ARM_INS_BL,
-        ARM_INS_BLX,
-        ARM_INS_BX,
-        ARM_INS_BXJ,
         ARM_INS_TBB,
         ARM_INS_TBH,
     },
@@ -236,6 +231,21 @@ class PwndbgInstruction:
         FALSE if the instruction has a conditional action, and we know it is not taken.
         """
 
+        self.declare_conditional: bool | None = None
+        """
+        This field is used to declare if the instruction is a conditional instruction.
+        In most cases, we can determine this purely based on the instruction ID, and this field is irrelevent.
+        However, in some arches, like Arm, the same instruction can be made conditional by certain instruction attributes.
+        Ex:
+            Arm, `bls` instruction. This is encoded as a `b` (Capstone ID 11) under the code, with an additional condition code field.
+            In this case, sometimes a `b` instruction (ID 11) is unconditional (always branches), in other cases it is conditional.
+            We use this field to disambiguate these cases.
+            
+        True if we manually determine this instruction is a conditional instruction
+        False if it's not a conditional instruction
+        None if we don't have a determination (most cases)
+        """
+
         self.annotation: str | None = None
         """
         The string is set in the "DisassemblyAssistant.enhance" function.
@@ -324,7 +334,8 @@ class PwndbgInstruction:
         This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view
         """
         return (
-            bool(self.groups_set & GENERIC_JUMP_GROUPS)
+            self.declare_conditional is not False
+            and bool(self.groups_set & GENERIC_JUMP_GROUPS)
             and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
 

@@ -241,6 +241,12 @@ class DisassemblyAssistant:
             print(enhancer.dump(instruction))
             print("Done enhancing")
 
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        """
+        Subclasses can override this function to run architecture specific setup logic for the instruction.
+        """
+        return None
+
     # Subclasses for specific architecture should override this
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
