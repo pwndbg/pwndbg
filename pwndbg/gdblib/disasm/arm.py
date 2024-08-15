@@ -80,6 +80,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # MOV
             ARM_INS_MOV: self._common_move_annotator,
             ARM_INS_MOVW: self._common_move_annotator,
+            # MOVT
+            ARM_INS_MOVT: self._common_generic_register_destination,
+            # MOVN
+            ARM_INS_MVN: self._common_generic_register_destination,
             # CMP
             ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
             # CMN
