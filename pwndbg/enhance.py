@@ -49,10 +49,11 @@ def int_str(value: int) -> str:
     First, it checks if the integer is a stack canary.
     Then, it attempts to interpret the bytes as a short strings
     """
-    if value == pwndbg.commands.canary.canary_value()[0]:
-        return f"{value} (canary)"
 
     retval = format_small_int(value)
+
+    if value == pwndbg.commands.canary.canary_value()[0]:
+        return f"{retval} (canary)"
 
     # Try to unpack the value as a string
     packed = pwndbg.gdblib.arch.pack(int(value))
