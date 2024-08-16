@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
-import coverage
 
+import coverage
 import pytest
 
 use_pdb = os.environ.get("USE_PDB") == "1"
