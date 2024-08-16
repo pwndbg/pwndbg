@@ -94,7 +94,7 @@ parser.add_argument(
 def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
     if list_categories:
         for category in CommandCategory:
-            print(C.bold(C.green(f"{category.value}")))
+            print(C.green(f"{category.value}", bold=True))
         return
 
     if all_:
@@ -126,8 +126,8 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
             continue
         data = table_data[category]
 
-        category_header = C.bold(C.green(category + " Commands"))
-        alias_header = C.bold(C.blue("Aliases"))
+        category_header = C.green(category + " Commands", bold=True)
+        alias_header = C.blue("Aliases", bold=True)
         print(
             tabulate(
                 data, headers=[f"{category_header} [{alias_header}]", f"{C.bold('Description')}"]

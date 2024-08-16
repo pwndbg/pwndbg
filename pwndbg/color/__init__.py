@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 import re
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
 from typing import NamedTuple
+from typing import Tuple
 
 from pwndbg.lib.config import Parameter
 
@@ -45,87 +47,89 @@ UNDERLINE = "\x1b[4m"
 none = str
 
 
-def normal(x: str) -> str:
-    return colorize(x, NORMAL)
+def normal(*args: Any, **kwargs: Any) -> str:
+    return colorize(NORMAL, *args, **kwargs)
 
 
-def black(x: str) -> str:
-    return colorize(x, BLACK)
+def black(*args: Any, **kwargs: Any) -> str:
+    return colorize(BLACK, *args, **kwargs)
 
 
-def red(x: str) -> str:
-    return colorize(x, RED)
+def red(*args: Any, **kwargs: Any) -> str:
+    return colorize(RED, *args, **kwargs)
 
 
-def green(x: str) -> str:
-    return colorize(x, GREEN)
+def green(*args: Any, **kwargs: Any) -> str:
+    return colorize(GREEN, *args, **kwargs)
 
 
-def yellow(x: str) -> str:
-    return colorize(x, YELLOW)
+def yellow(*args: Any, **kwargs: Any) -> str:
+    return colorize(YELLOW, *args, **kwargs)
 
 
-def blue(x: str) -> str:
-    return colorize(x, BLUE)
+def blue(*args: Any, **kwargs: Any) -> str:
+    return colorize(BLUE, *args, **kwargs)
 
 
-def purple(x: str) -> str:
-    return colorize(x, PURPLE)
+def purple(*args: Any, **kwargs: Any) -> str:
+    return colorize(PURPLE, *args, **kwargs)
 
 
-def cyan(x: str) -> str:
-    return colorize(x, CYAN)
+def cyan(*args: Any, **kwargs: Any) -> str:
+    return colorize(CYAN, *args, **kwargs)
 
 
-def light_gray(x: str) -> str:
-    return colorize(x, LIGHT_GRAY)
+def light_gray(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_GRAY, *args, **kwargs)
 
 
-def foreground(x: str) -> str:
-    return colorize(x, FOREGROUND)
+def foreground(*args: Any, **kwargs: Any) -> str:
+    return colorize(FOREGROUND, *args, **kwargs)
 
 
-def gray(x: str) -> str:
-    return colorize(x, GRAY)
+def gray(*args: Any, **kwargs: Any) -> str:
+    return colorize(GRAY, *args, **kwargs)
 
 
-def light_red(x: str) -> str:
-    return colorize(x, LIGHT_RED)
+def light_red(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_RED, *args, **kwargs)
 
 
-def light_green(x: str) -> str:
-    return colorize(x, LIGHT_GREEN)
+def light_green(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_GREEN, *args, **kwargs)
 
 
-def light_yellow(x: str) -> str:
-    return colorize(x, LIGHT_YELLOW)
+def light_yellow(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_YELLOW, *args, **kwargs)
 
 
-def light_blue(x: str) -> str:
-    return colorize(x, LIGHT_BLUE)
+def light_blue(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_BLUE, *args, **kwargs)
 
 
-def light_purple(x: str) -> str:
-    return colorize(x, LIGHT_PURPLE)
+def light_purple(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_PURPLE, *args, **kwargs)
 
 
-def light_cyan(x: str) -> str:
-    return colorize(x, LIGHT_CYAN)
+def light_cyan(*args: Any, **kwargs: Any) -> str:
+    return colorize(LIGHT_CYAN, *args, **kwargs)
 
 
-def white(x: str) -> str:
-    return colorize(x, WHITE)
+def white(*args: Any, **kwargs: Any) -> str:
+    return colorize(WHITE, *args, **kwargs)
 
 
-def bold(x: str) -> str:
-    return colorize(x, BOLD)
+def bold(*args: Any, **kwargs: Any) -> str:
+    return colorize(BOLD, *args, **kwargs)
 
 
-def underline(x: str) -> str:
-    return colorize(x, UNDERLINE)
+def underline(*args: Any, **kwargs: Any) -> str:
+    return colorize(UNDERLINE, *args, **kwargs)
 
 
-def colorize(x: str, color: str) -> str:
+def colorize(color: str, x: str, bold: bool = False) -> str:
+    if bold:
+        color = BOLD + color
     return color + terminateWith(str(x), color) + NORMAL
 
 

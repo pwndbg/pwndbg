@@ -82,7 +82,7 @@ group.add_argument(
 def threads(num_threads, respect_config) -> None:
     table = []
     headers = ["global_num", "name", "status", "pc", "symbol"]
-    bold_green = lambda text: pwndbg.color.bold(pwndbg.color.green(text))
+    bold_green = lambda text: pwndbg.color.green(text, bold=True)
 
     try:
         original_thread = gdb.selected_thread()

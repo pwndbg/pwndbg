@@ -937,7 +937,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
             line += f"{pc_colored}"
             if symbol:
-                line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+                line += f" <{pwndbg.color.green(symbol, bold=True)}> "
 
         out.append(line)
 
