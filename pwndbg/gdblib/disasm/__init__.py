@@ -332,11 +332,31 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
-def emulate_one() -> PwndbgInstruction | None:
-    """
-    Return a single emulated (if emulation is possible) and enhanced instruction at the current pc.
-    """
+def no_emulate_one():
+    result = near(pwndbg.gdblib.regs.pc, emulate=False, show_prev_insns=False)
+    if result:
+        return result[0][0]
+    return None
+
+
+def emulate_one():
     result = near(pwndbg.gdblib.regs.pc, emulate=True, show_prev_insns=False)
+    if result:
+        return result[0][0]
+    return None
+
+
+def one_with_config():
+    """
+    Returns a single Pwndbg Instruction at the current PC.
+
+    Emulation determined by the `pwndbg.config.emulate` setting.
+    """
+    result = near(
+        pwndbg.gdblib.regs.pc,
+        emulate=bool(not pwndbg.config.emulate == "off"),
+        show_prev_insns=False,
+    )
     if result:
         return result[0][0]
     return None

@@ -102,7 +102,10 @@ install_apt() {
         qemu-system-arm \
         qemu-user \
         gcc-aarch64-linux-gnu \
-        gcc-riscv64-linux-gnu
+        gcc-riscv64-linux-gnu \
+        gcc-arm-linux-gnueabihf \
+        gcc-mips-linux-gnu \
+        gcc-mips64-linux-gnuabi64
 
     if [[ "$1" != "" && "$1" != "20.04" ]]; then
         sudo apt install shfmt

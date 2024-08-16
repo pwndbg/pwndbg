@@ -51,6 +51,7 @@ jobs:
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
+        ./unit-tests.sh --cov
 
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
@@ -82,7 +83,7 @@ jobs:
   
     - name: Run cross-architecture tests
       run: |
-        ./tests.sh -t cross-arch
+        ./qemu-tests.sh
 
     - name: Set up cache for QEMU images
       id: qemu-cache
