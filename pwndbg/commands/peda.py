@@ -19,14 +19,14 @@ def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))
 
 
-parser = argparse.ArgumentParser(description="Continue execution until an address or function.")
-parser.add_argument("target", type=str, help="Address or function to stop execution at")
+parser = argparse.ArgumentParser(description="Continue execution until an address or expression.")
+parser.add_argument("target", type=int, help="Location to stop execution at")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
 def xuntil(target) -> None:
     try:
-        addr = int(target, 0)
+        addr = target
 
         if not pwndbg.gdblib.memory.peek(addr):
             print(message.error("Invalid address %#x" % addr))
