@@ -159,21 +159,17 @@ Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of
 ![](caps/heap_fake_fast.png)
 ![](caps/heap_try_free.png)
 
-## IDA Pro Integration
+## IDA Pro/Binary Ninja Integration
 
-Pwndbg flips traditional IDA Pro integration on its head.  Rather than sticking code inside of IDA that you need to interact with, by installing a small [XMLRPC server](ida_script.py) inside of IDA, Pwndbg has full access to everything IDA knows.
+Pwndbg is capable of integrating with IDA Pro or Binary Ninja by installing an XMLRPC server in the decompiler as a plugin, and then querying it for information.
 
-This allows extraction of comments, decompiled lines of source, breakpoints, and synchronized debugging (single-steps update the cursor in IDA).
+This allows extraction of comments, decompiled lines of source, breakpoints, symbols, and synchronized debugging (single-steps update the cursor in the decompiler).
 
 ![](caps/ida_comments.png)
 ![](caps/ida_function.png)
 ![](caps/ida_integration.png)
 
-Since the complete IDA API is exposed, new tools can be built on this functionality to further enhance Pwndbg's usefulness.
-
-You can also connect to Ida Pro XMLRPC server hosted on different machine. In order to achieve it, you need to change:
-* Ida Pro XMLRPC server host (in [ida_script](ida_script.py); as by default it binds to localhost)
-* The config parameters responsible for connection (see `config` command)
+See the [Binary Ninja integration guide](docs/binja_integration.md) for setup information.
 
 ## Configuration, customization
 
