@@ -89,7 +89,7 @@ def attachp(target, no_truncate, all, user=None) -> None:
         else:
             # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
             # so target='a b' would actually match process names 'a' and 'b' here
-# so instead, we will filter by process name or full cmdline later on
+            # so instead, we will filter by process name or full cmdline later on
             # if provided, filter by effective username or uid; otherwise, select all processes
             ps_filter = ["-u", user] if user is not None else ["-e"]
             ps_cmd = ["ps", "-o", "pid,args"] + ps_filter
