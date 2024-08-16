@@ -106,6 +106,13 @@ RISCV_MATH_INSTRUCTIONS = {
     RISCV_INS_C_SUBW: "-",
 }
 
+RISCV_EMULATED_ANNOTATIONS = {
+    RISCV_INS_SLT,
+    RISCV_INS_SLTU,
+    RISCV_INS_SLTI,
+    RISCV_INS_SLTIU,
+}
+
 
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
@@ -121,6 +128,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_LI: self._common_move_annotator,
             # LUI
             RISCV_INS_LUI: self._lui_annotator,
+            RISCV_INS_C_LUI: self._lui_annotator,
         }
 
     @override
@@ -193,6 +201,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     instruction.operands[-1].before_value,
                     RISCV_MATH_INSTRUCTIONS[instruction.id],
                 )
+        elif instruction.id in RISCV_EMULATED_ANNOTATIONS:
+            self._common_generic_register_destination(instruction, emu)
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
@@ -298,14 +308,18 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
 
         # Determine the target address of the indirect jump
-        if instruction.id in (RISCV_INS_JALR, RISCV_INS_C_JALR):
-            if (target := instruction.op_find(CS_OP_REG, 1).before_value) is None:
+        if instruction.id == RISCV_INS_JALR:
+            if (target := instruction.op_find(CS_OP_REG, 2).before_value) is None:
                 return None
 
-            if instruction.id == RISCV_INS_JALR:
-                target += instruction.op_find(CS_OP_IMM, 1).imm
+            target += instruction.op_find(CS_OP_IMM, 1).imm
             target &= ptrmask
             # Clear the lowest bit without knowing the register width
+            return target ^ (target & 1)
+
+        if instruction.id == RISCV_INS_C_JALR:
+            if (target := instruction.op_find(CS_OP_REG, 1).before_value) is None:
+                return None
             return target ^ (target & 1)
 
         return super()._resolve_target(instruction, emu)

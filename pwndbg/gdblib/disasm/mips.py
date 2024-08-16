@@ -77,6 +77,7 @@ MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_SLTI,
     MIPS_INS_SLTIU,
     MIPS_INS_SLTU,
+    MIPS_INS_MOVN,
     # Rare - unaligned read - have complex loading logic
     MIPS_INS_LDL,
     MIPS_INS_LDR,
@@ -129,6 +130,10 @@ MIPS_BINARY_OPERATIONS = {
     MIPS_INS_SLLV: "<<",
     MIPS_INS_DSLL: "<<",
     MIPS_INS_DSLLV: "<<",
+    MIPS_INS_SRL: ">>",
+    MIPS_INS_SRLV: ">>",
+    MIPS_INS_DSRL: ">>",
+    MIPS_INS_DSRLV: ">>",
 }
 
 
