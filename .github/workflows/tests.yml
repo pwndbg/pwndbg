@@ -83,7 +83,7 @@ jobs:
   
     - name: Run cross-architecture tests
       run: |
-        ./qemu-tests.sh
+        ./qemu-tests.sh --cov
 
     - name: Set up cache for QEMU images
       id: qemu-cache
