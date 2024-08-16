@@ -171,6 +171,12 @@ This allows extraction of comments, decompiled lines of source, breakpoints, sym
 
 See the [Binary Ninja integration guide](docs/binja_integration.md) for setup information.
 
+## Go Debugging
+
+Pwndbg has support for dumping complex Go values like maps and slices, including automatically parsing out type layouts in certain cases.
+
+See the [Go debugging guide](docs/go_debugging.md) for more information.
+
 ## Configuration, customization
 
 There are two commands to set various options:
