@@ -92,7 +92,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      
+
   qemu-tests:
     runs-on: [ubuntu-22.04]
     timeout-minutes: 30
@@ -110,6 +110,7 @@ jobs:
         ./setup.sh
         ./setup-dev.sh
         mkdir .cov
+        
     - name: Set up cache for QEMU images
       id: qemu-cache
       uses: actions/cache@v3
