@@ -19,9 +19,7 @@ def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))
 
 
-parser = argparse.ArgumentParser(
-    description="Continue execution until an address or function."
-)
+parser = argparse.ArgumentParser(description="Continue execution until an address or expression.")
 parser.add_argument("target", type=int, help="Location to stop execution at")
 
 
