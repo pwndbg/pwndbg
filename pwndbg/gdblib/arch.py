@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-from typing import Literal
-from typing_extensions import override
-
 import struct
-from typing import Literal
 from typing import Dict
-from typing import Tuple
-from typing import TypeVar
-from typing import Type
-
-
-from pwndbg.lib.abi import ABI, SyscallABI,DEFAULT_ABIS,SYSCALL_ABIS,SIGRETURN_ABIS
-from pwndbg.lib.regs import RegisterSet
+from typing import Literal
 
 import gdb
 import pwnlib
+from typing_extensions import override
 
 import pwndbg.gdblib
 from pwndbg.gdblib import typeinfo
-from pwndbg.lib.arch import Arch
+from pwndbg.lib.abi import ABI
+from pwndbg.lib.abi import DEFAULT_ABIS
+from pwndbg.lib.abi import SIGRETURN_ABIS
+from pwndbg.lib.abi import SYSCALL_ABIS
+from pwndbg.lib.abi import SyscallABI
 
 # TODO: x86-64 needs to come before i386 in the current implementation, make
 # this order-independent
@@ -85,24 +80,35 @@ def get_thumb_mode_string() -> Literal["arm", "thumb"] | None:
 #     # and call this function appropriately
 #     arch = architecture
 
-ArchType = Literal["i386","x86-64","rv32","rv64","mips","sparc","arm","iwmmxt","armcm","aarch64","powerpc"]
-EndianType = Literal["little","big"]
+ArchType = Literal[
+    "i386",
+    "x86-64",
+    "rv32",
+    "rv64",
+    "mips",
+    "sparc",
+    "arm",
+    "iwmmxt",
+    "armcm",
+    "aarch64",
+    "powerpc",
+]
+EndianType = Literal["little", "big"]
 
 FMT_LITTLE_ENDIAN = {1: "B", 2: "<H", 4: "<I", 8: "<Q"}
 FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 
 
 class PwndbgArchitecture:
-
     # Registry of all instances
     arch_registry: Dict[ArchType, PwndbgArchitecture] = {}
-    
+
     @staticmethod
     def get_arch(name: ArchType) -> PwndbgArchitecture:
         # If a custom class has not been registered for the architecture, use base implementation
         if name not in PwndbgArchitecture.arch_registry:
             PwndbgArchitecture.arch_registry[name] = PwndbgArchitecture(name)
-        
+
         return PwndbgArchitecture.arch_registry[name]
 
     def __init__(self, name: ArchType) -> None:
@@ -118,7 +124,7 @@ class PwndbgArchitecture:
         # We have to set some values by default
         # These will be set again by the code that detects the global architecture
         self.update(typeinfo.ptrsize, "little")
-    
+
     def update(self, ptrsize: int, endian: EndianType) -> None:
         """
         While debugging a process, certain aspects of the architecture can change.
@@ -140,11 +146,10 @@ class PwndbgArchitecture:
         # But can be explicitely set if there is a special case
         # Is the syscall ABI non-standard? Just do pwndbg.arch.abi = ...
 
-        abi_identifer = (self.ptrbits,self.name,"linux")
+        abi_identifer = (self.ptrbits, self.name, "linux")
         self.abi: ABI | None = DEFAULT_ABIS.get(abi_identifer)
         self.syscall_abi: SyscallABI | None = SYSCALL_ABIS.get(abi_identifer)
         self.sigreturn_abi: SyscallABI | None = SIGRETURN_ABIS.get(abi_identifer)
-
 
         self.fmts: Dict[int, str] = FMT_LITTLE_ENDIAN if endian == "little" else FMT_BIG_ENDIAN
         self.fmt: str = self.fmts[self.ptrsize]
@@ -168,16 +173,16 @@ class PwndbgArchitecture:
     def unpack_size(self, data: bytes, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
-    def read_thumb_bit(self) -> Literal[0,1]:
+    def read_thumb_bit(self) -> Literal[0, 1]:
         return 0
-    
-class ArmArch(PwndbgArchitecture):
 
+
+class ArmArch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("arm")
 
     @override
-    def read_thumb_bit(self) -> Literal[0,1]:
+    def read_thumb_bit(self) -> Literal[0, 1]:
         # When program initially starts, cpsr may not be readable
         if (cpsr := pwndbg.gdblib.regs.cpsr) is not None:
             return (cpsr >> 5) & 1
@@ -197,16 +202,16 @@ class ArmCortexArch(PwndbgArchitecture):
         super().__init__("armcm")
 
     @override
-    def read_thumb_bit(self) -> Literal[0,1]:
+    def read_thumb_bit(self) -> Literal[0, 1]:
         """
         On Cortex-M processors, the Thumb bit is architecturally defined to be 1.
         """
         return 1
 
+
 # Register all the custom classes
 ArmArch()
 ArmCortexArch()
-
 
 
 # arch = Arch("i386", typeinfo.ptrsize, "little")
@@ -266,6 +271,6 @@ def update() -> None:
     print(arch.name)
     # arch.update(arch_name, ptrsize, endian)
     arch.update(ptrsize, endian)
-    
+
     pwnlib.context.context.arch = pwnlib_archs_mapping[arch_name]
     pwnlib.context.context.bits = ptrsize * 8
