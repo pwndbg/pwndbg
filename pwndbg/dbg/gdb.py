@@ -164,7 +164,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             return GDBValue(parse_and_eval(expression, global_context=True))
         except gdb.error as e:
-            pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.Error(e)
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
