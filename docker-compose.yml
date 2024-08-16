@@ -27,6 +27,15 @@ services:
       dockerfile: Dockerfile
       args:
         image: ubuntu:22.04
+  
+  ubuntu24.04:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        image: ubuntu:24.04
+
 
   debian11:
     <<: *base-spec

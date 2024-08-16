@@ -123,8 +123,8 @@ run_gdb() {
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
-gdb_args=(--command pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(run_gdb "x86_64" "${gdb_args[@]}")
+gdb_args=(--command ../pytests_collect.py)
+TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/qemu-tests/tests/system" run_gdb "x86_64" "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -155,7 +155,7 @@ run_test() {
     local arch="$4"
 
     gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
-    gdb_args=("${gdb_connect_qemu[@]}" --command pytests_launcher.py)
+    gdb_args=("${gdb_connect_qemu[@]}" --command ../pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
     fi
@@ -164,7 +164,7 @@ run_test() {
         COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
         USE_PDB="${USE_PDB}" \
-        PWNDBG_LAUNCH_TEST="${test_case}" \
+        PWNDBG_LAUNCH_TEST="qemu-tests/${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \

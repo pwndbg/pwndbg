@@ -51,6 +51,7 @@ jobs:
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
+        ./unit-tests.sh --cov
 
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
@@ -60,6 +61,36 @@ jobs:
 
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
+      uses: codecov/codecov-action@v3
+
+  qemu-user-tests:
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache for pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ matrix.os }}-cache-pip
+    
+    - name: Install dependencies
+      run: |
+        ./setup.sh
+        ./setup-dev.sh
+        mkdir .cov
+
+    - name: Run cross-architecture tests
+      run: |
+        ./qemu-tests.sh --cov
+
+    - name: Process coverage data
+      run: |
+        ./.venv/bin/coverage combine
+        ./.venv/bin/coverage xml
+
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
   qemu-tests:
@@ -79,7 +110,7 @@ jobs:
         ./setup.sh
         ./setup-dev.sh
         mkdir .cov
-
+        
     - name: Set up cache for QEMU images
       id: qemu-cache
       uses: actions/cache@v3
@@ -97,11 +128,6 @@ jobs:
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
-
-    - name: Run qemu-user tests
-      working-directory: ./tests/qemu-tests
-      run: |
-        ./test_qemu.sh
 
     - name: Process coverage data
       run: |

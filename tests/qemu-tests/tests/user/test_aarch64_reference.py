@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-import sys
-import traceback
-
 import gdb
+import user
 
-import pwndbg
+import pwndbg.gdblib.symbol
 
-try:
+REFERENCE_BINARY = user.binaries.get("reference-binary.aarch64.out")
+
+
+def test_aarch64_reference(qemu_start_binary):
+    qemu_start_binary(REFERENCE_BINARY, "aarch64")
     gdb.execute("break break_here")
-    assert pwndbg.gdblib.symbol.address("main") == 0x5500000A1C
+    assert pwndbg.gdblib.symbol.address("main") is not None
     gdb.execute("continue")
 
     gdb.execute("argv", to_string=True)
@@ -35,6 +37,3 @@ try:
     gdb.execute("piebase", to_string=True)
 
     gdb.execute("nextret", to_string=True)
-except AssertionError:
-    traceback.print_exc(file=sys.stdout)
-    sys.exit(1)

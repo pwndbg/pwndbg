@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import os
+import random
 import re
 import subprocess
 import sys
@@ -11,7 +12,7 @@ from subprocess import CompletedProcess
 from typing import List
 from typing import Tuple
 
-root_dir = os.path.realpath("../../")
+root_dir = os.path.realpath("../")
 
 
 def ensureZigPath():
@@ -24,27 +25,66 @@ def ensureZigPath():
 
 def makeBinaries():
     try:
-        subprocess.check_call(["make", "all"], cwd="./tests/binaries")
+        subprocess.check_call(["make", "all"], cwd="./gdb-tests/tests/binaries")
     except subprocess.CalledProcessError:
         exit(1)
 
 
-def run_gdb(gdb_args: List[str], env=None, capture_output=True) -> CompletedProcess[str]:
+def makeCrossArchBinaries():
+    try:
+        subprocess.check_call(["make", "all"], cwd="./qemu-tests/tests/user/binaries")
+    except subprocess.CalledProcessError:
+        exit(1)
+
+
+def open_ports(n: int) -> List[int]:
+    """
+    Returns a list of `n` open ports
+    """
+    try:
+        result = subprocess.run(
+            ["netstat", "-tuln"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if result.returncode != 0:
+            # If netstat not found, try ss
+            raise FileNotFoundError
+    except FileNotFoundError:
+        result = subprocess.run(["ss", "-tuln"], stdout=subprocess.PIPE)
+
+    used_ports = set(re.findall(r":(\d+)", result.stdout.decode()))
+    used_ports = set(map(int, used_ports))
+
+    available_ports = [port for port in range(1024, 65536) if port not in used_ports]
+    return random.sample(available_ports, n)
+
+
+def run_gdb(
+    gdb_binary: str, gdb_args: List[str], env=None, capture_output=True
+) -> CompletedProcess[str]:
     env = os.environ if env is None else env
     return subprocess.run(
-        ["gdb", "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
+        [gdb_binary, "--silent", "--nx", "--nh"] + gdb_args + ["--eval-command", "quit"],
         env=env,
         capture_output=capture_output,
         text=True,
     )
 
 
-def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -> List[str]:
+def getTestsList(
+    collect_only: bool,
+    test_name_filter: str,
+    gdb_binary: str,
+    gdbinit_path: str,
+    test_dir_path: str,
+) -> List[str]:
     # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
     # we decided to run each test in a separate GDB session
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_collect.py"]
 
-    result = run_gdb(gdb_args)
+    env = os.environ.copy()
+    env["TESTS_PATH"] = os.path.join(os.path.dirname(os.path.realpath(__file__)), test_dir_path)
+
+    result = run_gdb(gdb_binary, gdb_args, env=env)
     tests_collect_output = result.stdout
 
     if result.returncode == 1:
@@ -55,14 +95,14 @@ def getTestsList(collect_only: bool, test_name_filter: str, gdbinit_path: str) -
         exit(0)
 
     # Extract the test names from the output using regex
-    pattern = re.compile(r"tests/.*::.*")
+    pattern = re.compile(rf"{test_dir_path}.*::.*")
     matches = pattern.findall(tests_collect_output)
     tests_list = [match for match in matches if re.search(test_name_filter, match)]
     return tests_list
 
 
 def run_test(
-    test_case: str, args: argparse.Namespace, gdbinit_path: str
+    test_case: str, args: argparse.Namespace, gdb_binary: str, gdbinit_path: str, port: int = None
 ) -> Tuple[CompletedProcess[str], str]:
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_launcher.py"]
     if args.cov:
@@ -82,11 +122,20 @@ def run_test(
         env["USE_PDB"] = "1"
     env["PWNDBG_LAUNCH_TEST"] = test_case
     env["PWNDBG_DISABLE_COLORS"] = "1"
-    result = run_gdb(gdb_args, env=env, capture_output=not args.serial)
+    if port is not None:
+        env["QEMU_PORT"] = str(port)
+    result = run_gdb(gdb_binary, gdb_args, env=env, capture_output=not args.serial)
     return (result, test_case)
 
 
-def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, gdbinit_path: str):
+def run_tests_and_print_stats(
+    tests_list: List[str],
+    args: argparse.Namespace,
+    gdb_binary: str,
+    gdbinit_path: str,
+    test_dir_path: str,
+    ports: List[int] = [],
+):
     start = time.time()
     test_results: List[Tuple[CompletedProcess[str], str]] = []
 
@@ -96,7 +145,7 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
         content = process.stdout
 
         # Extract the test name and result using regex
-        testname = re.search(r"^(tests/[^ ]+)", content, re.MULTILINE)[0]
+        testname = re.search(rf"^({test_dir_path}/[^ ]+)", content, re.MULTILINE)[0]
         result = re.search(
             r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
         )[0]
@@ -109,16 +158,21 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
             print("")
             print(content)
 
+    port_iterator = iter(ports)
+
     if args.serial:
-        test_results = [run_test(test, args, gdbinit_path) for test in tests_list]
+        test_results = [
+            run_test(test, args, gdb_binary, gdbinit_path, next(port_iterator, None))
+            for test in tests_list
+        ]
     else:
         print("")
         print("Running tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(run_test, test, args, gdbinit_path).add_done_callback(
-                    lambda future: handle_parallel_test_result(future.result())
-                )
+                executor.submit(
+                    run_test, test, args, gdb_binary, gdbinit_path, next(port_iterator, None)
+                ).add_done_callback(lambda future: handle_parallel_test_result(future.result()))
 
     end = time.time()
     seconds = int(end - start)
@@ -145,6 +199,8 @@ def run_tests_and_print_stats(tests_list: List[str], args: argparse.Namespace, g
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run tests.")
+    parser.add_argument("-t", "--type", dest="type", choices=["gdb", "cross-arch"], default="gdb")
+
     parser.add_argument(
         "-p",
         "--pdb",
@@ -177,6 +233,8 @@ def parse_args():
     return parser.parse_args()
 
 
+TEST_FOLDER_NAME = {"gdb": "gdb-tests/tests", "cross-arch": "qemu-tests/tests/user"}
+
 if __name__ == "__main__":
     args = parse_args()
     if args.cov:
@@ -192,7 +250,24 @@ if __name__ == "__main__":
         os.environ["GDB_INIT_PATH"] = gdbinit_path
     else:
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
-    ensureZigPath()
-    makeBinaries()
-    tests: List[str] = getTestsList(args.collect_only, args.test_name_filter, gdbinit_path)
-    run_tests_and_print_stats(tests, args, gdbinit_path)
+
+    gdb_binary = "gdb"
+
+    if args.type == "gdb":
+        ensureZigPath()
+        makeBinaries()
+    else:
+        makeCrossArchBinaries()
+        gdb_binary = "gdb-multiarch"
+
+    test_dir_path = TEST_FOLDER_NAME[args.type]
+
+    tests: List[str] = getTestsList(
+        args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path
+    )
+
+    ports = []
+    if args.type == "cross-arch":
+        ports = open_ports(len(tests))
+
+    run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path, ports)

@@ -5,7 +5,12 @@ import sys
 
 import pytest
 
-TESTS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tests/system")
+TESTS_PATH = os.environ.get("TESTS_PATH")
+
+if TESTS_PATH is None:
+    print("'TESTS_PATH' environment variable not set. Failed to collect tests.")
+    sys.stdout.flush()
+    os._exit(1)
 
 
 class CollectTestFunctionNames:
@@ -33,4 +38,5 @@ for nodeid in collector.collected:
     print("Test:", nodeid)
 
 # easy way to exit GDB session
-sys.exit(0)
+sys.stdout.flush()
+os._exit(0)
