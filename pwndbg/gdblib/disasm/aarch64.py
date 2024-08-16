@@ -75,6 +75,43 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_STLXR: None,
 }
 
+CONDITIONAL_SELECT_INSTRUCTIONS = {
+    ARM64_INS_CSEL,
+    ARM64_INS_CSINC,
+    ARM64_INS_CSINV,
+    ARM64_INS_CSNEG,
+    ARM64_INS_CSET,
+    ARM64_INS_CSETM,
+    ARM64_INS_CINC,
+    ARM64_INS_CINV,
+    ARM64_INS_CNEG,
+}
+
+AARCH64_EMULATED_ANNOTATIONS = CONDITIONAL_SELECT_INSTRUCTIONS | {
+    ARM64_INS_SXTB,
+    ARM64_INS_SXTH,
+    ARM64_INS_SXTW,
+    ARM64_INS_UXTB,
+    ARM64_INS_UXTH,
+    ARM64_INS_UXTW,
+    ARM64_INS_RBIT,
+    ARM64_INS_CLS,
+    ARM64_INS_CLZ,
+    ARM64_INS_BFXIL,
+    ARM64_INS_UBFIZ,
+    ARM64_INS_UBFM,
+    ARM64_INS_UBFX,
+    ARM64_INS_SBFIZ,
+    ARM64_INS_SBFM,
+    ARM64_INS_SBFX,
+    ARM64_INS_BFI,
+    ARM64_INS_NEG,
+    ARM64_INS_NEGS,
+    ARM64_INS_REV,
+    ARM64_INS_BIC,
+    ARM64_INS_BICS,
+}
+
 # Parameters to each function: (value, shift_amt, bit_width)
 AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM64_SFT_LSL: bit_math.logical_shift_left,
@@ -100,8 +137,11 @@ AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
 
 AARCH64_MATH_INSTRUCTIONS = {
     ARM64_INS_ADD: "+",
+    ARM64_INS_ADDS: "+",
     ARM64_INS_SUB: "-",
+    ARM64_INS_SUBS: "-",
     ARM64_INS_AND: "&",
+    ARM64_INS_ANDS: "&",
     ARM64_INS_ORR: "&",
     ARM64_INS_ASR: ">>s",
     ARM64_INS_ASRV: ">>s",
@@ -215,6 +255,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[-1].before_value,
                 AARCH64_MATH_INSTRUCTIONS[instruction.id],
             )
+        elif instruction.id in AARCH64_EMULATED_ANNOTATIONS:
+            self._common_generic_register_destination(instruction, emu)
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
@@ -271,8 +313,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
             if op_val is not None and bit is not None:
                 return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
+        elif instruction.id in CONDITIONAL_SELECT_INSTRUCTIONS:
+            # Capstone places the condition to be satisfied in the `cc` field of the instruction
+            # for all conditional select instructions
+            flags = self._read_register_name(instruction, "cpsr", emu)
 
-        # TODO: Additionally, the "conditional comparisons" and "conditional selects" support conditional execution
+            if flags is not None:
+                return resolve_condition(instruction.cs_insn.cc, flags)
 
         return super()._condition(instruction, emu)
 
