@@ -52,11 +52,22 @@ Original GDB attach command help:
 )
 
 parser.add_argument("--no-truncate", action="store_true", help="dont truncate command args")
-parser.add_argument("target", type=str, help="pid, process name or device file to attach to")
+parser.add_argument("--user", type=str, default=None, help="username or uid to filter by")
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="get pids for all matches (exact and partial cmdline etc)",
+)
+parser.add_argument(
+    "target",
+    type=str,
+    help="pid, process name, part of cmdline to be matched or device file to attach to",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(no_truncate, target) -> None:
+def attachp(target, no_truncate, all, user=None) -> None:
     try:
         resolved_target = int(target)
     except ValueError:
@@ -76,32 +87,48 @@ def attachp(no_truncate, target) -> None:
             resolved_target = target
 
         else:
+            # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
+            # so target='a b' would actually match process names 'a' and 'b' here
+
+            # if provided, filter by effective username or uid; otherwise, select all processes
+            ps_filter = ["-u", user] if user is not None else ["-e"]
+            ps_cmd = ["ps", "-o", "pid,args"] + ps_filter
+
             try:
-                pids = check_output(["pidof", target]).decode().rstrip("\n").split(" ")
+                ps_output = check_output(ps_cmd, universal_newlines=True)
             except FileNotFoundError:
-                print(message.error("Error: did not find `pidof` command"))
+                print(message.error("Error: did not find `ps` command"))
                 return
             except CalledProcessError:
-                pids = []
+                print(message.error(f"The `{' '.join(ps_cmd)}` command returned non-zero status"))
+                return
 
-            if not pids:
-                try:
-                    ps_output = check_output(["ps", "-eo", "pid,args"], universal_newlines=True)
-                except FileNotFoundError:
-                    print(message.error("Error: did not find `ps` command"))
-                    return
-                except CalledProcessError:
-                    pids = []
+            pids_exact_match_cmd = []
+            pids_partial_match_cmd = []
+            pids_partial_match_args = []
 
-                target_list = [part for part in target.split() if len(part) >= 2]
-                for line in ps_output.strip().split("\n")[1:]:
-                    process_info = line.split()
-                    if len(process_info) <= 1:
-                        continue
-                    pid = process_info[0]
-                    command = process_info[1]
-                    if any(part in command for part in target_list):
-                        pids.append(pid)
+            # Skip header line
+            for line in ps_output.strip().splitlines()[1:]:
+                process_info = line.split(maxsplit=1)
+
+                if len(process_info) <= 1:
+                    # No command name?
+                    continue
+
+                pid, args = process_info
+                cmd = args.split(maxsplit=1)[0]
+
+                if target == cmd:
+                    pids_exact_match_cmd.append(pid)
+                elif target in cmd:
+                    pids_partial_match_cmd.append(pid)
+                elif target in args:
+                    pids_partial_match_args.append(pid)
+
+            if all:
+                pids = pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
+            else:
+                pids = pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
             if not pids:
                 print(message.error(f"Process {target} not found"))
