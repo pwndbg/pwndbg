@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import coverage
 
 import pytest
 
@@ -29,5 +30,8 @@ if return_code != 0:
     print("If you want to debug tests locally, run ./tests.sh with the --pdb flag")
     print("-" * 80)
 
+# We must call this to ensure the code coverage file writes get flushed
+# https://github.com/nedbat/coveragepy/issues/310
+coverage._atexit()
 sys.stdout.flush()
 os._exit(return_code)
