@@ -1,15 +1,42 @@
 from __future__ import annotations
 
 import pwndbg
+from pwndbg.lib.arch import Arch
 
-# We will optimize this module in the future, by having it work in the same
-# way the `gdblib` version of it works, and that will come at the same
-# time this module gets expanded to have the full feature set of its `gdlib`
-# coutnerpart. For now, though, this should be good enough.
+ARCHS = (
+    "x86-64",
+    "i386",
+    "aarch64",
+    "mips",
+    "powerpc",
+    "sparc",
+    "arm",
+    "armcm",
+    "riscv:rv32",
+    "riscv:rv64",
+    "riscv",
+)
 
 
-def __getattr__(name):
-    if name == "endian":
-        return pwndbg.dbg.selected_inferior().arch().endian
-    elif name == "ptrsize":
-        return pwndbg.dbg.selected_inferior().arch().ptrsize
+# mapping between gdb and pwntools arch names
+pwnlib_archs_mapping = {
+    "x86-64": "amd64",
+    "i386": "i386",
+    "aarch64": "aarch64",
+    "mips": "mips",
+    "powerpc": "powerpc",
+    "sparc": "sparc",
+    "arm": "arm",
+    "iwmmxt": "arm",
+    "armcm": "thumb",
+    "rv32": "riscv32",
+    "rv64": "riscv64",
+}
+
+
+arch: Arch = Arch("i386", 4, "little")
+
+
+def update() -> None:
+    a = pwndbg.dbg.selected_inferior().arch()
+    arch.update(a.name, a.ptrsize, a.endian)
