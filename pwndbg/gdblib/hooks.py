@@ -8,8 +8,9 @@ import pwndbg.gdblib.memory
 import pwndbg.gdblib.next
 import pwndbg.gdblib.tls
 import pwndbg.gdblib.typeinfo
+from pwndbg.aglib import arch_mod as arch_mod_aglib
 from pwndbg.dbg import EventType
-from pwndbg.gdblib import arch_mod
+from pwndbg.gdblib import arch_mod as arch_mod_gdblib
 
 # TODO: Combine these `update_*` hook callbacks into one method
 
@@ -25,7 +26,8 @@ def update_typeinfo() -> None:
 @pwndbg.dbg.event_handler(EventType.STOP)
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def update_arch() -> None:
-    arch_mod.update()
+    arch_mod_gdblib.update()
+    arch_mod_aglib.update()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
