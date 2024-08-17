@@ -32,6 +32,9 @@ if return_code != 0:
 
 # We must call this to ensure the code coverage file writes get flushed
 # https://github.com/nedbat/coveragepy/issues/310
-coverage._atexit()
+if (cov := coverage.Coverage.current()) is not None:
+    cov.stop()
+    cov.save()
+
 sys.stdout.flush()
 os._exit(return_code)
