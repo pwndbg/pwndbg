@@ -105,8 +105,8 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
 
     Currently, compressed load and stores operations have a memory operand representation that is subject to change in Capstone v6.
 
-    If this crashes, it is we likely need to update the parser to compressed memory operands.
-    - Link:
+    If this crashes, it is we likely need to update the parser for compressed memory operands.
+    - Link: https://github.com/capstone-engine/capstone/issues/2351
     """
     qemu_assembly_run(RISCV64_COMPRESSED_LOAD_STORE, "riscv64")
 

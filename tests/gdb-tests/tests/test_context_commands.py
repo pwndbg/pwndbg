@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 import gdb
+import pwndbg.commands.canary
 import pytest
 
 import pwndbg.commands
@@ -340,3 +341,34 @@ def test_context_disasm_proper_render_on_mem_change_issue_1818(start_binary, pat
     assert "mov    esi, 0xdeadbeef" in new[8]
     assert "mov    ecx, 0x10" in new[9]
     assert "syscall" in new[10]
+
+X86_64_BINARY = tests.binaries.get("onegadget.x86-64.out")
+
+def test_context_disasm_fsbase_annotations(start_binary):
+    """
+    This test checks that fsbase support in annotations is working properly.
+
+    If this breaks, either our x86 memory operand parser is broken, we cannot fetch fsbase, or we are not passing FSBASE to Unicorn.
+    See: https://github.com/pwndbg/pwndbg/pull/2317
+
+    For this test, we use a binary we know has a stack canary.
+    Between compilations and between x86 vs x86_64, the exact instruction changes, but matches a regex pattern.
+
+    """
+    start_binary(X86_64_BINARY)
+
+    gdb.execute("b break_here")
+    gdb.execute("c")
+
+    # In view, there should now be the fs/gs memory reference
+    output = gdb.execute("context disasm", to_string=True).split("\n")
+
+    pattern = re.compile(r'\b(mov|sub)\s+\w+,\s+(qword|dword)\s+ptr\s+(gs|fs):\[0x[0-9a-f]+\]')
+    found = False
+    for line in output:
+        if pattern.search(line):
+            found = True
+            break
+
+    assert found
+
