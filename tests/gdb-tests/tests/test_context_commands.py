@@ -342,7 +342,7 @@ def test_context_disasm_proper_render_on_mem_change_issue_1818(start_binary, pat
     assert "mov    ecx, 0x10" in new[9]
     assert "syscall" in new[10]
 
-X86_64_BINARY = tests.binaries.get("onegadget.x86-64.out")
+ONE_GADGET_BINARY = tests.binaries.get("onegadget.x86-64.out")
 
 def test_context_disasm_fsbase_annotations(start_binary):
     """
@@ -355,7 +355,7 @@ def test_context_disasm_fsbase_annotations(start_binary):
     Between compilations and between x86 vs x86_64, the exact instruction changes, but matches a regex pattern.
 
     """
-    start_binary(X86_64_BINARY)
+    start_binary(ONE_GADGET_BINARY)
 
     gdb.execute("b break_here")
     gdb.execute("c")
@@ -372,3 +372,46 @@ def test_context_disasm_fsbase_annotations(start_binary):
 
     assert found
 
+LONG_FUNCTION_X64_BINARY = tests.binaries.get("long_function_x64.out")
+
+
+def test_context_disasm_call_instruction_split(start_binary):
+    """
+    This checks for the following scenario:
+    We are on a `call` instruction, and `si` to enter the function. Now, the we do `fin` to return to the caller.
+    There should be a split in the disassembly after the call instruction.
+    """
+
+    start_binary(LONG_FUNCTION_X64_BINARY)
+
+    gdb.execute("start")
+    # Call ctx so instructions get disassembled and cached
+    gdb.execute("ctx")
+
+    gdb.execute("si")
+    gdb.execute("fin")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x400080 <_start>       call   function                    <function>\n"
+        " \n"
+        " ► 0x400085 <_start+5>     mov    eax, 2       EAX => 2\n"
+        "   0x40008a <_start+10>    mov    ebx, 3       EBX => 3\n"
+        "   0x40008f <_start+15>    add    rax, rbx     RAX => 5 (2 + 3)\n"
+        "   0x400092 <_start+18>    xor    rax, rbx     RAX => 6 (5 ^ 3)\n"
+        "   0x400095 <_start+21>    nop    \n"
+        "   0x400096 <_start+22>    jmp    exit                        <exit>\n"
+        "    ↓\n"
+        "   0x4000ab <exit>         mov    eax, 0x3c              EAX => 0x3c\n"
+        "   0x4000b0 <exit+5>       mov    edi, 0                 EDI => 0\n"
+        "   0x4000b5 <exit+10>      syscall  <SYS_exit>\n"
+        "   0x4000b7                add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
