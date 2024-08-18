@@ -202,6 +202,12 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if instruction.id == MIPS_INS_JAL:
+            # Capstone bug - JAL with an immediate (jal 0x1000000) has no jump group in the list, so we add it manually
+            # See: https://github.com/capstone-engine/capstone/issues/2448
+            # And: https://github.com/capstone-engine/capstone/issues/1680
+            instruction.groups.add(CS_GRP_CALL)
+
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
@@ -227,8 +233,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        if bool(instruction.groups_set & FORWARD_JUMP_GROUP) and not bool(
-            instruction.groups_set & BRANCH_LIKELY_INSTRUCTIONS
+        if bool(instruction.groups & FORWARD_JUMP_GROUP) and not bool(
+            instruction.groups & BRANCH_LIKELY_INSTRUCTIONS
         ):
             instruction.causes_branch_delay = True
 

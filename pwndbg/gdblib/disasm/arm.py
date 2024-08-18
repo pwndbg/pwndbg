@@ -72,6 +72,29 @@ ARM_MATH_INSTRUCTIONS = {
 }
 
 
+def first_op_is_pc(i: PwndbgInstruction) -> bool:
+    return i.operands[0].reg == ARM_REG_PC
+
+
+def ops_contain_pc(i: PwndbgInstruction) -> bool:
+    for op in i.operands:
+        if op.type == CS_OP_REG:
+            if op.reg == ARM_REG_PC:
+                return True
+    return False
+
+
+ARM_CAN_WRITE_TO_PC: Dict[int, Callable[[PwndbgInstruction], bool]] = {
+    ARM_INS_ADD: first_op_is_pc,
+    ARM_INS_SUB: first_op_is_pc,
+    ARM_INS_SUBS: first_op_is_pc,
+    ARM_INS_MOV: first_op_is_pc,
+    ARM_INS_LDR: first_op_is_pc,
+    ARM_INS_POP: ops_contain_pc,
+    ARM_INS_LDM: ops_contain_pc,
+}
+
+
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
@@ -134,6 +157,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if instruction.id in ARM_CAN_WRITE_TO_PC:
+            instruction.declare_is_unconditional_jump = ARM_CAN_WRITE_TO_PC[instruction.id](
+                instruction
+            )
+
         if instruction.cs_insn.cc == ARM_CC_AL:
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False

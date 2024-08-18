@@ -190,6 +190,9 @@ end:
 def test_mips32_call_instruction(qemu_assembly_run):
     """
     Ensure that MIPS "branch-and-link" instructions like "JAL" do not get unrolled, and have splits in disassembly correctly.
+
+    There's a bug in Capstone which doesn't consider JAL a jump-like/call instruction, so we have to manually add the jump group.
+    See: https://github.com/capstone-engine/capstone/issues/2448
     """
     qemu_assembly_run(MIPS_CALL, "mips")
 
@@ -199,7 +202,7 @@ def test_mips32_call_instruction(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
-        " ► 0x10000000 <_start>       jal    my_function\n"
+        " ► 0x10000000 <_start>       jal    my_function                 <my_function>\n"
         "        $a0:       0\n"
         "        $a1:       0\n"
         "        $a2:       0\n"
@@ -225,7 +228,7 @@ def test_mips32_call_instruction(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
-        "   0x10000000 <_start>       jal    my_function\n"
+        "   0x10000000 <_start>       jal    my_function                 <my_function>\n"
         "   0x10000004 <_start+4>     nop    \n"
         " \n"
         "   0x10000008 <_start+8>     j      end                         <end>\n"

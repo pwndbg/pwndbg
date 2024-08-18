@@ -325,7 +325,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        if not bool(instruction.groups_set & ALL_JUMP_GROUPS):
+        if not bool(instruction.groups & ALL_JUMP_GROUPS):
             return None
 
         if len(instruction.operands) > 0:

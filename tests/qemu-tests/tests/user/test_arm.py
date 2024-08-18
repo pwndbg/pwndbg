@@ -103,7 +103,7 @@ end:
 """
 
 
-def test_interworking_branch(qemu_assembly_run):
+def test_arm_interworking_branch(qemu_assembly_run):
     """
     This test checks that we properly recognize a transition from Arm to Thumb mode.
     This requires Capstone to be synced with Unicorn, and for Unicorn to properly execute Thumb instructions.
@@ -120,8 +120,8 @@ def test_interworking_branch(qemu_assembly_run):
     dis = gdb.execute("emulate 3", to_string=True)
 
     expected = (
-        " ► 0x10000000 <_start>       add    r0, pc, #1              R0 => 0x10000009 (_start+9) (0x10000008 + 0x1)\n"
-        "   0x10000004 <_start+4>     bx     r0\n"
+        " ► 0x10000000 <_start>       add    r0, pc, #1     R0 => 0x10000009 (_start+9) (0x10000008 + 0x1)\n"
+        "   0x10000004 <_start+4>     bx     r0                          <_start+8>\n"
         "    ↓\n"
         "   0x10000008 <_start+8>     mov.w  r2, #4                  R2 => 4\n"
         "   0x1000000c <_start+12>    add    r2, r0                  R2 => 0x1000000d (_start+13) (0x4 + 0x10000009)\n"
@@ -139,8 +139,8 @@ def test_interworking_branch(qemu_assembly_run):
     dis = gdb.execute("emulate 3", to_string=True)
 
     expected = (
-        "   0x10000000 <_start>       add    r0, pc, #1              R0 => 0x10000009 (_start+9) (0x10000008 + 0x1)\n"
-        "   0x10000004 <_start+4>     bx     r0\n"
+        "   0x10000000 <_start>       add    r0, pc, #1     R0 => 0x10000009 (_start+9) (0x10000008 + 0x1)\n"
+        "   0x10000004 <_start+4>     bx     r0                          <_start+8>\n"
         "    ↓\n"
         " ► 0x10000008 <_start+8>     mov.w  r2, #4                  R2 => 4\n"
         "   0x1000000c <_start+12>    add    r2, r0                  R2 => 0x1000000d (_start+13) (0x4 + 0x10000009)\n"
@@ -242,7 +242,7 @@ def test_arm_implicit_branch_next_instruction(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
         " ► 0x10000000 <_start>        ldr    r1, [pc, #0x24]     R1, [_target+36] => 0x10000008 (_target) ◂— 0x103eb02\n"
-        "   0x10000004 <_start+4>      add    pc, r1, #1          PC => 0x1000000c (_target+4) (0x10000008 + 0x1)\n"
+        "   0x10000004 <_start+4>      add    pc, r1, #1                  <_target>\n"
         "    ↓\n"
         "   0x10000008 <_target>       add.w  r1, r2, r3          R1 => 0 (0 + 0)\n"
         "   0x1000000c <_target+4>     add.w  r1, r2, r3          R1 => 0 (0 + 0)\n"

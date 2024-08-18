@@ -33,6 +33,8 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     This test makes sures that the output of functions are correct in AArch64, and tests
     and case with AArch64 branches. BL and B instructions can be made conditional, and need
     manual handling to determine if they are not make conditional if there is no condition code.
+
+    If the `b` instruction doesn't have a down arrow in the next line (the split), it means the detection to consider it an unconditional branch is broken.
     """
     qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
 
@@ -50,23 +52,23 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
-        " ► 0x10000000 <_start>         bl     #my_function                <my_function>\n"
+        " ► 0x10000000 <_start>      bl     #my_function                <my_function>\n"
         "        x0:        0\n"
         "        x1:        0\n"
         "        x2:        0\n"
         "        x3:        0\n"
         " \n"
-        "   0x10000004 <_start+4>       b      #end                        <end>\n"
-        " \n"
-        "   0x10000008 <my_function>    ret    \n"
-        "   0x1000000c <end>            mov    x0, #0        X0 => 0\n"
-        "   0x10000010 <end+4>          mov    x8, #0x5d     X8 => 0x5d\n"
-        "   0x10000014 <end+8>          svc    #0\n"
-        "   0x10000018                  udf    #0\n"
-        "   0x1000001c                  udf    #0\n"
-        "   0x10000020                  udf    #0\n"
-        "   0x10000024                  udf    #0\n"
-        "   0x10000028                  udf    #0\n"
+        "   0x10000004 <_start+4>    b      #end                        <end>\n"
+        "    ↓\n"
+        "   0x1000000c <end>         mov    x0, #0        X0 => 0\n"
+        "   0x10000010 <end+4>       mov    x8, #0x5d     X8 => 0x5d\n"
+        "   0x10000014 <end+8>       svc    #0\n"
+        "   0x10000018               udf    #0\n"
+        "   0x1000001c               udf    #0\n"
+        "   0x10000020               udf    #0\n"
+        "   0x10000024               udf    #0\n"
+        "   0x10000028               udf    #0\n"
+        "   0x1000002c               udf    #0\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

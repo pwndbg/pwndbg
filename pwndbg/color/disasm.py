@@ -30,7 +30,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
         asm = C.highlight(asm)
 
-    is_call_or_jump = ins.groups_set & ALL_JUMP_GROUPS
+    is_call_or_jump = ins.groups & ALL_JUMP_GROUPS
 
     # Style the instruction mnemonic if it's a call/jump instruction.
     if is_call_or_jump:

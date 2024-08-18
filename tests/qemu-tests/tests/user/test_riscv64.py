@@ -58,6 +58,7 @@ def test_riscv64_jalr(qemu_assembly_run):
         "   0x10000018 <_start+24>    addi   t1, t1, 0x12\n"
         "   0x1000001c <_start+28>    jalr   t1\n"
         " \n"
+        "   0x10000020 <_start+32>    c.nop  \n"
         "   0x10000022 <_start+34>    c.nop  \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -194,9 +195,6 @@ def test_riscv64_jumps(qemu_assembly_run):
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    for x in dis.split("\n"):
-        print(f'"{x}\\n"')
-
     assert dis == expected
 
     # Make sure the instructions are cached correctly across jumps
@@ -225,6 +223,67 @@ def test_riscv64_jumps(qemu_assembly_run):
         "   0x10000022 <end>         c.li   a2, 0x1e           A2 => 0x1e\n"
         "   0x10000024 <end+2>       addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
         "   0x10000028 <end+6>       c.li   a0, 0              A0 => 0\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+RISCV64_JUMP_CHAIN = f"""
+j a
+
+a:
+    j b
+
+b:
+    j c
+
+c:
+    j d
+
+d:
+    j e
+
+e:
+    j end
+
+end:
+{RISCV64_GRACEFUL_EXIT}
+"""
+
+
+def test_riscv64_jump_chain(qemu_assembly_run):
+    """
+    This test checks a sneaky edge case - when a jump target goes to the next address linearly in memory.
+
+    Typically, we can determine jumps by seeing if the `next` address is NOT the address of the next instruction in memory, so this requires
+    manual handling to make sure that the target is correctly displayed.
+    """
+    qemu_assembly_run(RISCV64_JUMP_CHAIN, "riscv64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
+        " ► 0x10000000 <_start>    c.j    2                           <a>\n"
+        "    ↓\n"
+        "   0x10000002 <a>         c.j    2                           <b>\n"
+        "    ↓\n"
+        "   0x10000004 <b>         c.j    2                           <c>\n"
+        "    ↓\n"
+        "   0x10000006 <c>         c.j    2                           <d>\n"
+        "    ↓\n"
+        "   0x10000008 <d>         c.j    2                           <e>\n"
+        "    ↓\n"
+        "   0x1000000a <e>         c.j    2                           <end>\n"
+        "    ↓\n"
+        "   0x1000000c <end>       c.li   a2, 0x1e           A2 => 0x1e\n"
+        "   0x1000000e <end+2>     addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
+        "   0x10000012 <end+6>     c.li   a0, 0              A0 => 0\n"
+        "   0x10000014 <end+8>     ecall   <SYS_exit>\n"
+        "   0x10000018             c.addiw s6, -0x10\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
