@@ -309,10 +309,18 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
         # Determine the target address of the indirect jump
         if instruction.id == RISCV_INS_JALR:
-            if (target := instruction.op_find(CS_OP_REG, 2).before_value) is None:
+            # jalr can be represented as:
+            # 1. jalr r1, rd, offset
+            # 2. jalr rd
+            # 3. jalr rd, offset
+            # If source is omitted, ra is implied as link register
+            # To find target, get the LAST
+            reg_op_count = instruction.op_count(CS_OP_REG)
+            if (target := instruction.op_find(CS_OP_REG, reg_op_count).before_value) is None:
                 return None
 
-            target += instruction.op_find(CS_OP_IMM, 1).imm
+            if (imm_op := instruction.op_find(CS_OP_IMM, 1)) is not None:
+                target += imm_op.imm
             target &= ptrmask
             # Clear the lowest bit without knowing the register width
             return target ^ (target & 1)

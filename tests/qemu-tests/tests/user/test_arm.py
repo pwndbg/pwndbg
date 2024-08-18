@@ -35,7 +35,7 @@ end:
 
 def test_arm_simple_branch(qemu_assembly_run):
     """
-    Simple test to ensure branches are being followed correctly
+    Simple test to ensure branches are being followed correctly and that they are remembered when stepping past them
     """
     qemu_assembly_run(ARM_BRANCHES, "arm")
 
@@ -61,6 +61,32 @@ def test_arm_simple_branch(qemu_assembly_run):
         "   0x10000040 <end+4>          mov    r7, #0xf8     R7 => 0xf8\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
+    assert dis == expected
+
+    gdb.execute("si 8")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        "   0x1000000c <_start+12>    ✔ bne    #not_equal                  <not_equal>\n"
+        "    ↓\n"
+        "   0x10000018 <not_equal>      mov    r3, #1       R3 => 1\n"
+        "   0x1000001c <not_equal+4>    cmp    r1, r3       0xa - 0x1     CPSR => 0x20000010 [ n z C v q j t e a i f ]\n"
+        "   0x10000020 <not_equal+8>  ✔ bgt    #greater                    <greater>\n"
+        "    ↓\n"
+        "   0x1000002c <greater>        cmp    r3, r1       0x1 - 0xa     CPSR => 0x80000010 [ N z c v q j t e a i f ]\n"
+        " ► 0x10000030 <greater+4>    ✔ bls    #end                        <end>\n"
+        "    ↓\n"
+        "   0x1000003c <end>            mov    r0, #0                  R0 => 0\n"
+        "   0x10000040 <end+4>          mov    r7, #0xf8               R7 => 0xf8\n"
+        "   0x10000044 <end+8>          svc    #0 <SYS_exit_group>\n"
+        "   0x10000048                  andeq  r1, r0, r1, asr #24\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
     assert dis == expected
 
 
@@ -233,16 +259,69 @@ def test_arm_implicit_branch_next_instruction(qemu_assembly_run):
     assert dis == expected
 
 
+ARM_LDR_TO_PC = f"""
+
+ldr    pc, =end
+nop
+
+end:
+{ARM_GRACEFUL_EXIT}
+"""
+
+
 def test_arm_implicit_branch_ldr(qemu_assembly_run):
     """
-    Like the previous test, this checks
-
-    Before and after.
+    Like the previous test, but using the LDR instruction to load a value into the PC.
 
     These are very common as PLT trampolines:
         ldr    pc, [ip, #0xbf4]!           <printf>
     """
-    pass
+    qemu_assembly_run(ARM_LDR_TO_PC, "arm")
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x10000000 <_start>    ldr    pc, [pc, #0xc]              <end>\n"
+        "    ↓\n"
+        "   0x10000008 <end>       mov    r0, #0                  R0 => 0\n"
+        "   0x1000000c <end+4>     mov    r7, #0xf8               R7 => 0xf8\n"
+        "   0x10000010 <end+8>     svc    #0 <SYS_exit_group>\n"
+        "   0x10000014 <end+12>    andne  r0, r0, r8\n"
+        "   0x10000018             andeq  r1, r0, r1, asr #24\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+    gdb.execute("si")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        "   0x10000000 <_start>    ldr    pc, [pc, #0xc]              <end>\n"
+        "    ↓\n"
+        " ► 0x10000008 <end>       mov    r0, #0                  R0 => 0\n"
+        "   0x1000000c <end+4>     mov    r7, #0xf8               R7 => 0xf8\n"
+        "   0x10000010 <end+8>     svc    #0 <SYS_exit_group>\n"
+        "   0x10000014 <end+12>    andne  r0, r0, r8\n"
+        "   0x10000018             andeq  r1, r0, r1, asr #24\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
 
 
 def test_arm_mode_banner(qemu_assembly_run):
