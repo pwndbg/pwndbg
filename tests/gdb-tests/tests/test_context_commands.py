@@ -3,10 +3,10 @@ from __future__ import annotations
 import re
 
 import gdb
-import pwndbg.commands.canary
 import pytest
 
 import pwndbg.commands
+import pwndbg.commands.canary
 import tests
 
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
@@ -342,7 +342,9 @@ def test_context_disasm_proper_render_on_mem_change_issue_1818(start_binary, pat
     assert "mov    ecx, 0x10" in new[9]
     assert "syscall" in new[10]
 
+
 ONE_GADGET_BINARY = tests.binaries.get("onegadget.x86-64.out")
+
 
 def test_context_disasm_fsbase_annotations(start_binary):
     """
@@ -363,7 +365,7 @@ def test_context_disasm_fsbase_annotations(start_binary):
     # In view, there should now be the fs/gs memory reference
     output = gdb.execute("context disasm", to_string=True).split("\n")
 
-    pattern = re.compile(r'\b(mov|sub)\s+\w+,\s+(qword|dword)\s+ptr\s+(gs|fs):\[0x[0-9a-f]+\]')
+    pattern = re.compile(r"\b(mov|sub)\s+\w+,\s+(qword|dword)\s+ptr\s+(gs|fs):\[0x[0-9a-f]+\]")
     found = False
     for line in output:
         if pattern.search(line):
@@ -371,6 +373,7 @@ def test_context_disasm_fsbase_annotations(start_binary):
             break
 
     assert found
+
 
 LONG_FUNCTION_X64_BINARY = tests.binaries.get("long_function_x64.out")
 
@@ -393,7 +396,6 @@ def test_context_disasm_call_instruction_split(start_binary):
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
-
 
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
