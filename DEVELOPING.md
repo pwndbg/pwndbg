@@ -23,8 +23,9 @@
 
 After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-dev.sh` to install the necessary development dependencies.
 
-If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this, run the following command:
+If you would like to use Docker, you can create a Docker image with everything already installed for you. To build and run the container, run the following commands:
 ```bash
+docker build -t pwndbg . 
 docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 ```
 
@@ -44,18 +45,37 @@ When testing changes run `nix build .#pwndbg-dev` and use the copy of the files 
 
 It's highly recommended you write a new test or update an existing test whenever adding new functionality to `pwndbg`.
 
-Tests are located in [`tests/gdb-tests`](tests/gdb-tests). `tests/unit-tests` also exists, but the unit testing framework is not complete and so it should not be used.
+We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and Linux kernel tests, which are all located in subdirectories of [`tests`](tests).
 
-To run the tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
+`gdb-tests` refers to our x86 tests, which are located [`tests/gdb-tests`](tests/gdb-tests/).
 
-Our tests are written using [`pytest`](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions. These fixtures are defined in [`tests/conftest.py`](tests/conftest.py).
+To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
 
-We can take a look at [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py) for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
+Some of the tests rely on output that depends on a certain width/height of the terminal, so you will likely see many test failures when simply running `./tests.sh`. To run the tests in the expected environment, you can use:
+
+```sh
+docker compose run --build -T ubuntu24.04 ./tests.sh
+# The `-T` disables the use of a pseudo-TTY
+```
+
+If you want rapidly iterate on tests (waiting for the container to rebuild and all the test source code files to compile can take a while), you can pipe `cat` on both ends to disable the PTY and get the correct terminal width/height for the tests.
+
+```sh
+cat | ./tests.sh | cat
+```
+
+To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
+
+## Writing Tests
+Each test is a Python function that runs inside of an isolated GDB session. Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test, GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py). Each test runs some commands and uses Python `assert` statements to verify correctness. We can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+
+We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](tests/gdb-tests/tests/test_symbol.py) for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
 ```python
 import gdb
+import pwndbg
 import tests
 
-BINARY = tests.binaries.get("reference-binary.out")
+BINARY = tests.binaries.get("symbol_1600_and_752.out")
 ```
 
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/binaries`](tests/gdb-tests/tests/binaries). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
@@ -72,7 +92,11 @@ def test_hexdump(start_binary):
 
 `pytest` will run any function that starts with `test_` as a new test, so there is no need to register your new test anywhere. The `start_binary` argument is a function that will run the binary you give it, and it will set some common options before starting the binary. Using `start_binary` is recommended if you don't need any additional customization to GDB settings before starting the binary, but if you do it's fine to not use it.
 
-Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+## QEMU Tests
+Our `gdb-tests` run in x86. To debug other architectures, we use QEMU for emulation, and attach to its debug port. These tests are located in [`tests/qemu-tests/tests/user`](tests/qemu-tests/tests/user). Test creation is identical to our x86 tests - create a Python function with a Pytest fixture name as the parameter (it matches based on the name), and call the argument to start debugging a binary. The `qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create an external file or edit a Makefile.
+
+## Kernel Tests
+We use `qemu-system` for full system level emulation for our Linux kernel tests. These are located in [`tests/qemu-tests/tests/system`](tests/qemu-tests/tests/system). The tests will run for a variety kernel configurations and architectures.
 
 ### Testing Under Nix
 
@@ -289,5 +313,96 @@ We might think "why not just check if it's the next address - 0x555555556279 in 
 
 - We don't emulate through CALL instructions. This is because the function might be very long.
 - We resolve symbols during the enhancement stage for operand values.
-- The folder `pwndbg/disasm` contains the code for enhancement. It follows an object-oriented model, with `arch.py` implementing the parent class with shared functionality, and the per-architecture implementations are implemented as subclasses in their own files.
+- The folder [`pwndbg/gdblib/disasm`](pwndbg/gdblib/disasm) contains the code for enhancement. It follows an object-oriented model, with `arch.py` implementing the parent class with shared functionality, and the per-architecture implementations are implemented as subclasses in their own files.
 - `pwndbg/gdblib/nearpc.py` is responsible for getting the list of enhanced PwndbgInstruction objects and converting them to the output seen in the 'disasm' view of the dashboard.
+
+## Adding or fixing annotations
+We annotate on an instruction-by-instruction basis. Effectively, imagine a giant `switch` statement that selects the correct handler to create an annotation based on the specific instruction. Many instruction types can be grouped and annotated using the same logic, such as `load`, `store`, and `arithmetic` instructions. 
+
+See [`pwndbg/gdblib/disasm/aarch64.py`](pwndbg/gdblib/disasm/aarch64.py) as an example. We define sets that group instructions using the unique Capstone ID for each instruction, and inside the constructor of `DisassemblyAssistant` we have a mapping of instructions to a specific handler. The `_set_annotation_string` function will match the instruction to the correct handler, which set the `instruction.annotation` field.
+
+If there is a bug in an annotation, the first order of business is finding its annotation handler. To track down where we are handling the instruction, you can search for its Capstone constant. For example, the RISC-V store byte instruction, `sb`, is represented as the Capstone constant `RISCV_INS_SB`. Or, if you are looking for the handler for the AArch64 instruction SUB, you can search the disasm code for `_INS_SUB` to find where we reference the appropriate Capstone constant for the instruction and following the code to the function that ultimately sets the annotation.
+
+If an annotation is causing a crash, is it most likely due to a handler making an incorrect assumption on the number of operands, leading to a `list index out of range` error. One possible source of this is that a given instruction has multiple different disassembly representations. Take the RISC-V `JALR` instruction. It can be represented in 3 ways:
+
+```
+jalr rs1        # return register is implied as ra, and imm is implied as 0
+jalr rs1, imm   # return register is implied as ra
+jalr rd, rs1, imm
+```
+
+Capstone will expose the most "simplified" one possible, and the underlying list of register operands will change. If the handler doesn't take these different options into account, and rather assumes that `jalr` always has 3 operands, then an index error can occur if the handler accesses `instruction.operands[2]`.
+
+## Bug root cause
+
+When encountering an instruction that is behaving strangely (incorrect annotation, or there is a jump target when one shouldn't exist, or the target is incorrect), there are a couple routine things to check.
+
+1. Use the `dev_dump_instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
+
+If the issue is not related to branches, check the operands and the resolved values for registers and memory accesses. Verify that the values are correct - are the resolved memory locations correct? Step past the instruction and use instructions like `telescope` and `regs` to read memory and verify if the claim that the annotation is making is correct. For things like memory operands, you can try to look around the resolved memory location in memory to see the actual value that the instruction dereferenced, and see if the resolved memory location is simply off by a couple bytes.
+
+Example output of dumping a `mov` instruction:
+```
+mov qword ptr [rsp], rsi at 0x55555555706c (size=4) (arch: x86)
+        ID: 460, mov
+        Raw asm: mov    qword ptr [rsp], rsi
+        New asm: mov    qword ptr [rsp], rsi
+        Next: 0x555555557070
+        Target: 0x555555557070, Target string=, const=None
+        Condition: UNDETERMINED
+        Groups: []
+        Annotation: [0x7fffffffe000] => 0x7fffffffe248 —▸ 0x7fffffffe618 ◂— '/usr/bin/ls'
+        Operands: [['[0x7fffffffe000]': Symbol: None, Before: 0x7fffffffe000, After: 0x7fffffffe000, type=CS_OP_MEM, size=8, access=CS_AC_WRITE]] ['RSI': Symbol: None, Before: 0x7fffffffe248, After: 0x7fffffffe248, type=CS_OP_REG, size=8, access=CS_AC_READ]]]
+        Conditional jump: False. Taken: False
+        Unconditional jump: False
+        Declare unconditional: None
+        Can change PC: False
+        Syscall:  N/A
+        Causes Delay slot: False
+        Split: NO_SPLIT
+        Call-like: False
+```
+
+2. Use the Capstone disassembler to verify the number of operands the instruction groups.
+
+Taken the raw instruction bytes and pass them to `cstool` to see the information that we are working with:
+
+```sh
+cstool -d mips 0x0400000c
+```
+
+The number of operands may not match the visual appearance. You might also check the instruction groups, and verify that an instruction that we might consider a `call` has the Capstone `call` group. Capstone is not 100% correct in every single case in all architectures, so it's good to verify. Report a bug to Capstone if there appears to be an error, and in the meanwhile we can create a fix in Pwndbg to work around the current behavior.
+
+3. Check the state of the emulator.
+
+Go to [pwndbg/emu/emulator.py](pwndbg/emu/emulator.py) and uncomment the `DEBUG = -1` line. This will enable verbose debug printing. The emulator will print it's current `pc` at every step, and indicate important events, like memory mappings. Likewise, in [pwndbg/gdblib/disasm/arch.py](pwndbg/gdblib/disasm/arch.py) you can set `DEBUG_ENHANCEMENT = True` to print register accesses to verify they are sane values.
+
+Potential bugs:
+- A register is 0 (may also be the source of a Unicorn segfault if used as a memory operand) - often means we are not copying the host processes register into the emulator. By default, we map register by name - if in pwndbg, it's called `rax`, then we find the UC constant named `U.x86_const.UC_X86_REG_RAX`. Sometimes, this default mapping doesn't work, sometimes do to differences in underscores (`FSBASE` vs `FS_BASE`). In these cases, we have to manually add the mapping.
+- Unexpected crash - the instruction at hand might require a 'coprocessor', or some information that is unavailable to Unicorn (it's QEMU under the hood).
+- Instructions are just no executing - we've seen this in the case of Arm Thumb instructions. There might be some specific API/way to invoke the emulator that is required for a certain processor state.
+
+## Creating small cross-architecture programs
+
+If you are encountering a strange behavior with a certain instruction or scenario in a non-native-architecture program, you can use some great functions from `pwntools` to handle the compilation and debugging. This is a great way to create a small reproducible example to isolate an issue.
+
+The following Python program, when run from inside a `tmux` session, will take some AArch64 assembly, compile it, and run it with GDB attached in a new `tmux` pane. It will search your system for the appropriate cross compiler for the architecture at hand, and run the compiled binary with QEMU.
+
+```python
+from pwn import *
+
+context.arch = "aarch64"
+
+AARCH64_GRACEFUL_EXIT = """
+mov x0, 0
+mov x8, 93
+svc 0
+"""
+
+out = make_elf_from_assembly(STORE)
+# Debug info
+print(out)
+gdb.debug(out)
+
+pause()
+```

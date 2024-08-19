@@ -1390,7 +1390,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         corrupt_chain_bk = full_chain_bk[: (corrupt_chain_size + 1)]
 
         is_chain_corrupted = False
-        if corrupt_chain_size > 0:
+        if corrupt_chain_size > 1:
             is_chain_corrupted = self.check_chain_corrupted(corrupt_chain_fd, corrupt_chain_bk)
 
         return (chain_fd, chain_bk, is_chain_corrupted)
