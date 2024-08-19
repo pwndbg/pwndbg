@@ -45,14 +45,16 @@ When testing changes run `nix build .#pwndbg-dev` and use the copy of the files 
 
 It's highly recommended you write a new test or update an existing test whenever adding new functionality to `pwndbg`.
 
-Tests are located in [`tests/gdb-tests`](tests/gdb-tests). `tests/unit-tests` also exists, but the unit testing framework is not complete and so it should not be used.
+We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and linux kernel tests, which are all located in subdirectories of [`tests`](tests).
 
-To run the tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
+`gdb-tests` refers to our x86 tests, which are located [`tests/gdb-tests`](tests/gdb-tests/).
+
+To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
 
 Some of the tests rely on output that depends on a certain width/height of the terminal, so you will likely see many test failures when simply running `./tests.sh`. To run the tests in the expected environment, you can use:
 
 ```sh
-docker compose run --build -T ubuntu24.04 ./qemu-tests.sh
+docker compose run --build -T ubuntu24.04 ./tests.sh
 # The `-T` disables the use of a pseudo-TTY
 ```
 
@@ -61,6 +63,8 @@ If you want rapidly iterate on tests (waiting for the container to rebuild and a
 ```sh
 cat | ./tests.sh | cat
 ```
+
+To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
 
 ## Writing Tests
 Each test is a Python function that runs inside of an isolated GDB session. Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test, GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py). Each test runs some commands and uses Python `assert` statements to verify correctness. We can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
