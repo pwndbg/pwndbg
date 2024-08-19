@@ -378,9 +378,9 @@ Potential bugs:
 - Unexpected crash - the instruction at hand might require a 'coprocessor', or some information that is unavailable to Unicorn (it's QEMU under the hood).
 - Instructions are just no executing - we've seen this in the case of Arm Thumb instructions. There might be some specific API/way to invoke the emulator that is required for a certain processor state.
 
-## Creating a reproducible test
+## Creating small cross-architecture programs
 
-If you are encountering a behavior and want to create a test for it, you can use some great functions from `pwntools` to handle the compilation and debugging.
+If you are encountering a strange behavior with a certain instruction or scenario in a non-native-architecture program, you can use some great functions from `pwntools` to handle the compilation and debugging. This is a great way to create a small reproducible example to isolate an issue.
 
 The following Python program, when run from inside a `tmux` session, will take some AArch64 assembly, compile it, and run it with GDB attached in a new `tmux` pane. It will search your system for the appropriate cross compiler for the architecture at hand, and run the compiled binary with QEMU.
 
