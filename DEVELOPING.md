@@ -58,7 +58,7 @@ docker compose run --build -T ubuntu24.04 ./tests.sh
 # The `-T` disables the use of a pseudo-TTY
 ```
 
-If you want rapidly iterate on tests (waiting for the container to rebuild and all the test source code files to compile can take a while), you can pipe `cat` on both ends to disable the PTY.
+If you want rapidly iterate on tests (waiting for the container to rebuild and all the test source code files to compile can take a while), you can pipe `cat` on both ends to disable the PTY and get the correct terminal width/height for the tests.
 
 ```sh
 cat | ./tests.sh | cat
