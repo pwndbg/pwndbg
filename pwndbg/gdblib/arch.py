@@ -97,7 +97,7 @@ def _get_arch(ptrsize: int):
         if match in arch:
             # Distinguish between Cortex-M and other ARM
             # GDB will sometimes fail to correctly label Cortex-M binaries properly, and says it's simply 'arm'.
-            # Internally, GDB still detects the processes as Cortex-M, as it can access .xpsr, but it doesn't 
+            # Internally, GDB still detects the processes as Cortex-M, as it can access .xpsr, but it doesn't
             # appear to expose this in information through any command/API. Since Cortex-M has the .xpsr flags register
             # instead of .cpsr, we will check if it's present.
             # See: https://github.com/pwndbg/pwndbg/issues/2153
