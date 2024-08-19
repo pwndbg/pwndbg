@@ -45,7 +45,7 @@ When testing changes run `nix build .#pwndbg-dev` and use the copy of the files 
 
 It's highly recommended you write a new test or update an existing test whenever adding new functionality to `pwndbg`.
 
-We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and linux kernel tests, which are all located in subdirectories of [`tests`](tests).
+We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and Linux kernel tests, which are all located in subdirectories of [`tests`](tests).
 
 `gdb-tests` refers to our x86 tests, which are located [`tests/gdb-tests`](tests/gdb-tests/).
 
