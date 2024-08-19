@@ -49,13 +49,17 @@ global_max_fast = add_heap_param("global-max-fast", "0", "the address of global_
 symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
 
 heap_chain_limit = add_heap_param(
-    "heap-dereference-limit", 8, "number of chunks to dereference in each bin"
+    "heap-dereference-limit",
+    8,
+    "number of chunks to dereference in each bin",
+    param_class=pwndbg.lib.config.PARAM_UINTEGER,
 )
 
 heap_corruption_check_limit = add_heap_param(
     "heap-corruption-check-limit",
     64,
     "amount of chunks to traverse (forwards and backwards) for the bin corruption check",
+    param_class=pwndbg.lib.config.PARAM_UINTEGER,
 )
 
 resolve_heap_via_heuristic = add_heap_param(
