@@ -13,13 +13,14 @@ import string
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm
+import pwndbg.aglib.memory
+import pwndbg.aglib.strings
+import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.strings
-import pwndbg.gdblib.typeinfo
 import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg import color
@@ -47,7 +48,7 @@ def int_str(value: int) -> str:
     retval = format_small_int(value)
 
     # Try to unpack the value as a string
-    packed = pwndbg.gdblib.arch.pack(int(value))
+    packed = pwndbg.aglib.arch.pack(int(value))
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
             retval = "{} ({!r})".format(retval, str(packed.decode("ascii", "ignore")))
@@ -81,12 +82,12 @@ def enhance(
     """
     value = int(value)
 
-    page = pwndbg.gdblib.vmmap.find(value)
+    page = pwndbg.aglib.vmmap.find(value)
 
     # If it's not in a page we know about, try to dereference
     # it anyway just to test.
     can_read = True
-    if not attempt_dereference or not page or None is pwndbg.gdblib.memory.peek(value):
+    if not attempt_dereference or not page or None is pwndbg.aglib.memory.peek(value):
         can_read = False
 
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
@@ -112,29 +113,29 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        pwndbg_instr = pwndbg.gdblib.disasm.one(value, enhance=False)
+        pwndbg_instr = pwndbg.aglib.disasm.one(value, enhance=False)
         if pwndbg_instr:
             instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
             if pwndbg.config.syntax_highlight:
                 instr = syntax_highlight(instr)
 
-    szval = pwndbg.gdblib.strings.get(value, maxlen=enhance_string_len) or None
+    szval = pwndbg.aglib.strings.get(value, maxlen=enhance_string_len) or None
     szval0 = szval
     if szval:
         szval = E.string(repr(szval))
 
     # Fix for case when we can't read the end address anyway (#946)
-    if value + pwndbg.gdblib.arch.ptrsize > page.end:
+    if value + pwndbg.aglib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.pvoid, value))
+    intval = int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.pvoid, value))
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
     if 0 <= intval < 10:
         intval = E.integer(str(intval))
     else:
-        intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
+        intval = E.integer("%#x" % int(intval & pwndbg.aglib.arch.ptrmask))
 
     retval = []
 
@@ -162,7 +163,7 @@ def enhance(
 
     # Otherwise strings have preference
     elif szval:
-        if len(szval0) < pwndbg.gdblib.arch.ptrsize:
+        if len(szval0) < pwndbg.aglib.arch.ptrsize:
             retval = [intval, szval]
         else:
             retval = [szval]
@@ -170,7 +171,7 @@ def enhance(
     # And then integer
     else:
         # It might be a pointer or just a plain integer
-        new_page = pwndbg.gdblib.vmmap.find(intval0)
+        new_page = pwndbg.aglib.vmmap.find(intval0)
         if new_page:
             return pwndbg.color.memory.get_address_and_symbol(intval0)
         else:

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 from typing_extensions import override
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import EnhancedOperand
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+
+# Emulator currently requires GDB, and we only use it here for type checking.
+if TYPE_CHECKING:
+    from pwndbg.emu.emulator import Emulator
 
 RISCV_LOAD_INSTRUCTIONS = {
     # Sign-extend loads
@@ -114,7 +118,7 @@ RISCV_EMULATED_ANNOTATIONS = {
 }
 
 
-class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
@@ -141,7 +145,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[1].before_value,
                 abs(read_size),
                 read_size < 0,
-                pwndbg.gdblib.arch.ptrsize,
+                pwndbg.aglib.arch.ptrsize,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
@@ -161,7 +165,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                     address,
                     abs(read_size),
                     read_size < 0,
-                    pwndbg.gdblib.arch.ptrsize,
+                    pwndbg.aglib.arch.ptrsize,
                     instruction.operands[0].str,
                     dest_str,
                 )
@@ -258,8 +262,8 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if src1_unsigned is None or src2_unsigned is None:
             return InstructionCondition.UNDETERMINED
 
-        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
-        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.gdblib.arch.ptrsize * 8)
+        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrsize * 8)
+        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrsize * 8)
 
         condition = {
             RISCV_INS_BEQ: src1_signed == src2_signed,
@@ -297,7 +301,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """
-        ptrmask = pwndbg.gdblib.arch.ptrmask
+        ptrmask = pwndbg.aglib.arch.ptrmask
         # JAL is unconditional and independent of current register status
         if instruction.id in (RISCV_INS_JAL, RISCV_INS_C_JAL, RISCV_INS_C_J):
             # But that doesn't apply to ARM anyways :)

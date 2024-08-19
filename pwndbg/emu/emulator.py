@@ -17,12 +17,12 @@ import gdb
 import unicorn as U
 import unicorn.riscv_const
 
+import pwndbg.aglib.disasm
 import pwndbg.chain
 import pwndbg.color.enhance as E
 import pwndbg.color.memory as M
 import pwndbg.enhance
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
@@ -417,7 +417,7 @@ class Emulator:
             rwx = exe = False
 
         if exe:
-            pwndbg_instr = pwndbg.gdblib.disasm.one_raw(value)
+            pwndbg_instr = pwndbg.aglib.disasm.one_raw(value)
             if pwndbg_instr:
                 instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
                 if pwndbg.config.syntax_highlight:
@@ -776,7 +776,7 @@ class Emulator:
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
 
-        while target and not pwndbg.gdblib.disasm.one_raw(addr).call_like:
+        while target and not pwndbg.aglib.disasm.one_raw(addr).call_like:
             addr, target = self.until_jump(target)
 
         return addr, target
@@ -814,7 +814,7 @@ class Emulator:
 
         pc = pc or self.pc
 
-        insn = pwndbg.gdblib.disasm.one_raw(pc)
+        insn = pwndbg.aglib.disasm.one_raw(pc)
 
         # If we don't know how to disassemble, bail.
         if insn is None:

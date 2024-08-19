@@ -3,17 +3,14 @@ from __future__ import annotations
 from typing import Any
 from typing import Sequence
 
-import gdb
-
 import pwndbg
-import pwndbg.gdblib.heap.heap
-import pwndbg.gdblib.proc
-import pwndbg.gdblib.symbol
+import pwndbg.aglib.heap.heap
+import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 
-current: pwndbg.gdblib.heap.heap.MemoryAllocator | None = None
+current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
 
 
 def add_heap_param(
@@ -106,12 +103,12 @@ def reset() -> None:
 
 @pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
-    import pwndbg.gdblib.heap.ptmalloc
+    import pwndbg.aglib.heap.ptmalloc
 
     global current
     if resolve_heap_via_heuristic == "force":
-        current = pwndbg.gdblib.heap.ptmalloc.HeuristicHeap()
-        if not is_first_run and pwndbg.gdblib.proc.alive and current.libc_has_debug_syms():
+        current = pwndbg.aglib.heap.ptmalloc.HeuristicHeap()
+        if not is_first_run and pwndbg.aglib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
                     "You are going to resolve the heap via heuristic even though you have libc debug symbols."
@@ -119,4 +116,4 @@ def resolve_heap(is_first_run: bool = False) -> None:
                 )
             )
     else:
-        current = pwndbg.gdblib.heap.ptmalloc.DebugSymsHeap()
+        current = pwndbg.aglib.heap.ptmalloc.DebugSymsHeap()

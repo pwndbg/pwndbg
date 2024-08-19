@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from typing import List
 
+import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color.context as C
+from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import on
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
 
 c = ColorConfig(
     "disasm",
@@ -27,7 +28,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     asm = ins.asm_string
 
     # Highlight the current line if enabled
-    if pwndbg.config.highlight_pc and ins.address == pwndbg.gdblib.regs.pc:
+    if pwndbg.config.highlight_pc and ins.address == pwndbg.aglib.regs.pc:
         asm = C.highlight(asm)
 
     is_call_or_jump = ins.groups_set & ALL_JUMP_GROUPS

@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Generator
 
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 
 
 def find_fastbin_size(mem: bytes, max_size: int, step: int) -> Generator[int, None, None]:
-    psize = pwndbg.gdblib.arch.ptrsize
+    psize = pwndbg.aglib.arch.ptrsize
     min_fast = 4 * psize
 
     for i in range(0, len(mem), step):
         candidate = mem[i : i + psize]
         if len(candidate) == psize:
-            value = pwndbg.gdblib.arch.unpack(candidate)
+            value = pwndbg.aglib.arch.unpack(candidate)
 
             # Clear any flags
             value &= ~0xF

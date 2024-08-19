@@ -637,6 +637,41 @@ doc = ["sphinx (==4.3.2)", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphi
 test = ["coverage[toml]", "ddt (>=1.1.1,!=1.4.3)", "mock", "mypy", "pre-commit", "pytest (>=7.3.1)", "pytest-cov", "pytest-instafail", "pytest-mock", "pytest-sugar", "typing-extensions"]
 
 [[package]]
+name = "gnureadline"
+version = "8.2.10"
+description = "The standard Python readline extension statically linked against the GNU readline library."
+optional = false
+python-versions = "*"
+files = [
+    {file = "gnureadline-8.2.10-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:35687413adeef1dc8dfca95407f272360f241f716c837ef5291f2cb5d8fa9474"},
+    {file = "gnureadline-8.2.10-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:52d983cf1770102326cfd036e0d785834e2a73822891c4295c2e910d76113c36"},
+    {file = "gnureadline-8.2.10-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:00a2b753a0a98524665b383a338a3da9ec918c3268295affd806a187cc27d7ab"},
+    {file = "gnureadline-8.2.10-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fd85960804d0d2cdf73f25263928feed5f0b113c55e23c179ad1f1c75b48d6c5"},
+    {file = "gnureadline-8.2.10-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:423e502ddeb71a2025dc6a8cd9e1826be30ddb2f3d0a55a4c38eda035eafbc19"},
+    {file = "gnureadline-8.2.10-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7a8da474f9d6b01c91a492227815238596cd352e0824dcc406b220619c5ab129"},
+    {file = "gnureadline-8.2.10-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:38ebc621f86db71ccab496a9bb15bc7fb2a46cdd5f930a8fd5fea075c43a0be8"},
+    {file = "gnureadline-8.2.10-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b96a83b4fdcf30c10875eebd937330ed2e22980371cfed32a9038f35f5f6729d"},
+    {file = "gnureadline-8.2.10-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:33472b7d68b7ed938f0a6f61fbfcba58af85a1e36328b145b383e1dd6e90dcc8"},
+    {file = "gnureadline-8.2.10-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:20803d53d7ab3d2cdd7d2d9e3a374bcd9d60618c101287915404adf62126503f"},
+    {file = "gnureadline-8.2.10-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:774e2e566a00f89ccfd40b88e652cad563627fe69929a5c2fc656897bd66228f"},
+    {file = "gnureadline-8.2.10-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b86526de74cacf186dd2b7a9dedd0a5776ab4bced07832abdf2c1917d2b77507"},
+    {file = "gnureadline-8.2.10-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:4d58a53ab7e9ae0eaee2eab94ecb552315638171cdabbd9d5e8ba579780753a0"},
+    {file = "gnureadline-8.2.10-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d52d32927188cb4d1c3c9b24503e82ca856215c9bb978ceb264daf4672b73064"},
+    {file = "gnureadline-8.2.10-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d300f2dc0f2a810859fee17aca574c313cf576857bb64cfacab42b46b5e5b625"},
+    {file = "gnureadline-8.2.10-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:c80b9af1531f6cf2bac55407a208c3b8dd1557fc7044c6041f39ea4870ae5823"},
+    {file = "gnureadline-8.2.10-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c364bba0a3d7b6a56d87d6821162f335a500f07375f053245af7b3fcf8ee101d"},
+    {file = "gnureadline-8.2.10-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1b3d7425d2f5c69dda1a31b3a8a1929ac8b86934bf6c2f2d6316c07afaae2382"},
+    {file = "gnureadline-8.2.10-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:2f20059685bd0050794e07f6f3c6a9af1299d9a64e5129b1e8a6e40e36da8d84"},
+    {file = "gnureadline-8.2.10-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8c4cb8b23f64e7cc1bb48810964c22552fdb56936ddfd8946239b9bf45fe2654"},
+    {file = "gnureadline-8.2.10-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b1e45dcedaadcd34e3115c54b08374ea9cbb5186de0a9448025d3c79942f79ef"},
+    {file = "gnureadline-8.2.10-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:59fd4ab39d434aa311b2fc993b24c270d2b146be7e99af9b6640119482e2b23c"},
+    {file = "gnureadline-8.2.10-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:4671a617557d0ced5de8cdafb1177acbb1180f4249657f8f30a573357974936d"},
+    {file = "gnureadline-8.2.10-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0123abd20c7aff7fa64ca377c9a4021ff1fd27aa5987c1e9159a97a5bb4023ab"},
+    {file = "gnureadline-8.2.10-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:edd241f734b4ad6e19891961030821cd0f14c499b82bfef91b35827cb3eed2a6"},
+    {file = "gnureadline-8.2.10.tar.gz", hash = "sha256:a746ba98d4de37b079e42d949b704c33c168b30bd1f9071a1d25c9da9a449997"},
+]
+
+[[package]]
 name = "griffe"
 version = "0.47.0"
 description = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
@@ -2571,4 +2606,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "224f699c72638f7be118480f7833a9be4f46193fcd816cb9abd506767fb90cd3"
+content-hash = "1edf542780feb9ae6ad127155463d2e62c463119e1f5f4b4c91a362412b49bca"

@@ -19,10 +19,10 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib.dynamic
 import pwndbg.color.message as message
 import pwndbg.gdblib.arch
 import pwndbg.gdblib.bpoint
-import pwndbg.gdblib.dynamic
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.shellcode
 import pwndbg.gdblib.typeinfo
@@ -363,13 +363,13 @@ def _update_watchpoints() -> None:
     INSTALLED_WATCHPOINTS.clear()
 
     # Install new watchpoints to cover all of the jump slots in all GOTs
-    for obj in pwndbg.gdblib.dynamic.link_map():
+    for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name()
         if name == b"":
             name = pwndbg.gdblib.proc.exe
 
         try:
-            dynamic = pwndbg.gdblib.dynamic.DynamicSegment(obj.dynamic(), obj.load_bias())
+            dynamic = pwndbg.aglib.dynamic.DynamicSegment(obj.dynamic(), obj.load_bias())
         except RuntimeError as e:
             print(message.warn(f"object {name} has invalid DYNAMIC section: {e}"))
             continue
@@ -429,7 +429,7 @@ def _update_watchpoints() -> None:
 
 
 # Set the function so that it's called whenever the link map changes.
-pwndbg.gdblib.dynamic.r_debug_link_map_changed_add_listener(_update_watchpoints)
+pwndbg.aglib.dynamic.r_debug_link_map_changed_add_listener(_update_watchpoints)
 
 
 def all_tracked_entries():

@@ -74,29 +74,29 @@ disable_error_code = [
 
 [[tool.mypy.overrides]]
 module = [
-    "pwndbg.gdblib.disasm.*",
     "pwndbg.gdblib.elf",
+    "pwndbg.aglib.elf",
 ]
 disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
 module = [
+    "pwndbg.aglib.arch",
     "pwndbg.color.*",
     "pwndbg.commands.context",
     "pwndbg.commands.cymbol",
     "pwndbg.commands.hexdump",
     "pwndbg.commands.procinfo",
     "pwndbg.commands.reload",
-    "pwndbg.commands.telescope",
     "pwndbg.commands.version",
     "pwndbg.exception",
     "pwndbg.gdblib.dt",
-    "pwndbg.gdblib.dynamic",
+    "pwndbg.aglib.dynamic",
     "pwndbg.gdblib.events",
     "pwndbg.gdblib.got",
     "pwndbg.gdblib.heap_tracking",
     "pwndbg.gdblib.stack",
-    "pwndbg.gdblib.heap.*",
+    "pwndbg.aglib.heap.*",
     "pwndbg.hexdump",
     "pwndbg.ui",
     "pwndbg.wrappers.*",
@@ -105,13 +105,27 @@ disable_error_code = ["attr-defined"]
 
 [[tool.mypy.overrides]]
 module = [
+    "pwndbg.commands.telescope",
+]
+disable_error_code = ["attr-defined", "index"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.aglib.nearpc",
+    "pwndbg.aglib.typeinfo",
     "pwndbg.gdblib.nearpc",
     "pwndbg.gdblib.typeinfo",
 ]
 disable_error_code = ["name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
-module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb", "lldb.*"]
+module = [
+    "pwndbg.aglib.disasm.*",
+]
+disable_error_code = ["index", "name-defined", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb", "lldb.*", "gnureadline"]
 ignore_missing_imports = true
 
 [tool.isort]
@@ -161,6 +175,13 @@ typing-extensions = "^4.12.0"
 unicorn = "^2.0.1.post1"
 requests = "^2.32.3"
 pt = {git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb"}
+
+[tool.poetry.group.lldb]
+optional = true
+
+[tool.poetry.group.lldb.dependencies]
+# The LLDB REPL requires readline.
+gnureadline = "^8.2.10"
 
 [tool.poetry.group.dev]
 optional = true

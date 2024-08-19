@@ -14,26 +14,30 @@ from typing import Tuple
 from typing import Union
 
 import capstone
-import gdb
 from capstone import *  # noqa: F403
 
 import pwndbg
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.symbol
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.memory
 import pwndbg.lib.cache
+from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
+from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import SplitType
+from pwndbg.aglib.disasm.instruction import make_simple_instruction
 from pwndbg.color import message
 from pwndbg.dbg import EventType
-from pwndbg.gdblib.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.gdblib.disasm.instruction import ALL_JUMP_GROUPS
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.gdblib.disasm.instruction import SplitType
-from pwndbg.gdblib.disasm.instruction import make_simple_instruction
 
-try:
-    import pwndbg.emu.emulator
-except Exception:
+# Emulation hasn't been ported yet.
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
+
+    try:
+        import pwndbg.emu.emulator
+    except Exception:
+        pwndbg.emu = None
+else:
     pwndbg.emu = None
 
 CapstoneArch = {
@@ -91,9 +95,9 @@ next_addresses_cache: Set[int] = set()
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.gdblib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
+    pwndbg.aglib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
 
-    if pwndbg.gdblib.regs.pc not in next_addresses_cache:
+    if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
 
@@ -103,7 +107,7 @@ def enhance_cache_listener() -> None:
 def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
-    computed_instruction_cache.pop(pwndbg.gdblib.regs.pc, None)
+    computed_instruction_cache.pop(pwndbg.aglib.regs.pc, None)
 
     for addr in next_addresses_cache:
         computed_instruction_cache.pop(addr, None)
@@ -136,13 +140,7 @@ def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
 
     mode |= CapstoneEndian[endian]
 
-    try:
-        flavor = gdb.execute("show disassembly-flavor", to_string=True).lower().split('"')[1]
-    except gdb.error as e:
-        if str(e).find("disassembly-flavor") > -1:
-            flavor = "intel"
-        else:
-            raise
+    flavor = pwndbg.dbg.x86_disassembly_flavor()
 
     cs = Cs(arch, mode)
     try:
@@ -154,45 +152,46 @@ def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
 
 
 def get_disassembler(address):
-    if pwndbg.gdblib.arch.current == "armcm":
+    if pwndbg.aglib.arch.current == "armcm":
         thumb_mode = emulated_arm_mode_cache[address]
         if thumb_mode is None:
-            thumb_mode = pwndbg.gdblib.regs.xpsr & (1 << 24)
+            thumb_mode = pwndbg.aglib.regs.xpsr & (1 << 24)
         # novermin
         extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if thumb_mode else CS_MODE_MCLASS
 
-    elif pwndbg.gdblib.arch.current in ("arm", "aarch64"):
+    elif pwndbg.aglib.arch.current in ("arm", "aarch64"):
         thumb_mode = emulated_arm_mode_cache[address]
         if thumb_mode is None:
-            thumb_mode = pwndbg.gdblib.regs.cpsr & (1 << 5)
+            thumb_mode = pwndbg.aglib.regs.cpsr & (1 << 5)
         extra = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
 
-    elif pwndbg.gdblib.arch.current == "sparc":
-        if "v9" in gdb.newest_frame().architecture().name():
+    elif pwndbg.aglib.arch.current == "sparc":
+        if pwndbg.dbg.is_gdblib_available() and "v9" in gdb.newest_frame().architecture().name():
             extra = CS_MODE_V9
         else:
             # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
             extra = 0
 
-    elif pwndbg.gdblib.arch.current == "i8086":
+    elif pwndbg.aglib.arch.current == "i8086":
         extra = CS_MODE_16
 
     elif (
-        pwndbg.gdblib.arch.current == "mips"
+        pwndbg.aglib.arch.current == "mips"
+        and pwndbg.dbg.is_gdblib_available()
         and "isa32r6" in gdb.newest_frame().architecture().name()
     ):
         extra = CS_MODE_MIPS32R6
 
-    elif pwndbg.gdblib.arch.current == "rv32":
+    elif pwndbg.aglib.arch.current == "rv32":
         extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
-    elif pwndbg.gdblib.arch.current == "rv64":
+    elif pwndbg.aglib.arch.current == "rv64":
         extra = CS_MODE_RISCV64 | CS_MODE_RISCVC  # novermin
 
     else:
         extra = None
 
     return get_disassembler_cached(
-        pwndbg.gdblib.arch.current, pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.endian, extra
+        pwndbg.aglib.arch.current, pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian, extra
     )
 
 
@@ -212,17 +211,17 @@ def get_one_instruction(
         if cached is not None:
             return cached
 
-    if pwndbg.gdblib.arch.current not in CapstoneArch:
+    if pwndbg.aglib.arch.current not in CapstoneArch:
         return make_simple_instruction(address)
 
     md = get_disassembler(address)
-    size = VariableInstructionSizeMax.get(pwndbg.gdblib.arch.current, 4)
-    data = pwndbg.gdblib.memory.read(address, size, partial=True)
+    size = VariableInstructionSizeMax.get(pwndbg.aglib.arch.current, 4)
+    data = pwndbg.aglib.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
         pwn_ins = PwndbgInstruction(ins)
 
         if enhance:
-            pwndbg.gdblib.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
+            pwndbg.aglib.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
 
         if put_cache:
             computed_instruction_cache[address] = pwn_ins
@@ -243,9 +242,9 @@ def one(
     put_backward_cache=True,
 ) -> PwndbgInstruction | None:
     if address is None:
-        address = pwndbg.gdblib.regs.pc
+        address = pwndbg.aglib.regs.pc
 
-    if not pwndbg.gdblib.memory.peek(address):
+    if not pwndbg.aglib.memory.peek(address):
         return None
 
     # A for loop in case this returns an empty list
@@ -260,9 +259,9 @@ def one(
 # Get one instruction without enhancement
 def one_raw(address=None) -> PwndbgInstruction | None:
     if address is None:
-        address = pwndbg.gdblib.regs.pc
+        address = pwndbg.aglib.regs.pc
 
-    if not pwndbg.gdblib.memory.peek(address):
+    if not pwndbg.aglib.memory.peek(address):
         return None
 
     return get_one_instruction(address, enhance=False)
@@ -279,7 +278,7 @@ def get(
     address = int(address)
 
     # Dont disassemble if there's no memory
-    if not pwndbg.gdblib.memory.peek(address):
+    if not pwndbg.aglib.memory.peek(address):
         return []
 
     retval: List[PwndbgInstruction] = []
@@ -333,14 +332,14 @@ first_time_emulate = True
 
 
 def no_emulate_one():
-    result = near(pwndbg.gdblib.regs.pc, emulate=False, show_prev_insns=False)
+    result = near(pwndgb.aglib.regs.pc, emulate=False, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
 
 
 def emulate_one():
-    result = near(pwndbg.gdblib.regs.pc, emulate=True, show_prev_insns=False)
+    result = near(pwndgb.aglib.regs.pc, emulate=True, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
@@ -353,7 +352,7 @@ def one_with_config():
     Emulation determined by the `pwndbg.config.emulate` setting.
     """
     result = near(
-        pwndbg.gdblib.regs.pc,
+        pwndgb.aglib.regs.pc,
         emulate=bool(not pwndbg.config.emulate == "off"),
         show_prev_insns=False,
     )
@@ -373,10 +372,10 @@ def near(
     (this is mostly used by context's disasm display, so user see what was previously)
     """
 
-    pc = pwndbg.gdblib.regs.pc
+    pc = pwndbg.aglib.regs.pc
 
     # Some architecture aren't emulated yet
-    if not pwndbg.emu or pwndbg.gdblib.arch.current not in pwndbg.emu.emulator.arch_to_UC:
+    if not pwndbg.emu or pwndbg.aglib.arch.current not in pwndbg.emu.emulator.arch_to_UC:
         emulate = False
 
     emu: pwndbg.emu.emulator.Emulator = None

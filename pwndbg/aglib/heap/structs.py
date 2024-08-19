@@ -7,13 +7,11 @@ from typing import List
 from typing import Tuple
 from typing import Type
 
-import gdb
-
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.glibc
-from pwndbg.gdblib.ctypes import Structure
+from pwndbg.aglib.ctypes import Structure
 
 
 def request2size(req: int) -> int:
@@ -23,23 +21,23 @@ def request2size(req: int) -> int:
 
 
 def fastbin_index(size: int) -> int:
-    if pwndbg.gdblib.arch.ptrsize == 8:
+    if pwndbg.aglib.arch.ptrsize == 8:
         return (size >> 4) - 2
     else:
         return (size >> 3) - 2
 
 
 GLIBC_VERSION = pwndbg.glibc.get_version()
-# TODO: Move these heap constants and macros to elsewhere, because pwndbg/gdblib/heap/ptmalloc.py also uses them, we are duplicating them here.
-SIZE_SZ = pwndbg.gdblib.arch.ptrsize
-MINSIZE = pwndbg.gdblib.arch.ptrsize * 4
-if pwndbg.gdblib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):
+# TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
+SIZE_SZ = pwndbg.aglib.arch.ptrsize
+MINSIZE = pwndbg.aglib.arch.ptrsize * 4
+if pwndbg.aglib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):
     # i386 will override it to 16 when GLIBC version >= 2.26
     # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
     MALLOC_ALIGN = 16
 else:
     # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
-    long_double_alignment = pwndbg.gdblib.typeinfo.lookup_types("long double").alignof
+    long_double_alignment = pwndbg.aglib.typeinfo.lookup_types("long double").alignof
     MALLOC_ALIGN = long_double_alignment if 2 * SIZE_SZ < long_double_alignment else 2 * SIZE_SZ
 
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
@@ -49,7 +47,7 @@ BINMAPSIZE = 4
 TCACHE_MAX_BINS = 64
 NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
-if pwndbg.gdblib.arch.ptrsize == 4:
+if pwndbg.aglib.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
     SIZE_T = ctypes.c_uint32
 else:
@@ -77,26 +75,26 @@ class c_size_t(SIZE_T):
 
 
 C2GDB_MAPPING = {
-    ctypes.c_char: pwndbg.gdblib.typeinfo.char,
-    ctypes.c_int8: pwndbg.gdblib.typeinfo.int8,
-    ctypes.c_int16: pwndbg.gdblib.typeinfo.int16,
-    ctypes.c_int32: pwndbg.gdblib.typeinfo.int32,
-    ctypes.c_int64: pwndbg.gdblib.typeinfo.int64,
-    ctypes.c_uint8: pwndbg.gdblib.typeinfo.uint8,
-    ctypes.c_uint16: pwndbg.gdblib.typeinfo.uint16,
-    ctypes.c_uint32: pwndbg.gdblib.typeinfo.uint32,
-    ctypes.c_uint64: pwndbg.gdblib.typeinfo.uint64,
-    c_pvoid: pwndbg.gdblib.typeinfo.pvoid,
-    c_size_t: pwndbg.gdblib.typeinfo.size_t,
+    ctypes.c_char: pwndbg.aglib.typeinfo.char,
+    ctypes.c_int8: pwndbg.aglib.typeinfo.int8,
+    ctypes.c_int16: pwndbg.aglib.typeinfo.int16,
+    ctypes.c_int32: pwndbg.aglib.typeinfo.int32,
+    ctypes.c_int64: pwndbg.aglib.typeinfo.int64,
+    ctypes.c_uint8: pwndbg.aglib.typeinfo.uint8,
+    ctypes.c_uint16: pwndbg.aglib.typeinfo.uint16,
+    ctypes.c_uint32: pwndbg.aglib.typeinfo.uint32,
+    ctypes.c_uint64: pwndbg.aglib.typeinfo.uint64,
+    c_pvoid: pwndbg.aglib.typeinfo.pvoid,
+    c_size_t: pwndbg.aglib.typeinfo.size_t,
 }
 
 # Use correct endian for the dictionary keys
-if pwndbg.gdblib.arch.endian == "little":
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], gdb.Type] = {  # type: ignore[no-redef]
+if pwndbg.aglib.arch.endian == "little":
+    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()
     }
 else:
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], gdb.Type] = {  # type: ignore[no-redef]
+    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()
     }
 
@@ -130,7 +128,7 @@ class FakeGDBField:
 
 
 class CStruct2GDB:
-    code = gdb.TYPE_CODE_STRUCT
+    code = pwndbg.dbg_mod.TypeCode.STRUCT
     _c_struct: Type[ctypes.Structure]
 
     def __init__(self, address: int) -> None:
@@ -142,15 +140,15 @@ class CStruct2GDB:
         """
         return self.address
 
-    def __getitem__(self, key: str) -> gdb.Value:
+    def __getitem__(self, key: str) -> pwndbg.dbg_mod.Value:
         """
-        Returns the value of the specified field as a `gdb.Value`.
+        Returns the value of the specified field as a `pwndbg.dbg_mod.Value`.
         """
         return self.read_field(key)
 
-    def __getattr__(self, key: str) -> gdb.Value:
+    def __getattr__(self, key: str) -> pwndbg.dbg_mod.Value:
         """
-        Returns the value of the specified field as a `gdb.Value`.
+        Returns the value of the specified field as a `pwndbg.dbg_mod.Value`.
         """
         return self.read_field(key)
 
@@ -159,7 +157,7 @@ class CStruct2GDB:
 
     def __str__(self) -> str:
         """
-        Returns a string representation of the C struct like `gdb.Value` does.
+        Returns a string representation of the C struct like `pwndbg.dbg_mod.Value` does.
         """
         output = "{\n"
         for f in self._c_struct._fields_:
@@ -167,25 +165,23 @@ class CStruct2GDB:
         output += "}"
         return output
 
-    def read_field(self, field: str) -> gdb.Value:
+    def read_field(self, field: str) -> pwndbg.dbg_mod.Value:
         """
-        Returns the value of the specified field as a `gdb.Value`.
+        Returns the value of the specified field as a `pwndbg.dbg_mod.Value`.
         """
         field_address = self.get_field_address(field)
         field_type = next(f for f in self._c_struct._fields_ if f[0] == field)[1]
         if hasattr(field_type, "_length_"):  # f is a ctypes Array
             t = C2GDB_MAPPING[field_type._type_]
-            return pwndbg.gdblib.memory.get_typed_pointer_value(
-                t.array(field_type._length_ - 1), field_address
+            return pwndbg.aglib.memory.get_typed_pointer_value(
+                t.array(field_type._length_), field_address
             )
-        return pwndbg.gdblib.memory.get_typed_pointer_value(
-            C2GDB_MAPPING[field_type], field_address
-        )
+        return pwndbg.aglib.memory.get_typed_pointer_value(C2GDB_MAPPING[field_type], field_address)
 
     @property
     def type(self):
         """
-        Returns type(self) to make it compatible with the `gdb.Value` interface.
+        Returns type(self) to make it compatible with the `pwndbg.dbg_mod.Value` interface.
         """
         return type(self)
 
@@ -199,7 +195,7 @@ class CStruct2GDB:
     @classmethod
     def fields(cls) -> List[FakeGDBField]:
         """
-        Return fields of the struct to make it compatible with the `gdb.Type` interface.
+        Return fields of the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
         fake_gdb_fields: List[FakeGDBField] = []
         for f in cls._c_struct._fields_:
@@ -208,7 +204,7 @@ class CStruct2GDB:
             bitpos = getattr(cls._c_struct, field_name).offset * 8
             if hasattr(field_type, "_length_"):  # f is a ctypes Array
                 t = C2GDB_MAPPING[field_type._type_]
-                _type = t.array(field_type._length_ - 1)
+                _type = t.array(field_type._length_)
             else:
                 _type = C2GDB_MAPPING[field_type]
             fake_gdb_fields.append(FakeGDBField(bitpos, field_name, _type, cls))
@@ -217,7 +213,7 @@ class CStruct2GDB:
     @classmethod
     def keys(cls) -> List[str]:
         """
-        Return a list of the names of the fields in the struct to make it compatible with the `gdb.Type` interface.
+        Return a list of the names of the fields in the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
         return [f[0] for f in cls._c_struct._fields_]
 
@@ -239,6 +235,13 @@ class CStruct2GDB:
         Returns a tuple of (field name, field value) pairs.
         """
         return tuple((field[0], getattr(self, field[0])) for field in self._c_struct._fields_)
+
+    @classmethod
+    def has_field(self, field: str) -> bool:
+        """
+        Checks whether a field exists to make it compatible with the `pwndbg.dbg_mod.Type` interface.
+        """
+        return field in self.keys()
 
 
 class c_malloc_state_2_26(Structure):
@@ -436,7 +439,7 @@ class c_malloc_state_2_27(Structure):
 
 class MallocState(CStruct2GDB):
     """
-    This class represents malloc_state struct with interface compatible with `gdb.Value`.
+    This class represents malloc_state struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 27):
@@ -479,7 +482,7 @@ class c_heap_info(Structure):
 
 class HeapInfo(CStruct2GDB):
     """
-    This class represents heap_info struct with interface compatible with `gdb.Value`.
+    This class represents heap_info struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     _c_struct = c_heap_info
@@ -518,7 +521,7 @@ class c_malloc_chunk(Structure):
 
 class MallocChunk(CStruct2GDB):
     """
-    This class represents malloc_chunk struct with interface compatible with `gdb.Value`.
+    This class represents malloc_chunk struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     _c_struct = c_malloc_chunk
@@ -565,7 +568,7 @@ class c_tcache_perthread_struct_2_30(Structure):
 
 class TcachePerthreadStruct(CStruct2GDB):
     """
-    This class represents tcache_perthread_struct with interface compatible with `gdb.Value`.
+    This class represents tcache_perthread_struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 30):
@@ -609,7 +612,7 @@ class c_tcache_entry_2_29(Structure):
 
 class TcacheEntry(CStruct2GDB):
     """
-    This class represents the tcache_entry struct with interface compatible with `gdb.Value`.
+    This class represents the tcache_entry struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 29):
@@ -922,7 +925,7 @@ class c_malloc_par_2_35(Structure):
 
 class MallocPar(CStruct2GDB):
     """
-    This class represents the malloc_par struct with interface compatible with `gdb.Value`.
+    This class represents the malloc_par struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 35):
@@ -960,7 +963,7 @@ DEFAULT_MP_.top_pad = DEFAULT_TOP_PAD
 DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD
 DEFAULT_MP_.trim_threshold = DEFAULT_TRIM_THRESHOLD
-DEFAULT_MP_.arena_test = 2 if pwndbg.gdblib.arch.ptrsize == 4 else 8
+DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
 if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT

@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -20,14 +21,17 @@ from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
 from typing_extensions import override
 
+import pwndbg.aglib.disasm.arch
 import pwndbg.color.memory as MemoryColor
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.regs
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import FORWARD_JUMP_GROUP
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
+from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+
+# Emulator currently requires GDB, and we only use it here for type checking.
+if TYPE_CHECKING:
+    from pwndbg.emu.emulator import Emulator
+
 
 BRANCH_LIKELY_INSTRUCTIONS = {
     MIPS_INS_BC0TL,
@@ -50,12 +54,12 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) > 0,
-    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
-    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.gdblib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
 }
 
 # These are instructions that have the first operand as the destination register.
@@ -138,7 +142,7 @@ MIPS_BINARY_OPERATIONS = {
 
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
-class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
@@ -162,7 +166,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[1].before_value,
                 abs(read_size),
                 read_size < 0,
-                pwndbg.gdblib.arch.ptrsize,
+                pwndbg.aglib.arch.ptrsize,
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
@@ -238,7 +242,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
     def _parse_memory(
         self,
         instruction: PwndbgInstruction,
-        op: pwndbg.gdblib.disasm.arch.EnhancedOperand,
+        op: pwndbg.aglib.disasm.arch.EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
         """

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Emulator currently requires GDB, and we only use it here for type checking.
+from typing import TYPE_CHECKING
 from typing import Callable
 from typing import Dict
 
@@ -8,15 +10,17 @@ from capstone.arm import *  # noqa: F403
 from pwnlib.util.misc import align_down
 from typing_extensions import override
 
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import EnhancedOperand
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import EnhancedOperand
+from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+
+if TYPE_CHECKING:
+    from pwndbg.emu.emulator import Emulator
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
@@ -72,7 +76,7 @@ ARM_MATH_INSTRUCTIONS = {
 }
 
 
-class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
@@ -140,13 +144,11 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         # We can't reason about anything except the current instruction
-        if instruction.address != pwndbg.gdblib.regs.pc:
+        if instruction.address != pwndbg.aglib.regs.pc:
             return InstructionCondition.UNDETERMINED
 
         value = (
-            pwndbg.gdblib.regs.cpsr
-            if pwndbg.gdblib.arch.current == "arm"
-            else pwndbg.gdblib.regs.xpsr
+            pwndbg.aglib.regs.cpsr if pwndbg.aglib.arch.current == "arm" else pwndbg.aglib.regs.xpsr
         )
 
         N = (value >> 31) & 1
@@ -198,7 +200,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             parts.append("%#x" % op.mem.disp)
 
         if op.mem.index != 0:
-            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(op.mem.index)]
+            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(op.mem.index)]
             scale = op.mem.scale
             parts.append(f"{index}*{scale:#x}")
 

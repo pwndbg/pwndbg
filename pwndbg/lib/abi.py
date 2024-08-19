@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 
 
 class ABI:
@@ -37,15 +37,15 @@ class ABI:
 
     @staticmethod
     def default() -> ABI:
-        return DEFAULT_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
+        return DEFAULT_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
 
     @staticmethod
     def syscall() -> SyscallABI:
-        return SYSCALL_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
+        return SYSCALL_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
 
     @staticmethod
     def sigreturn() -> SigreturnABI:
-        return SIGRETURN_ABIS[(8 * pwndbg.gdblib.arch.ptrsize, pwndbg.gdblib.arch.name, "linux")]
+        return SIGRETURN_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
 
 
 class SyscallABI(ABI):

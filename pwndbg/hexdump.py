@@ -7,12 +7,13 @@ from __future__ import annotations
 import math
 import string
 
-import gdb
 import pwnlib.util.lists
 
 import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.hexdump as H
-import pwndbg.gdblib.typeinfo
 from pwndbg.color import theme
 from pwndbg.commands.windbg import enhex
 
@@ -160,16 +161,16 @@ def hexdump(
             count = hexdump.last_count
             address = hexdump.last_address
         else:
-            address = int(address) & pwndbg.gdblib.arch.ptrmask
+            address = int(address) & pwndbg.aglib.arch.ptrmask
             count = int(count)
 
-        size_type = pwndbg.gdblib.typeinfo.get_type(size)
+        size_type = pwndbg.aglib.typeinfo.get_type(size)
 
         for i in range(count):
             try:
-                gval = pwndbg.gdblib.memory.get_typed_pointer_value(size_type, address + i * size)
+                gval = pwndbg.aglib.memory.get_typed_pointer_value(size_type, address + i * size)
                 values.append(int(gval))
-            except gdb.MemoryError:
+            except pwndbg.dbg_mod.Error:
                 break
 
         if not values:
@@ -184,7 +185,7 @@ def hexdump(
         for i, row in enumerate(rows):
             if not row:
                 continue
-            line = [enhex(pwndbg.gdblib.arch.ptrsize, address + (i * 16)), "   "]
+            line = [enhex(pwndbg.aglib.arch.ptrsize, address + (i * 16)), "   "]
             for value in row:
                 line.append(enhex(size, value))
             lines.append(" ".join(line))

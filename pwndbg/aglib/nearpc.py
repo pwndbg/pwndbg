@@ -2,21 +2,18 @@ from __future__ import annotations
 
 from typing import List
 
-import gdb
 from capstone import *  # noqa: F403
 
 import pwndbg
 import pwndbg.aglib.disasm
-import pwndbg.arguments
+import pwndbg.aglib.regs
+import pwndbg.aglib.strings
+import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.strings
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.vmmap
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.functions
@@ -26,6 +23,16 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 
+# We prefix all of our configuration options with a special `aglib-` prefix if
+# we detect that gdblib is present. Pwndbg doesn't allow multiple settings under
+# the same name, so we have to add a unique prefix until we move all of Pwndbg
+# to this module, rather than the gdblib one.
+#
+# TODO: Port the rest of Pwndbg to this module and get rid of `pwndbg.gdblib.nearpc`.
+cfg_prefix = ""
+if pwndbg.dbg.is_gdblib_available():
+    cfg_prefix = "aglib-"
+
 
 def ljust_padding(lst):
     longest_len = max(map(len, lst)) if lst else 0
@@ -33,7 +40,7 @@ def ljust_padding(lst):
 
 
 c = ColorConfig(
-    "nearpc",
+    f"{cfg_prefix}nearpc",
     [
         ColorParamSpec("symbol", "normal", "color for nearpc command (symbol)"),
         ColorParamSpec("address", "normal", "color for nearpc command (address)"),
@@ -47,32 +54,41 @@ c = ColorConfig(
     ],
 )
 
+# `pwndbg.arguments` imports `c` from this module.
+import pwndbg.arguments
+
 nearpc_branch_marker = pwndbg.color.theme.add_param(
-    "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
+    f"{cfg_prefix}nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
 )
 nearpc_branch_marker_contiguous = pwndbg.color.theme.add_param(
-    "nearpc-branch-marker-contiguous", " ", "contiguous branch marker line for nearpc command"
+    f"{cfg_prefix}nearpc-branch-marker-contiguous",
+    " ",
+    "contiguous branch marker line for nearpc command",
 )
-pwndbg.color.theme.add_param("highlight-pc", True, "whether to highlight the current instruction")
-pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc command")
-pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
+pwndbg.color.theme.add_param(
+    f"{cfg_prefix}highlight-pc", True, "whether to highlight the current instruction"
+)
+pwndbg.color.theme.add_param(f"{cfg_prefix}nearpc-prefix", "►", "prefix marker for nearpc command")
+pwndbg.config.add_param(f"{cfg_prefix}left-pad-disasm", True, "whether to left-pad disassembly")
 nearpc_lines = pwndbg.config.add_param(
-    "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
+    f"{cfg_prefix}nearpc-lines", 10, "number of additional lines to print for the nearpc command"
 )
 show_args = pwndbg.config.add_param(
-    "nearpc-show-args", True, "whether to show call arguments below instruction"
+    f"{cfg_prefix}nearpc-show-args", True, "whether to show call arguments below instruction"
 )
 show_comments = pwndbg.config.add_param(
-    "nearpc-integration-comments", True, "whether to show comments from integration provider"
+    f"{cfg_prefix}nearpc-integration-comments",
+    True,
+    "whether to show comments from integration provider",
 )
 show_opcode_bytes = pwndbg.config.add_param(
-    "nearpc-num-opcode-bytes",
+    f"{cfg_prefix}nearpc-num-opcode-bytes",
     0,
     "number of opcode bytes to print for each instruction",
     param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
 opcode_separator_bytes = pwndbg.config.add_param(
-    "nearpc-opcode-separator-bytes",
+    f"{cfg_prefix}nearpc-opcode-separator-bytes",
     1,
     "number of spaces between opcode bytes",
     param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
@@ -98,7 +114,7 @@ def nearpc(
     result: List[str] = []
 
     if pc is not None:
-        pc = gdb.Value(pc).cast(pwndbg.gdblib.typeinfo.pvoid)
+        pc = pwndbg.dbg.selected_inferior().create_value(pc).cast(pwndbg.aglib.typeinfo.pvoid)
 
     # Fix the case where we only have one argument, and
     # it's a small value.
@@ -107,7 +123,7 @@ def nearpc(
         pc = None
 
     if pc is None:
-        pc = pwndbg.gdblib.regs.pc
+        pc = pwndbg.aglib.regs.pc
 
     if lines is None:
         lines = nearpc_lines // 2
@@ -116,7 +132,7 @@ def nearpc(
     lines = int(lines)
 
     # Check whether we can even read this address
-    if not pwndbg.gdblib.memory.peek(pc):
+    if not pwndbg.aglib.memory.peek(pc):
         result.append(message.error("Invalid address %#x" % pc))
 
     # # Load source data if it's available
@@ -139,16 +155,18 @@ def nearpc(
         pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
     )
 
-    if pwndbg.gdblib.memory.peek(pc) and not instructions:
+    if pwndbg.aglib.memory.peek(pc) and not instructions:
         result.append(message.error("Invalid instructions at %#x" % pc))
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
-    pwndbg.gdblib.vmmap.find(pc)
+    pwndbg.aglib.vmmap.find(pc)
 
     # Gather all addresses and symbols for each instruction
     # Ex: <main+43>
-    symbols = [pwndbg.gdblib.symbol.get(i.address) for i in instructions]
+    symbols = [
+        pwndbg.dbg.selected_inferior().symbol_name_at_address(i.address) for i in instructions
+    ]
     addresses: List[str] = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
@@ -202,9 +220,9 @@ def nearpc(
 
                 base = operand.mem.base
                 if base > 0:
-                    address += pwndbg.gdblib.regs[instr.reg_name(base)]
+                    address += pwndbg.aglib.regs[instr.reg_name(base)]
 
-                vmmap = pwndbg.gdblib.vmmap.get()
+                vmmap = pwndbg.aglib.vmmap.get()
                 page = next((page for page in vmmap if address in page), None)
                 if page is None:
                     # This is definetly invalid. Don't even bother checking
@@ -308,7 +326,7 @@ def nearpc(
         # For Comment Function
         try:
             line += " " * 10 + C.comment(
-                pwndbg.commands.comments.file_lists[pwndbg.gdblib.proc.exe][hex(instr.address)]
+                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe][hex(instr.address)]
             )
         except Exception:
             pass

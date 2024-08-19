@@ -19,17 +19,14 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
-import gdb
-
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
-import pwndbg.gdblib.bpoint
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.lib.elftypes import constants as elf
 
 
-def _r_debug():
+def _r_debug() -> int | None:
     """
     The easiest entry point into the link map is through the debug structure
     provided by ld.so. It provides a convenient pointer into the head of the
@@ -40,14 +37,7 @@ def _r_debug():
     [2]: https://elixir.bootlin.com/glibc/glibc-2.38/source/elf/dl-debug-symbols.S#L30
     """
 
-    try:
-        address = gdb.execute("output/x &_r_debug", to_string=True)
-        address = int(address, 0)
-
-        return address
-    except gdb.error:
-        # Symbol is most likely unavailable.
-        return None
+    return pwndbg.dbg.selected_inferior().symbol_address_from_name("_r_debug")
 
 
 def is_dynamic() -> bool:
@@ -68,7 +58,7 @@ R_DEBUG_LINK_MAP_CHANGED_HOOK = None
 R_DEBUG_LINK_MAP_CHANGED_LISTENERS: Set[Callable[..., Any]] = set()
 
 
-class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
+def r_debug_link_map_changed_hook() -> Callable[[pwndbg.dbg_mod.StopPoint], bool]:
     """
     Hook that gets activated whenever the link map changes.
 
@@ -84,21 +74,22 @@ class RDebugLinkMapChangedHook(pwndbg.gdblib.bpoint.BreakpointEvent):
     [1]: https://elixir.bootlin.com/glibc/glibc-2.37/source/elf/link.h#L52
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        self.skip_this = True
-        super().__init__(*args, **kwargs)
+    skip_this = True
 
-    def stop(self) -> bool:
+    def hook(_bp: pwndbg.dbg_mod.StopPoint) -> bool:
         # Skip every other trigger, we only care about the completed link map
         # that is available after the library is loaded.
-        self.skip_this = not self.skip_this
-        return not self.skip_this
+        nonlocal skip_this
+        if not skip_this:
+            # Clear the cache that is tied to link map updates, and signal all of
+            # the interested parties that this event has occurred.
+            for listener in R_DEBUG_LINK_MAP_CHANGED_LISTENERS:
+                listener()
+        skip_this = not skip_this
 
-    def on_breakpoint_hit(self) -> None:
-        # Clear the cache that is tied to link map updates, and signal all of
-        # the interested parties that this event has occurred.
-        for listener in R_DEBUG_LINK_MAP_CHANGED_LISTENERS:
-            listener()
+        return False
+
+    return hook
 
 
 # FIXME: Obviously, having consumers call this function is not ideal. We really
@@ -139,7 +130,11 @@ def r_debug_install_link_map_changed_hook() -> None:
     r_debug = CStruct.r_debug()
     r_brk = r_debug.read(r_debug_address, "r_brk")
 
-    bp = RDebugLinkMapChangedHook(f"*{r_brk:#x}", internal=True)
+    bp = pwndbg.dbg.selected_inferior().break_at(
+        pwndbg.dbg_mod.BreakpointLocation(r_brk),
+        stop_hook=r_debug_link_map_changed_hook(),
+        internal=True,
+    )
 
     R_DEBUG_LINK_MAP_CHANGED_HOOK = bp
 
@@ -205,7 +200,7 @@ class LinkMapEntry:
         The name of the binary image this entry describes.
         """
         ptr = self.link_map.read(self.link_map_address, "l_name")
-        return pwndbg.gdblib.memory.string(ptr)
+        return pwndbg.aglib.memory.string(ptr)
 
     def dynamic(self):
         """
@@ -554,7 +549,7 @@ class DynamicSegment:
             raise ValueError(
                 f"tried to read entry {i} in string table with only {self.entries} bytes"
             )
-        return pwndbg.gdblib.memory.string(self.strtab_addr + i)
+        return pwndbg.aglib.memory.string(self.strtab_addr + i)
 
     def symtab_read(self, i, field):
         """
@@ -629,7 +624,7 @@ class CStruct:
     enough for the structs in ld.so and in the ELF program images.
     """
 
-    types: Dict[str, gdb.Type] = {}
+    types: Dict[str, pwndbg.dbg_mod.Type] = {}
     offsets: Dict[str, int] = {}
     converters: Dict[str, type] = {}
     size = 0
@@ -643,11 +638,11 @@ class CStruct:
         """
         return CStruct(
             [
-                ("l_addr", pwndbg.gdblib.typeinfo.size_t, int),
-                ("l_name", pwndbg.gdblib.typeinfo.char.pointer(), int),
-                ("l_ld", pwndbg.gdblib.typeinfo.pvoid, int),
-                ("l_next", pwndbg.gdblib.typeinfo.pvoid, int),
-                ("l_prev", pwndbg.gdblib.typeinfo.pvoid, int),
+                ("l_addr", pwndbg.aglib.typeinfo.size_t, int),
+                ("l_name", pwndbg.aglib.typeinfo.char.pointer(), int),
+                ("l_ld", pwndbg.aglib.typeinfo.pvoid, int),
+                ("l_next", pwndbg.aglib.typeinfo.pvoid, int),
+                ("l_prev", pwndbg.aglib.typeinfo.pvoid, int),
             ]
         )
 
@@ -659,9 +654,9 @@ class CStruct:
         """
         return CStruct(
             [
-                ("r_version", pwndbg.gdblib.typeinfo.uint, int),
-                ("r_map", pwndbg.gdblib.typeinfo.pvoid, int),
-                ("r_brk", pwndbg.gdblib.typeinfo.pvoid, int),
+                ("r_version", pwndbg.aglib.typeinfo.uint, int),
+                ("r_map", pwndbg.aglib.typeinfo.pvoid, int),
+                ("r_brk", pwndbg.aglib.typeinfo.pvoid, int),
             ]
         )
 
@@ -673,8 +668,8 @@ class CStruct:
         """
         return CStruct(
             [
-                ("d_tag", pwndbg.gdblib.typeinfo.size_t, int),
-                ("d_un", pwndbg.gdblib.typeinfo.size_t, int),
+                ("d_tag", pwndbg.aglib.typeinfo.size_t, int),
+                ("d_un", pwndbg.aglib.typeinfo.size_t, int),
             ]
         )
 
@@ -686,8 +681,8 @@ class CStruct:
         """
         return CStruct(
             [
-                ("r_offset", pwndbg.gdblib.typeinfo.size_t, int),
-                ("r_info", pwndbg.gdblib.typeinfo.size_t, int),
+                ("r_offset", pwndbg.aglib.typeinfo.size_t, int),
+                ("r_info", pwndbg.aglib.typeinfo.size_t, int),
             ]
         )
 
@@ -699,9 +694,9 @@ class CStruct:
         """
         return CStruct(
             [
-                ("r_offset", pwndbg.gdblib.typeinfo.size_t, int),
-                ("r_info", pwndbg.gdblib.typeinfo.size_t, int),
-                ("r_addend", pwndbg.gdblib.typeinfo.size_t, int),
+                ("r_offset", pwndbg.aglib.typeinfo.size_t, int),
+                ("r_info", pwndbg.aglib.typeinfo.size_t, int),
+                ("r_addend", pwndbg.aglib.typeinfo.size_t, int),
             ]
         )
 
@@ -715,18 +710,18 @@ class CStruct:
         # how these types are resolved, that might not always be the case.
         #
         # It's better to fail loudly here than to fail silently later.
-        assert pwndbg.gdblib.typeinfo.uint32.sizeof == 4
-        assert pwndbg.gdblib.typeinfo.uint16.sizeof == 2
-        assert pwndbg.gdblib.typeinfo.uint8.sizeof == 1
+        assert pwndbg.aglib.typeinfo.uint32.sizeof == 4
+        assert pwndbg.aglib.typeinfo.uint16.sizeof == 2
+        assert pwndbg.aglib.typeinfo.uint8.sizeof == 1
 
         return CStruct(
             [
-                ("st_name", pwndbg.gdblib.typeinfo.uint32, int),
-                ("st_value", pwndbg.gdblib.typeinfo.uint32, int),
-                ("st_size", pwndbg.gdblib.typeinfo.uint32, int),
-                ("st_info", pwndbg.gdblib.typeinfo.uint8, int),
-                ("st_other", pwndbg.gdblib.typeinfo.uint8, int),
-                ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int),
+                ("st_name", pwndbg.aglib.typeinfo.uint32, int),
+                ("st_value", pwndbg.aglib.typeinfo.uint32, int),
+                ("st_size", pwndbg.aglib.typeinfo.uint32, int),
+                ("st_info", pwndbg.aglib.typeinfo.uint8, int),
+                ("st_other", pwndbg.aglib.typeinfo.uint8, int),
+                ("st_shndx", pwndbg.aglib.typeinfo.uint16, int),
             ]
         )
 
@@ -737,23 +732,23 @@ class CStruct:
         """
 
         # FIXME: Same issue as elf32_sym()
-        assert pwndbg.gdblib.typeinfo.uint64.sizeof == 8
-        assert pwndbg.gdblib.typeinfo.uint32.sizeof == 4
-        assert pwndbg.gdblib.typeinfo.uint16.sizeof == 2
-        assert pwndbg.gdblib.typeinfo.uint8.sizeof == 1
+        assert pwndbg.aglib.typeinfo.uint64.sizeof == 8
+        assert pwndbg.aglib.typeinfo.uint32.sizeof == 4
+        assert pwndbg.aglib.typeinfo.uint16.sizeof == 2
+        assert pwndbg.aglib.typeinfo.uint8.sizeof == 1
 
         return CStruct(
             [
-                ("st_name", pwndbg.gdblib.typeinfo.uint32, int),
-                ("st_info", pwndbg.gdblib.typeinfo.uint8, int),
-                ("st_other", pwndbg.gdblib.typeinfo.uint8, int),
-                ("st_shndx", pwndbg.gdblib.typeinfo.uint16, int),
-                ("st_value", pwndbg.gdblib.typeinfo.uint64, int),
-                ("st_size", pwndbg.gdblib.typeinfo.uint64, int),
+                ("st_name", pwndbg.aglib.typeinfo.uint32, int),
+                ("st_info", pwndbg.aglib.typeinfo.uint8, int),
+                ("st_other", pwndbg.aglib.typeinfo.uint8, int),
+                ("st_shndx", pwndbg.aglib.typeinfo.uint16, int),
+                ("st_value", pwndbg.aglib.typeinfo.uint64, int),
+                ("st_size", pwndbg.aglib.typeinfo.uint64, int),
             ]
         )
 
-    def __init__(self, fields: List[Tuple[str, gdb.Type, type]]) -> None:
+    def __init__(self, fields: List[Tuple[str, pwndbg.dbg_mod.Type, type]]) -> None:
         # Calculate the offset of all of the fields in the struct.
         current_offset = 0
         alignment = 1
@@ -796,7 +791,7 @@ class CStruct:
         Reads the field with the given name from the struct instance located at
         the given address.
         """
-        val = pwndbg.gdblib.memory.get_typed_pointer_value(
+        val = pwndbg.aglib.memory.get_typed_pointer_value(
             self.types[name], address + self.offsets[name]
         )
         if self.converters[name] is not None:

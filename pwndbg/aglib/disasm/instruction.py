@@ -6,9 +6,6 @@ from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Set
-from typing import TypedDict
-
-import gdb
 
 # Reverse lookup tables for debug printing
 from capstone import CS_AC
@@ -174,7 +171,7 @@ class PwndbgInstruction:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.gdblib.disasm.arch.py
+        # in pwndbg.aglib.disasm.arch.py
         # ***********
 
         self.asm_string: str = "%-06s %s" % (self.mnemonic, self.op_str)
@@ -224,7 +221,7 @@ class PwndbgInstruction:
         Does the condition that the instruction checks for pass?
 
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
-        See 'condition' function in pwndbg.gdblib.disasm.x86 for example on setting this.
+        See 'condition' function in pwndbg.aglib.disasm.x86 for example on setting this.
 
         UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
 
@@ -432,7 +429,7 @@ class EnhancedOperand:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.gdblib.disasm.arch.py
+        # in pwndbg.aglib.disasm.arch.py
         # ***********
 
         self.before_value: int | None = None
@@ -519,19 +516,11 @@ class EnhancedOperand:
         return f"[{info}]"
 
 
-# GDB does not expose a type for this
-# Type defined here: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Architectures-In-Python.html#Architectures-In-Python
-class GDBDisassembledInstructionType(TypedDict):
-    addr: int
-    asm: str
-    length: int
-
-
 def make_simple_instruction(address: int) -> PwndbgInstruction:
     """
     Instantiate a PwndbgInstruction for an architecture that Capstone/pwndbg doesn't support (as defined in the CapstoneArch structure)
     """
-    ins: GDBDisassembledInstructionType = gdb.newest_frame().architecture().disassemble(address)[0]
+    ins = pwndbg.dbg.selected_inferior().disasm(address)
     asm = ins["asm"].split(maxsplit=1)
 
     pwn_ins = PwndbgInstruction(None)

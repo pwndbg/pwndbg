@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from typing import Callable
 from typing import Dict
 from typing import Tuple
@@ -8,19 +9,22 @@ from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
 from typing_extensions import override
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.typeinfo
 import pwndbg.chain
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.enhance
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.typeinfo
-from pwndbg.emu.emulator import Emulator
-from pwndbg.gdblib.disasm.instruction import EnhancedOperand
-from pwndbg.gdblib.disasm.instruction import InstructionCondition
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import EnhancedOperand
+from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+
+# Emulator currently requires GDB, and we only use it here for type checking.
+if TYPE_CHECKING:
+    from pwndbg.emu.emulator import Emulator
 
 groups = {v: k for k, v in globals().items() if k.startswith("X86_GRP_")}
 ops = {v: k for k, v in globals().items() if k.startswith("X86_OP_")}
@@ -43,7 +47,7 @@ X86_MATH_INSTRUCTIONS = {
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
-class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
+class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture: str) -> None:
         super().__init__(architecture)
 
@@ -190,7 +194,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             elif pc_is_at_instruction:
                 # Attempt to read from the stop of the stack
                 try:
-                    value = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.regs.sp)
+                    value = pwndbg.aglib.memory.pvoid(pwndbg.aglib.regs.sp)
                     instruction.annotation = (
                         f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
                     )
@@ -255,10 +259,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
-                if (base := pwndbg.gdblib.regs.fsbase) is None:
+                if (base := pwndbg.aglib.regs.fsbase) is None:
                     return None
             elif op.mem.segment == X86_REG_GS:
-                if (base := pwndbg.gdblib.regs.gsbase) is None:
+                if (base := pwndbg.aglib.regs.gsbase) is None:
                     return None
             else:
                 return None
@@ -289,17 +293,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return super()._resolve_target(instruction, emu)
 
         # Stop disassembling at RET if we won't know where it goes to without emulation
-        if instruction.address != pwndbg.gdblib.regs.pc:
+        if instruction.address != pwndbg.aglib.regs.pc:
             return super()._resolve_target(instruction, emu)
 
         # Otherwise, resolve the return on the stack
         pop = instruction.operands[0].before_value if instruction.operands else 0
 
-        address = (pwndbg.gdblib.regs.sp) + (pwndbg.gdblib.arch.ptrsize * pop)
+        address = (pwndbg.aglib.regs.sp) + (pwndbg.aglib.arch.ptrsize * pop)
 
-        if pwndbg.gdblib.memory.peek(address):
+        if pwndbg.aglib.memory.peek(address):
             return int(
-                pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
+                pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, address)
             )
 
     @override
@@ -309,10 +313,10 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         # We can't reason about anything except the current instruction
-        if instruction.address != pwndbg.gdblib.regs.pc:
+        if instruction.address != pwndbg.aglib.regs.pc:
             return InstructionCondition.UNDETERMINED
 
-        efl = pwndbg.gdblib.regs.eflags
+        efl = pwndbg.aglib.regs.eflags
         if efl is None:
             return InstructionCondition.UNDETERMINED
 
@@ -408,7 +412,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             if arith:
                 sz += " + "
 
-            index = pwndbg.gdblib.regs[instruction.cs_insn.reg_name(index)]
+            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(index)]
             sz += f"{index}*{op.mem.scale:#x}"
             arith = True
 

@@ -17,17 +17,18 @@ from typing import cast
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.file
-import pwndbg.gdblib.heap
-import pwndbg.gdblib.info
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.proc
-import pwndbg.gdblib.symbol
+import pwndbg.aglib.elf
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.aglib.heap
+    import pwndbg.gdblib.symbol
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -59,26 +60,28 @@ def set_glibc_version() -> None:
     glibc_version.revert_default()
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 def get_version() -> Tuple[int, ...] | None:
     return cast(Union[Tuple[int, ...], None], glibc_version) or _get_version()
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def _get_version() -> Tuple[int, ...] | None:
-    from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
+    if pwndbg.dbg.is_gdblib_available():
+        from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
-    if pwndbg.gdblib.heap.current.libc_has_debug_syms():
-        addr = pwndbg.gdblib.symbol.address("__libc_version")
-        if addr is not None:
-            ver = pwndbg.gdblib.memory.string(addr)
-            return tuple(int(_) for _ in ver.split(b"."))
+        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+        if pwndbg.aglib.heap.current.libc_has_debug_syms():
+            addr = pwndbg.gdblib.symbol.address("__libc_version")
+            if addr is not None:
+                ver = pwndbg.aglib.memory.string(addr)
+                return tuple(int(_) for _ in ver.split(b"."))
+
     libc_filename = get_libc_filename_from_info_sharedlibrary()
     if not libc_filename:
         return None
-    result = pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".rodata", try_local_path=True)
+    result = pwndbg.aglib.elf.dump_section_by_name(libc_filename, ".rodata", try_local_path=True)
     if result is None:
         return None
     _, _, data = result
@@ -90,14 +93,26 @@ def _get_version() -> Tuple[int, ...] | None:
     return tuple(int(_) for _ in ret.groups()) if ret else None
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def get_libc_filename_from_info_sharedlibrary() -> str | None:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
     """
     possible_libc_path: List[str] = []
-    for path in pwndbg.gdblib.info.sharedlibrary_paths():
+    i = pwndbg.dbg.selected_inferior()
+
+    main_module_name = i.main_module_name()
+    seen = set()
+    for address, size, sect_name, module_name in i.module_section_locations():
+        if module_name in seen:
+            continue
+        seen.add(module_name)
+
+        if module_name == main_module_name:
+            continue
+
+        path = module_name
         basename = os.path.basename(
             path[7:] if path.startswith("target:") else path
         )  # "target:" prefix is for remote debugging
@@ -117,7 +132,7 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
     return None
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
     """
@@ -127,10 +142,10 @@ def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.gdblib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
+    return pwndbg.aglib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def dump_relocations_by_section_name(section_name: str) -> Tuple[Relocation, ...] | None:
     """
@@ -140,12 +155,12 @@ def dump_relocations_by_section_name(section_name: str) -> Tuple[Relocation, ...
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.gdblib.elf.dump_relocations_by_section_name(
+    return pwndbg.aglib.elf.dump_relocations_by_section_name(
         libc_filename, section_name, try_local_path=True
     )
 
 
-@pwndbg.gdblib.proc.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def get_section_address_by_name(section_name: str) -> int:
     """
@@ -156,10 +171,14 @@ def get_section_address_by_name(section_name: str) -> int:
         # libc not loaded yet, or it's static linked
         return 0
     # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
-    out = pwndbg.gdblib.info.files()
-    for line in out.splitlines():
-        if line.endswith(f" is {section_name} in " + libc_filename):
-            return int(line.split()[0], 16)
+    for (
+        address,
+        size,
+        candidate_section_name,
+        module_name,
+    ) in pwndbg.dbg.selected_inferior().module_section_locations():
+        if section_name == candidate_section_name and module_name == libc_filename:
+            return address
     return 0
 
 
