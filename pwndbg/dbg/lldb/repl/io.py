@@ -401,8 +401,10 @@ class IODriverPseudoTerminal(IODriver):
                 def handle_sigwinch(_sig, _frame):
                     # Tell vermin to ignore these. PTY_TERMSIZE_AVAILABLE is
                     # gated behind Python 3.11.
-                    size = termios.tcgetwinsize(terminal.fileno())  # novm
-                    termios.tcsetwinsize(self.manager, size)  # novm
+                    size = termios.tcgetwinsize(  # type: ignore[attr-defined]  # novm
+                        terminal.fileno()
+                    )
+                    termios.tcsetwinsize(self.manager, size)  # type: ignore[attr-defined]  # novm
 
                 signal.signal(signal.SIGWINCH, handle_sigwinch)
             except FileNotFoundError:
