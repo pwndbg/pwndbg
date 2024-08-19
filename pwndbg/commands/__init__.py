@@ -694,13 +694,27 @@ def load_commands() -> None:
         import pwndbg.commands.binder
         import pwndbg.commands.binja
         import pwndbg.commands.branch
+        import pwndbg.commands.canary
+        import pwndbg.commands.checksec
+        import pwndbg.commands.comments
+        import pwndbg.commands.config
+        import pwndbg.commands.context
+        import pwndbg.commands.cpsr
+        import pwndbg.commands.cyclic
         import pwndbg.commands.cymbol
+        import pwndbg.commands.dev
+        import pwndbg.commands.distance
         import pwndbg.commands.dt
+        import pwndbg.commands.dumpargs
+        import pwndbg.commands.elf
+        import pwndbg.commands.flags
         import pwndbg.commands.ghidra
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
+        import pwndbg.commands.heap
         import pwndbg.commands.heap_tracking
+        import pwndbg.commands.hexdump
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.integration
@@ -711,57 +725,42 @@ def load_commands() -> None:
         import pwndbg.commands.kconfig
         import pwndbg.commands.killthreads
         import pwndbg.commands.kversion
+        import pwndbg.commands.leakfind
         import pwndbg.commands.linkmap
         import pwndbg.commands.memoize
         import pwndbg.commands.misc
         import pwndbg.commands.mmap
         import pwndbg.commands.mprotect
+        import pwndbg.commands.nearpc
         import pwndbg.commands.next
         import pwndbg.commands.onegadget
+        import pwndbg.commands.p2p
+        import pwndbg.commands.patch
         import pwndbg.commands.pcplist
         import pwndbg.commands.peda
+        import pwndbg.commands.pie
         import pwndbg.commands.plist
+        import pwndbg.commands.probeleak
         import pwndbg.commands.procinfo
         import pwndbg.commands.radare2
         import pwndbg.commands.reload
+        import pwndbg.commands.retaddr
         import pwndbg.commands.rizin
         import pwndbg.commands.rop
         import pwndbg.commands.ropper
+        import pwndbg.commands.search
         import pwndbg.commands.segments
         import pwndbg.commands.shell
+        import pwndbg.commands.sigreturn
         import pwndbg.commands.slab
+        import pwndbg.commands.spray
         import pwndbg.commands.start
+        import pwndbg.commands.telescope
         import pwndbg.commands.tips
         import pwndbg.commands.tls
-        import pwndbg.commands.version
-        import pwndbg.commands.canary
-        import pwndbg.commands.checksec
-        import pwndbg.commands.comments
-        import pwndbg.commands.config
-        import pwndbg.commands.context
-        import pwndbg.commands.cpsr
-        import pwndbg.commands.cyclic
-        import pwndbg.commands.dev
-        import pwndbg.commands.distance
-        import pwndbg.commands.dumpargs
-        import pwndbg.commands.elf
-        import pwndbg.commands.flags
-        import pwndbg.commands.heap
-        import pwndbg.commands.hexdump
-        import pwndbg.commands.leakfind
-        import pwndbg.commands.nearpc
-        import pwndbg.commands.p2p
-        import pwndbg.commands.patch
-        import pwndbg.commands.pie
-        import pwndbg.commands.probeleak
-        import pwndbg.commands.retaddr
-        import pwndbg.commands.search
-        import pwndbg.commands.sigreturn
-        import pwndbg.commands.spray
-        import pwndbg.commands.telescope
         import pwndbg.commands.valist
+        import pwndbg.commands.version
         import pwndbg.commands.vmmap
         import pwndbg.commands.windbg
         import pwndbg.commands.xinfo
         import pwndbg.commands.xor
-

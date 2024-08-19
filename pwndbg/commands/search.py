@@ -11,11 +11,11 @@ import gdb
 import pwnlib
 
 import pwndbg
+import pwndbg.aglib.disasm
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm
 import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message

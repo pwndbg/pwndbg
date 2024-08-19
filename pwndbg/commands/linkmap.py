@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.dynamic
 import pwndbg.color as color
-import pwndbg.gdblib.dynamic
 import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory
 
@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 def linkmap() -> None:
     is_first = True
     rows = [["Node", "Objfile", "Load Bias", "Dynamic Segment"]]
-    for obj in pwndbg.gdblib.dynamic.link_map():
+    for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name().decode("utf-8")
         if name == "":
             name = "<Unknown"

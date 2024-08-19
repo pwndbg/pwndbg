@@ -291,5 +291,6 @@ def update_last() -> None:
     M: module = cast(module, sys.modules[__name__])
     M.previous = M.last
     M.last = {k: M[k] for k in M.common}
-    if pwndbg.config.show_retaddr_reg:
-        M.last.update({k: M[k] for k in M.retaddr})
+    # TODO: Uncomment this once the LLDB command port PR for `context` is merged
+    # if pwndbg.config.show_retaddr_reg:
+    #    M.last.update({k: M[k] for k in M.retaddr})
