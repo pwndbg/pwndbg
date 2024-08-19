@@ -332,14 +332,14 @@ first_time_emulate = True
 
 
 def no_emulate_one():
-    result = near(pwndgb.aglib.regs.pc, emulate=False, show_prev_insns=False)
+    result = near(pwndbg.aglib.regs.pc, emulate=False, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
 
 
 def emulate_one():
-    result = near(pwndgb.aglib.regs.pc, emulate=True, show_prev_insns=False)
+    result = near(pwndbg.aglib.regs.pc, emulate=True, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
@@ -352,7 +352,7 @@ def one_with_config():
     Emulation determined by the `pwndbg.config.emulate` setting.
     """
     result = near(
-        pwndgb.aglib.regs.pc,
+        pwndbg.aglib.regs.pc,
         emulate=bool(not pwndbg.config.emulate == "off"),
         show_prev_insns=False,
     )
