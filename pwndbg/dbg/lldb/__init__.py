@@ -749,10 +749,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # so we have to get creative.
         #
         # First, try to derive that information from the mmap.
+        #
+        # TODO: Finding the first range in the memory map could be done using a
+        # binary search, so we should do that eventually.
         first_page = None
         last_page = None
         vmmap_size = 0
-        for page in self.vmmap().ranges():
+
+        # Use the aglib version of the vmmap, as it is cached, and `vmmap()` may
+        # be very slow on some targets.
+        for page in pwndbg.aglib.vmmap.get():
             if address in page and not first_page:
                 first_page = page
                 last_page = page
