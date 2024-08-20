@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from typing import List
 
 import lldb
@@ -212,9 +213,15 @@ class ProcessDriver:
         self.process.GetTarget().GetDebugger().GetCommandInterpreter().HandleCommand(command, ret)
 
         if ret.IsValid():
-            out = ret.GetOutput()
+            # LLDB can give us strings that may fail to encode.
+            out = ret.GetOutput().strip()
             if len(out) > 0:
-                print(out)
+                sys.stdout.buffer.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
+                print()
+            out = ret.GetError().strip()
+            if len(out) > 0:
+                sys.stdout.buffer.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
+                print()
 
             # Only call _run_until_next_stop() if the command started the process.
             s = ret.GetStatus()

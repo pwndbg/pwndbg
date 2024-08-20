@@ -37,6 +37,9 @@ def complete(dbg: LLDB, text: str, state: int) -> str | None:
         s = complete_values.GetStringAtIndex(index)
         t = text.split()
 
+        if text.rstrip() != text:
+            t.append("")
+
         t[-1] = s
         return " ".join(t)
 
@@ -56,7 +59,8 @@ def display_completions(substitutions, matches, longest_match_len):
 
         print(f"\t{match}{padding} -- {description}")
 
-    readline.redisplay()
+    print(PROMPT, end="", flush=True)
+    print(readline.get_line_buffer(), end="", flush=True)
 
 
 def enable_readline(dbg: LLDB):

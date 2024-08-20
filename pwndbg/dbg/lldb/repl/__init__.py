@@ -498,9 +498,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     targets = dbg.debugger.GetNumTargets()
     assert targets < 2
     if targets == 0:
-        print(
-            message.error("error: invalid target, create a get using the 'garget create' command")
-        )
+        print(message.error("error: no target, create one using the 'target create' command"))
         return
 
     if driver.has_process():
@@ -679,11 +677,7 @@ def continue_process(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
         return
 
     if not driver.has_process():
-        print(
-            message.error(
-                "error: invalid target, create a target using the 'target create' command"
-            )
-        )
+        print(message.error("error: no process"))
         return
 
     driver.cont()
