@@ -30,7 +30,7 @@ c = ColorConfig(
 pwndbg.config.add_param(
     "telescope-free-heap-bins",
     False,
-    "wheteher or not to resolve heap addresses to bin names while telescoping",
+    "whether or not to resolve heap addresses to bin names while telescoping",
 )
 
 
