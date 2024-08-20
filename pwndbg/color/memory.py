@@ -46,7 +46,7 @@ def get_address_and_symbol(address: int) -> str:
             if (
                 free_bin_name := pwndbg.gdblib.heap.heap_freebin_address_lookup(address)
             ) is not None:
-                return get(address, f"{address} ({free_bin_name} free chunk)")
+                return get(address, f"{hex(address)} ({free_bin_name} free chunk)")
 
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
