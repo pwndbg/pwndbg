@@ -660,7 +660,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 if lbm or rbm:
                     continue
 
-                objfile = "<unknown>"
+                # Try to resolve the name anyway by using SBAddress.
+                file = lldb.SBAddress(region.GetRegionBase(), self.target).GetModule().GetFileSpec()
+                objfile = file.fullpath if file.IsValid() else "<unknown>"
 
             perms = 0
             if region.IsReadable():
