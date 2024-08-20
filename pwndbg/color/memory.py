@@ -4,6 +4,7 @@ from typing import Callable
 
 import gdb
 
+from pwndbg.gdblib.heap.ptmalloc import Heap
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.integration
@@ -26,12 +27,53 @@ c = ColorConfig(
     ],
 )
 
+def test(addr):
+    try:
+        heap = Heap(addr)
+    except Exception as E:
+        return None
+
+    if heap.arena is None:
+        return None
+
+    allocator = pwndbg.gdblib.heap.current
+    assert isinstance(allocator, GlibcMemoryAllocator)
+
+    for chunk in heap:
+        if addr in chunk:
+            arena = chunk.arena
+            if arena:
+                if chunk.is_top_chunk:
+                    return "top chunk"
+
+            if not chunk.is_top_chunk and arena:
+                bins_list = [
+                    allocator.fastbins(arena.address),
+                    allocator.smallbins(arena.address),
+                    allocator.largebins(arena.address),
+                    allocator.unsortedbin(arena.address),
+                ]
+            if allocator.has_tcache():
+                bins_list.append(allocator.tcachebins(None))
+
+            bins_list = [x for x in bins_list if x is not None]
+            for bins in bins_list:
+                if bins.contains_chunk(chunk.real_size, chunk.address):
+                    return str(bins.bin_type)
+
+    return None
+
+
+
 
 def get_address_and_symbol(address: int) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
     If no symbol exists for the address, return colorized address
     """
+
+    # First, attempt to resolve it as an heap bins
+
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         symbol = f"{address:#x} ({symbol})"
