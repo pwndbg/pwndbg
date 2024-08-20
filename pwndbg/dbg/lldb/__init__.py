@@ -756,11 +756,15 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             if address in page and not first_page:
                 first_page = page
                 last_page = page
-                size = page.memsz - (address - page.start)
+                vmmap_size = page.memsz - (address - page.start)
             elif last_page:
-                if page.start <= last_page.end:
+                assert (
+                    last_page.end <= page.start
+                ), "memory map regions should be sorted and not overlap at this point"
+
+                if page.start == last_page.end:
                     last_page = page
-                    size += page.memsz
+                    vmmap_size += page.memsz
                 else:
                     break
 
