@@ -34,19 +34,19 @@ pwndbg.config.add_param(
 )
 
 
-
-
 def get_address_and_symbol(address: int) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
     If no symbol exists for the address, return colorized address
     """
 
-    # Attempt resolve it as a free chunk
+    # Attempt to resolve it as a free chunk
     if pwndbg.config.telescope_free_heap_bins:
         if (page := pwndbg.gdblib.vmmap.find(address)) is not None and "[heap" in page.objfile:
-            if (free_bin_name := pwndbg.gdblib.heap.heap_freebin_address_lookup(address)) is not None:
-                return get(address,f"{address} ({free_bin_name} free chunk)")
+            if (
+                free_bin_name := pwndbg.gdblib.heap.heap_freebin_address_lookup(address)
+            ) is not None:
+                return get(address, f"{address} ({free_bin_name} free chunk)")
 
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:

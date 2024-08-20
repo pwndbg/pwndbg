@@ -126,7 +126,6 @@ def resolve_heap(is_first_run: bool = False) -> None:
         current = pwndbg.gdblib.heap.ptmalloc.DebugSymsHeap()
 
 
-
 def heap_freebin_address_lookup(addr: int) -> str | None:
     """
     Return a string representing the free bin that an address belongs to.
@@ -137,10 +136,10 @@ def heap_freebin_address_lookup(addr: int) -> str | None:
     allocator = pwndbg.gdblib.heap.current
     if not isinstance(allocator, pwndbg.gdblib.heap.ptmalloc.GlibcMemoryAllocator):
         return None
-    
+
     try:
         heap = pwndbg.gdblib.heap.ptmalloc.Heap(addr)
-    except Exception as E:
+    except Exception:
         return None
 
     if heap.arena is None:
