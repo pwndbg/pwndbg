@@ -1093,7 +1093,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 return candidate
 
         print(
-            "warning: symbol '{sym.GetName()}' might be a TLS symbol, but it could not be resolved"
+            f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but it could not be resolved"
         )
         return None
 
