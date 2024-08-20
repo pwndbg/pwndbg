@@ -110,7 +110,7 @@ def format(
     hard_end: int = 0,
     safe_linking: bool = False,
     enhance_string_len: int | None = None,
-    display_heap_free_bins: bool = True
+    display_heap_free_bins: bool = True,
 ) -> str:
     """
     Recursively dereferences an address into string representation, or convert the list representation
