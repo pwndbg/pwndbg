@@ -19,16 +19,13 @@ from typing_extensions import ParamSpec
 
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
+import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.aglib.heap
-    import pwndbg.gdblib.symbol
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -68,15 +65,14 @@ def get_version() -> Tuple[int, ...] | None:
 @pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def _get_version() -> Tuple[int, ...] | None:
-    if pwndbg.dbg.is_gdblib_available():
-        from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-        if pwndbg.aglib.heap.current.libc_has_debug_syms():
-            addr = pwndbg.gdblib.symbol.address("__libc_version")
-            if addr is not None:
-                ver = pwndbg.aglib.memory.string(addr)
-                return tuple(int(_) for _ in ver.split(b"."))
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    if pwndbg.aglib.heap.current.libc_has_debug_syms():
+        addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("__libc_version")
+        if addr is not None:
+            ver = pwndbg.aglib.memory.string(addr)
+            return tuple(int(_) for _ in ver.split(b"."))
 
     libc_filename = get_libc_filename_from_info_sharedlibrary()
     if not libc_filename:
