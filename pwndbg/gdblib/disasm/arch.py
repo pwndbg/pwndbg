@@ -90,6 +90,7 @@ pwndbg.config.add_param(
     "Enable replacing constant operands with their symbol in the disassembly",
 )
 
+
 def syntax_highlight(ins):
     return H.syntax_highlight(ins, filename=".asm")
 
