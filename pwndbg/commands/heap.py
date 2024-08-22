@@ -1565,7 +1565,7 @@ parser.add_argument("addr", type=int, help="Address of the allocated memory loca
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 def jemalloc_find_extent(addr) -> None:
     print(C.banner("Jemalloc find extent"))
-    print("This command only support jemalloc 5.3.0")
+    print("This command was tested only for jemalloc 5.3.0")
     print()
 
     addr = int(addr)
@@ -1592,7 +1592,7 @@ parser.add_argument(
 def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
     if header:
         print(C.banner("Jemalloc extent info"))
-        print("This command only support jemalloc 5.3.0")
+        print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
         print()
 
     extent = jemalloc.Extent(int(addr))
@@ -1614,7 +1614,7 @@ parser = argparse.ArgumentParser(description="Prints all extents information")
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.HEAP)
 def jemalloc_heap() -> None:
     print(C.banner("Jemalloc heap"))
-    print("This command only support jemalloc 5.3.0")
+    print("This command was tested only for jemalloc 5.3.0")
     print()
 
     rtree = jemalloc.RTree.get_rtree()

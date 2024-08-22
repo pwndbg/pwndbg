@@ -11,9 +11,9 @@ RTREE_HEIGHT = 2
 LG_VADDR = 48
 LG_PAGE = 12
 RTREE_NLIB = LG_PAGE
-# jemalloc/include/jemalloc/internal/jemalloc_internal_types.h
+# https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/jemalloc_internal_types.h#L42
 MALLOCX_ARENA_BITS = 12
-# obj/include/jemalloc/jemalloc.h
+# https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/jemalloc_defs.h.in#L51
 LG_SIZEOF_PTR = 3
 
 RTREE_NSB = LG_VADDR - RTREE_NLIB
@@ -21,19 +21,28 @@ RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
 
 
 # TODO: Move to relevant place
-# include/jemalloc/internal/edata.h
+# https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/edata.h#L145
 
 
 def mask(current_field_width, current_field_shift):
     return ((1 << current_field_width) - 1) << current_field_shift
 
 
-LG_QUANTUM = 4  # TODO: lookup value acc to architecture from include/jemalloc/internal/quantum.h (currently set for arch64)
-SC_LG_TINY_MIN = 3
-SC_NTINY = LG_QUANTUM - SC_LG_TINY_MIN
+# For size class related explanation and calculations, refer to https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/sc.h#L8
 
-SC_LG_NGROUP = 2
-SC_NGROUP = 1 << SC_LG_NGROUP
+# TODO: lookup value acc to architecture from include/jemalloc/internal/quantum.h (currently set for arch64)
+LG_QUANTUM = 4  # LG_QUANTUM ensures correct platform alignment and necessary to ensure we never return improperly aligned memory
+
+SC_LG_TINY_MIN = 3
+SC_NTINY = (
+    LG_QUANTUM - SC_LG_TINY_MIN
+)  # Number of tiny size classes for alloations smaller than (1 << LG_QUANTUM)
+
+# Size classes
+SC_LG_NGROUP = 2  # Number of size classes group
+SC_NGROUP = (
+    1 << SC_LG_NGROUP
+)  # Number of size classes in each group, equally spaced in the range, so that * each one covers allocations for base / SC_NGROUP possible allocation sizes
 SC_NPSEUDO = SC_NGROUP
 SC_PTR_BITS = (1 << LG_SIZEOF_PTR) * 8
 SC_LG_BASE_MAX = SC_PTR_BITS - 2
@@ -45,6 +54,7 @@ SC_NSIZES = SC_NTINY + SC_NPSEUDO + SC_NREGULAR
 SC_LG_SLAB_MAXREGS = LG_PAGE - SC_LG_TINY_MIN
 
 
+# Source: https://github.com/jemalloc/jemalloc/blob/dev/include/jemalloc/internal/bit_util.h#L400-L419
 def lg_floor_1(x):
     return 0
 
@@ -135,8 +145,6 @@ EDATA_BITS_IS_HEAD_WIDTH = 1
 EDATA_BITS_IS_HEAD_SHIFT = EDATA_BITS_BINSHARD_WIDTH + EDATA_BITS_BINSHARD_SHIFT
 EDATA_BITS_IS_HEAD_MASK = mask(EDATA_BITS_IS_HEAD_WIDTH, EDATA_BITS_IS_HEAD_SHIFT)
 
-# TODO: Move all rtree operations to different class / helper class
-# TODO: Figure out where to move this definition
 rtree_levels = [
     # for height == 1
     [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
@@ -161,6 +169,12 @@ rtree_levels = [
 
 
 class RTree:
+    """
+    RTree is used by jemalloc to keep track of extents that are allocated by jemalloc.
+    Since extent data is not stored in a doubly linked list, rtree is used to find the extent belonging to a pointer that is being freed.
+    Implementation of rtree is similar to Linux Radix tree: https://lwn.net/Articles/175432/
+    """
+
     # TODO: Check rtee_ctx cache in
     # tsd_nominal_tsds.qlh_first.cant_access_tsd_items_directly_use_a_getter_or_setter_rtree_ctx.cache
     def __init__(self, addr: int) -> None:
@@ -240,11 +254,6 @@ class RTree:
 
         # For subkey 0
         subkey = self.__subkey(key, 1)
-        # print("original: ", subkey)
-        # subkey = self.__rtree_leafkey(key, 1)
-        # print("new1: ", subkey)
-        # subkey = self.__rtree_leafkey(key, 2)
-        # print("new2: ", subkey)
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
         # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
@@ -394,6 +403,15 @@ class Arena:
 
 
 class Extent:
+    """
+    Concept of extent (edata) is similar to chunk in glibc malloc but allocation algorithm differs a lot.
+    - Extents are used to manage memory blocks (including jemalloc metadata) where extents sizes can vary but each block is always a multiple of the page size.
+    - jemalloc will either allocate one large class request or multiple small class request (called slab) depending on request size.
+    - Unlike chunks in glibc malloc, extents are not doubly linked list but are managed using rtree.
+    - This tree is mostly used during deallocation to find the extent belonging to a pointer that is being freed.
+    - Extents are also not stored as a header structure but externally (therefore extent metadata and actually mapped data may be very far apart).
+    """
+
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
@@ -414,13 +432,19 @@ class Extent:
     @property
     def extent_address(self):
         """
-        Returns the address of the memory location the extent is pointing to.
+        Address of the extent data structure (not the actual memory).
         """
         return self._addr
 
-    # Address of allocated memory address
     @property
     def allocated_address(self):
+        """
+        Starting address of allocated memory
+        cache-oblivious large allocation alignment:
+            When a large class allocation is made, jemalloc selects the closest size class that can fit the request and allocates that size + 4 KiB (0x1000).
+            However, the pointer returned to user is randomized between the 'base' and 'base + 4 KiB' (0x1000) range.
+            Source code: https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/arena_inlines_b.h#L505
+        """
         return self._Value["e_addr"]
 
     @property
@@ -468,6 +492,8 @@ class Extent:
     def has_slab(self):
         """
         Returns True if the extent is used for small size classes.
+        Reference for size in Table 1 at https://jemalloc.net/jemalloc.3.html
+        At time of writing, allocations <= 0x3800 are considered as small allocations and has slabs.
         """
         return self.bitfields["slab"] != 0
 
