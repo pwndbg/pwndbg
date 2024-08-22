@@ -489,6 +489,12 @@ class Extent:
         return self._bitfields
 
     @property
+    def state_name(self):
+        state_mapping = ["Active", "Dirty", "Muzzy", "Retained"]
+
+        return state_mapping[self.bitfields["state"]]
+
+    @property
     def has_slab(self):
         """
         Returns True if the extent is used for small size classes.

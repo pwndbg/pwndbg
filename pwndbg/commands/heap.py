@@ -1603,6 +1603,8 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
     print(f"Size: {hex(extent.size)}")
     print(f"Small class: {extent.has_slab}")
 
+    print(f"State: {extent.state_name}")
+
     if verbose:
         for bit, val in extent.bitfields.items():
             print(bit, val)
