@@ -88,6 +88,12 @@ pwndbg.config.add_param(
     "Number of characters in strings to display in disasm annotations",
 )
 
+pwndbg.config.add_param(
+    "disasm-inline-symbols",
+    True,
+    "Enable replacing constant operands with their symbol in the disassembly",
+)
+
 
 def syntax_highlight(ins):
     return H.syntax_highlight(ins, filename=".asm")
@@ -301,7 +307,7 @@ class DisassemblyAssistant:
                     op.before_value, instruction, op, emu
                 )
 
-                if op.symbol and op.type == CS_OP_IMM:
+                if op.symbol and op.type == CS_OP_IMM and pwndbg.config.disasm_inline_symbols:
                     # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
                     instruction.asm_string = instruction.asm_string.replace(
                         hex(op.before_value), op.symbol
