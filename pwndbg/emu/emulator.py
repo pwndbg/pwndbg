@@ -82,6 +82,7 @@ arch_to_UC = {
     "mips": U.UC_ARCH_MIPS,
     "sparc": U.UC_ARCH_SPARC,
     "arm": U.UC_ARCH_ARM,
+    "armcm": U.UC_ARCH_ARM,
     "aarch64": U.UC_ARCH_ARM64,
     # 'powerpc': U.UC_ARCH_PPC,
     "rv32": U.UC_ARCH_RISCV,
@@ -95,6 +96,7 @@ arch_to_UC_consts = {
     "mips": parse_consts(U.mips_const),
     "sparc": parse_consts(U.sparc_const),
     "arm": parse_consts(U.arm_const),
+    "armcm": parse_consts(U.arm_const),
     "aarch64": parse_consts(U.arm64_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
@@ -110,6 +112,7 @@ arch_to_reg_const_map = {
     "mips": create_reg_to_const_map(arch_to_UC_consts["mips"]),
     "sparc": create_reg_to_const_map(arch_to_UC_consts["sparc"]),
     "arm": create_reg_to_const_map(arch_to_UC_consts["arm"]),
+    "armcm": create_reg_to_const_map(arch_to_UC_consts["armcm"]),
     "aarch64": create_reg_to_const_map(
         arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}
     ),
@@ -171,11 +174,18 @@ arch_to_SYSCALL = {
     U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
 
+ARM_BANNED_INSTRUCTIONS = {
+    C.arm.ARM_INS_MRC,
+    C.arm.ARM_INS_MRRC,
+    C.arm.ARM_INS_MRC2,
+    C.arm.ARM_INS_MRRC2,
+}
 # We stop emulation when hitting these instructions, since they depend on co-processors or other information
 # unavailable to the emulator
 BANNED_INSTRUCTIONS = {
     "mips": {C.mips.MIPS_INS_RDHWR},
-    "arm": {C.arm.ARM_INS_MRC, C.arm.ARM_INS_MRRC, C.arm.ARM_INS_MRC2, C.arm.ARM_INS_MRRC2},
+    "arm": ARM_BANNED_INSTRUCTIONS,
+    "armcm": ARM_BANNED_INSTRUCTIONS,
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550
