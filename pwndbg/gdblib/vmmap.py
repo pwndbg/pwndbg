@@ -269,6 +269,9 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
     explored_pages.append(page)
 
+    # Clear the "get" cache so pages that are explored in the current step are included
+    get.cache.clear()  # type: ignore[attr-defined]
+
     return page
 
 
