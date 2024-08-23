@@ -491,6 +491,7 @@ ldr r2, =0x12345678
 
 str r1, [r0]
 strex r3, r2, [r0]
+str r1, [r0], #1
 add r0, r1
 nop
 nop
@@ -507,7 +508,7 @@ value1:
 
 def test_arm_exclusive_store(qemu_assembly_run):
     """
-    This tests that we properly handle both stores and exclusive stores.
+    This tests that we properly handle both stores, exclusive stores, and store with post-indexing
     """
     qemu_assembly_run(ARM_STORE, "arm")
 
@@ -517,13 +518,13 @@ def test_arm_exclusive_store(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        " ► 0x10000000 <_start>       ldr    r0, [pc, #0x30]     R0, [_start+56] => 0x11094 (value1) ◂— 0\n"
-        "   0x10000004 <_start+4>     ldr    r1, [pc, #0x30]     R1, [_start+60] => 0x87654321\n"
-        "   0x10000008 <_start+8>     ldr    r2, [pc, #0x30]     R2, [_start+64] => 0x12345678\n"
+        " ► 0x10000000 <_start>       ldr    r0, [pc, #0x34]     R0, [_start+60] => 0x11094 (value1) ◂— 0\n"
+        "   0x10000004 <_start+4>     ldr    r1, [pc, #0x34]     R1, [_start+64] => 0x87654321\n"
+        "   0x10000008 <_start+8>     ldr    r2, [pc, #0x34]     R2, [_start+68] => 0x12345678\n"
         "   0x1000000c <_start+12>    str    r1, [r0]            [value1] => 0x87654321\n"
         "   0x10000010 <_start+16>    strex  r3, r2, [r0]        [value1] => 0x12345678\n"
-        "   0x10000014 <_start+20>    add    r0, r0, r1          R0 => 0x876653b5 (0x11094 + 0x87654321)\n"
-        "   0x10000018 <_start+24>    nop    \n"
+        "   0x10000014 <_start+20>    str    r1, [r0], #1        [value1] => 0x87654321\n"
+        "   0x10000018 <_start+24>    add    r0, r0, r1          R0 => 0x876653b6 (0x11095 + 0x87654321)\n"
         "   0x1000001c <_start+28>    nop    \n"
         "   0x10000020 <_start+32>    nop    \n"
         "   0x10000024 <_start+36>    nop    \n"

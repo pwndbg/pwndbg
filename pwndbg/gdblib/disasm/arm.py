@@ -49,6 +49,9 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STRBT: 1,
     ARM_INS_STRHT: 2,
     ARM_INS_STRT: 4,
+}
+
+ARM_EXCLUSIVE_STORE_INSTRUCTIONS = {
     ARM_INS_STREXB: 1,
     ARM_INS_STREXH: 2,
     ARM_INS_STREX: 4,
@@ -132,15 +135,23 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[1].str,
             )
         elif instruction.id in ARM_SINGLE_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[1].before_value,
+                instruction.operands[0].before_value,
+                ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[1].str,
+            )
+        elif instruction.id in ARM_EXCLUSIVE_STORE_INSTRUCTIONS:
             # These store instructions include the "Store Register Exclusive", which
             # have an additional register at the front which pushes the source and destination one to the right.
-            # So that this works with normal stores and these stores, we use negative index into the operands list.
             self._common_store_annotator(
                 instruction,
                 emu,
                 instruction.operands[-1].before_value,
                 instruction.operands[-2].before_value,
-                ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
+                ARM_EXCLUSIVE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[-1].str,
             )
         elif instruction.id in ARM_MATH_INSTRUCTIONS:
