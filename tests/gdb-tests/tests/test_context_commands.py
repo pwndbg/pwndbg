@@ -381,7 +381,7 @@ LONG_FUNCTION_X64_BINARY = tests.binaries.get("long_function_x64.out")
 def test_context_disasm_call_instruction_split(start_binary):
     """
     This checks for the following scenario:
-    We are on a `call` instruction, and `si` to enter the function. Now, the we do `fin` to return to the caller.
+    We are on a `call` instruction, and `si` to enter the function. Then, we do `fin` to return to the caller.
     There should be a split in the disassembly after the call instruction.
     """
 
