@@ -533,3 +533,47 @@ def test_arm_exclusive_store(qemu_assembly_run):
     )
 
     assert dis == expected
+
+
+ARM_SHIFTS = """
+MOV r0, #0xF000
+LSR r1, r0, #4
+MOV r2, #2
+LSR r3, r0, r2
+MOV r4, #0x1234
+LSL r5, r4, #8
+LSL r6, r4, r2
+nop
+nop
+nop
+nop
+"""
+
+
+def test_logical_shifts(qemu_assembly_run):
+    """
+    Shifts have a different underlying Capstone representation if it's an constant or a register offset.
+    This test ensures we handle both cases.
+    """
+    qemu_assembly_run(ARM_SHIFTS, "arm")
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x10000000 <_start>       mov    r0, #0xf000     R0 => 0xf000\n"
+        "   0x10000004 <_start+4>     lsr    r1, r0, #4      R1 => 0xf00 (0xf000 >> 0x4)\n"
+        "   0x10000008 <_start+8>     mov    r2, #2          R2 => 2\n"
+        "   0x1000000c <_start+12>    lsr    r3, r0, r2      R3 => 0x3c00 (0xf000 >> 0x2)\n"
+        "   0x10000010 <_start+16>    movw   r4, #0x1234     R4 => 0x1234\n"
+        "   0x10000014 <_start+20>    lsl    r5, r4, #8      R5 => 0x123400 (0x1234 << 0x8)\n"
+        "   0x10000018 <_start+24>    lsl    r6, r4, r2      R6 => 0x48d0 (0x1234 << 0x2)\n"
+        "   0x1000001c <_start+28>    nop    \n"
+        "   0x10000020 <_start+32>    nop    \n"
+        "   0x10000024 <_start+36>    nop    \n"
+        "   0x10000028 <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected

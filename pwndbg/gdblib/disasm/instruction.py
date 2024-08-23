@@ -488,6 +488,13 @@ class EnhancedOperand:
         a register or a memory value to dereference, and we want the actual value used.
         """
 
+        self.before_value_no_modifiers: int | None = None
+        """
+        This is a special field used in some architectures that allow operand modifiers, such as shifts and extends in Arm.
+        Capstone bundles the modifier with the operand, and when we are resolving concrete operand values, we apply the modifier.
+        However, in some annotations we need to un-modified raw register value, which is what this field is for.
+        """
+
         self.after_value_resolved: int | None = None
         """
         The 'resolved' value of the operand after the instruction executes.
