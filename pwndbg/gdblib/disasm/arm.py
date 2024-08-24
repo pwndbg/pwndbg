@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 from typing import Dict
+from typing import Literal
 
 from capstone import *  # noqa: F403
 from capstone.arm import *  # noqa: F403
@@ -72,9 +73,12 @@ ARM_MATH_INSTRUCTIONS = {
 }
 
 
+# This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
 class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture: str) -> None:
+    def __init__(self, architecture: str, flags_reg: Literal["cpsr", "xpsr"]) -> None:
         super().__init__(architecture)
+
+        self.flags_reg = flags_reg
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
@@ -85,13 +89,13 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
             # MOVN
             ARM_INS_MVN: self._common_generic_register_destination,
             # CMP
-            ARM_INS_CMP: self._common_cmp_annotator_builder("cpsr", "-"),
+            ARM_INS_CMP: self._common_cmp_annotator_builder(flags_reg, "-"),
             # CMN
-            ARM_INS_CMN: self._common_cmp_annotator_builder("cpsr", "+"),
+            ARM_INS_CMN: self._common_cmp_annotator_builder(flags_reg, "+"),
             # TST (bitwise "and")
-            ARM_INS_TST: self._common_cmp_annotator_builder("cpsr", "&"),
+            ARM_INS_TST: self._common_cmp_annotator_builder(flags_reg, "&"),
             # TEQ (bitwise exclusive "or")
-            ARM_INS_TEQ: self._common_cmp_annotator_builder("cpsr", "^"),
+            ARM_INS_TEQ: self._common_cmp_annotator_builder(flags_reg, "^"),
         }
 
     @override
@@ -143,11 +147,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         if instruction.address != pwndbg.gdblib.regs.pc:
             return InstructionCondition.UNDETERMINED
 
-        value = (
-            pwndbg.gdblib.regs.cpsr
-            if pwndbg.gdblib.arch.current == "arm"
-            else pwndbg.gdblib.regs.xpsr
-        )
+        value = pwndbg.gdblib.regs[self.flags_reg]
 
         N = (value >> 31) & 1
         Z = (value >> 30) & 1
@@ -291,4 +291,6 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         return target
 
 
-assistant = DisassemblyAssistant("arm")
+# Register the assistant for both ARM A-profile and ARM M-profile
+assistant = DisassemblyAssistant("arm", "cpsr")
+assistant = DisassemblyAssistant("armcm", "xpsr")
