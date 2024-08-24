@@ -6,7 +6,6 @@ import pwndbg.gdblib.info
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.typeinfo
 
-RTREE_HEIGHT = 2
 # adapted from jemalloc source 5.3.0
 LG_VADDR = 48
 LG_PAGE = 12
@@ -19,6 +18,18 @@ LG_SIZEOF_PTR = 3
 RTREE_NSB = LG_VADDR - RTREE_NLIB
 RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
 
+# RTREE_HEIGHT = 2
+if RTREE_NSB <= 10:
+    RTREE_HEIGHT = 1
+elif RTREE_NSB <= 36:
+    RTREE_HEIGHT = 2
+elif RTREE_NSB <= 52:
+    RTREE_HEIGHT = 3
+else:
+    raise ValueError("Unsupported number of significant virtual address bits")
+
+print("RTREE_HEIGHT: ", RTREE_HEIGHT)
+
 
 # TODO: Move to relevant place
 # https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/edata.h#L145
@@ -30,7 +41,6 @@ def mask(current_field_width, current_field_shift):
 
 # For size class related explanation and calculations, refer to https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/sc.h#L8
 
-# TODO: lookup value acc to architecture from include/jemalloc/internal/quantum.h (currently set for arch64)
 LG_QUANTUM = 4  # LG_QUANTUM ensures correct platform alignment and necessary to ensure we never return improperly aligned memory
 
 SC_LG_TINY_MIN = 3
@@ -204,7 +214,6 @@ class RTree:
 
     @property
     def root(self):
-        # return self.rtree["root"]
         return self._Value["root"]
 
     # from include/jemalloc/internal/rtree.h
@@ -246,6 +255,9 @@ class RTree:
     def lookup_hard(self, key):
         """
         Lookup the key in the rtree and return the value.
+
+        How it works:
+        - Jemalloc stores the extent address in the rtree as a node and to find a specific node we need a address key.
         """
         rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
         rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
@@ -256,7 +268,6 @@ class RTree:
         subkey = self.__subkey(key, 1)
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, addr)
         node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
 
         if int(node["child"]["repr"]) == 0:
@@ -265,12 +276,21 @@ class RTree:
         # For subkey 1
         subkey = self.__subkey(key, 2)
         addr = int(node["child"]["repr"]) + subkey * rtree_leaf_elm_s.sizeof
-        # leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, addr)
         leaf = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
         if leaf["le_bits"]["repr"] == 0:
             return None
 
         val = int(leaf["le_bits"]["repr"])
+
+        # In this function, we are trying to find the extent address given the address of memory block
+        # that this extent is managing (which is represented by edata->e_addr in the extent structure)
+
+        # e_addr is 64 bits but
+        # e_addr is also page (4096) aligned which means last 12 bits are zero and therefore unused
+        # In rtree, each layer can be accessed using bits 0-16, 17-33 and 34-51
+        # When height of rtree is 3, level 1 can be accessed using bits 0-16, and so on for level 2 and 3
+        # When the height is 2, 0-15 bits are unused and level 1 can be accessed using bits 16-33 and level 2 using 34-51
+
         ls = (val << RTREE_NHIB) & ((2**64) - 1)
         ptr = ((ls >> RTREE_NHIB) >> 1) << 1
 
