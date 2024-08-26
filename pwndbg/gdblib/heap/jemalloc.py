@@ -9,16 +9,16 @@ import pwndbg.gdblib.typeinfo
 # adapted from jemalloc source 5.3.0
 LG_VADDR = 48
 LG_PAGE = 12
-RTREE_NLIB = LG_PAGE
 # https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/jemalloc_internal_types.h#L42
 MALLOCX_ARENA_BITS = 12
 # https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/jemalloc_defs.h.in#L51
 LG_SIZEOF_PTR = 3
 
-RTREE_NSB = LG_VADDR - RTREE_NLIB
-RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR
+RTREE_NHIB = (1 << (LG_SIZEOF_PTR + 3)) - LG_VADDR  # Number of high insignificant bits
+RTREE_NLIB = LG_PAGE  # Number of low insigificant bits
+RTREE_NSB = LG_VADDR - RTREE_NLIB  # Number of significant bits
 
-# RTREE_HEIGHT = 2
+# Number of levels in radix tree
 if RTREE_NSB <= 10:
     RTREE_HEIGHT = 1
 elif RTREE_NSB <= 36:
@@ -28,8 +28,8 @@ elif RTREE_NSB <= 52:
 else:
     raise ValueError("Unsupported number of significant virtual address bits")
 
-print("RTREE_HEIGHT: ", RTREE_HEIGHT)
 
+# TODO: RTREE_LEAF_COMPACT should be enabled otherwise rtree_leaf_elm_s would change
 
 # TODO: Move to relevant place
 # https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/edata.h#L145
@@ -155,6 +155,9 @@ EDATA_BITS_IS_HEAD_WIDTH = 1
 EDATA_BITS_IS_HEAD_SHIFT = EDATA_BITS_BINSHARD_WIDTH + EDATA_BITS_BINSHARD_SHIFT
 EDATA_BITS_IS_HEAD_MASK = mask(EDATA_BITS_IS_HEAD_WIDTH, EDATA_BITS_IS_HEAD_SHIFT)
 
+# In RTree, Each level distinguishes a certain number of bits from the key, which helps in narrowing down the search space
+# bits: how many bits have been used at that particular level (Number of key bits distinguished by this level)
+# cumbits: how many bits in total have been used up to that level (Cumulative number of key bits distinguished by traversing to corresponding tree level)
 rtree_levels = [
     # for height == 1
     [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
@@ -235,18 +238,17 @@ class RTree:
         return key & mask
 
     def __subkey(self, key, level):
-        # print()
-        # print("KEY: ", key, bin(key))
+        """
+        Return a portion of the key that is used to find the node/leaf in the rtree at a specific level.
+        Source: https://github.com/jemalloc/jemalloc/blob/5b72ac098abce464add567869d082f2097bd59a2/include/jemalloc/internal/rtree.h#L161
+        """
+
         ptrbits = 1 << (LG_SIZEOF_PTR + 3)
-        # print("ptrbits: ", ptrbits, bin(ptrbits))
         cumbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
-        # print("cumbits: ", cumbits, bin(cumbits))
         shiftbits = ptrbits - cumbits
-        # print("shiftbits: ", shiftbits, bin(shiftbits))
         maskbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
-        # print("maskbits: ", maskbits, bin(maskbits))
         mask = (1 << maskbits) - 1
-        # print("mask: ", mask, bin(mask))
+
         return (key >> shiftbits) & mask
 
     def __alignment_addr2base(addr, alignment=64):
@@ -269,7 +271,8 @@ class RTree:
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
         node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
-
+        
+        # on node element, child contains the bits with which we can find another node or leaf element
         if int(node["child"]["repr"]) == 0:
             return None
 
@@ -277,6 +280,8 @@ class RTree:
         subkey = self.__subkey(key, 2)
         addr = int(node["child"]["repr"]) + subkey * rtree_leaf_elm_s.sizeof
         leaf = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
+
+        # On leaf element, le_bits contains the virtual memory address bits so we can use it to find the extent address
         if leaf["le_bits"]["repr"] == 0:
             return None
 
