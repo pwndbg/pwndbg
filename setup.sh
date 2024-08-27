@@ -61,6 +61,15 @@ install_emerge() {
     sudo emerge --oneshot --deep --newuse --changed-use --changed-deps dev-lang/python dev-debug/gdb
 }
 
+install_oma() {
+    sudo oma refresh || true
+    sudo oma install -y gdb gdbserver python-3 glib make glibc-dbg curl
+
+    if uname -m | grep -q x86_64; then
+        sudo oma install -y glibc+32-dbg || true
+    fi
+}
+
 install_pacman() {
     read -p "Do you want to do a full system update? (y/n) [n] " answer
     # user want to perform a full system upgrade
@@ -151,6 +160,9 @@ if linux; then
             ;;
         "freebsd")
             install_freebsd
+            ;;
+        "aosc")
+            install_oma
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt', 'dnf' or 'pacman' package managers."

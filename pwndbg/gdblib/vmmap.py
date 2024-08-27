@@ -269,6 +269,9 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
     explored_pages.append(page)
 
+    # Clear the "get" cache so pages that are explored in the current step are included
+    get.cache.clear()  # type: ignore[attr-defined]
+
     return page
 
 
@@ -481,7 +484,7 @@ def info_proc_maps(parse_flags=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
         info_proc_mappings = []
 
     # See if "Perms" is in the header line
-    perms_available = "Perms" in info_proc_mappings[3]
+    perms_available = len(info_proc_mappings) >= 4 and "Perms" in info_proc_mappings[3]
 
     pages: List[pwndbg.lib.memory.Page] = []
     for line in info_proc_mappings:
