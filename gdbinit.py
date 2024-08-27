@@ -167,8 +167,9 @@ def main() -> None:
             print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
             sys.stdout.flush()
             os._exit(1)
-
-        update_deps(src_root, venv_path)
+        no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE")
+        if no_auto_update is None:
+            update_deps(src_root, venv_path)
         fixup_paths(src_root, venv_path)
 
     # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
