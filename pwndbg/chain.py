@@ -110,6 +110,7 @@ def format(
     hard_end: int = 0,
     safe_linking: bool = False,
     enhance_string_len: int | None = None,
+    display_heap_free_bins: bool = True,
 ) -> str:
     """
     Recursively dereferences an address into string representation, or convert the list representation
@@ -143,7 +144,7 @@ def format(
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Colorize the chain
-    rest = [M.get_address_and_symbol(link) for link in chain]
+    rest = [M.get_address_and_symbol(link, display_heap_free_bins) for link in chain]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:

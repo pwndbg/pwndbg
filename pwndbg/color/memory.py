@@ -4,6 +4,7 @@ from typing import Callable
 
 import gdb
 
+import pwndbg.gdblib.heap
 import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 import pwndbg.integration
@@ -26,12 +27,27 @@ c = ColorConfig(
     ],
 )
 
+pwndbg.config.add_param(
+    "telescope-free-heap-bins",
+    False,
+    "whether or not to resolve heap addresses to bin names while telescoping",
+)
 
-def get_address_and_symbol(address: int) -> str:
+
+def get_address_and_symbol(address: int, display_heap_free_bins=True) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
     If no symbol exists for the address, return colorized address
     """
+
+    # Attempt to resolve it as a free chunk
+    if display_heap_free_bins and pwndbg.config.telescope_free_heap_bins:
+        if (page := pwndbg.gdblib.vmmap.find(address)) is not None and "[heap" in page.objfile:
+            if (
+                free_bin_name := pwndbg.gdblib.heap.heap_freebin_address_lookup(address)
+            ) is not None:
+                return get(address, f"{hex(address)} ({free_bin_name} free chunk)")
+
     symbol = pwndbg.gdblib.symbol.get(address) or None
     if symbol:
         symbol = f"{address:#x} ({symbol})"
