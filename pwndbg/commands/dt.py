@@ -31,5 +31,5 @@ def dt(typename: str, address: int | gdb.Value | None = None) -> None:
     Optionally overlay that information at an address.
     """
     if address is not None:
-        address = pwndbg.commands.fix(address)  # type: ignore[arg-type]
+        address = pwndbg.commands.fix(str(address))
     print(pwndbg.gdblib.dt.dt(typename, addr=address))
