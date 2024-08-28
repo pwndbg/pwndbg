@@ -7,7 +7,6 @@ import pwnlib
 import pwndbg
 from pwndbg.lib.arch import Arch
 
-
 ARCHS = (
     "x86-64",
     "i386",
