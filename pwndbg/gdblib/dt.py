@@ -149,7 +149,11 @@ def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | Non
 
         bitpos = "" if not b else (".%i" % b)
 
-        line = "    +0x%04x%s %-20s : %s" % (o, bitpos, name, extra)
+        if obj:
+            line = "    0x%016x +0x%04x%s %-20s : %s" % (
+                int(obj.address) + o, o, bitpos, name, extra)
+        else:
+            line = "    +0x%04x%s %-20s : %s" % (o, bitpos, name, extra)
         rv.append(line)
 
     return "\n".join(rv)
