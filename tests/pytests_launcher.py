@@ -30,8 +30,11 @@ if return_code != 0:
     print("If you want to debug tests locally, run ./tests.sh with the --pdb flag")
     print("-" * 80)
 
-# We must call this to ensure the code coverage file writes get flushed
+# We must call these functions manually to flush the code coverage data to disk due to using os._exit()
 # https://github.com/nedbat/coveragepy/issues/310
-coverage._atexit()
+if (cov := coverage.Coverage.current()) is not None:
+    cov.stop()
+    cov.save()
+
 sys.stdout.flush()
 os._exit(return_code)

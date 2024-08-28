@@ -12,6 +12,7 @@ import gdb
 import pytest
 from pwn import context
 from pwn import make_elf_from_assembly
+from pwn import pwnlib
 
 _start_binary_called = False
 
@@ -36,12 +37,17 @@ def qemu_assembly_run():
     def _start_binary(asm: str, arch: str, *args):
         nonlocal qemu
 
+        # This is defaulting to 32-bit in this case, breaks the compilation
+        if arch == "riscv64":
+            context.bits = 64
+
         context.arch = arch
         binary_tmp_path = make_elf_from_assembly(asm)
+        qemu_suffix = pwnlib.qemu.archname(arch=arch)
 
         qemu = subprocess.Popen(
             [
-                f"qemu-{arch}",
+                f"qemu-{qemu_suffix}",
                 "-g",
                 f"{QEMU_PORT}",
                 f"{binary_tmp_path}",

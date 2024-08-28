@@ -43,9 +43,9 @@ def next_int(address=None):
 
     ins = pwndbg.aglib.disasm.one(address)
     while ins:
-        if ins.groups_set & ALL_JUMP_GROUPS:
+        if ins.jump_like:
             return None
-        elif ins.groups_set & interrupts:
+        elif ins.groups & interrupts:
             return ins
         ins = pwndbg.aglib.disasm.one(ins.next)
 
@@ -61,7 +61,7 @@ def next_branch(address=None):
 
     ins = pwndbg.aglib.disasm.one(address)
     while ins:
-        if ins.groups_set & ALL_JUMP_GROUPS:
+        if ins.jump_like:
             return ins
         ins = pwndbg.aglib.disasm.one(ins.next)
 
@@ -101,7 +101,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
         if mnemonic_match and op_str_match:
             return ins
 
-        if ins.groups_set & ALL_JUMP_GROUPS:
+        if ins.jump_like:
             # No matching instruction until the next branch, and we're
             # not trying to match the branch instruction itself.
             return None
