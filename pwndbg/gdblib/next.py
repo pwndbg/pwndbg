@@ -14,7 +14,6 @@ import gdb
 import pwndbg.aglib.disasm
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.regs
-from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.color import message
 
 interrupts = {capstone.CS_GRP_INT}
