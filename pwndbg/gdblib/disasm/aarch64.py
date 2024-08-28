@@ -61,14 +61,18 @@ AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
     ARM64_INS_STTRB: 1,
     ARM64_INS_STTRH: 2,
     ARM64_INS_STTR: None,
-    # Store Exclusive
-    ARM64_INS_STXRB: 1,
-    ARM64_INS_STXRH: 2,
-    ARM64_INS_STXR: None,
     # Store-Release
     ARM64_INS_STLRB: 1,
     ARM64_INS_STLRH: 2,
     ARM64_INS_STLR: None,
+}
+
+# The first operand of these instructions gets the status result of the operation
+AARCH64_EXCLUSIVE_STORE_INSTRUCTIONS = {
+    # Store Exclusive
+    ARM64_INS_STXRB: 1,
+    ARM64_INS_STXRH: 2,
+    ARM64_INS_STXR: None,
     # Store-Release Exclusive
     ARM64_INS_STLXRB: 1,
     ARM64_INS_STLXRH: 2,
@@ -246,6 +250,15 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 AARCH64_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
             )
+        elif instruction.id in AARCH64_EXCLUSIVE_STORE_INSTRUCTIONS:
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[-1].before_value,
+                instruction.operands[-2].before_value,
+                AARCH64_EXCLUSIVE_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[-1].str,
+            )
         elif instruction.id in AARCH64_MATH_INSTRUCTIONS:
             self._common_binary_op_annotator(
                 instruction,
@@ -325,7 +338,7 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        if not bool(instruction.groups_set & ALL_JUMP_GROUPS):
+        if not bool(instruction.groups & ALL_JUMP_GROUPS):
             return None
 
         if len(instruction.operands) > 0:

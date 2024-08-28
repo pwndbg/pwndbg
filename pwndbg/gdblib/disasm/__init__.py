@@ -416,7 +416,7 @@ def near(
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={cached:#x}")
-            if insn.jump_like and insn.split == SplitType.NO_SPLIT:
+            if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
             cached = backward_cache[insn.address]
@@ -454,8 +454,11 @@ def near(
                 emulated_arm_mode_cache[emu.pc] = emu.read_thumb_bit()
 
         # Handle visual splits in the disasm view
-        # The second check here handles instructions like x86 `REP` that repeat the instruction
-        if insn.has_jump_target or insn.next == insn.address:
+        # We create splits in 3 conditions:
+        # 1. We know the instruction is "jump_like" - it mutates the PC. We don't necessarily know the target, but know it can have one.
+        # 2. The instruction has an explicitly resolved target which is not the next instruction in memory
+        # 3. The instruction repeats (like x86 `REP`)
+        if insn.jump_like or insn.has_jump_target or insn.next == insn.address:
             split_insn = insn
 
             # If this instruction has a delay slot, disassemble the delay slot instruction
@@ -483,7 +486,9 @@ def near(
                 ):
                     target = insn.target
 
-            if not linear and insn.next != insn.address + insn.size:
+            if not linear and (
+                insn.next != insn.address + insn.size or insn.force_unconditional_jump_target
+            ):
                 split_insn.split = SplitType.BRANCH_TAKEN
             else:
                 split_insn.split = SplitType.BRANCH_NOT_TAKEN

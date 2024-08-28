@@ -652,6 +652,11 @@ class DisassemblyAssistant:
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
                 next_addr = jump_emu.pc
 
+        # Handle edge case - if the target happens to be the next address in memory and it's a jump, we need this variable
+        # so the disasm output is accurate.
+        if next_addr is not None and instruction.is_unconditional_jump:
+            instruction.force_unconditional_jump_target = True
+
         # All else fails, take the next instruction in memory
         if next_addr is None:
             next_addr = instruction.address + instruction.size
@@ -686,7 +691,12 @@ class DisassemblyAssistant:
         Even in the case of conditional jumps, the potential target should be resolved.
         """
 
-        if not bool(instruction.groups_set & FORWARD_JUMP_GROUP):
+        # The FORWARD_JUMP_GROUP here is very specific
+        # We only want this resolver to work for instructions that Capstone
+        # explicitely labels as jump instructions. If we determine that another type of instruction
+        # can have a target, we resolve it manually, as this manual resolver would return improper values,
+        # as it is built on the assumptions of branch instructions across many architectures.
+        if not bool(instruction.groups & FORWARD_JUMP_GROUP):
             return None
 
         addr = None

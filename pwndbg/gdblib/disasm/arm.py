@@ -50,6 +50,9 @@ ARM_SINGLE_STORE_INSTRUCTIONS = {
     ARM_INS_STRBT: 1,
     ARM_INS_STRHT: 2,
     ARM_INS_STRT: 4,
+}
+
+ARM_EXCLUSIVE_STORE_INSTRUCTIONS = {
     ARM_INS_STREXB: 1,
     ARM_INS_STREXH: 2,
     ARM_INS_STREX: 4,
@@ -62,14 +65,40 @@ ARM_MATH_INSTRUCTIONS = {
     ARM_INS_ORR: "|",
     ARM_INS_AND: "&",
     ARM_INS_EOR: "^",
-    ARM_INS_ASR: ">>s",
-    ARM_INS_LSR: ">>",
-    ARM_INS_LSL: "<<",
     ARM_INS_UDIV: "/",
     ARM_INS_SDIV: "/",
     ARM_INS_MUL: "*",
     ARM_INS_UMULL: "*",
     ARM_INS_SMULL: "*",
+}
+
+ARM_SHIFT_INSTRUCTIONS = {
+    ARM_INS_ASR: ">>s",
+    ARM_INS_LSR: ">>",
+    ARM_INS_LSL: "<<",
+}
+
+
+def first_op_is_pc(i: PwndbgInstruction) -> bool:
+    return i.operands[0].reg == ARM_REG_PC
+
+
+def ops_contain_pc(i: PwndbgInstruction) -> bool:
+    for op in i.operands:
+        if op.type == CS_OP_REG:
+            if op.reg == ARM_REG_PC:
+                return True
+    return False
+
+
+ARM_CAN_WRITE_TO_PC: Dict[int, Callable[[PwndbgInstruction], bool]] = {
+    ARM_INS_ADD: first_op_is_pc,
+    ARM_INS_SUB: first_op_is_pc,
+    ARM_INS_SUBS: first_op_is_pc,
+    ARM_INS_MOV: first_op_is_pc,
+    ARM_INS_LDR: first_op_is_pc,
+    ARM_INS_POP: ops_contain_pc,
+    ARM_INS_LDM: ops_contain_pc,
 }
 
 
@@ -121,6 +150,17 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 ARM_SINGLE_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
             )
+        elif instruction.id in ARM_EXCLUSIVE_STORE_INSTRUCTIONS:
+            # These store instructions include the "Store Register Exclusive", which
+            # have an additional register at the front which pushes the source and destination one to the right.
+            self._common_store_annotator(
+                instruction,
+                emu,
+                instruction.operands[-1].before_value,
+                instruction.operands[-2].before_value,
+                ARM_EXCLUSIVE_STORE_INSTRUCTIONS[instruction.id],
+                instruction.operands[-1].str,
+            )
         elif instruction.id in ARM_MATH_INSTRUCTIONS:
             # In Arm assembly, if there are two operands, than the first source operand is also the destination
             # Example: add    sl, r3
@@ -133,11 +173,37 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[-1].before_value,
                 ARM_MATH_INSTRUCTIONS[instruction.id],
             )
+        elif instruction.id in ARM_SHIFT_INSTRUCTIONS:
+            # If it's a constant shift
+            if len(instruction.operands) == 2:
+                self._common_binary_op_annotator(
+                    instruction,
+                    emu,
+                    instruction.operands[0],
+                    instruction.operands[1].before_value_no_modifiers,
+                    instruction.operands[1].cs_op.shift.value,
+                    ARM_SHIFT_INSTRUCTIONS[instruction.id],
+                )
+            else:
+                # Register shift
+                self._common_binary_op_annotator(
+                    instruction,
+                    emu,
+                    instruction.operands[0],
+                    instruction.operands[1].before_value,
+                    instruction.operands[2].before_value,
+                    ARM_SHIFT_INSTRUCTIONS[instruction.id],
+                )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if instruction.id in ARM_CAN_WRITE_TO_PC:
+            instruction.declare_is_unconditional_jump = ARM_CAN_WRITE_TO_PC[instruction.id](
+                instruction
+            )
+
         if instruction.cs_insn.cc == ARM_CC_AL:
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False
@@ -281,6 +347,9 @@ class DisassemblyAssistant(pwndbg.gdblib.disasm.arch.DisassemblyAssistant):
         target = super()._parse_register(instruction, op, emu)
         if target is None:
             return None
+
+        # We need this to retain the value of the un-shifted register in some annotations, such as shifts
+        op.before_value_no_modifiers = target
 
         # Optionally apply shift to the index register
         if op.cs_op.shift.type != 0:

@@ -67,6 +67,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
 }
 
+# See: https://github.com/capstone-engine/capstone/issues/2448
 BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
 BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_BAL,
@@ -150,13 +151,11 @@ class PwndbgInstruction:
         Ex: 'RAX, RDX'
         """
 
-        self.groups: List[int] = cs_insn.groups
+        self.groups: Set[int] = set(cs_insn.groups)
         """
         Capstone instruction groups that we belong to.
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
         """
-
-        self.groups_set = set(self.groups)
 
         self.id: int = cs_insn.id
         """
@@ -248,6 +247,28 @@ class PwndbgInstruction:
         None if we don't have a determination (most cases)
         """
 
+        self.declare_is_unconditional_jump: bool = False
+        """
+        This field is used to declare that this instruction is an unconditional jump.
+        Most of the type, we depend on Capstone groups to check for jump instructions,
+        but sometimes these are lacking, such as in the case of general-purpose instructions
+        where the PC is the destination register, such as Arm `add`, `sub`, `ldr`, and `pop` instructions.
+
+        In these cases, we want to forcefully state that this instruction mutates the PC, so we set this attribute to True.
+
+        This helps in two cases:
+        1. Disassembly splits
+        2. Instructions like `stepuntilasm` work better, as they detect these as branches to stop at.
+        """
+
+        self.force_unconditional_jump_target: bool = False
+        """
+        This asserts that the .target attribute is the real target of the instruction.
+        This is only relevent in the edge case that the target is the next instruction in memory (address + size).
+        The normal check for "target" checks that the target is NOT the next address in memory, and here we can assert that even if that is the case,
+        we know that the jump really does just go to where self.target is.
+        """
+
         self.annotation: str | None = None
         """
         The string is set in the "DisassemblyAssistant.enhance" function.
@@ -301,7 +322,7 @@ class PwndbgInstruction:
         Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
         """
         return (
-            CS_GRP_CALL in self.groups_set
+            CS_GRP_CALL in self.groups
             or self.id in BRANCH_AND_LINK_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
 
@@ -313,30 +334,35 @@ class PwndbgInstruction:
 
         It may still be a conditional jump - this property does not indicate whether the jump is taken or not.
         """
-        return bool(self.groups_set & ALL_JUMP_GROUPS)
+        return bool(self.groups & ALL_JUMP_GROUPS) or self.declare_is_unconditional_jump
 
     @property
     def has_jump_target(self) -> bool:
         """
         True if we have determined that this instruction can explicitly change the program counter, and
-        it's a JUMP-type instruction.
+        we have determined the jump target.
+
+        Edge case - the jump target MAY be the next address in memory - so we check force_unconditional_jump_target
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
-        return self.target not in (None, self.address + self.size) and (
-            self.target != self.address or self.jump_like
-        )
+        return (
+            self.target not in (None, self.address + self.size)
+            and (self.target != self.address or self.jump_like)
+        ) or self.force_unconditional_jump_target
 
     @property
     def is_conditional_jump(self) -> bool:
         """
         True if this instruction can change the program counter conditionally.
 
-        This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view
+        This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view.
+
+        This does not imply that we have resolved the .target
         """
         return (
             self.declare_conditional is not False
-            and bool(self.groups_set & GENERIC_JUMP_GROUPS)
+            and bool(self.groups & GENERIC_JUMP_GROUPS)
             and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
 
@@ -348,10 +374,14 @@ class PwndbgInstruction:
         This includes things like RET, CALL, and JMP (in x86).
 
         This property is used in enhancement to determine certain codepaths when resolving .next for this instruction.
+
+        This does not imply that we have resolved the .target
         """
         return (
-            bool(self.groups_set & GENERIC_UNCONDITIONAL_JUMP_GROUPS)
+            bool(self.groups & GENERIC_UNCONDITIONAL_JUMP_GROUPS)
             or self.id in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
+            or self.declare_is_unconditional_jump
+            or self.declare_conditional is False
         )
 
     @property
@@ -362,7 +392,7 @@ class PwndbgInstruction:
         # True if:
         # - We manually determined in .condition that we take the jump
         # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False.
-        #   Emulation can be incorrect, so we check the conditional for false to ensure we didn't manually override the emulator's decision
+        #   Emulation can be incorrect, so we check the conditional for false to check if we manually override the emulator's decision
         return self.is_conditional_jump and (
             self.condition == InstructionCondition.TRUE
             or (
@@ -408,6 +438,8 @@ class PwndbgInstruction:
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
         Declare unconditional: {self.declare_conditional}
+        Declare unconditional jump: {self.declare_is_unconditional_jump}
+        Force jump target: {self.force_unconditional_jump_target}
         Can change PC: {self.has_jump_target}
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}
@@ -454,6 +486,13 @@ class EnhancedOperand:
 
         Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
         a register or a memory value to dereference, and we want the actual value used.
+        """
+
+        self.before_value_no_modifiers: int | None = None
+        """
+        This is a special field used in some architectures that allow operand modifiers, such as shifts and extends in Arm.
+        Capstone bundles the modifier with the operand, and when we are resolving concrete operand values, we apply the modifier.
+        However, in some annotations we need to un-modified raw register value, which is what this field is for.
         """
 
         self.after_value_resolved: int | None = None
