@@ -491,5 +491,5 @@ class IODriverPseudoTerminal(IODriver):
         # get to have the PTY we set up in this class as the main controller for
         # this process.
         #
-        # TODO: Replace controlling PTY of the proecss once it is set up.
+        # TODO: Replace controlling PTY of the process once it is set up.
         pass
