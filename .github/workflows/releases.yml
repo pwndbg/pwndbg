@@ -46,37 +46,41 @@ jobs:
           ./dist-tarball/*
         draft: true
         token: ${{ secrets.TOKEN }}
-  releases-arm64:
-    runs-on: ARM64
-    timeout-minutes: 60
-    steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
 
-    - name: build pwndbg
-      run: nix build '.#pwndbg' -o result-pwndbg
-
-    - name: build rpm
-      run: nix build '.#rpm' -o dist-rpm
-    - name: build deb
-      run: nix build '.#deb' -o dist-deb
-    - name: build apk
-      run: nix build '.#apk' -o dist-apk
-    - name: build archlinux
-      run: nix build '.#archlinux' -o dist-archlinux
-    - name: build tarball
-      run: nix build '.#tarball' -o dist-tarball
-
-    - name: release
-      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
-      with:
-        files: |
-          ./dist-rpm/*
-          ./dist-deb/*
-          ./dist-apk/*
-          ./dist-archlinux/*
-          ./dist-tarball/*
-        draft: true
-        token: ${{ secrets.TOKEN }}
+# The action below is commented out because we don't have our own ARM64 runner anymore
+# This waits to be uncommented when GH allows for ARM64 runners for open source projects
+#
+#  releases-arm64:
+#    runs-on: ARM64
+#    timeout-minutes: 60
+#    steps:
+#    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+#    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+#      with:
+#        nix_path: nixpkgs=channel:nixos-unstable
+#
+#    - name: build pwndbg
+#      run: nix build '.#pwndbg' -o result-pwndbg
+#
+#    - name: build rpm
+#      run: nix build '.#rpm' -o dist-rpm
+#    - name: build deb
+#      run: nix build '.#deb' -o dist-deb
+#    - name: build apk
+#      run: nix build '.#apk' -o dist-apk
+#    - name: build archlinux
+#      run: nix build '.#archlinux' -o dist-archlinux
+#    - name: build tarball
+#      run: nix build '.#tarball' -o dist-tarball
+#
+#    - name: release
+#      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
+#      with:
+#        files: |
+#          ./dist-rpm/*
+#          ./dist-deb/*
+#          ./dist-apk/*
+#          ./dist-archlinux/*
+#          ./dist-tarball/*
+#        draft: true
+#        token: ${{ secrets.TOKEN }}
