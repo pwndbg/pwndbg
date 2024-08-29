@@ -3,8 +3,11 @@ from __future__ import annotations
 import contextlib
 from typing import Iterator
 
+import pwnlib.elf.elf
 import pwnlib.term.text
 from pwnlib.elf import ELF
+
+pwnlib.elf.elf.log._logger.disabled = True
 
 import pwndbg.color.message as M
 
