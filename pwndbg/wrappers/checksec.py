@@ -6,6 +6,9 @@ from typing import Iterator
 import pwnlib.term.text
 from pwnlib.elf import ELF
 
+import pwnlib.elf.elf
+pwnlib.elf.elf.log._logger.disabled = True
+
 import pwndbg.color.message as M
 
 
