@@ -134,7 +134,7 @@ omit = ["ida_script.py", "tests/*"]
 [tool.poetry]
 name = "pwndbg"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
-version = "2024.02.14"
+version = "2024.08.29"
 authors = ["Dominik 'disconnect3d' Czarnota <dominik.b.czarnota+dc@gmail.com>"]
 readme = "README.md"
 packages = [
