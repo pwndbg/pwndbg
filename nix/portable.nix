@@ -20,10 +20,8 @@ let
     #!/bin/sh
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
     export PYTHONHOME="$dir"
-    export PYTHONPYCACHEPREFIX="$dir/cache/"
     exec "$dir/lib/${ldName}" "$dir/exe/gdb" --quiet --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
   '';
-  # for cache: pwndbg --eval-command="py import compileall; compileall.compile_dir('/usr/lib/pwndbg/'); exit()"
 
   portable =
     pkgs.runCommand "portable-${pwndbg.name}"
@@ -33,14 +31,13 @@ let
           version = pwndbg.version;
           architecture = gdb.stdenv.targetPlatform.system;
         };
-        nativeBuildInputs = [ pkgs.makeWrapper ];
+        nativeBuildInputs = [ pkgs.makeWrapper pkgs.proot ];
       }
       ''
         mkdir -p $out/pwndbg/bin/
         mkdir -p $out/pwndbg/lib/
         mkdir -p $out/pwndbg/exe/
         mkdir -p $out/pwndbg/share/gdb/
-        mkdir -p $out/pwndbg/cache/
         touch $out/pwndbg/exe/.skip-venv
 
         cp -rf ${gdbBundledLib}/exe/* $out/pwndbg/exe/
@@ -58,6 +55,10 @@ let
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/subprocess.py --replace "'${pkgs.bash}/bin/sh'" "'/bin/sh'"
+
+        # build pycache
+        chmod -R +w $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwndbg
+        SOURCE_DATE_EPOCH=0 proot -b $out/pwndbg:/usr/lib/pwndbg ${pwndbgVenv}/bin/python3 -c "import compileall; compileall.compile_dir('/usr/lib/pwndbg/', force=True);"
       '';
 in
 portable
