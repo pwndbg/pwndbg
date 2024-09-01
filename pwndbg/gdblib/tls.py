@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib.disasm
 import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol

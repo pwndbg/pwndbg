@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-import gdb
-
 
 class MemoryAllocator:
     """Heap abstraction layer."""
 
-    def breakpoint(self, event: str) -> gdb.Breakpoint:
+    # This function isn't actually implemented anywhere. It originally returned
+    # `gdb.Breakpoint`, but, in order to facilitate the port to aglib, that
+    # type association was removed. It should be put back as soon as the
+    # Debugger-agnostic API gains the ability to set breakpoints.
+    #
+    # TODO: Change `Any` to the Debugger-agnostic breakpoint type when it gets created
+    def breakpoint(self, event: str) -> Any:
         """Enables breakpoints on the specific event.
 
         Arguments:

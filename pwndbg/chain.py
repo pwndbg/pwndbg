@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from typing import List
 
-import gdb
-
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.enhance
-import pwndbg.gdblib.abi
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.typeinfo
-import pwndbg.gdblib.vmmap
 import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -75,21 +72,19 @@ def get(
 
             # Avoid redundant dereferences in bare metal mode by checking
             # if address is in any of vmmap pages
-            if not pwndbg.gdblib.abi.linux and not pwndbg.gdblib.vmmap.find(address):
+            if not pwndbg.dbg.selected_inferior().is_linux() and not pwndbg.aglib.vmmap.find(
+                address
+            ):
                 break
 
             next_address = int(
-                pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, address)
+                pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, address)
             )
             address = next_address ^ ((address >> 12) if safe_linking else 0)
-            address &= pwndbg.gdblib.arch.ptrmask
+            address &= pwndbg.aglib.arch.ptrmask
             result.append(address)
-        except gdb.MemoryError:
+        except pwndbg.dbg_mod.Error:
             break
-        except gdb.error as e:
-            if str(e) == "value is not available":
-                break
-            raise
 
     return result
 

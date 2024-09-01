@@ -4,13 +4,16 @@ The abstracted debugger interface.
 
 from __future__ import annotations
 
+import contextlib
 from enum import Enum
 from typing import Any
 from typing import Callable
+from typing import Generator
 from typing import List
 from typing import Literal
 from typing import Sequence
 from typing import Tuple
+from typing import TypedDict
 from typing import TypeVar
 
 import pwndbg.lib.memory
@@ -20,8 +23,46 @@ dbg: Debugger = None
 T = TypeVar("T")
 
 
+@contextlib.contextmanager
+def selection(target: T, get_current: Callable[[], T], select: Callable[[T], None]):
+    """
+    Debuggers have global state. Many of our queries require that we select a
+    given object globally before we make them. When doing that, we must always
+    be careful to return selection to its previous state before exiting. This
+    class automatically manages the selection of a single object type.
+
+    Upon entrace to the `with` block, the element given by `target` will be
+    compared to the object returned by calling `get_current`. If they
+    compare different, the value previously returned by `get_current` is
+    saved, and the element given by `target` will be selected by passing it
+    as an argument to `select`, and, after execution leaves the `with`
+    block, the previously saved element will be selected in the same fashion
+    as the first element.
+
+    If the elements don't compare different, this is a no-op.
+    """
+
+    current = get_current()
+    restore = False
+    if current != target:
+        select(target)
+        restore = True
+
+    try:
+        yield
+    finally:
+        if restore:
+            select(current)
+
+
 class Error(Exception):
     pass
+
+
+class DisassembledInstruction(TypedDict):
+    addr: int
+    asm: str
+    length: int
 
 
 class Arch:
@@ -51,6 +92,55 @@ class Arch:
         raise NotImplementedError()
 
 
+class StopPoint:
+    """
+    The handle to either an insalled breakpoint or watchpoint.
+    """
+
+    def remove(self) -> None:
+        """
+        Removes the breakpoint associated with this handle.
+        """
+        raise NotImplementedError()
+
+    def set_enabled(self, enabled: bool) -> None:
+        """
+        Enables or disables this breakpoint.
+        """
+        raise NotImplementedError()
+
+
+class BreakpointLocation:
+    """
+    This is the location specification for a breakpoint.
+    """
+
+    address: int
+
+    def __init__(self, address: int):
+        self.address = address
+
+
+class WatchpointLocation:
+    """
+    This is the location specification for a watchpoint.
+    """
+
+    address: int
+    size: int
+    watch_read: bool
+    watch_write: bool
+
+    def __init__(self, address: int, size: int, watch_read: bool, watch_write: bool):
+        self.address = address
+        self.size = size
+
+        assert watch_read or watch_write, "Watchpoints must watch at least one of reads or writes"
+
+        self.watch_read = watch_read
+        self.watch_write = watch_write
+
+
 class Registers:
     """
     A handle to the register values in a frame.
@@ -77,11 +167,70 @@ class Frame:
         """
         raise NotImplementedError()
 
+    def reg_write(self, name: str, val: int) -> bool:
+        """
+        Sets the value of the register with the given name to the given value.
+        Returns true if the register exists, false othewise. Throws an exception
+        if the register exists but cannot be written to.
+        """
+        raise NotImplementedError()
+
+    def pc(self) -> int:
+        """
+        The value of the program counter for this frame.
+        """
+        raise NotImplementedError()
+
+    def sp(self) -> int:
+        """
+        The value of the stack pointer for this frame.
+        """
+        raise NotImplementedError()
+
+    def parent(self) -> Frame | None:
+        """
+        The parent frame of this frame, if it exists.
+        """
+        raise NotImplementedError()
+
+    def child(self) -> Frame | None:
+        """
+        The child frame of this frame, if it exists.
+        """
+        raise NotImplementedError()
+
+    def sal(self) -> Tuple[str, int] | None:
+        """
+        The filename of the source code file associated with this frame, and the
+        line number associated with it, if available.
+        """
+        raise NotImplementedError()
+
+    def __eq__(self, rhs: object) -> bool:
+        """
+        Whether this frame is the same as the given frame. Two frames are the
+        same if they point to the same stack frame and have the same execution
+        context.
+        """
+        raise NotImplementedError()
+
 
 class Thread:
     def bottom_frame(self) -> Frame:
         """
         Frame at the bottom of the call stack for this thread.
+        """
+        raise NotImplementedError()
+
+    def ptid(self) -> int | None:
+        """
+        The PTID of this thread, if available.
+        """
+        raise NotImplementedError()
+
+    def index(self) -> int:
+        """
+        The unique index of this thread from the perspective of the debugger.
         """
         raise NotImplementedError()
 
@@ -117,6 +266,18 @@ class Process:
         """
         raise NotImplementedError()
 
+    def pid(self) -> int | None:
+        """
+        Returns the process ID of this process if it is alive.
+        """
+        raise NotImplementedError()
+
+    def alive(self) -> bool:
+        """
+        Returns whether this process is alive.
+        """
+        raise NotImplementedError()
+
     def evaluate_expression(self, expression: str) -> Value:
         """
         Evaluate the given expression in the context of the current process, and
@@ -130,6 +291,79 @@ class Process:
         """
         raise NotImplementedError()
 
+    def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
+        """
+        Reads the requested number of bytes from the address given in the memory
+        space of this process. Will read as many bytes as possible starting at
+        that location, and returns how many were read.
+
+        Throws an exception if reading fails and partial is False.
+        """
+        raise NotImplementedError()
+
+    def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
+        """
+        Writes as many bytes from the given data buffer as possible into the
+        given address in the memory space of this process.
+
+        Throws an exception if writing fails and partial is False.
+        """
+        raise NotImplementedError()
+
+    def find_in_memory(
+        self,
+        pattern: bytearray,
+        start: int,
+        size: int,
+        align: int,
+        max_matches: int = -1,
+        step: int = -1,
+    ) -> Generator[int, None, None]:
+        """
+        Searches for a bit pattern in the memory space of the process. The bit
+        pattern can be searched for in a given memory range, and with a given
+        alignment. The maximum number of matches that will be generated is
+        given by `max_matches`. A value of `max_matches` of `-1` will generate
+        all matches.
+        """
+        raise NotImplementedError()
+
+    def is_remote(self) -> bool:
+        """
+        Returns whether this process is a remote process connected to using the
+        GDB remote debugging protocol.
+        """
+        raise NotImplementedError()
+
+    def send_remote(self, packet: str) -> str:
+        """
+        Sends the given packet to the GDB remote debugging protocol server.
+        Should only be called if `is_remote()` is true.
+        """
+        raise NotImplementedError()
+
+    def send_monitor(self, cmd: str) -> str:
+        """
+        Sends the given monitor command to the GDB remote debugging protocol
+        server. Should only be called if `is_remote()` is true.
+        """
+        raise NotImplementedError()
+
+    def download_remote_file(self, remote_path: str, local_path: str) -> None:
+        """
+        Downloads the given file from the remote host and saves it to the local
+        given path. Should only be called if `is_remote()` is true.
+        """
+        raise NotImplementedError()
+
+    def create_value(self, value: int, type: Type | None = None) -> Value:
+        """
+        Create a new value in the context of this process, with the given value
+        and, optionally, type. If no type is provided, one will be chosen
+        automatically.
+        """
+        raise NotImplementedError()
+
     # We'll likely have to expand this into a Symbol class and change this to a
     # `symbol_at_address` function later on.
     def symbol_name_at_address(self, address: int) -> str | None:
@@ -139,9 +373,125 @@ class Process:
         """
         raise NotImplementedError()
 
+    def symbol_address_from_name(self, name: str, prefer_static: bool = False) -> int | None:
+        """
+        Returns the address of a symbol, given its name. Optionally, the user
+        may specify that they want to prioritize symbols in the static block, if
+        supported by the debugger.
+        """
+        raise NotImplementedError()
+
+    # There is an interesting counterpart to this method that exists at the
+    # module level. Depending on how we want to implement support for multiple
+    # modules, it might be interesting to repeat it there.
+    def types_with_name(self, name: str) -> Sequence[Type]:
+        """
+        Returns a list of all types in this process that match the given name.
+        """
+        raise NotImplementedError()
+
     def arch(self) -> Arch:
         """
         The default architecture of this process.
+        """
+        raise NotImplementedError()
+
+    def break_at(
+        self,
+        location: BreakpointLocation | WatchpointLocation,
+        stop_handler: Callable[[StopPoint], bool] | None = None,
+        one_shot: bool = False,
+        internal: bool = False,
+    ) -> StopPoint:
+        """
+        Install a breakpoint or watchpoint at the given location.
+
+        The type of the location determines whether the newly created object
+        is a watchpoint or a breakpoint. `BreakpointLocation` locations yield
+        breakpoints, while `WatchpointLocation` locations yield watchpoints.
+
+        Aditionally, one may specify a stop handler function, to be run when
+        the breakpoint or whatchpoint is hit, and that determines whether
+        execution should stop. With a return value of `True` being interpreted
+        as a signal to stop, and a return value of `False` being interpreted as
+        a signal to continue execution. The extent of the actions that may be
+        taken during the stop handler is determined by the debugger.
+
+        Breakpoints and watchpoints marked as `one_shot` are removed after they
+        are first triggered. For the purposes of `one_shot`, a breakpoint or
+        watchpoint that has a stop handler is only considered to be triggered
+        when its stop handler returns `True`.
+
+        Marking a breakpoint or watchpoint as `internal` hints to the
+        implementation that the created breakpoint or watchpoint should not be
+        directly nameable by the user, and that it should not print any messages
+        upon being triggered. Implementations should try to honor this hint,
+        but they are not required to in case honoring it is either not possible
+        or comes at a significant impact to performance.
+
+        This function returns a handle to the newly created breakpoint or
+        watchpoint.
+        """
+        raise NotImplementedError()
+
+    # This is a fairly lazy solution. We would ideally support a more robust way
+    # to query for ABIs, but Pwndbg currely only uses `show osabi` in GDB to
+    # check for whether the target is running under Linux, so we only implement
+    # that check.
+    def is_linux(self) -> bool:
+        """
+        Returns whether the current ABI is GNU/Linux.
+        """
+        raise NotImplementedError()
+
+    def disasm(self, address: int) -> DisassembledInstruction | None:
+        """
+        Returns the disassembled instruction at the given address in the address
+        space of the running process, or `None` if there's no valid instruction
+        at that address.
+        """
+        raise NotImplementedError()
+
+    # We probably want to expose a better module interface in the future, but,
+    # for now, this is good enough.
+    def module_section_locations(self) -> List[Tuple[int, int, str, str]]:
+        """
+        Return a list of (address, size, section_name, module_name) tuples for
+        the loaded sections in every module of this process.
+        """
+        raise NotImplementedError()
+
+    def main_module_name(self) -> str | None:
+        """
+        Returns the name of the main module.
+
+        On remote targets, this may be prefixed with "target:" string.
+        """
+        raise NotImplementedError()
+
+    def main_module_entry(self) -> int | None:
+        """
+        Returns the entry point of the main module.
+        """
+        raise NotImplementedError()
+
+    def is_dynamically_linked(self) -> bool:
+        """
+        Returns whether this process makes use of dynamically linked libraries.
+
+        # `"dynamically linked"`
+        What exactly it means to be "dynamically linked" here is a little
+        ill-defined. Ideally, this function should return true if the process
+        uses the default dynamic linker for the system, as that would better
+        reflect whether the process uses dynamic linking.
+
+        Currently, though, Pwndbg expects it to behave the same as a check for
+        the string "No shared libraries loaded at this time." in the output of
+        the `info dll` GDB command, which checks for the presence of other
+        modules in the address space of the process, rather than whether or not
+        the dynamic linker is used.
+
+        We should probably sort this out in the future.
         """
         raise NotImplementedError()
 
@@ -194,6 +544,12 @@ class Type:
     """
 
     @property
+    def sizeof(self) -> int:
+        """
+        The size of this type, in bytes.
+        """
+
+    @property
     def alignof(self) -> int:
         """
         The alignment of this type, in bytes.
@@ -213,9 +569,24 @@ class Type:
         """
         raise NotImplementedError()
 
+    def has_field(self, name: str) -> bool:
+        """
+        Whether this type has a field with the given name.
+        """
+        # This is a sensible default way to check for a field's existence.
+        #
+        # Implementations should, however, override this method if there's a
+        # debugger-specific check for this that might be faster or more accurate.
+        fields = self.fields()
+        if fields:
+            for field in fields:
+                if field.name == name:
+                    return True
+        return False
+
     def array(self, count: int) -> Type:
         """
-        Return a type that corresponds to an array whole elements have this type.
+        Return a type that corresponds to an array whose elements have this type.
         """
         raise NotImplementedError()
 
@@ -237,6 +608,15 @@ class Type:
         Return the target of this reference type, if this is a reference type.
         """
         raise NotImplementedError()
+
+    def keys(self) -> List[str]:
+        """
+        Returns a list containing all the field names of this type.
+        """
+        # Like with `has_fields`, we provide a sensible default implementation
+        # based on `fields()`. Implementations are encouraged to override this
+        # if there is a better debugger-specific way to do this.
+        return [field.name for field in self.fields()]
 
 
 class Value:
@@ -314,6 +694,29 @@ class Value:
         """
         Returns a new value with the same value as this object, but of the
         given type.
+        """
+        raise NotImplementedError()
+
+    def __add__(self, rhs: int) -> Value:
+        """
+        Adds an integer to this value, if that makes sense. Throws an exception
+        otherwise.
+        """
+        raise NotImplementedError()
+
+    def __sub__(self, rhs: int) -> Value:
+        """
+        Subtract an integer from this value, if that makes sense. Throws an
+        exception otherwise.
+        """
+        raise NotImplementedError()
+
+    def __getitem__(self, idx: int | str) -> Value:
+        """
+        Gets the value with the given name that belongs to this value. For
+        structure types, this is the field with the given name. For array types,
+        this is the field at the given index. For pointer types, this is the
+        value of `*(ptr+idx)`.
         """
         raise NotImplementedError()
 
@@ -451,6 +854,25 @@ class Debugger:
         """
         raise NotImplementedError()
 
+    def set_sysroot(self, sysroot: str) -> bool:
+        """
+        Sets the system root for this debugger.
+        """
+        raise NotImplementedError()
+
+    def x86_disassembly_flavor(self) -> Literal["att", "intel"]:
+        """
+        The flavor of disassembly to use for x86 targets.
+        """
+        raise NotImplementedError()
+
+    def supports_breakpoint_creation_during_stop_handler(self) -> bool:
+        """
+        Whether breakpoint or watchpoint creation through `break_at` is
+        supported during breakpoint stop handlers.
+        """
+        raise NotImplementedError()
+
     # WARNING
     #
     # These are hacky parts of the API that were strictly necessary to bring up
@@ -463,6 +885,12 @@ class Debugger:
     def is_gdblib_available(self) -> bool:
         """
         Whether gdblib is available under this debugger.
+        """
+        raise NotImplementedError()
+
+    def string_limit(self) -> int:
+        """
+        The maximum size of a string.
         """
         raise NotImplementedError()
 

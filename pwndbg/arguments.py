@@ -8,25 +8,26 @@ from __future__ import annotations
 from typing import List
 from typing import Tuple
 
-import gdb
 from capstone import CS_GRP_INT
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
+import pwndbg.aglib.regs
+import pwndbg.aglib.typeinfo
 import pwndbg.chain
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.disasm
-import pwndbg.gdblib.disasm.arch
-import pwndbg.gdblib.file
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.proc
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.typeinfo
 import pwndbg.integration
 import pwndbg.lib.abi
 import pwndbg.lib.funcparser
 import pwndbg.lib.functions
-from pwndbg.gdblib.disasm.instruction import PwndbgInstruction
-from pwndbg.gdblib.nearpc import c as N
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.nearpc import c as N
+
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
 
 
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
@@ -41,7 +42,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if instruction is None:
         return []
 
-    if instruction.address != pwndbg.gdblib.regs.pc:
+    if instruction.address != pwndbg.aglib.regs.pc:
         return []
 
     if instruction.call_like:
@@ -55,7 +56,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         if not target:
             return []
 
-        name = pwndbg.gdblib.symbol.get(target)
+        name = pwndbg.dbg.selected_inferior().symbol_name_at_address(target)
         if not name:
             return []
     elif CS_GRP_INT in instruction.groups:
@@ -72,7 +73,11 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     result = []
     name = name or ""
 
-    sym = gdb.lookup_symbol(name)
+    if pwndbg.dbg.is_gdblib_available():
+        sym = gdb.lookup_symbol(name)
+    else:
+        sym = None
+
     name = name.replace("isoc99_", "")  # __isoc99_sscanf
     name = name.replace("@plt", "")  # getpwiod@plt
 
@@ -131,13 +136,13 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     regs = abi.register_arguments
 
     if n < len(regs):
-        return getattr(pwndbg.gdblib.regs, regs[n])
+        return getattr(pwndbg.aglib.regs, regs[n])
 
     n -= len(regs)
 
-    sp = pwndbg.gdblib.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
+    sp = pwndbg.aglib.regs.sp + (n * pwndbg.aglib.arch.ptrsize)
 
-    return int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, sp))
+    return int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, sp))
 
 
 def arguments(abi: pwndbg.lib.abi.ABI | None = None):
@@ -161,9 +166,9 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
         # Enhance args display
         if arg.name == "fd" and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
-            pid = pwndbg.gdblib.proc.pid
+            pid = pwndbg.aglib.proc.pid
             if pid is not None:
-                path = pwndbg.gdblib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:
                     pretty += f" ({path})"
 

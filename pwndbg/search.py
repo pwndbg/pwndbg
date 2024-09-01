@@ -7,12 +7,7 @@ from __future__ import annotations
 from typing import Collection
 from typing import Generator
 
-import gdb
-
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
-import pwndbg.gdblib.vmmap
+import pwndbg.aglib.vmmap
 
 
 def search(
@@ -43,10 +38,9 @@ def search(
     Yields:
         An iterator on the address matches
     """
-    i = gdb.selected_inferior()
+    i = pwndbg.dbg.selected_inferior()
 
-    maps = mappings or pwndbg.gdblib.vmmap.get()
-    found_count = 0
+    maps = mappings or pwndbg.aglib.vmmap.get()
 
     if end and start:
         assert start < end, "Last address to search must be greater then first address"
@@ -66,64 +60,24 @@ def search(
         print("No applicable memory regions found to search in.")
         return
 
+    count = 0
+    if limit and limit <= 0:
+        return
+
     for vmmap in maps:
         start = vmmap.start
         end = vmmap.end
 
-        if limit and found_count >= limit:
+        if limit and count >= limit:
             break
 
-        while True:
-            # No point in searching if we can't read the memory
-            if not pwndbg.gdblib.memory.peek(start):
-                break
-
-            length = end - start
-            if length <= 0:
-                break
-
-            try:
-                start = i.search_memory(start, length, searchfor)
-            except gdb.error as e:
-                # While remote debugging on an embedded device and searching
-                # through a large memory region (~512mb), gdb may return an error similar
-                # to `error: Invalid hex digit 116`, even though the search
-                # itself is ok. It seems to have to do with a timeout.
-                print(f"WARN: gdb.search_memory failed with: {e}")
-                if e.args[0].startswith("Invalid hex digit"):
-                    print(
-                        "WARN: This is possibly related to a timeout. Connection is likely broken."
-                    )
-                    break
-                start = None
-                pass
-
-            if start is None:
-                break
-
-            # Fix bug: In kernel mode, search_memory may return a negative address,
-            # e.g. -1073733344, which supposed to be 0xffffffffc0002120 in kernel.
-            start &= 0xFFFFFFFFFFFFFFFF
-
-            # Ignore results that don't match required alignment
-            if aligned and start & (aligned - 1):
-                start = pwndbg.lib.memory.round_up(start, aligned)
-                continue
-
-            # For some reason, search_memory will return a positive hit
-            # when it's unable to read memory.
-            if not pwndbg.gdblib.memory.peek(start):
-                break
-
-            yield start
-            found_count += 1
-            if limit and found_count >= limit:
-                break
-
-            if step is not None:
-                start = pwndbg.lib.memory.round_down(start, step) + step
-            else:
-                if aligned:
-                    start = pwndbg.lib.memory.round_up(start + len(searchfor), aligned)
-                else:
-                    start += len(searchfor)
+        for element in i.find_in_memory(
+            bytearray(searchfor),
+            start,
+            end - start,
+            aligned or 1,
+            (limit - count) if limit else -1,
+            step or -1,
+        ):
+            yield element
+            count += 1

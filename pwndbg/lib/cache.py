@@ -114,6 +114,19 @@ _KWARGS_SEPARATOR = object()
 IS_CACHING = True
 
 
+# Global value that allows disabling of individual cache types.
+IS_CACHING_DISABLED_FOR: Dict[str, bool] = {
+    "stop": False,
+    "exit": False,
+    "objfile": False,
+    "start": False,
+    "cont": False,
+    "thread": False,
+    "prompt": False,
+    "forever": False,
+}
+
+
 def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
@@ -132,7 +145,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]
 
         @wraps(func)
         def decorator(*a: P.args, **kw: P.kwargs) -> T:
-            if IS_CACHING:
+            if IS_CACHING and not any((IS_CACHING_DISABLED_FOR[e] for e in event_names)):
                 key: Tuple[Any, ...] = (a, _KWARGS_SEPARATOR, *kw.items())
 
                 # Check if the value is in the cache; if we have a cache miss,

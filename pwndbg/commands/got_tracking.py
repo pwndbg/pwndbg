@@ -5,8 +5,8 @@ import re
 from typing import Any
 from typing import Dict
 
+import pwndbg.aglib.dynamic
 import pwndbg.color.message as message
-import pwndbg.gdblib.dynamic
 import pwndbg.gdblib.got
 import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory

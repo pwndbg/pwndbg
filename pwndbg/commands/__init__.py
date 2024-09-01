@@ -16,22 +16,22 @@ from typing import TypeVar
 
 from typing_extensions import ParamSpec
 
+import pwndbg.aglib.heap
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.exception
+from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
+from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
 # These aren't available under LLDB, and we can't get rid of them until all of
 # this functionality has been ported to the Debugger API.
 #
 # TODO: Replace these with uses of the Debugger API.
 if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.gdblib.heap
     import pwndbg.gdblib.kernel
-    import pwndbg.gdblib.proc
-    import pwndbg.gdblib.qemu
     import pwndbg.gdblib.regs
-    from pwndbg.gdblib.heap.ptmalloc import DebugSymsHeap
-    from pwndbg.gdblib.heap.ptmalloc import GlibcMemoryAllocator
-    from pwndbg.gdblib.heap.ptmalloc import HeuristicHeap
-    from pwndbg.gdblib.heap.ptmalloc import SymbolUnresolvableError
 
 log = logging.getLogger(__name__)
 
@@ -135,6 +135,10 @@ class Command:
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
+        if not pwndbg.dbg.selected_inferior():
+            log.error("Pwndbg commands require a target binary to be selected")
+            return
+
         try:
             args, kwargs = self.split_args(argument)
         except SystemExit:
@@ -142,10 +146,6 @@ class Command:
             return
         except (TypeError, pwndbg.dbg_mod.Error):
             pwndbg.exception.handle(self.function.__name__)
-            return
-
-        if not pwndbg.dbg.selected_inferior():
-            log.error("Pwndbg commands require a target binary to be selected")
             return
 
         try:
@@ -279,10 +279,10 @@ def fix_int_reraise(*a, **kw) -> int:
 def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.gdblib.proc.exe:
+        if pwndbg.aglib.proc.exe:
             return function(*a, **kw)
         else:
-            if pwndbg.gdblib.qemu.is_qemu():
+            if pwndbg.aglib.qemu.is_qemu():
                 log.error("Could not determine the target binary on QEMU.")
             else:
                 log.error(f"{function.__name__}: There is no file loaded.")
@@ -294,7 +294,7 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.gdblib.qemu.is_qemu_kernel():
+        if pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             log.error(
@@ -308,7 +308,7 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if not pwndbg.gdblib.qemu.is_qemu_kernel():
+        if not pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
             log.error(
@@ -322,7 +322,7 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
-        if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+        if arch not in pwndbg.aglib.arch_mod.ARCHS:
             raise ValueError(
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
@@ -330,7 +330,7 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P
     def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         @functools.wraps(function)
         def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-            if pwndbg.gdblib.arch.name in arch_names:
+            if pwndbg.aglib.arch.name in arch_names:
                 return function(*a, **kw)
             else:
                 arches_str = ", ".join(arch_names)
@@ -373,7 +373,8 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.gdblib.proc.alive:
+        # TODO: Properly support OnlyWhenRunning without `gdblib`.
+        if pwndbg.aglib.proc.alive:
             return function(*a, **kw)
         else:
             log.error(f"{function.__name__}: The program is not being run.")
@@ -385,8 +386,8 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        assert isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
-        if pwndbg.gdblib.heap.current.has_tcache():
+        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+        if pwndbg.aglib.heap.current.has_tcache():
             return function(*a, **kw)
         else:
             log.error(
@@ -400,19 +401,13 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.gdblib.heap.current is not None and pwndbg.gdblib.heap.current.is_initialized():
+        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
             return function(*a, **kw)
         else:
             log.error(f"{function.__name__}: Heap is not initialized yet.")
             return None
 
     return _OnlyWhenHeapIsInitialized
-
-
-# TODO/FIXME: Move this elsewhere? Have better logic for that? Maybe caching?
-def _is_statically_linked() -> bool:
-    out = gdb.execute("info dll", to_string=True)
-    return "No shared libraries loaded at this time." in out
 
 
 def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
@@ -438,7 +433,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
         pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
         e(f"{function.__name__}: An unknown error occurred when running this command.")
-        if isinstance(pwndbg.gdblib.heap.current, HeuristicHeap):
+        if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
             w(
                 "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
             )
@@ -457,33 +452,34 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         e = log.error
         w = log.warn
         if (
-            isinstance(pwndbg.gdblib.heap.current, HeuristicHeap)
+            isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
             and DebugSymsHeap().can_be_resolved()
         ):
             # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.gdblib.heap.current = DebugSymsHeap()
+            pwndbg.aglib.heap.current = DebugSymsHeap()
         if (
-            pwndbg.gdblib.heap.current is not None
-            and isinstance(pwndbg.gdblib.heap.current, GlibcMemoryAllocator)
-            and pwndbg.gdblib.heap.current.can_be_resolved()
+            pwndbg.aglib.heap.current is not None
+            and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+            and pwndbg.aglib.heap.current.can_be_resolved()
         ):
             return _try2run_heap_command(function, *a, **kw)
         else:
+            static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
             if (
-                isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
+                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
                 and pwndbg.config.resolve_heap_via_heuristic == "auto"
             ):
                 # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
                 heuristic_heap = HeuristicHeap()
                 if heuristic_heap.can_be_resolved():
-                    pwndbg.gdblib.heap.current = heuristic_heap
+                    pwndbg.aglib.heap.current = heuristic_heap
                     w(
                         "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
                         "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
                     )
                     return _try2run_heap_command(function, *a, **kw)
-                elif _is_statically_linked():
+                elif static:
                     e(
                         "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                     )
@@ -499,7 +495,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                         "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
                     )
             elif (
-                isinstance(pwndbg.gdblib.heap.current, DebugSymsHeap)
+                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
                 and pwndbg.config.resolve_heap_via_heuristic == "force"
             ):
                 e(
@@ -507,7 +503,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                 )
                 w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
             elif pwndbg.glibc.get_version() is None:
-                if _is_statically_linked():
+                if static:
                     e("Can't resolve the heap since the GLIBC version is not set.")
                     w(
                         "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
@@ -615,20 +611,12 @@ class ArgparsedCommand:
         )
 
 
-# These values are only used by `sloppy_gdb_parse`, and it, in turn, only seems
-# to end up being used by `pwndbg.commands.windbg`, through `AddressExpr` and
-# `HexOrAddressExpr`. By gating both these values and the `windbg` command family
-# behind `is_gdblib_available`, we get around that.
-#
-# TODO: Remove this after the `windbg` command family has been ported to the Debugger API.
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    # We use a 64-bit max value literal here instead of pwndbg.gdblib.arch.current
-    # as realistically its ok to pull off the biggest possible type here
-    # We cache its GDB value type which is 'unsigned long long'
-    _mask = 0xFFFFFFFFFFFFFFFF
-    _mask_val_type = gdb.Value(_mask).type
+# We use a 64-bit max value literal here instead of pwndbg.aglib.arch.current
+# as realistically its ok to pull off the biggest possible type here
+# We cache its value type which is 'unsigned long long'
+_mask = 0xFFFFFFFFFFFFFFFF
+_mask_val_type: pwndbg.dbg_mod.Type = None
+_mask_val_proc: pwndbg.dbg_mod.Process = None
 
 
 def sloppy_gdb_parse(s: str) -> int | str:
@@ -656,6 +644,14 @@ def sloppy_gdb_parse(s: str) -> int | str:
         # pwndbg> pi int(gdb.parse_and_eval('__libc_start_main'))
         #
         # Here, the _mask_val.type should be `unsigned long long`
+        global _mask_val_type
+        global _mask_val_proc
+
+        i = pwndbg.dbg.selected_inferior()
+        if not _mask_val_type or _mask_val_proc != i:
+            _mask_val_type = i.create_value(_mask).type
+            _mask_val_proc = i
+
         return int(val.cast(_mask_val_type))
     except (TypeError, pwndbg.dbg_mod.Error):
         return s

@@ -54,9 +54,9 @@ from typing import Dict
 import gdb
 from sortedcontainers import SortedDict
 
+import pwndbg.aglib.heap
+import pwndbg.aglib.heap.ptmalloc
 import pwndbg.gdblib
-import pwndbg.gdblib.heap
-import pwndbg.gdblib.heap.ptmalloc
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 from pwndbg.color import message
@@ -232,8 +232,8 @@ class Tracker:
                 lo_addr = lo_chunk.address
                 hi_addr = hi_chunk.address + hi_chunk.size
 
-                lo_heap = pwndbg.gdblib.heap.ptmalloc.Heap(lo_addr)
-                hi_heap = pwndbg.gdblib.heap.ptmalloc.Heap(hi_addr - 1)
+                lo_heap = pwndbg.aglib.heap.ptmalloc.Heap(lo_addr)
+                hi_heap = pwndbg.aglib.heap.ptmalloc.Heap(hi_addr - 1)
                 assert lo_heap.arena is not None and hi_heap.arena is not None
 
                 # TODO: Can this ever actually fail in real world use?
@@ -266,8 +266,8 @@ class Tracker:
                 # Add new handlers in their place. We scan over all of the chunks in
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
-                allocator = pwndbg.gdblib.heap.current
-                assert isinstance(allocator, pwndbg.gdblib.heap.ptmalloc.GlibcMemoryAllocator)
+                allocator = pwndbg.aglib.heap.current
+                assert isinstance(allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator)
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),
