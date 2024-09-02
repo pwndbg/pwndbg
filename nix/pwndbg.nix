@@ -57,6 +57,7 @@ let
     ]));
 
     nativeBuildInputs = [ pkgs.makeWrapper ];
+    buildInputs = [ pyEnv ];
 
     installPhase = let
       fix_init_script = { target, line }: ''
