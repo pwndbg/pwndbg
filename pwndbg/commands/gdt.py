@@ -53,6 +53,9 @@ def gdt(address, count) -> None:
 
 
 def decode_gdt_entry(value):
+    if value == 0:
+        return "<NULL entry>"
+
     limit_low = value & 0xFFFF
     limit_high = (value >> 48) & 0xF
     limit = (limit_high << 16) | limit_low
