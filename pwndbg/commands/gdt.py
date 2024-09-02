@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.color as C
@@ -10,6 +9,7 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
     description="""Decode X86-64 GDT entries at address
 
 See also:
@@ -18,7 +18,7 @@ See also:
 
 Note:
 In 64-bit mode, the Base and Limit values are ignored, each descriptor covers the entire linear address space regardless of what they are set to.
-"""
+""",
 )
 
 parser.add_argument(
