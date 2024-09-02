@@ -3,12 +3,13 @@
   python3 ? pkgs.python3,
   inputs ? null,
   isDev ? false,
+  isLLDB ? false,
   lib,
   ...
 }:
 pkgs.poetry2nix.mkPoetryEnv {
-  groups = lib.optionals isDev [ "dev" ];
-  checkGroups = lib.optionals isDev [ "dev" ];
+  groups = lib.optionals isDev [ "dev" ] ++ lib.optionals isLLDB [ "lldb" ];
+  checkGroups = lib.optionals isDev [ "dev" ] ++ lib.optionals isLLDB [ "lldb" ];
   projectDir = inputs.pwndbg;
   python = python3;
   overrides = pkgs.poetry2nix.overrides.withDefaults (

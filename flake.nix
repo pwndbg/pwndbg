@@ -71,6 +71,14 @@
             inputs.pwndbg = self;
             isDev = true;
           };
+          pwndbg-lldb = import ./nix/pwndbg.nix {
+            pkgs = pkgsBySystem.${system};
+            python3 = pkgsBySystem.${system}.python3;
+            gdb = pkgsBySystem.${system}.gdb;
+            inputs.pwndbg = self;
+            isDev = true;
+            isLLDB = true;
+          };
         }
         // (portableDrvs system)
         // (tarballDrv system)
@@ -82,6 +90,7 @@
           pkgs = pkgsBySystem.${system};
           python3 = pkgsBySystem.${system}.python3;
           inputs.pwndbg = self;
+          isLLDB = true;
         }
       );
     };

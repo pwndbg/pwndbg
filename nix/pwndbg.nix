@@ -4,6 +4,8 @@
   gdb ? pkgs.gdb,
   inputs ? null,
   isDev ? false,
+  isLLDB ? false,
+  lldb ? pkgs.lldb_19,
 }:
 let
   binPath = pkgs.lib.makeBinPath (
@@ -14,6 +16,9 @@ let
       python3.pkgs.ropper # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/ropper.py#L30
       python3.pkgs.ropgadget # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/rop.py#L34
     ]
+    ++ pkgs.lib.optionals isLLDB [
+      python3.pkgs.gnureadline
+    ]
   );
 
   pyEnv = import ./pyenv.nix {
@@ -22,7 +27,7 @@ let
       python3
       inputs
       isDev
-      ;
+      isLLDB;
     lib = pkgs.lib;
   };
 
@@ -35,33 +40,61 @@ let
     ''
   );
 
-  pwndbg = pkgs.stdenv.mkDerivation {
-    name = "pwndbg";
+  pwndbg = let
+    pwndbgName = if isLLDB then "pwndbg-lldb" else "pwndbg";
+  in pkgs.stdenv.mkDerivation {
+    name = pwndbgName;
     version = pwndbgVersion;
 
-    src = pkgs.lib.sourceByRegex inputs.pwndbg [
+    src = pkgs.lib.sourceByRegex inputs.pwndbg ([
       "pwndbg"
       "pwndbg/.*"
+    ] ++ (if isLLDB then [
+      "lldbinit.py"
+      "pwndbg-lldb.py"
+    ] else [
       "gdbinit.py"
-    ];
+    ]));
 
     nativeBuildInputs = [ pkgs.makeWrapper ];
 
-    installPhase = ''
+    installPhase = let
+      fix_init_script = { target, line }: ''
+        # Build self-contained init script for lazy loading from vanilla gdb
+        # I purposely use insert() so I can re-import during development without having to restart gdb
+        sed "${line} i import sys, os\n\
+        sys.path.insert(0, '${pyEnv}/${pyEnv.sitePackages}')\n\
+        sys.path.insert(0, '$out/share/pwndbg/')\n\
+        os.environ['PATH'] += ':${binPath}'\n" -i ${target}
+      '';
+    in (if isLLDB then ''
+      mkdir -p $out/share/pwndbg
+      mkdir -p $out/bin
+
+      cp -r lldbinit.py pwndbg $out/share/pwndbg
+      cp pwndbg-lldb.py $out/bin/${pwndbgName}
+
+      # patchShebangs isn't working, so we do it manually.
+      sed -i "1 d" $out/bin/${pwndbgName}
+      sed -i "1 i #!${pkgs.lib.makeBinPath [ python3 ]}/python3" $out/bin/${pwndbgName}
+
+      ${fix_init_script { target = "$out/bin/${pwndbgName}"; line = "4"; } }
+
+      touch $out/share/pwndbg/.skip-venv
+      wrapProgram $out/bin/${pwndbgName} \
+        --prefix PATH : ${ pkgs.lib.makeBinPath [ lldb ] } \
+        --set PWNDBG_LLDBINIT_DIR $out/share/pwndbg \
+        --set LLDB_DEBUGSERVER_PATH ${ pkgs.lib.makeBinPath [ lldb ] }/lldb-server
+    '' else ''
       mkdir -p $out/share/pwndbg
 
       cp -r gdbinit.py pwndbg $out/share/pwndbg
-      # Build self-contained init script for lazy loading from vanilla gdb
-      # I purposely use insert() so I can re-import during development without having to restart gdb
-      sed "2 i import sys, os\n\
-      sys.path.insert(0, '${pyEnv}/${pyEnv.sitePackages}')\n\
-      sys.path.insert(0, '$out/share/pwndbg/')\n\
-      os.environ['PATH'] += ':${binPath}'\n" -i $out/share/pwndbg/gdbinit.py
+      ${fix_init_script { target = "$out/share/pwndbg/gdbinit.py"; line = "2"; } }
 
       touch $out/share/pwndbg/.skip-venv
-      makeWrapper ${gdb}/bin/gdb $out/bin/pwndbg \
+      makeWrapper ${gdb}/bin/gdb $out/bin/${pwndbgName} \
         --add-flags "--quiet --early-init-eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py"
-    '';
+    '');
 
     meta = {
       pwndbgVenv = pyEnv;
