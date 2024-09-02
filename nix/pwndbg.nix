@@ -83,8 +83,10 @@ let
       touch $out/share/pwndbg/.skip-venv
       wrapProgram $out/bin/${pwndbgName} \
         --prefix PATH : ${ pkgs.lib.makeBinPath [ lldb ] } \
-        --set PWNDBG_LLDBINIT_DIR $out/share/pwndbg \
-        --set LLDB_DEBUGSERVER_PATH ${ pkgs.lib.makeBinPath [ lldb ] }/lldb-server
+        '' + (pkgs.lib.optionalString !pkgs.stdenv.isDarwin ''
+        --set LLDB_DEBUGSERVER_PATH ${ pkgs.lib.makeBinPath [ lldb ] }/lldb-server \
+        '') + ''
+        --set PWNDBG_LLDBINIT_DIR $out/share/pwndbg
     '' else ''
       mkdir -p $out/share/pwndbg
 
