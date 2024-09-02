@@ -938,6 +938,14 @@ class GDBValue(pwndbg.dbg_mod.Value):
     def __getitem__(self, key: str | int) -> pwndbg.dbg_mod.Value:
         return GDBValue(self.inner[key])
 
+    @override
+    def __repr__(self):
+        return self.inner.__repr__()
+
+    @override
+    def __str__(self):
+        return self.inner.__str__()
+
 
 class GDB(pwndbg.dbg_mod.Debugger):
     @override
