@@ -154,10 +154,17 @@ class Registers:
 
 
 class Frame:
-    def evaluate_expression(self, expression: str) -> Value:
+    def evaluate_expression(self, expression: str, lock_scheduler: bool = False) -> Value:
         """
         Evaluate the given expression in the context of this frame, and
         return a `Value`.
+
+        # `lock_scheduler`
+        Additionally, callers of this function might specify that they want to
+        enable scheduler locking during the evaluation of this expression. This
+        is a GDB-only option, and is intended for cases in which the result
+        would be incorrect without it enabled, when running in GDB. Other
+        debuggers should ignore this parameter.
         """
         raise NotImplementedError()
 

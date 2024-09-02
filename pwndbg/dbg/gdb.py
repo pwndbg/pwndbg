@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import signal
+from contextlib import nullcontext
 from typing import Any
 from typing import Generator
 from typing import List
@@ -86,10 +87,12 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         self.inner = inner
 
     @override
-    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
-        from pwndbg.gdblib.scheduler import lock_scheduler
+    def evaluate_expression(
+        self, expression: str, lock_scheduler: bool = False
+    ) -> pwndbg.dbg_mod.Value:
+        from pwndbg.gdblib.scheduler import lock_scheduler as do_lock_scheduler
 
-        with lock_scheduler():
+        with do_lock_scheduler() if lock_scheduler else nullcontext():
             with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
                 try:
                     value = parse_and_eval(expression, global_context=False)
