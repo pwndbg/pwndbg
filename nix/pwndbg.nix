@@ -75,16 +75,12 @@ let
       cp -r lldbinit.py pwndbg $out/share/pwndbg
       cp pwndbg-lldb.py $out/bin/${pwndbgName}
 
-      # patchShebangs isn't working, so we do it manually.
-      sed -i "1 d" $out/bin/${pwndbgName}
-      sed -i "1 i #!${pkgs.lib.makeBinPath [ python3 ]}/python3" $out/bin/${pwndbgName}
-
       ${fix_init_script { target = "$out/bin/${pwndbgName}"; line = "4"; } }
 
       touch $out/share/pwndbg/.skip-venv
       wrapProgram $out/bin/${pwndbgName} \
         --prefix PATH : ${ pkgs.lib.makeBinPath [ lldb ] } \
-        '' + (pkgs.lib.optionalString !pkgs.stdenv.isDarwin ''
+        '' + (pkgs.lib.optionalString (!pkgs.stdenv.isDarwin) ''
         --set LLDB_DEBUGSERVER_PATH ${ pkgs.lib.makeBinPath [ lldb ] }/lldb-server \
         '') + ''
         --set PWNDBG_LLDBINIT_DIR $out/share/pwndbg
