@@ -22,8 +22,6 @@ import pwndbg.lib.config
 import pwndbg.lib.functions
 import pwndbg.ui
 from pwndbg.aglib.disasm.instruction import SplitType
-from pwndbg.color import ColorConfig
-from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 
 
@@ -32,51 +30,17 @@ def ljust_padding(lst):
     return [s.ljust(longest_len) for s in lst]
 
 
-c = ColorConfig(
-    "nearpc",
-    [
-        ColorParamSpec("symbol", "normal", "color for nearpc command (symbol)"),
-        ColorParamSpec("address", "normal", "color for nearpc command (address)"),
-        ColorParamSpec("prefix", "none", "color for nearpc command (prefix marker)"),
-        ColorParamSpec("syscall-name", "red", "color for nearpc command (resolved syscall name)"),
-        ColorParamSpec("argument", "bold", "color for nearpc command (target argument)"),
-        ColorParamSpec(
-            "integration-comments", "bold", "color for nearpc command (integration comments)"
-        ),
-        ColorParamSpec("branch-marker", "normal", "color for nearpc command (branch marker line)"),
-    ],
-)
-
-nearpc_branch_marker = pwndbg.color.theme.add_param(
-    "nearpc-branch-marker", "    ↓", "branch marker line for nearpc command"
-)
-nearpc_branch_marker_contiguous = pwndbg.color.theme.add_param(
-    "nearpc-branch-marker-contiguous", " ", "contiguous branch marker line for nearpc command"
-)
-pwndbg.color.theme.add_param("highlight-pc", True, "whether to highlight the current instruction")
-pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc command")
-pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
-nearpc_lines = pwndbg.config.add_param(
-    "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
-)
-show_args = pwndbg.config.add_param(
-    "nearpc-show-args", True, "whether to show call arguments below instruction"
-)
-show_comments = pwndbg.config.add_param(
-    "nearpc-integration-comments", True, "whether to show comments from integration provider"
-)
-show_opcode_bytes = pwndbg.config.add_param(
-    "nearpc-num-opcode-bytes",
-    0,
-    "number of opcode bytes to print for each instruction",
-    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
-)
-opcode_separator_bytes = pwndbg.config.add_param(
-    "nearpc-opcode-separator-bytes",
-    1,
-    "number of spaces between opcode bytes",
-    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
-)
+# These would be repeated verbatim here. Since `aglib` is always present, just
+# import them from there, instead of trying to redefine the settings toggles
+# for `nearpc`.
+from pwndbg.aglib.nearpc import c
+from pwndbg.aglib.nearpc import nearpc_branch_marker
+from pwndbg.aglib.nearpc import nearpc_branch_marker_contiguous
+from pwndbg.aglib.nearpc import nearpc_lines
+from pwndbg.aglib.nearpc import opcode_separator_bytes
+from pwndbg.aglib.nearpc import show_args
+from pwndbg.aglib.nearpc import show_comments
+from pwndbg.aglib.nearpc import show_opcode_bytes
 
 
 def nearpc(
