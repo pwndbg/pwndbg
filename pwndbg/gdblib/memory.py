@@ -433,9 +433,7 @@ def pack_struct_into_dictionary(
 def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
     gdb_type = gdb_value.type.strip_typedefs()
 
-    if gdb_type.code == gdb.TYPE_CODE_PTR:
-        return int(gdb_value)
-    elif gdb_type.code == gdb.TYPE_CODE_INT:
+    if gdb_type.code == gdb.TYPE_CODE_PTR or gdb_type.code == gdb.TYPE_CODE_INT:
         return int(gdb_value)
     elif gdb_type.code == gdb.TYPE_CODE_STRUCT:
         return pack_struct_into_dictionary(gdb_value)

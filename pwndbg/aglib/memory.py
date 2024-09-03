@@ -8,6 +8,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.dbg import TypeCode
 from pwndbg.lib.memory import PAGE_SIZE
 
 GdbDict = Dict[str, Union["GdbDict", int]]
@@ -376,11 +377,9 @@ def pack_struct_into_dictionary(
 def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int | GdbDict:
     ty = dbg_value.type.strip_typedefs()
 
-    if ty.code == pwndbg.dbg_mod.TypeCode.POINTER:
+    if ty.code == TypeCode.POINTER or ty.code == TypeCode.INT:
         return int(dbg_value)
-    elif ty.code == pwndbg.dbg_mod.TypeCode.INT:
-        return int(dbg_value)
-    elif ty.code == pwndbg.dbg_mod.TypeCode.STRUCT:
+    elif ty.code == TypeCode.STRUCT:
         return pack_struct_into_dictionary(dbg_value)
 
     raise NotImplementedError
