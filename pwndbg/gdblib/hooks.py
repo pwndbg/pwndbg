@@ -59,11 +59,13 @@ def reset_config() -> None:
 def on_start() -> None:
     pwndbg.gdblib.abi.update()
     pwndbg.gdblib.memory.update_min_addr()
+    pwndbg.aglib.memory.update_min_addr()
 
 
 @pwndbg.dbg.event_handler(EventType.EXIT)
 def on_exit() -> None:
     pwndbg.gdblib.file.reset_remote_files()
+    pwndbg.aglib.file.reset_remote_files()
     pwndbg.gdblib.next.clear_temp_breaks()
 
 
