@@ -19,9 +19,19 @@ def update_typeinfo() -> None:
     pwndbg.aglib.arch_mod.update()
 
 
+@pwndbg.dbg.event_handler(EventType.START)
+def on_start() -> None:
+    pwndbg.aglib.memory.update_min_addr()
+
+
 @pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
     pwndbg.aglib.strings.update_length()
+
+
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def on_exit() -> None:
+    pwndbg.aglib.file.reset_remote_files()
 
 
 import pwndbg.lib.cache

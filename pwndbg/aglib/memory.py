@@ -338,22 +338,62 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
 
 
 def update_min_addr() -> None:
-    # FIXME: Debugger-agnostic API can't do QEMU detection yet.
-    #
-    # global MMAP_MIN_ADDR
-    # if pwndbg.gdblib.qemu.is_qemu_kernel():
-    #    MMAP_MIN_ADDR = 0
-    pass
+    global MMAP_MIN_ADDR
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        MMAP_MIN_ADDR = 0
 
 
-def fetch_struct_as_dictionary(
-    struct_name: str,
-    struct_address: int,
+def pack_struct_into_dictionary(
+    fetched_struct: pwndbg.dbg_mod.Value,
     include_only_fields: Set[str] | None = None,
     exclude_fields: Set[str] | None = None,
 ) -> GdbDict:
-    raise NotImplementedError()
+    struct_as_dictionary = {}
+
+    if exclude_fields is None:
+        exclude_fields = set()
+
+    if include_only_fields is not None:
+        for field_name in include_only_fields:
+            key = field_name
+            value = convert_pwndbg_value_to_python_value(fetched_struct[field_name])
+            struct_as_dictionary[key] = value
+    else:
+        for index, field in enumerate(fetched_struct.type.fields()):
+            if field.name is None:
+                # Flatten anonymous structs/unions
+                anon_type = convert_pwndbg_value_to_python_value(fetched_struct[index])
+                assert isinstance(anon_type, dict)
+                struct_as_dictionary.update(anon_type)
+            elif field.name not in exclude_fields:
+                key = field.name
+                value = convert_pwndbg_value_to_python_value(fetched_struct[index])
+                struct_as_dictionary[key] = value
+
+    return struct_as_dictionary
+
+
+def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int | GdbDict:
+    ty = dbg_value.type.strip_typedefs()
+
+    if ty.code == pwndbg.dbg_mod.TypeCode.POINTER:
+        return int(dbg_value)
+    elif ty.code == pwndbg.dbg_mod.TypeCode.INT:
+        return int(dbg_value)
+    elif ty.code == pwndbg.dbg_mod.TypeCode.STRUCT:
+        return pack_struct_into_dictionary(dbg_value)
+
+    raise NotImplementedError
 
 
 def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str]) -> str:
-    raise NotImplementedError()
+    struct_types = pwndbg.dbg.selected_inferior().types_with_name(f"struct {struct_name}")
+    if len(struct_types) == 0:
+        raise pwndbg.dbg_mod.Error(f"could not find type 'struct {struct_name}'")
+    struct_type = struct_types[0]
+
+    for field_name in possible_field_names:
+        if struct_type.has_field(field_name):
+            return field_name
+
+    raise ValueError(f"Field name did not match any of {possible_field_names}.")
