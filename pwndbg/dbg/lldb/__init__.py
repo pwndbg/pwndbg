@@ -97,7 +97,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         self.proc = proc
 
     @override
-    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
+    def evaluate_expression(
+        self, expression: str, lock_scheduler: bool = False
+    ) -> pwndbg.dbg_mod.Value:
         value = self.inner.EvaluateExpression(expression)
         opt_out = _is_optimized_out(value)
 

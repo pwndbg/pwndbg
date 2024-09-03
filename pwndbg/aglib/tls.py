@@ -16,7 +16,11 @@ def __call_pthread_self() -> int:
     if pwndbg.dbg.selected_inferior().symbol_address_from_name("pthread_self") is None:
         return 0
     try:
-        return int(pwndbg.dbg.selected_frame().evaluate_expression("(void *)pthread_self()"))
+        return int(
+            pwndbg.dbg.selected_frame().evaluate_expression(
+                "(void *)pthread_self()", lock_scheduler=True
+            )
+        )
     except pwndbg.dbg_mod.Error:
         return 0
 
