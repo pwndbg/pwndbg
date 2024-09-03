@@ -7,19 +7,21 @@ import os
 import struct
 from typing import Set
 
-import gdb
 import pwnlib
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.vmmap
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
 
 saved: Set[int] = set()
 
@@ -33,7 +35,7 @@ def print_search_hit(address) -> None:
     if not address:
         return
 
-    vmmap = pwndbg.gdblib.vmmap.find(address)
+    vmmap = pwndbg.aglib.vmmap.find(address)
     if vmmap:
         region = os.path.basename(vmmap.objfile)
     else:
@@ -206,7 +208,7 @@ def search(
 
     # Adjust pointer sizes to the local architecture
     if type == "pointer":
-        type = {4: "dword", 8: "qword"}[pwndbg.gdblib.arch.ptrsize]
+        type = {4: "dword", 8: "qword"}[pwndbg.aglib.arch.ptrsize]
 
     if save is None:
         save = bool(pwndbg.config.auto_save_search)
@@ -229,8 +231,8 @@ def search(
     # Convert to an integer if needed, and pack to bytes
     if type not in ("string", "bytes", "asm"):
         value = pwndbg.commands.fix_int(value)
-        value &= pwndbg.gdblib.arch.ptrmask
-        fmt = {"little": "<", "big": ">"}[pwndbg.gdblib.arch.endian] + {
+        value &= pwndbg.aglib.arch.ptrmask
+        fmt = {"little": "<", "big": ">"}[pwndbg.aglib.arch.endian] + {
             "byte": "B",
             "short": "H",
             "word": "H",
@@ -254,7 +256,7 @@ def search(
         value = pwnlib.asm.asm(value, arch=arch, bits=bits_for_arch)
 
     # Find the mappings that we're looking for
-    mappings = pwndbg.gdblib.vmmap.get()
+    mappings = pwndbg.aglib.vmmap.get()
 
     if mapping_name:
         mappings = [m for m in mappings if mapping_name in m.objfile]
@@ -276,7 +278,7 @@ def search(
         i = 0
         for addr in saved:
             try:
-                val = pwndbg.gdblib.memory.read(addr, val_len)
+                val = pwndbg.aglib.memory.read(addr, val_len)
             except Exception:
                 continue
             if val == value:
@@ -307,8 +309,13 @@ def search(
         if save:
             saved.add(address)
         if asmbp:
-            # set breakpoint on the instruction
-            gdb.Breakpoint("*%#x" % address, temporary=False)
+            if pwndbg.dbg.is_gdblib_available():
+                # set breakpoint on the instruction
+                gdb.Breakpoint("*%#x" % address, temporary=False)
+            else:
+                print(
+                    f"breakpoints are not supported outside of GDB yet, would be set at {address:#x}"
+                )
 
         if not trunc_out or i < 20:
             print_search_hit(address)

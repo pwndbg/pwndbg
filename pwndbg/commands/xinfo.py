@@ -4,13 +4,13 @@ import argparse
 import os
 
 import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.stack
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.stack
-import pwndbg.gdblib.vmmap
 import pwndbg.wrappers
 from pwndbg.commands import CommandCategory
 
@@ -30,9 +30,9 @@ def xinfo_stack(page, addr) -> None:
     # If it's a stack address, print offsets to top and bottom of stack, as
     # well as offsets to current stack and base pointer (if used by debuggee)
 
-    sp = pwndbg.gdblib.regs.sp
-    frame = pwndbg.gdblib.regs[pwndbg.gdblib.regs.frame]
-    frame_mapping = pwndbg.gdblib.vmmap.find(frame)
+    sp = pwndbg.aglib.regs.sp
+    frame = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
+    frame_mapping = pwndbg.aglib.vmmap.find(frame)
 
     print_line("Stack Top", addr, page.vaddr, addr - page.vaddr, "+")
     print_line("Stack End", addr, page.end, page.end - addr, "-")
@@ -46,7 +46,7 @@ def xinfo_stack(page, addr) -> None:
     if canary_value is not None:
         all_canaries = list(
             pwndbg.search.search(
-                pwndbg.gdblib.arch.pack(canary_value), mappings=pwndbg.gdblib.stack.get().values()
+                pwndbg.aglib.arch.pack(canary_value), mappings=pwndbg.aglib.stack.get().values()
             )
         )
         follow_canaries = sorted(filter(lambda a: a > addr, all_canaries))
@@ -65,7 +65,7 @@ def xinfo_mmap_file(page, addr) -> None:
     if not os.path.exists(file_name):
         return None
 
-    objpages = filter(lambda p: p.objfile == file_name, pwndbg.gdblib.vmmap.get())
+    objpages = filter(lambda p: p.objfile == file_name, pwndbg.aglib.vmmap.get())
     first = sorted(objpages, key=lambda p: p.vaddr)[0]
 
     # print offset from ELF base load address
@@ -75,7 +75,7 @@ def xinfo_mmap_file(page, addr) -> None:
     # find possible LOAD segments that designate memory and file backings
     containing_loads = [
         seg
-        for seg in pwndbg.gdblib.elf.get_containing_segments(file_name, first.vaddr, addr)
+        for seg in pwndbg.aglib.elf.get_containing_segments(file_name, first.vaddr, addr)
         if seg["p_type"] == "PT_LOAD"
     ]
 
@@ -93,7 +93,7 @@ def xinfo_mmap_file(page, addr) -> None:
     else:
         print(f"{'File (Disk)'.rjust(20)} {M.get(addr)} = [not file backed]")
 
-    containing_sections = pwndbg.gdblib.elf.get_containing_sections(file_name, first.vaddr, addr)
+    containing_sections = pwndbg.aglib.elf.get_containing_sections(file_name, first.vaddr, addr)
     if len(containing_sections) > 0:
         print("\n Containing ELF sections:")
         for sec in containing_sections:
@@ -109,12 +109,12 @@ def xinfo_default(page, addr) -> None:
 @pwndbg.commands.OnlyWhenRunning
 def xinfo(address=None) -> None:
     address = address.cast(
-        pwndbg.gdblib.typeinfo.pvoid
+        pwndbg.aglib.typeinfo.pvoid
     )  # Fixes issues with function ptrs (xinfo malloc)
     addr = int(address)
-    addr &= pwndbg.gdblib.arch.ptrmask
+    addr &= pwndbg.aglib.arch.ptrmask
 
-    page = pwndbg.gdblib.vmmap.find(addr)
+    page = pwndbg.aglib.vmmap.find(addr)
 
     if page is None:
         print(f"\n  Virtual address {addr:#x} is not mapped.")

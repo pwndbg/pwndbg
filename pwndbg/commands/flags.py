@@ -35,7 +35,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
 def setflag(flag: str, value: int) -> None:
-    register_set = pwndbg.gdblib.regs.current
+    register_set = pwndbg.aglib.regs.current
 
     flag = flag.upper()
     for flag_reg, flags in register_set.flags.items():
@@ -54,14 +54,14 @@ def setflag(flag: str, value: int) -> None:
                     print(f"Maximum value for flag is {max_val} (size={size})")
                     return
 
-                old_val = int(pwndbg.gdblib.regs[flag_reg])
+                old_val = int(pwndbg.aglib.regs[flag_reg])
                 mask = max_val << bit
                 bit_value = value << bit
 
                 cleared_val = old_val & ~mask
                 new_val = cleared_val | bit_value
 
-                setattr(pwndbg.gdblib.regs, flag_reg, new_val)
+                setattr(pwndbg.aglib.regs, flag_reg, new_val)
                 print(
                     f"Set flag {flag}={value} in flag register {flag_reg} (old val={old_val:#x}, new val={new_val:#x})"
                 )

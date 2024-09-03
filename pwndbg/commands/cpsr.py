@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.regs
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.regs
 from pwndbg.color import context
 from pwndbg.commands import CommandCategory
 
@@ -23,12 +23,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithArch(["arm", "armcm", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
 def cpsr(cpsr_value=None) -> None:
-    reg = "xpsr" if pwndbg.gdblib.arch.name == "armcm" else "cpsr"
-    reg_flags = pwndbg.gdblib.regs.flags[reg]
+    reg = "xpsr" if pwndbg.aglib.arch.name == "armcm" else "cpsr"
+    reg_flags = pwndbg.aglib.regs.flags[reg]
 
     if cpsr_value is not None:
         reg_val = cpsr_value
     else:
-        reg_val = getattr(pwndbg.gdblib.regs, reg)
+        reg_val = getattr(pwndbg.aglib.regs, reg)
 
     print(f"{reg} {context.format_flags(reg_val, reg_flags)}")

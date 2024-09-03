@@ -11,10 +11,11 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
-import gdb
-
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
+import pwndbg.aglib.nearpc
+import pwndbg.aglib.regs
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -23,20 +24,21 @@ import pwndbg.color.memory as M
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.gdblib.heap_tracking
-import pwndbg.gdblib.nearpc
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.vmmap
-import pwndbg.ghidra
 import pwndbg.integration
 import pwndbg.ui
+from pwndbg.aglib.arch import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.arch import get_thumb_mode_string
+
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
+
+    import pwndbg.gdblib.heap_tracking
+    import pwndbg.gdblib.symbol
+    import pwndbg.ghidra
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 
@@ -557,26 +559,26 @@ def get_regs(regs: List[str] = None):
         regs = []
 
     if len(regs) == 0:
-        regs += pwndbg.gdblib.regs.gpr
+        regs += pwndbg.aglib.regs.gpr
 
-        regs.append(pwndbg.gdblib.regs.frame)
-        regs.append(pwndbg.gdblib.regs.stack)
+        regs.append(pwndbg.aglib.regs.frame)
+        regs.append(pwndbg.aglib.regs.stack)
 
         if pwndbg.config.show_retaddr_reg:
-            regs += pwndbg.gdblib.regs.retaddr
+            regs += pwndbg.aglib.regs.retaddr
 
-        regs.append(pwndbg.gdblib.regs.current.pc)
+        regs.append(pwndbg.aglib.regs.current.pc)
 
         if pwndbg.config.show_flags:
-            regs += pwndbg.gdblib.regs.flags.keys()
+            regs += pwndbg.aglib.regs.flags.keys()
 
-    changed = pwndbg.gdblib.regs.changed
+    changed = pwndbg.aglib.regs.changed
 
     for reg in regs:
         if reg is None:
             continue
 
-        value = pwndbg.gdblib.regs[reg]
+        value = pwndbg.aglib.regs[reg]
         if value is None:
             print(message.warn("Unknown register: %r" % reg))
             continue
@@ -591,13 +593,13 @@ def get_regs(regs: List[str] = None):
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
         bit_flags = None
-        if reg in pwndbg.gdblib.regs.flags:
-            bit_flags = pwndbg.gdblib.regs.flags[reg]
-        elif reg in pwndbg.gdblib.regs.extra_flags:
-            bit_flags = pwndbg.gdblib.regs.extra_flags[reg]
+        if reg in pwndbg.aglib.regs.flags:
+            bit_flags = pwndbg.aglib.regs.flags[reg]
+        elif reg in pwndbg.aglib.regs.extra_flags:
+            bit_flags = pwndbg.aglib.regs.extra_flags[reg]
 
         if bit_flags:
-            desc = C.format_flags(value, bit_flags, pwndbg.gdblib.regs.last.get(reg, 0))
+            desc = C.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
 
         else:
             desc = pwndbg.chain.format(value)
@@ -612,14 +614,7 @@ disasm_lines = pwndbg.config.add_param(
 
 
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
-    try:
-        flavor = gdb.execute("show disassembly-flavor", to_string=True).lower().split('"')[1]
-    except gdb.error as e:
-        if str(e).find("disassembly-flavor") > -1:
-            flavor = "intel"
-        else:
-            raise
-
+    flavor = pwndbg.dbg.x86_disassembly_flavor()
     syntax = pwndbg.aglib.disasm.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
@@ -629,7 +624,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     if cs is not None and cs.syntax != syntax:
         pwndbg.lib.cache.clear_caches()
 
-    result = pwndbg.gdblib.nearpc.nearpc(
+    result = pwndbg.aglib.nearpc.nearpc(
         lines=disasm_lines // 2,
         emulate=bool(not pwndbg.config.emulate == "off"),
         use_cache=True,
@@ -641,10 +636,10 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     thumb_mode_str = get_thumb_mode_string()
     if thumb_mode_str is not None:
         info = " / {} / {} mode / set emulate {}".format(
-            pwndbg.gdblib.arch.current, thumb_mode_str, pwndbg.config.emulate
+            pwndbg.aglib.arch.current, thumb_mode_str, pwndbg.config.emulate
         )
     else:
-        info = " / {} / set emulate {}".format(pwndbg.gdblib.arch.current, pwndbg.config.emulate)
+        info = " / {} / set emulate {}".format(pwndbg.aglib.arch.current, pwndbg.config.emulate)
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
 
     # If we didn't disassemble backward, try to make sure
@@ -684,23 +679,22 @@ def get_filename_and_formatted_source():
     Returns formatted, lines limited and highlighted source as list
     or if it isn't there - an empty list
     """
-    sal = gdb.selected_frame().find_sal()  # gdb.Symtab_and_line
+    sal = pwndbg.dbg.selected_frame().sal()
 
     # Check if source code is available
-    if sal.symtab is None:
-        return "", []
+    if sal is None:
+        return "", [], 0
 
     # Get the full source code
-    closest_line = sal.line
-    filename = sal.symtab.fullname()
+    filename, closest_line = sal
 
     try:
         source = get_highlight_source(filename)
     except OSError:
-        return "", []
+        return "", [], closest_line
 
     if not source:
-        return "", []
+        return "", [], closest_line
 
     n = int(source_disasm_lines)
 
@@ -734,7 +728,7 @@ def get_filename_and_formatted_source():
         )
         formatted_source.append(line)
 
-    return filename, formatted_source
+    return filename, formatted_source, closest_line
 
 
 should_decompile = pwndbg.config.add_param(
@@ -745,24 +739,18 @@ should_decompile = pwndbg.config.add_param(
 
 
 def context_code(target=sys.stdout, with_banner=True, width=None):
-    filename, formatted_source = get_filename_and_formatted_source()
+    filename, formatted_source, line = get_filename_and_formatted_source()
 
     # Try getting source from files
     if formatted_source:
         bannerline = (
             [pwndbg.ui.banner("Source (code)", target=target, width=width)] if with_banner else []
         )
-        return (
-            bannerline
-            + ["In file: %s:%d" % (filename, gdb.selected_frame().find_sal().line)]
-            + formatted_source
-        )
+        return bannerline + ["In file: %s:%d" % (filename, line)] + formatted_source
 
     if should_decompile:
         # Will be None if decompilation fails
-        code = pwndbg.integration.provider.decompile(
-            pwndbg.gdblib.regs.pc, int(source_disasm_lines)
-        )
+        code = pwndbg.integration.provider.decompile(pwndbg.aglib.regs.pc, int(source_disasm_lines))
 
         if code:
             bannerline = (
@@ -781,7 +769,7 @@ stack_lines = pwndbg.config.add_param(
 def context_stack(target=sys.stdout, with_banner=True, width=None):
     result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(
-        pwndbg.gdblib.regs.sp, to_string=True, count=stack_lines
+        pwndbg.aglib.regs.sp, to_string=True, count=stack_lines
     )
     if telescope:
         result.extend(telescope)
@@ -802,15 +790,15 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     if with_banner:
         result.append(pwndbg.ui.banner("backtrace", target=target, width=width))
 
-    this_frame = gdb.selected_frame()
+    this_frame = pwndbg.dbg.selected_frame()
     newest_frame = this_frame
     oldest_frame = this_frame
 
     for i in range(backtrace_lines - 1):
         try:
-            candidate = oldest_frame.older()
-        # We catch gdb.error in case of a `gdb.error: PC not saved` case
-        except (gdb.MemoryError, gdb.error):
+            candidate = oldest_frame.parent()
+        # We catch an error in case of a `gdb.error: PC not saved` case
+        except pwndbg.dbg_mod.Error:
             break
 
         if not candidate:
@@ -818,7 +806,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         oldest_frame = candidate
 
     for i in range(backtrace_lines - 1):
-        candidate = newest_frame.newer()
+        candidate = newest_frame.child()
         if not candidate:
             break
         newest_frame = candidate
@@ -830,7 +818,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.gdblib.symbol.get(int(frame.pc())))
+        symbol = c.symbol(pwndbg.dbg.selected_inferior().symbol_name_at_address(int(frame.pc())))
         if symbol:
             addrsz = addrsz + " " + symbol
         line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
@@ -840,7 +828,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         if frame == oldest_frame:
             break
 
-        frame = frame.older()
+        frame = frame.parent()
         i += 1
     return result
 
@@ -973,7 +961,7 @@ def save_signal(signal) -> None:
             # we can't access $_siginfo, so lets just show current pc
             # see also issue 476
             if _is_rr_present():
-                msg += " (current pc: %#x)" % pwndbg.gdblib.regs.pc
+                msg += " (current pc: %#x)" % pwndbg.aglib.regs.pc
             else:
                 try:
                     si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
@@ -987,9 +975,10 @@ def save_signal(signal) -> None:
             result.append(message.breakpoint(f"Breakpoint {(bkpt.location)}"))
 
 
-gdb.events.cont.connect(save_signal)
-gdb.events.stop.connect(save_signal)
-gdb.events.exited.connect(save_signal)
+if pwndbg.dbg.is_gdblib_available():
+    gdb.events.cont.connect(save_signal)
+    gdb.events.stop.connect(save_signal)
+    gdb.events.exited.connect(save_signal)
 
 
 def context_signal():
@@ -997,17 +986,24 @@ def context_signal():
 
 
 context_sections = {
+    "a": context_args,
     "r": context_regs,
     "d": context_disasm,
-    "a": context_args,
-    "c": context_code,
     "s": context_stack,
     "b": context_backtrace,
-    "e": context_expressions,
-    "g": context_ghidra,
-    "h": context_heap_tracker,
-    "t": context_threads,
+    "c": context_code,
 }
+
+
+if pwndbg.dbg.is_gdblib_available():
+    # Add the sections that need gdblib.
+    context_sections = {
+        **context_sections,
+        "e": context_expressions,
+        "g": context_ghidra,
+        "h": context_heap_tracker,
+        "t": context_threads,
+    }
 
 
 @pwndbg.lib.cache.cache_until("forever")

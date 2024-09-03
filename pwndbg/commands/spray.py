@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
 from pwnlib.util.cyclic import cyclic
 
 import pwndbg.color.message as M
@@ -34,8 +33,9 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
 def spray(addr, length, value, only_funcptrs) -> None:
+    addr = int(addr)
     if length == 0:
-        page = pwndbg.gdblib.vmmap.find(addr)
+        page = pwndbg.aglib.vmmap.find(addr)
         if page is None:
             print(
                 M.error(
@@ -59,22 +59,22 @@ def spray(addr, length, value, only_funcptrs) -> None:
         if length % value_length != 0:
             value_bytes += value_bytes[: (length % value_length)]
     else:
-        value_bytes = cyclic(length, n=pwndbg.gdblib.arch.ptrsize)
+        value_bytes = cyclic(length, n=pwndbg.aglib.arch.ptrsize)
 
     try:
         if only_funcptrs:
-            mem = pwndbg.gdblib.memory.read(addr, length)
+            mem = pwndbg.aglib.memory.read(addr, length)
 
             addresses_written = 0
-            ptrsize = pwndbg.gdblib.arch.ptrsize
+            ptrsize = pwndbg.aglib.arch.ptrsize
             for i in range(0, len(mem) - (length % ptrsize), ptrsize):
-                ptr_candidate = pwndbg.gdblib.arch.unpack(mem[i : i + ptrsize])
-                page = pwndbg.gdblib.vmmap.find(ptr_candidate)
+                ptr_candidate = pwndbg.aglib.arch.unpack(mem[i : i + ptrsize])
+                page = pwndbg.aglib.vmmap.find(ptr_candidate)
                 if page is not None and page.execute:
-                    pwndbg.gdblib.memory.write(addr + i, value_bytes[i : i + ptrsize])
+                    pwndbg.aglib.memory.write(addr + i, value_bytes[i : i + ptrsize])
                     addresses_written += 1
             print(M.notice(f"Overwritten {addresses_written} function pointers"))
         else:
-            pwndbg.gdblib.memory.write(addr, value_bytes)
-    except gdb.MemoryError as e:
+            pwndbg.aglib.memory.write(addr, value_bytes)
+    except pwndbg.dbg_mod.Error as e:
         print(M.error(e))

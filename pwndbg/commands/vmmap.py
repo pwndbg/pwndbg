@@ -7,22 +7,23 @@ from __future__ import annotations
 import argparse
 from typing import Tuple
 
-import gdb
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
+import pwndbg.aglib.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.vmmap
 from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import red
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib import gdb_version
 from pwndbg.lib.memory import Page
 
-integer_types = (int, gdb.Value)
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.gdblib.elf
+    import pwndbg.gdblib.vmmap
+
+integer_types = (int, pwndbg.dbg_mod.Value)
 
 
 def pages_filter(gdbval_or_str):
@@ -45,7 +46,7 @@ def print_vmmap_table_header() -> None:
     Prints the table header for the vmmap command.
     """
     print(
-        f"{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'Perm'} {'Size':>8} {'Offset':>6} {'File'}"
+        f"{'Start':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} {'Perm'} {'Size':>8} {'Offset':>6} {'File'}"
     )
 
 
@@ -54,12 +55,12 @@ def print_vmmap_gaps_table_header() -> None:
     Prints the table header for the vmmap --gaps command.
     """
     header = (
-        f"{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} "
-        f"{'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} "
+        f"{'Start':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} "
+        f"{'End':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} "
         f"{'Perm':>4} "
         f"{'Size':>8} "
         f"{'Note':>9} "
-        f"{'Accumulated Size':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+        f"{'Accumulated Size':>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
     )
     print(header)
 
@@ -87,7 +88,7 @@ def print_map(page: Page) -> None:
 def print_adjacent_map(map_start: Page, map_end: Page) -> None:
     print(
         green(
-            f"{gap_text(map_end)} {'ADJACENT':>9} {hex(map_end.end - map_start.start):>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+            f"{gap_text(map_end)} {'ADJACENT':>9} {hex(map_end.end - map_start.start):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
         )
     )
 
@@ -100,7 +101,7 @@ def print_gap(current: Page, last_map: Page):
     print(
         red(
             " - " * int(51 / 3)
-            + f" {'GAP':>9} {hex(current.start - last_map.end):>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
+            + f" {'GAP':>9} {hex(current.start - last_map.end):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
         )
     )
 
@@ -200,7 +201,8 @@ def vmmap(
     lines_before = min(lookaround_lines_limit, lines_before)
 
     # All displayed pages, including lines after and lines before
-    total_pages = pwndbg.gdblib.vmmap.get()
+    vmmap = pwndbg.dbg.selected_inferior().vmmap()
+    total_pages = vmmap.ranges()
 
     # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
@@ -240,7 +242,7 @@ def vmmap(
         return
 
     if gaps:
-        print_vmmap_gaps(total_pages)
+        print_vmmap_gaps(tuple(total_pages))
         return
 
     print(M.legend())
@@ -263,126 +265,127 @@ def vmmap(
 
         print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
-    if pwndbg.gdblib.qemu.is_qemu() and not pwndbg.gdblib.qemu.exec_file_supported():
+    if vmmap.is_qemu():
         print("\n[QEMU target detected - vmmap result might not be accurate; see `help vmmap`]")
 
-    # Only GDB versions >=12 report permission info in info proc mappings. On older versions, we fallback on "rwx".
-    # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
-    if pwndbg.gdblib.qemu.is_qemu_usermode() and gdb_version[0] < 12:
+    if not vmmap.has_reliable_perms():
         print(
             "\n[GDB <12.1 detected - vmmap cannot fetch permission information, defaulting to rwx]"
         )
 
 
-parser = argparse.ArgumentParser(description="Add virtual memory map page.")
-parser.add_argument("start", help="Starting virtual address")
-parser.add_argument("size", help="Size of the address space, in bytes")
-parser.add_argument(
-    "flags", nargs="?", type=str, default="", help="Flags set by the ELF file, see PF_X, PF_R, PF_W"
-)
-parser.add_argument(
-    "offset",
-    nargs="?",
-    default=0,
-    help="Offset into the original ELF file that the data is loaded from",
-)
+if pwndbg.dbg.is_gdblib_available():
+    parser = argparse.ArgumentParser(description="Add virtual memory map page.")
+    parser.add_argument("start", help="Starting virtual address")
+    parser.add_argument("size", help="Size of the address space, in bytes")
+    parser.add_argument(
+        "flags",
+        nargs="?",
+        type=str,
+        default="",
+        help="Flags set by the ELF file, see PF_X, PF_R, PF_W",
+    )
+    parser.add_argument(
+        "offset",
+        nargs="?",
+        default=0,
+        help="Offset into the original ELF file that the data is loaded from",
+    )
 
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+    @pwndbg.commands.OnlyWhenRunning
+    def vmmap_add(start, size, flags, offset) -> None:
+        page_flags = {
+            "r": pwndbg.gdblib.elf.PF_R,
+            "w": pwndbg.gdblib.elf.PF_W,
+            "x": pwndbg.gdblib.elf.PF_X,
+        }
+        perm = 0
+        for flag in flags:
+            flag_val = page_flags.get(flag, None)
+            if flag_val is None:
+                print('Invalid page flag "%s"', flag)
+                return
+            perm |= flag_val
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
-@pwndbg.commands.OnlyWhenRunning
-def vmmap_add(start, size, flags, offset) -> None:
-    page_flags = {
-        "r": pwndbg.gdblib.elf.PF_R,
-        "w": pwndbg.gdblib.elf.PF_W,
-        "x": pwndbg.gdblib.elf.PF_X,
-    }
-    perm = 0
-    for flag in flags:
-        flag_val = page_flags.get(flag, None)
-        if flag_val is None:
-            print('Invalid page flag "%s"', flag)
-            return
-        perm |= flag_val
+        page = pwndbg.lib.memory.Page(start, size, perm, offset)
 
-    page = pwndbg.lib.memory.Page(start, size, perm, offset)
-    pwndbg.gdblib.vmmap.add_custom_page(page)
-
-    print("%r added" % page)
-
-
-@pwndbg.commands.ArgparsedCommand(
-    "Clear the vmmap cache.", category=CommandCategory.MEMORY
-)  # TODO is this accurate?
-@pwndbg.commands.OnlyWhenRunning
-def vmmap_clear() -> None:
-    pwndbg.gdblib.vmmap.clear_custom_page()
-
-
-parser = argparse.ArgumentParser(description="Load virtual memory map pages from ELF file.")
-parser.add_argument(
-    "filename", nargs="?", type=str, help="ELF filename, by default uses current loaded filename."
-)
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
-@pwndbg.commands.OnlyWhenRunning
-def vmmap_load(filename) -> None:
-    if filename is None:
-        filename = pwndbg.gdblib.file.get_proc_exe_file()
-
-    print(f'Load "{filename}" ...')
-
-    # TODO: Add an argument to let use to choose loading the page information from sections or segments
-
-    # Use section information to recover the segment information.
-    # The entry point of bare metal environment is often at the first segment.
-    # For example, assume the entry point is at 0x8000.
-    # In most of case, link will create a segment and starts from 0x0.
-    # This cause all values less than 0x8000 be considered as a valid pointer.
-    pages = []
-    with open(filename, "rb") as f:
-        elffile = ELFFile(f)
-
-        for section in elffile.iter_sections():
-            vaddr = section["sh_addr"]
-            memsz = section["sh_size"]
-            sh_flags = section["sh_flags"]
-            offset = section["sh_offset"]
-
-            # Don't add the sections that aren't mapped into memory
-            if not sh_flags & SH_FLAGS.SHF_ALLOC:
-                continue
-
-            # Guess the segment flags from section flags
-            flags = pwndbg.gdblib.elf.PF_R
-            if sh_flags & SH_FLAGS.SHF_WRITE:
-                flags |= pwndbg.gdblib.elf.PF_W
-            if sh_flags & SH_FLAGS.SHF_EXECINSTR:
-                flags |= pwndbg.gdblib.elf.PF_X
-
-            page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
-            pages.append(page)
-
-    for page in pages:
         pwndbg.gdblib.vmmap.add_custom_page(page)
+
         print("%r added" % page)
 
+    parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
+    parser.add_argument(
+        "address", type=pwndbg.commands.sloppy_gdb_parse, help="Address of the page to explore"
+    )
 
-parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
-parser.add_argument(
-    "address", type=pwndbg.commands.sloppy_gdb_parse, help="Address of the page to explore"
-)
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+    @pwndbg.commands.OnlyWhenRunning
+    def vmmap_explore(address: int) -> None:
+        if not isinstance(address, int):
+            print("Address is not a valid integer.")
+            return
+        page = pwndbg.gdblib.vmmap.explore(address)
+        if page is None:
+            print("Exploration failed. Maybe the address isn't readable?")
+            return
+        print_vmmap_table_header()
+        print(page)
 
+    @pwndbg.commands.ArgparsedCommand(
+        "Clear the vmmap cache.", category=CommandCategory.MEMORY
+    )  # TODO is this accurate?
+    @pwndbg.commands.OnlyWhenRunning
+    def vmmap_clear() -> None:
+        pwndbg.gdblib.vmmap.clear_custom_page()
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
-@pwndbg.commands.OnlyWhenRunning
-def vmmap_explore(address: int) -> None:
-    if not isinstance(address, int):
-        print("Address is not a valid integer.")
-        return
-    page = pwndbg.gdblib.vmmap.explore(address)
-    if page is None:
-        print("Exploration failed. Maybe the address isn't readable?")
-        return
-    print_vmmap_table_header()
-    print(page)
+    parser = argparse.ArgumentParser(description="Load virtual memory map pages from ELF file.")
+    parser.add_argument(
+        "filename",
+        nargs="?",
+        type=str,
+        help="ELF filename, by default uses current loaded filename.",
+    )
+
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+    @pwndbg.commands.OnlyWhenRunning
+    def vmmap_load(filename) -> None:
+        if filename is None:
+            filename = pwndbg.gdblib.file.get_proc_exe_file()
+
+        print(f'Load "{filename}" ...')
+
+        # TODO: Add an argument to let use to choose loading the page information from sections or segments
+
+        # Use section information to recover the segment information.
+        # The entry point of bare metal environment is often at the first segment.
+        # For example, assume the entry point is at 0x8000.
+        # In most of case, link will create a segment and starts from 0x0.
+        # This cause all values less than 0x8000 be considered as a valid pointer.
+        pages = []
+        with open(filename, "rb") as f:
+            elffile = ELFFile(f)
+
+            for section in elffile.iter_sections():
+                vaddr = section["sh_addr"]
+                memsz = section["sh_size"]
+                sh_flags = section["sh_flags"]
+                offset = section["sh_offset"]
+
+                # Don't add the sections that aren't mapped into memory
+                if not sh_flags & SH_FLAGS.SHF_ALLOC:
+                    continue
+
+                # Guess the segment flags from section flags
+                flags = pwndbg.gdblib.elf.PF_R
+                if sh_flags & SH_FLAGS.SHF_WRITE:
+                    flags |= pwndbg.gdblib.elf.PF_W
+                if sh_flags & SH_FLAGS.SHF_EXECINSTR:
+                    flags |= pwndbg.gdblib.elf.PF_X
+
+                page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
+                pages.append(page)
+
+        for page in pages:
+            pwndbg.gdblib.vmmap.add_custom_page(page)
+            print("%r added" % page)

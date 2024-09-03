@@ -12,7 +12,7 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWithFile
 def elfsections() -> None:
-    local_path = pwndbg.gdblib.file.get_proc_exe_file()
+    local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -51,7 +51,7 @@ def plt() -> None:
 
 
 def get_section_bounds(section_name):
-    local_path = pwndbg.gdblib.file.get_proc_exe_file()
+    local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -74,8 +74,8 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
         return
 
     # If we started the binary and it has PIE, rebase it
-    if pwndbg.gdblib.proc.alive:
-        bin_base_addr = pwndbg.gdblib.proc.binary_base_addr
+    if pwndbg.aglib.proc.alive:
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
 
         # Rebase the start and end addresses if needed
         if start < bin_base_addr:
@@ -95,11 +95,11 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
 
 def get_symbols_in_region(start, end, filter_text=""):
     symbols = []
-    ptr_size = pwndbg.gdblib.typeinfo.pvoid.sizeof
+    ptr_size = pwndbg.aglib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
-        name = pwndbg.gdblib.symbol.get(addr, gdb_only=True)
-        if name != "" and "+" not in name and filter_text in name:
+        name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
+        if name and name != "" and "+" not in name and filter_text in name:
             symbols.append((name, addr))
         addr += ptr_size
 

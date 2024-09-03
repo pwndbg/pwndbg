@@ -6,7 +6,6 @@ import logging
 import pwndbg.aglib.disasm
 import pwndbg.color.message as MessageColor
 import pwndbg.commands
-import pwndbg.gdblib.nearpc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Dump internal PwndbgInstruction attributes.")
@@ -58,7 +57,7 @@ def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) ->
         )
 
         instructions, index_of_pc = pwndbg.aglib.disasm.near(
-            pwndbg.gdblib.regs.pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
+            pwndbg.aglib.regs.pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
         )
 
         if instructions:

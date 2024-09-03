@@ -8,13 +8,15 @@ import argparse
 
 import pwndbg
 import pwndbg.commands
-import pwndbg.gdblib.config
 import pwndbg.lib.config
 from pwndbg.color import generateColorFunction
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
 from pwndbg.commands import CommandCategory
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.gdblib.config
 
 
 def print_row(
@@ -134,9 +136,11 @@ def theme(filter_pattern) -> None:
     display_config(filter_pattern, "theme")
 
 
-@pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
-def configfile(show_all=False) -> None:
-    configfile_print_scope("config", show_all)
+if pwndbg.dbg.is_gdblib_available():
+
+    @pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
+    def configfile(show_all=False) -> None:
+        configfile_print_scope("config", show_all)
 
 
 themefile_parser = argparse.ArgumentParser(
@@ -147,9 +151,11 @@ themefile_parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
-def themefile(show_all=False) -> None:
-    configfile_print_scope("theme", show_all)
+if pwndbg.dbg.is_gdblib_available():
+
+    @pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
+    def themefile(show_all=False) -> None:
+        configfile_print_scope("theme", show_all)
 
 
 def configfile_print_scope(scope: str, show_all: bool = False) -> None:

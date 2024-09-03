@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-
+import pwndbg
+import pwndbg.aglib.memory
 import pwndbg.commands
-import pwndbg.gdblib.memory
 from pwndbg.commands import CommandCategory
 
 
@@ -13,7 +12,7 @@ def xor_memory(address, key, count):
     """
     Helper function for xorring memory in gdb
     """
-    mem = pwndbg.gdblib.memory.read(address, count, partial=True)
+    mem = pwndbg.aglib.memory.read(address, count, partial=True)
 
     for index, byte in enumerate(mem):
         key_index = index % len(key)
@@ -35,8 +34,8 @@ parser.add_argument("count", type=int, help="The number of bytes to xor.")
 def xor(address, key, count) -> None:
     try:
         xorred_memory = xor_memory(address, key, count)
-        pwndbg.gdblib.memory.write(address, xorred_memory)
-    except gdb.error as e:
+        pwndbg.aglib.memory.write(address, xorred_memory)
+    except pwndbg.dbg_mod.Error as e:
         print(e)
 
 
