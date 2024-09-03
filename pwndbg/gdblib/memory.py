@@ -384,8 +384,7 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
 
 def update_min_addr() -> None:
     global MMAP_MIN_ADDR
-    if pwndbg.gdblib.qemu.is_qemu_kernel():
-        MMAP_MIN_ADDR = 0
+    MMAP_MIN_ADDR = 0 if pwndbg.gdblib.qemu.is_qemu_kernel() else 0x8000
 
 
 def fetch_struct_as_dictionary(
