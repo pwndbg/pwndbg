@@ -250,7 +250,7 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
     """
     Determines the type code of a given LLDB SBType.
     """
-    c = type.GetTypeCode()
+    c = type.GetTypeClass()
 
     assert c != lldb.eTypeClassInvalid, "passed eTypeClassInvalid to map_type_code"
 
