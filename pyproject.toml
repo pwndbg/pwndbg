@@ -159,8 +159,7 @@ packages = [
 python = "^3.10"
 # Newer versions of capstone break tests
 capstone = "5.0.2"
-# This is the last version of IPython that supports Python 3.8
-ipython = "8.12.3"
+ipython = "^8.27.0"
 # Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
 setuptools = "^70.0.0"
 psutil = "^5.9.8"
