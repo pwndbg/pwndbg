@@ -12,14 +12,6 @@ services:
     volumes:
       - .:/pwndbg
 
-  ubuntu20.04:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        image: ubuntu:20.04
-
   ubuntu22.04:
     <<: *base-spec
     build:
