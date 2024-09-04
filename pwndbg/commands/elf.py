@@ -99,7 +99,7 @@ def get_symbols_in_region(start, end, filter_text=""):
     addr = start
     while addr < end:
         name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
-        if name and name != "" and "+" not in name and filter_text in name:
+        if name and "+" not in name and filter_text in name:
             symbols.append((name, addr))
         addr += ptr_size
 
