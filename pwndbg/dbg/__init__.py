@@ -719,7 +719,7 @@ class Value:
         value of `*(ptr+idx)`.
         """
         raise NotImplementedError()
-    
+
 
 class CommandHandle:
     """
