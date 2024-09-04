@@ -41,7 +41,7 @@ SIGRETURN_CORE_REGISTER: Dict[str, Set[str]] = {
 parser = argparse.ArgumentParser(description="Display the SigreturnFrame at the specific address")
 
 parser.add_argument(
-    "address", nargs="?", default=None, type=int, help="The address to read the frame from"
+    "address", nargs="?", default=None, type=int, help="The address to read the frame from (default: $sp)"
 )
 
 parser.add_argument(
