@@ -156,7 +156,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 # Newer versions of capstone break tests
 capstone = "5.0.2"
 # This is the last version of IPython that supports Python 3.8
