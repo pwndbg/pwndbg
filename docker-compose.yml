@@ -12,14 +12,6 @@ services:
     volumes:
       - .:/pwndbg
 
-  ubuntu20.04:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        image: ubuntu:20.04
-
   ubuntu22.04:
     <<: *base-spec
     build:
@@ -37,13 +29,13 @@ services:
         image: ubuntu:24.04
 
 
-  debian11:
+  debian12:
     <<: *base-spec
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        image: debian:11
+        image: debian:12
 
   lldb:
     <<: *base-spec

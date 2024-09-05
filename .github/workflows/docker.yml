@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        images: [ubuntu20.04, ubuntu22.04, debian11, archlinux]
+        images: [ubuntu22.04, ubuntu24.04, debian12, archlinux]
 
     runs-on: ubuntu-latest
     timeout-minutes: 30

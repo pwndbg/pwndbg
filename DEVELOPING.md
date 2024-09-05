@@ -123,7 +123,7 @@ You can optionally set the contents of `.git/hooks/pre-push` to the following if
 
 ## Minimum Supported Versions
 
-Our goal is to fully support all Ubuntu LTS releases that have not reach end-of-life, with support for other platforms on a best-effort basis. Currently that means all code should work on Ubuntu 18.04, 20.04, and 22.04 with GDB 8.1 and later. This means that the minimum supported Python version is 3.6.9, and we cannot use any newer Python features unless those features are backported to this minimum version.
+Our goal is to fully support all Ubuntu LTS releases that have not reach end-of-life, with support for other platforms on a best-effort basis. Currently that means all code should work on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. This means that the minimum supported Python version is 3.10, and we cannot use any newer Python features unless those features are backported to this minimum version.
 
 Note that while all code should run without errors on these supported LTS versions, it's fine if older versions don't support all of the features of newer versions, as long as this is handled correctly and this information is shown to the user. For example, we may make use of some GDB APIs in newer versions that we aren't able to provide alternative implementations for in older versions, and so in these cases we should inform the user that the functionality can't be provided due to the version of GDB.
 

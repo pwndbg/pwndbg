@@ -107,7 +107,7 @@ install_apt() {
         gcc-mips-linux-gnu \
         gcc-mips64-linux-gnuabi64
 
-    if [[ "$1" != "" && "$1" != "20.04" ]]; then
+    if [[ "$1" != "" ]]; then
         sudo apt install shfmt
     fi
 
