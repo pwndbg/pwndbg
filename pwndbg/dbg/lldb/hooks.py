@@ -82,8 +82,7 @@ def prompt_hook():
 
     global should_show_context
     if should_show_context:
-        # TODO: Uncomment this once the LLDB command port PR for `context` is merged
-        # pwndbg.commands.context.context()
+        pwndbg.commands.context.context()
         should_show_context = False
 
 

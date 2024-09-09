@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.gdblib.nearpc
+import pwndbg.aglib.nearpc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Disassemble near a specified address.")
@@ -36,7 +36,7 @@ def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> 
     """
     print(
         "\n".join(
-            pwndbg.gdblib.nearpc.nearpc(
+            pwndbg.aglib.nearpc.nearpc(
                 pc, lines, emulate, nearpc.repeat, use_cache=use_cache, linear=linear
             )
         )

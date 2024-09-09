@@ -4,25 +4,23 @@ import argparse
 import math
 import os
 
-import gdb
-
+import pwndbg.aglib.arch
+import pwndbg.aglib.elf
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.vmmap
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
 def find_module(addr, max_distance):
     mod_filter = lambda page: page.start <= addr < page.end
-    pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
+    pages = list(filter(mod_filter, pwndbg.aglib.vmmap.get()))
 
     if not pages:
         if max_distance != 0:
             mod_filter = lambda page: page.start - max_distance <= addr < page.end + max_distance
-            pages = list(filter(mod_filter, pwndbg.gdblib.vmmap.get()))
+            pages = list(filter(mod_filter, pwndbg.aglib.vmmap.get()))
 
         if not pages:
             return None
@@ -87,8 +85,8 @@ def probeleak(
     address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
 ) -> None:
     address = int(address)
-    address &= pwndbg.gdblib.arch.ptrmask
-    ptrsize = pwndbg.gdblib.arch.ptrsize
+    address &= pwndbg.aglib.arch.ptrmask
+    ptrsize = pwndbg.aglib.arch.ptrsize
     count = max(int(count), ptrsize)
     off_zeros = int(math.ceil(math.log(count, 2) / 4))
     if flags is not None:
@@ -104,8 +102,8 @@ def probeleak(
         count -= address
 
     try:
-        data = pwndbg.gdblib.memory.read(address, count, partial=True)
-    except gdb.error as e:
+        data = pwndbg.aglib.memory.read(address, count, partial=True)
+    except pwndbg.dbg_mod.Error as e:
         print(message.error(str(e)))
         return
 
@@ -120,7 +118,7 @@ def probeleak(
     found = False
     find_cnt = 0
     for i in range(0, len(data) - ptrsize + 1):
-        p = pwndbg.gdblib.arch.unpack(data[i : i + ptrsize])
+        p = pwndbg.aglib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:
             if point_to is not None and point_to not in page.objfile:
@@ -155,7 +153,7 @@ def probeleak(
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
             text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
 
-            symbol = pwndbg.gdblib.symbol.get(p)
+            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(p)
             if symbol:
                 text += f" ({symbol})"
             print(text)

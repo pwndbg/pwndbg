@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.stack
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -19,10 +20,10 @@ def canary_value():
     if at_random is None:
         return None, None
 
-    global_canary = pwndbg.gdblib.memory.pvoid(at_random)
+    global_canary = pwndbg.aglib.memory.pvoid(at_random)
 
     # masking canary value as canaries on the stack has last byte = 0
-    global_canary &= pwndbg.gdblib.arch.ptrmask ^ 0xFF
+    global_canary &= pwndbg.aglib.arch.ptrmask ^ 0xFF
 
     return global_canary, at_random
 
@@ -51,8 +52,8 @@ def canary(all) -> None:
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
     found_canaries = False
-    global_canary_packed = pwndbg.gdblib.arch.pack(global_canary)
-    thread_stacks = pwndbg.gdblib.stack.get()
+    global_canary_packed = pwndbg.aglib.arch.pack(global_canary)
+    thread_stacks = pwndbg.aglib.stack.get()
 
     for thread in thread_stacks:
         thread_stack = thread_stacks[thread]

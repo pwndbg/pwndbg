@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.file
 import pwndbg.color
 import pwndbg.commands
-import pwndbg.gdblib.file
 import pwndbg.wrappers.checksec
 
 parser = argparse.ArgumentParser(
@@ -17,5 +17,5 @@ parser.add_argument("-f", "--file", type=str, help="Specify the file to run `che
 @pwndbg.commands.ArgparsedCommand(parser, command_name="checksec")
 @pwndbg.commands.OnlyWithFile
 def checksec(file: str) -> None:
-    local_path = file or pwndbg.gdblib.file.get_proc_exe_file()
+    local_path = file or pwndbg.aglib.file.get_proc_exe_file()
     print(pwndbg.wrappers.checksec.get_raw_out(local_path))

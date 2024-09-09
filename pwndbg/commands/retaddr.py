@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 
 
@@ -13,20 +13,20 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWhenRunning
 def retaddr() -> None:
-    addresses = pwndbg.gdblib.stack.callstack()
+    addresses = pwndbg.aglib.stack.callstack()
 
-    sp = pwndbg.gdblib.regs.sp
-    stack = pwndbg.gdblib.vmmap.find(sp)
+    sp = pwndbg.aglib.regs.sp
+    stack = pwndbg.aglib.vmmap.find(sp)
 
     # Find all return addresses on the stack
     start = stack.vaddr
     stop = start + stack.memsz
     while addresses and start < sp < stop:
-        value = pwndbg.gdblib.memory.u(sp)
+        value = pwndbg.aglib.memory.u(sp)
 
         if value in addresses:
             index = addresses.index(value)
             del addresses[:index]
             print(pwndbg.chain.format(sp))
 
-        sp += pwndbg.gdblib.arch.ptrsize
+        sp += pwndbg.aglib.arch.ptrsize

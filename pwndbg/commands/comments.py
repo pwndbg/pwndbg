@@ -19,20 +19,20 @@ file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
 @pwndbg.commands.OnlyWhenRunning
 def comm(addr=None, comment=None) -> None:
     if addr is None:
-        addr = hex(pwndbg.gdblib.regs.pc)
+        addr = hex(pwndbg.aglib.regs.pc)
     try:
         with open(".gdb_comments", "a+") as f:
             target = int(addr, 0)
 
-            if not pwndbg.gdblib.memory.peek(target):
+            if not pwndbg.aglib.memory.peek(target):
                 print(message.error("Invalid Address %#x" % target))
 
             else:
-                f.write(f"file:{pwndbg.gdblib.proc.exe}=")
+                f.write(f"file:{pwndbg.aglib.proc.exe}=")
                 f.write(f"{target:#x}:{comment}\n")
-                if pwndbg.gdblib.proc.exe not in file_lists:
-                    file_lists[pwndbg.gdblib.proc.exe] = {}
-                file_lists[pwndbg.gdblib.proc.exe][hex(target)] = comment
+                if pwndbg.aglib.proc.exe not in file_lists:
+                    file_lists[pwndbg.aglib.proc.exe] = {}
+                file_lists[pwndbg.aglib.proc.exe][hex(target)] = comment
     except Exception:
         print(message.error("Permission denied to create file"))
 

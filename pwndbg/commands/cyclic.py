@@ -7,8 +7,8 @@ from typing import Optional
 from pwnlib.util.cyclic import cyclic
 from pwnlib.util.cyclic import cyclic_find
 
+import pwndbg.aglib.arch
 import pwndbg.commands
-import pwndbg.gdblib.arch
 from pwndbg.color import message
 
 parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
@@ -63,13 +63,13 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
 def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") -> None:
     if length is None:
-        length = pwndbg.gdblib.arch.ptrsize
+        length = pwndbg.aglib.arch.ptrsize
 
     if lookup:
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
         if isinstance(lookup, (pwndbg.dbg_mod.Value, int)):
-            lookup = int(lookup).to_bytes(length, pwndbg.gdblib.arch.endian)
+            lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
         elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
 

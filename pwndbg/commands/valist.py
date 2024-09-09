@@ -25,11 +25,11 @@ def valist(addr: int, count: int) -> None:
     # } va_list[1];
     # ```
 
-    gp_offset = pwndbg.gdblib.memory.u32(addr)
+    gp_offset = pwndbg.aglib.memory.u32(addr)
     gp_index = gp_offset / 8
 
-    overflow_arg_area = pwndbg.gdblib.memory.u64(addr + 8)
-    reg_save_area = pwndbg.gdblib.memory.u64(addr + 16)
+    overflow_arg_area = pwndbg.aglib.memory.u64(addr + 8)
+    reg_save_area = pwndbg.aglib.memory.u64(addr + 16)
 
     indent = " " * len("gp_offset => ")
     print(f"{C.blue('reg_save_area')}")

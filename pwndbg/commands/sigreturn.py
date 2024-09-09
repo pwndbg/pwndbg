@@ -8,13 +8,13 @@ from typing import Tuple
 
 import pwnlib.rop.srop
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.color.message
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
 from pwndbg.lib.regs import aarch64
 from pwndbg.lib.regs import amd64
 from pwndbg.lib.regs import arm
@@ -67,12 +67,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def sigreturn(address: int = None, display_all=False, print_address=False) -> None:
-    address = pwndbg.gdblib.regs.sp if address is None else address
+    address = pwndbg.aglib.regs.sp if address is None else address
 
-    ptr_size = pwndbg.gdblib.arch.ptrsize
+    ptr_size = pwndbg.aglib.arch.ptrsize
 
-    frame_layout = SIGRETURN_FRAME_LAYOUTS[pwndbg.gdblib.arch.name]
-    core_registers = SIGRETURN_CORE_REGISTER[pwndbg.gdblib.arch.name]
+    frame_layout = SIGRETURN_FRAME_LAYOUTS[pwndbg.aglib.arch.name]
+    core_registers = SIGRETURN_CORE_REGISTER[pwndbg.aglib.arch.name]
 
     # Offset to the stack pointer where the frame values really begins. Start reading memory there.
     # Can be negative, 0, or positive
@@ -80,22 +80,22 @@ def sigreturn(address: int = None, display_all=False, print_address=False) -> No
 
     read_size = frame_layout[-1][0] - frame_start_offset + ptr_size
 
-    mem = pwndbg.gdblib.memory.read(address + frame_start_offset, read_size)
+    mem = pwndbg.aglib.memory.read(address + frame_start_offset, read_size)
 
     for stack_offset, reg in frame_layout:
         # Subtract the offset of start of frame, to get the correct offset into "mem"
         mem_offset = stack_offset - frame_start_offset
 
         regname = C.register(reg.ljust(4).upper())
-        value = pwndbg.gdblib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
+        value = pwndbg.aglib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
 
         if reg in core_registers:
             desc = pwndbg.chain.format(value)
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
-        elif reg in pwndbg.gdblib.regs.flags:  # eflags or cpsr
-            reg_flags = pwndbg.gdblib.regs.flags[reg]
+        elif reg in pwndbg.aglib.regs.flags:  # eflags or cpsr
+            reg_flags = pwndbg.aglib.regs.flags[reg]
             desc = C.format_flags(value, reg_flags)
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)

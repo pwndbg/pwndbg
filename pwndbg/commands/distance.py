@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.arch
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.arch
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -19,7 +19,7 @@ def distance(a, b) -> None:
     """Print the distance between the two arguments"""
 
     if b is None:
-        page = pwndbg.gdblib.vmmap.find(a)
+        page = pwndbg.aglib.vmmap.find(a)
 
         if not page:
             print("%#x does not belong to a mapped page in memory" % (a))
@@ -31,17 +31,17 @@ def distance(a, b) -> None:
                 page.vaddr,
                 a,
                 distance,
-                distance // pwndbg.gdblib.arch.ptrsize,
+                distance // pwndbg.aglib.arch.ptrsize,
             )
 
             print(M.get(page.vaddr, text=display_text))
     else:
-        a = int(a) & pwndbg.gdblib.arch.ptrmask
-        b = int(b) & pwndbg.gdblib.arch.ptrmask
+        a = int(a) & pwndbg.aglib.arch.ptrmask
+        b = int(b) & pwndbg.aglib.arch.ptrmask
 
         distance = b - a
 
         print(
             "%#x->%#x is %#x bytes (%#x words)"
-            % (a, b, distance, distance // pwndbg.gdblib.arch.ptrsize)
+            % (a, b, distance, distance // pwndbg.aglib.arch.ptrsize)
         )

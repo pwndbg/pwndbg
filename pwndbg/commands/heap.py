@@ -107,7 +107,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
             if bins_type == BinType.LARGE:
                 start_size, end_size = allocator.largebin_size_range_from_index(size)
                 size = hex(start_size) + "-"
-                if end_size != pwndbg.gdblib.arch.ptrmask:
+                if end_size != pwndbg.aglib.arch.ptrmask:
                     size += hex(end_size)
                 else:
                     size += "\u221e"  # Unicode "infinity"
@@ -245,14 +245,14 @@ def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = Fals
         if addr in chunk:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
             if verbose:
-                start = chunk.address + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse else 0x00)
+                start = chunk.address + (pwndbg.aglib.arch.ptrsize if chunk.prev_inuse else 0x00)
                 print(f"Your address: {hex(addr)}")
                 print(f"Head offset: {hex(addr - start)}")
                 if chunk.is_top_chunk is False and chunk.real_size is not None:
                     end = (
                         start
                         + chunk.real_size
-                        + (pwndbg.gdblib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
+                        + (pwndbg.aglib.arch.ptrsize if chunk.prev_inuse is False else 0x00)
                     )
                     print(f"Tail offset: {hex(end - addr)}")
             break
@@ -547,7 +547,7 @@ def malloc_chunk(
     if dump:
         print(C.banner("hexdump"))
 
-        ptr_size = pwndbg.gdblib.arch.ptrsize
+        ptr_size = pwndbg.aglib.arch.ptrsize
         pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
     if next:
@@ -908,7 +908,7 @@ def find_fake_fast(
         candidate = search_region[i : i + size_field_width]
 
         if len(candidate) == size_field_width:
-            size_field = pwndbg.gdblib.arch.unpack_size(candidate, size_field_width)
+            size_field = pwndbg.aglib.arch.unpack_size(candidate, size_field_width)
             size_field &= ~(allocator.malloc_align_mask)
 
             if size_field < min_chunk_size or size_field > max_candidate_size:
@@ -991,7 +991,7 @@ def vis_heap_chunks(
         addr = count
         count = pwndbg.config.default_visualize_chunk_number
 
-    if addr is not None and not pwndbg.gdblib.memory.is_readable_address(int(addr)):
+    if addr is not None and not pwndbg.aglib.memory.is_readable_address(int(addr)):
         print(message.error("The provided address is not readable."))
         return
 
@@ -1117,7 +1117,7 @@ def vis_heap_chunks(
                 out += "\n0x%x" % cursor
 
             data = pwndbg.aglib.memory.read(cursor, ptr_size)
-            cell = pwndbg.gdblib.arch.unpack(data)
+            cell = pwndbg.aglib.arch.unpack(data)
             cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
 
             out += color_func(cell_hex)
@@ -1220,7 +1220,7 @@ def try_free(addr: str | int) -> None:
     malloc_align_mask = allocator.malloc_align_mask
     chunk_minsize = allocator.minsize
 
-    ptr_size = pwndbg.gdblib.arch.ptrsize
+    ptr_size = pwndbg.aglib.arch.ptrsize
 
     def unsigned_size(size: int):
         # read_chunk()['size'] is signed in pwndbg ;/

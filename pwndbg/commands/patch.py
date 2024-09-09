@@ -7,11 +7,11 @@ from typing import Tuple
 from pwnlib.asm import asm
 from pwnlib.asm import disasm
 
+import pwndbg.aglib.memory
 import pwndbg.color.context
 import pwndbg.color.memory
 import pwndbg.color.syntax_highlight
 import pwndbg.commands
-import pwndbg.gdblib.memory
 import pwndbg.lib.cache
 from pwndbg.color import message
 
@@ -30,11 +30,11 @@ parser.add_argument("-q", "--quiet", action="store_true", help="don't print anyt
 def patch(address: int, ins: str, quiet: bool) -> None:
     new_mem = asm(ins)
 
-    old_mem = pwndbg.gdblib.memory.read(address, len(new_mem))
+    old_mem = pwndbg.aglib.memory.read(address, len(new_mem))
 
     patches[address] = (old_mem, new_mem)
 
-    pwndbg.gdblib.memory.write(address, new_mem)
+    pwndbg.aglib.memory.write(address, new_mem)
 
     pwndbg.lib.cache.clear_caches()
 
@@ -56,12 +56,12 @@ def patch_revert(address: int) -> None:
 
     if address == -1:
         for addr, (old, _new) in patches.items():
-            pwndbg.gdblib.memory.write(addr, old)
+            pwndbg.aglib.memory.write(addr, old)
             print(message.notice("Reverted patch at %#x" % addr))
         patches.clear()
     elif address in patches:
         old, _new = patches.pop(address)
-        pwndbg.gdblib.memory.write(address, old)
+        pwndbg.aglib.memory.write(address, old)
         print(message.notice("Reverted patch at %#x" % address))
     else:
         print(message.error("Address %#x not found in patch list" % address))

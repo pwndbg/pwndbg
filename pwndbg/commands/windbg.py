@@ -8,16 +8,27 @@ import argparse
 import codecs
 from itertools import chain
 
-import gdb
-
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.strings
+import pwndbg.aglib.typeinfo
 import pwndbg.commands
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.strings
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.typeinfo
-import pwndbg.hexdump
 from pwndbg.commands import CommandCategory
+
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
+
+
+def enhex(size, value):
+    value = value & ((1 << 8 * size) - 1)
+    x = "%x" % abs(value)
+    x = x.rjust(size * 2, "0")
+    return x
+
+
+# `pwndbg.hexdump` imports `enhex` from this module, so we have to import it
+# after it's been defined in order to avoid circular import errors.
+import pwndbg.hexdump
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
 parser.add_argument(
@@ -147,13 +158,6 @@ def dX(size, address, count, to_string=False, repeat=False):
         print("\n".join(lines))
 
     return lines
-
-
-def enhex(size, value):
-    value = value & ((1 << 8 * size) - 1)
-    x = "%x" % abs(value)
-    x = x.rjust(size * 2, "0")
-    return x
 
 
 parser = argparse.ArgumentParser(description="Write hex bytes at the specified address.")
@@ -286,13 +290,13 @@ def eX(size, address, data, hex=True) -> None:
         else:
             data = string
 
-        if pwndbg.gdblib.arch.endian == "little":
+        if pwndbg.aglib.arch.endian == "little":
             data = data[::-1]
 
         try:
-            pwndbg.gdblib.memory.write(address + (i * size), data)
+            pwndbg.aglib.memory.write(address + (i * size), data)
             writes += 1
-        except gdb.error:
+        except pwndbg.dbg_mod.Error:
             print("Cannot access memory at address %#x" % address)
             if writes > 0:
                 print("(Made %d writes to memory; skipping further writes)" % writes)
@@ -322,7 +326,7 @@ da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum st
 @pwndbg.commands.ArgparsedCommand(da_parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max) -> None:
-    print("%x" % address, repr(pwndbg.gdblib.strings.get(address, max)))
+    print("%x" % address, repr(pwndbg.aglib.strings.get(address, max)))
 
 
 ds_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")
@@ -340,7 +344,7 @@ def ds(address, max) -> None:
         print("Max str len of %d too low, changing to 256" % max)
         max = 256
 
-    string = pwndbg.gdblib.strings.get(address, max, maxread=4096)
+    string = pwndbg.aglib.strings.get(address, max, maxread=4096)
     if string:
         print(f"{address:x} {string!r}")
     else:
@@ -350,88 +354,91 @@ def ds(address, max) -> None:
         print("Perhaps try: db <address> <count> or hexdump <address>")
 
 
-@pwndbg.commands.ArgparsedCommand("List breakpoints.", category=CommandCategory.WINDBG)
-def bl() -> None:
-    """
-    List breakpoints
-    """
-    gdb.execute("info breakpoints")
+if pwndbg.dbg.is_gdblib_available():
 
+    @pwndbg.commands.ArgparsedCommand("List breakpoints.", category=CommandCategory.WINDBG)
+    def bl() -> None:
+        """
+        List breakpoints
+        """
+        gdb.execute("info breakpoints")
 
-parser = argparse.ArgumentParser(description="Disable the breakpoint with the specified index.")
-parser.add_argument(
-    "which", nargs="?", type=str, default="*", help="Index of the breakpoint to disable."
-)
+    parser = argparse.ArgumentParser(description="Disable the breakpoint with the specified index.")
+    parser.add_argument(
+        "which", nargs="?", type=str, default="*", help="Index of the breakpoint to disable."
+    )
 
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
+    def bd(which="*") -> None:
+        """
+        Disable the breakpoint with the specified index.
+        """
+        if which == "*":
+            gdb.execute("disable breakpoints")
+        else:
+            gdb.execute(f"disable breakpoints {which}")
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
-def bd(which="*") -> None:
-    """
-    Disable the breakpoint with the specified index.
-    """
-    if which == "*":
-        gdb.execute("disable breakpoints")
-    else:
-        gdb.execute(f"disable breakpoints {which}")
+    parser = argparse.ArgumentParser(description="Enable the breakpoint with the specified index.")
+    parser.add_argument(
+        "which", nargs="?", type=str, default="*", help="Index of the breakpoint to enable."
+    )
 
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
+    def be(which="*") -> None:
+        """
+        Enable the breakpoint with the specified index.
+        """
+        if which == "*":
+            gdb.execute("enable breakpoints")
+        else:
+            gdb.execute(f"enable breakpoints {which}")
 
-parser = argparse.ArgumentParser(description="Enable the breakpoint with the specified index.")
-parser.add_argument(
-    "which", nargs="?", type=str, default="*", help="Index of the breakpoint to enable."
-)
+    parser = argparse.ArgumentParser(description="Clear the breakpoint with the specified index.")
+    parser.add_argument(
+        "which", nargs="?", type=str, default="*", help="Index of the breakpoint to clear."
+    )
 
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
+    def bc(which="*") -> None:
+        """
+        Clear the breakpoint with the specified index.
+        """
+        if which == "*":
+            gdb.execute("delete breakpoints")
+        else:
+            gdb.execute(f"delete breakpoints {which}")
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
-def be(which="*") -> None:
-    """
-    Enable the breakpoint with the specified index.
-    """
-    if which == "*":
-        gdb.execute("enable breakpoints")
-    else:
-        gdb.execute(f"enable breakpoints {which}")
+    parser = argparse.ArgumentParser(description="Set a breakpoint at the specified address.")
+    parser.add_argument("where", type=int, help="The address to break at.")
 
+    @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
+    def bp(where) -> None:
+        """
+        Set a breakpoint at the specified address.
+        """
+        result = pwndbg.commands.fix(where)
+        if result is not None:
+            gdb.execute("break *%#x" % int(result))
 
-parser = argparse.ArgumentParser(description="Clear the breakpoint with the specified index.")
-parser.add_argument(
-    "which", nargs="?", type=str, default="*", help="Index of the breakpoint to clear."
-)
+    @pwndbg.commands.ArgparsedCommand(
+        "Print a backtrace (alias 'bt').", category=CommandCategory.WINDBG
+    )
+    @pwndbg.commands.OnlyWhenRunning
+    def k() -> None:
+        """
+        Print a backtrace (alias 'bt')
+        """
+        gdb.execute("bt")
 
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
-def bc(which="*") -> None:
-    """
-    Clear the breakpoint with the specified index.
-    """
-    if which == "*":
-        gdb.execute("delete breakpoints")
-    else:
-        gdb.execute(f"delete breakpoints {which}")
-
-
-parser = argparse.ArgumentParser(description="Set a breakpoint at the specified address.")
-parser.add_argument("where", type=int, help="The address to break at.")
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
-def bp(where) -> None:
-    """
-    Set a breakpoint at the specified address.
-    """
-    result = pwndbg.commands.fix(where)
-    if result is not None:
-        gdb.execute("break *%#x" % int(result))
-
-
-@pwndbg.commands.ArgparsedCommand(
-    "Print a backtrace (alias 'bt').", category=CommandCategory.WINDBG
-)
-@pwndbg.commands.OnlyWhenRunning
-def k() -> None:
-    """
-    Print a backtrace (alias 'bt')
-    """
-    gdb.execute("bt")
+    @pwndbg.commands.ArgparsedCommand(
+        "Windbg compatibility alias for 'continue' command.", category=CommandCategory.WINDBG
+    )
+    @pwndbg.commands.OnlyWhenRunning
+    def go() -> None:
+        """
+        Windbg compatibility alias for 'continue' command.
+        """
+        gdb.execute("continue")
 
 
 parser = argparse.ArgumentParser(description="List the symbols nearest to the provided value.")
@@ -447,9 +454,9 @@ def ln(value: int = None) -> None:
     List the symbols nearest to the provided value.
     """
     if value is None:
-        value = pwndbg.gdblib.regs.pc
+        value = pwndbg.aglib.regs.pc
 
-    x = pwndbg.gdblib.symbol.get(value)
+    x = pwndbg.dbg.selected_inferior().symbol_name_at_address(value)
     if x:
         result = f"({value:#x})   {x}"
         print(result)
@@ -465,17 +472,6 @@ def ln(value: int = None) -> None:
 @pwndbg.commands.OnlyWhenRunning
 def peb() -> None:
     print("This isn't Windows!")
-
-
-@pwndbg.commands.ArgparsedCommand(
-    "Windbg compatibility alias for 'continue' command.", category=CommandCategory.WINDBG
-)
-@pwndbg.commands.OnlyWhenRunning
-def go() -> None:
-    """
-    Windbg compatibility alias for 'continue' command.
-    """
-    gdb.execute("continue")
 
 
 @pwndbg.commands.ArgparsedCommand(

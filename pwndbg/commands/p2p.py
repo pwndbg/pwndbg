@@ -4,12 +4,12 @@ import argparse
 from typing import List
 from typing import Tuple
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.telescope
-import pwndbg.gdblib.arch
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 
 ts = pwndbg.commands.telescope.telescope
@@ -25,7 +25,7 @@ class AddrRange:
 
 
 def get_addrrange_any_named() -> List[AddrRange]:
-    return [AddrRange(page.start, page.end) for page in pwndbg.gdblib.vmmap.get()]
+    return [AddrRange(page.start, page.end) for page in pwndbg.aglib.vmmap.get()]
 
 
 def address_range_explicit(section: str) -> AddrRange:
@@ -42,14 +42,14 @@ def address_range_explicit(section: str) -> AddrRange:
 
 def address_range(section: str) -> List[AddrRange] | Tuple[int, int] | None:
     if section in ("*", "any"):
-        return (0, pwndbg.gdblib.arch.ptrmask)
+        return (0, pwndbg.aglib.arch.ptrmask)
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
     # TODO: handle page names that contains ':'.
     if ":" in section:
         return [address_range_explicit(section)]
 
-    pages = list(filter(lambda page: section in page.objfile, pwndbg.gdblib.vmmap.get()))
+    pages = list(filter(lambda page: section in page.objfile, pwndbg.aglib.vmmap.get()))
 
     if pages:
         return [AddrRange(page.start, page.end) for page in pages]
@@ -69,7 +69,7 @@ parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mappin
 
 def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
     try:
-        pointee = pwndbg.gdblib.memory.pvoid(ptr)
+        pointee = pwndbg.aglib.memory.pvoid(ptr)
     except Exception:
         return None
 
