@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import signal
 from contextlib import nullcontext
 from typing import Any
 from typing import Generator
@@ -973,17 +972,15 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         prompt.set_prompt()
 
-        pre_commands = f"""
+        pre_commands = """
         set confirm off
         set verbose off
         set pagination off
-        set height 0
         set history save on
         set follow-fork-mode child
         set backtrace past-main on
         set step-mode on
         set print pretty on
-        set width {pwndbg.ui.get_window_size()[1]}
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1002,12 +999,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
             gdb.execute("set disassembly-flavor intel")
         except gdb.error:
             pass
-
-        # handle resize event to align width and completion
-        signal.signal(
-            signal.SIGWINCH,
-            lambda signum, frame: gdb.execute("set width %i" % pwndbg.ui.get_window_size()[1]),
-        )
 
         # Reading Comment file
         from pwndbg.commands import comments
