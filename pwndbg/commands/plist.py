@@ -209,7 +209,7 @@ def plist(
 
     if count is None:
         count = pwndbg.config.dereference_limit
-    elif count <= 0:
+    if count <= 0:
         print("count <= 0: not displaying any elements")
         return
 
