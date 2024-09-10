@@ -6,7 +6,10 @@ struct node {
     int value;
     struct node *next;
 };
-struct node node_c = { 2, NULL };
+struct node node_f = { 5, NULL };
+struct node node_e = { 4, &node_f };
+struct node node_d = { 3, &node_e };
+struct node node_c = { 2, &node_d };
 struct node node_b = { 1, &node_c };
 struct node node_a = { 0, &node_b };
 
