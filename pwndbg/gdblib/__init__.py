@@ -41,6 +41,7 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.prompt
     import pwndbg.gdblib.regs as regs_mod
     import pwndbg.gdblib.symbol
+    import pwndbg.gdblib.tui
     import pwndbg.gdblib.typeinfo
     import pwndbg.gdblib.vmmap
 
