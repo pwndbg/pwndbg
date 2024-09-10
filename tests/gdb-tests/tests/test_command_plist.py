@@ -9,12 +9,13 @@ import tests
 LINKED_LISTS_BINARY = tests.binaries.get("linked-lists.out")
 
 
-def startup(start_binary):
+def startup(start_binary) -> None:
     start_binary(LINKED_LISTS_BINARY)
 
     gdb.execute("break break_here")
     gdb.execute("run")
     gdb.execute("up")
+
 
 def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary):
     """
@@ -53,7 +54,7 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
 
     result_str = gdb.execute("plist node_a next", to_string=True)
     assert expected_out.match(result_str) is not None
-    
+
     gdb.execute("set dereference-limit 1")
     expected_out = re.compile(
         """\
