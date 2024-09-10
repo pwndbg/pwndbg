@@ -30,7 +30,7 @@ c = ColorConfig(
 
 def get(
     address: int | None,
-    limit: int = int(LIMIT),
+    limit: int = LIMIT,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
@@ -98,7 +98,7 @@ config_contiguous = theme.add_param(
 
 def format(
     value: int | List[int] | None,
-    limit: int = int(LIMIT),
+    limit: int = LIMIT,
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
