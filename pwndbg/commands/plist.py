@@ -209,7 +209,8 @@ def plist(
 
     if count is None:
         count = pwndbg.config.dereference_limit
-    if count == 0:
+    elif count <= 0:
+        print("count <= 0: not displaying any elements")
         return
 
     # We suport being passed either a pointer to the first structure or the
