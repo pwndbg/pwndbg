@@ -67,7 +67,7 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
 
 def test_command_plist_flat_with_offset(start_binary):
     """
-    Tests the plist for a non-nested linked list
+    Tests the plist for a non-nested linked list with an arbitrary offset value
     """
     startup(start_binary)
 
@@ -94,7 +94,7 @@ def test_command_plist_flat_with_offset(start_binary):
 
 def test_command_plist_flat_with_count(start_binary):
     """
-    Tests the plist for a non-nested linked list
+    Tests the plist for a non-nested linked list with an arbitrary count value
     """
     startup(start_binary)
 
