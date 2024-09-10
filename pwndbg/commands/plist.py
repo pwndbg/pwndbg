@@ -188,7 +188,13 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="plist")
 def plist(
-    path, next, sentinel, inner_name, field_name, offset: int, count: Optional[int] = None
+    path: str,
+    next: int,
+    sentinel: str,
+    inner_name: str,
+    field_name: str,
+    offset: int,
+    count: Optional[int] = None,
 ) -> None:
     # Have GDB parse the path for us and check if it's valid.
     try:
