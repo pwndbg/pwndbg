@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Optional
 
 import gdb
 
@@ -167,10 +168,28 @@ parser.add_argument(
     type=str,
     help="The name of the field to be displayed, if only one is desired",
 )
+parser.add_argument(
+    "-o",
+    "--offset",
+    dest="offset",
+    type=int,
+    default=0,
+    help="The offset of the first list element to display. Defaults to zero.",
+)
+parser.add_argument(
+    "-c",
+    "--count",
+    dest="count",
+    type=int,
+    default=None,
+    help="The number of elements to display. Defaults to the value of dereference-limit.",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, command_name="plist")
-def plist(path, next, sentinel, inner_name, field_name) -> None:
+def plist(
+    path, next, sentinel, inner_name, field_name, offset: int, count: Optional[int] = None
+) -> None:
     # Have GDB parse the path for us and check if it's valid.
     try:
         first = gdb.parse_and_eval(path)
@@ -180,6 +199,11 @@ def plist(path, next, sentinel, inner_name, field_name) -> None:
 
     if first.is_optimized_out:
         print(message.error(f"{path} has been optimized out"))
+        return
+
+    if count is None:
+        count = pwndbg.config.dereference_limit
+    if count == 0:
         return
 
     # We suport being passed either a pointer to the first structure or the
@@ -348,12 +372,22 @@ def plist(path, next, sentinel, inner_name, field_name) -> None:
     # for all of the elements after it.
     offset0 = inner_offset + next_offset
     offset1 = offset0 - pointee_offset
-    addresses = pwndbg.chain.get(int(first.address), limit=1, offset=offset0)
-    if len(addresses) > 1:
-        addresses.extend(pwndbg.chain.get(addresses[1], offset=offset1, include_start=False))
+
+    total = offset + count
+
+    if total >= 2:
+        addresses = pwndbg.chain.get(int(first.address), limit=1, offset=offset0)
+        if len(addresses) > 1 and total >= 3:
+            addresses.extend(
+                pwndbg.chain.get(addresses[1], offset=offset1, include_start=False, limit=total - 2)
+            )
+    else:
+        addresses = [int(first.address)]
 
     # Finally, dump the information in the addresses we've just gathered.
     for i, address in enumerate(addresses):
+        if i < offset:
+            continue
         if address == sentinel:
             break
         try:
