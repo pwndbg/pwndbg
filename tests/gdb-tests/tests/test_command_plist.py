@@ -44,10 +44,6 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
 0[xX][0-9a-fA-F]+ <node_e>: {\\s*
   value = 4,\\s*
   next = 0[xX][0-9a-fA-F]+ <node_f>\\s*
-}\\s*
-0[xX][0-9a-fA-F]+ <node_f>: {\\s*
-  value = 5,\\s*
-  next = 0x0\\s*
 }\
 """
     )
@@ -56,6 +52,52 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
     assert expected_out.match(result_str) is not None
 
     gdb.execute("set dereference-limit 1")
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <node_a>: {\\s*
+  value = 0,\\s*
+  next = 0[xX][0-9a-fA-F]+ <node_b>\\s*
+}\
+"""
+    )
+
+    result_str = gdb.execute("plist node_a next", to_string=True)
+    assert expected_out.match(result_str) is not None
+
+
+def test_command_plist_flat_with_offset(start_binary):
+    """
+    Tests the plist for a non-nested linked list with an arbitrary offset value
+    """
+    startup(start_binary)
+
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <node_d>: {\\s*
+  value = 3,\\s*
+  next = 0[xX][0-9a-fA-F]+ <node_e>\\s*
+}\\s*
+0[xX][0-9a-fA-F]+ <node_e>: {\\s*
+  value = 4,\\s*
+  next = 0[xX][0-9a-fA-F]+ <node_f>\\s*
+}\\s*
+0[xX][0-9a-fA-F]+ <node_f>: {\\s*
+  value = 5,\\s*
+  next = 0x0\\s*
+}\
+"""
+    )
+
+    result_str = gdb.execute("plist node_a next -o 3", to_string=True)
+    assert expected_out.match(result_str) is not None
+
+
+def test_command_plist_flat_with_count(start_binary):
+    """
+    Tests the plist for a non-nested linked list with an arbitrary count value
+    """
+    startup(start_binary)
+
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>: {\\s*
@@ -73,7 +115,7 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
 """
     )
 
-    result_str = gdb.execute("plist node_a next", to_string=True)
+    result_str = gdb.execute("plist node_a next -c 3", to_string=True)
     assert expected_out.match(result_str) is not None
 
 
@@ -104,10 +146,6 @@ def test_command_plist_flat_no_flags(start_binary):
 0[xX][0-9a-fA-F]+ <node_e>: {\\s*
   value = 4,\\s*
   next = 0[xX][0-9a-fA-F]+ <node_f>\\s*
-}\\s*
-0[xX][0-9a-fA-F]+ <node_f>: {\\s*
-  value = 5,\\s*
-  next = 0x0\\s*
 }\
 """
     )
