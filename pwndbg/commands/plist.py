@@ -416,7 +416,7 @@ def plist(
 
             print(f"{target_address:#x} {symbol}: {value}")
         except gdb.error as e:
-            print(message.error(f"Cannot dereference 0x{address:#x} for list link #{i + 1}: {e}"))
+            print(message.error(f"Cannot dereference {address:#x} for list link #{i + 1}: {e}"))
             print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))
             return
 
