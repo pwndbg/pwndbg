@@ -190,7 +190,7 @@ parser.add_argument(
 def plist(
     path: str,
     next: int,
-    sentinel: str,
+    sentinel: int,
     inner_name: str,
     field_name: str,
     offset: int,
