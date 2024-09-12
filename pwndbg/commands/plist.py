@@ -395,7 +395,7 @@ def plist(
     for i, address in enumerate(addresses):
         if i < offset:
             continue
-        if address == sentinel:
+        if address in (0, sentinel):
             break
         try:
             # Always make sure we have the address of the outer structure.
