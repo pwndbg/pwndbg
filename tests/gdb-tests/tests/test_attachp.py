@@ -25,14 +25,18 @@ REASON_CANNOT_ATTACH = (
     "Test skipped due to inability to attach (needs sudo or sysctl -w kernel.yama.ptrace_scope=0"
 )
 
+FLAG = "1"
+DEFAULT_SLEEP = "10"
+
 
 @pytest.fixture
-def launched_bash_binary():
+def launched_sleep_binary():
     path = tempfile.mktemp()
-    bash_path = subprocess.check_output(["which", "bash"]).decode().strip()
-    subprocess.check_output(["cp", bash_path, path])
+    sleep_path = subprocess.check_output(["which", "sleep"]).decode().strip()
+    subprocess.check_output(["cp", sleep_path, path])
 
-    process = subprocess.Popen([path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    # Add a default sleep time so the process lives for at least the length of the test
+    process = subprocess.Popen([path, DEFAULT_SLEEP], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 
     yield process.pid, path
 
@@ -42,8 +46,8 @@ def launched_bash_binary():
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     binary_name = binary_path.split("/")[-1]
     result = run_gdb_with_script(pyafter=f"attachp {binary_name}")
@@ -55,8 +59,8 @@ def test_attachp_command_attaches_to_procname(launched_bash_binary):
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_pid(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_pid(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     result = run_gdb_with_script(pyafter=f"attachp {pid}")
 
@@ -67,11 +71,11 @@ def test_attachp_command_attaches_to_pid(launched_bash_binary):
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_none(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname_resolve_none(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     process = subprocess.Popen(
-        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        [binary_path] + [FLAG] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
     )
 
     binary_name = binary_path.split("/")[-1]
@@ -88,18 +92,24 @@ def test_attachp_command_attaches_to_procname_resolve_none(launched_bash_binary)
     regex += r"use `attach \<pid\>` to attach\n"
     matches = re.search(regex, result).groups()
 
-    expected = (str(pid), getpass.getuser(), binary_path, str(process.pid), getpass.getuser())
+    expected = (
+        str(pid),
+        getpass.getuser(),
+        f"{binary_path} {DEFAULT_SLEEP}",
+        str(process.pid),
+        getpass.getuser(),
+    )
 
     assert matches[:-1] == expected
-    assert matches[-1].startswith(f"{binary_path} -i -i") and " ... " in matches[-1]
+    assert matches[-1].startswith(f"{binary_path} {FLAG} {FLAG}") and " ... " in matches[-1]
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     process = subprocess.Popen(
-        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        [binary_path] + [FLAG] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
     )
 
     binary_name = binary_path.split("/")[-1]
@@ -113,22 +123,28 @@ def test_attachp_command_attaches_to_procname_resolve_none_no_truncate(launched_
     regex += r"-+  -+  -+  -+\n"
     regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
     regex += r" *([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
-    regex += r"(?: +-?(?: -i)+(?: | -)?\n)+"
+    regex += rf"(?: +-?(?: {FLAG})+(?: | -)?\n)+"
     regex += r"use `attach \<pid\>` to attach\n"
     matches = re.search(regex, result).groups()
 
-    expected = (str(pid), getpass.getuser(), binary_path, str(process.pid), getpass.getuser())
+    expected = (
+        str(pid),
+        getpass.getuser(),
+        f"{binary_path} {DEFAULT_SLEEP}",
+        str(process.pid),
+        getpass.getuser(),
+    )
 
     assert matches[:-1] == expected
-    assert matches[-1].startswith(f"{binary_path} -i -i")
+    assert matches[-1].startswith(f"{binary_path} {FLAG} {FLAG}")
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname_resolve_ask(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     process = subprocess.Popen(
-        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        [binary_path] + [FLAG] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
     )
 
     binary_name = binary_path.split("/")[-1]
@@ -150,13 +166,13 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
     expected = (
         str(pid),
         getpass.getuser(),
-        binary_path,
+        f"{binary_path} {DEFAULT_SLEEP}",
         str(process.pid),
         getpass.getuser(),
     )
 
     assert matches[:-1] == expected
-    assert matches[-1].startswith(f"{binary_path} -i -i") and " ... " in matches[-1]
+    assert matches[-1].startswith(f"{binary_path} {FLAG} {FLAG}") and " ... " in matches[-1]
 
     matches = re.search(r"Attaching to ([0-9]+)", result).groups()
     assert matches == (str(pid),)
@@ -165,11 +181,11 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_bash_binary):
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_oldest(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname_resolve_oldest(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     process = subprocess.Popen(
-        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        [binary_path] + [FLAG] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
     )
 
     binary_name = binary_path.split("/")[-1]
@@ -186,11 +202,11 @@ def test_attachp_command_attaches_to_procname_resolve_oldest(launched_bash_binar
 
 
 @pytest.mark.skipif(can_attach is False, reason=REASON_CANNOT_ATTACH)
-def test_attachp_command_attaches_to_procname_resolve_newest(launched_bash_binary):
-    pid, binary_path = launched_bash_binary
+def test_attachp_command_attaches_to_procname_resolve_newest(launched_sleep_binary):
+    pid, binary_path = launched_sleep_binary
 
     process = subprocess.Popen(
-        [binary_path] + ["-i"] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        [binary_path] + [FLAG] * 1000, stdout=subprocess.PIPE, stdin=subprocess.PIPE
     )
 
     binary_name = binary_path.split("/")[-1]
