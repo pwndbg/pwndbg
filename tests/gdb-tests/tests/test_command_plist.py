@@ -65,6 +65,46 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
     assert expected_out.match(result_str) is not None
 
 
+def test_command_plist_unreached_sentinel_does_not_cause_null_deference(start_binary):
+    """
+    Tests the plist command with a sentinel set to an address that is not reached does
+    not try to dereference zero
+    """
+    startup(start_binary)
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <node_a>: 0\\s*
+0[xX][0-9a-fA-F]+ <node_b>: 1\\s*
+0[xX][0-9a-fA-F]+ <node_c>: 2\\s*
+0[xX][0-9a-fA-F]+ <node_d>: 3\\s*
+0[xX][0-9a-fA-F]+ <node_e>: 4\\s*
+\
+"""
+    )
+
+    result_str = gdb.execute("plist node_a next --sentinel 1 -f value", to_string=True)
+    assert expected_out.match(result_str) is not None
+
+
+def test_command_plist_invalid_address_deference_is_displayed_properly(start_binary):
+    """
+    Tests that the error message is displayed nicely when an incorrect address gets
+    deferenced
+    """
+    startup(start_binary)
+    gdb.execute("p node_a->next = 0x1234")
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <node_a>: 0\\s*
+Cannot dereference 0x1234 for list link #2: Cannot access memory at address 0x1234\\s*
+Is the linked list corrupted or is the sentinel value wrong\\?\\s*
+\
+"""
+    )
+    result_str = gdb.execute("plist node_a next -f value", to_string=True)
+    assert expected_out.match(result_str) is not None
+
+
 def test_command_plist_flat_with_offset(start_binary):
     """
     Tests the plist for a non-nested linked list with an arbitrary offset value
