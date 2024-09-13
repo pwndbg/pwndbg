@@ -32,7 +32,7 @@ DEFAULT_SLEEP = "10"
 @pytest.fixture
 def launched_sleep_binary():
     path = tempfile.mktemp()
-    bash_path = subprocess.check_output(["which", "sleep"]).decode().strip()
+    sleep_path = subprocess.check_output(["which", "sleep"]).decode().strip()
     subprocess.check_output(["cp", bash_path, path])
 
     # Add a default sleep time so the process lives for at least the length of the test
