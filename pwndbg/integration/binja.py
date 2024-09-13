@@ -158,7 +158,7 @@ def with_bn(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | K:
             if _bn is None:
                 init_bn_rpc_client()
-            if _bn is not None:
+            if _bn is not None and pwndbg.gdblib.proc.alive:
                 return func(*args, **kwargs)
             return fallback
 

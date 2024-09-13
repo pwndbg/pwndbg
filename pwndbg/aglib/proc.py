@@ -75,18 +75,15 @@ class module(ModuleType):
         return pwndbg.dbg.selected_inferior().alive()
 
     @property
+    @pwndbg.lib.cache.cache_until("objfile")
     def exe(self) -> str | None:
         """
-        Returns the debugged file name.
+        Returns the executed file path.
 
-        On remote targets, this may be prefixed with "target:" string.
-        See this by executing those in two terminals:
-        1. gdbserver 127.0.0.1:1234 /bin/ls
-        2. gdb -ex "target remote :1234" -ex "pi pwndbg.gdblib.proc.exe"
+        On remote targets, this path most definitly won't exist locally.
 
-        If you need to process the debugged file use:
-            `pwndbg.gdblib.file.get_proc_exe_file()`
-            (This will call `pwndbg.gdblib.file.get_file(pwndbg.gdblib.proc.exe, try_local_path=True)`)
+        If you need the locally referenced file use:
+            `gdb.current_process().filename`
         """
 
         return pwndbg.dbg.selected_inferior().main_module_name()
