@@ -1056,6 +1056,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
                     # In rare cases GDB stores a number with no command, and the split()
                     # then only returns one element. We can safely ignore these.
                     continue
+
                 try:
                     number = int(number_str)
                 except ValueError:
