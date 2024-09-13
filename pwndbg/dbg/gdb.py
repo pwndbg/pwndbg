@@ -1050,7 +1050,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
             parsed_lines = []
             for line in lines:
-                number_str, command = line.split(maxsplit=1)
+                try:
+                    number_str, command = line.split(maxsplit=1)
+                except ValueError:
+                    # In rare cases GDB stores a number with no command, and the split()
+                    # then only returns one element. We can safely ignore these.
+                    continue
+
                 try:
                     number = int(number_str)
                 except ValueError:
