@@ -158,8 +158,13 @@ def with_bn(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | K:
             if _bn is None:
                 init_bn_rpc_client()
-            if _bn is not None and pwndbg.gdblib.proc.alive:
-                return func(*args, **kwargs)
+
+            try:
+                if _bn is not None:
+                    return func(*args, **kwargs)
+            except ConnectionRefusedError:
+                _bn = None
+                print(message.error("[!] Binary Ninja connection refused"))
             return fallback
 
         return wrapper
@@ -201,6 +206,8 @@ def base():
 @pwndbg.dbg.event_handler(EventType.STOP)
 @with_bn()
 def auto_update_pc() -> None:
+    if not pwndbg.gdblib.procs.alive:
+        return
     pc = pwndbg.gdblib.regs.pc
     if bn_autosync.value:
         navigate_to(pc)
@@ -215,6 +222,8 @@ _managed_bps: Dict[int, gdb.Breakpoint] = {}
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @with_bn()
 def auto_update_bp() -> None:
+    if not pwndbg.gdblib.procs.alive:
+        return
     bps: List[int] = _bn.get_bp_tags()
     binja_bps = {r2l(addr) for addr in bps}
     for k in _managed_bps.keys() - binja_bps:
