@@ -271,7 +271,7 @@ class RTree:
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
         node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
-        
+
         # on node element, child contains the bits with which we can find another node or leaf element
         if int(node["child"]["repr"]) == 0:
             return None
@@ -373,14 +373,20 @@ class RTree:
 
                         extent_addresses.append(extent.extent_address)
 
+                        print("Adding extent: ", hex(extent.extent_address))
+                        print("All extents: ", [hex(e) for e in extent_addresses])
+                        print()
+
                         # during initializations, addresses may get some alignment
                         # lets check if size makes sense, otherwise do page alignment and check if again
                         # TODO: better way to do this
+                        extent_tmp = extent
                         if extent.size == 0:
                             ptr = RTree.__alignment_addr2base(int(ptr))
                             extent_tmp = Extent(ptr)
-                            if extent_tmp.size == 0:
-                                self._extents.append(extent)
+                            if extent_tmp.size != 0:
+                                self._extents.append(extent_tmp)
+                                continue
 
                         self._extents.append(extent_tmp)
 
