@@ -381,10 +381,6 @@ class RTree:
 
                         extent_addresses.append(extent.extent_address)
 
-                        print("Adding extent: ", hex(extent.extent_address))
-                        print("All extents: ", [hex(e) for e in extent_addresses])
-                        print()
-
                         # during initializations, addresses may get some alignment
                         # lets check if size makes sense, otherwise do page alignment and check if again
                         # TODO: better way to do this
