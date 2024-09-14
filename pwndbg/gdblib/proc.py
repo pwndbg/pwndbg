@@ -117,7 +117,7 @@ class module(ModuleType):
         If you need the locally referenced file use:
             `gdb.current_process().filename`
 
-        info proc exe is the only command to actually get the executed file.
+        info proc exe is the only command to actually get the executed file path.
         The gdb `file` command overwrites all internal references, this includes:
         + `filename`
         + `executable_filename`
