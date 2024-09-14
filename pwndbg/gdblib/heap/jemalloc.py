@@ -302,7 +302,15 @@ class RTree:
         if ptr == 0:
             return None
 
-        return Extent(ptr)
+        # return Extent(ptr)
+        extent = Extent(ptr)
+        if extent.size == 0:
+            ptr = RTree.__alignment_addr2base(int(ptr))
+            extent_tmp = Extent(ptr)
+            if extent_tmp.size != 0:
+                return extent_tmp
+
+        return extent
 
     @property
     def extents(self):

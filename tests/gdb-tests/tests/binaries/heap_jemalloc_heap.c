@@ -11,16 +11,10 @@ int main(void)
     ptr[0] = 'A';
     ptr[1] = 'B';
 
-    // allocate 30 kb memory
+    // allocate non small class size memory
     char *ptr2 = (char *)malloc(30 * 1024);
     ptr2[0] = 'A';
     ptr2[1] = 'B';
-    
-
-    // Allocate a large memory
-    char *ptr3 = (char *)malloc(3.7 * 1024 * 1024);
-    ptr3[0] = 'A';
-    ptr3[1] = 'B';
     
     break_here();
 
