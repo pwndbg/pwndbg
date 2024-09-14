@@ -80,7 +80,7 @@ class module(ModuleType):
         """
         Returns the executed file path.
 
-        On remote targets, this path most definitly won't exist locally.
+        On remote targets, this path may not exist locally.
 
         If you need the locally referenced file use:
             `gdb.current_process().filename`
