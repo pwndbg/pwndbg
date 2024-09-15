@@ -738,7 +738,11 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     def main_module_name(self) -> str | None:
         # Can GDB ever return a different value here from what we'd get with
         # `info files`, give or take a "remote:"?
-        return gdb.current_progspace().filename
+        if not self.alive():
+            return gdb.current_progspace().filename
+
+        exe = gdb.execute("info proc exe", to_string=True)
+        return exe[exe.find("exe = '") + 7 : exe.rfind("'")]
 
     @override
     def main_module_entry(self) -> int | None:
