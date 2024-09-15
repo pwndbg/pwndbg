@@ -12,16 +12,6 @@ class MemoryAllocator:
     # Debugger-agnostic API gains the ability to set breakpoints.
     #
     # TODO: Change `Any` to the Debugger-agnostic breakpoint type when it gets created
-    def breakpoint(self, event: str) -> Any:
-        """Enables breakpoints on the specific event.
-
-        Arguments:
-            event(str): One of 'alloc','realloc','free'
-
-        Returns:
-            A gdb.Breakpoint object.
-        """
-        raise NotImplementedError()
 
     def summarize(self, address: int, **kwargs: Any) -> str:
         """Returns a textual summary of the specified address.
