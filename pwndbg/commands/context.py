@@ -85,7 +85,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap_tracker",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -218,7 +218,7 @@ parser = argparse.ArgumentParser(description="Sets the output of a context secti
 parser.add_argument(
     "section",
     type=str,
-    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', and/or 'args')",
+    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
@@ -372,7 +372,7 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', and/or 'args'",
+    help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
 )
 
 
@@ -382,7 +382,7 @@ def context(subcontext=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra' and 'args'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     if subcontext is None:
         subcontext = []
@@ -981,8 +981,15 @@ if pwndbg.dbg.is_gdblib_available():
     gdb.events.exited.connect(save_signal)
 
 
-def context_signal():
-    return last_signal
+def context_last_signal(with_banner=True, target=sys.stdout, width=None):
+    if not last_signal:
+        return []
+
+    result = last_signal[::]
+    if with_banner:
+        result.insert(0, pwndbg.ui.banner("last signal", target=target, width=width))
+
+    return result
 
 
 context_sections = {
@@ -1003,6 +1010,7 @@ if pwndbg.dbg.is_gdblib_available():
         "g": context_ghidra,
         "h": context_heap_tracker,
         "t": context_threads,
+        "l": context_last_signal,
     }
 
 
