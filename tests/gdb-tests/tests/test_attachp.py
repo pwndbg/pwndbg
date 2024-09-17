@@ -25,6 +25,7 @@ else:
                 can_attach = True
     else:
         # If the file doesn't exist, assume we can attach
+        # This is the case e.g. for running tests under WSL2
         can_attach = True
 
 REASON_CANNOT_ATTACH = (
