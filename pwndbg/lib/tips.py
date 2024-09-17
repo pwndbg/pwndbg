@@ -46,6 +46,7 @@ TIPS: List[str] = [
     "Use `track-got enable|info|query` to track GOT accesses - useful for hijacking control flow via writable GOT/PLT",
     "Need to `mmap` or `mprotect` memory in the debugee? Use commands with the same name to inject and run such syscalls",
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
+    "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
 ]
 
 

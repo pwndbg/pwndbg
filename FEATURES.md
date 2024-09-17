@@ -21,6 +21,8 @@ The output of the context may be redirected to a file (including other tty) by u
 
 ![](caps/context.png)
 
+A history of previous context output is kept which can be accessed using the `contextprev` and `contextnext` commands.
+
 ### Splitting / Layouting Context
 
 The context sections can be distributed among different tty by using the `contextoutput` command.

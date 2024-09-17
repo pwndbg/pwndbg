@@ -9,6 +9,7 @@ import pwndbg.commands
 import pwndbg.commands.canary
 import tests
 
+REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
 TABSTOP_BINARY = tests.binaries.get("tabstop.out")
 SYSCALLS_BINARY = tests.binaries.get("syscalls-x64.out")
@@ -417,3 +418,76 @@ def test_context_disasm_call_instruction_split(start_binary):
     )
 
     assert dis == expected
+
+
+def test_context_history_prev_next(start_binary):
+    start_binary(LONG_FUNCTION_X64_BINARY)
+
+    # Add two context outputs to the history
+    first_ctx = gdb.execute("ctx", to_string=True)
+    gdb.execute("si")
+    second_ctx = gdb.execute("ctx", to_string=True)
+    assert first_ctx != second_ctx
+
+    # Go back to the first context
+    gdb.execute("contextprev")
+    history_ctx = gdb.execute("ctx", to_string=True)
+    assert first_ctx == history_ctx.replace(" (history 1/2)", "")
+    assert "(history 1/2)" in history_ctx
+
+    # Go to the second context again
+    gdb.execute("contextnext")
+    history_ctx = gdb.execute("ctx", to_string=True)
+    assert second_ctx == history_ctx.replace(" (history 2/2)", "")
+    assert "(history 2/2)" in history_ctx
+
+    # Make sure new events are displayed right away
+    # and disable the history scroll.
+    gdb.execute("si")
+    # Execute twice since the prompt hook isn't installed in tests
+    # which causes the legend to still have the (history 2/2) string at first.
+    gdb.execute("ctx", to_string=True)
+    third_ctx = gdb.execute("ctx", to_string=True)
+    assert history_ctx != third_ctx
+    assert "(history " not in third_ctx
+
+
+def test_context_history_search(start_binary):
+    start_binary(REFERENCE_BINARY)
+
+    gdb.execute("break main")
+    gdb.execute("break break_here")
+
+    gdb.execute("starti")
+    gdb.execute("context")
+    gdb.execute("continue")
+    gdb.execute("context")
+    gdb.execute("continue")
+    gdb.execute("context")
+
+    for _ in range(5):
+        gdb.execute("ni")
+        gdb.execute("context")
+
+    # Search for something in the past
+    search_result = gdb.execute("contextsearch puts@plt", to_string=True)
+    assert "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result
+
+    # Search for something that happened later and have the search wrap around
+    search_result = gdb.execute("contextsearch 'Hello World'", to_string=True)
+    assert "No more matches before the current entry. Starting from the top." in search_result
+    assert "Found 7 matches. Selected entry 8 for match in section " in search_result
+    search_result = gdb.execute("contextsearch 'Hello World'", to_string=True)
+    assert "Found 7 matches. Selected entry 7 for match in section " in search_result
+
+    # Select a section to search in
+    search_result = gdb.execute("contextsearch 'Hello World' disasm", to_string=True)
+    assert "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result
+
+    # Search for something that doesn't exist
+    search_result = gdb.execute("contextsearch 'nonexistent'", to_string=True)
+    assert "String 'nonexistent' not found in context history." in search_result
+
+    # Search in non-existing section
+    search_result = gdb.execute("ctxsearch 'Hello World' nonexistent", to_string=True)
+    assert "Section 'nonexistent' not found in context history." in search_result
