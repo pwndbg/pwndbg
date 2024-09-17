@@ -981,8 +981,15 @@ if pwndbg.dbg.is_gdblib_available():
     gdb.events.exited.connect(save_signal)
 
 
-def context_signal():
-    return last_signal
+def context_last_signal(with_banner=True, target=sys.stdout, width=None):
+    if not last_signal:
+        return []
+
+    result = last_signal[::]
+    if with_banner:
+        result.insert(0, pwndbg.ui.banner("last signal", target=target, width=width))
+
+    return result
 
 
 context_sections = {
@@ -1003,6 +1010,7 @@ if pwndbg.dbg.is_gdblib_available():
         "g": context_ghidra,
         "h": context_heap_tracker,
         "t": context_threads,
+        "l": context_last_signal,
     }
 
 
