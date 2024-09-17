@@ -85,7 +85,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions threads heap-tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap_tracker",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(

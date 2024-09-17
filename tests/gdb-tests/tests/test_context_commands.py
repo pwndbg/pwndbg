@@ -82,7 +82,7 @@ def test_empty_context_sections(start_binary, sections):
     start_binary(USE_FDS_BINARY)
 
     # Sanity check
-    default_ctx_sects = "regs disasm code ghidra stack backtrace expressions threads heap-tracker"
+    default_ctx_sects = "regs disasm code ghidra stack backtrace expressions threads heap_tracker"
     assert pwndbg.config.context_sections.value == default_ctx_sects
     assert gdb.execute("context", to_string=True) != ""
 
