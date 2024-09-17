@@ -69,6 +69,14 @@ import splitmind
 end
 ```
 
+The context sections are available as native gdb TUI windows as well as `pwndbg_[sectionname]` windows.
+
+Try creating a layout and selecting it:
+```
+tui new-layout pwndbg {-horizontal { { -horizontal { pwndbg_code 2 pwndbg_disasm 8 } 2 { pwndbg_legend 1 pwndbg_regs 6 pwndbg_stack 6 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 1 } 1 } 1 status 1
+layout pwndbg
+```
+
 ### Watch Expressions
 
 You can add expressions to be watched by the context.
