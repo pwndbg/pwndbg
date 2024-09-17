@@ -218,7 +218,7 @@ parser = argparse.ArgumentParser(description="Sets the output of a context secti
 parser.add_argument(
     "section",
     type=str,
-    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', and/or 'args')",
+    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
@@ -372,7 +372,7 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', and/or 'args'",
+    help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
 )
 
 
@@ -382,7 +382,7 @@ def context(subcontext=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra' and 'args'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     if subcontext is None:
         subcontext = []
