@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -16,10 +17,16 @@ if os.getuid() == 0:
     can_attach = True
 else:
     # see `man ptrace`
-    with open("/proc/sys/kernel/yama/ptrace_scope") as f:
-        result = f.read()
-        if len(result) >= 1 and result[0] == "0":
-            can_attach = True
+    ptrace_scope = Path("/proc/sys/kernel/yama/ptrace_scope")
+    if ptrace_scope.exists():
+        with ptrace_scope.open() as f:
+            result = f.read()
+            if len(result) >= 1 and result[0] == "0":
+                can_attach = True
+    else:
+        # If the file doesn't exist, assume we can attach
+        # This is the case e.g. for running tests under WSL2
+        can_attach = True
 
 REASON_CANNOT_ATTACH = (
     "Test skipped due to inability to attach (needs sudo or sysctl -w kernel.yama.ptrace_scope=0"
