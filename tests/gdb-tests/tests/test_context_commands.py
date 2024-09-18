@@ -417,3 +417,43 @@ def test_context_disasm_call_instruction_split(start_binary):
     )
 
     assert dis == expected
+
+
+def test_context_hide_sections(start_binary):
+    start_binary(SYSCALLS_BINARY)
+
+    # Disable one section
+    out = gdb.execute("context", to_string=True)
+    assert "REGISTERS" in out
+    assert "STACK" in out
+    gdb.execute("context regs --off")
+    out = gdb.execute("context", to_string=True)
+    assert "REGISTERS" not in out
+    assert "STACK" in out
+    gdb.execute("context regs --on")
+    out = gdb.execute("context", to_string=True)
+    assert "REGISTERS" in out
+    assert "STACK" in out
+
+    # Disable multiple sections
+    gdb.execute("context stack disasm --off")
+    out = gdb.execute("context", to_string=True)
+    assert "STACK" not in out
+    assert "DISASM" not in out
+    gdb.execute("context stack --on")
+    out = gdb.execute("context", to_string=True)
+    assert "STACK" in out
+    assert "DISASM" not in out
+    gdb.execute("context stack disasm --on")
+    out = gdb.execute("context", to_string=True)
+    assert "STACK" in out
+    assert "DISASM" in out
+
+    # Disable all sections at once
+    gdb.execute("context --off")
+    out = gdb.execute("context", to_string=True)
+    assert len(out) == 0
+    gdb.execute("context --on")
+    out = gdb.execute("context", to_string=True)
+    assert "REGISTERS" in out
+    assert "DISASM" in out

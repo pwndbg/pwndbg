@@ -96,7 +96,7 @@ config_max_threads_display = pwndbg.config.add_param(
 
 # Storing output configuration per section
 outputs: Dict[str, str] = {}
-output_settings = {}
+output_settings: DefaultDict[str, Dict[str, Any]] = defaultdict(dict)
 
 
 @pwndbg.config.trigger(config_context_sections)
@@ -246,12 +246,25 @@ def contextoutput(section, path, clearing, banner="both", width: int = None):
         raise argparse.ArgumentError(banner_arg, f"banner can not be '{banner}'")
 
     outputs[section] = path
-    output_settings[section] = {
-        "clearing": clearing,
-        "width": width,
-        "banner_top": banner in ["both", "top"],
-        "banner_bottom": banner in ["both", "bottom"],
-    }
+    output_settings[section].update(
+        {
+            "clearing": clearing,
+            "width": width,
+            "banner_top": banner in ["both", "top"],
+            "banner_bottom": banner in ["both", "bottom"],
+        }
+    )
+
+
+def resetcontextoutput(section):
+    target = outputs.pop(section, None)
+    if target:
+        # Remove all settings except for the ones that are not related to output redirection
+        output_settings[section] = {
+            k: v
+            for k, v in output_settings[section].items()
+            if k not in ["clearing", "width", "banner_top", "banner_bottom"]
+        }
 
 
 # Watches
@@ -372,13 +385,27 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
+    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
+)
+parser.add_argument(
+    "--on",
+    dest="enabled",
+    action="store_true",
+    default=None,
+    help="Show the section(s) in subsequent context commands again. The section(s) have to be in the 'context-sections' list.",
+)
+parser.add_argument(
+    "--off",
+    dest="enabled",
+    action="store_false",
+    default=None,
+    help="Do not show the section(s) in subsequent context commands even though they might be in the 'context-sections' list.",
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def context(subcontext=None) -> None:
+def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
@@ -400,16 +427,19 @@ def context(subcontext=None) -> None:
         if func:
             target = output(section)
             # Last section of an output decides about output settings
-            settings = output_settings.get(section, {})
-            result_settings[target].update(settings)
-            with target as out:
-                result[target].extend(
-                    func(
-                        target=out,
-                        width=settings.get("width", None),
-                        with_banner=settings.get("banner_top", True),
+            settings = output_settings[section]
+            if enabled is not None:
+                settings["enabled"] = enabled
+            if settings.get("enabled", True):
+                result_settings[target].update(settings)
+                with target as out:
+                    result[target].extend(
+                        func(
+                            target=out,
+                            width=settings.get("width", None),
+                            with_banner=settings.get("banner_top", True),
+                        )
                     )
-                )
 
     for target, res in result.items():
         settings = result_settings[target]
