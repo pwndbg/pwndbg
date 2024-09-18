@@ -587,15 +587,15 @@ def context(subcontext=None) -> None:
     if len(args) == 0:
         args = config_context_sections.split()
 
-    def get_history_legend():
-        if selected_history_index is not None:
+    sections = []
+    if args:
+        if selected_history_index is None:
+            sections.append(("legend", lambda *args, **kwargs: [M.legend()]))
+        else:
             longest_history = max(len(h) for h in context_history.values())
-            return f" (history {selected_history_index + 1}/{longest_history})"
-        return ""
+            history_status = f" (history {selected_history_index + 1}/{longest_history})"
+            sections.append(("legend", lambda *args, **kwargs: [M.legend() + history_status]))
 
-    sections = (
-        [("legend", lambda *args, **kwargs: [M.legend() + get_history_legend()])] if args else []
-    )
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
