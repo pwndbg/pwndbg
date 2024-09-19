@@ -6,6 +6,7 @@ from typing import Any
 from typing import Generator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
@@ -1254,38 +1255,22 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
 
     @override
-    def get_cmd_window_size(self) -> Tuple[int, int]:
-        """Get the size of the command window in TUI mode which could be different than the terminal window width \
-        with horizontal split "tui new-layout hsrc { -horizontal src 1 cmd 1 } 1".
+    def get_cmd_window_size(self) -> Tuple[Optional[int], Optional[int]]:
+        """Get the size of the command window.
 
-        Possible output of "info win" in TUI mode:
-        (gdb) info win
-        Name       Lines Columns Focus
-        src           77     104 (has focus)
-        cmd           77     105
+        GDB keeps these parameters up to date with the actual window size
+        of the command output. This is the full terminal size in CLI mode
+        or the size of the cmd window in TUI mode.
 
-        Output of "info win" in non-TUI mode:
-        (gdb) info win
-        The TUI is not active."""
-        try:
-            info_out = gdb.execute("info win", to_string=True).split()
-        except gdb.error:
-            # Return None if the command is not compiled into GDB
-            # (gdb.error: Undefined info command: "win".  Try "help info")
-            return None, None
-        if "cmd" not in info_out:
-            # if TUI is not enabled, info win will output "The TUI is not active."
-            return None, None
-        # parse cmd window size from the output of "info win"
-        cmd_win_index = info_out.index("cmd")
-        if len(info_out) <= cmd_win_index + 2:
-            return None, None
-        elif (
-            not info_out[cmd_win_index + 1].isdigit() and not info_out[cmd_win_index + 2].isdigit()
-        ):
-            return None, None
-        else:
-            return int(info_out[cmd_win_index + 1]), int(info_out[cmd_win_index + 2])
+        When the window size is set to be unlimited (0), the parameter
+        is None.
+        """
+        width = gdb.parameter("width")
+        height = gdb.parameter("height")
+        return (
+            height if height is None else int(height),
+            width if width is None else int(width),
+        )
 
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:

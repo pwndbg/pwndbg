@@ -4,6 +4,8 @@ This file should consist of global test fixtures.
 
 from __future__ import annotations
 
+import os
+
 import gdb
 import pytest
 
@@ -17,8 +19,11 @@ def start_binary():
     """
 
     def _start_binary(path, *args):
+        os.environ["PWNDBG_IN_TEST"] = "1"
         gdb.execute("file " + path)
         gdb.execute("set exception-verbose on")
+        gdb.execute("set width 80")
+        os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
 
         global _start_binary_called
