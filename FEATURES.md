@@ -21,6 +21,8 @@ The output of the context may be redirected to a file (including other tty) by u
 
 ![](caps/context.png)
 
+A history of previous context output is kept which can be accessed using the `contextprev` and `contextnext` commands.
+
 ### Splitting / Layouting Context
 
 The context sections can be distributed among different tty by using the `contextoutput` command.
@@ -73,7 +75,7 @@ The context sections are available as native gdb TUI windows as well as `pwndbg_
 
 Try creating a layout and selecting it:
 ```
-tui new-layout pwndbg {-horizontal { { -horizontal { pwndbg_code 2 pwndbg_disasm 8 } 2 { pwndbg_legend 1 pwndbg_regs 6 pwndbg_stack 6 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 1 } 1 } 1 status 1
+tui new-layout pwndbg {-horizontal { { -horizontal { pwndbg_code 2 pwndbg_disasm 8 } 2 { { -horizontal pwndbg_legend 8 pwndbg_control 2 } 1 pwndbg_regs 6 pwndbg_stack 6 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 1 } 1 } 1 status 1
 layout pwndbg
 ```
 

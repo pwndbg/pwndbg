@@ -81,6 +81,7 @@ def prompt_hook(*a: Any) -> None:
         cur = new
 
     if pwndbg.gdblib.proc.alive and pwndbg.gdblib.proc.thread_is_stopped and not context_shown:
+        pwndbg.commands.context.selected_history_index = None
         pwndbg.commands.context.context()
         context_shown = True
 

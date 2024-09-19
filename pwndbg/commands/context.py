@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import argparse
 import ast
+import functools
+import logging
 import os
 import sys
 from collections import defaultdict
 from typing import Any
+from typing import Callable
 from typing import DefaultDict
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
+
+from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.arch
@@ -39,6 +45,10 @@ if pwndbg.dbg.is_gdblib_available():
     import pwndbg.gdblib.heap_tracking
     import pwndbg.gdblib.symbol
     import pwndbg.ghidra
+
+log = logging.getLogger(__name__)
+
+P = ParamSpec("P")
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
 
@@ -267,6 +277,186 @@ def resetcontextoutput(section):
         }
 
 
+# Context history
+context_history: DefaultDict[str, List[List[str]]] = defaultdict(list)
+selected_history_index: Optional[int] = None
+
+context_history_size = pwndbg.config.add_param(
+    "context-history-size", 50, "number of context history entries to store"
+)
+
+
+@pwndbg.config.trigger(context_history_size)
+def history_size_changed() -> None:
+    if context_history_size <= 0:
+        context_history.clear()
+    else:
+        for section in context_history:
+            context_history[section] = context_history[section][-int(context_history_size) :]
+
+
+def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[str]]:
+    @functools.wraps(function)
+    def _serve_context_history(*a: P.args, **kw: P.kwargs) -> List[str]:
+        global selected_history_index
+        assert "context_" in function.__name__
+        section_name = function.__name__.replace("context_", "")
+
+        # If the history is disabled, just return the current output
+        if context_history_size <= 0:
+            return function(*a, **kw)
+
+        # Add the current section to the history if it is not already there
+        current_output = []
+        if pwndbg.aglib.proc.alive:
+            current_output = function(*a, **kw)
+            if (
+                len(context_history[section_name]) == 0
+                or context_history[section_name][-1] != current_output
+            ):
+                context_history[section_name].append(current_output)
+                selected_history_index = None
+        # Show the history if the process is not running anymore
+        elif context_history[section_name] and selected_history_index is None:
+            selected_history_index = len(context_history[section_name]) - 1
+
+        # Truncate the history to the configured size
+        context_history[section_name] = context_history[section_name][-int(context_history_size) :]
+        history = context_history[section_name]
+
+        if selected_history_index is None:
+            return current_output or function(*a, **kw)
+        if not history or selected_history_index >= len(history):
+            return []
+        return history[selected_history_index]
+
+    return _serve_context_history
+
+
+def history_handle_unchanged_contents() -> None:
+    longest_history = max(len(h) for h in context_history.values())
+    for section_name, history in context_history.items():
+        # Duplicate the last entry if it is the same as the previous one
+        # and wasn't added when the history was updated
+        if len(history) == longest_history - 1:
+            context_history[section_name].append(history[-1])
+        # Prepend empty entries to the history to make all sections have the same length
+        elif len(history) < longest_history - 1:
+            context_history[section_name] = [
+                [] for _ in range(longest_history - 1 - len(history))
+            ] + history
+
+
+parser = argparse.ArgumentParser(description="Select previous entry in context history.")
+parser.add_argument(
+    "count",
+    type=int,
+    nargs="?",
+    default=1,
+    help="The number of entries to go back in history",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxp"], category=CommandCategory.CONTEXT)
+def contextprev(count) -> None:
+    global selected_history_index
+    longest_history = max(len(h) for h in context_history.values())
+    if selected_history_index is None:
+        if not context_history:
+            print(message.error("No context history captured"))
+            return
+        new_index = longest_history - count - 1
+    else:
+        new_index = selected_history_index - count
+    selected_history_index = max(0, new_index)
+    context()
+
+
+parser = argparse.ArgumentParser(description="Select next entry in context history.")
+parser.add_argument(
+    "count",
+    type=int,
+    nargs="?",
+    default=1,
+    help="The number of entries to go forward in history",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxn"], category=CommandCategory.CONTEXT)
+def contextnext(count) -> None:
+    global selected_history_index
+    longest_history = max(len(h) for h in context_history.values())
+    if selected_history_index is None:
+        if not context_history:
+            print(message.error("No context history captured"))
+            return
+        new_index = longest_history - 1
+    else:
+        new_index = selected_history_index + count
+    selected_history_index = min(longest_history - 1, new_index)
+    context()
+
+
+parser = argparse.ArgumentParser(
+    description="Search for a string in the context history and select that entry."
+)
+parser.add_argument(
+    "needle",
+    type=str,
+    help="The string to search for in the context history",
+)
+parser.add_argument(
+    "section",
+    type=str,
+    nargs="?",
+    default=None,
+    help="The section to search in. If not provided, search in all sections",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxsearch"], category=CommandCategory.CONTEXT)
+def contextsearch(needle, section) -> None:
+    if not section:
+        sections = context_history.keys()
+    else:
+        if section not in context_history:
+            print(message.error(f"Section '{section}' not found in context history."))
+            return
+        sections = [section]
+
+    matches: List[Tuple[str, int]] = []
+    for section in sections:
+        for i, entry in enumerate(context_history[section]):
+            if not any(m[1] == i for m in matches) and any(needle in line for line in entry):
+                matches.append((section, i))
+    matches.sort(key=lambda m: m[1], reverse=True)
+
+    if not matches:
+        print(message.error(f"String '{needle}' not found in context history."))
+        return
+
+    # Select first match before currently selected entry
+    global selected_history_index
+    if selected_history_index is None:
+        next_match = matches[0]
+    else:
+        for match in matches:
+            if match[1] < selected_history_index:
+                next_match = match
+                break
+        else:
+            next_match = matches[0]
+            print(message.warn("No more matches before the current entry. Starting from the top."))
+
+    selected_history_index = next_match[1]
+    print(
+        message.info(
+            f"Found {len(matches)} match{'es' if len(matches) > 1 else ''}. Selected entry {next_match[1] + 1} for match in section '{next_match[0]}'."
+        )
+    )
+    context()
+
+
 # Watches
 expressions = []
 
@@ -317,6 +507,7 @@ def contextunwatch(num) -> None:
     expressions.pop(int(num) - 1)
 
 
+@serve_context_history
 def context_expressions(target=sys.stdout, with_banner=True, width=None):
     if not expressions:
         return []
@@ -352,6 +543,7 @@ config_context_ghidra = pwndbg.config.add_param(
 )
 
 
+@serve_context_history
 def context_ghidra(target=sys.stdout, with_banner=True, width=None):
     """
     Print out the source of the current function decompiled by ghidra.
@@ -404,13 +596,17 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
-@pwndbg.commands.OnlyWhenRunning
 def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
     Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
+    # Allow to view history after the program has exited
+    if not pwndbg.aglib.proc.alive and (context_history_size <= 0 or not context_history):
+        log.error("context: The program is not being run.")
+        return None
+
     if subcontext is None:
         subcontext = []
     args = subcontext
@@ -418,7 +614,15 @@ def context(subcontext=None, enabled=None) -> None:
     if len(args) == 0:
         args = config_context_sections.split()
 
-    sections = [("legend", lambda *args, **kwargs: [M.legend()])] if args else []
+    sections = []
+    if args:
+        if selected_history_index is None:
+            sections.append(("legend", lambda *args, **kwargs: [M.legend()]))
+        else:
+            longest_history = max(len(h) for h in context_history.values())
+            history_status = f" (history {selected_history_index + 1}/{longest_history})"
+            sections.append(("legend", lambda *args, **kwargs: [M.legend() + history_status]))
+
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
     result = defaultdict(list)
@@ -440,6 +644,8 @@ def context(subcontext=None, enabled=None) -> None:
                             with_banner=settings.get("banner_top", True),
                         )
                     )
+
+    history_handle_unchanged_contents()
 
     for target, res in result.items():
         settings = result_settings[target]
@@ -539,6 +745,7 @@ def compact_regs(regs, width=None, target=sys.stdout):
     return result
 
 
+@serve_context_history
 def context_regs(target=sys.stdout, with_banner=True, width=None):
     regs = get_regs()
     if pwndbg.config.show_compact_regs:
@@ -552,6 +759,7 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
     return banner + regs if with_banner else regs
 
 
+@serve_context_history
 def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
     if not pwndbg.gdblib.heap_tracking.is_enabled():
         return []
@@ -643,6 +851,7 @@ disasm_lines = pwndbg.config.add_param(
 )
 
 
+@serve_context_history
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
     flavor = pwndbg.dbg.x86_disassembly_flavor()
     syntax = pwndbg.aglib.disasm.CapstoneSyntax[flavor]
@@ -768,6 +977,7 @@ should_decompile = pwndbg.config.add_param(
 )
 
 
+@serve_context_history
 def context_code(target=sys.stdout, with_banner=True, width=None):
     filename, formatted_source, line = get_filename_and_formatted_source()
 
@@ -796,6 +1006,7 @@ stack_lines = pwndbg.config.add_param(
 )
 
 
+@serve_context_history
 def context_stack(target=sys.stdout, with_banner=True, width=None):
     result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(
@@ -814,6 +1025,7 @@ backtrace_frame_label = theme.add_param(
 )
 
 
+@serve_context_history
 def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     result = []
 
@@ -863,6 +1075,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
     return result
 
 
+@serve_context_history
 def context_args(with_banner=True, target=sys.stdout, width=None):
     args = pwndbg.arguments.format_args(pwndbg.aglib.disasm.one())
 
@@ -896,6 +1109,7 @@ def get_thread_status(thread):
         return "unknown"
 
 
+@serve_context_history
 def context_threads(with_banner=True, target=sys.stdout, width=None):
     try:
         original_thread = gdb.selected_thread()
@@ -1011,6 +1225,7 @@ if pwndbg.dbg.is_gdblib_available():
     gdb.events.exited.connect(save_signal)
 
 
+@serve_context_history
 def context_last_signal(with_banner=True, target=sys.stdout, width=None):
     if not last_signal:
         return []
