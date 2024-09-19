@@ -28,13 +28,13 @@ class _GdbFunction(gdb.Function):
         self.name = func.__name__
         self.func = func
         self.only_when_running = only_when_running
+        self.__doc__ = func.__doc__
 
         functions.append(self)
 
         super().__init__(self.name)
 
         functools.update_wrapper(self, func)
-        self.__doc__ = func.__doc__
 
     def invoke(self, *args: gdb.Value) -> Any:
         if self.only_when_running and not pwndbg.gdblib.proc.alive:
@@ -57,6 +57,7 @@ def rebase(addr: gdb.Value | int) -> int:
 
 @GdbFunction(only_when_running=True)
 def base(name_pattern: gdb.Value | str) -> int:
+    """Return base address of the first memory mapping containing the given name."""
     if isinstance(name_pattern, gdb.Value):
         name = name_pattern.string()
     else:

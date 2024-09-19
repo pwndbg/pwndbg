@@ -30,9 +30,7 @@ def bn_sync(*args) -> None:
 @pwndbg.gdblib.functions.GdbFunction()
 @pwndbg.integration.binja.with_bn()
 def bn_sym(name_val: gdb.Value) -> int | None:
-    """
-    Lookup a symbol's address by name from Binary Ninja.
-    """
+    """Lookup a symbol's address by name from Binary Ninja."""
     name = name_val.string()
     addr: int | None = pwndbg.integration.binja._bn.get_symbol_addr(name)
     if addr is None:
@@ -43,9 +41,7 @@ def bn_sym(name_val: gdb.Value) -> int | None:
 @pwndbg.gdblib.functions.GdbFunction()
 @pwndbg.integration.binja.with_bn()
 def bn_var(name_val: gdb.Value) -> int | None:
-    """
-    Lookup a stack variable's address by name from Binary Ninja.
-    """
+    """Lookup a stack variable's address by name from Binary Ninja."""
     name = name_val.string()
     conf_and_offset: Tuple[int, int] | None = pwndbg.integration.binja._bn.get_var_offset_from_sp(
         pwndbg.integration.binja.l2r(pwndbg.gdblib.regs.pc), name
@@ -61,8 +57,8 @@ def bn_var(name_val: gdb.Value) -> int | None:
 @pwndbg.gdblib.functions.GdbFunction()
 @pwndbg.integration.binja.with_bn()
 def bn_eval(expr: gdb.Value) -> int | None:
-    """
-    Parse and evaluate a Binary Ninja expression.
+    """Parse and evaluate a Binary Ninja expression.
+
     Docs: https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
 
     Adds all registers in the current register set as magic variables (e.g. $rip).
