@@ -7,6 +7,8 @@ from typing import Pattern
 
 import gdb
 
+import pwndbg
+from pwndbg.color import message
 from pwndbg.commands.context import context
 from pwndbg.commands.context import context_sections
 from pwndbg.commands.context import contextoutput
@@ -52,6 +54,19 @@ class ContextTUIWindow:
     def render(self) -> None:
         # render is called again after the TUI was disabled
         self._verify_enabled_state()
+
+        if (
+            not self._lines
+            and self._section != "legend"
+            and self._section not in str(pwndbg.config.context_sections)
+        ):
+            self._tui_window.write(
+                message.warn(
+                    f"Section '{self._section}' is not in 'context-sections' and won't be updated automatically."
+                ),
+                True,
+            )
+            return
 
         height = self._tui_window.height
         width = self._tui_window.width
