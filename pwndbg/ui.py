@@ -73,6 +73,8 @@ def get_window_size(target=sys.stdin):
     rows, cols = get_cmd_window_size()
     if rows is not None and cols is not None:
         return rows, cols
+    elif os.environ.get("PWNDBG_IN_TEST") is not None:
+        return fallback
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg
         rows, cols = struct.unpack("hh", fcntl.ioctl(target.fileno(), termios.TIOCGWINSZ, b"1234"))
