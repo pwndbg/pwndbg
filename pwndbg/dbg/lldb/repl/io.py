@@ -26,12 +26,6 @@ if os.name == "posix":
     TERM_CONTROL_AVAILABLE = True
     SELECT_AVAILABLE = True
     PTY_AVAILABLE = True
-
-    # We could support querying the terminal size in older versions of Python,
-    # too, but, for now, this should be good enough.
-    #
-    # TODO: Properly support terminal size queries in Python 3.10 and older.
-    PTY_TERMSIZE_AVAILABLE = sys.version_info.minor >= 11
 else:
     # We sleep for a little bit when we don't have select.
     import time
@@ -389,8 +383,12 @@ class IODriverPseudoTerminal(IODriver):
         # Put the manager in nonblocking mode.
         os.set_blocking(self.manager, False)
 
+        # We could support querying the terminal size in older versions of Python,
+        # too, but, for now, this should be good enough.
+        #
+        # TODO: Properly support terminal size queries in Python 3.10 and older.
         # Handle terminal resizes.
-        if PTY_TERMSIZE_AVAILABLE:
+        if sys.version_info >= (3, 11):
             # The way we currently handle terminal resizing absolutely does not
             # support multipleinstances of IODriverPseudoTerminal, but we
             # shouldn't have more than one object live at a time anyway for the
@@ -399,7 +397,7 @@ class IODriverPseudoTerminal(IODriver):
                 terminal = open("/dev/tty", "rb")
 
                 def handle_sigwinch(_sig, _frame):
-                    # Tell vermin to ignore these. PTY_TERMSIZE_AVAILABLE is
+                    # Tell vermin to ignore these. This block is
                     # gated behind Python 3.11.
                     size = termios.tcgetwinsize(terminal.fileno())  # novm
                     termios.tcsetwinsize(self.manager, size)  # novm
