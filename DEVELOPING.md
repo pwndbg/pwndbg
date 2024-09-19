@@ -51,19 +51,6 @@ We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and Linux k
 
 To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
 
-Some of the tests rely on output that depends on a certain width/height of the terminal, so you will likely see many test failures when simply running `./tests.sh`. To run the tests in the expected environment, you can use:
-
-```sh
-docker compose run --build -T ubuntu24.04 ./tests.sh
-# The `-T` disables the use of a pseudo-TTY
-```
-
-If you want rapidly iterate on tests (waiting for the container to rebuild and all the test source code files to compile can take a while), you can pipe `cat` on both ends to disable the PTY and get the correct terminal width/height for the tests.
-
-```sh
-cat | ./tests.sh | cat
-```
-
 To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
 
 ## Writing Tests
