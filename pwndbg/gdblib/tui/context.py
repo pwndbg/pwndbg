@@ -190,15 +190,16 @@ class ContextTUIWindow:
         )
 
 
-sections = ["legend"] + [
-    section.__name__.replace("context_", "") for section in context_sections.values()
-]
-for section_name in sections:
-    # https://github.com/python/mypy/issues/12557
-    target_func: Callable[..., gdb._Window] = (
-        lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
-    )
-    gdb.register_window_type(
-        "pwndbg_" + section_name,
-        target_func,
-    )
+if hasattr(gdb, "register_window_type"):
+    sections = ["legend"] + [
+        section.__name__.replace("context_", "") for section in context_sections.values()
+    ]
+    for section_name in sections:
+        # https://github.com/python/mypy/issues/12557
+        target_func: Callable[..., gdb._Window] = (
+            lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
+        )
+        gdb.register_window_type(
+            "pwndbg_" + section_name,
+            target_func,
+        )
