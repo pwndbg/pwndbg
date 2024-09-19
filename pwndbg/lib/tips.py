@@ -47,6 +47,7 @@ TIPS: List[str] = [
     "Need to `mmap` or `mprotect` memory in the debugee? Use commands with the same name to inject and run such syscalls",
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
     "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
+    "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
 ]
 
 

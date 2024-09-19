@@ -71,13 +71,20 @@ import splitmind
 end
 ```
 
-The context sections are available as native gdb TUI windows as well as `pwndbg_[sectionname]` windows.
+#### GDB TUI
+The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`.
 
-Try creating a layout and selecting it:
+There are some predefined layouts coming with pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
+
+To create [your own layout](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI-Commands.html) and selecting it use normal `tui new-layout` syntax like:
 ```
-tui new-layout pwndbg {-horizontal { { -horizontal { pwndbg_code 2 pwndbg_disasm 8 } 2 { { -horizontal pwndbg_legend 8 pwndbg_control 2 } 1 pwndbg_regs 6 pwndbg_stack 6 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 1 } 1 } 1 status 1
-layout pwndbg
+tui new-layout pwndbg_custom {-horizontal { { -horizontal { pwndbg_code 1 pwndbg_disasm 1 } 2 { {-horizontal pwndbg_legend 8 pwndbg_control 2 } 1 pwndbg_regs 6 pwndbg_stack 6 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 2 pwndbg_threads 1 pwndbg_expressions 2 } 1 } 1 status 1
+layout pwndbg_custom
 ```
+
+![](caps/context_tui.png)
+
+Use `focus cmd` to focus the command window and have the arrow keys scroll through the command history again. `tui disable` to disable TUI mode and go back to CLI mode when running commands with longer output. `ctrl-x + a` toggles between TUI and CLI mode quickly. Hold shift to ignore the TUI mouse integration and use the mouse normally to select text or copy data.
 
 ### Watch Expressions
 
