@@ -161,7 +161,7 @@ class CStruct2GDB:
         """
         output = "{\n"
         for f in self._c_struct._fields_:
-            output += f"  {f[0]} = {self.read_field(f[0])},\n"
+            output += f"  {f[0]} = {self.read_field(f[0]).inner},\n"
         output += "}"
         return output
 
