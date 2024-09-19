@@ -10,8 +10,7 @@ import gdb
 from pwndbg.commands.context import context
 from pwndbg.commands.context import context_sections
 from pwndbg.commands.context import contextoutput
-from pwndbg.commands.context import output_settings
-from pwndbg.commands.context import outputs
+from pwndbg.commands.context import resetcontextoutput
 
 
 class ContextTUIWindow:
@@ -101,8 +100,7 @@ class ContextTUIWindow:
     def _disable(self):
         _static_enabled = False
         self._old_width = 0
-        del outputs[self._section]
-        del output_settings[self._section]
+        resetcontextoutput(self._section)
         self._enabled = False
 
     def _update(self):
