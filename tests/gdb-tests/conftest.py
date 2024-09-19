@@ -23,7 +23,6 @@ def start_binary():
         gdb.execute("file " + path)
         gdb.execute("set exception-verbose on")
         gdb.execute("set width 80")
-        gdb.execute("set env COLUMNS 80")
         os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
 
