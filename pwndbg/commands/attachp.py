@@ -100,6 +100,10 @@ def find_pids(target, user, all):
         pid, args = process_info
         cmd = args.split(maxsplit=1)[0]
 
+        # Cannot attach to gdb itself.
+        if int(pid) == os.getpid():
+            continue
+
         if target == cmd:
             pids_exact_match_cmd.append(pid)
         elif target in cmd:
