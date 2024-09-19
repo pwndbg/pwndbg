@@ -145,12 +145,12 @@ class ContextTUIWindow:
         colored_idx = 0
         char_count = 0
         while colored_idx < len(line):
-            c = line[colored_end_idx]
+            c = line[colored_idx]
             # collect all ansi escape sequences before the start of the colored substring
             # as well as after the end of the colored substring
             # skip them while counting the characters to slice
             if c == "\x1b":
-                m = self._ansi_escape_regex.match(line[colored_end_idx:])
+                m = self._ansi_escape_regex.match(line[colored_idx:])
                 if m:
                     colored_idx += m.end()
                     if char_count < start_char:
