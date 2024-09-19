@@ -28,7 +28,8 @@ class ContextTUIWindow:
     _ansi_escape_regex: Pattern[str]
     _enabled: bool
 
-    _static_enabled = False
+    _static_enabled: bool = True
+    _context_windows: List[ContextTUIWindow] = []
 
     def __init__(self, tui_window: "gdb.TuiWindow", section: str) -> None:
         self._tui_window = tui_window
@@ -45,8 +46,10 @@ class ContextTUIWindow:
         self._enabled = False
         self._enable()
         gdb.events.before_prompt.connect(self._before_prompt_listener)
+        ContextTUIWindow._context_windows.append(self)
 
     def close(self) -> None:
+        ContextTUIWindow._context_windows.remove(self)
         if self._enabled:
             self._disable()
         gdb.events.before_prompt.disconnect(self._before_prompt_listener)
@@ -108,12 +111,10 @@ class ContextTUIWindow:
         self.render()
 
     def _enable(self):
-        _static_enabled = True
         self._update()
         self._enabled = True
 
     def _disable(self):
-        _static_enabled = False
         self._old_width = 0
         resetcontextoutput(self._section)
         self._enabled = False
@@ -143,13 +144,15 @@ class ContextTUIWindow:
         is_valid = self._tui_window.is_valid()
         if is_valid:
             if not self._enabled:
-                should_trigger_context = not self._static_enabled
-                self._enable()
-                if should_trigger_context and gdb.selected_inferior().pid:
+                for context_window in ContextTUIWindow._context_windows:
+                    context_window._enable()
+                if not ContextTUIWindow._static_enabled and pwndbg.dbg.selected_inferior().alive():
                     context()
+                ContextTUIWindow._static_enabled = True
         else:
             if self._enabled:
                 self._disable()
+                ContextTUIWindow._static_enabled = False
         return is_valid
 
     def _ansi_substr(self, line: str, start_char: int, end_char: int) -> str:
