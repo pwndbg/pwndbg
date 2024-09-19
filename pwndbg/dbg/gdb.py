@@ -1005,6 +1005,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         except gdb.error:
             pass
 
+        pwndbg.gdblib.tui.setup()
+
         # Reading Comment file
         from pwndbg.commands import comments
 
