@@ -27,6 +27,7 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import theme
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -124,6 +125,28 @@ DO_NOT_EMULATE = {
     # in that case.
     # capstone.CS_GRP_PRIVILEGE,
 }
+
+register_arrow = theme.add_param(
+    "annotation-register-separator", "=>", "register assignment separator symbol"
+)
+memory_arrow = theme.add_param(
+    "annotation-memory-separator", "=>", "memory assignment separator symbol"
+)
+
+
+def register_assign(left: str, right: str) -> str:
+    return f"{left} {register_arrow} {right}"
+
+
+def memory_assign(left: str, right: str) -> str:
+    return f"{left} {memory_arrow} {right}"
+
+
+def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
+    """
+    Used when we don't know until runtime whether a codepath will annotate a register or memory location.
+    """
+    return memory_assign(left, right) if mem_assign else register_assign(left, right)
 
 
 # Enhances disassembly with memory values & symbols by adding member variables to an instruction
@@ -809,7 +832,9 @@ class DisassemblyAssistant:
             if not telescope_addresses:
                 return
 
-            instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            instruction.annotation = register_assign(
+                left.str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+            )
 
     def _common_cmp_annotator_builder(
         self, flags_register_name: str, char_to_separate_operands: str = "-"
@@ -845,7 +870,7 @@ class DisassemblyAssistant:
                 emu_eflags = emu.read_register(flags_register_name)
                 eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
 
-                display_result = f"{FLAG_REG_NAME_DISPLAY} => {eflags_formatted}"
+                display_result = register_assign(FLAG_REG_NAME_DISPLAY, eflags_formatted)
 
                 if instruction.annotation is None:
                     # First part of this function usually sets .annotation to a string. But if the instruction
@@ -928,7 +953,7 @@ class DisassemblyAssistant:
             instruction.annotation = f"{dest_str}, {source_str}"
 
             if telescope_print is not None:
-                instruction.annotation += f" => {telescope_print}"
+                instruction.annotation = register_assign(instruction.annotation, telescope_print)
 
     def _common_store_annotator(
         self,
@@ -971,7 +996,9 @@ class DisassemblyAssistant:
                 emu,
             )
 
-            instruction.annotation = f"{address_str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            instruction.annotation = memory_assign(
+                address_str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+            )
 
     def _common_move_annotator(self, instruction: PwndbgInstruction, emu: Emulator):
         """
@@ -993,7 +1020,9 @@ class DisassemblyAssistant:
                 if not telescope_addresses:
                     return
 
-                instruction.annotation = f"{left.str} => {self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+                instruction.annotation = register_assign(
+                    left.str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+                )
 
     def _common_binary_op_annotator(
         self,
@@ -1003,6 +1032,7 @@ class DisassemblyAssistant:
         op_one: int | None,
         op_two: int | None,
         char_to_separate_operands: str,
+        memory_assignment=False,
     ) -> None:
         # Ex: "0x198723 + 0x2b8"
         math_string = None
@@ -1014,11 +1044,17 @@ class DisassemblyAssistant:
 
         # Using emulation, we can determine the resulting value
         if target_operand.after_value_resolved is not None:
-            instruction.annotation = f"{target_operand.str} => {MemoryColor.get_address_and_symbol(target_operand.after_value_resolved)}"
+            instruction.annotation = memory_or_register_assign(
+                target_operand.str,
+                MemoryColor.get_address_and_symbol(target_operand.after_value_resolved),
+                memory_assignment,
+            )
             if math_string:
                 instruction.annotation += f" ({math_string})"
         elif math_string:
-            instruction.annotation = f"{target_operand.str} => {math_string}"
+            instruction.annotation = memory_or_register_assign(
+                target_operand.str, math_string, memory_assignment
+            )
 
 
 generic_assistant = DisassemblyAssistant(None)

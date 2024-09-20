@@ -18,6 +18,8 @@ import pwndbg.chain
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.enhance
+from pwndbg.aglib.disasm.arch import memory_or_register_assign
+from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -90,6 +92,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].before_value_resolved,
                 instruction.operands[1].before_value_resolved,
                 X86_MATH_INSTRUCTIONS[instruction.id],
+                instruction.operands[0].type == CS_OP_MEM,
             )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
@@ -121,19 +124,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
         elif left.type == CS_OP_REG and right.before_value is not None:
             # MOV REG, REG|IMM
-            TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
-
-            telescope_addresses = super()._telescope(
-                right.before_value,
-                TELESCOPE_DEPTH + 1,
-                instruction,
-                emu,
-                read_size=right.cs_op.size,
-            )
-            if not telescope_addresses:
-                return
-
-            instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            self._common_move_annotator(instruction, emu)
 
     def handle_vmovaps(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # If the source or destination is in memory, it must be aligned to:
@@ -168,7 +159,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             telescope_addresses = super()._telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
-            instruction.annotation = f"{left.str} => {super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)}"
+            instruction.annotation = register_assign(
+                left.str, super()._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+            )
 
     def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
@@ -176,7 +169,19 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if left.before_value_resolved is not None and right.before_value_resolved is not None:
             # Display the exchanged values. Doing it this way (instead of using .after_value) allows this to work without emulation
             # Don't telescope here for the sake of screen space
-            instruction.annotation = f"{left.str} => {MemoryColor.get_address_or_symbol(right.before_value_resolved)}, {right.str} => {MemoryColor.get_address_or_symbol(left.before_value_resolved)}"
+            instruction.annotation = (
+                memory_or_register_assign(
+                    left.str,
+                    MemoryColor.get_address_or_symbol(right.before_value_resolved),
+                    left.type == CS_OP_MEM,
+                )
+                + ", "
+                + memory_or_register_assign(
+                    right.str,
+                    MemoryColor.get_address_or_symbol(left.before_value_resolved),
+                    right.type == CS_OP_MEM,
+                )
+            )
 
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         pc_is_at_instruction = self.can_reason_about_process_state(instruction)
@@ -190,13 +195,15 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if reg_operand.type == CS_OP_REG:
             if emu and reg_operand.after_value is not None:
                 # After emulation, the register has taken on the popped value
-                instruction.annotation = f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(reg_operand.after_value)}"
+                instruction.annotation = register_assign(
+                    reg_operand.str, MemoryColor.get_address_and_symbol(reg_operand.after_value)
+                )
             elif pc_is_at_instruction:
-                # Attempt to read from the stop of the stack
+                # Attempt to read from the top of the stack
                 try:
                     value = pwndbg.aglib.memory.pvoid(pwndbg.aglib.regs.sp)
-                    instruction.annotation = (
-                        f"{reg_operand.str} => {MemoryColor.get_address_and_symbol(value)}"
+                    instruction.annotation = register_assign(
+                        reg_operand.str, MemoryColor.get_address_and_symbol(value)
                     )
                 except Exception:
                     pass
@@ -206,7 +213,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
-            instruction.annotation = f"{left.str} => 0"
+            instruction.annotation = register_assign(left.str, "0")
         else:
             self._common_binary_op_annotator(
                 instruction,
@@ -222,7 +229,11 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         operand = instruction.operands[0]
 
         if operand.after_value_resolved is not None:
-            instruction.annotation = f"{operand.str} => {MemoryColor.get_address_and_symbol(operand.after_value_resolved)}"
+            instruction.annotation = memory_or_register_assign(
+                operand.str,
+                MemoryColor.get_address_and_symbol(operand.after_value_resolved),
+                operand.type == CS_OP_MEM,
+            )
 
     def handle_dec(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         self.handle_inc(instruction, emu)

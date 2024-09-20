@@ -11,6 +11,7 @@ import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor
 import pwndbg.lib.disasm.helpers as bit_math
+from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
@@ -217,8 +218,8 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # Resolve it manually without emulation
                 address = instruction.address + (right.before_value << 12)
 
-            instruction.annotation = (
-                f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
+            instruction.annotation = register_assign(
+                result_operand.str, MemoryColor.get_address_and_symbol(address)
             )
 
     def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -228,8 +229,8 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # Resolve it manually without emulation
                 address = right.before_value << 12
 
-            instruction.annotation = (
-                f"{result_operand.str} => {MemoryColor.get_address_and_symbol(address)}"
+            instruction.annotation = register_assign(
+                result_operand.str, MemoryColor.get_address_and_symbol(address)
             )
 
     def _resolve_compressed_target_addr(
