@@ -24,7 +24,6 @@ import pwndbg.color.memory
 import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg import color
-from pwndbg.color.syntax_highlight import syntax_highlight
 
 
 def format_small_int(value: int) -> str:
@@ -113,11 +112,11 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        pwndbg_instr = pwndbg.aglib.disasm.one(value, enhance=False)
+        pwndbg_instr = pwndbg.aglib.disasm.one(value)
         if pwndbg_instr:
-            instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
-            if pwndbg.config.syntax_highlight:
-                instr = syntax_highlight(instr)
+            # For telescoping, we don't want the extra spaces between the mnemonic and operands
+            # which are baked in during enhancement. This removes those spaces.
+            instr = " ".join(pwndbg_instr.asm_string.split())
 
     szval = pwndbg.aglib.strings.get(value, maxlen=enhance_string_len) or None
     szval0 = szval
