@@ -7,6 +7,8 @@ from typing import Pattern
 
 import gdb
 
+import pwndbg
+from pwndbg.color import message
 from pwndbg.commands.context import context
 from pwndbg.commands.context import context_sections
 from pwndbg.commands.context import contextoutput
@@ -26,7 +28,8 @@ class ContextTUIWindow:
     _ansi_escape_regex: Pattern[str]
     _enabled: bool
 
-    _static_enabled = False
+    _static_enabled: bool = True
+    _context_windows: List[ContextTUIWindow] = []
 
     def __init__(self, tui_window: "gdb.TuiWindow", section: str) -> None:
         self._tui_window = tui_window
@@ -43,8 +46,10 @@ class ContextTUIWindow:
         self._enabled = False
         self._enable()
         gdb.events.before_prompt.connect(self._before_prompt_listener)
+        ContextTUIWindow._context_windows.append(self)
 
     def close(self) -> None:
+        ContextTUIWindow._context_windows.remove(self)
         if self._enabled:
             self._disable()
         gdb.events.before_prompt.disconnect(self._before_prompt_listener)
@@ -52,6 +57,19 @@ class ContextTUIWindow:
     def render(self) -> None:
         # render is called again after the TUI was disabled
         self._verify_enabled_state()
+
+        if (
+            not self._lines
+            and self._section != "legend"
+            and self._section not in str(pwndbg.config.context_sections)
+        ):
+            self._tui_window.write(
+                message.warn(
+                    f"Section '{self._section}' is not in 'context-sections' and won't be updated automatically."
+                ),
+                True,
+            )
+            return
 
         height = self._tui_window.height
         width = self._tui_window.width
@@ -93,12 +111,10 @@ class ContextTUIWindow:
         self.render()
 
     def _enable(self):
-        _static_enabled = True
         self._update()
         self._enabled = True
 
     def _disable(self):
-        _static_enabled = False
         self._old_width = 0
         resetcontextoutput(self._section)
         self._enabled = False
@@ -128,13 +144,15 @@ class ContextTUIWindow:
         is_valid = self._tui_window.is_valid()
         if is_valid:
             if not self._enabled:
-                should_trigger_context = not self._static_enabled
-                self._enable()
-                if should_trigger_context and gdb.selected_inferior().pid:
+                for context_window in ContextTUIWindow._context_windows:
+                    context_window._enable()
+                if not ContextTUIWindow._static_enabled and pwndbg.dbg.selected_inferior().alive():
                     context()
+                ContextTUIWindow._static_enabled = True
         else:
             if self._enabled:
                 self._disable()
+                ContextTUIWindow._static_enabled = False
         return is_valid
 
     def _ansi_substr(self, line: str, start_char: int, end_char: int) -> str:
@@ -145,12 +163,12 @@ class ContextTUIWindow:
         colored_idx = 0
         char_count = 0
         while colored_idx < len(line):
-            c = line[colored_end_idx]
+            c = line[colored_idx]
             # collect all ansi escape sequences before the start of the colored substring
             # as well as after the end of the colored substring
             # skip them while counting the characters to slice
             if c == "\x1b":
-                m = self._ansi_escape_regex.match(line[colored_end_idx:])
+                m = self._ansi_escape_regex.match(line[colored_idx:])
                 if m:
                     colored_idx += m.end()
                     if char_count < start_char:
@@ -175,15 +193,16 @@ class ContextTUIWindow:
         )
 
 
-sections = ["legend"] + [
-    section.__name__.replace("context_", "") for section in context_sections.values()
-]
-for section_name in sections:
-    # https://github.com/python/mypy/issues/12557
-    target_func: Callable[..., gdb._Window] = (
-        lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
-    )
-    gdb.register_window_type(
-        "pwndbg_" + section_name,
-        target_func,
-    )
+if hasattr(gdb, "register_window_type"):
+    sections = ["legend"] + [
+        section.__name__.replace("context_", "") for section in context_sections.values()
+    ]
+    for section_name in sections:
+        # https://github.com/python/mypy/issues/12557
+        target_func: Callable[..., gdb._Window] = (
+            lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
+        )
+        gdb.register_window_type(
+            "pwndbg_" + section_name,
+            target_func,
+        )

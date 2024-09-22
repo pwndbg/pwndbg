@@ -1139,24 +1139,33 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     if len(displayed_threads) < 2:
         return []
 
-    out = [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
+    out = (
+        [pwndbg.ui.banner(f"threads ({len(all_threads)} total)", target=target, width=width)]
+        if with_banner
+        else []
+    )
     max_name_length = 0
+    max_global_num_len = 0
 
     for thread in displayed_threads:
         name = thread.name or ""
         if len(name) > max_name_length:
             max_name_length = len(name)
+        if len(str(thread.global_num)) > max_global_num_len:
+            max_global_num_len = len(str(thread.global_num))
 
     for thread in filter(lambda t: t.is_valid(), displayed_threads):
         selected = " ►" if thread is original_thread else "  "
         name = thread.name if thread.name is not None else ""
-        padding = max_name_length - len(name)
+        name_padding = max_name_length - len(name)
+        global_num_padding = max(2, max_global_num_len - len(str(thread.global_num)))
         status = get_thread_status(thread)
 
         line = (
-            f" {selected} {thread.global_num}\t"
+            f" {selected} {thread.global_num} "
+            f"{' ' * global_num_padding}"
             f'"{pwndbg.color.cyan(name)}" '
-            f'{" " * padding}'
+            f'{" " * name_padding}'
             f"{status}: "
         )
 
