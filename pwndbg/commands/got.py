@@ -7,11 +7,11 @@ from typing import Union
 
 from elftools.elf.elffile import ELFFile
 
+import pwndbg.aglib.arch
 import pwndbg.chain
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.proc
@@ -161,7 +161,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
             if not name and category == RelocationType.IRELATIVE:
                 # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
                 # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
-                if pwndbg.gdblib.arch.name == "i386":
+                if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
                     name = f"*ABS*+0x{int(value, 16):x}"

@@ -14,7 +14,7 @@ import ctypes
 import sys
 
 import pwndbg
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 from pwndbg.dbg import EventType
 
 module = sys.modules[__name__]
@@ -25,7 +25,7 @@ Structure = ctypes.LittleEndianStructure  # default Structure type
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def update() -> None:
     global Structure
-    if pwndbg.gdblib.arch.endian == "little":
+    if pwndbg.aglib.arch.endian == "little":
         Structure = ctypes.LittleEndianStructure
     else:
         Structure = ctypes.BigEndianStructure

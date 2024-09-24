@@ -4,8 +4,8 @@ import argparse
 
 import gdb
 
+import pwndbg.aglib.arch
 import pwndbg.commands
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.argv
 import pwndbg.gdblib.typeinfo
 from pwndbg.commands import CommandCategory
@@ -33,7 +33,7 @@ def argv(i=None) -> None:
 
     if i is not None:
         n = 1
-        start += (pwndbg.gdblib.arch.ptrsize) * i
+        start += (pwndbg.aglib.arch.ptrsize) * i
 
     pwndbg.commands.telescope.telescope(start, n)
 

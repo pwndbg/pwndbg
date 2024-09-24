@@ -137,7 +137,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return proc_maps
 
     pages: List[pwndbg.lib.memory.Page] = []
-    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.gdblib.arch.current in (
+    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.aglib.arch.current in (
         "i386",
         "x86-64",
         "aarch64",
@@ -174,7 +174,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
             pages.extend(info_sharedlibrary())
         else:
             if pwndbg.gdblib.qemu.is_qemu():
-                return (pwndbg.lib.memory.Page(0, pwndbg.gdblib.arch.ptrmask, 7, 0, "[qemu]"),)
+                return (pwndbg.lib.memory.Page(0, pwndbg.aglib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
         pages.extend(pwndbg.gdblib.stack.get().values())
@@ -654,10 +654,10 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         # these cases in a `finally` block instead of an `except` block.
         if monitor_info_mem is None or "unknown command" in monitor_info_mem:
             # TODO: Find out which other architectures don't support this command
-            if pwndbg.gdblib.arch.name == "aarch64":
+            if pwndbg.aglib.arch.name == "aarch64":
                 print(
                     M.error(
-                        f"The {pwndbg.gdblib.arch.name} architecture does"
+                        f"The {pwndbg.aglib.arch.name} architecture does"
                         " not support the `monitor info mem` command. Run "
                         "`help show kernel-vmmap` for other options."
                     )

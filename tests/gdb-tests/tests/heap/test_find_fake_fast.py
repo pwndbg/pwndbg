@@ -13,7 +13,7 @@ target_address = None
 
 
 def check_result(result, expected_size):
-    ptrsize = pwndbg.gdblib.arch.ptrsize
+    ptrsize = pwndbg.aglib.arch.ptrsize
 
     matches = re.findall(r"\bAddr: (0x[0-9a-f]+)", result)
     assert len(matches) == 1

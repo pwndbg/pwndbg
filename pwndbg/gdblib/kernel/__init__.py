@@ -174,7 +174,7 @@ def is_kaslr_enabled() -> bool:
 
 @pwndbg.lib.cache.cache_until("start")
 def kbase() -> int | None:
-    arch_name = pwndbg.gdblib.arch.name
+    arch_name = pwndbg.aglib.arch.name
 
     address = 0
 
@@ -210,7 +210,7 @@ def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     base = pwndbg.gdblib.regs.idt
     limit = pwndbg.gdblib.regs.idt_limit
 
-    size = pwndbg.gdblib.arch.ptrsize * 2
+    size = pwndbg.aglib.arch.ptrsize * 2
     num_entries = (limit + 1) // size
 
     entries = []
@@ -500,11 +500,11 @@ _arch_ops: ArchOps = None
 def arch_ops() -> ArchOps:
     global _arch_ops
     if _arch_ops is None:
-        if pwndbg.gdblib.arch.name == "aarch64":
+        if pwndbg.aglib.arch.name == "aarch64":
             _arch_ops = Aarch64Ops()
-        elif pwndbg.gdblib.arch.name == "x86-64":
+        elif pwndbg.aglib.arch.name == "x86-64":
             _arch_ops = x86_64Ops()
-        elif pwndbg.gdblib.arch.name == "i386":
+        elif pwndbg.aglib.arch.name == "i386":
             _arch_ops = i386Ops()
 
     return _arch_ops
@@ -623,7 +623,7 @@ def virt_to_pfn(virt: int) -> int:
 
 
 def paging_enabled() -> bool:
-    arch_name = pwndbg.gdblib.arch.name
+    arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
         return i386Ops.paging_enabled()
     elif arch_name == "x86-64":

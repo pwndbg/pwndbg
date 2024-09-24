@@ -31,27 +31,30 @@ from pwndbg.lib.memory import PAGE_SIZE
 T = TypeVar("T")
 
 
-class GDBLibArch(pwndbg.dbg_mod.Arch):
+class GDBArch(pwndbg.dbg_mod.Arch):
+    _endian: Literal["little", "big"]
+    _name: str
+    _ptrsize: int
+
+    def __init__(self, endian: Literal["little", "big"], name: str, ptrsize: int):
+        self._endian = endian
+        self._name = name
+        self._ptrsize = ptrsize
+
     @override
     @property
     def endian(self) -> Literal["little", "big"]:
-        import pwndbg.gdblib.arch
-
-        return pwndbg.gdblib.arch.endian
+        return self._endian
 
     @override
     @property
     def name(self) -> str:
-        import pwndbg.gdblib.arch
-
-        return pwndbg.gdblib.arch.name
+        return self._name
 
     @override
     @property
     def ptrsize(self) -> int:
-        import pwndbg.gdblib.arch
-
-        return pwndbg.gdblib.arch.ptrsize
+        return self._ptrsize
 
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
@@ -588,7 +591,44 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def arch(self) -> pwndbg.dbg_mod.Arch:
-        return GDBLibArch()
+        ptrsize = pwndbg.aglib.typeinfo.ptrsize
+        not_exactly_arch = False
+
+        endian: Literal["little", "big"] = None
+        if "little" in gdb.execute("show endian", to_string=True).lower():
+            endian = "little"
+        else:
+            endian = "big"
+
+        if pwndbg.aglib.proc.alive:
+            arch = gdb.newest_frame().architecture().name()
+        else:
+            arch = gdb.execute("show architecture", to_string=True).strip()
+            not_exactly_arch = True
+
+        # Below, we fix the fetched architecture
+        for match in pwndbg.aglib.arch_mod.ARCHS:
+            if match in arch:
+                # Distinguish between Cortex-M and other ARM
+                # When GDB detects correctly Cortex-M processes, it will label them with `arm*-m`, such as armv7e-m
+                # However, GDB will sometimes fail to correctly label Cortex-M binaries properly, and says it's simply 'arm'.
+                # Internally, GDB still detects the processes as Cortex-M, as it can access .xpsr, but it doesn't
+                # appear to expose this in information through any command/API. Since Cortex-M has the .xpsr flags register
+                # instead of .cpsr, we will check if it's present.
+                # See: https://github.com/pwndbg/pwndbg/issues/2153
+                if match == "arm" and ("-m" in arch or pwndbg.aglib.regs.xpsr is not None):
+                    match = "armcm"
+                elif match.startswith("riscv:"):
+                    match = match[6:]
+                elif match == "riscv":
+                    # If GDB doesn't detect the width, it will just say `riscv`.
+                    match = "rv64"
+                return GDBArch(endian, match, ptrsize)
+
+        if not_exactly_arch:
+            raise RuntimeError(f"Could not deduce architecture from: {arch}")
+
+        return GDBArch(endian, arch, ptrsize)
 
     @override
     def break_at(
@@ -1245,8 +1285,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def addrsz(self, address: Any) -> str:
-        address = int(address) & pwndbg.gdblib.arch.ptrmask
-        return f"%#{2 * pwndbg.gdblib.arch.ptrsize}x" % address
+        address = int(address) & pwndbg.aglib.arch.ptrmask
+        return f"%#{2 * pwndbg.aglib.arch.ptrsize}x" % address
 
     @override
     def get_cmd_window_size(self) -> Tuple[Optional[int], Optional[int]]:

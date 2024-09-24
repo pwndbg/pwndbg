@@ -11,7 +11,7 @@ from typing import Union
 
 import gdb
 
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.typeinfo
 import pwndbg.gdblib.vmmap
@@ -272,7 +272,7 @@ def u(addr: int, size: int | None = None) -> int:
     to the pointer width.
     """
     if size is None:
-        size = pwndbg.gdblib.arch.ptrsize * 8
+        size = pwndbg.aglib.arch.ptrsize * 8
     return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 
@@ -352,8 +352,8 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
             # Sanity check in case a custom GDB server/stub
             # incorrectly returns a result from read
             # (this is most likely redundant, but its ok to keep it?)
-            if addr > pwndbg.gdblib.arch.ptrmask:
-                return pwndbg.gdblib.arch.ptrmask
+            if addr > pwndbg.aglib.arch.ptrmask:
+                return pwndbg.aglib.arch.ptrmask
     except gdb.MemoryError:
         pass
     return addr

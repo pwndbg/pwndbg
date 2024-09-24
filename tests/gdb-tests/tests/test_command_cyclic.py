@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import tests
@@ -17,10 +17,10 @@ def test_command_cyclic_value(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    ptr_size = pwndbg.gdblib.arch.ptrsize
+    ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 37
     pattern = cyclic(length=80, n=ptr_size)
-    val = int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.gdblib.arch.endian)
+    val = int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian)
     out = gdb.execute(f"cyclic -l {hex(val)}", to_string=True)
 
     assert out == (
@@ -35,11 +35,11 @@ def test_command_cyclic_register(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    ptr_size = pwndbg.gdblib.arch.ptrsize
+    ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
     pwndbg.gdblib.regs.rdi = int.from_bytes(
-        pattern[test_offset : test_offset + ptr_size], pwndbg.gdblib.arch.endian
+        pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
     )
     out = gdb.execute("cyclic -l $rdi", to_string=True)
 
@@ -56,7 +56,7 @@ def test_command_cyclic_address(start_binary):
     start_binary(REFERENCE_BINARY)
 
     addr = pwndbg.gdblib.regs.rsp
-    ptr_size = pwndbg.gdblib.arch.ptrsize
+    ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)
     pwndbg.gdblib.memory.write(addr, pattern)

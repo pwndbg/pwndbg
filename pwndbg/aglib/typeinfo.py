@@ -36,7 +36,7 @@ pvoid: pwndbg.dbg_mod.Type
 ppvoid: pwndbg.dbg_mod.Type
 pchar: pwndbg.dbg_mod.Type
 
-ptrsize: int
+ptrsize: int = 4
 
 ptrdiff: pwndbg.dbg_mod.Type
 size_t: pwndbg.dbg_mod.Type

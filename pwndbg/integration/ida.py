@@ -25,8 +25,8 @@ from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.decorators
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
@@ -180,7 +180,7 @@ def l2r(addr: int) -> int:
     exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - int(exe.address) + base()) & pwndbg.gdblib.arch.ptrmask
+    result = (addr - int(exe.address) + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
@@ -188,7 +188,7 @@ def r2l(addr: int) -> int:
     exe = pwndbg.gdblib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - base() + int(exe.address)) & pwndbg.gdblib.arch.ptrmask
+    result = (addr - base() + int(exe.address)) & pwndbg.aglib.arch.ptrmask
     return result
 
 

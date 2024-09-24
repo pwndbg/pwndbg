@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
@@ -27,7 +27,7 @@ def __call_pthread_self() -> int:
 
 def find_address_with_pthread_self() -> int:
     """Get the address of TLS with pthread_self()."""
-    if pwndbg.gdblib.arch.current not in ("x86-64", "i386", "arm"):
+    if pwndbg.aglib.arch.current not in ("x86-64", "i386", "arm"):
         # Note: we should support aarch64 if it's possible that TPIDR_EL0 register can not be accessed.
         return 0
     result = __call_pthread_self()
@@ -43,7 +43,7 @@ def find_address_with_pthread_self() -> int:
     # For i386 and x86-64, the return value of the pthread_self() is the address of TLS, because the value is self reference of the TLS: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_create.c#L671
     # But for arm, the implementation of THREAD_SELF is different, we need to add sizeof(struct pthread) to the result to get the address of TLS.
 
-    if pwndbg.gdblib.arch.current == "arm":
+    if pwndbg.aglib.arch.current == "arm":
         # 0x4c0 is sizeof(struct pthread)
         # TODO: we might need to adjust the value if the size of struct pthread is changed in the future.
         result += 0x4C0
@@ -52,11 +52,11 @@ def find_address_with_pthread_self() -> int:
 
 def find_address_with_register() -> int:
     """Get the address of TLS with register."""
-    if pwndbg.gdblib.arch.current == "x86-64":
+    if pwndbg.aglib.arch.current == "x86-64":
         return int(pwndbg.gdblib.regs.fsbase)
-    elif pwndbg.gdblib.arch.current == "i386":
+    elif pwndbg.aglib.arch.current == "i386":
         return int(pwndbg.gdblib.regs.gsbase)
-    elif pwndbg.gdblib.arch.current == "aarch64":
+    elif pwndbg.aglib.arch.current == "aarch64":
         return int(pwndbg.gdblib.regs.TPIDR_EL0)
     # TODO: is it possible that we can get the address of TLS with register on arm?
     return 0

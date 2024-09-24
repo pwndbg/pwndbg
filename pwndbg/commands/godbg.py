@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.arch
 import pwndbg.commands
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.config
 import pwndbg.gdblib.godbg
 import pwndbg.gdblib.memory
