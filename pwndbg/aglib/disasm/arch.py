@@ -27,7 +27,6 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
-from pwndbg.color import theme
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -126,20 +125,13 @@ DO_NOT_EMULATE = {
     # capstone.CS_GRP_PRIVILEGE,
 }
 
-register_arrow = theme.add_param(
-    "annotation-register-separator", "=>", "register assignment separator symbol"
-)
-memory_arrow = theme.add_param(
-    "annotation-memory-separator", "=>", "memory assignment separator symbol"
-)
-
 
 def register_assign(left: str, right: str) -> str:
-    return f"{left} {register_arrow} {right}"
+    return f"{left} => {right}"
 
 
 def memory_assign(left: str, right: str) -> str:
-    return f"{left} {memory_arrow} {right}"
+    return f"{left} <= {right}"
 
 
 def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
