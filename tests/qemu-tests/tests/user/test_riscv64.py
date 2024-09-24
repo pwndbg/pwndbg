@@ -120,7 +120,7 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        " ► 0x10000028 <store>       c.sd   a0, 0(a2)          [data] => 0x1234567890abcdef\n"
+        " ► 0x10000028 <store>       c.sd   a0, 0(a2)          [data] <= 0x1234567890abcdef\n"
         "   0x1000002a <store+2>     c.ld   a1, 0(a2)          A1, [data] => 0x1234567890abcdef\n"
         "   0x1000002c <store+4>     c.li   a1, 0x10           A1 => 0x10\n"
         "   0x1000002e <store+6>     addi   a2, zero, 0x26     A2 => 38 (0x0 + 0x26)\n"

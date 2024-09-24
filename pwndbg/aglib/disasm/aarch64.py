@@ -14,6 +14,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.enhance
 import pwndbg.lib.disasm.helpers as bit_math
+from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -288,7 +289,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
             telescope = self._telescope_format_list(addresses, TELESCOPE_DEPTH, emu)
 
-            instruction.annotation = f"{result_operand.str} => {telescope}"
+            instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
     def _condition(
