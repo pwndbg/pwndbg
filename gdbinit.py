@@ -178,7 +178,9 @@ def main() -> None:
     except gdb.error as e:
         print(f"Warning: Cannot set gdb charset: '{e}'")
 
-    os.environ["PWNLIB_NOTERM"] = "1"
+    # Add the original stdout methods back to gdb._GdbOutputFile for pwnlib colors
+    sys.stdout.isatty = sys.__stdout__.isatty
+    sys.stdout.fileno = sys.__stdout__.fileno
 
     import pwndbg  # noqa: F811
     import pwndbg.dbg.gdb
