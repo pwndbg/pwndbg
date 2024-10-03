@@ -20,7 +20,7 @@ from typing import cast
 import gdb
 
 import pwndbg
-import pwndbg.gdblib.arch
+import pwndbg.aglib.arch
 import pwndbg.gdblib.proc
 import pwndbg.gdblib.qemu
 import pwndbg.gdblib.remote
@@ -102,11 +102,11 @@ class module(ModuleType):
                 value.type.sizeof, pwndbg.gdblib.typeinfo.ulong
             )
             value = value.cast(size)
-            if reg == "pc" and pwndbg.gdblib.arch.name == "i8086":
+            if reg == "pc" and pwndbg.aglib.arch.name == "i8086":
                 if self.cs is None:
                     return None
                 value += self.cs * 16
-            return int(value) & pwndbg.gdblib.arch.ptrmask
+            return int(value) & pwndbg.aglib.arch.ptrmask
         except (ValueError, gdb.error):
             return None
 
@@ -130,53 +130,53 @@ class module(ModuleType):
         return self.read_reg(item)
 
     def __contains__(self, reg: str) -> bool:
-        regs = set(reg_sets[pwndbg.gdblib.arch.name]) | {"pc", "sp"}
+        regs = set(reg_sets[pwndbg.aglib.arch.name]) | {"pc", "sp"}
         return reg in regs
 
     def __iter__(self) -> Generator[str, None, None]:
-        regs = set(reg_sets[pwndbg.gdblib.arch.name]) | {"pc", "sp"}
+        regs = set(reg_sets[pwndbg.aglib.arch.name]) | {"pc", "sp"}
         yield from regs
 
     @property
     def current(self) -> RegisterSet:
-        return reg_sets[pwndbg.gdblib.arch.name]
+        return reg_sets[pwndbg.aglib.arch.name]
 
     # TODO: All these should be able to do self.current
     @property
     def gpr(self) -> Tuple[str, ...]:
-        return reg_sets[pwndbg.gdblib.arch.name].gpr
+        return reg_sets[pwndbg.aglib.arch.name].gpr
 
     @property
     def common(self) -> List[str]:
-        return reg_sets[pwndbg.gdblib.arch.name].common
+        return reg_sets[pwndbg.aglib.arch.name].common
 
     @property
     def frame(self) -> str | None:
-        return reg_sets[pwndbg.gdblib.arch.name].frame
+        return reg_sets[pwndbg.aglib.arch.name].frame
 
     @property
     def retaddr(self) -> Tuple[str, ...]:
-        return reg_sets[pwndbg.gdblib.arch.name].retaddr
+        return reg_sets[pwndbg.aglib.arch.name].retaddr
 
     @property
     def flags(self) -> Dict[str, BitFlags]:
-        return reg_sets[pwndbg.gdblib.arch.name].flags
+        return reg_sets[pwndbg.aglib.arch.name].flags
 
     @property
     def extra_flags(self) -> Dict[str, BitFlags]:
-        return reg_sets[pwndbg.gdblib.arch.name].extra_flags
+        return reg_sets[pwndbg.aglib.arch.name].extra_flags
 
     @property
     def stack(self) -> str:
-        return reg_sets[pwndbg.gdblib.arch.name].stack
+        return reg_sets[pwndbg.aglib.arch.name].stack
 
     @property
     def retval(self) -> str | None:
-        return reg_sets[pwndbg.gdblib.arch.name].retval
+        return reg_sets[pwndbg.aglib.arch.name].retval
 
     @property
     def all(self) -> List[str]:
-        regs = reg_sets[pwndbg.gdblib.arch.name]
+        regs = reg_sets[pwndbg.aglib.arch.name]
         retval: List[str] = []
         for regset in (
             regs.pc,
@@ -246,7 +246,7 @@ class module(ModuleType):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
 
-        if pwndbg.gdblib.arch.name == "x86-64":
+        if pwndbg.aglib.arch.name == "x86-64":
             reg_value = gdb_get_register(regname)
             return int(reg_value) if reg_value is not None else 0
 
@@ -266,7 +266,7 @@ class module(ModuleType):
         result = libc.ptrace(PTRACE_ARCH_PRCTL, lwpid, value, which)
 
         if result == 0:
-            return (value.contents.value or 0) & pwndbg.gdblib.arch.ptrmask
+            return (value.contents.value or 0) & pwndbg.aglib.arch.ptrmask
 
         return 0
 

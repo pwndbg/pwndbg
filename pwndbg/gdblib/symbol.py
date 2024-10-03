@@ -12,8 +12,8 @@ import re
 
 import gdb
 
+import pwndbg.aglib.arch
 import pwndbg.gdblib.android
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory

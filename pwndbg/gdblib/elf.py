@@ -25,9 +25,9 @@ from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.auxv
 import pwndbg.gdblib.abi
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.ctypes
 import pwndbg.gdblib.file
 import pwndbg.gdblib.info
@@ -83,7 +83,7 @@ def update() -> None:
         print(message.warn("Failed to reload pwndbg.lib.elftypes"))
         pass
 
-    if pwndbg.gdblib.arch.ptrsize == 4:
+    if pwndbg.aglib.arch.ptrsize == 4:
         Ehdr = pwndbg.lib.elftypes.Elf32_Ehdr
         Phdr = pwndbg.lib.elftypes.Elf32_Phdr
     else:

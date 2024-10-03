@@ -28,8 +28,8 @@ from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.commands
-import pwndbg.gdblib.arch
 import pwndbg.lib.config
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
@@ -101,7 +101,7 @@ def generate_debug_symbols(
     ]
 
     # TODO: implement remote debugging support.
-    gcc_flags = pwndbg.lib.gcc.which(pwndbg.gdblib.arch)
+    gcc_flags = pwndbg.lib.gcc.which(pwndbg.aglib.arch)
     if gcc_compiler_path != "":
         gcc_flags[0] = gcc_compiler_path  # type: ignore[call-overload]
 

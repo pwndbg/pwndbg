@@ -21,8 +21,8 @@ from typing import cast
 import gdb
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.color.memory
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
@@ -54,7 +54,7 @@ def word_size() -> int:
     Values taken from https://github.com/golang/go/blob/20b79fd5775c39061d949569743912ad5e58b0e7/src/go/types/sizes.go#L233-L252
     """
     return {"i386": 4, "x86-64": 8, "aarch64": 8, "arm": 4, "rv64": 8, "powerpc": 8, "sparc": 8}[
-        pwndbg.gdblib.arch.name
+        pwndbg.aglib.arch.name
     ]
 
 
@@ -207,7 +207,7 @@ def _cyclic_helper(val: Any, seen: Set[int]) -> bool:
 
 
 def load_uint(data: bytes, endian: Literal["little", "big"] | None = None) -> int:
-    return int.from_bytes(data, endian or pwndbg.gdblib.arch.endian)
+    return int.from_bytes(data, endian or pwndbg.aglib.arch.endian)
 
 
 def load_int(data: bytes) -> int:
@@ -219,7 +219,7 @@ def load_int(data: bytes) -> int:
 
 
 def load_float(data: bytes) -> float:
-    endian = ">" if pwndbg.gdblib.arch.endian == "big" else "<"
+    endian = ">" if pwndbg.aglib.arch.endian == "big" else "<"
     if len(data) == 4:
         return struct.unpack(endian + "f", data)[0]
     if len(data) == 8:

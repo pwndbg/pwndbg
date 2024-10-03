@@ -17,7 +17,7 @@ def test_vis_heap_chunk_command(start_binary):
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
     heap_page = next(page for page in pwndbg.gdblib.vmmap.get() if page.objfile == "[heap]")
 
-    first_chunk_size = pwndbg.gdblib.memory.u64(heap_page.start + pwndbg.gdblib.arch.ptrsize)
+    first_chunk_size = pwndbg.gdblib.memory.u64(heap_page.start + pwndbg.aglib.arch.ptrsize)
 
     # Just a sanity check...
     assert (heap_page.start & 0xFFF) == 0

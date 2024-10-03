@@ -202,7 +202,7 @@ class module(ModuleType):
     ) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
         """Decorates function to work only with the specified archictectures."""
         for arch in arch_names:
-            if arch not in pwndbg.gdblib.arch_mod.ARCHS:
+            if arch not in pwndbg.aglib.arch_mod.ARCHS:
                 raise ValueError(
                     f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
                 )
@@ -210,7 +210,7 @@ class module(ModuleType):
         def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             @functools.wraps(function)
             def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-                if pwndbg.gdblib.arch.name in arch_names:
+                if pwndbg.aglib.arch.name in arch_names:
                     return function(*a, **kw)
                 else:
                     return None

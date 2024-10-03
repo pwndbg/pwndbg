@@ -19,9 +19,9 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib.arch
 import pwndbg.aglib.dynamic
 import pwndbg.color.message as message
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.shellcode
@@ -114,7 +114,7 @@ def is_mmap_error(ptr):
     """
     Checks whether the return value of an mmap of indicates an error.
     """
-    err = ((1 << pwndbg.gdblib.arch.ptrsize) - 1) & pwndbg.lib.memory.PAGE_MASK
+    err = ((1 << pwndbg.aglib.arch.ptrsize) - 1) & pwndbg.lib.memory.PAGE_MASK
     return ptr & pwndbg.lib.memory.PAGE_MASK == err
 
 
@@ -374,7 +374,7 @@ def _update_watchpoints() -> None:
             print(message.warn(f"object {name} has invalid DYNAMIC section: {e}"))
             continue
 
-        jump_slots = JUMP_SLOTS[pwndbg.gdblib.arch.name]
+        jump_slots = JUMP_SLOTS[pwndbg.aglib.arch.name]
         if dynamic.has_rel:
             for i in range(dynamic.rel_entry_count()):
                 if dynamic.rel_read(i, "r_type") not in jump_slots:
@@ -512,7 +512,7 @@ def jump_slots_for(dynamic):
     """
     Returns the jump slot addresses described by the given dynamic section.
     """
-    jump_slots = JUMP_SLOTS[pwndbg.gdblib.arch.name]
+    jump_slots = JUMP_SLOTS[pwndbg.aglib.arch.name]
     if dynamic.has_rel:
         for i in range(dynamic.rel_entry_count()):
             if dynamic.rel_read(i, "r_type") in jump_slots:

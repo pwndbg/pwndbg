@@ -117,7 +117,7 @@ def kchecksec() -> None:
         )
         return
 
-    options = _hardening_options + _arch_hardening_options.get(pwndbg.gdblib.arch.name, [])
+    options = _hardening_options + _arch_hardening_options.get(pwndbg.aglib.arch.name, [])
     for opt in options:
         config_name = opt.name
         val = kconfig.get(config_name)

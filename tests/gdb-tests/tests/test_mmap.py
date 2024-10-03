@@ -24,7 +24,7 @@ def test_mmap_executes_properly(start_binary):
     # that any mapping landing in the last page during a test should warrant
     # manual investigation.
     def is_mmap_error(ptr):
-        err = ((1 << pwndbg.gdblib.arch.ptrsize) - 1) & pwndbg.lib.memory.PAGE_MASK
+        err = ((1 << pwndbg.aglib.arch.ptrsize) - 1) & pwndbg.lib.memory.PAGE_MASK
         return ptr & pwndbg.lib.memory.PAGE_MASK == err
 
     # Checks whether permissions match.

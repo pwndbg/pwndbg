@@ -13,8 +13,8 @@ from typing import Tuple
 import gdb
 from tabulate import tabulate
 
+import pwndbg.aglib.arch
 import pwndbg.color.message as M
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.file
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.vmmap
@@ -136,7 +136,7 @@ class Lambda:
                 # https://github.com/david942j/one_gadget/blob/65ce1dade70bf89e7496346ccf452ce5b2d139b3/lib/one_gadget/emulators/x86.rb#L242-L248
                 # So we can hardcode the shifting :p
                 # TODO: Handle xmm register in a better way
-                bits = pwndbg.gdblib.arch.ptrsize * 8
+                bits = pwndbg.aglib.arch.ptrsize * 8
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
                 else:
@@ -384,9 +384,9 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     n = 0
     while True:
         try:
-            argv_n = pwndbg.gdblib.memory.pvoid(argv + n * pwndbg.gdblib.arch.ptrsize)
+            argv_n = pwndbg.gdblib.memory.pvoid(argv + n * pwndbg.aglib.arch.ptrsize)
         except gdb.MemoryError:
-            output_msg += f"&argv[{n}] = {argv + n * pwndbg.gdblib.arch.ptrsize:#x}, {argv + n * pwndbg.gdblib.arch.ptrsize:#x} is a invalid address\n"
+            output_msg += f"&argv[{n}] = {argv + n * pwndbg.aglib.arch.ptrsize:#x}, {argv + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return UNSAT, output_msg
         if argv_n == 0:
             if n > 1:
@@ -433,9 +433,9 @@ def check_envp(expr: str) -> Tuple[bool, str]:
     n = 0
     while True:
         try:
-            envp_n = pwndbg.gdblib.memory.pvoid(envp + n * pwndbg.gdblib.arch.ptrsize)
+            envp_n = pwndbg.gdblib.memory.pvoid(envp + n * pwndbg.aglib.arch.ptrsize)
         except gdb.MemoryError:
-            output_msg += f"&envp[{n}] = {envp + n * pwndbg.gdblib.arch.ptrsize:#x}, {envp + n * pwndbg.gdblib.arch.ptrsize:#x} is a invalid address\n"
+            output_msg += f"&envp[{n}] = {envp + n * pwndbg.aglib.arch.ptrsize:#x}, {envp + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return False, output_msg
         if envp_n == 0:
             output_msg += f"envp[{n}] is NULL, {color_str} is a valid envp\n"

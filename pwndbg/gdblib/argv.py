@@ -3,8 +3,8 @@ from __future__ import annotations
 import gdb
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.gdblib.abi
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 from pwndbg.dbg import EventType
@@ -30,10 +30,10 @@ def update() -> None:
     global envp
     global envc
 
-    pwndbg.gdblib.arch_mod.update()  # :-(
+    pwndbg.aglib.arch_mod.update()  # :-(
 
     sp = pwndbg.gdblib.regs.sp
-    ptrsize = pwndbg.gdblib.arch.ptrsize
+    ptrsize = pwndbg.aglib.arch.ptrsize
     ptrbits = 8 * ptrsize
 
     try:

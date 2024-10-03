@@ -17,12 +17,12 @@ import gdb
 import unicorn as U
 import unicorn.riscv_const
 
+import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
 import pwndbg.chain
 import pwndbg.color.enhance as E
 import pwndbg.color.memory as M
 import pwndbg.enhance
-import pwndbg.gdblib.arch
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.regs
 import pwndbg.gdblib.strings
@@ -206,7 +206,7 @@ class InstructionExecutedResult(NamedTuple):
 # with a copy of the current processor state.
 class Emulator:
     def __init__(self) -> None:
-        self.arch = pwndbg.gdblib.arch.current
+        self.arch = pwndbg.aglib.arch.current
 
         if self.arch not in arch_to_UC:
             raise NotImplementedError(f"Cannot emulate code for {self.arch}")
@@ -331,7 +331,7 @@ class Emulator:
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
     def telescope(self, address: int, limit: int, read_size: int = None) -> List[int]:
-        read_size = read_size if read_size is not None else pwndbg.gdblib.arch.ptrsize
+        read_size = read_size if read_size is not None else pwndbg.aglib.arch.ptrsize
 
         result = [address]
 
@@ -345,9 +345,9 @@ class Emulator:
 
             value = self.read_memory(address, read_size)
             if value is not None:
-                # address = pwndbg.gdblib.arch.unpack(value)
-                address = pwndbg.gdblib.arch.unpack_size(value, read_size)
-                address &= pwndbg.gdblib.arch.ptrmask
+                # address = pwndbg.aglib.arch.unpack(value)
+                address = pwndbg.aglib.arch.unpack_size(value, read_size)
+                address &= pwndbg.aglib.arch.ptrmask
                 result.append(address)
             else:
                 break
@@ -441,15 +441,15 @@ class Emulator:
             szval = E.string(repr(szval))
 
         # Fix for case when we can't read the end address anyway (#946)
-        if value + pwndbg.gdblib.arch.ptrsize > page.end:
+        if value + pwndbg.aglib.arch.ptrsize > page.end:
             return E.integer(pwndbg.enhance.int_str(value))
 
         # Read from emulator memory
         # intval = int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.pvoid, value))
-        read_value = self.read_memory(value, pwndbg.gdblib.arch.ptrsize)
+        read_value = self.read_memory(value, pwndbg.aglib.arch.ptrsize)
         if read_value is not None:
-            # intval = pwndbg.gdblib.arch.unpack(read_value)
-            intval = pwndbg.gdblib.arch.unpack_size(read_value, pwndbg.gdblib.arch.ptrsize)
+            # intval = pwndbg.aglib.arch.unpack(read_value)
+            intval = pwndbg.aglib.arch.unpack_size(read_value, pwndbg.aglib.arch.ptrsize)
         else:
             # This occurs when Unicorn fails to read the memory - which it shouldn't, as the
             # read_memory call will map the pages necessary, and this function assumes
@@ -460,7 +460,7 @@ class Emulator:
         if 0 <= intval < 10:
             intval = E.integer(str(intval))
         else:
-            intval = E.integer("%#x" % int(intval & pwndbg.gdblib.arch.ptrmask))
+            intval = E.integer("%#x" % int(intval & pwndbg.aglib.arch.ptrmask))
 
         retval = []
 
@@ -485,7 +485,7 @@ class Emulator:
 
         # Otherwise strings have preference
         elif szval:
-            if len(szval0) < pwndbg.gdblib.arch.ptrsize:
+            if len(szval0) < pwndbg.aglib.arch.ptrsize:
                 retval = [intval, szval]
             else:
                 retval = [szval]
@@ -568,7 +568,7 @@ class Emulator:
         """
         Retrieve the mode used by Unicorn for the current architecture.
         """
-        arch = pwndbg.gdblib.arch.current
+        arch = pwndbg.aglib.arch.current
         mode = 0
 
         if arch == "armcm":
@@ -585,9 +585,9 @@ class Emulator:
             mode |= U.UC_MODE_MIPS32R6
 
         else:
-            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.gdblib.arch.ptrsize]
+            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
 
-        if pwndbg.gdblib.arch.endian == "little":
+        if pwndbg.aglib.arch.endian == "little":
             mode |= U.UC_MODE_LITTLE_ENDIAN
         else:
             mode |= U.UC_MODE_BIG_ENDIAN
