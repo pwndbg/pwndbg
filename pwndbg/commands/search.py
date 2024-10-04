@@ -206,9 +206,12 @@ def search(
     if not arch:
         arch = pwnlib.context.context.arch
 
+    # Initialize is_pointer to track whether the search type is a pointer
+    is_pointer = None
     # Adjust pointer sizes to the local architecture
     if type == "pointer":
         type = {4: "dword", 8: "qword"}[pwndbg.aglib.arch.ptrsize]
+        is_pointer = True
 
     if save is None:
         save = bool(pwndbg.config.auto_save_search)
@@ -285,11 +288,22 @@ def search(
         print(message.error("Could not find mapping %r" % mapping_name))
         return
 
+    # Output appropriate messages based on the detected search type for better clarity
+    if is_pointer == True:
+        print("Searching for a pointer-width integer: " + repr(value))
+    elif type == "word" or type == "short":
+        print("Searching for a 2-byte integer: " + repr(value))
+    elif type == "dword":
+        print("Searching for a 4-byte integer: " + repr(value))
+    elif type == "qword":
+        print("Searching for an 8-byte integer: " + repr(value))
+    elif type == "string":
+        print("Searching for string: " + repr(value))
     # If next is passed, only perform a manual search over previously saved addresses
-    if type == "asm" or asmbp:
+    elif type == "asm" or asmbp:
         print("Searching for instruction (assembled value): " + repr(value))
     else:
-        print("Searching for value: " + repr(value))
+        print("Searching for byte: " + repr(value))
 
     if next:
         val_len = len(value)
