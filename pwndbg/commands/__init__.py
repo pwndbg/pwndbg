@@ -711,6 +711,7 @@ def load_commands() -> None:
         import pwndbg.commands.kcmdline
         import pwndbg.commands.kconfig
         import pwndbg.commands.killthreads
+        import pwndbg.commands.klookup
         import pwndbg.commands.kversion
         import pwndbg.commands.linkmap
         import pwndbg.commands.memoize
