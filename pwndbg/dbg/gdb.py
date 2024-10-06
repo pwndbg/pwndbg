@@ -741,21 +741,21 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         result = []
         for line in files.splitlines():
             line = line.strip()
-            if "-" not in line or "is" not in line:
+            if " - " not in line or " is " not in line:
                 # Ignore non-location lines.
                 continue
 
-            div0 = line.split("is", 1)
+            div0 = line.split(" is ", 1)
             assert (
                 len(div0) == 2
             ), "Wrong string format assumption while parsing the output of `info files`"
 
-            div1 = div0[1].split("in", 1)
+            div1 = div0[1].split(" in ", 1)
             assert (
                 len(div1) == 1 or len(div1) == 2
             ), "Wrong string format assumption while parsing the output of `info files`"
 
-            div2 = div0[0].split("-", 1)
+            div2 = div0[0].split(" - ", 1)
             assert (
                 len(div2) == 2
             ), "Wrong string format assumption while parsing the output of `info files`"
