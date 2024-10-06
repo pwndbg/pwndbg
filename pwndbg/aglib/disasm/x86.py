@@ -270,21 +270,22 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
-                if (base := pwndbg.aglib.regs.fsbase) is None:
+                if (seg_base := pwndbg.aglib.regs.fsbase) is None:
                     return None
             elif op.mem.segment == X86_REG_GS:
-                if (base := pwndbg.aglib.regs.gsbase) is None:
+                if (seg_base := pwndbg.aglib.regs.gsbase) is None:
                     return None
             else:
                 return None
+        else:
+            seg_base = 0
 
-        # Both a segment and base cannot be in use
-        elif op.mem.base != 0:
-            base = self._read_register(instruction, op.mem.base, emu)
-            if base is None:
+        if op.mem.base != 0:
+            mem_base = self._read_register(instruction, op.mem.base, emu)
+            if mem_base is None:
                 return None
         else:
-            base = 0
+            mem_base = 0
 
         if op.mem.index != 0:
             index = self._read_register(instruction, op.mem.index, emu)
@@ -295,7 +296,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         else:
             scale = 0
 
-        return base + op.mem.disp + scale
+        return seg_base + mem_base + op.mem.disp + scale
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
