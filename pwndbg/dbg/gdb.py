@@ -675,11 +675,17 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         sp = GDBStopPoint(bp, self)
 
-        def handler():
-            self.in_bpwp_stop_handler = True
-            stop = stop_handler(sp)
-            self.in_bpwp_stop_handler = False
-            return stop
+        if stop_handler is not None:
+
+            def handler():
+                self.in_bpwp_stop_handler = True
+                stop = stop_handler(sp)
+                self.in_bpwp_stop_handler = False
+                return stop
+        else:
+
+            def handler():
+                return True
 
         bp.stop_handler = handler
 
