@@ -6,10 +6,8 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-
+import pwndbg.aglib.next
 import pwndbg.commands
-import pwndbg.gdblib.next
 from pwndbg.commands import CommandCategory
 
 
@@ -19,8 +17,11 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.OnlyWhenRunning
 def nextjmp() -> None:
     """Breaks at the next jump instruction"""
-    if pwndbg.gdblib.next.break_next_branch():
-        pwndbg.commands.context.context()
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await pwndbg.aglib.next.break_next_branch(ec)
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 parser = argparse.ArgumentParser(description="Breaks at the next call instruction.")
@@ -37,8 +38,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def nextcall(symbol_regex=None) -> None:
     """Breaks at the next call instruction"""
-    if pwndbg.gdblib.next.break_next_call(symbol_regex):
-        pwndbg.commands.context.context()
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        if await pwndbg.aglib.next.break_next_call(ec, symbol_regex):
+            pwndbg.commands.context.context()
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -47,8 +52,12 @@ def nextcall(symbol_regex=None) -> None:
 @pwndbg.commands.OnlyWhenRunning
 def nextret() -> None:
     """Breaks at next return-like instruction"""
-    if pwndbg.gdblib.next.break_next_ret():
-        pwndbg.commands.context.context()
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        if await pwndbg.aglib.next.break_next_ret(ec):
+            pwndbg.commands.context.context()
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -57,18 +66,19 @@ def nextret() -> None:
 @pwndbg.commands.OnlyWhenRunning
 def stepret() -> None:
     """Breaks at next return-like instruction by 'stepping' to it"""
-    while (
-        pwndbg.gdblib.proc.alive
-        and not pwndbg.gdblib.next.break_next_ret()
-        and pwndbg.gdblib.next.break_next_branch()
-    ):
-        # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
-        # We need to step so that we take this branch instead of ignoring it
-        gdb.execute("si")
-        continue
 
-    if pwndbg.gdblib.proc.alive:
-        pwndbg.commands.context.context()
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        while (
+            pwndbg.aglib.proc.alive
+            and not (await pwndbg.aglib.next.break_next_ret(ec))
+            and (await pwndbg.aglib.next.break_next_branch(ec))
+        ):
+            # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
+            # We need to step so that we take this branch instead of ignoring it
+            await ec.single_step()
+            continue
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -77,7 +87,10 @@ def stepret() -> None:
 )
 @pwndbg.commands.OnlyWhenRunning
 def nextproginstr() -> None:
-    pwndbg.gdblib.next.break_on_program_code()
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await pwndbg.aglib.next.break_on_program_code(ec)
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 parser = argparse.ArgumentParser(description="Breaks on the instruction after this one.")
@@ -88,7 +101,11 @@ parser.add_argument("addr", type=int, default=None, nargs="?", help="The address
 @pwndbg.commands.OnlyWhenRunning
 def stepover(addr=None) -> None:
     """Sets a breakpoint on the instruction after this one"""
-    pwndbg.gdblib.next.break_on_next(addr)
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await pwndbg.aglib.next.break_on_next(ec, addr)
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -101,15 +118,16 @@ def nextsyscall() -> None:
     """
     Breaks at the next syscall not taking branches.
     """
-    while (
-        pwndbg.gdblib.proc.alive
-        and not pwndbg.gdblib.next.break_next_interrupt()
-        and pwndbg.gdblib.next.break_next_branch()
-    ):
-        continue
 
-    if pwndbg.gdblib.proc.alive:
-        pwndbg.commands.context.context()
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        while (
+            pwndbg.aglib.proc.alive
+            and not (await pwndbg.aglib.next.break_next_interrupt(ec))
+            and (await pwndbg.aglib.next.break_next_branch(ec))
+        ):
+            continue
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -122,18 +140,19 @@ def stepsyscall() -> None:
     """
     Breaks at the next syscall by taking branches.
     """
-    while (
-        pwndbg.gdblib.proc.alive
-        and not pwndbg.gdblib.next.break_next_interrupt()
-        and pwndbg.gdblib.next.break_next_branch()
-    ):
-        # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
-        # We need to step so that we take this branch instead of ignoring it
-        gdb.execute("si")
-        continue
 
-    if pwndbg.gdblib.proc.alive:
-        pwndbg.commands.context.context()
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        while (
+            pwndbg.aglib.proc.alive
+            and not (await pwndbg.aglib.next.break_next_interrupt(ec))
+            and (await pwndbg.aglib.next.break_next_branch(ec))
+        ):
+            # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
+            # We need to step so that we take this branch instead of ignoring it
+            await ec.single_step()
+            continue
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 parser = argparse.ArgumentParser(description="Breaks on the next matching instruction.")
@@ -152,4 +171,7 @@ def stepuntilasm(mnemonic, op_str) -> None:
     if len(op_str) == 0:
         op_str = None
 
-    pwndbg.gdblib.next.break_on_next_matching_instruction(mnemonic, op_str)
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await pwndbg.aglib.next.break_on_next_matching_instruction(ec, mnemonic, op_str)
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
