@@ -75,6 +75,15 @@ class module(ModuleType):
         return pwndbg.dbg.selected_inferior().alive()
 
     @property
+    def stopped_with_signal(self) -> bool:
+        """
+        Returns whether the program has stopped with a signal
+
+        Can be used to detect segfaults (but will also detect other signals)
+        """
+        return pwndbg.dbg.selected_inferior().stopped_with_signal()
+
+    @property
     @pwndbg.lib.cache.cache_until("objfile")
     def exe(self) -> str | None:
         """

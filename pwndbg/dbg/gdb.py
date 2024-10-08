@@ -350,6 +350,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return gdb.selected_thread() is not None
 
     @override
+    def stopped_with_signal(self) -> bool:
+        return "It stopped with signal " in gdb.execute("info program", to_string=True)
+
+    @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         try:
             return GDBValue(parse_and_eval(expression, global_context=True))

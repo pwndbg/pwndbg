@@ -353,7 +353,7 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
         # control procedures for us to chew on. Run them now.
         for process, coroutine in dbg.controllers:
             assert driver.has_process()
-            assert driver.process == process.process
+            assert driver.process.GetUniqueID() == process.process.GetUniqueID()
 
             driver.run_coroutine(coroutine)
 
