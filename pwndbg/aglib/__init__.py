@@ -22,6 +22,7 @@ def load_aglib():
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.nearpc
+    import pwndbg.aglib.next
     import pwndbg.aglib.proc
     import pwndbg.aglib.qemu
     import pwndbg.aglib.regs as regs_mod
