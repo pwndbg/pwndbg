@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from contextlib import nullcontext
 from typing import Any
+from typing import Awaitable
+from typing import Coroutine
 from typing import Generator
 from typing import List
 from typing import Literal
@@ -805,6 +807,50 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     def is_dynamically_linked(self) -> bool:
         out = gdb.execute("info dll", to_string=True)
         return "No shared libraries loaded at this time." not in out
+
+    @override
+    def dispatch_execution_controller(
+        self, procedure: Callable[[pwndbg.dbg_mod.ExecutionController], Coroutine[Any, Any, None]]
+    ):
+        # GDB isn't nearly as finnicky as LLDB when it comes to us controlling
+        # the execution of the inferior, so we can safely mostly ignore all of
+        # the async plumbing and drive the coroutine by just iterating over it.
+        #
+        # Aditionally, the Debugger-agnostic API allows us enough freedom in how
+        # we schedule execution of the controller that running it immediately is
+        # perfectly acceptable. So that's what we do.
+
+        coroutine = procedure(EXECUTION_CONTROLLER)
+        while True:
+            try:
+                # We don't need to bother communicating with the coroutine, as
+                # it doesn't yield anything we care about.
+                coroutine.send(None)
+            except StopIteration:
+                # We're done.
+                break
+
+
+async def empty_awaitable() -> None:
+    """
+    Do nothing. We return this in our execution controller.
+    """
+    pass
+
+
+class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
+    @override
+    def single_step(self) -> Awaitable[None]:
+        gdb.execute("si")
+        return empty_awaitable()
+
+    def cont(self, until: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
+        gdb.execute("continue")
+        return empty_awaitable()
+
+
+# Like in LLDB, we only need a single instance of the execution controller.
+EXECUTION_CONTROLLER = GDBExecutionController()
 
 
 class GDBCommand(gdb.Command):

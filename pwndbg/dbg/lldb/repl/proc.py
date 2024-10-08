@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import os
 import sys
+from asyncio import CancelledError
+from typing import Any
+from typing import Coroutine
 from typing import List
 
 import lldb
 
+import pwndbg
+from pwndbg.dbg.lldb import YieldContinue
+from pwndbg.dbg.lldb import YieldSingleStep
 from pwndbg.dbg.lldb.repl.io import IODriver
 
 
@@ -87,7 +93,7 @@ class ProcessDriver:
         first_timeout: int = 1,
         only_if_started: bool = False,
         fire_events: bool = True,
-    ):
+    ) -> lldb.SBEvent | None:
         """
         Runs the event loop of the process until the next stop event is hit, with
         a configurable timeouts for the first and subsequent timeouts.
@@ -114,6 +120,7 @@ class ProcessDriver:
         # started by a previous action and is running.
         running = not only_if_started
 
+        reason: lldb.SBEvent | None = None
         while True:
             event = lldb.SBEvent()
             if not self.listener.WaitForEvent(timeout_time, event):
@@ -162,6 +169,7 @@ class ProcessDriver:
                         # for the time being. Trigger the stopped event and return.
                         if fire_events:
                             self.eh.suspended()
+                        reason = event
                         break
 
                     if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
@@ -186,11 +194,13 @@ class ProcessDriver:
 
                         if fire_events:
                             self.eh.exited()
-
+                        reason = event
                         break
 
         if io_started:
             self.io.stop()
+
+        return reason
 
     def cont(self) -> None:
         """
@@ -244,6 +254,109 @@ class ProcessDriver:
             # TODO/FIXME: Find a way to trigger the continued event before the process is resumed in LLDB
 
             self._run_until_next_stop()
+
+    def run_coroutine(self, coroutine: Coroutine[Any, Any, None]) -> bool:
+        """
+        Runs the given coroutine and allows it to control the execution of the
+        process in this driver. Returns `True` if the coroutine ran to completion,
+        and `False` if it was cancelled.
+        """
+        exception: Exception | None = False
+        while True:
+            try:
+                if exception is None:
+                    step_t = coroutine.send(None)
+                else:
+                    step_t = coroutine.throw(exception)
+                    # The coroutine has caught the exception. Continue running
+                    # it as if nothing happened.
+                    exception = None
+            except StopIteration:
+                # We got to the end of the coroutine. We're done.
+                break
+            except CancelledError:
+                # We requested that the coroutine be cancelled, and it didn't
+                # override our decision. We're done.
+                break
+
+            if isinstance(step_t, YieldSingleStep):
+                # Pick the currently selected thread and step it forward by one
+                # instruction.
+                #
+                # LLDB lets us step any thread that we choose, so, maybe we
+                # should consider letting the caller pick which thread they want
+                # the step to happen in?
+                thread = self.process.GetSelectedThread()
+                assert thread is not None, "Tried to single step, but no thread is selected?"
+
+                e = lldb.SBError()
+                thread.StepInstruction(False, e)
+                if not e.success:
+                    # The step failed. Raise an error in the coroutine and give
+                    # it a chance to recover gracefully before we propagate it
+                    # up to the caller.
+                    exception = pwndbg.dbg_mod.Error(
+                        f"Could not perform single step: {e.description}"
+                    )
+                    continue
+
+                self._run_until_next_stop()
+            elif isinstance(step_t, YieldContinue):
+                # Continue the process and wait for the next stop-like event.
+                self.process.Continue()
+                event = self._run_until_next_stop()
+                assert (
+                    event is not None
+                ), "None should only be returned by _run_until_next_stop unless start timeouts are enabled"
+
+                # Check whether this stop event is the one we expect.
+                step: YieldContinue = step_t
+                stop: lldb.SBBreakpoint | lldb.SBWatchpoint = step.target.inner
+
+                if lldb.SBProcess.GetStateFromEvent(event) == lldb.eStateStopped:
+                    matches = 0
+                    for thread in lldb.SBProcess.GetProcessFromEvent(event).threads:
+                        # We only check the stop reason, as the other methods
+                        # for querying thread state (`IsStopped`, `IsSuspended`)
+                        # are unreliable[1][2], and so we just assume that
+                        # after a stop event, all the threads are stopped[3].
+                        #
+                        # [1]: https://github.com/llvm/llvm-project/issues/16196
+                        # [2]: https://discourse.llvm.org/t/bug-28455-new-thread-state-not-in-sync-with-process-state/41699
+                        # [3]: https://discourse.llvm.org/t/sbthread-isstopped-always-returns-false-on-linux/36944/5
+
+                        bpwp_id = None
+                        if thread.GetStopReason() == lldb.eStopReasonBreakpoint and isinstance(
+                            stop, lldb.SBBreakpoint
+                        ):
+                            bpwp_id = thread.GetStopReasonDataAtIndex(0)
+                        elif thread.GetStopReason() == lldb.eStopReasonWatchpoint and isinstance(
+                            stop, lldb.SBWatchpoint
+                        ):
+                            bpwp_id = thread.GetStopReasonDataAtIndex(0)
+
+                        if bpwp_id is not None and stop.GetID() == bpwp_id:
+                            matches += 1
+
+                    if matches > 0:
+                        # At least one of the threads got stopped by our target.
+                        # Return control back to the coroutine and await further
+                        # instruction.
+                        pass
+                    else:
+                        # Something else that we weren't expecting caused the
+                        # process to stop. Request that the coroutine be
+                        # cancelled.
+                        exception = CancelledError()
+                else:
+                    # The process might've crashed, been terminated, exited, or
+                    # we might've lost connection to it for some other reason.
+                    # Regardless, we should cancel the coroutine.
+                    exception = CancelledError()
+
+        # Let the caller distinguish between a coroutine that's been run to
+        # completion and one that got cancelled.
+        return not isinstance(exception, CancelledError)
 
     def launch(
         self, target: lldb.SBTarget, io: IODriver, env: List[str], args: List[str], working_dir: str

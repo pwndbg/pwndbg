@@ -7,7 +7,9 @@ from __future__ import annotations
 import contextlib
 from enum import Enum
 from typing import Any
+from typing import Awaitable
 from typing import Callable
+from typing import Coroutine
 from typing import Generator
 from typing import List
 from typing import Literal
@@ -266,6 +268,28 @@ class MemoryMap:
         raise NotImplementedError()
 
 
+class ExecutionController:
+    def single_step(self) -> Awaitable[None]:
+        """
+        Steps to the next instruction.
+
+        Throws `CancelledError` if a breakpoint or watchpoint is hit, the program
+        exits, or if any other unexpected event that diverts execution happens
+        while fulfulling the step.
+        """
+        raise NotImplementedError()
+
+    def cont(self, until: StopPoint) -> Awaitable[None]:
+        """
+        Continues execution until the given breakpoint or whatchpoint is hit.
+
+        Throws `CancelledError` if a breakpoint or watchpoint is hit that is not
+        the one given in `until`, the program exits, or if any other unexpected
+        event happens.
+        """
+        raise NotImplementedError()
+
+
 class Process:
     def threads(self) -> List[Thread]:
         """
@@ -499,6 +523,15 @@ class Process:
         the dynamic linker is used.
 
         We should probably sort this out in the future.
+        """
+        raise NotImplementedError()
+
+    def dispatch_execution_controller(
+        self, procedure: Callable[[ExecutionController], Coroutine[Any, Any, None]]
+    ):
+        """
+        Queues up the given execution controller-based coroutine for execution,
+        sometime between the calling of this function and the
         """
         raise NotImplementedError()
 

@@ -349,6 +349,16 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
         else:
             dbg.debugger.HandleCommand(line)
 
+        # At this point, the last command might've queued up some execution
+        # control procedures for us to chew on. Run them now.
+        for process, coroutine in dbg.controllers:
+            assert driver.has_process()
+            assert driver.process == process.process
+
+            driver.run_coroutine(coroutine)
+
+        dbg.controllers.clear()
+
 
 def make_pty() -> Tuple[str, int]:
     """

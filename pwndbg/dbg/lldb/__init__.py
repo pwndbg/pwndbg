@@ -6,7 +6,9 @@ import os
 import random
 import sys
 from typing import Any
+from typing import Awaitable
 from typing import Callable
+from typing import Coroutine
 from typing import Dict
 from typing import Generator
 from typing import List
@@ -584,6 +586,66 @@ class LLDBStopPoint(pwndbg.dbg_mod.StopPoint):
     @override
     def set_enabled(self, enabled: bool) -> None:
         self.inner.SetEnabled(enabled)
+
+
+class OneShotAwaitable:
+    """
+    Used as part of the logic for the execution controller. This is an Awaitable
+    object that yields the value passed to its constructor exactly once.
+    """
+
+    def __init__(self, value: Any):
+        self.value = value
+
+    def __await__(self) -> Generator[Any, Any, None]:
+        yield self.value
+
+
+class YieldContinue:
+    """
+    Continues execution of the process until the breakpoint or watchpoint given
+    in the constructor is hit or the operation is cancelled.
+
+    This class is part of the execution controller system, so it is intented to
+    be yielded by the async function with access to an execution controller, and
+    caught and hanlded by the event loop in the LLDB Pwndbg CLI.
+    """
+
+    target: LLDBStopPoint
+
+    def __init__(self, target: LLDBStopPoint):
+        self.target = target
+
+
+class YieldSingleStep:
+    """
+    Moves execution of the process being debugged forward by one instruction.
+
+    This class is part of the execution controller system, so it is intented to
+    be yielded by the async function with access to an execution controller, and
+    caught and hanlded by the event loop in the LLDB Pwndbg CLI.
+    """
+
+    pass
+
+
+class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
+    @override
+    def single_step(self) -> Awaitable[None]:
+        return OneShotAwaitable(YieldSingleStep())
+
+    @override
+    def cont(self, target: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
+        assert isinstance(target, LLDBStopPoint)
+        t: LLDBStopPoint = target
+
+        return OneShotAwaitable(YieldContinue(t))
+
+
+# Our execution controller doesn't need to change between uses, as all the state
+# associated with it resides further up, in the Pwndbg CLI, so we can just share
+# the same instance for all our uses.
+EXECUTION_CONTROLLER = LLDBExecutionController()
 
 
 class LLDBProcess(pwndbg.dbg_mod.Process):
@@ -1350,6 +1412,13 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # linked, same as GDB 13.2.
         return self.target.GetNumModules() > 1
 
+    @override
+    def dispatch_execution_controller(
+        self, procedure: Callable[[pwndbg.dbg_mod.ExecutionController], Coroutine[Any, Any, None]]
+    ):
+        # Queue the coroutine up for execution by the Pwndbg CLI.
+        self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
+
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, handler_name: str, command_name: str):
@@ -1371,10 +1440,16 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # protocol. The REPL controls this field.
     _current_process_is_gdb_remote: bool
 
+    # Queued up process control coroutines from the last Pwndbg command. We
+    # should run these in order as soon as the command is over, but before we
+    # return control to the user.
+    controllers: List[Tuple[LLDBProcess, Coroutine[Any, Any, None]]]
+
     @override
     def setup(self, *args, **kwargs):
         self.exec_states = []
         self.event_handlers = {}
+        self.controllers = []
         self._current_process_is_gdb_remote = False
 
         debugger = args[0]
