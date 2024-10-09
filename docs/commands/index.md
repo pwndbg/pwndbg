@@ -155,6 +155,7 @@
 -  [kchecksec](kchecksec/kchecksec.md) Checks for kernel hardening configuration options.
 -  [kcmdline](kcmdline/kcmdline.md) Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kconfig/kconfig.md) Outputs the kernel config (requires CONFIG_IKCONFIG).
+-  [klookup](klookup/klookup.md) Lookup kernel symbols.
 -  [kversion](kversion/kversion.md) Outputs the kernel version (/proc/version).
 -  [slab](slab/slab.md) Prints information about the slab allocator
 
