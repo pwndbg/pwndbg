@@ -60,7 +60,7 @@ let
         ln -s ${drv} ./result
         export DIST_TAR=$PWD/dist/${drv.meta.name}_${drv.meta.version}_${
           pfpmArchs.${drv.meta.architecture}
-        }.tar.gz
+        }.tar.xz
 
         pushd ./result
         chmod +x bin/* || true
