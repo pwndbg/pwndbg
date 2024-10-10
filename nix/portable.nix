@@ -57,7 +57,7 @@ let
 
         # build pycache
         chmod -R +w $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwndbg
-        SOURCE_DATE_EPOCH=0 ${pwndbgVenv}/bin/python3 -c "import compileall; compileall.compile_dir('/usr/lib/pwndbg/', stripdir='$out', force=True);"
+        SOURCE_DATE_EPOCH=0 ${pwndbgVenv}/bin/python3 -c "import compileall; compileall.compile_dir('$out', stripdir='$out', force=True);"
       '';
 in
 portable
