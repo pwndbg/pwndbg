@@ -31,7 +31,6 @@ let
           version = pwndbg.version;
           architecture = gdb.stdenv.targetPlatform.system;
         };
-        nativeBuildInputs = [ pkgs.makeWrapper pkgs.proot ];
       }
       ''
         mkdir -p $out/pwndbg/bin/
@@ -58,7 +57,7 @@ let
 
         # build pycache
         chmod -R +w $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwndbg
-        SOURCE_DATE_EPOCH=0 proot -b $out/pwndbg:/usr/lib/pwndbg ${pwndbgVenv}/bin/python3 -c "import compileall; compileall.compile_dir('/usr/lib/pwndbg/', force=True);"
+        SOURCE_DATE_EPOCH=0 ${pwndbgVenv}/bin/python3 -c "import compileall; compileall.compile_dir('/usr/lib/pwndbg/', stripdir='$out', force=True);"
       '';
 in
 portable
