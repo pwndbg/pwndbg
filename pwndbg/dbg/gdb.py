@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from contextlib import nullcontext
 from typing import Any
-from typing import Awaitable
 from typing import Coroutine
 from typing import Generator
 from typing import List
@@ -831,22 +830,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 break
 
 
-async def empty_awaitable() -> None:
-    """
-    Do nothing. We return this in our execution controller.
-    """
-    pass
-
-
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
-    def single_step(self) -> Awaitable[None]:
+    async def single_step(self):
         gdb.execute("si")
-        return empty_awaitable()
 
-    def cont(self, until: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
+    @override
+    async def cont(self, until: pwndbg.dbg_mod.StopPoint):
         gdb.execute("continue")
-        return empty_awaitable()
 
 
 # Like in LLDB, we only need a single instance of the execution controller.
