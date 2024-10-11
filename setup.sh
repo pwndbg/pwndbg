@@ -152,11 +152,6 @@ if linux; then
             ;;
         "gentoo")
             install_emerge
-            if ! hash sudo 2> /dev/null && whoami | grep root; then
-                sudo() {
-                    ${*}
-                }
-            fi
             ;;
         "freebsd")
             install_freebsd
@@ -191,6 +186,15 @@ PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
 
 if ! osx; then
     PYTHON+="${PYVER}"
+fi
+
+# Check python version supported: <3.10, 3.99>
+is_supported=$(echo "$PYVER" | grep -E '3\.(10|11|12|13|14|15|16|17|18|19|[2-9][0-9])' || true)
+if [[ -z "$is_supported" ]]; then
+    echo "Your system has unsupported python version. Please use older pwndbg release:"
+    echo "'git checkout 2024.08.29' - python3.8, python3.9"
+    echo "'git checkout 2023.07.17' - python3.6, python3.7"
+    exit
 fi
 
 # Install Poetry
