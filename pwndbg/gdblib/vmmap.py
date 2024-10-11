@@ -392,6 +392,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 page.offset = 0
                 break
 
+    pages.sort(key=lambda page: page.start)
     return tuple(pages)
 
 
