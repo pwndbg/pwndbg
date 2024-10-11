@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import gdb
 
 import tests
@@ -7,6 +9,27 @@ import tests
 SEARCH_BINARY = tests.binaries.get("search_memory.out")
 SEARCH_PATTERN = 0xD00DBEEF
 SEARCH_PATTERN2 = 0xABCDEF1234567890
+
+
+def test_command_search_literal(start_binary):
+    """
+    Searches for a string literal in a few different ways
+    """
+    start_binary(SEARCH_BINARY)
+
+    gdb.execute("break break_here")
+    gdb.execute("run")
+
+    # Perform three equivalent searches, and chop off the first line of verbosity.
+    result0 = gdb.execute("search -t bytes Hello!", to_string=True).splitlines()[1:]
+    result1 = gdb.execute("search -t bytes -x 48656c6c6f21", to_string=True).splitlines()[1:]
+    result2 = gdb.execute("search -t string Hello!", to_string=True).splitlines()[1:]
+
+    assert result0 == result1
+    assert result1 == result2
+
+    for line in result0:
+        assert re.match(".* .* 0x216f6c6c6548 /\\* 'Hello!' \\*/", line) is not None
 
 
 def test_command_search_limit_single_page(start_binary):
