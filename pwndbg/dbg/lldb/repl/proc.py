@@ -265,9 +265,9 @@ class ProcessDriver:
         while True:
             try:
                 if exception is None:
-                    step_t = coroutine.send(None)
+                    step = coroutine.send(None)
                 else:
-                    step_t = coroutine.throw(exception)
+                    step = coroutine.throw(exception)
                     # The coroutine has caught the exception. Continue running
                     # it as if nothing happened.
                     exception = None
@@ -279,7 +279,7 @@ class ProcessDriver:
                 # override our decision. We're done.
                 break
 
-            if isinstance(step_t, YieldSingleStep):
+            if isinstance(step, YieldSingleStep):
                 # Pick the currently selected thread and step it forward by one
                 # instruction.
                 #
@@ -301,7 +301,7 @@ class ProcessDriver:
                     continue
 
                 self._run_until_next_stop()
-            elif isinstance(step_t, YieldContinue):
+            elif isinstance(step, YieldContinue):
                 # Continue the process and wait for the next stop-like event.
                 self.process.Continue()
                 event = self._run_until_next_stop()
@@ -310,7 +310,6 @@ class ProcessDriver:
                 ), "None should only be returned by _run_until_next_stop unless start timeouts are enabled"
 
                 # Check whether this stop event is the one we expect.
-                step: YieldContinue = step_t
                 stop: lldb.SBBreakpoint | lldb.SBWatchpoint = step.target.inner
 
                 if lldb.SBProcess.GetStateFromEvent(event) == lldb.eStateStopped:

@@ -637,9 +637,7 @@ class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
     def cont(self, target: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
         assert isinstance(target, LLDBStopPoint)
-        t: LLDBStopPoint = target
-
-        return OneShotAwaitable(YieldContinue(t))
+        return OneShotAwaitable(YieldContinue(target))
 
 
 # Our execution controller doesn't need to change between uses, as all the state
