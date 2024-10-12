@@ -111,8 +111,8 @@ def write(addr: int, data: str | bytes | bytearray) -> None:
     gdb.selected_inferior().write_memory(addr, data)
 
 
-def peek(address: int) -> str | None:
-    """peek(address) -> str
+def peek(address: int) -> bytearray | None:
+    """peek(address) -> bytearray
 
     Read one byte from the specified address.
 
@@ -120,12 +120,12 @@ def peek(address: int) -> str | None:
         address(int): Address to read
 
     Returns:
-        :class:`str`: A single byte of data, or ``None`` if the
+        :class:`bytearray`: A single byte of data, or ``None`` if the
         address cannot be read.
     """
     try:
-        return chr(read(address, 1)[0])
-    except Exception:
+        return read(address, 1)
+    except gdb.MemoryError:
         pass
     return None
 
@@ -163,7 +163,7 @@ def poke(address: int) -> bool:
     try:
         pwndbg.gdblib.events.pause(gdb.events.memory_changed)
         write(address, c)
-    except Exception:
+    except gdb.MemoryError:
         return False
     finally:
         pwndbg.gdblib.events.unpause(gdb.events.memory_changed)
