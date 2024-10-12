@@ -267,7 +267,7 @@ def search(
     # [1]: https://sourceware.org/git/?p=binutils-gdb.git;a=blame;f=gdb/python/py-inferior.c;h=a1042ee72ac733091f7572bc04b072546d3c1519;hb=23c84db5b3cb4e8a0d555c76e1a0ab56dc8355f3
     # [2]: https://docs.python.org/3.1/c-api/arg.html#strings-and-buffers
 
-    elif type == "bytes":
+    elif type == "bytes" and not hex:
         try:
             value = value.encode("utf-8")
         except UnicodeError as what:

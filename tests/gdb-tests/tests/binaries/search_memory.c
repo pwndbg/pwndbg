@@ -10,6 +10,8 @@ void break_here(void) {}
 
 size_t marker = 0xABCDEF1234567890;
 
+static const char* literal = "Hello!";
+
 int main(void)
 {
     void *p;
