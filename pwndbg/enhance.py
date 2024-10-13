@@ -44,7 +44,16 @@ def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
 
 
 def int_str(value: int) -> str:
+    """
+    This function attempts to enhance the value of an int.
+    First, it checks if the integer is a stack canary.
+    Then, it attempts to interpret the bytes as a short strings
+    """
+
     retval = format_small_int(value)
+
+    if value == pwndbg.commands.canary.canary_value()[0]:
+        return f"{retval} (canary)"
 
     # Try to unpack the value as a string
     packed = pwndbg.aglib.arch.pack(int(value))
