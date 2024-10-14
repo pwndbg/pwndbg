@@ -65,8 +65,8 @@ def write(addr: int, data: str | bytes | bytearray) -> None:
     pwndbg.dbg.selected_inferior().write_memory(address=addr, data=bytearray(data), partial=False)
 
 
-def peek(address: int) -> str | None:
-    """peek(address) -> str
+def peek(address: int) -> bytearray | None:
+    """peek(address) -> bytearray
 
     Read one byte from the specified address.
 
@@ -74,12 +74,13 @@ def peek(address: int) -> str | None:
         address(int): Address to read
 
     Returns:
-        :class:`str`: A single byte of data, or ``None`` if the
+        :class:`bytearray`: A single byte of data, or ``None`` if the
         address cannot be read.
     """
     try:
-        return chr(read(address, 1)[0])
+        return read(address, 1)
     except Exception:
+        # TODO/FIXME: This should not pass on any exception!
         pass
     return None
 

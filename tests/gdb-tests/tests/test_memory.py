@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 
 import pwndbg.gdblib.memory
 import pwndbg.gdblib.stack
@@ -33,6 +34,53 @@ def test_memory_read_write(start_binary):
     assert pwndbg.gdblib.memory.read(stack_addr, len(val) + 4) == bytearray(
         "Z" * 8 + "YYXX", "utf8"
     )
+
+
+def test_memory_peek_poke(start_binary):
+    """
+    This tests ensures that doing a peek, poke, peek round-robin operations
+    ends up with the same value in memory.
+
+    It also sets a given byte in memory via memory.write
+    and tests all single-byte values.
+    """
+    start_binary(REFERENCE_BINARY)
+
+    # Address 0 is not mapped, so peek should return None
+    # and poke should fail
+    assert pwndbg.gdblib.memory.poke(0) is False
+    assert pwndbg.gdblib.memory.peek(0) is None
+
+    stack_addr = pwndbg.gdblib.regs.rsp
+
+    for v in range(256):
+        data = bytearray([v, 0, 0, 0])
+        pwndbg.gdblib.memory.write(stack_addr, data)
+
+        # peek should return the first byte
+        assert pwndbg.gdblib.memory.peek(stack_addr) == bytearray([v])
+
+        # Now poke it!
+        assert pwndbg.gdblib.memory.poke(stack_addr) is True
+
+        # Now make sure poke did not change the underlying bytes
+        assert pwndbg.gdblib.memory.read(stack_addr, 4) == data
+
+    # Ensure that peek and poke correctly raises exceptions
+    # when incorrect argument type is passed
+    for not_parsable_as_int in (b"asdf", "asdf"):
+        with pytest.raises(ValueError):
+            pwndbg.gdblib.memory.peek(not_parsable_as_int)
+
+    for not_parsable_as_int in (b"asdf", "asdf"):
+        with pytest.raises(ValueError):
+            pwndbg.gdblib.memory.poke(not_parsable_as_int)
+
+    # Acceptable inputs (not great; maybe we should ban them?)
+    # Note: they return 0 because the address 0 is not mapped
+    assert pwndbg.gdblib.memory.peek(0.0) is None
+    assert pwndbg.gdblib.memory.peek("0") is None
+    assert pwndbg.gdblib.memory.peek(b"0") is None
 
 
 def test_fetch_struct_as_dictionary(start_binary):
