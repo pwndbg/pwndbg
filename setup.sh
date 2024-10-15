@@ -230,4 +230,6 @@ if [ -z "$UPDATE_MODE" ]; then
     # Load Pwndbg into GDB on every launch.
     echo "source $PWD/gdbinit.py" >> ~/.gdbinit
     echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
+    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value to disable the automatic updating of dependencies when Pwndbg is loaded."
+
 fi
