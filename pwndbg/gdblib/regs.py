@@ -9,7 +9,13 @@ import ctypes
 import re
 import sys
 from types import ModuleType
-from typing import Any, Callable, Dict, Generator, List, Tuple, cast
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Tuple
+from typing import cast
 
 import gdb
 
@@ -21,7 +27,9 @@ import pwndbg.gdblib.remote
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.dbg import EventType
-from pwndbg.lib.regs import BitFlags, RegisterSet, reg_sets
+from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import RegisterSet
+from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
