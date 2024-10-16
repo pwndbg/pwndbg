@@ -9,13 +9,7 @@ import ctypes
 import re
 import sys
 from types import ModuleType
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Tuple
-from typing import cast
+from typing import Any, Callable, Dict, Generator, List, Tuple, cast
 
 import gdb
 
@@ -27,9 +21,7 @@ import pwndbg.gdblib.remote
 import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.dbg import EventType
-from pwndbg.lib.regs import BitFlags
-from pwndbg.lib.regs import RegisterSet
-from pwndbg.lib.regs import reg_sets
+from pwndbg.lib.regs import BitFlags, RegisterSet, reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
@@ -246,13 +238,13 @@ class module(ModuleType):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
 
-        if pwndbg.aglib.arch.name == "x86-64":
-            reg_value = gdb_get_register(regname)
-            return int(reg_value) if reg_value is not None else 0
-
         # We can't really do anything if the process is remote.
         if pwndbg.gdblib.remote.is_remote():
             return 0
+
+        if pwndbg.aglib.arch.name == "x86-64":
+            reg_value = gdb_get_register(regname)
+            return int(reg_value) if reg_value is not None else 0
 
         # Use the lightweight process ID
         _, lwpid, _ = gdb.selected_thread().ptid
