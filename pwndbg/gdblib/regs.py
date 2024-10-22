@@ -39,7 +39,11 @@ def gdb_get_register(name: str, frame: gdb.Frame | None = None) -> gdb.Value | N
     try:
         return frame.read_register(name)
     except ValueError:
+        pass
+    try:
         return frame.read_register(name.upper())
+    except ValueError:
+        return None
 
 
 @pwndbg.gdblib.proc.OnlyWhenQemuKernel
