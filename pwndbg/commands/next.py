@@ -15,7 +15,9 @@ async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
     """
     Execution controller for the `nextjmp` command.
     """
-    await pwndbg.aglib.next.break_next_branch(ec)
+
+    if await pwndbg.aglib.next.break_next_branch(ec):
+        pwndbg.commands.context.context()
 
 
 @pwndbg.commands.ArgparsedCommand(
