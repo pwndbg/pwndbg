@@ -39,7 +39,11 @@ def gdb_get_register(name: str, frame: gdb.Frame | None = None) -> gdb.Value | N
     try:
         return frame.read_register(name)
     except ValueError:
+        pass
+    try:
         return frame.read_register(name.upper())
+    except ValueError:
+        return None
 
 
 @pwndbg.gdblib.proc.OnlyWhenQemuKernel
@@ -246,13 +250,13 @@ class module(ModuleType):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
 
-        # We can't really do anything if the process is remote.
-        if pwndbg.gdblib.remote.is_remote():
-            return 0
-
         if pwndbg.aglib.arch.name == "x86-64":
             reg_value = gdb_get_register(regname)
             return int(reg_value) if reg_value is not None else 0
+
+        # We can't really do anything if the process is remote.
+        if pwndbg.gdblib.remote.is_remote():
+            return 0
 
         # Use the lightweight process ID
         _, lwpid, _ = gdb.selected_thread().ptid
