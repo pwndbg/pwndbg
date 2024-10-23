@@ -683,6 +683,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         )
 
     @override
+    def stopped_with_signal(self) -> bool:
+        return self.process.GetState() == lldb.eStateStopped and any(
+            (thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads)
+        )
+
+    @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
         value = self.target.EvaluateExpression(expression)
         opt_out = _is_optimized_out(value)

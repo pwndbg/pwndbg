@@ -261,7 +261,7 @@ class ProcessDriver:
         process in this driver. Returns `True` if the coroutine ran to completion,
         and `False` if it was cancelled.
         """
-        exception: Exception | None = False
+        exception: Exception | None = None
         while True:
             try:
                 if exception is None:

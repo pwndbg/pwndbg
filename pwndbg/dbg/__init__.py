@@ -309,6 +309,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def stopped_with_signal(self) -> bool:
+        """
+        Returns whether this process was stopped by a signal.
+        """
+        raise NotImplementedError()
+
     def evaluate_expression(self, expression: str) -> Value:
         """
         Evaluate the given expression in the context of the current process, and
