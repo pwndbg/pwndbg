@@ -24,6 +24,7 @@ import pwndbg
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
+from pwndbg.lib.regs import reg_sets
 
 T = TypeVar("T")
 
@@ -95,6 +96,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
     proc: LLDBProcess
 
     def __init__(self, inner: lldb.SBFrame, proc: LLDBProcess):
+        assert inner.IsValid()
         self.inner = inner
         self.proc = proc
 
@@ -118,6 +120,12 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
     def reg_write(self, name: str, val: int) -> bool:
         if val < 0:
             raise RuntimeError("Tried to write a register with a negative value")
+
+        # Writing to the PC using the normal register write flow causes the
+        # inner object to be automatically invalidated by LLDB, so we have to
+        # handle jumps manually using SBFrame::SetPC.
+        if name.lower() == reg_sets[pwndbg.aglib.arch.name].pc:
+            return self.inner.SetPC(val)
 
         name = rename_register(name, self.proc)
 
@@ -171,6 +179,14 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                             f"could not set value of register '{name}' to '{val}': {error}"
                         )
 
+                    # We know this register got written to, we can trigger this
+                    # event.
+                    self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
+
+                    # Make sure we've caught and handled the special cases in which the inner object
+                    # might be invalidated by the command.
+                    assert self.inner.IsValid()
+
                     # This might slow things down, but I'm not entirely sure selecting
                     # the thread in the way we do is enough to make LLDB write to the
                     # right register in all cases, so we check the value of the register
@@ -178,10 +194,6 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     assert (
                         int(self.regs().by_name(name)) == val
                     ), "wrote to a register, but read back different value. this is a bug"
-
-                    # We know this register got written to, we can trigger this
-                    # event.
-                    self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
 
                     return True
 
