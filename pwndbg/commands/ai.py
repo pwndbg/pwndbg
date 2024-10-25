@@ -360,18 +360,22 @@ def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
 
 def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
     data = {
-        "prompt": prompt,
+        "messages": [{"role": "user", "content": prompt}],
         "model": model,
         "temperature": temperature,
-        "max_tokens_to_sample": max_tokens,
+        "max_tokens": max_tokens,
         "stop_sequences": ["\n\nHuman:"],
     }
-    headers = {"x-api-key": config.ai_anthropic_api_key.value, "Content-Type": "application/json"}
-    url = "https://api.anthropic.com/v1/complete"
+    headers = {
+        "x-api-key": config.ai_anthropic_api_key.value,
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+    }
+    url = "https://api.anthropic.com/v1/messages"
     response = _requests().post(url, data=json.dumps(data), headers=headers)
     data = response.json()
     try:
-        return data["completion"].strip()
+        return data["content"][0]["text"].strip()
     except KeyError:
         print(M.error(f"Anthropic API error: {data}"))
         return f"Anthropic API error: {data['detail']}"
