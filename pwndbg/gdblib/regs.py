@@ -33,17 +33,22 @@ from pwndbg.lib.regs import reg_sets
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
+def register_exists(register_name: str, frame: gdb.Frame | None = None) -> bool:
+    if frame is None:
+        frame = gdb.selected_frame()
+    return any(
+        register_name.lower() == reg.name.lower() for reg in frame.architecture().registers()
+    )
+
+
+@pwndbg.gdblib.proc.OnlyWhenRunning
 def gdb_get_register(name: str, frame: gdb.Frame | None = None) -> gdb.Value | None:
     if frame is None:
         frame = gdb.selected_frame()
     try:
         return frame.read_register(name)
     except ValueError:
-        pass
-    try:
         return frame.read_register(name.upper())
-    except ValueError:
-        return None
 
 
 @pwndbg.gdblib.proc.OnlyWhenQemuKernel
@@ -249,6 +254,9 @@ class module(ModuleType):
     def _fs_gs_helper(self, regname: str, which: int) -> int:
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
+
+        if not register_exists(regname):
+            return 0
 
         if pwndbg.aglib.arch.name == "x86-64":
             reg_value = gdb_get_register(regname)
