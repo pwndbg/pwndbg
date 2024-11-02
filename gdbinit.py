@@ -73,6 +73,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
 
     # If the hashes don't match, update the dependencies
     if current_hash != stored_hash:
+        print("Detected outdated Pwndbg dependencies (poetry.lock). Updating.")
         poetry_path = find_poetry()
         if poetry_path is None:
             print(
