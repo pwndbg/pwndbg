@@ -9,8 +9,7 @@ import subprocess
 import sys
 import time
 from subprocess import CompletedProcess
-from typing import List
-from typing import Tuple
+from typing import List, Tuple
 
 root_dir = os.path.realpath("../")
 
@@ -128,19 +127,13 @@ def run_test(
     return (result, test_case)
 
 
-def run_tests_and_print_stats(
-    tests_list: List[str],
-    args: argparse.Namespace,
-    gdb_binary: str,
-    gdbinit_path: str,
-    test_dir_path: str,
-    ports: List[int] = [],
-):
-    start = time.time()
-    test_results: List[Tuple[CompletedProcess[str], str]] = []
+class TestStats:
+    def __init__(self):
+        self.ftests = 0
+        self.ptests = 0
+        self.stests = 0
 
-    def handle_parallel_test_result(test_result: Tuple[CompletedProcess[str], str]):
-        test_results.append(test_result)
+    def handle_test_result(self, test_result: Tuple[CompletedProcess[str], str], args, test_dir_path):
         (process, _) = test_result
         content = process.stdout
 
@@ -151,12 +144,32 @@ def run_tests_and_print_stats(
         )[0]
 
         (_, testname) = testname.split("::")
+        
+        if "FAIL" in result:
+            self.ftests += 1
+        elif "PASS" in result:
+            self.ptests += 1
+        elif "SKIP" in result:
+            self.stests += 1
         print(f"{testname:<70} {result}")
 
         # Only show the output of failed tests unless the verbose flag was used
         if args.verbose or "FAIL" in result:
             print("")
             print(content)
+
+
+def run_tests_and_print_stats(
+    tests_list: List[str],
+    args: argparse.Namespace,
+    gdb_binary: str,
+    gdbinit_path: str,
+    test_dir_path: str,
+    ports: List[int] = [],
+):
+    start = time.time()
+    test_results: List[Tuple[CompletedProcess[str], str]] = []
+    stats = TestStats()
 
     port_iterator = iter(ports)
 
@@ -172,22 +185,23 @@ def run_tests_and_print_stats(
             for test in tests_list:
                 executor.submit(
                     run_test, test, args, gdb_binary, gdbinit_path, next(port_iterator, None)
-                ).add_done_callback(lambda future: handle_parallel_test_result(future.result()))
+                ).add_done_callback(lambda future: stats.handle_test_result(future.result(), args, test_dir_path))
 
     end = time.time()
     seconds = int(end - start)
     print(f"Tests completed in {seconds} seconds")
 
-    failed_tests = [(process, _) for (process, _) in test_results if process.returncode != 0]
-    num_tests_failed = len(failed_tests)
-    num_tests_passed_or_skipped = len(tests_list) - num_tests_failed
+    num_tests_failed = stats.ftests
+    num_tests_passed = stats.ptests
+    num_tests_skipped = stats.stests
 
     print("")
     print("*********************************")
     print("********* TESTS SUMMARY *********")
     print("*********************************")
-    print(f"Tests passed or skipped: {num_tests_passed_or_skipped}")
-    print(f"Tests failed: {num_tests_failed}")
+    print(f"Tests Passed: {num_tests_passed}")
+    print(f"Tests Skipped: {num_tests_skipped}")
+    print(f"Tests Failed: {num_tests_failed}")
 
     if num_tests_failed != 0:
         print("")
@@ -261,13 +275,6 @@ if __name__ == "__main__":
         gdb_binary = "gdb-multiarch"
 
     test_dir_path = TEST_FOLDER_NAME[args.type]
-
-    tests: List[str] = getTestsList(
-        args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path
-    )
-
-    ports = []
-    if args.type == "cross-arch":
-        ports = open_ports(len(tests))
-
-    run_tests_and_print_stats(tests, args, gdb_binary, gdbinit_path, test_dir_path, ports)
+    tests_list = getTestsList(args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path)
+    ports = open_ports(len(tests_list))
+    run_tests_and_print_stats(tests_list, args, gdb_binary, gdbinit_path, test_dir_path, ports)
