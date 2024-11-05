@@ -1186,7 +1186,7 @@ def bin_labels_mapping(collections):
 try_free_parser = argparse.ArgumentParser(
     description="Check what would happen if free was called with given address."
 )
-try_free_parser.add_argument("addr", nargs="?", help="Address passed to free")
+try_free_parser.add_argument("addr", help="Address passed to free")
 
 
 @pwndbg.commands.ArgparsedCommand(try_free_parser, category=CommandCategory.HEAP)
