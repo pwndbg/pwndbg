@@ -24,7 +24,6 @@ In 64-bit mode, the Base and Limit values are ignored, each descriptor covers th
 parser.add_argument(
     "address",
     type=int,
-    nargs="?",
     help="x86-64 GDTR base address (e.g. read from sgdt instruction from [16:79] bits)",
 )
 
