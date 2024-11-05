@@ -395,44 +395,6 @@ class RTree:
         return self._extents
 
 
-class Arena:
-    """
-    Some notes:
-    - Huge allocation should not come from arena 0
-    """
-
-    def __init__(self, addr: int) -> None:
-        self._addr = addr
-
-        self._Value = pwndbg.gdblib.memory.fetch_struct_as_dictionary("arena_s", self._addr)
-
-        self._nbins = None
-        self._slabs = None
-        self._bins = None
-
-    @property
-    def slabs(self):
-        if self._bins is None:
-            self._bins = []
-            try:
-                # TODO: verify this variable
-                self._nbins = gdb.parse_and_eval("nbins_total").cast(
-                    gdb.lookup_type("unsigned int")
-                )
-
-                bins_addr = int(self._Value["bins"]["address"])  # type: ignore[index, arg-type]
-                bin_s = pwndbg.gdblib.typeinfo.load("struct bin_s")
-                for i in range(self._nbins):
-                    current_bin_addr = int(bins_addr) + i * bin_s.sizeof
-                    bin = pwndbg.gdblib.memory.poi(bin_s, current_bin_addr)
-                    self._slabs.append(bin)
-
-            except gdb.MemoryError:
-                pass
-
-        return self._slabs
-
-
 class Extent:
     """
     Concept of extent (edata) is similar to chunk in glibc malloc but allocation algorithm differs a lot.
