@@ -9,7 +9,8 @@ import subprocess
 import sys
 import time
 from subprocess import CompletedProcess
-from typing import List, Tuple
+from typing import List
+from typing import Tuple
 
 root_dir = os.path.realpath("../")
 
@@ -133,7 +134,9 @@ class TestStats:
         self.ptests = 0
         self.stests = 0
 
-    def handle_test_result(self, test_result: Tuple[CompletedProcess[str], str], args, test_dir_path):
+    def handle_test_result(
+        self, test_result: Tuple[CompletedProcess[str], str], args, test_dir_path
+    ):
         (process, _) = test_result
         content = process.stdout
 
@@ -144,7 +147,7 @@ class TestStats:
         )[0]
 
         (_, testname) = testname.split("::")
-        
+
         if "FAIL" in result:
             self.ftests += 1
         elif "PASS" in result:
@@ -185,12 +188,15 @@ def run_tests_and_print_stats(
             for test in tests_list:
                 executor.submit(
                     run_test, test, args, gdb_binary, gdbinit_path, next(port_iterator, None)
-                ).add_done_callback(lambda future: stats.handle_test_result(future.result(), args, test_dir_path))
+                ).add_done_callback(
+                    lambda future: stats.handle_test_result(future.result(), args, test_dir_path)
+                )
 
     end = time.time()
     seconds = int(end - start)
     print(f"Tests completed in {seconds} seconds")
 
+    failed_tests = [(process, _) for (process, _) in test_results if process.returncode != 0]
     num_tests_failed = stats.ftests
     num_tests_passed = stats.ptests
     num_tests_skipped = stats.stests
@@ -275,6 +281,8 @@ if __name__ == "__main__":
         gdb_binary = "gdb-multiarch"
 
     test_dir_path = TEST_FOLDER_NAME[args.type]
-    tests_list = getTestsList(args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path)
+    tests_list = getTestsList(
+        args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path
+    )
     ports = open_ports(len(tests_list))
     run_tests_and_print_stats(tests_list, args, gdb_binary, gdbinit_path, test_dir_path, ports)
