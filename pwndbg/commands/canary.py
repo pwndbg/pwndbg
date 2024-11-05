@@ -54,6 +54,7 @@ def canary(all) -> None:
     found_canaries = False
     global_canary_packed = pwndbg.aglib.arch.pack(global_canary)
     thread_stacks = pwndbg.aglib.stack.get()
+    some_canaries_not_shown = False
 
     for thread in thread_stacks:
         thread_stack = thread_stacks[thread]
@@ -70,7 +71,6 @@ def canary(all) -> None:
         found_canaries = True
         num_canaries = len(stack_canaries)
         num_canaries_to_display = num_canaries
-        some_canaries_not_shown = False
 
         if not all:
             num_canaries_to_display = min(DEFAULT_NUM_CANARIES_TO_DISPLAY, num_canaries)
