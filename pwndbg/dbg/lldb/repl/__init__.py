@@ -351,13 +351,28 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
 
         # At this point, the last command might've queued up some execution
         # control procedures for us to chew on. Run them now.
+        coroutine_fail_warn = False
         for process, coroutine in dbg.controllers:
             assert driver.has_process()
             assert driver.process.GetUniqueID() == process.process.GetUniqueID()
 
-            driver.run_coroutine(coroutine)
+            try:
+                driver.run_coroutine(coroutine)
+            except Exception:
+                # We treat exceptions coming from the execution controllers the
+                # same way we treat exceptions coming from commands.
+                pwndbg.exception.handle()
+                coroutine_fail_warn = True
 
         dbg.controllers.clear()
+
+        if coroutine_fail_warn:
+            print(
+                message.warn(
+                    "Exceptions occurred execution controller processing. Debugging will likely be unreliable going forward."
+                )
+            )
+            break
 
 
 def make_pty() -> Tuple[str, int]:
