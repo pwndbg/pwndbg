@@ -360,11 +360,11 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxp"], category=CommandCategory.CONTEXT)
 def contextprev(count) -> None:
     global selected_history_index
-    longest_history = max(len(h) for h in context_history.values())
+    if not context_history:
+        print(message.error("No context history captured"))
+        return
     if selected_history_index is None:
-        if not context_history:
-            print(message.error("No context history captured"))
-            return
+        longest_history = max(len(h) for h in context_history.values())
         new_index = longest_history - count - 1
     else:
         new_index = selected_history_index - count
@@ -385,11 +385,11 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxn"], category=CommandCategory.CONTEXT)
 def contextnext(count) -> None:
     global selected_history_index
+    if not context_history:
+        print(message.error("No context history captured"))
+        return
     longest_history = max(len(h) for h in context_history.values())
     if selected_history_index is None:
-        if not context_history:
-            print(message.error("No context history captured"))
-            return
         new_index = longest_history - 1
     else:
         new_index = selected_history_index + count
