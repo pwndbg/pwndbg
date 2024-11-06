@@ -36,9 +36,7 @@ from pwndbg.lib.regs import reg_sets
 def register_exists(register_name: str, frame: gdb.Frame | None = None) -> bool:
     if frame is None:
         frame = gdb.selected_frame()
-    return any(
-        register_name.lower() == reg.name.lower() for reg in frame.architecture().registers()
-    )
+    return bool(frame.architecture().registers().find(register_name))
 
 
 @pwndbg.gdblib.proc.OnlyWhenRunning
