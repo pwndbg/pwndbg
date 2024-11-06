@@ -255,10 +255,9 @@ class module(ModuleType):
         """Supports fetching based on segmented addressing, a la fs:[0x30].
         Requires ptrace'ing the child directory if i386."""
 
-        if not register_exists(regname):
-            return 0
-
         if pwndbg.aglib.arch.name == "x86-64":
+            if not register_exists(regname):
+                return 0
             reg_value = gdb_get_register(regname)
             return int(reg_value) if reg_value is not None else 0
 
