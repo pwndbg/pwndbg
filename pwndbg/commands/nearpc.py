@@ -21,23 +21,24 @@ parser.add_argument(
     help="Number of lines to show on either side of the address.",
 )
 parser.add_argument(
-    "-e",
     "--emulate",
-    action="store_true",
-    help="Whether to emulate instructions to find the next ones or just linearly disassemble.",
+    choices=["on", "off"],
+    default="off",
+    help="Enable or disable emulation.",
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> None:
+def nearpc(pc=None, lines=None, emulate="off", use_cache=False, linear=True) -> None:
     """
     Disassemble near a specified address.
     """
+    emulate_flag = emulate == "on"
     print(
         "\n".join(
             pwndbg.aglib.nearpc.nearpc(
-                pc, lines, emulate, nearpc.repeat, use_cache=use_cache, linear=linear
+                pc, lines, emulate_flag, nearpc.repeat, use_cache=use_cache, linear=linear
             )
         )
     )
