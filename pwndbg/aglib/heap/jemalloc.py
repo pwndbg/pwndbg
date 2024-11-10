@@ -203,7 +203,7 @@ class RTree:
         self._extents = None
 
     @staticmethod
-    def get_rtree() -> RTree:
+    def get_rtree() -> RTree | None:
         try:
             addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("je_arena_emap_global")
             if addr is None:
