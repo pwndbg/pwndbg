@@ -27,16 +27,30 @@ pkgs.poetry2nix.mkPoetryEnv {
       pt = super.pt.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ [ super.poetry-core ];
       });
-      capstone = super.capstone.overridePythonAttrs (old: {
-        # fix darwin
-        preBuild = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-          sed -i 's/^IS_APPLE := .*$/IS_APPLE := 1/' ./src/Makefile
-        '';
-        # fix build for aarch64: https://github.com/capstone-engine/capstone/issues/2102
-        postPatch = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-          substituteInPlace setup.py --replace manylinux1 manylinux2014
-        '';
-      });
+
+      capstone =
+        # capstone=5.0.3 build is broken only in darwin :(, soo we use wheel
+        if pkgs.stdenv.isDarwin then
+          super.capstone.override { preferWheel = true; }
+        else
+          super.capstone.overridePythonAttrs (old: {
+            # fix darwin
+            preBuild = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+              sed -i 's/^IS_APPLE := .*$/IS_APPLE := 1/' ./src/Makefile
+            '';
+            # fix darwin
+            nativeBuildInputs =
+              (old.nativeBuildInputs or [ ])
+              ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+                pkgs.cmake
+                pkgs.fixDarwinDylibNames
+              ];
+            # fix build for aarch64: https://github.com/capstone-engine/capstone/issues/2102
+            postPatch = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+              substituteInPlace setup.py --replace manylinux1 manylinux2014
+            '';
+          });
+
       sortedcontainers-stubs = super.sortedcontainers-stubs.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ [ super.poetry-core ];
       });
