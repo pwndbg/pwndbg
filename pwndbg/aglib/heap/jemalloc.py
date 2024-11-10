@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Dict
+
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 
@@ -228,12 +230,12 @@ class RTree:
         return ptrbits - cumbits
 
     # Can be used to lookup key quickly in cache
-    def __rtree_leafkey(self, key, level):
+    def __rtree_leafkey(self, key: int, level: int) -> int:
         mask = ~((1 << self.__rtree_leaf_maskbits(level)) - 1)
         # print("mask: ", mask, bin(mask))
         return key & mask
 
-    def __subkey(self, key, level):
+    def __subkey(self, key: int, level: int) -> int:
         """
         Return a portion of the key that is used to find the node/leaf in the rtree at a specific level.
         Source: https://github.com/jemalloc/jemalloc/blob/5b72ac098abce464add567869d082f2097bd59a2/include/jemalloc/internal/rtree.h#L161
@@ -251,7 +253,7 @@ class RTree:
     def __alignment_addr2base(addr, alignment=64):
         return addr - (addr - (addr & (~(alignment - 1))))
 
-    def lookup_hard(self, key):
+    def lookup_hard(self, key: int):
         """
         Lookup the key in the rtree and return the value.
 
@@ -418,14 +420,14 @@ class Extent:
         return (int(self._Value["e_size_esn"]) >> LG_PAGE) << LG_PAGE
 
     @property
-    def extent_address(self):
+    def extent_address(self) -> int:
         """
         Address of the extent data structure (not the actual memory).
         """
         return self._addr
 
     @property
-    def allocated_address(self):
+    def allocated_address(self) -> int:
         """
         Starting address of allocated memory
         cache-oblivious large allocation alignment:
@@ -433,18 +435,18 @@ class Extent:
             However, the pointer returned to user is randomized between the 'base' and 'base + 4 KiB' (0x1000) range.
             Source code: https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/arena_inlines_b.h#L505
         """
-        return self._Value["e_addr"]
+        return int(self._Value["e_addr"])
 
     @property
-    def bsize(self):
-        return self._Value["e_bsize"]
+    def bsize(self) -> int:
+        return int(self._Value["e_bsize"])
 
     @property
-    def bits(self):
-        return self._Value["e_bits"]
+    def bits(self) -> int:
+        return int(self._Value["e_bits"])
 
     @property
-    def bitfields(self):
+    def bitfields(self) -> Dict[str, int]:
         """
         Extract bitfields
 
@@ -477,13 +479,13 @@ class Extent:
         return self._bitfields
 
     @property
-    def state_name(self):
+    def state_name(self) -> str:
         state_mapping = ["Active", "Dirty", "Muzzy", "Retained"]
 
         return state_mapping[self.bitfields["state"]]
 
     @property
-    def has_slab(self):
+    def has_slab(self) -> bool:
         """
         Returns True if the extent is used for small size classes.
         Reference for size in Table 1 at https://jemalloc.net/jemalloc.3.html
@@ -492,14 +494,14 @@ class Extent:
         return self.bitfields["slab"] != 0
 
     @property
-    def is_free(self):
+    def is_free(self) -> bool:
         """
         Returns True if the extent is free.
         """
         pass
 
     @property
-    def pai(self):
+    def pai(self) -> str:
         """
         Page Allocator Interface
         """
