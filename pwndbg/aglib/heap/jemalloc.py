@@ -269,9 +269,10 @@ class RTree:
         subkey = self.__subkey(key, 1)
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        node = pwndbg.aglib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
-
-        child_repr: int = node["child"]["repr"]  # type: ignore[index]
+        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
+            "struct rtree_node_elm_s", addr
+        )
+        child_repr = int(fetched_struct["child"]["repr"])
 
         # on node element, child contains the bits with which we can find another node or leaf element
         if child_repr == 0:
@@ -280,10 +281,12 @@ class RTree:
         # For subkey 1
         subkey = self.__subkey(key, 2)
         addr = child_repr + subkey * rtree_leaf_elm_s.sizeof
-        leaf = pwndbg.aglib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
+        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
+            "struct rtree_leaf_elm_s", addr
+        )
 
         # On leaf element, le_bits contains the virtual memory address bits so we can use it to find the extent address
-        val: int = leaf["le_bits"]["repr"]  # type: ignore[index]
+        val = int(fetched_struct["le_bits"]["repr"])
         if val == 0:
             return None
 
@@ -335,9 +338,7 @@ class RTree:
                     fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
                         rtree_node_elm_s, node_address
                     )
-                    node = pwndbg.aglib.memory.pack_struct_into_dictionary(fetched_struct)
-
-                    leaf0: int = node["child"]["repr"]  # type: ignore[index]
+                    leaf0 = int(fetched_struct["child"]["repr"])
                     if leaf0 == 0:
                         continue
 
@@ -351,9 +352,8 @@ class RTree:
                         fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
                             rtree_leaf_elm_s, leaf_address
                         )
-                        leaf = pwndbg.aglib.memory.pack_struct_into_dictionary(fetched_struct)
-
-                        if (val := int(leaf["le_bits"]["repr"])) == 0:  # type: ignore[index, arg-type]
+                        val = int(fetched_struct["le_bits"]["repr"])
+                        if val == 0:
                             continue
 
                         # print("leaf: ", hex(leaf_address))
