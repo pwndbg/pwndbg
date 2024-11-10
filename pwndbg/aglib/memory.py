@@ -343,6 +343,16 @@ def update_min_addr() -> None:
     MMAP_MIN_ADDR = 0 if pwndbg.aglib.qemu.is_qemu_kernel() else 0x8000
 
 
+def fetch_struct_as_dictionary(
+    struct_name: str,
+    struct_address: int | pwndbg.dbg_mod.Value,
+    include_only_fields: Set[str] | None = None,
+    exclude_fields: Set[str] | None = None,
+) -> GdbDict:
+    fetched_struct = get_typed_pointer_value("struct " + struct_name, struct_address)
+    return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
+
+
 def pack_struct_into_dictionary(
     fetched_struct: pwndbg.dbg_mod.Value,
     include_only_fields: Set[str] | None = None,

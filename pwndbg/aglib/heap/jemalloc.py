@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import gdb
-
-import pwndbg.gdblib.info
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 
 # adapted from jemalloc source 5.3.0
 LG_VADDR = 48
@@ -193,24 +190,23 @@ class RTree:
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
-        rtree_s = pwndbg.gdblib.typeinfo.load("struct rtree_s")
-        # self._Value = pwndbg.gdblib.memory.poi(emap_s, self._addr)
+        # self._Value = pwndbg.aglib.memory.poi(emap_s, self._addr)
 
-        # self._Value = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+        # self._Value = pwndbg.aglib.memory.fetch_struct_as_dictionary(
         #     "rtree_s", self._addr, include_only_fields={"root"}
         # )
-        self._Value = gdb.Value(self._addr).cast(rtree_s.pointer()).dereference()
+        # pwndbg.aglib.memory
+        self._Value = pwndbg.aglib.memory.get_typed_pointer_value("struct rtree_s", self._addr)
 
         self._extents = None
 
     @staticmethod
     def get_rtree() -> RTree:
         try:
-            addr = pwndbg.gdblib.info.address("je_arena_emap_global")
+            addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("je_arena_emap_global")
             if addr is None:
                 return None
-
-        except gdb.MemoryError:
+        except pwndbg.dbg_mod.Error:
             return None
 
         return RTree(addr)
@@ -262,8 +258,8 @@ class RTree:
         How it works:
         - Jemalloc stores the extent address in the rtree as a node and to find a specific node we need a address key.
         """
-        rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
-        rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
+        rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
+        rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
 
         # Credits: 盏一's jegdb
 
@@ -271,7 +267,7 @@ class RTree:
         subkey = self.__subkey(key, 1)
 
         addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        node = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
+        node = pwndbg.aglib.memory.fetch_struct_as_dictionary("rtree_node_elm_s", addr)
 
         child_repr: int = node["child"]["repr"]  # type: ignore[index]
 
@@ -282,7 +278,7 @@ class RTree:
         # For subkey 1
         subkey = self.__subkey(key, 2)
         addr = child_repr + subkey * rtree_leaf_elm_s.sizeof
-        leaf = pwndbg.gdblib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
+        leaf = pwndbg.aglib.memory.fetch_struct_as_dictionary("rtree_leaf_elm_s", addr)
 
         # On leaf element, le_bits contains the virtual memory address bits so we can use it to find the extent address
         val: int = leaf["le_bits"]["repr"]  # type: ignore[index]
@@ -325,19 +321,19 @@ class RTree:
                 last_addr = None
                 extent_addresses = []
 
-                rtree_node_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_node_elm_s")
-                rtree_leaf_elm_s = pwndbg.gdblib.typeinfo.load("struct rtree_leaf_elm_s")
+                rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
+                rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
 
                 max_subkeys = 1 << rtree_levels[RTREE_HEIGHT - 1][0]["bits"]
                 # print("max_subkeys: ", max_subkeys)
 
                 for i in range(max_subkeys):
                     node_address = int(root.address) + i * rtree_node_elm_s.sizeof
-                    # node = pwndbg.gdblib.memory.poi(rtree_node_elm_s, node)
-                    fetched_struct = pwndbg.gdblib.memory.get_typed_pointer_value(
+                    # node = pwndbg.aglib.memory.poi(rtree_node_elm_s, node)
+                    fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
                         rtree_node_elm_s, node_address
                     )
-                    node = pwndbg.gdblib.memory.pack_struct_into_dictionary(fetched_struct)
+                    node = pwndbg.aglib.memory.pack_struct_into_dictionary(fetched_struct)
 
                     leaf0: int = node["child"]["repr"]  # type: ignore[index]
                     if leaf0 == 0:
@@ -349,11 +345,11 @@ class RTree:
                     # level 1
                     for j in range(max_subkeys):
                         leaf_address = leaf0 + j * rtree_leaf_elm_s.sizeof
-                        # leaf = pwndbg.gdblib.memory.poi(rtree_leaf_elm_s, leaf)
-                        fetched_struct = pwndbg.gdblib.memory.get_typed_pointer_value(
+                        # leaf = pwndbg.aglib.memory.poi(rtree_leaf_elm_s, leaf)
+                        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
                             rtree_leaf_elm_s, leaf_address
                         )
-                        leaf = pwndbg.gdblib.memory.pack_struct_into_dictionary(fetched_struct)
+                        leaf = pwndbg.aglib.memory.pack_struct_into_dictionary(fetched_struct)
 
                         if (val := int(leaf["le_bits"]["repr"])) == 0:  # type: ignore[index, arg-type]
                             continue
@@ -389,7 +385,7 @@ class RTree:
 
                         self._extents.append(extent_tmp)
 
-            except gdb.MemoryError:
+            except pwndbg.dbg_mod.Error:
                 pass
 
         return self._extents
@@ -409,8 +405,7 @@ class Extent:
         self._addr = addr
 
         # fetch_struct_as_dictionary does not support union currently
-        edata_s = pwndbg.gdblib.typeinfo.load("struct edata_s")
-        self._Value = gdb.Value(self._addr).cast(edata_s.pointer()).dereference()
+        self._Value = pwndbg.aglib.memory.get_typed_pointer_value("struct edata_s", self._addr)
 
         self._bitfields = None
 
