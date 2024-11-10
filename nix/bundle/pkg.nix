@@ -16,7 +16,8 @@ let
     {
       drv ? null,
       config ? "nfpm.yaml",
-      packager ? null, # apk|deb|rpm|archlinux
+      packager ? null,
+      # apk|deb|rpm|archlinux
       preremove ? null,
       ...
     }@attrs:
