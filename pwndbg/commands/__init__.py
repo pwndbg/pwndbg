@@ -734,6 +734,7 @@ def load_commands() -> None:
         import pwndbg.commands.tls
         import pwndbg.commands.version
 
+    import pwndbg.commands.addressify
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
