@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pwndbg.lib.common import hex2ptr_common
 
 
@@ -9,16 +11,10 @@ def test_hex2ptr_common_valid_hex():
 
 
 def test_hex2ptr_common_invalid_hex():
-    try:
+    # Test for odd-length hex string
+    with pytest.raises(ValueError, match="Hex string must contain an even number of characters."):
         hex2ptr_common("12345")
-    except ValueError:
-        pass
-    else:
-        assert False, "Expected ValueError for odd-length hex string"
 
-    try:
+    # Test for invalid hex characters
+    with pytest.raises(ValueError, match="Invalid hex string"):
         hex2ptr_common("zz zz zz")
-    except ValueError:
-        pass
-    else:
-        assert False, "Expected ValueError for invalid hex characters"
