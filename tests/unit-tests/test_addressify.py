@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-
 from pwndbg.lib.common import addressify_common
-
-# import gdb
 
 
 def test_addressify_common_valid_hex():
