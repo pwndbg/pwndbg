@@ -21,10 +21,6 @@ GO              =	   go
 SOURCES_GO      =	   $(wildcard *.go)
 COMPILED_GO     =	   $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
 
-ifndef JEMALLOC_PATH
-JEMALLOC_PATH = /usr/local/lib/libjemalloc.a
-endif
-
 ifeq ($(TARGET), x86)
 CFLAGS		  +=	  -m32
 endif
