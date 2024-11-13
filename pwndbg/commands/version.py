@@ -175,12 +175,16 @@ If it is somehow unavailable, use:
     charset_info = sys.getdefaultencoding()
     current_setup += f"Charset: {charset_info}\n"
 
-    # 8. showing width
-    width_info = os.get_terminal_size().columns
-    current_setup += f"Width: {width_info}\n"
+    # 8. showing width, height
+    try:
+        width_info = os.get_terminal_size().columns
+        height_info = os.get_terminal_size().lines
+    except OSError:
+        # Terminal size may not be available in non-interactive environments (e.g., scripts, IDEs)
+        width_info = "no terminal size"
+        height_info = "no terminal size"
 
-    # 9. showing height
-    height_info = os.get_terminal_size().lines
+    current_setup += f"Width: {width_info}\n"
     current_setup += f"Height: {height_info}\n"
 
     current_setup += "\n".join(all_info)
@@ -248,7 +252,6 @@ If it is somehow unavailable, use:
                 check_call(["gh", "issue", "create", "--body-file", f.name])
         except Exception:
             print(please_please_submit + github_issue_url)
-            raise
     elif run_browser:
         try:
             check_output(["xdg-open", github_issue_url + github_issue_body])

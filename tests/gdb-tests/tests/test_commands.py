@@ -50,8 +50,8 @@ if should_skip_test:
 @pytest.mark.xfail(reason="flaky test")
 def test_commands(start_binary, name):
     print("Running command", name)
+    start_binary(BINARY)
     try:
-        start_binary(BINARY)
         gdb.execute(name)
     except gdb.error as e:
         ignore = False
