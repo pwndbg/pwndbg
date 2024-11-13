@@ -5,11 +5,10 @@ import re
 import gdb
 import pytest
 
-import pwndbg
 import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.gdblib.symbol
+import pwndbg.dbg
 import tests
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
@@ -158,7 +157,7 @@ def test_malloc_chunk_command(start_binary):
     gdb.execute("continue")
 
     # Print main thread's chunk from another thread
-    assert gdb.selected_thread().num == 2
+    assert pwndbg.dbg.selected_thread().index() == 2
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
@@ -183,7 +182,7 @@ def test_malloc_chunk_command(start_binary):
 
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
-    assert gdb.selected_thread().num == 1
+    assert pwndbg.dbg.selected_thread().index() == 1
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
 
@@ -211,7 +210,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
     gdb.execute("continue")
 
     # Print main thread's chunk from another thread
-    assert gdb.selected_thread().num == 2
+    assert pwndbg.dbg.selected_thread().index() == 2
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
@@ -235,7 +234,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
 
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
-    assert gdb.selected_thread().num == 1
+    assert pwndbg.dbg.selected_thread().index() == 1
     results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
 
@@ -281,14 +280,11 @@ class mock_for_heuristic:
             mock_symbols  # every symbol's address in the list will be mocked to `None`
         )
         self.mock_all = mock_all  # all symbols will be mocked to `None`
-        # Save `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address` before mocking
-        self.saved_address_func = pwndbg.gdblib.symbol.address
-        self.saved_static_linkage_symbol_address_func = (
-            pwndbg.gdblib.symbol.static_linkage_symbol_address
-        )
+        # Save `selected_inferior` before mocking
+        self.saved_func = pwndbg.dbg.selected_inferior
 
     def __enter__(self):
-        def mock(original):
+        def mock_symbol_address_from_name(original):
             def _mock(symbol, *args, **kwargs):
                 if self.mock_all:
                     return None
@@ -299,18 +295,22 @@ class mock_for_heuristic:
 
             return _mock
 
-        # Mock `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
-        pwndbg.gdblib.symbol.address = mock(pwndbg.gdblib.symbol.address)
-        pwndbg.gdblib.symbol.static_linkage_symbol_address = mock(
-            pwndbg.gdblib.symbol.static_linkage_symbol_address
-        )
+        def mock_interior(original):
+            def _mock(*args, **kwargs):
+                inst = original(*args, **kwargs)
+                inst.symbol_address_from_name = mock_symbol_address_from_name(
+                    inst.symbol_address_from_name
+                )
+                return inst
+
+            return _mock
+
+        # Mock `symbol_address_from_name` from `selected_inferior`
+        pwndbg.dbg.selected_inferior = mock_interior(pwndbg.dbg.selected_inferior)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Restore `pwndbg.gdblib.symbol.address` and `pwndbg.gdblib.symbol.static_linkage_symbol_address`
-        pwndbg.gdblib.symbol.address = self.saved_address_func
-        pwndbg.gdblib.symbol.static_linkage_symbol_address = (
-            self.saved_static_linkage_symbol_address_func
-        )
+        # Restore `selected_inferior`
+        pwndbg.dbg.selected_inferior = self.saved_func
 
 
 def test_main_arena_heuristic(start_binary):
@@ -320,9 +320,9 @@ def test_main_arena_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to get the address of `main_arena`
-    main_arena_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-        "main_arena"
-    ) or pwndbg.gdblib.symbol.address("main_arena")
+    main_arena_addr_via_debug_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "main_arena", prefer_static=True
+    )
 
     # Check if we can get the address of `main_arena` from debug symbols and the struct of `main_arena` is correct
     assert pwndbg.aglib.heap.current.main_arena is not None
@@ -349,9 +349,9 @@ def test_mp_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to get the address of `mp_`
-    mp_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-        "mp_"
-    ) or pwndbg.gdblib.symbol.address("mp_")
+    mp_addr_via_debug_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "mp_", prefer_static=True
+    )
 
     # Check if we can get the address of `mp_` from debug symbols and the struct of `mp_` is correct
     assert pwndbg.aglib.heap.current.mp is not None
@@ -382,12 +382,12 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
     gdb.execute("continue")
     if is_multi_threaded:
         gdb.execute("continue")
-        assert gdb.selected_thread().num == 2
+        assert pwndbg.dbg.selected_thread().index() == 2
 
     # Use the debug symbol to find the address of `thread_cache`
-    tcache_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-        "tcache"
-    ) or pwndbg.gdblib.symbol.address("tcache")
+    tcache_addr_via_debug_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "tcache", prefer_static=True
+    )
     thread_cache_addr_via_debug_symbol = pwndbg.aglib.memory.u(tcache_addr_via_debug_symbol)
 
     # Check if we can get the address of `thread_cache` from debug symbols and the struct of `thread_cache` is correct
@@ -426,12 +426,12 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     gdb.execute("continue")
     if is_multi_threaded:
         gdb.execute("continue")
-        assert gdb.selected_thread().num == 2
+        assert pwndbg.dbg.selected_thread().index() == 2
 
     # Use the debug symbol to find the value of `thread_arena`
-    thread_arena_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-        "thread_arena"
-    ) or pwndbg.gdblib.symbol.address("thread_arena")
+    thread_arena_via_debug_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "thread_arena", prefer_static=True
+    )
     assert thread_arena_via_debug_symbol is not None
     thread_arena_via_debug_symbol = pwndbg.aglib.memory.u(thread_arena_via_debug_symbol)
     assert thread_arena_via_debug_symbol > 0
@@ -459,9 +459,9 @@ def test_global_max_fast_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to find the address of `global_max_fast`
-    global_max_fast_addr_via_debug_symbol = pwndbg.gdblib.symbol.static_linkage_symbol_address(
-        "global_max_fast"
-    ) or pwndbg.gdblib.symbol.address("global_max_fast")
+    global_max_fast_addr_via_debug_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "global_max_fast", prefer_static=True
+    )
     assert global_max_fast_addr_via_debug_symbol is not None
 
     # Check if we can get the address of `global_max_fast` from debug symbols and the value of `global_max_fast` is correct
@@ -488,7 +488,7 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
     gdb.execute("continue")
     if is_multi_threaded:
         gdb.execute("continue")
-        assert gdb.selected_thread().num == 2
+        assert pwndbg.dbg.selected_thread().index() == 2
 
     def _test_heuristic_fail_gracefully(name):
         try:

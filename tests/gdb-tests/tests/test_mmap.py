@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
+import pwndbg.lib.memory
 import tests
 
 USE_FDS_BINARY = tests.binaries.get("use-fds.out")
@@ -29,7 +32,7 @@ def test_mmap_executes_properly(start_binary):
 
     # Checks whether permissions match.
     def has_correct_perms(ptr, perm):
-        page = pwndbg.gdblib.vmmap.find(ptr)
+        page = pwndbg.aglib.vmmap.find(ptr)
         return (
             not (page.read ^ ("r" in perm))
             and not (page.write ^ ("w" in perm))
@@ -46,7 +49,7 @@ def test_mmap_executes_properly(start_binary):
     # Check basic fixed mapping.
     base_addr = 0xDEADBEEF & pwndbg.lib.memory.PAGE_MASK
     while True:
-        page = pwndbg.gdblib.vmmap.find(base_addr)
+        page = pwndbg.aglib.vmmap.find(base_addr)
         if page is None:
             break
         base_addr = page.end
@@ -75,8 +78,8 @@ def test_mmap_executes_properly(start_binary):
     # the first 16 bytes present in our newly created memory map, and compare
     # them.
     data_ptr = int(gdb.newest_frame().read_var("buf").address)
-    data_local = pwndbg.gdblib.memory.read(data_ptr, 16)
-    data_mapped = pwndbg.gdblib.memory.read(ptr, 16)
+    data_local = pwndbg.aglib.memory.read(data_ptr, 16)
+    data_mapped = pwndbg.aglib.memory.read(ptr, 16)
     assert data_local == data_mapped
 
 

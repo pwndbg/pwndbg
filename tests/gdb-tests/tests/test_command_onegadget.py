@@ -5,7 +5,6 @@ from unittest.mock import patch
 import gdb
 import pytest
 
-import pwndbg.gdblib.onegadget
 import pwndbg.glibc
 import tests
 

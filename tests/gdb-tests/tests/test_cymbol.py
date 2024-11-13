@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import os
 
-import pwndbg.commands.cymbol
-import pwndbg.gdblib.dt
+import pwndbg.dbg
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.commands.cymbol
+    import pwndbg.gdblib.dt
+
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")

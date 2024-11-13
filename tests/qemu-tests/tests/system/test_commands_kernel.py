@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.dbg
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.gdblib.kernel
+    import pwndbg.gdblib.kernel.slab
 
 
 def test_command_kchecksec():

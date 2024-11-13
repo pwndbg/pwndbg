@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.color
 
 ARM_GRACEFUL_EXIT = """
 mov r0, 0

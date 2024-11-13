@@ -7,7 +7,6 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg.gdblib.info
 import pwndbg.glibc
 import tests
 
@@ -27,7 +26,7 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     gdb.execute("break break_here")
     gdb.execute("continue")
     if not have_debugging_information:
-        assert "(*)" in pwndbg.gdblib.info.sharedlibrary()
+        assert "(*)" in gdb.execute("info sharedlibrary", to_string=True)
     libc_path = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     assert libc_path is not None
 
@@ -44,7 +43,7 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
             gdb.execute("continue")
             # Check if we can find the libc loaded by LD_PRELOAD
             if not have_debugging_information:
-                assert "(*)" in pwndbg.gdblib.info.sharedlibrary()
+                assert "(*)" in gdb.execute("info sharedlibrary", to_string=True)
             assert pwndbg.glibc.get_libc_filename_from_info_sharedlibrary() == test_libc_path
 
         # Unfortunatly, if we used LD_PRELOAD to load libc, we might cannot find the libc's filename

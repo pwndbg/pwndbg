@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.color
 
 MIPS_GRACEFUL_EXIT = """
 li $v0, 0xfa1

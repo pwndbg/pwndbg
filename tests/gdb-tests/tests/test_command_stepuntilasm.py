@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.gdblib
+import pwndbg.aglib.regs
 import tests
 
 STEPUNTILASM_X64_BINARY = tests.binaries.get("stepuntilasm_x64.out")
@@ -22,4 +22,4 @@ def test_command_untilasm_x64(start_binary):
 def run_and_verify(stop_label, asm):
     gdb.execute(f"stepuntilasm {asm}")
     address = int(gdb.parse_and_eval(f"&{stop_label}"))
-    assert pwndbg.gdblib.regs.pc == address
+    assert pwndbg.aglib.regs.pc == address

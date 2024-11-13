@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.aglib.proc
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
@@ -37,10 +37,10 @@ def test_command_ignore_breakpoint_last_found_one():
     assert out == "Will ignore next 1 crossings of breakpoint 1.\n"
 
     gdb.execute("run")
-    assert not pwndbg.gdblib.proc.alive
+    assert not pwndbg.aglib.proc.alive
 
     gdb.execute("run")
-    assert pwndbg.gdblib.proc.alive
+    assert pwndbg.aglib.proc.alive
 
 
 def test_command_ignore_breakpoint_last_found_two():

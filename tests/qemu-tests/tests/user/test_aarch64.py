@@ -5,8 +5,8 @@ import user
 from capstone.arm64_const import ARM64_INS_BL
 
 import pwndbg.aglib.disasm
-import pwndbg.gdblib.nearpc
-import pwndbg.gdblib.symbol
+import pwndbg.aglib.nearpc
+import pwndbg.dbg
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
 AARCH64_GRACEFUL_EXIT = """
@@ -89,7 +89,7 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
     qemu_assembly_run(AARCH64_GRACEFUL_EXIT, "aarch64")
 
     instructions = pwndbg.aglib.disasm.near(
-        address=pwndbg.gdblib.regs.pc, instructions=3, emulate=True
+        address=pwndbg.aglib.regs.pc, instructions=3, emulate=True
     )[0]
     future_syscall_ins = instructions[2]
 
@@ -436,7 +436,7 @@ REFERENCE_BINARY = user.binaries.get("reference-binary.aarch64.out")
 def test_aarch64_reference(qemu_start_binary):
     qemu_start_binary(REFERENCE_BINARY, "aarch64")
     gdb.execute("break break_here")
-    assert pwndbg.gdblib.symbol.address("main") is not None
+    assert pwndbg.dbg.selected_inferior().symbol_address_from_name("main") is not None
     gdb.execute("continue")
 
     gdb.execute("argv", to_string=True)

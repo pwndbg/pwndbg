@@ -6,7 +6,8 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.heap
 import tests
 
 HEAP_BINARY = tests.binaries.get("heap_bugs.out")

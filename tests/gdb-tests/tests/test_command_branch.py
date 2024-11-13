@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import pwndbg.gdblib
+import pwndbg.aglib.regs
 import tests
 
 CONDBR_X64_BINARY = tests.binaries.get("conditional_branch_breakpoints_x64.out")
@@ -35,4 +35,4 @@ def test_command_break_if_x64(start_binary, binary):
 def continue_and_test_pc(stop_label):
     gdb.execute("continue")
     address = int(gdb.parse_and_eval(f"&{stop_label}"))
-    assert pwndbg.gdblib.regs.pc == address
+    assert pwndbg.aglib.regs.pc == address

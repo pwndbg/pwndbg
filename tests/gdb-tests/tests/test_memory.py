@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.stack
+import pwndbg.aglib.memory
+import pwndbg.aglib.stack
+import pwndbg.dbg
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
@@ -15,24 +16,22 @@ def test_memory_read_write(start_binary):
     Tests simple pwndbg's memory read/write operations with different argument types
     """
     start_binary(REFERENCE_BINARY)
-    stack_addr = next(iter(pwndbg.gdblib.stack.get().values())).vaddr
+    stack_addr = next(iter(pwndbg.aglib.stack.get().values())).vaddr
 
     # Testing write(addr, str)
     val = "X" * 50
-    pwndbg.gdblib.memory.write(stack_addr, val)
-    assert pwndbg.gdblib.memory.read(stack_addr, len(val) + 1) == bytearray(b"X" * 50 + b"\x00")
+    pwndbg.aglib.memory.write(stack_addr, val)
+    assert pwndbg.aglib.memory.read(stack_addr, len(val) + 1) == bytearray(b"X" * 50 + b"\x00")
 
     # Testing write(addr, bytearray)
     val = bytearray("Y" * 10, "utf8")
-    pwndbg.gdblib.memory.write(stack_addr, val)
-    assert pwndbg.gdblib.memory.read(stack_addr, len(val) + 4) == val + bytearray(b"XXXX")
+    pwndbg.aglib.memory.write(stack_addr, val)
+    assert pwndbg.aglib.memory.read(stack_addr, len(val) + 4) == val + bytearray(b"XXXX")
 
     # Testing write(addr, bytes)
     val = bytes("Z" * 8, "utf8")
-    pwndbg.gdblib.memory.write(stack_addr, val)
-    assert pwndbg.gdblib.memory.read(stack_addr, len(val) + 4) == bytearray(
-        "Z" * 8 + "YYXX", "utf8"
-    )
+    pwndbg.aglib.memory.write(stack_addr, val)
+    assert pwndbg.aglib.memory.read(stack_addr, len(val) + 4) == bytearray("Z" * 8 + "YYXX", "utf8")
 
 
 def test_memory_peek_poke(start_binary):
@@ -46,23 +45,23 @@ def test_memory_peek_poke(start_binary):
 
     # Address 0 is not mapped, so peek should return None
     # and poke should fail
-    assert pwndbg.gdblib.memory.poke(0) is False
-    assert pwndbg.gdblib.memory.peek(0) is None
+    assert pwndbg.aglib.memory.poke(0) is False
+    assert pwndbg.aglib.memory.peek(0) is None
 
-    stack_addr = pwndbg.gdblib.regs.rsp
+    stack_addr = pwndbg.aglib.regs.rsp
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])
-        pwndbg.gdblib.memory.write(stack_addr, data)
+        pwndbg.aglib.memory.write(stack_addr, data)
 
         # peek should return the first byte
-        assert pwndbg.gdblib.memory.peek(stack_addr) == bytearray([v])
+        assert pwndbg.aglib.memory.peek(stack_addr) == bytearray([v])
 
         # Now poke it!
-        assert pwndbg.gdblib.memory.poke(stack_addr) is True
+        assert pwndbg.aglib.memory.poke(stack_addr) is True
 
         # Now make sure poke did not change the underlying bytes
-        assert pwndbg.gdblib.memory.read(stack_addr, 4) == data
+        assert pwndbg.aglib.memory.read(stack_addr, 4) == data
 
     # TODO/FIXME: Fix peek/poke exception handling and uncomment this!
     """
@@ -70,23 +69,23 @@ def test_memory_peek_poke(start_binary):
     # when incorrect argument type is passed
     for not_parsable_as_int in (b"asdf", "asdf"):
         with pytest.raises(ValueError):
-            pwndbg.gdblib.memory.peek(not_parsable_as_int)
+            pwndbg.aglib.memory.peek(not_parsable_as_int)
 
     for not_parsable_as_int in (b"asdf", "asdf"):
         with pytest.raises(ValueError):
-            pwndbg.gdblib.memory.poke(not_parsable_as_int)
+            pwndbg.aglib.memory.poke(not_parsable_as_int)
     """
 
     # Acceptable inputs (not great; maybe we should ban them?)
     # Note: they return 0 because the address 0 is not mapped
-    assert pwndbg.gdblib.memory.peek(0.0) is None
-    assert pwndbg.gdblib.memory.peek("0") is None
-    assert pwndbg.gdblib.memory.peek(b"0") is None
+    assert pwndbg.aglib.memory.peek(0.0) is None
+    assert pwndbg.aglib.memory.peek("0") is None
+    assert pwndbg.aglib.memory.peek(b"0") is None
 
 
 def test_fetch_struct_as_dictionary(start_binary):
     """
-    Test pwndbg.gdblib.memory.fetch_struct_as_dictionary()
+    Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
     Ensure it can handle nested structs, anonymous structs & nested typedefs.
     """
     start_binary(NESTED_STRUCTS_BINARY)
@@ -103,17 +102,17 @@ def test_fetch_struct_as_dictionary(start_binary):
         "outer_z": 5,
     }
 
-    struct_address = pwndbg.gdblib.symbol.address("outer")
+    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
     assert struct_address is not None
 
-    result = pwndbg.gdblib.memory.fetch_struct_as_dictionary("outer_struct", struct_address)
+    result = pwndbg.aglib.memory.fetch_struct_as_dictionary("outer_struct", struct_address)
 
     assert result == expected_result
 
 
 def test_fetch_struct_as_dictionary_include_filter(start_binary):
     """
-    Test pwndbg.gdblib.memory.fetch_struct_as_dictionary()
+    Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
     Ensure its include_only_fields filter works.
     """
     start_binary(NESTED_STRUCTS_BINARY)
@@ -127,10 +126,10 @@ def test_fetch_struct_as_dictionary_include_filter(start_binary):
         "anonymous_nested": 100,
     }
 
-    struct_address = pwndbg.gdblib.symbol.address("outer")
+    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
     assert struct_address is not None
 
-    result = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+    result = pwndbg.aglib.memory.fetch_struct_as_dictionary(
         "outer_struct",
         struct_address,
         include_only_fields={"outer_x", "inner", "anonymous_k", "anonymous_nested"},
@@ -141,7 +140,7 @@ def test_fetch_struct_as_dictionary_include_filter(start_binary):
 
 def test_fetch_struct_as_dictionary_exclude_filter(start_binary):
     """
-    Test pwndbg.gdblib.memory.fetch_struct_as_dictionary()
+    Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
     Ensure its exclude_fields filter works.
     Note that the exclude filter cannot filter fields of anonymous structs.
     """
@@ -156,10 +155,10 @@ def test_fetch_struct_as_dictionary_exclude_filter(start_binary):
         "anonymous_nested": 100,
     }
 
-    struct_address = pwndbg.gdblib.symbol.address("outer")
+    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
     assert struct_address is not None
 
-    result = pwndbg.gdblib.memory.fetch_struct_as_dictionary(
+    result = pwndbg.aglib.memory.fetch_struct_as_dictionary(
         "outer_struct",
         struct_address,
         exclude_fields={"outer_x", "inner", "outer_z"},

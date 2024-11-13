@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
 import pwndbg.color.message
-import pwndbg.gdblib.proc
 import tests
 
 BINARY = tests.binaries.get("reference-binary.out")

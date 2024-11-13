@@ -4,9 +4,9 @@ import gdb
 import pytest
 
 import pwndbg.aglib.heap
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.vmmap
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
+import pwndbg.dbg
 import tests
 from pwndbg.aglib.heap.ptmalloc import BinType
 
@@ -25,22 +25,22 @@ def test_heap_bins(start_binary):
     gdb.execute("continue")
     allocator = pwndbg.aglib.heap.current
 
-    addr = pwndbg.gdblib.symbol.address("tcache_size")
-    tcache_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
-    addr = pwndbg.gdblib.symbol.address("tcache_count")
-    tcache_count = pwndbg.gdblib.memory.u64(addr)
-    addr = pwndbg.gdblib.symbol.address("fastbin_size")
-    fastbin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
-    addr = pwndbg.gdblib.symbol.address("fastbin_count")
-    fastbin_count = pwndbg.gdblib.memory.u64(addr)
-    addr = pwndbg.gdblib.symbol.address("smallbin_size")
-    smallbin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
-    addr = pwndbg.gdblib.symbol.address("smallbin_count")
-    smallbin_count = pwndbg.gdblib.memory.u64(addr)
-    addr = pwndbg.gdblib.symbol.address("largebin_size")
-    largebin_size = allocator._request2size(pwndbg.gdblib.memory.u64(addr))
-    addr = pwndbg.gdblib.symbol.address("largebin_count")
-    largebin_count = pwndbg.gdblib.memory.u64(addr)
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("tcache_size")
+    tcache_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("tcache_count")
+    tcache_count = pwndbg.aglib.memory.u64(addr)
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("fastbin_size")
+    fastbin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("fastbin_count")
+    fastbin_count = pwndbg.aglib.memory.u64(addr)
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("smallbin_size")
+    smallbin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("smallbin_count")
+    smallbin_count = pwndbg.aglib.memory.u64(addr)
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("largebin_size")
+    largebin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
+    addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("largebin_count")
+    largebin_count = pwndbg.aglib.memory.u64(addr)
 
     result = allocator.tcachebins()
     assert result.bin_type == BinType.TCACHE
@@ -87,7 +87,7 @@ def test_heap_bins(start_binary):
         and len(result.bins[tcache_size].fd_chain) == tcache_count + 1
     )
     for addr in result.bins[tcache_size].fd_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
 
     # check fastbin
     gdb.execute("continue")
@@ -98,7 +98,7 @@ def test_heap_bins(start_binary):
         len(result.bins[fastbin_size].fd_chain) == fastbin_count + 1
     )
     for addr in result.bins[fastbin_size].fd_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
 
     # check unsortedbin
     gdb.execute("continue")
@@ -111,9 +111,9 @@ def test_heap_bins(start_binary):
     )
     assert not result.bins["all"].is_corrupted
     for addr in result.bins["all"].fd_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
     for addr in result.bins["all"].bk_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
 
     # check smallbins
     gdb.execute("continue")
@@ -126,9 +126,9 @@ def test_heap_bins(start_binary):
     )
     assert not result.bins[smallbin_size].is_corrupted
     for addr in result.bins[smallbin_size].fd_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
     for addr in result.bins[smallbin_size].bk_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
 
     # check largebins
     gdb.execute("continue")
@@ -141,9 +141,9 @@ def test_heap_bins(start_binary):
     )
     assert not result.bins[largebin_size].is_corrupted
     for addr in result.bins[largebin_size].fd_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
     for addr in result.bins[largebin_size].bk_chain[:-1]:
-        assert pwndbg.gdblib.vmmap.find(addr)
+        assert pwndbg.aglib.vmmap.find(addr)
 
     # check corrupted
     gdb.execute("continue")

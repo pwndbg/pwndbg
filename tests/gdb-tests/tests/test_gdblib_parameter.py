@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import pwndbg
+import pwndbg.dbg
 import pwndbg.lib.config
 
 
@@ -73,7 +73,10 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     )
 
     # Initialize and register param in GDB as if it would be done by gdblib.config.init_params
-    pwndbg.gdblib.config_mod.Parameter(param)
+    if pwndbg.dbg.is_gdblib_available():
+        from pwndbg.gdblib import config_mod as gdblib_config_mod
+
+        gdblib_config_mod.Parameter(param)
 
     out = gdb.execute(f"show {param_name}", to_string=True)
     assert (

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import pwndbg.gdblib.regs
+import pwndbg.aglib.regs
 import tests
-from pwndbg.gdblib.nearpc import nearpc
+from pwndbg.aglib.nearpc import nearpc
 
 EMULATE_DISASM_BINARY = tests.binaries.get("emulate_disasm.out")
 EMULATE_DISASM_LOOP_BINARY = tests.binaries.get("emulate_disasm_loop.out")
@@ -53,7 +53,7 @@ def test_emulate_disasm_loop(start_binary):
 
     disasm_with_emu_0x400080 = [
         " ► 0x400080 <_start>       movabs rsi, string                           RSI => 0x400094 (string) ◂— xor dword ptr [rdx], esi /* '12345' */",
-        f"   0x40008a <_start+10>    mov    rdi, rsp                              RDI => {hex(pwndbg.gdblib.regs.rsp)} ◂— 1",
+        f"   0x40008a <_start+10>    mov    rdi, rsp                              RDI => {hex(pwndbg.aglib.regs.rsp)} ◂— 1",
         "   0x40008d <_start+13>    mov    ecx, 3                                ECX => 3",
         "   0x400092 <_start+18>    rep movsb byte ptr [rdi], byte ptr [rsi]",
         "    ↓",

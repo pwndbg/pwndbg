@@ -3,11 +3,11 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import os
-import random
 import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 from subprocess import CompletedProcess
 from typing import List
 from typing import Tuple
@@ -15,7 +15,56 @@ from typing import Tuple
 root_dir = os.path.realpath("../")
 
 
-def ensureZigPath():
+def reserve_port(ip="127.0.0.1", port=0):
+    """
+    https://github.com/Yelp/ephemeral-port-reserve/blob/master/ephemeral_port_reserve.py
+
+    Bind to an ephemeral port, force it into the TIME_WAIT state, and unbind it.
+
+    This means that further ephemeral port alloctions won't pick this "reserved" port,
+    but subprocesses can still bind to it explicitly, given that they use SO_REUSEADDR.
+    By default on linux you have a grace period of 60 seconds to reuse this port.
+    To check your own particular value:
+    $ cat /proc/sys/net/ipv4/tcp_fin_timeout
+    60
+
+    By default, the port will be reserved for localhost (aka 127.0.0.1).
+    To reserve a port for a different ip, provide the ip as the first argument.
+    Note that IP 0.0.0.0 is interpreted as localhost.
+    """
+    import contextlib
+    import errno
+    from socket import SO_REUSEADDR
+    from socket import SOL_SOCKET
+    from socket import error as SocketError
+    from socket import socket
+
+    port = int(port)
+    with contextlib.closing(socket()) as s:
+        s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        try:
+            s.bind((ip, port))
+        except SocketError as e:
+            # socket.error: EADDRINUSE Address already in use
+            if e.errno == errno.EADDRINUSE and port != 0:
+                s.bind((ip, 0))
+            else:
+                raise
+
+        # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
+        s.listen(1)
+
+        sockname = s.getsockname()
+
+        # these three are necessary just to get the port into a TIME_WAIT state
+        with contextlib.closing(socket()) as s2:
+            s2.connect(sockname)
+            sock, _ = s.accept()
+            with contextlib.closing(sock):
+                return sockname[1]
+
+
+def ensure_zig_path():
     if "ZIGPATH" not in os.environ:
         # If ZIGPATH is not set, set it to $pwd/.zig
         # In Docker environment this should by default be set to /opt/zig
@@ -23,39 +72,15 @@ def ensureZigPath():
     print(f'ZIGPATH set to {os.environ["ZIGPATH"]}')
 
 
-def makeBinaries():
+def make_binaries(test_dir: str):
+    dir_binaries = Path(test_dir) / "binaries"
+    if not dir_binaries.exists():
+        return
+
     try:
-        subprocess.check_call(["make", "all"], cwd="./gdb-tests/tests/binaries")
+        subprocess.check_call(["make", "all"], cwd=str(dir_binaries))
     except subprocess.CalledProcessError:
         exit(1)
-
-
-def makeCrossArchBinaries():
-    try:
-        subprocess.check_call(["make", "all"], cwd="./qemu-tests/tests/user/binaries")
-    except subprocess.CalledProcessError:
-        exit(1)
-
-
-def open_ports(n: int) -> List[int]:
-    """
-    Returns a list of `n` open ports
-    """
-    try:
-        result = subprocess.run(
-            ["netstat", "-tuln"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        if result.returncode != 0:
-            # If netstat not found, try ss
-            raise FileNotFoundError
-    except FileNotFoundError:
-        result = subprocess.run(["ss", "-tuln"], stdout=subprocess.PIPE)
-
-    used_ports = set(re.findall(r":(\d+)", result.stdout.decode()))
-    used_ports = set(map(int, used_ports))
-
-    available_ports = [port for port in range(1024, 65536) if port not in used_ports]
-    return random.sample(available_ports, n)
 
 
 def run_gdb(
@@ -70,7 +95,7 @@ def run_gdb(
     )
 
 
-def getTestsList(
+def get_tests_list(
     collect_only: bool,
     test_name_filter: str,
     gdb_binary: str,
@@ -174,12 +199,9 @@ def run_tests_and_print_stats(
     test_results: List[Tuple[CompletedProcess[str], str]] = []
     stats = TestStats()
 
-    port_iterator = iter(ports)
-
     if args.serial:
         test_results = [
-            run_test(test, args, gdb_binary, gdbinit_path, next(port_iterator, None))
-            for test in tests_list
+            run_test(test, args, gdb_binary, gdbinit_path, reserve_port()) for test in tests_list
         ]
     else:
         print("")
@@ -187,7 +209,7 @@ def run_tests_and_print_stats(
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
                 executor.submit(
-                    run_test, test, args, gdb_binary, gdbinit_path, next(port_iterator, None)
+                    run_test, test, args, gdb_binary, gdbinit_path, reserve_port()
                 ).add_done_callback(
                     lambda future: stats.handle_test_result(future.result(), args, test_dir_path)
                 )
@@ -253,9 +275,13 @@ def parse_args():
     return parser.parse_args()
 
 
-TEST_FOLDER_NAME = {"gdb": "gdb-tests/tests", "cross-arch": "qemu-tests/tests/user"}
+TEST_FOLDER_NAME = {
+    "gdb": "gdb-tests/tests",
+    "cross-arch": "qemu-tests/tests/user",
+}
 
-if __name__ == "__main__":
+
+def main():
     args = parse_args()
     if args.cov:
         print("Will run codecov")
@@ -271,18 +297,23 @@ if __name__ == "__main__":
     else:
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
 
-    gdb_binary = "gdb"
+    test_dir_path = TEST_FOLDER_NAME[args.type]
 
     if args.type == "gdb":
-        ensureZigPath()
-        makeBinaries()
-    else:
-        makeCrossArchBinaries()
+        gdb_binary = "gdb"
+        ensure_zig_path()
+        make_binaries(test_dir_path)
+    elif args.type == "cross-arch":
         gdb_binary = "gdb-multiarch"
+        make_binaries(test_dir_path)
+    else:
+        raise NotImplementedError(args.type)
 
-    test_dir_path = TEST_FOLDER_NAME[args.type]
-    tests_list = getTestsList(
+    tests_list = get_tests_list(
         args.collect_only, args.test_name_filter, gdb_binary, gdbinit_path, test_dir_path
     )
-    ports = open_ports(len(tests_list))
-    run_tests_and_print_stats(tests_list, args, gdb_binary, gdbinit_path, test_dir_path, ports)
+    run_tests_and_print_stats(tests_list, args, gdb_binary, gdbinit_path, test_dir_path)
+
+
+if __name__ == "__main__":
+    main()

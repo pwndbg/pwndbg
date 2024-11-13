@@ -4,9 +4,9 @@ import gdb
 from pwnlib.util.cyclic import cyclic
 
 import pwndbg
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.vmmap
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import tests
 
 BINARY = tests.binaries.get("reference-binary.out")
@@ -16,7 +16,7 @@ def run_tests(stack, use_big_endian, expected):
     pwndbg.config.hexdump_group_use_big_endian = use_big_endian
 
     # Put some data onto the stack
-    pwndbg.gdblib.memory.write(stack, cyclic(0x100))
+    pwndbg.aglib.memory.write(stack, cyclic(0x100))
 
     # Test empty hexdump
     result = gdb.execute("hexdump 0", to_string=True)
@@ -39,7 +39,7 @@ def test_hexdump(start_binary):
 
     # TODO: Setting theme options with Python isn't working
     gdb.execute("set hexdump-byte-separator")
-    stack_addr = pwndbg.gdblib.regs.rsp - 0x100
+    stack_addr = pwndbg.aglib.regs.rsp - 0x100
 
     expected = [
         f"""+0000 0x{stack_addr:x}  6161616261616161 6161616461616163 │aaaabaaa│caaadaaa│
@@ -62,9 +62,9 @@ def test_hexdump(start_binary):
 
 def test_hexdump_collapse_lines(start_binary):
     start_binary(BINARY)
-    sp = pwndbg.gdblib.regs.rsp
+    sp = pwndbg.aglib.regs.rsp
 
-    pwndbg.gdblib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
+    pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
     def hexdump_lines(lines):
         offset = (lines - 1) * 0x10  # last line offset
@@ -88,11 +88,11 @@ def test_hexdump_saved_address_and_offset(start_binary):
     # TODO There is no way to verify repetition: the last_address and offset are reset
     # before each command
     start_binary(BINARY)
-    sp = pwndbg.gdblib.regs.rsp
+    sp = pwndbg.aglib.regs.rsp
 
     SIZE = 21
 
-    pwndbg.gdblib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
+    pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
     out1 = gdb.execute(f"hexdump $rsp {SIZE}", to_string=True)
     out2 = (

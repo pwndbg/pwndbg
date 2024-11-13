@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg
+import pwndbg.dbg
 import tests
 
 MANGLING_BINARY = tests.binaries.get("symbol_1600_and_752.out")
@@ -20,7 +20,7 @@ def test_symbol_get(start_binary):
         # (we pass `to_string=True` to suppress the context output)
         gdb.execute("nextret", to_string=True)
         p = int(gdb.parse_and_eval("p"))
-        return pwndbg.gdblib.symbol.get(p)
+        return pwndbg.dbg.selected_inferior().symbol_name_at_address(p)
 
     assert get_next_ptr() == "main"
 
@@ -42,7 +42,7 @@ def test_symbol_duplicated_symbols_issue_1610():
 
     # Sanity checks
     assert gdb.execute("info symbol main", to_string=True) == "main in section .text\n"
-    assert pwndbg.gdblib.symbol.get(main_addr) == "main"
+    assert pwndbg.dbg.selected_inferior().symbol_name_at_address(main_addr) == "main"
 
     # This causes some confusion, see below :)
     # Note: {addr} argument is needed for old GDB (e.g. on Ubuntu 18.04)
@@ -60,10 +60,13 @@ def test_symbol_duplicated_symbols_issue_1610():
     assert out[2] == ""
 
     # Make sure to clear cache!
-    pwndbg.gdblib.symbol.get.cache.clear()
+    if pwndbg.dbg.is_gdblib_available():
+        from pwndbg.gdblib.symbol import get as symbol_get
+
+        symbol_get.cache.clear()
 
     # Real test assert - this should not crash!
-    assert pwndbg.gdblib.symbol.get(main_addr) == "main"
+    assert pwndbg.dbg.selected_inferior().symbol_name_at_address(main_addr) == "main"
 
 
 def _get_section_addr(sect):

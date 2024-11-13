@@ -4,7 +4,10 @@ import re
 
 import gdb
 
-import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.heap
+import pwndbg.aglib.memory
+import pwndbg.dbg
 import tests
 
 HEAP_FIND_FAKE_FAST = tests.binaries.get("heap_find_fake_fast.out")
@@ -51,12 +54,12 @@ def test_find_fake_fast_command(start_binary):
     unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(
         int(gdb.lookup_global_symbol("fake_chunk").value())
     )
-    assert pwndbg.gdblib.memory.peek(unmapped_heap_info) is None
+    assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145
     gdb.execute("find_fake_fast fake_chunk+0x80")
 
-    target_address = pwndbg.gdblib.symbol.address("target_address")
+    target_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("target_address")
     assert target_address is not None
     print(hex(target_address))
 
