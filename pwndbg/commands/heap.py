@@ -1639,11 +1639,18 @@ def jemalloc_heap() -> None:
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
     print()
 
-    rtree = jemalloc.RTree.get_rtree()
+    try:
+        rtree = jemalloc.RTree.get_rtree()
+    except pwndbg.dbg_mod.Error as what:
+        # Fixes test_commands[jemalloc_heap] test case
+        print(message.warn(f"{what}"))
+        return
+
     extents = rtree.extents
     if len(extents) == 0:
         print(message.warn("No extents found"))
         return
+
     for extent in extents:
         # TODO: refactor so not create copies
         jemalloc_extent_info(extent.extent_address, header=False)
