@@ -734,7 +734,6 @@ def load_commands() -> None:
         import pwndbg.commands.tls
         import pwndbg.commands.version
 
-    import pwndbg.commands.addressify
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -748,6 +747,7 @@ def load_commands() -> None:
     import pwndbg.commands.elf
     import pwndbg.commands.flags
     import pwndbg.commands.heap
+    import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
     import pwndbg.commands.leakfind
     import pwndbg.commands.mmap

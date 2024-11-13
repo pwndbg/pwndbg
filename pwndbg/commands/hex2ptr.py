@@ -5,11 +5,10 @@ import argparse
 import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.common import addressify_common
+from pwndbg.lib.common import hex2ptr_common
 
 # Define an argument parser for the command
 parser = argparse.ArgumentParser(
-    prog="addressify",
     description="Converts a space-separated hex string to a little-endian address.",
 )
 parser.add_argument(
@@ -17,12 +16,11 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="addressify", category=CommandCategory.MISC)
-def addressify(hex_string) -> None:
-    """Pwndbg command to convert hex string to little-endian address and print the result."""
+@pwndbg.commands.ArgparsedCommand(parser, command_name="hex2ptr", category=CommandCategory.MISC)
+def hex2ptr(hex_string) -> None:
     combined_args = hex_string.replace(" ", "")
     try:
-        result = addressify_common(combined_args)
+        result = hex2ptr_common(combined_args)
         print(M.success(f"{hex(result)}"))
     except Exception as e:
         print(M.error(str(e)))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 # common functions
-def addressify_common(arg: str) -> int:
+def hex2ptr_common(arg: str) -> int:
     """Converts a hex string to a little-endian integer address."""
     arg = "".join(filter(str.isalnum, arg))
     if len(arg) % 2 != 0:
