@@ -16,42 +16,87 @@ on:
       - '!*.md'
 
 jobs:
-  check_release_build-gdb-x86_64:
-    runs-on: ubuntu-latest
+  check_release_build-gdb:
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        os: [
+          ubuntu-latest,  # x86_64-linux
+          # ubuntu-arm,  # aarch64-linux, not public yet
+        ]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build pwndbg
-      run: nix build '.#pwndbg' -o result1
+      run: nix build '.#pwndbg' --accept-flake-config -o result
 
     - name: simple run pwndbg
-      run: ./result1/bin/pwndbg <<< 'exit'
+      run: ./result/bin/pwndbg <<< 'exit'
 
-  check_release_build-lldb-x86_64:
-    runs-on: ubuntu-latest
+    - name: configure cache
+      if: github.ref == 'refs/heads/dev'
+      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
+      with:
+        name: pwndbg
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+        skipPush: true
+
+    - name: upload cache
+      if: github.ref == 'refs/heads/dev'
+      run: cachix push -v pwndbg ./result
+
+  check_release_build-lldb:
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        os: [
+          ubuntu-latest,  # x86_64-linux
+          # ubuntu-arm,  # aarch64-linux, not public yet
+          macos-13,  # x86_64-darwin
+          macos-15,  # aarch64-darwin
+        ]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build pwndbg
-      run: nix build '.#pwndbg-lldb' -o result2
+      run: nix build '.#pwndbg-lldb' --accept-flake-config -o result
 
     - name: simple run pwndbg
-      run: ./result2/bin/pwndbg-lldb <<< 'exit'
+      run: ./result/bin/pwndbg-lldb <<< 'exit'
+
+    - name: configure cache
+      if: github.ref == 'refs/heads/dev'
+      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
+      with:
+        name: pwndbg
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+        skipPush: true
+
+    - name: upload cache
+      if: github.ref == 'refs/heads/dev'
+      run: cachix push -v pwndbg ./result
+
 
   lock_flake:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
@@ -63,7 +108,7 @@ jobs:
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac  # @v22
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
