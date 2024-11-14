@@ -32,14 +32,11 @@ let
     lib = pkgs.lib;
   };
 
-  pwndbgVersion = pkgs.lib.readFile (
-    pkgs.runCommand "pwndbgVersion" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-      mkdir pkg
-      cd pkg
-      cp ${inputs.pwndbg + "/pwndbg/lib/version.py"} version.py
-      python3 -c 'import version; print(version.__version__, end="")' > $out
-    ''
-  );
+  pwndbgVersion = let
+    versionFile = builtins.readFile "${inputs.pwndbg}/pwndbg/lib/version.py";
+    versionMatch = builtins.match ".*\n__version__ = \"([0-9]+.[0-9]+.[0-9]+)\".*" versionFile;
+    version = if versionMatch == null then "unknown" else (builtins.elemAt versionMatch 0);
+  in version;
 
   pwndbg =
     let
