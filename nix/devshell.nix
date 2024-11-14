@@ -26,26 +26,28 @@ let
       ;
     isDev = true;
   };
-  jemalloc-static = pkgs.jemalloc.overrideAttrs (finalAttrs: previousAttrs: {
-    version = "5.3.0"; # version match setup-dev.sh
-    src = pkgs.fetchurl {
-      url = "https://github.com/jemalloc/jemalloc/releases/download/${finalAttrs.version}/${finalAttrs.pname}-${finalAttrs.version}.tar.bz2";
-      sha256 = "sha256-LbgtHnEZ3z5xt2QCGbbf6EeJvAU3mDw7esT3GJrs/qo=";
-    };
-    configureFlags = (previousAttrs.configureFlags or [ ]) ++ [
-      "--enable-static"
-      "--disable-shared"
-    ];
-    # debug symbols currently required for jemalloc.py type resolution
-    preBuild = ''
-      makeFlagsArray+=(CFLAGS="-O0 -g")
-    '';
-    postInstall = ''
-      ${previousAttrs.postInstall or ""}
-      cp -v lib/libjemalloc.a $out/lib/
-    '';
-    dontStrip = true; # don't strip the debug symbols we added
-  });
+  jemalloc-static = pkgs.jemalloc.overrideAttrs (
+    finalAttrs: previousAttrs: {
+      version = "5.3.0"; # version match setup-dev.sh
+      src = pkgs.fetchurl {
+        url = "https://github.com/jemalloc/jemalloc/releases/download/${finalAttrs.version}/${finalAttrs.pname}-${finalAttrs.version}.tar.bz2";
+        sha256 = "sha256-LbgtHnEZ3z5xt2QCGbbf6EeJvAU3mDw7esT3GJrs/qo=";
+      };
+      configureFlags = (previousAttrs.configureFlags or [ ]) ++ [
+        "--enable-static"
+        "--disable-shared"
+      ];
+      # debug symbols currently required for jemalloc.py type resolution
+      preBuild = ''
+        makeFlagsArray+=(CFLAGS="-O0 -g")
+      '';
+      postInstall = ''
+        ${previousAttrs.postInstall or ""}
+        cp -v lib/libjemalloc.a $out/lib/
+      '';
+      dontStrip = true; # don't strip the debug symbols we added
+    }
+  );
 in
 {
   default = pkgs.mkShell {
