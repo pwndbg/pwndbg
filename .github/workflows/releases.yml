@@ -22,7 +22,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build pwndbg
-      run: nix build '.#pwndbg' -o result-pwndbg
+      run: nix build '.#pwndbg' --accept-flake-config -o result-pwndbg
 
     - name: build rpm
       run: nix build '.#rpm' -o dist-rpm
@@ -60,7 +60,7 @@ jobs:
 #        nix_path: nixpkgs=channel:nixos-unstable
 #
 #    - name: build pwndbg
-#      run: nix build '.#pwndbg' -o result-pwndbg
+#      run: nix build '.#pwndbg' --accept-flake-config -o result-pwndbg
 #
 #    - name: build rpm
 #      run: nix build '.#rpm' -o dist-rpm
