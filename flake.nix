@@ -41,6 +41,12 @@
       );
       pkgUtil = forAllSystems (system: import ./nix/bundle/pkg.nix { pkgs = pkgsBySystem.${system}; });
 
+      portableDrvLldb =
+        system:
+        import ./nix/portable.nix {
+          pkgs = pkgsBySystem.${system};
+          pwndbg = self.packages.${system}.pwndbg-lldb;
+        };
       portableDrv =
         system:
         import ./nix/portable.nix {
@@ -60,6 +66,7 @@
         );
       tarballDrv = system: {
         tarball = pkgUtil.${system}.buildPackageTarball { drv = portableDrv system; };
+        tarball-lldb = pkgUtil.${system}.buildPackageTarball { drv = portableDrvLldb system; };
       };
     in
     {
