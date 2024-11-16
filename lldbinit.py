@@ -142,8 +142,6 @@ def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False)
         update_deps(src_root, venv_path)
         fixup_paths(src_root, venv_path)
 
-    os.environ["PWNLIB_NOTERM"] = "1"
-
     import pwndbg  # noqa: F811
     import pwndbg.dbg.lldb
 
