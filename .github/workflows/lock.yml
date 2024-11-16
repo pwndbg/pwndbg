@@ -37,7 +37,7 @@ jobs:
       run: nix build '.#pwndbg' --accept-flake-config -o result
 
     - name: simple run pwndbg
-      run: ./result/bin/pwndbg <<< 'exit'
+      run: TERM=xterm-256color ./result/bin/pwndbg <<< 'exit'
 
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
@@ -75,7 +75,7 @@ jobs:
       run: nix build '.#pwndbg-lldb' --accept-flake-config -o result
 
     - name: simple run pwndbg
-      run: ./result/bin/pwndbg-lldb <<< 'exit'
+      run: TERM=xterm-256color ./result/bin/pwndbg-lldb <<< 'exit'
 
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
