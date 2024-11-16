@@ -22,11 +22,16 @@ let
     export LLDB_DEBUGSERVER_PATH="$dir/bin/lldb-server"
   '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
     export TERMINFO_DIRS=${pkgs.lib.concatStringsSep ":" [
-      # Fix issue https://github.com/pwndbg/pwndbg/issues/2531
+      # Fix issue Linux https://github.com/pwndbg/pwndbg/issues/2531
       "/etc/terminfo" # Debian, Fedora, Gentoo
       "/lib/terminfo" # Debian
       "/usr/share/terminfo" # upstream default, probably all FHS-based distros
       "/run/current-system/sw/share/terminfo" # NixOS
+    ]}
+  '' + pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+    export TERMINFO_DIRS=${pkgs.lib.concatStringsSep ":" [
+      # Fix issue Darwin https://github.com/pwndbg/pwndbg/issues/2531
+      "/usr/share/terminfo" # upstream default, probably all FHS-based distros
     ]}
   '' + ''
     export PYTHONHOME="$dir"
