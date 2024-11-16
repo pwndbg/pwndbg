@@ -163,7 +163,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def reg_write(self, name: str, val: int) -> bool:
-        if name not in pwndbg.aglib.regs.all:
+        if not (name in pwndbg.aglib.regs.all or name in ("pc",)):
             return False
 
         with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):

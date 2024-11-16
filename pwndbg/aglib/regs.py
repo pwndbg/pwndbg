@@ -127,7 +127,8 @@ class module(ModuleType):
         if attr in ("last", "previous"):
             super().__setattr__(attr, val)
         else:
-            pwndbg.dbg.selected_frame().reg_write(attr, int(val))
+            if not pwndbg.dbg.selected_frame().reg_write(attr, int(val)):
+                raise RuntimeError(f"Attempted to write to a non-existent register '{attr}'")
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
     def __getitem__(self, item: Any) -> int | None:

@@ -159,7 +159,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         # Writing to the PC using the normal register write flow causes the
         # inner object to be automatically invalidated by LLDB, so we have to
         # handle jumps manually using SBFrame::SetPC.
-        if name.lower() == reg_sets[pwndbg.aglib.arch.name].pc:
+        if name.lower() in (reg_sets[pwndbg.aglib.arch.name].pc, "pc"):
             return self.inner.SetPC(val)
 
         name = rename_register(name, self.proc)
