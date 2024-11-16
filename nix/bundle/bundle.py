@@ -281,7 +281,7 @@ def copy_with_symlink_normal(src_file_path: Path, root_dir_src: Path, root_dst_d
             # lib/python3.12/site-packages/lldb/_lldb.cpython-312-aarch64-linux-gnu.so -> ../../../liblldb.so.19.1.1
             # To avoid such issues, we check if the resolved file's parent directory
             # matches the parent directory of the source file.
-            if file_resolved.relative_to(root_dir_src).parent != src_file_path.parent:
+            if file_resolved.parent != src_file_path.parent:
                 is_allowed_symlink = False
 
         if is_allowed_symlink:
