@@ -5,6 +5,7 @@ from typing import List
 import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color.context as C
+import pwndbg.aglib.nearpc
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -80,7 +81,7 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 current_group = []
         else:
             if ins.syscall is not None:
-                asm += f" <{pwndbg.gdblib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
+                asm += f" <{pwndbg.aglib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
 
             # Padding the string for a nicer output
             # This path calculates the padding for each instruction - even if there we don't have annotations for it.
