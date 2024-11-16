@@ -16,32 +16,39 @@ let
       echo -n $(basename $(patchelf --print-interpreter "${gdb}/bin/gdb")) > $out
     ''
   );
-  ldLoader = if pkgs.stdenv.isDarwin then "" else "\"$dir/lib/${ldName}\"";
+  ldLoader = if pkgs.stdenv.isLinux then "\"$dir/lib/${ldName}\"" else "";
 
-  linuxLldbEnvs = pkgs.lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
+  commonEnvs = pkgs.lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
     export LLDB_DEBUGSERVER_PATH="$dir/bin/lldb-server"
+  '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+    export TERMINFO_DIRS=${pkgs.lib.concatStringsSep ":" [
+      # Fix issue https://github.com/pwndbg/pwndbg/issues/2531
+      "/etc/terminfo" # Debian, Fedora, Gentoo
+      "/lib/terminfo" # Debian
+      "/usr/share/terminfo" # upstream default, probably all FHS-based distros
+      "/run/current-system/sw/share/terminfo" # NixOS
+    ]}
+  '' + ''
+    export PYTHONHOME="$dir"
+    export PATH="$dir/bin/:$PATH"
   '';
+
   wrapperBinPwndbgGdbinit = pkgs.writeScript "pwndbg-wrapper-bin-gdbinit" ''
     #!/bin/sh
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
-    export PYTHONHOME="$dir"
-    export PATH="$dir/bin/:$PATH"
+    ${commonEnvs}
     exec ${ldLoader} "$dir/exe/gdb" --quiet --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
   '';
   wrapperBinPy = file: pkgs.writeScript "pwndbg-wrapper-bin-py" ''
     #!/bin/sh
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
-    export PYTHONHOME="$dir"
-    export PATH="$dir/bin/:$PATH"
-    ${linuxLldbEnvs}
+    ${commonEnvs}
     exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
   '';
   wrapperBin = file: pkgs.writeScript "pwndbg-wrapper-bin" ''
     #!/bin/sh
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
-    export PATH="$dir/bin/:$PATH"
-    export PYTHONHOME="$dir"
-    ${linuxLldbEnvs}
+    ${commonEnvs}
     exec ${ldLoader} "$dir/${file}" "$@"
   '';
   skipVenv = pkgs.writeScript "pwndbg-skip-venv" "";
