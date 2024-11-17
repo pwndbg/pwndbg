@@ -5,8 +5,8 @@ import logging
 
 import gdb
 
-import pwndbg.commands
 import pwndbg.aglib.memory
+import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel import per_cpu
 from pwndbg.gdblib.kernel.macros import for_each_entry

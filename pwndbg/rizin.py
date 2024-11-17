@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import pwndbg.dbg
 import pwndbg.aglib.elf
+import pwndbg.dbg
 import pwndbg.lib.cache
 
 

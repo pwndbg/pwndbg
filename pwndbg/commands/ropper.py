@@ -6,9 +6,9 @@ import tempfile
 
 import gdb
 
-import pwndbg.commands
-import pwndbg.aglib.vmmap
 import pwndbg.aglib.proc
+import pwndbg.aglib.vmmap
+import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(

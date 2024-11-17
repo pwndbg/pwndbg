@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import os
 
+import pwndbg.aglib.proc
+import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
 import pwndbg.dbg
-import pwndbg.aglib.regs
-import pwndbg.aglib.proc
 import pwndbg.radare2
 import pwndbg.rizin
 

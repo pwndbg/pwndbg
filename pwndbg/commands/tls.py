@@ -8,13 +8,13 @@ import argparse
 
 from tabulate import tabulate
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.tls
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg
-import pwndbg.aglib.tls
-import pwndbg.aglib.memory
-import pwndbg.aglib.vmmap
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

@@ -5,10 +5,10 @@ from typing import Optional
 
 import gdb
 
+import pwndbg.aglib.memory
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.dbg
-import pwndbg.aglib.memory
 from pwndbg.color import message
 
 parser = argparse.ArgumentParser(

@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 import subprocess
 
-import pwndbg.commands
-import pwndbg.rizin
-import pwndbg.aglib.file
 import pwndbg.aglib.elf
+import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
+import pwndbg.commands
+import pwndbg.rizin
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

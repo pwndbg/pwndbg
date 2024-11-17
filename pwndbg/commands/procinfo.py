@@ -3,11 +3,11 @@ from __future__ import annotations
 import shlex
 import string
 
-import pwndbg.auxv
-import pwndbg.commands
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.auxv
+import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
 from pwndbg.color import message
@@ -69,7 +69,6 @@ capabilities = {
 
 class System:
     @classmethod
-    @property
     def tcp(cls):
         # For reference, see:
         # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
@@ -82,7 +81,6 @@ class System:
         return pwndbg.lib.net.tcp(data)
 
     @classmethod
-    @property
     def unix(cls):
         # We use errors=ignore because of https://github.com/pwndbg/pwndbg/issues/1544
         # TODO/FIXME: this may not be the best solution because we may end up with
@@ -91,7 +89,6 @@ class System:
         return pwndbg.lib.net.unix(data)
 
     @classmethod
-    @property
     def netlink(cls):
         data = pwndbg.aglib.file.get("/proc/net/netlink").decode()
         return pwndbg.lib.net.netlink(data)
@@ -204,7 +201,8 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [System.tcp, System.unix, System.netlink]
+        sys = System()
+        functions = [sys.tcp, sys.unix, sys.netlink]
 
         for fd, path in fds.items():
             if socket not in path:

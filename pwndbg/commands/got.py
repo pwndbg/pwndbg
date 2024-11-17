@@ -7,16 +7,16 @@ from typing import Union
 
 from elftools.elf.elffile import ELFFile
 
+import pwndbg.aglib.arch
+import pwndbg.aglib.file
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
+import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.aglib.arch
-import pwndbg.aglib.file
 import pwndbg.gdblib.info
-import pwndbg.aglib.proc
-import pwndbg.aglib.qemu
-import pwndbg.aglib.vmmap
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message

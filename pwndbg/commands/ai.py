@@ -16,16 +16,15 @@ from typing import List
 import gdb
 
 import pwndbg
-import pwndbg.ghidra
+import pwndbg.aglib.nearpc
+import pwndbg.aglib.regs
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.aglib.regs
-import pwndbg.aglib.nearpc
 import pwndbg.commands.context
 import pwndbg.commands.telescope
+import pwndbg.ghidra
 import pwndbg.lib.strings
 from pwndbg.commands import CommandCategory
-
 
 pwndbg.config.add_param(
     "ai-openai-api-key",

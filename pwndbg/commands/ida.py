@@ -8,10 +8,10 @@ import os
 import gdb
 
 import pwndbg
+import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg
-import pwndbg.aglib.regs
 import pwndbg.integration.ida
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg import EventType

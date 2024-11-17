@@ -4,12 +4,12 @@ import argparse
 import errno
 from collections import defaultdict
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.dbg
-import pwndbg.aglib.vmmap
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 from pwndbg.commands import CommandCategory
 
 # Manually add error code 0 for "OK"
@@ -38,7 +38,9 @@ def _get_errno() -> int:
     # We can't simply call __errno_location because its .plt.got entry may be uninitialized
     # (e.g. if the binary was just started with `starti` command)
     # So we have to check the got.plt entry first before calling it
-    errno_loc_gotplt = pwndbg.dbg.selected_inferior().symbol_address_from_name("__errno_location@got.plt")
+    errno_loc_gotplt = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        "__errno_location@got.plt"
+    )
     if errno_loc_gotplt is not None:
         page_loaded = pwndbg.aglib.vmmap.find(pwndbg.aglib.memory.pvoid(errno_loc_gotplt))
         if page_loaded is None:

@@ -4,12 +4,12 @@ import argparse
 
 import gdb
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.aglib.memory
-import pwndbg.aglib.proc
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

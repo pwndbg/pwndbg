@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
+import pwndbg.aglib.nearpc
 import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color.context as C

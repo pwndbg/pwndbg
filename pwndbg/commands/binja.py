@@ -4,10 +4,10 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib.proc
+import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.gdblib.functions
-import pwndbg.aglib.regs
-import pwndbg.aglib.proc
 import pwndbg.integration.binja
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory

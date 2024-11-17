@@ -3,17 +3,18 @@ from __future__ import annotations
 import argparse
 from typing import Tuple
 
+import pwndbg.aglib.file
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg
-import pwndbg.aglib.proc
-import pwndbg.aglib.vmmap
-import pwndbg.aglib.qemu
-import pwndbg.aglib.file
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
+
 
 def check_aslr() -> Tuple[bool | None, str]:
     """
@@ -76,7 +77,9 @@ parser.add_argument(
 def aslr(state=None) -> None:
     if state:
         if pwndbg.dbg.is_gdblib_available():
-            gdb.execute(f"set disable-randomization {options[state]}", from_tty=False, to_string=True)
+            gdb.execute(
+                f"set disable-randomization {options[state]}", from_tty=False, to_string=True
+            )
 
             if pwndbg.aglib.proc.alive:
                 print("Change will take effect when the process restarts")

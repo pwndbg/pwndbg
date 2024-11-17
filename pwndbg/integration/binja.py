@@ -28,24 +28,24 @@ import pygments.token
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.color
-import pwndbg.color.context as context_color
-import pwndbg.decorators
-import pwndbg.dbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.elf
-import pwndbg.aglib.proc
 import pwndbg.aglib.memory
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.proc
 import pwndbg.aglib.regs
+import pwndbg.color
+import pwndbg.color.context as context_color
+import pwndbg.dbg
+import pwndbg.decorators
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.config
+from pwndbg.aglib.nearpc import c as nearpc_color
+from pwndbg.aglib.nearpc import ljust_padding
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.dbg import EventType
-from pwndbg.aglib.nearpc import c as nearpc_color
-from pwndbg.aglib.nearpc import ljust_padding
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 

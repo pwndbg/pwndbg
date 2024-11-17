@@ -7,10 +7,10 @@ from typing import Optional
 
 import gdb
 
+import pwndbg.aglib.memory
 import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.dbg
-import pwndbg.aglib.memory
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel.macros import container_of
 from pwndbg.gdblib.kernel.macros import for_each_entry
