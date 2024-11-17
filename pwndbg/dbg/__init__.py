@@ -664,6 +664,12 @@ class Type:
         # if there is a better debugger-specific way to do this.
         return [field.name for field in self.fields()]
 
+    def __eq__(self, rhs: object) -> bool:
+        """
+        Returns True if types are the same
+        """
+        raise NotImplementedError()
+
 
 class Value:
     """
