@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import gdb
-
-import pwndbg.gdblib.elf
+import pwndbg.aglib.elf
 import pwndbg.lib.cache
 
 
@@ -21,15 +19,15 @@ def r2pipe():
 
     Returns a r2pipe.open handle.
     """
-    filename = gdb.current_progspace().filename
+    filename = pwndbg.dbg.selected_inferior().main_module_name()
     if not filename:
         raise Exception("Could not find objfile to create a r2pipe for")
 
     import r2pipe
 
     flags = ["-e", "io.cache=true"]
-    if pwndbg.gdblib.elf.get_elf_info(filename).is_pie and pwndbg.gdblib.elf.exe():
-        flags.extend(["-B", hex(pwndbg.gdblib.elf.exe().address)])
+    if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
+        flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
     r2 = r2pipe.open(filename, flags=flags)
     r2.cmd("aaaa")
     return r2
