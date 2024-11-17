@@ -696,7 +696,6 @@ def load_commands() -> None:
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.dt
-        import pwndbg.commands.gdt
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
@@ -737,6 +736,7 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags
+    import pwndbg.commands.gdt
     import pwndbg.commands.ghidra
     import pwndbg.commands.heap
     import pwndbg.commands.hex2ptr
