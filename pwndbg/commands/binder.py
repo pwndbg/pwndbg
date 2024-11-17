@@ -9,7 +9,8 @@ import gdb
 
 import pwndbg.color as C
 import pwndbg.commands
-import pwndbg.gdblib.symbol
+import pwndbg.dbg
+import pwndbg.aglib.memory
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel.macros import container_of
 from pwndbg.gdblib.kernel.macros import for_each_entry
@@ -356,7 +357,7 @@ class BinderVisitor:
 
     def format_spinlock(self, lock: gdb.Value) -> str:
         raw_lock = lock["rlock"]["raw_lock"]
-        val = pwndbg.gdblib.memory.ushort(int(raw_lock.address))
+        val = pwndbg.aglib.memory.ushort(int(raw_lock.address))
         locked = val & 0xFF
         pending = val >> 8
 
@@ -372,6 +373,6 @@ parser = argparse.ArgumentParser(description="Show Android Binder information")
 @pwndbg.commands.OnlyWhenPagingEnabled
 def binder():
     log.warning("This command is a work in progress and may not work as expected.")
-    procs_addr = pwndbg.gdblib.symbol.address("binder_procs")
+    procs_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("binder_procs")
     bv = BinderVisitor(procs_addr)
     bv.visit()
