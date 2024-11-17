@@ -188,10 +188,10 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="plist")
 def plist(
     path: str,
-    next: int,
+    next: str,
     sentinel: int,
-    inner_name: str,
-    field_name: str,
+    inner_name: Optional[str],
+    field_name: Optional[str],
     offset: int,
     count: Optional[int] = None,
 ) -> None:
@@ -413,7 +413,7 @@ def plist(
             symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(target_address)
             symbol = f"<{symbol}>" if symbol else ""
 
-            print(f"{target_address:#x} {symbol}: {value.string()}")
+            print(f"{target_address:#x} {symbol}: {value.value_to_human_readable()}")
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Cannot dereference {address:#x} for list link #{i + 1}: {e}"))
             print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))

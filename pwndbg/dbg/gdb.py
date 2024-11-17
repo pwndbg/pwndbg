@@ -1010,6 +1010,13 @@ class GDBValue(pwndbg.dbg_mod.Value):
             raise pwndbg.dbg_mod.Error(e)
 
     @override
+    def value_to_human_readable(self) -> str:
+        try:
+            return str(self.inner)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
+
+    @override
     def fetch_lazy(self) -> None:
         self.inner.fetch_lazy()
 
