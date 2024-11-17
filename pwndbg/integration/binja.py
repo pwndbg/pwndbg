@@ -28,23 +28,24 @@ import pygments.token
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.aglib.arch
 import pwndbg.color
 import pwndbg.color.context as context_color
 import pwndbg.decorators
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.nearpc
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.symbol
+import pwndbg.dbg
+import pwndbg.aglib.arch
+import pwndbg.aglib.elf
+import pwndbg.aglib.proc
+import pwndbg.aglib.memory
+import pwndbg.aglib.nearpc
+import pwndbg.aglib.regs
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.dbg import EventType
-from pwndbg.gdblib.nearpc import c as nearpc_color
-from pwndbg.gdblib.nearpc import ljust_padding
+from pwndbg.aglib.nearpc import c as nearpc_color
+from pwndbg.aglib.nearpc import ljust_padding
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
@@ -189,18 +190,18 @@ def can_connect() -> bool:
 
 
 def l2r(addr: int) -> int:
-    exe = pwndbg.gdblib.elf.exe()
+    exe = pwndbg.aglib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - pwndbg.gdblib.proc.binary_base_addr + base()) & pwndbg.aglib.arch.ptrmask
+    result = (addr - pwndbg.aglib.proc.binary_base_addr + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
 def r2l(addr: int) -> int:
-    exe = pwndbg.gdblib.elf.exe()
+    exe = pwndbg.aglib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
-    result = (addr - base() + pwndbg.gdblib.proc.binary_base_addr) & pwndbg.aglib.arch.ptrmask
+    result = (addr - base() + pwndbg.aglib.proc.binary_base_addr) & pwndbg.aglib.arch.ptrmask
     return result
 
 
@@ -212,9 +213,9 @@ def base():
 @pwndbg.dbg.event_handler(EventType.STOP)
 @with_bn()
 def auto_update_pc() -> None:
-    if not pwndbg.gdblib.proc.alive:
+    if not pwndbg.aglib.proc.alive:
         return
-    pc = pwndbg.gdblib.regs.pc
+    pc = pwndbg.aglib.regs.pc
     if bn_autosync.value:
         navigate_to(pc)
     _bn.update_pc_tag(l2r(pc))
@@ -228,7 +229,7 @@ _managed_bps: Dict[int, gdb.Breakpoint] = {}
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @with_bn()
 def auto_update_bp() -> None:
-    if not pwndbg.gdblib.proc.alive:
+    if not pwndbg.aglib.proc.alive:
         return
     bps: List[int] = _bn.get_bp_tags()
     binja_bps = {r2l(addr) for addr in bps}
@@ -467,7 +468,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         min_indents = None
         for addr, decomp_toks in sliced:
             addrs.append(hex(addr))
-            syms.append(f"<{pwndbg.gdblib.symbol.get(addr)}>")
+            syms.append(f"<{pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)}>")
             indents = 0
             for _, ty in decomp_toks:
                 if ty == "IndentationToken":
@@ -523,7 +524,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = gdb.selected_frame()
         # there is no earlier frame so we give up
-        if addr < pwndbg.gdblib.regs.read_reg("sp", cur):
+        if addr < pwndbg.aglib.regs.read_reg("sp", cur):
             return None
         newest = True
         # try to find the oldest frame that's earlier than the address
@@ -531,19 +532,19 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             upper = cur.older()
             if upper is None:
                 break
-            upper_sp = pwndbg.gdblib.regs.read_reg("sp", upper)
+            upper_sp = pwndbg.aglib.regs.read_reg("sp", upper)
             if upper_sp > addr:
                 break
             cur = upper
             newest = False
         regs = [
             (name, val)
-            for name in pwndbg.gdblib.regs.common
-            if (val := pwndbg.gdblib.regs.read_reg(name, cur)) is not None
+            for name in pwndbg.aglib.regs.common
+            if (val := pwndbg.aglib.regs.read_reg(name, cur)) is not None
         ]
         # put stack pointer and frame pointer at the front
         regs.sort(
-            key=lambda x: {pwndbg.gdblib.regs.stack: 0, pwndbg.gdblib.regs.frame: 1}.get(x[0], 2)
+            key=lambda x: {pwndbg.aglib.regs.stack: 0, pwndbg.aglib.regs.frame: 1}.get(x[0], 2)
         )
         ret: Tuple[int, str, int] | None = _bn.get_stack_var_name(l2r(int(cur.pc())), regs, addr)
         if ret is None:

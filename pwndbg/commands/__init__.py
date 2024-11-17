@@ -704,7 +704,6 @@ def load_commands() -> None:
         import pwndbg.commands.heap_tracking
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
-        import pwndbg.commands.integration
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.kbase
         import pwndbg.commands.kchecksec
@@ -742,6 +741,7 @@ def load_commands() -> None:
     import pwndbg.commands.heap
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
+    import pwndbg.commands.integration
     import pwndbg.commands.leakfind
     import pwndbg.commands.linkmap
     import pwndbg.commands.memoize
