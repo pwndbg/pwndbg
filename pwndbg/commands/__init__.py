@@ -722,7 +722,6 @@ def load_commands() -> None:
         import pwndbg.commands.plist
         import pwndbg.commands.radare2
         import pwndbg.commands.reload
-        import pwndbg.commands.rizin
         import pwndbg.commands.rop
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
@@ -758,6 +757,7 @@ def load_commands() -> None:
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
     import pwndbg.commands.retaddr
+    import pwndbg.commands.rizin
     import pwndbg.commands.search
     import pwndbg.commands.sigreturn
     import pwndbg.commands.spray
