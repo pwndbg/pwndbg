@@ -77,11 +77,11 @@ def aslr(state=None) -> None:
     if state:
         if pwndbg.dbg.is_gdblib_available():
             gdb.execute(f"set disable-randomization {options[state]}", from_tty=False, to_string=True)
+
+            if pwndbg.aglib.proc.alive:
+                print("Change will take effect when the process restarts")
         else:
             print("Could not change ASLR on LLDB")
-
-        if pwndbg.aglib.proc.alive:
-            print("Change will take effect when the process restarts")
 
     aslr, method = check_aslr()
 
