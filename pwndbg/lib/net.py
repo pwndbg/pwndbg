@@ -10,7 +10,6 @@ import socket
 from typing import List
 
 import pwndbg.aglib.arch
-import pwndbg.gdblib.file
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {
