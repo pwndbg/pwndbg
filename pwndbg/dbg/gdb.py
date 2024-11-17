@@ -1004,7 +1004,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def string(self) -> str:
-        return self.inner.string()
+        try:
+            return self.inner.string()
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
 
     @override
     def fetch_lazy(self) -> None:
