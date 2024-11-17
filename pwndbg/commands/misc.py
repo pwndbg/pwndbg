@@ -4,14 +4,13 @@ import argparse
 import errno
 from collections import defaultdict
 
-import gdb
-
 import pwndbg.color as C
 import pwndbg.commands
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.symbol
+import pwndbg.dbg
+import pwndbg.aglib.vmmap
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.scheduler import parse_and_eval_with_scheduler_lock
 
 # Manually add error code 0 for "OK"
 errno.errorcode[0] = "OK"  # type: ignore[index]
@@ -28,40 +27,48 @@ parser.add_argument(
 )
 
 
+def _get_errno() -> int:
+    # Try to get the `errno` variable value
+    # if it does not exist, get the errno variable from its location
+    try:
+        return int(pwndbg.dbg.selected_frame().evaluate_expression("errno"))
+    except pwndbg.dbg_mod.Error:
+        pass
+
+    # We can't simply call __errno_location because its .plt.got entry may be uninitialized
+    # (e.g. if the binary was just started with `starti` command)
+    # So we have to check the got.plt entry first before calling it
+    errno_loc_gotplt = pwndbg.dbg.selected_inferior().symbol_address_from_name("__errno_location@got.plt")
+    if errno_loc_gotplt is not None:
+        page_loaded = pwndbg.aglib.vmmap.find(pwndbg.aglib.memory.pvoid(errno_loc_gotplt))
+        if page_loaded is None:
+            raise pwndbg.dbg_mod.Error(
+                "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"
+            )
+
+    try:
+        return int(
+            pwndbg.dbg.selected_frame().evaluate_expression(
+                "*((int *(*) (void)) __errno_location) ()", lock_scheduler=True
+            )
+        )
+    except pwndbg.dbg_mod.Error as e:
+        raise pwndbg.dbg_mod.Error(
+            "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
+        ) from e
+
+
 @pwndbg.commands.ArgparsedCommand(parser, command_name="errno", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def errno_(err) -> None:
     if err is None:
-        # Try to get the `errno` variable value
-        # if it does not exist, get the errno variable from its location
         try:
-            err = int(gdb.parse_and_eval("errno"))
-        except gdb.error:
-            try:
-                # We can't simply call __errno_location because its .plt.got entry may be uninitialized
-                # (e.g. if the binary was just started with `starti` command)
-                # So we have to check the got.plt entry first before calling it
-                errno_loc_gotplt = pwndbg.gdblib.symbol.address("__errno_location@got.plt")
-
-                # If the got.plt entry is not there (is None), it means the symbol is not used by the binary
-                if errno_loc_gotplt is None or pwndbg.gdblib.vmmap.find(
-                    pwndbg.gdblib.memory.pvoid(errno_loc_gotplt)
-                ):
-                    err = int(
-                        parse_and_eval_with_scheduler_lock(
-                            "*((int *(*) (void)) __errno_location) ()"
-                        )
-                    )
-                else:
-                    print(
-                        "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"
-                    )
-                    return
-            except gdb.error:
-                print(
-                    "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
-                )
-                return
+            err = _get_errno()
+        except pwndbg.dbg_mod.Error:
+            print(
+                "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
+            )
+            return
 
     msg = errno.errorcode.get(int(err), "Unknown error code")
     print(f"Errno {err}: {msg}")
