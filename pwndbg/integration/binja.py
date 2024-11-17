@@ -46,6 +46,7 @@ from pwndbg.aglib.nearpc import ljust_padding
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.dbg import EventType
+from pwndbg.dbg.gdb import GDBFrame
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
@@ -522,15 +523,15 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @with_bn()
     @pwndbg.lib.cache.cache_until("stop")
     def get_stack_var_name(self, addr: int) -> str | None:
-        cur = gdb.selected_frame()
+        cur = GDBFrame(gdb.selected_frame())
         # there is no earlier frame so we give up
         if addr < pwndbg.aglib.regs.read_reg("sp", cur):
             return None
         newest = True
         # try to find the oldest frame that's earlier than the address
         while True:
-            upper = cur.older()
-            if upper is None:
+            upper = GDBFrame(cur.inner.older())
+            if upper.inner is None:
                 break
             upper_sp = pwndbg.aglib.regs.read_reg("sp", upper)
             if upper_sp > addr:
