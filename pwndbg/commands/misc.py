@@ -66,10 +66,8 @@ def errno_(err) -> None:
     if err is None:
         try:
             err = _get_errno()
-        except pwndbg.dbg_mod.Error:
-            print(
-                "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
-            )
+        except pwndbg.dbg_mod.Error as e:
+            print(str(e))
             return
 
     msg = errno.errorcode.get(int(err), "Unknown error code")
