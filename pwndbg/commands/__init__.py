@@ -695,7 +695,6 @@ def load_commands() -> None:
         import pwndbg.commands.binja
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
-        import pwndbg.commands.dt
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
@@ -733,6 +732,7 @@ def load_commands() -> None:
     import pwndbg.commands.cyclic
     import pwndbg.commands.dev
     import pwndbg.commands.distance
+    import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags
