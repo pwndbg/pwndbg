@@ -30,6 +30,9 @@ def dt(typename: str, address: int | pwndbg.dbg_mod.Value | None = None) -> None
 
     Optionally overlay that information at an address.
     """
-    if address is not None:
+    if isinstance(address, pwndbg.dbg_mod.Value):
+        address = int(address)
+    elif address is not None:
         address = pwndbg.commands.fix(str(address))
+
     print(pwndbg.gdblib.dt.dt(typename, addr=address))
