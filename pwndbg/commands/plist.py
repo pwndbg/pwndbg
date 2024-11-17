@@ -413,7 +413,7 @@ def plist(
             symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(target_address)
             symbol = f"<{symbol}>" if symbol else ""
 
-            print(f"{target_address:#x} {symbol}: {value}")
+            print(f"{target_address:#x} {symbol}: {value.string()}")
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Cannot dereference {address:#x} for list link #{i + 1}: {e}"))
             print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))
