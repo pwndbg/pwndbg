@@ -48,7 +48,7 @@ let
     #!/bin/sh
     dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
     ${commonEnvs}
-    exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
+    exec ${ldLoader} "$dir/exe/python3" -s "$dir/${file}" "$@"
   '';
   wrapperBin = file: pkgs.writeScript "pwndbg-wrapper-bin" ''
     #!/bin/sh
