@@ -6,7 +6,6 @@ import pwndbg.aglib.nearpc
 import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.aglib.nearpc
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
