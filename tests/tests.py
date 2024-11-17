@@ -126,9 +126,12 @@ def get_tests_list(
     return tests_list
 
 
+TEST_RETURN_TYPE = Tuple[CompletedProcess[str], str, float]
+
+
 def run_test(
     test_case: str, args: argparse.Namespace, gdb_binary: str, gdbinit_path: str, port: int = None
-) -> Tuple[CompletedProcess[str], str]:
+) -> TEST_RETURN_TYPE:
     gdb_args = ["--init-command", gdbinit_path, "--command", "pytests_launcher.py"]
     if args.cov:
         print("Running with coverage")
@@ -149,8 +152,11 @@ def run_test(
     env["PWNDBG_DISABLE_COLORS"] = "1"
     if port is not None:
         env["QEMU_PORT"] = str(port)
+
+    started_at = time.time()
     result = run_gdb(gdb_binary, gdb_args, env=env, capture_output=not args.serial)
-    return (result, test_case)
+    duration = time.time() - started_at
+    return result, test_case, duration
 
 
 class TestStats:
@@ -159,10 +165,8 @@ class TestStats:
         self.ptests = 0
         self.stests = 0
 
-    def handle_test_result(
-        self, test_result: Tuple[CompletedProcess[str], str], args, test_dir_path
-    ):
-        (process, _) = test_result
+    def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
+        (process, _, duration) = test_result
         content = process.stdout
 
         # Extract the test name and result using regex
@@ -179,7 +183,7 @@ class TestStats:
             self.ptests += 1
         elif "SKIP" in result:
             self.stests += 1
-        print(f"{testname:<70} {result}")
+        print(f"{testname:<70} {result} {duration:.2f}s")
 
         # Only show the output of failed tests unless the verbose flag was used
         if args.verbose or "FAIL" in result:
@@ -196,7 +200,7 @@ def run_tests_and_print_stats(
     ports: List[int] = [],
 ):
     start = time.time()
-    test_results: List[Tuple[CompletedProcess[str], str]] = []
+    test_results: List[TEST_RETURN_TYPE] = []
     stats = TestStats()
 
     if args.serial:
