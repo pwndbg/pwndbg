@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.commands
+import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
