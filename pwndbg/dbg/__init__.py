@@ -725,6 +725,23 @@ class Value:
         """
         raise NotImplementedError()
 
+    def value_to_human_readable(self) -> str:
+        """
+        Converts a Value to a human-readable string representation.
+
+        The format is similar to what is produced by the `str()` function for gdb.Value,
+        displaying nested fields and pointers in a user-friendly way.
+
+        **Usage Notes:**
+        - This function is intended solely for displaying results to the user.
+        - The output format may differ between debugger implementations (e.g., GDB vs LLDB),
+          as each debugger may format values differently. For instance:
+            - GDB might produce: '{\n  value = 0,\n  inner = {\n    next = 0x555555558098 <inner_a_node_b+8>\n  }\n}'
+            - LLDB might produce: '(inner_a_node) *$PWNDBG_CREATED_VALUE_0 = {\n  value = 0\n  inner = {\n    next = 0x0000555555558098\n  }\n}'
+        - As such, this function should not be relied upon for parsing or programmatic use.
+        """
+        raise NotImplementedError()
+
     # This is a GDB implementation detail.
     def fetch_lazy(self) -> None:
         """

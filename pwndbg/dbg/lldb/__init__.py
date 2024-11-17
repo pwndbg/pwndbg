@@ -488,6 +488,10 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         return last_str
 
     @override
+    def value_to_human_readable(self) -> str:
+        return str(self.inner)
+
+    @override
     def fetch_lazy(self) -> None:
         # Not needed under LLDB.
         pass
