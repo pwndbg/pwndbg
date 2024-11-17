@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
-import gdb
-
 import pwndbg.aglib.memory
 import pwndbg.chain
 import pwndbg.commands
@@ -199,8 +197,8 @@ def plist(
 ) -> None:
     # Have GDB parse the path for us and check if it's valid.
     try:
-        first = gdb.parse_and_eval(path)
-    except gdb.error as e:
+        first = pwndbg.dbg.selected_frame().evaluate_expression(path)
+    except pwndbg.dbg_mod.Error as e:
         print(message.error(f"{e}"))
         return
 
@@ -220,16 +218,16 @@ def plist(
     # for the error mesages.
     sep = "."
     deref = ""
-    if first.type.code == gdb.TYPE_CODE_PTR:
+    if first.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
         sep = "->"
         deref = "*"
         try:
             first = first.dereference()
-        except gdb.error as e:
+        except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Pointer at {path} could not be dereferenced: {e}"))
             return
 
-    if first.type.code == gdb.TYPE_CODE_PTR:
+    if first.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
         print(message.error(f"{path} is not a value or a single pointer to one"))
         return
 
@@ -248,7 +246,7 @@ def plist(
         try:
             inner = first[inner_name]
             inner_sep = "->"
-        except gdb.error as e:
+        except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Cannot find component {inner_name} in {path}: {e}"))
             return
         if inner.is_optimized_out:
@@ -266,14 +264,14 @@ def plist(
             next_ptr = inner[next]
             next_ptr_loc = inner
             next_ptr_name = f"{inner_name}.{next}"
-    except gdb.error as e:
+    except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Cannot find component {next_ptr_name} in {path}: {e}"))
         return
 
     if next_ptr.is_optimized_out:
         print(message.error(f"{path}{sep}{next_ptr_name} has been optimized out"))
         return
-    if next_ptr.type.code != gdb.TYPE_CODE_PTR:
+    if next_ptr.type.code != pwndbg.dbg_mod.TypeCode.POINTER:
         print(message.error(f"{path}{sep}{next_ptr_name} is not a pointer"))
         return
 
@@ -283,7 +281,7 @@ def plist(
     if field_name is not None:
         try:
             field = first[field_name]
-        except gdb.error as e:
+        except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Cannot find component {field_name} in {path}: {e}"))
             return
         field_type = field.type
@@ -416,7 +414,7 @@ def plist(
             symbol = f"<{symbol}>" if symbol else ""
 
             print(f"{target_address:#x} {symbol}: {value}")
-        except gdb.error as e:
+        except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Cannot dereference {address:#x} for list link #{i + 1}: {e}"))
             print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))
             return
