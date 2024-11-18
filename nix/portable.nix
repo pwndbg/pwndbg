@@ -34,6 +34,7 @@ let
       "/usr/share/terminfo" # upstream default, probably all FHS-based distros
     ]}
   '' + ''
+    export PYTHONNOUSERSITE=1
     export PYTHONHOME="$dir"
     export PATH="$dir/bin/:$PATH"
   '';
@@ -109,9 +110,6 @@ let
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/subprocess.py --replace "'${pkgs.bash}/bin/sh'" "'/bin/sh'"
-
-        # Disable user site packages (same as PYTHONNOUSERSITE=1)
-        substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/site.py --replace "ENABLE_USER_SITE = None" "ENABLE_USER_SITE = False"
 
         # build pycache
         SOURCE_DATE_EPOCH=0 ${python3}/bin/python3 -c "import compileall; compileall.compile_dir('$out', stripdir='$out', force=True);"
