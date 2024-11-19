@@ -6,9 +6,11 @@ from typing import Any
 from typing import Dict
 
 import pwndbg.aglib.dynamic
+import pwndbg.aglib.proc
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
+import pwndbg.dbg
 import pwndbg.gdblib.got
-import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory
 
 
@@ -139,7 +141,7 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
     for _, (tracker, patcher) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname == b"":
-            objname = pwndbg.gdblib.proc.exe
+            objname = pwndbg.aglib.proc.exe
         else:
             objname = pwndbg.gdblib.got.display_name(objname)
 
@@ -157,7 +159,7 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
         for tracker, patcher in trackers:
             # If requested, filter out entries that are not in a writable
             # portion of memory.
-            if writable and not pwndbg.gdblib.vmmap.find(patcher.entry).write:
+            if writable and not pwndbg.aglib.vmmap.find(patcher.entry).write:
                 continue
 
             dynamic = tracker.dynamic_section
@@ -213,7 +215,7 @@ def got_tracking_status(address) -> None:
 
     objname = tracker.link_map_entry.name()
     if objname == b"":
-        objname = pwndbg.gdblib.proc.exe
+        objname = pwndbg.aglib.proc.exe
     else:
         objname = pwndbg.gdblib.got.display_name(objname)
 
@@ -231,7 +233,7 @@ def got_tracking_status(address) -> None:
         print(f"Called {hits} times from stack:")
         for entry in stack:
             print(f"    - {entry:#x} ", end="")
-            symname = pwndbg.gdblib.symbol.get(entry)
+            symname = pwndbg.dbg.selected_inferior().symbol_name_at_address(entry)
             if symname != "":
                 print(f"<{symname}>", end="")
             print()

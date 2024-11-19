@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import gdb
-
-import pwndbg.gdblib.elf
+import pwndbg.aglib.elf
+import pwndbg.dbg
 import pwndbg.lib.cache
 
 
@@ -18,15 +17,15 @@ def rzpipe():
     Raises Exception if anything goes fatally wrong.
     Returns a rzpipe.open handle.
     """
-    filename = gdb.current_progspace().filename
+    filename = pwndbg.dbg.selected_inferior().main_module_name()
     if not filename:
         raise Exception("Could not find objfile to create a rzpipe for")
 
     import rzpipe
 
     flags = ["-e", "io.cache=true"]
-    if pwndbg.gdblib.elf.get_elf_info(filename).is_pie and pwndbg.gdblib.elf.exe():
-        flags.extend(["-B", hex(pwndbg.gdblib.elf.exe().address)])
+    if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
+        flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
     rz = rzpipe.open(filename, flags=flags)
     rz.cmd("aaaa")
     return rz

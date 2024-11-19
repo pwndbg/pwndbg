@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.dynamic
+import pwndbg.aglib.proc
 import pwndbg.color as color
-import pwndbg.gdblib.proc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -23,7 +23,7 @@ def linkmap() -> None:
             name = "<Unknown"
             if is_first:
                 is_first = False
-                name += f", likely {pwndbg.gdblib.proc.exe}"
+                name += f", likely {pwndbg.aglib.proc.exe}"
             name += ">"
         rows.append(
             [f"{obj.link_map_address:#x}", name, f"{obj.load_bias():#x}", f"{obj.dynamic():#x}"]

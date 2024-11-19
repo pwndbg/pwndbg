@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.regs
 import pwndbg.commands
-import pwndbg.gdblib.events
-import pwndbg.gdblib.functions
-import pwndbg.gdblib.regs
+import pwndbg.dbg
 import pwndbg.integration
-import pwndbg.integration.binja
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.integration.binja
+
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -37,7 +39,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def decomp(addr: None | int, lines: None | int) -> None:
     if addr is None:
-        addr = pwndbg.gdblib.regs.pc
+        addr = pwndbg.aglib.regs.pc
     if lines is None:
         lines = 10
     decomp = pwndbg.integration.provider.decompile(int(addr), int(lines))

@@ -7,8 +7,9 @@ import tempfile
 
 import gdb
 
+import pwndbg.aglib.proc
+import pwndbg.aglib.vmmap
 import pwndbg.commands
-import pwndbg.gdblib.vmmap
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -26,11 +27,11 @@ parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to 
 def rop(grep, argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:
         # If the process is running, dump a corefile so we get actual addresses.
-        if pwndbg.gdblib.proc.alive:
+        if pwndbg.aglib.proc.alive:
             filename = corefile.name
             gdb.execute(f"gcore {filename}")
         else:
-            filename = pwndbg.gdblib.proc.exe
+            filename = pwndbg.aglib.proc.exe
 
         # Build up the command line to run
         cmd = ["ROPgadget", "--binary", filename]

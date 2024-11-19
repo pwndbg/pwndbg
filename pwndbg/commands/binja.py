@@ -4,10 +4,10 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib.proc
+import pwndbg.aglib.regs
 import pwndbg.commands
-import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
-import pwndbg.gdblib.regs
 import pwndbg.integration.binja
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -24,7 +24,7 @@ def bn_sync(*args) -> None:
     """
     Synchronize Binary Ninja's cursor with GDB
     """
-    pwndbg.integration.binja.navigate_to(pwndbg.gdblib.regs.pc)
+    pwndbg.integration.binja.navigate_to(pwndbg.aglib.regs.pc)
 
 
 @pwndbg.gdblib.functions.GdbFunction()
@@ -44,14 +44,14 @@ def bn_var(name_val: gdb.Value) -> int | None:
     """Lookup a stack variable's address by name from Binary Ninja."""
     name = name_val.string()
     conf_and_offset: Tuple[int, int] | None = pwndbg.integration.binja._bn.get_var_offset_from_sp(
-        pwndbg.integration.binja.l2r(pwndbg.gdblib.regs.pc), name
+        pwndbg.integration.binja.l2r(pwndbg.aglib.regs.pc), name
     )
     if conf_and_offset is None:
         return None
     (conf, offset) = conf_and_offset
     if conf < 64:
         print(message.warn(f"Warning: Stack offset only has {conf / 255 * 100:.2f}% confidence"))
-    return pwndbg.gdblib.regs.sp + offset
+    return pwndbg.aglib.regs.sp + offset
 
 
 @pwndbg.gdblib.functions.GdbFunction()
@@ -65,10 +65,10 @@ def bn_eval(expr: gdb.Value) -> int | None:
     Also adds a $piebase magic variable with the computed executable base.
     """
     magic_vars = {}
-    for r in pwndbg.gdblib.regs.current:
-        v = pwndbg.gdblib.regs[r]
+    for r in pwndbg.aglib.regs.current:
+        v = pwndbg.aglib.regs[r]
         if v is not None:
             magic_vars[r] = v
-    magic_vars["piebase"] = pwndbg.gdblib.proc.binary_base_addr
+    magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr
     ret: int | None = pwndbg.integration.binja._bn.parse_expr(expr.string(), magic_vars)
     return ret

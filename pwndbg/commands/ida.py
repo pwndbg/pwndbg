@@ -8,9 +8,10 @@ import os
 import gdb
 
 import pwndbg
+import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.commands.context
-import pwndbg.gdblib.regs
+import pwndbg.dbg
 import pwndbg.integration.ida
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg import EventType
@@ -28,7 +29,7 @@ def j(*args) -> None:
     Synchronize IDA's cursor with GDB
     """
     try:
-        pc = int(gdb.selected_frame().pc())
+        pc = int(pwndbg.dbg.selected_frame().pc())
         pwndbg.integration.ida.Jump(pc)
     except Exception:
         pass

@@ -8,15 +8,15 @@ from typing import Union
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.file
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
+import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.gdblib.file
 import pwndbg.gdblib.info
-import pwndbg.gdblib.proc
-import pwndbg.gdblib.qemu
-import pwndbg.gdblib.vmmap
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
@@ -67,7 +67,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
-    if pwndbg.gdblib.qemu.is_qemu_usermode():
+    if pwndbg.aglib.qemu.is_qemu_usermode():
         print(
             "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
         )
@@ -86,7 +86,7 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
     # Calculate the base address
     if not path_filter:
         first_print = False
-        _got(pwndbg.gdblib.proc.exe, accept_readonly, symbol_filter)
+        _got(pwndbg.aglib.proc.exe, accept_readonly, symbol_filter)
     else:
         first_print = True
 
@@ -113,7 +113,7 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
 
 def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # Maybe download the file from remote
-    local_path = pwndbg.gdblib.file.get_file(path, try_local_path=True)
+    local_path = pwndbg.aglib.file.get_file(path, try_local_path=True)
 
     relro_status = pwndbg.wrappers.checksec.relro_status(local_path)
     pie_status = pwndbg.wrappers.checksec.pie_status(local_path)
@@ -122,8 +122,8 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
     outputs: List[Dict[str, Union[str, int]]] = []
-    if path == pwndbg.gdblib.proc.exe:
-        bin_base_offset = pwndbg.gdblib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
+    if path == pwndbg.aglib.proc.exe:
+        bin_base_offset = pwndbg.aglib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
     else:
         # TODO/FIXME: Is there a better way to get the base address of the loaded shared library?
         # I guess parsing the vmmap result might also work, but what if it's not reliable or not available? (e.g. debugging with qemu-user)
@@ -156,7 +156,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
                 value, name = rest
             address = int(offset, 16) + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
-            if not accept_readonly and not pwndbg.gdblib.vmmap.find(address).write:
+            if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
                 # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
@@ -186,5 +186,5 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.gdblib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
+            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
         )

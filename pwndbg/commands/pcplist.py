@@ -5,8 +5,8 @@ import logging
 
 import gdb
 
+import pwndbg.aglib.memory
 import pwndbg.commands
-import pwndbg.gdblib.memory
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.kernel import per_cpu
 from pwndbg.gdblib.kernel.macros import for_each_entry
@@ -24,9 +24,7 @@ def print_zone(zone, list_num=None) -> None:
     pageset_addr = per_cpu(
         gdb.lookup_global_symbol("contig_page_data").value()["node_zones"][zone]["pageset"]
     )
-    pageset = pwndbg.gdblib.memory.get_typed_pointer_value(
-        gdb.lookup_type("struct per_cpu_pageset"), pageset_addr
-    )
+    pageset = pwndbg.aglib.memory.get_typed_pointer_value("struct per_cpu_pageset", pageset_addr)
     pcp = pageset["pcp"]
     print("count: ", pcp["count"])
     print("high: ", pcp["high"])

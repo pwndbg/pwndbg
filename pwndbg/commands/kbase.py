@@ -6,6 +6,7 @@ import gdb
 
 import pwndbg.color.message as M
 import pwndbg.commands
+import pwndbg.dbg
 import pwndbg.gdblib.kernel
 from pwndbg import config
 from pwndbg.commands import CommandCategory
@@ -34,7 +35,7 @@ def kbase(rebase=False) -> None:
     if not rebase:
         return
 
-    symbol_file = gdb.current_progspace().filename
+    symbol_file = pwndbg.dbg.selected_inferior().main_module_name()
 
     if symbol_file:
         gdb.execute("symbol-file")

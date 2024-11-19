@@ -3,6 +3,10 @@ from __future__ import annotations
 import argparse
 import subprocess
 
+import pwndbg.aglib.elf
+import pwndbg.aglib.file
+import pwndbg.aglib.proc
+import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.rizin
 from pwndbg.color import message
@@ -21,18 +25,18 @@ parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["rizin"], category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
 def rz(arguments, no_seek=False, no_rebase=False) -> None:
-    filename = pwndbg.gdblib.file.get_proc_exe_file()
+    filename = pwndbg.aglib.file.get_proc_exe_file()
 
     # Build up the command line to run
     cmd = ["rizin"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.gdblib.proc.alive:
-        addr = pwndbg.gdblib.regs.pc
-        if pwndbg.gdblib.elf.get_elf_info(filename).is_pie:
+    if pwndbg.aglib.proc.alive:
+        addr = pwndbg.aglib.regs.pc
+        if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
-                addr -= pwndbg.gdblib.elf.exe().address
+                addr -= pwndbg.aglib.elf.exe().address
             else:
-                flags.extend(["-B", hex(pwndbg.gdblib.elf.exe().address)])
+                flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
         if not no_seek:
             cmd.extend(["-s", hex(addr)])
     cmd.extend(flags)

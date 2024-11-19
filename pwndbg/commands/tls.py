@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
 from tabulate import tabulate
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.tls
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.gdblib.tls
+import pwndbg.commands.context
+import pwndbg.dbg
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -34,14 +37,14 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenUserspace
 def tls(pthread_self=False) -> None:
     tls_base = (
-        pwndbg.gdblib.tls.find_address_with_register()
+        pwndbg.aglib.tls.find_address_with_register()
         if not pthread_self
-        else pwndbg.gdblib.tls.find_address_with_pthread_self()
+        else pwndbg.aglib.tls.find_address_with_pthread_self()
     )
-    if pwndbg.gdblib.memory.is_readable_address(tls_base):
+    if pwndbg.aglib.memory.is_readable_address(tls_base):
         print(message.success("Thread Local Storage (TLS) base: %#x" % tls_base))
         print(message.success("TLS is located at:"))
-        print(message.notice(pwndbg.gdblib.vmmap.find(tls_base)))
+        print(message.notice(pwndbg.aglib.vmmap.find(tls_base)))
         return
     print(message.error("Couldn't find Thread Local Storage (TLS) base."))
     if not pthread_self:
@@ -83,6 +86,8 @@ def threads(num_threads, respect_config) -> None:
     table = []
     headers = ["global_num", "name", "status", "pc", "symbol"]
     bold_green = lambda text: pwndbg.color.bold(pwndbg.color.green(text))
+
+    import gdb
 
     try:
         original_thread = gdb.selected_thread()
@@ -130,10 +135,10 @@ def threads(num_threads, respect_config) -> None:
 
         if thread.is_stopped():
             thread.switch()
-            pc = gdb.selected_frame().pc()
+            pc = pwndbg.dbg.selected_frame().pc()
 
             pc_colored = M.get(pc)
-            symbol = pwndbg.gdblib.symbol.get(pc)
+            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(pc)
 
             row.append(pc_colored)
 
