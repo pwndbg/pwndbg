@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import collections
 import re
+import sys
 from typing import DefaultDict
 from typing import List
 from typing import Set
@@ -301,8 +302,16 @@ def can_run_first_emulate() -> bool:
     try:
         from mmap import mmap, MAP_ANON, MAP_PRIVATE, PROT_EXEC, PROT_READ, PROT_WRITE  # isort:skip
 
+        access_mode = PROT_WRITE | PROT_READ | PROT_EXEC
+        if sys.platform == "darwin":
+            # On macOS (Darwin), creating mmap with 'rwx' permissions is blocked
+            # by System Integrity Protection (SIP), which prevents execution of code
+            # from writable and readable memory regions. Therefore, we restrict
+            # the access mode to 'rw' (read and write only).
+            access_mode = PROT_WRITE | PROT_READ
+
         mm = mmap(  # novm
-            -1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, PROT_WRITE | PROT_READ | PROT_EXEC
+            -1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, access_mode
         )
         mm.close()
     except OSError:
@@ -315,7 +324,7 @@ def can_run_first_emulate() -> bool:
                 "Either free your memory or explicitly set `set emulate off` in your Pwndbg config"
             )
         )
-        pwndbg.config.emulate = "off"
+        pwndbg.config.emulate.value = "off"
         return False
 
     return True
