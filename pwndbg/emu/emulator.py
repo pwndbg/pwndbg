@@ -13,25 +13,28 @@ from typing import NamedTuple
 from typing import Tuple
 
 import capstone as C
-import gdb
 import unicorn as U
 import unicorn.riscv_const
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.strings
+import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.enhance as E
 import pwndbg.color.memory as M
+import pwndbg.dbg
 import pwndbg.enhance
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.strings
-import pwndbg.gdblib.symbol
-import pwndbg.gdblib.vmmap
 import pwndbg.integration
+import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg import color
 from pwndbg.color.syntax_highlight import syntax_highlight
+
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
 
 
 def parse_consts(u_consts) -> Dict[str, int]:
@@ -219,7 +222,7 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
-        self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.gdblib.regs.current
+        self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
         # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
@@ -248,7 +251,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
-            value = getattr(pwndbg.gdblib.regs, reg)
+            value = getattr(pwndbg.aglib.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
@@ -269,7 +272,7 @@ class Emulator:
         self.hook_add(U.UC_HOOK_INTR, self.hook_intr)
 
         # Map in the page that $pc is on
-        self.map_page(pwndbg.gdblib.regs.pc)
+        self.map_page(pwndbg.aglib.regs.pc)
 
         # Instruction tracing
         if DEBUG & DEBUG_TRACE:
@@ -291,7 +294,7 @@ class Emulator:
     # Read size worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:
         # Don't attempt if the address is not mapped on the host process
-        if not pwndbg.gdblib.vmmap.find(address):
+        if not pwndbg.aglib.vmmap.find(address):
             return None
 
         value = None
@@ -371,7 +374,7 @@ class Emulator:
         # Colorize the chain
         rest = []
         for link in chain:
-            symbol = pwndbg.gdblib.symbol.get(link) or None
+            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(link) or None
             if symbol:
                 symbol = f"{link:#x} ({symbol})"
             rest.append(M.get(link, symbol))
@@ -405,9 +408,9 @@ class Emulator:
         # Near identical to pwndbg.enhance.enhance, just read from emulator memory
 
         # Determine if its on a page - we do this in the real processes memory
-        page = pwndbg.gdblib.vmmap.find(value)
+        page = pwndbg.aglib.vmmap.find(value)
         can_read = True
-        if not page or None is pwndbg.gdblib.memory.peek(value):
+        if not page or None is pwndbg.aglib.memory.peek(value):
             can_read = False
 
         if not can_read:
@@ -433,7 +436,7 @@ class Emulator:
                 if pwndbg.config.syntax_highlight:
                     instr = syntax_highlight(instr)
 
-        # szval = pwndbg.gdblib.strings.get(value) or None
+        # szval = pwndbg.aglib.strings.get(value) or None
         # Read from emulator memory
         szval = self.memory_read_string(value, max_string_len=enhance_string_len, max_read=None)
         szval0 = szval
@@ -445,7 +448,7 @@ class Emulator:
             return E.integer(pwndbg.enhance.int_str(value))
 
         # Read from emulator memory
-        # intval = int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.pvoid, value))
+        # intval = int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.pvoid, value))
         read_value = self.read_memory(value, pwndbg.aglib.arch.ptrsize)
         if read_value is not None:
             # intval = pwndbg.aglib.arch.unpack(read_value)
@@ -507,10 +510,10 @@ class Emulator:
     # Return None if cannot find str
     def memory_read_string(self, address: int, max_string_len=None, max_read=None) -> str | None:
         if max_string_len is None:
-            max_string_len = pwndbg.gdblib.strings.length
+            max_string_len = pwndbg.aglib.strings.length
 
         if max_read is None:
-            max_read = pwndbg.gdblib.strings.length
+            max_read = pwndbg.aglib.strings.length
 
         # Read string
         sz = self.read_memory(address, max_read)
@@ -542,7 +545,7 @@ class Emulator:
 
     def update_pc(self, pc=None) -> None:
         if pc is None:
-            pc = pwndbg.gdblib.regs.pc
+            pc = pwndbg.aglib.regs.pc
         self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
 
     def read_thumb_bit(self) -> int:
@@ -554,7 +557,7 @@ class Emulator:
 
         Return None if the Thumb bit is not relevent to the current architecture
 
-        Mimics the `read_thumb_bit` function defined in gdblib/arch.py
+        Mimics the `read_thumb_bit` function defined in aglib/arch.py
         """
         if self.arch == "arm":
             if (cpsr := self.cpsr) is not None:
@@ -574,16 +577,19 @@ class Emulator:
         if arch == "armcm":
             mode |= (
                 (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.gdblib.regs.xpsr & (1 << 24))
+                if (pwndbg.aglib.regs.xpsr & (1 << 24))
                 else U.UC_MODE_MCLASS
             )
 
         elif arch in ("arm", "aarch64"):
-            mode |= U.UC_MODE_THUMB if (pwndbg.gdblib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
+            mode |= U.UC_MODE_THUMB if (pwndbg.aglib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
 
-        elif arch == "mips" and "isa32r6" in gdb.newest_frame().architecture().name():
+        elif (
+            arch == "mips"
+            and pwndbg.dbg.is_gdblib_available()
+            and "isa32r6" in gdb.newest_frame().architecture().name()
+        ):
             mode |= U.UC_MODE_MIPS32R6
-
         else:
             mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
 
@@ -601,9 +607,9 @@ class Emulator:
         debug(DEBUG_MEM_MAP, "# Mapping %#x-%#x", (page, page + size))
 
         try:
-            data = pwndbg.gdblib.memory.read(page, size)
+            data = pwndbg.aglib.memory.read(page, size)
             data = bytes(data)
-        except gdb.MemoryError:
+        except pwndbg.dbg_mod.Error:
             debug(DEBUG_MEM_MAP, "Could not map page %#x during emulation! [exception]", page)
             return False
 

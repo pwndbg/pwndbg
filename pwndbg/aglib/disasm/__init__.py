@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import collections
 import re
-from typing import Any
 from typing import DefaultDict
 from typing import List
+from typing import Set
 from typing import Tuple
-from typing import Union
 
 import capstone
 from capstone import *  # noqa: F403
@@ -20,6 +19,7 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
+import pwndbg.emu.emulator
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
@@ -29,16 +29,9 @@ from pwndbg.aglib.disasm.instruction import make_simple_instruction
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 
-# Emulation hasn't been ported yet.
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-    try:
-        import pwndbg.emu.emulator
-    except Exception:
-        pwndbg.emu = None
-else:
-    pwndbg.emu = None
 
 CapstoneArch = {
     "arm": CS_ARCH_ARM,
@@ -322,7 +315,7 @@ def can_run_first_emulate() -> bool:
                 "Either free your memory or explicitly set `set emulate off` in your Pwndbg config"
             )
         )
-        gdb.execute("set emulate off", to_string=True)
+        pwndbg.config.emulate = "off"
         return False
 
     return True
@@ -385,9 +378,8 @@ def near(
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         try:
             emu = pwndbg.emu.emulator.Emulator()
-        except gdb.error as e:
-            message = str(e)
-            match = re.search(r"Memory at address (\w+) unavailable\.", message)
+        except pwndbg.dbg_mod.Error as e:
+            match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
                 return ([], -1)
             else:
