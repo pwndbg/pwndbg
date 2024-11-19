@@ -67,6 +67,9 @@ in
           zig_0_10 # version match setup-dev.sh
           go
 
+          # for onegadget command
+          one_gadget
+
           # from qemu-tests.sh
           binutils
           ;
