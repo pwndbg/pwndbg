@@ -7,7 +7,8 @@ import gdb
 
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.gdblib.memory
+import pwndbg.dbg
+import pwndbg.aglib.memory
 from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
@@ -409,9 +410,9 @@ def plist(
                 target_type = field_type
                 target_address = address + field_offset
 
-            value = pwndbg.gdblib.memory.get_typed_pointer_value(target_type, target_address)
+            value = pwndbg.aglib.memory.get_typed_pointer_value(target_type, target_address)
 
-            symbol = pwndbg.gdblib.symbol.get(target_address)
+            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(target_address)
             symbol = f"<{symbol}>" if symbol else ""
 
             print(f"{target_address:#x} {symbol}: {value}")
