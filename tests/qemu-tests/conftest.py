@@ -54,8 +54,11 @@ def qemu_assembly_run():
             ]
         )
 
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        os.environ["PWNDBG_IN_TEST"] = "1"
+        os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set width 80")
+        gdb.execute(f"target remote :{QEMU_PORT}")
 
         global _start_binary_called
         # if _start_binary_called:
@@ -97,8 +100,11 @@ def qemu_start_binary():
             ]
         )
 
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        os.environ["PWNDBG_IN_TEST"] = "1"
+        os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set width 80")
+        gdb.execute(f"target remote :{QEMU_PORT}")
 
         global _start_binary_called
         # if _start_binary_called:
