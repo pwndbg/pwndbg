@@ -3,11 +3,11 @@ from __future__ import annotations
 import shlex
 import string
 
-import pwndbg.auxv
-import pwndbg.commands
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.auxv
+import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
 from pwndbg.color import message
@@ -67,34 +67,29 @@ capabilities = {
 }
 
 
-class System:
-    @classmethod
-    @property
-    def tcp(cls):
-        # For reference, see:
-        # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
-        """
-        It will first list all listening TCP sockets, and next list all established
-        TCP connections. A typical entry of /proc/net/tcp would look like this (split
-        up into 3 parts because of the length of the line):
-        """
-        data = pwndbg.aglib.file.get("/proc/net/tcp").decode()
-        return pwndbg.lib.net.tcp(data)
+def tcp():
+    # For reference, see:
+    # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
+    """
+    It will first list all listening TCP sockets, and next list all established
+    TCP connections. A typical entry of /proc/net/tcp would look like this (split
+    up into 3 parts because of the length of the line):
+    """
+    data = pwndbg.aglib.file.get("/proc/net/tcp").decode()
+    return pwndbg.lib.net.tcp(data)
 
-    @classmethod
-    @property
-    def unix(cls):
-        # We use errors=ignore because of https://github.com/pwndbg/pwndbg/issues/1544
-        # TODO/FIXME: this may not be the best solution because we may end up with
-        # invalid UDS data. Can this be a problem?
-        data = pwndbg.aglib.file.get("/proc/net/unix").decode(errors="ignore")
-        return pwndbg.lib.net.unix(data)
 
-    @classmethod
-    @property
-    def netlink(cls):
-        data = pwndbg.aglib.file.get("/proc/net/netlink").decode()
-        return pwndbg.lib.net.netlink(data)
+def unix():
+    # We use errors=ignore because of https://github.com/pwndbg/pwndbg/issues/1544
+    # TODO/FIXME: this may not be the best solution because we may end up with
+    # invalid UDS data. Can this be a problem?
+    data = pwndbg.aglib.file.get("/proc/net/unix").decode(errors="ignore")
+    return pwndbg.lib.net.unix(data)
+
+
+def netlink():
+    data = pwndbg.aglib.file.get("/proc/net/netlink").decode()
+    return pwndbg.lib.net.netlink(data)
 
 
 class Process:
@@ -204,7 +199,7 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [System.tcp, System.unix, System.netlink]
+        functions = [tcp, unix, netlink]
 
         for fd, path in fds.items():
             if socket not in path:
@@ -272,14 +267,9 @@ def procinfo() -> None:
 
     print("%-10s %s" % ("ppid", proc.ppid))
 
-    # if pwndbg.gdblib.android.is_android():
     print("%-10s %s" % ("uid", proc.uid))
     print("%-10s %s" % ("gid", proc.gid))
     print("%-10s %s" % ("groups", proc.groups))
-    # else:
-    #     print("%-10s %s" % ("uid", list(map(pwndbg.lib.android.aid_name, proc.uid))))
-    #     print("%-10s %s" % ("gid", list(map(pwndbg.lib.android.aid_name, proc.gid))))
-    #     print("%-10s %s" % ("groups", list(map(pwndbg.lib.android.aid_name, proc.groups))))
 
     for fd, path in files.items():
         if not set(path) < set(string.printable):
