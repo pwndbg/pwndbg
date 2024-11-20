@@ -6,6 +6,7 @@ import re
 import subprocess
 
 gdb_init_path = os.environ.get("GDB_INIT_PATH", "../gdbinit.py")
+gdb_bin_path = os.environ.get("GDB_BIN_PATH", "gdb")
 
 
 def run_gdb_with_script(
@@ -23,12 +24,13 @@ def run_gdb_with_script(
     pybefore = ([pybefore] if isinstance(pybefore, str) else pybefore) or []
     pyafter = ([pyafter] if isinstance(pyafter, str) else pyafter) or []
 
-    command = ["gdb", "--silent", "--nx", "--nh"]
+    command = [gdb_bin_path, "--silent", "--nx", "--nh"]
 
     for cmd in pybefore:
-        command += ["--eval-command", cmd]
+        command += ["--init-eval-command", cmd]
 
-    command += ["--command", gdb_init_path]
+    if gdb_init_path:
+        command += ["--command", gdb_init_path]
 
     if binary:
         command += [binary]
