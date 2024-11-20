@@ -46,12 +46,12 @@ jobs:
     - name: Run tests
       if: matrix.type == 'tests'
       run: |
-        ./tests.sh --cov
+        ./tests.sh --nix --cov
 
     - name: Run qemu-user-tests
       if: matrix.type == 'qemu-user-tests'
       run: |
-        ./qemu-tests.sh --cov
+        ./qemu-tests.sh --nix --cov
 
     - name: Set up cache for QEMU images
       if: matrix.type == 'qemu-tests'
@@ -70,7 +70,7 @@ jobs:
       if: matrix.type == 'qemu-tests'
       working-directory: ./tests/qemu-tests
       run: |
-        ./tests.sh --cov
+        ./tests.sh --nix --cov
 
   tests:
     strategy:
