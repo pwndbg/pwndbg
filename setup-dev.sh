@@ -6,6 +6,30 @@ echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT or Arch / Pacman."
 echo "# --------------------------------------"
 
+help_and_exit() {
+    echo "Usage: ./setup-dev.sh [--install-only]"
+    echo "  --install-only              install only distro dependencies without installing python-venv"
+    exit 1
+}
+
+USE_INSTALL_ONLY=0
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --install-only)
+            USE_INSTALL_ONLY=1
+            ;;
+        -h | --help)
+            help_and_exit
+            ;;
+        *)
+            help_and_exit
+            ;;
+    esac
+    shift
+done
+
+
 hook_script_path=".git/hooks/pre-push"
 hook_script=$(
     cat << 'EOF'
@@ -92,6 +116,7 @@ install_apt() {
         gcc \
         libc6-dev \
         curl \
+        wget \
         build-essential \
         gdb \
         gdb-multiarch \
@@ -147,6 +172,7 @@ EOF
         gcc \
         glibc-debug \
         curl \
+        wget \
         base-devel \
         gdb \
         parallel
@@ -169,6 +195,7 @@ install_dnf() {
         nasm \
         gcc \
         curl \
+        wget \
         gdb \
         parallel \
         qemu-system-arm \
@@ -210,6 +237,21 @@ install_jemalloc() {
 
 }
 
+configure_venv() {
+    if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+        PWNDBG_VENV_PATH="./.venv"
+    fi
+    echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
+
+    source "${PWNDBG_VENV_PATH}/bin/activate"
+    ~/.local/bin/poetry install --with dev
+
+    # Create a developer marker file
+    DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
+    touch "${DEV_MARKER_PATH}"
+    echo "Developer marker created at ${DEV_MARKER_PATH}"
+}
+
 if linux; then
     distro=$(
         . /etc/os-release
@@ -248,16 +290,8 @@ if linux; then
     esac
 
     install_jemalloc
-    if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-        PWNDBG_VENV_PATH="./.venv"
+
+    if [ $USE_INSTALL_ONLY -eq 0 ]; then
+        configure_venv
     fi
-    echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
-
-    source "${PWNDBG_VENV_PATH}/bin/activate"
-    ~/.local/bin/poetry install --with dev
-
-    # Create a developer marker file
-    DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
-    touch "${DEV_MARKER_PATH}"
-    echo "Developer marker created at ${DEV_MARKER_PATH}"
 fi
